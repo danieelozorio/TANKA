@@ -27,16 +27,21 @@ node testes/regras.test.js
 - **Criação de personagem**: nome, sexo (Homem ou Mulher), raça e classe, até 3 por conta. O sexo muda só os retratos.
 - **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
 - **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–1.
-- **Level**: 10 de exp para o level 2, e a exp necessária dobra a cada level (10, 20, 40, 80…). Cada level dá 3 pontos de atributo.
+- **Level**: até o level 5 a exp dobra (10, 20, 40, 80, 160); do 6 em diante cada level pede 50% a mais (240, 360, 540…). **Level máximo: 40.** Cada level dá 3 pontos de atributo.
 - **Combate por velocidade**: velocidade = Destreza. Um monstro com o dobro da sua velocidade ataca duas vezes para cada ataque seu.
-- **Monstros**:
+- **Áreas de caça** (aba Caçar): cada área libera num level mínimo. Dentro da área, cada monstro tem o dobro de vida e exp do anterior; ataque +50% e velocidade +25% (a Floresta dobra tudo). Valores em `js/dados.js` (`areas`).
 
-| Monstro | HP | Ataque | Velocidade | Exp | Ouro (100%) | Drops |
-|---|---|---|---|---|---|---|
-| Lobo Selvagem | 20 | 1 | 8 | 2 | 2 | — |
-| Cobra Viscosa | 40 | 2 | 16 | 4 | 5 | Rara 10% |
-| Urso Raivoso | 80 | 4 | 32 | 8 | 20 | Épica 10%, Rara 30% |
+| Área | Level | Monstros | Chefe | Presença do chefe por abate |
+|---|---|---|---|---|
+| Floresta Sombria | 1+ | Lobo Selvagem, Cobra Viscosa, Urso Raivoso | Grakk, o Lobo Alfa | +1% |
+| Pântano de Brumafria | 5+ | Sapo Gigante, Aranha do Brejo, Troll do Pântano | Morgath, a Bruxa do Brejo | +0,7% |
+| Ruínas de Dravenhold | 10+ | Esqueleto Guerreiro, Goblin Saqueador, Gárgula | Varnok, o Lich | +0,5% |
+| Torre Carmesim | 15+ | Golem de Pedra, Cultista Sombrio, Espectro | O Guardião da Torre | +0,3% |
+| Areias Rubras | 20+ | Escorpião Gigante, Homem-Lagarto, Múmia | O Faraó Sem Nome | +0,2% |
+| Vale dos Dragões | 25+ | Drake, Wyvern, Cavaleiro Dracônico | Vhar'kesh, o Dragão Ancião | +0,15% |
+| Cume do Fogo Eterno | 30+ | Salamandra, Demônio de Lava, Elemental de Fogo | Ignaroth, Senhor das Chamas | +0,1% |
 
+- **Chefes**: vida x3, ataque +50%, exp x5 e ouro x5 do 3º monstro. Cada monstro morto na área soma presença (escondida do jogador); ao clicar em Caçar, se o sorteio cair, aparece o aviso "Enfrentar / Fugir". Fugir leva ao monstro escolhido. Derrotar o chefe zera a presença. O chefe sempre dropa 1 arma ou armadura (com chance de lendária) e 1 a 3 pergaminhos.
 - **Drops**: armas e armaduras sempre da classe do personagem (colar e anel servem para todos). A Sorte aumenta a chance (+1% relativo por ponto). Armaduras: Lobo 10% comum; Cobra 15% comum e 5% rara; Urso 10% rara e 3% épica.
 - **Aba Personagem** (abre primeiro): retrato com 8 espaços em volta (elmo, colar, peitoral, arma, luvas, 2 anéis, botas) e a mochila de 32 espaços. Com mouse: clicar equipa/desequipa e passar o mouse mostra a ficha do item com comparação. No celular: tocar mostra a ficha com os botões. Mochila cheia não recebe drops.
 - **Armaduras por classe**: Cavaleiro (placas: defesa e vida), Arqueiro (couro: destreza e sorte), Mago (tecido: inteligência e defesa mágica), Artesão (forja: força e sorte). Colar e anel para todos. Os bônus de atributo contam para tudo que o atributo influencia. Valores em `js/dados.js` (`armaduras` e `joias`).
@@ -70,7 +75,7 @@ Salve em `assets/personagens/` com o nome `raca-classe.jpg`, e com `-f` no final
 
 Ícones de itens (opcional) ficam em `assets/itens/`: armas `arma-<classe>-<raridade>.jpg`, armaduras `<classe>-<tipo>-<raridade>.jpg` (tipos: `elmo`, `peitoral`, `luvas`, `botas`) e joias `colar-<raridade>.jpg` / `anel-<raridade>.jpg`. Raridades: `comum`, `rara`, `epica`, `lendaria`. Sem o arquivo, aparece o ícone desenhado.
 
-Monstros ficam em `assets/monstros/`: `lobo-selvagem.jpg`, `cobra-viscosa.jpg`, `urso-raivoso.jpg`. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
+Monstros ficam em `assets/monstros/`, com o nome do monstro em minúsculas, sem acento e com hífens: `lobo-selvagem.jpg`, `aranha-do-brejo.jpg`, `cavaleiro-draconico.jpg`. Chefes usam só o primeiro nome: `grakk.jpg`, `morgath.jpg`, `varnok.jpg`, `guardiao-da-torre.jpg`, `farao-sem-nome.jpg`, `vharkesh.jpg`, `ignaroth.jpg`. Sem a arte, aparece uma silhueta provisória. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
 
 ## Fórmulas dos atributos
 

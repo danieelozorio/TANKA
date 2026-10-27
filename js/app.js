@@ -205,6 +205,8 @@
   function abrirJogo(id) {
     estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
     estado.aba = 'personagem';
+    estado.chefeAviso = null;
+    estado.area = D.areas.filter(function (a) { return R.areaLiberada(estado.personagem, a); }).pop().id;
     estado.vendaPendente = null;
     estado.itemFoco = null;
     estado.mercadoRaridade = 'comum';
@@ -248,7 +250,9 @@
       + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax) + '</div>'
-      + '<div class="suave">Experiência</div>' + barra('exp', p.exp, precisa, p.exp + ' / ' + precisa)
+      + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
+        ? barra('exp', 1, 1, 'Level máximo')
+        : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
       + '<button class="btn secundario largo" data-acao="descansar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Descansar (recupera a vida)</button>'
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
@@ -266,23 +270,59 @@
     }).join(', ');
   }
 
+  function cartaMonstro(id) {
+    var p = estado.personagem, s = R.status(p), m = D.monstros[id];
+    var ritmo = m.velocidade / Math.max(1, s.velocidade);
+    return '<article class="monstro"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+      + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
+      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt>Ataque</dt><dd>' + dano(m.ataque) + '</dd>'
+      + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
+      + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
+      + '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd><dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>'
+      + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
+      + '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button></div></article>';
+  }
+
+  // Carta do chefe: sem números, só o mistério.
+  function cartaChefe(area) {
+    var p = estado.personagem, id = area.chefe.id, m = D.monstros[id];
+    var abatidos = p.abates[id] || 0;
+    return '<article class="monstro chefe"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+      + '<div class="selo-chefe">Chefe</div><h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
+      + '<p class="misterio">Ronda esta área. Ninguém sabe quando vai aparecer… mas dizem que quanto mais sangue se derrama aqui, mais perto ele fica.</p>'
+      + (abatidos ? '<p class="mais">Derrotado ' + abatidos + ' vez(es).</p>' : '')
+      + '</div></article>';
+  }
+
   function abaCacar() {
     var p = estado.personagem, s = R.status(p);
-    var cartas = Object.keys(D.monstros).map(function (id) {
-      var m = D.monstros[id];
-      var ritmo = m.velocidade / Math.max(1, s.velocidade);
-      return '<article class="monstro"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
-        + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
-        + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp + '</dd><dt>Ataque</dt><dd>' + dano(m.ataque) + '</dd>'
-        + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
-        + '<dt>Experiência</dt><dd>' + m.exp + '</dd><dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd><dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>'
-        + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
-        + '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button></div></article>';
+    var area = D.areas.find(function (a) { return a.id === estado.area; }) || D.areas[0];
+    var lista = D.areas.map(function (a) {
+      var livre = R.areaLiberada(p, a);
+      var proxima = D.areas[D.areas.indexOf(a) + 1];
+      var faixa = proxima ? 'Lv ' + a.nivelMin + '–' + proxima.nivelMin : 'Lv ' + a.nivelMin + '+';
+      return '<button class="area' + (a.id === area.id ? ' selecionada' : '') + (livre ? '' : ' bloqueada') + '"'
+        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + '>'
+        + '<span class="area-nome">' + (livre ? '' : '🔒 ') + a.nome + '</span>'
+        + '<span class="area-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
-    return '<p class="suave">As armas e armaduras que caem são sempre da sua classe (colar e anel servem para todos). '
+    return '<div class="areas">' + lista + '</div>'
+      + '<h3 class="subtitulo">' + area.nome + '</h3><p class="suave">' + area.descricao + ' '
+      + 'As armas e armaduras que caem são sempre da sua classe (colar e anel servem para todos). '
       + 'Sua Sorte aumenta as chances em +' + s.bonusDrop + '%.'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '')
-      + '</p><div class="monstros">' + cartas + '</div>';
+      + '</p><div class="monstros">' + area.monstros.map(function (m) { return cartaMonstro(m.id); }).join('') + cartaChefe(area) + '</div>';
+  }
+
+  // Aviso antes da luta contra o chefe.
+  function avisoChefeHtml() {
+    var a = estado.chefeAviso, m = D.monstros[a.chefe];
+    return '<div class="aviso-chefe"><div class="moldura">' + F.imagemMonstro(a.chefe) + '</div><div>'
+      + '<p class="rugido">Um rugido ecoa pela área…</p><h2>' + m.nome + ' está por perto!</h2>'
+      + '<p class="suave">' + m.descricao + '</p>'
+      + '<div class="botoes"><button class="btn perigo" data-acao="enfrentar-chefe">Enfrentar</button>'
+      + '<button class="btn secundario" data-acao="fugir-chefe">Fugir</button></div>'
+      + '<p class="suave pequeno">Fugir: você escapa e caça ' + D.monstros[a.monstro].nome + ' normalmente.</p></div></div>';
   }
 
   // Ficha do item em foco, com comparação ao que está equipado no mesmo espaço.
@@ -465,21 +505,22 @@
     var r = estado.resultado;
     if (!r) return '';
     var m = D.monstros[r.monstroId];
+    var cacarDeNovo = r.escolhido ? '<button class="btn" data-acao="cacar" data-monstro="' + r.escolhido + '">Caçar de novo</button>' : '';
     if (r.resultado === 'vitoria') {
-      return '<div class="resultado"><h2>Vitória!</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
+      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeItem(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
         + (r.dropArmadura ? '<p>Drop: <strong class="raridade-' + r.dropArmadura.raridade + '">' + R.nomeItem(r.dropArmadura) + ' (' + D.raridades[r.dropArmadura.raridade].nome + ')</strong></p>' : '')
         + (r.mochilaCheia ? '<p class="menos">Mochila cheia! Um item caiu e se perdeu. Venda itens na aba Personagem.</p>' : '')
-        + (r.pergaminho ? '<p>Drop: <strong>Pergaminho para item <span class="raridade-' + r.pergaminho + '">' + ITEM_RARIDADE[r.pergaminho] + '</span></strong></p>' : '')
-        + '<div class="botoes"><button class="btn" data-acao="cacar" data-monstro="' + r.monstroId + '">Caçar de novo</button>'
+        + (r.pergaminho ? '<p>Drop: <strong>' + (r.qtdPergaminhos > 1 ? r.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item <span class="raridade-' + r.pergaminho + '">' + ITEM_RARIDADE[r.pergaminho] + '</span></strong></p>' : '')
+        + '<div class="botoes">' + cacarDeNovo
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     if (r.resultado === 'derrota') {
       return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento com metade da vida.</p>'
-        + '<div class="botoes"><button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
+        + '<div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
-    return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes"><button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
+    return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
   }
 
   function batalhaHtml() {
@@ -501,7 +542,9 @@
 
   function telaJogo() {
     var painel;
-    if (estado.batalha || estado.resultado) {
+    if (estado.chefeAviso) {
+      painel = avisoChefeHtml();
+    } else if (estado.batalha || estado.resultado) {
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = '<nav class="abas-jogo"><button data-acao="aba" data-aba="personagem" class="' + (estado.aba === 'personagem' ? 'ativa' : '') + '">Personagem</button>'
@@ -519,19 +562,31 @@
     if (reg) reg.scrollTop = reg.scrollHeight;
   }
 
+  // Leva a tela até o painel (aviso do chefe e batalha aparecem no topo dele).
+  function mostrarPainel() {
+    var painel = document.querySelector('.jogo > section');
+    if (painel && painel.getBoundingClientRect().top < 0) window.scrollTo(0, window.scrollY + painel.getBoundingClientRect().top - 8);
+  }
+
   // ---------------- Batalha ----------------
 
   function linha(classe, texto) {
     estado.registro.push('<p class="' + classe + '">' + texto + '</p>');
   }
 
-  function iniciarCaca(monstroId) {
+  // `escolhido` é o monstro que o jogador clicou (para "Caçar de novo" depois de um chefe).
+  function iniciarCaca(monstroId, escolhido) {
     var p = estado.personagem;
     estado.resultado = null;
+    estado.chefeAviso = null;
+    estado.escolhido = escolhido || monstroId;
     estado.batalha = R.iniciarBatalha(p, monstroId);
     estado.registro = [];
-    linha('destaque', esc(p.nome) + ' encontra ' + D.monstros[monstroId].nome + '!');
+    linha('destaque', D.monstros[monstroId].chefe
+      ? esc(p.nome) + ' enfrenta ' + D.monstros[monstroId].nome + '!'
+      : esc(p.nome) + ' encontra ' + D.monstros[monstroId].nome + '!');
     telaJogo();
+    mostrarPainel();
     agendar();
   }
 
@@ -584,13 +639,14 @@
     clearTimeout(estado.timer);
     var res = R.concluirBatalha(estado.personagem, b);
     res.monstroId = b.monstroId;
+    res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
       linha('destaque', 'Vitória! +' + res.exp + ' de exp.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + D.raridades[res.drop.raridade].nome + ')!');
       if (res.dropArmadura) linha('destaque', 'Drop: ' + R.nomeItem(res.dropArmadura) + ' (' + D.raridades[res.dropArmadura.raridade].nome + ')!');
       if (res.mochilaCheia) linha('dano-recebido', 'Mochila cheia! Um item se perdeu.');
-      if (res.pergaminho) linha('destaque', 'Drop: Pergaminho para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
+      if (res.pergaminho) linha('destaque', 'Drop: ' + (res.qtdPergaminhos > 1 ? res.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
     } else if (res.resultado === 'derrota') {
       linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
     } else {
@@ -775,7 +831,34 @@
         telaJogo();
         break;
       }
-      case 'cacar': iniciarCaca(el.dataset.monstro); break;
+      case 'cacar': {
+        var alvo = el.dataset.monstro;
+        if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
+        var chefe = R.sortearChefe(p, alvo);
+        if (chefe) {
+          clearTimeout(estado.timer);
+          estado.resultado = null;
+          estado.chefeAviso = { chefe: chefe, monstro: alvo };
+          telaJogo();
+          mostrarPainel();
+        } else {
+          iniciarCaca(alvo);
+        }
+        break;
+      }
+      case 'enfrentar-chefe':
+        if (estado.chefeAviso) iniciarCaca(estado.chefeAviso.chefe, estado.chefeAviso.monstro);
+        break;
+      case 'fugir-chefe':
+        if (estado.chefeAviso) {
+          avisar('Você escapou do chefe... por enquanto.');
+          iniciarCaca(estado.chefeAviso.monstro);
+        }
+        break;
+      case 'area':
+        estado.area = el.dataset.valor;
+        telaJogo();
+        break;
       case 'fugir': encerrar(); break;
       case 'velocidade':
         estado.rapido = !estado.rapido;

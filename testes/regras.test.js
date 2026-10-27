@@ -379,3 +379,82 @@ teste('personagem antigo com armaEquipada vira equipados.arma', () => {
   assert.strictEqual(p.inventario[0].tipo, 'arma');
   assert.ok(!('armaEquipada' in p));
 });
+
+// ---------- Áreas, chefes e curva de level ----------
+
+teste('curva de level: dobra até o 5, depois +50% por level; máximo 40', () => {
+  assert.deepStrictEqual([1, 2, 3, 4, 5, 6, 7, 8, 10].map(R.expNecessaria), [10, 20, 40, 80, 160, 240, 360, 540, 1215]);
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 100);
+  assert.strictEqual(p.nivel, D.NIVEL_MAXIMO);
+  R.ganharExp(p, 1e12);
+  assert.strictEqual(p.nivel, 40); assert.strictEqual(p.exp, 0);
+});
+
+teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra tudo), chefe pela regra', () => {
+  assert.strictEqual(D.areas.length, 7);
+  for (const a of D.areas) {
+    const [m1, m2, m3] = a.monstros.map((m) => D.monstros[m.id]);
+    assert.strictEqual(m1.hp, a.base.hp); assert.strictEqual(m1.exp, a.base.exp);
+    const cr = a.crescimento || D.crescimento;
+    [m1, m2, m3].forEach((m, i) => {
+      assert.strictEqual(m.hp, a.base.hp * 2 ** i); assert.strictEqual(m.exp, a.base.exp * 2 ** i);
+      assert.strictEqual(m.ataque[0], Math.round(a.base.ataque * cr.ataque ** i));
+      assert.strictEqual(m.velocidade, Math.round(a.base.velocidade * cr.velocidade ** i));
+    });
+    const c = D.monstros[a.chefe.id];
+    assert.ok(c.chefe);
+    assert.strictEqual(c.hp, m3.hp * 3); assert.strictEqual(c.ataque[0], Math.round(m3.ataque[0] * 1.5));
+    assert.strictEqual(c.velocidade, m2.velocidade); assert.strictEqual(c.exp, m3.exp * 5); assert.strictEqual(c.ouro, m3.ouro * 5);
+  }
+  assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [70, 280, 2200]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [8, 12, 18]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].velocidade), [9, 11, 14]);
+  assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
+});
+
+teste('áreas bloqueadas por level; chefe não pode ser caçado direto', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.ok(R.podeCacar(p, 'lobo'));
+  assert.ok(!R.podeCacar(p, 'sapo'));
+  assert.ok(!R.podeCacar(p, 'grakk'));
+  R.admin.subirNivel(p, 4);
+  assert.strictEqual(p.nivel, 5);
+  assert.ok(R.podeCacar(p, 'sapo'));
+  assert.ok(!R.podeCacar(p, 'esqueleto'));
+});
+
+teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const vencer = (id) => { const b = R.iniciarBatalha(p, id, rng); b.fim = 'vitoria'; return R.concluirBatalha(p, b); };
+  for (let i = 0; i < 30; i++) vencer('lobo');
+  assert.strictEqual(p.presencaChefe.floresta, 30);
+  R.admin.subirNivel(p, 10);
+  for (let i = 0; i < 3; i++) vencer('sapo');
+  assert.strictEqual(p.presencaChefe.pantano, 2.1);
+  assert.strictEqual(R.sortearChefe(p, 'cobra', () => 0.29), 'grakk');
+  assert.strictEqual(R.sortearChefe(p, 'cobra', () => 0.31), null);
+  for (let i = 0; i < 200; i++) vencer('urso');
+  assert.strictEqual(p.presencaChefe.floresta, 100);
+  p.inventario = p.inventario.filter((i) => R.slotDoItem(p, i.id)); // esvazia a mochila
+  const res = vencer('grakk');
+  assert.strictEqual(p.presencaChefe.floresta, 0);
+  assert.strictEqual(p.presencaChefe.pantano, 2.1);
+  assert.ok(res.drop || res.dropArmadura, 'chefe sempre dropa');
+  assert.ok(res.qtdPergaminhos >= 1 && res.qtdPergaminhos <= 3);
+});
+
+teste('drop do chefe: raridades pela tabela (Floresta: lend. 5%, épica 25%, senão rara)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  p.atributos.sor = 0;
+  const c = { lendaria: 0, epica: 0, rara: 0 }, N = 20000;
+  for (let i = 0; i < N; i++) {
+    p.inventario = p.inventario.slice(0, 1);
+    const b = R.iniciarBatalha(p, 'grakk', rng); b.fim = 'vitoria';
+    const res = R.concluirBatalha(p, b);
+    const it = res.drop || res.dropArmadura;
+    c[it.raridade]++;
+    if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago');
+  }
+  assert.ok(Math.abs(c.lendaria / N * 100 - 5) < 0.8 && Math.abs(c.epica / N * 100 - 25) < 1.5, JSON.stringify(c));
+});

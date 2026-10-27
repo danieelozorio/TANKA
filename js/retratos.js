@@ -214,6 +214,34 @@ Tanka.retratos = (function () {
       + '</svg>';
   }
 
+  // Ilustração provisória para monstros sem arte: silhueta na névoa com olhos brilhando.
+  // Chefes ganham coroa de chifres e olhos vermelhos.
+  var COR_AREA = {
+    floresta: '#2f4a2a', pantano: '#2c4a44', ruinas: '#3d3a4a', torre: '#5a1e24',
+    areias: '#6a3a1a', vale: '#2a2f4a', cume: '#6a2410',
+  };
+  function monstroProvisorio(id) {
+    var m = Tanka.dados.monstros[id];
+    if (!m) return '';
+    var uid = 'g' + (++contador);
+    var cor = COR_AREA[m.area] || '#333';
+    var olho = m.chefe ? '#ff3b2f' : '#f2d01e';
+    var chifres = m.chefe
+      ? '<path d="M62 70 L40 20 L78 58 Z M138 70 L160 20 L122 58 Z" fill="#0a0a0d"/>'
+        + '<path d="M70 60 L80 34 L90 56 L100 28 L110 56 L120 34 L130 60 Z" fill="#c9a96b" opacity=".85"/>'
+      : '<path d="M66 70 L54 40 L82 62 Z M134 70 L146 40 L118 62 Z" fill="#0a0a0d"/>';
+    return '<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" role="img" class="retrato-svg" preserveAspectRatio="xMidYMid slice">'
+      + '<defs><radialGradient id="f' + uid + '" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="' + cor + '"/><stop offset="1" stop-color="#050608"/></radialGradient>'
+      + '<radialGradient id="o' + uid + '"><stop offset="0" stop-color="' + olho + '"/><stop offset="1" stop-color="' + olho + '" stop-opacity="0"/></radialGradient></defs>'
+      + '<rect width="200" height="240" fill="url(#f' + uid + ')"/>'
+      + '<path d="M10 240 Q20 150 60 130 Q50 90 70 70 Q100 50 130 70 Q150 90 140 130 Q180 150 190 240 Z" fill="#0a0a0d"/>'
+      + chifres
+      + '<circle cx="84" cy="100" r="14" fill="url(#o' + uid + ')"/><circle cx="116" cy="100" r="14" fill="url(#o' + uid + ')"/>'
+      + '<ellipse cx="84" cy="100" rx="6" ry="3" fill="' + olho + '"/><ellipse cx="116" cy="100" rx="6" ry="3" fill="' + olho + '"/>'
+      + '<rect y="190" width="200" height="50" fill="' + cor + '" opacity=".25"/>'
+      + '</svg>';
+  }
+
   var MONSTROS = { cobra: cobra, urso: urso };
 
   // Arte pintada em assets/personagens/<raca>-<classe>[-f].jpg, ex.: elfonegro-mago-f.jpg.
@@ -232,7 +260,7 @@ Tanka.retratos = (function () {
   function imagemMonstro(id) {
     var m = Tanka.dados.monstros[id];
     if (m.imagem) return '<img class="retrato-img" src="' + m.imagem + '" alt="' + m.nome + '" data-monstro="' + id + '">';
-    return MONSTROS[id] ? MONSTROS[id]() : '';
+    return MONSTROS[id] ? MONSTROS[id]() : monstroProvisorio(id);
   }
 
   // ---------- Ícones de itens ----------
@@ -331,7 +359,7 @@ Tanka.retratos = (function () {
       return;
     }
     if (!img.classList.contains('retrato-img')) return;
-    var svg = d.monstro ? (MONSTROS[d.monstro] ? MONSTROS[d.monstro]() : '') : desenho(d.raca, d.classe, d.sexo);
+    var svg = d.monstro ? (MONSTROS[d.monstro] ? MONSTROS[d.monstro]() : monstroProvisorio(d.monstro)) : desenho(d.raca, d.classe, d.sexo);
     img.outerHTML = svg;
   }, true);
 

@@ -365,3 +365,45 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   .mochila { gap: 3px; }
   .item-com-icone { flex-direction: row; flex-wrap: wrap; }
 }
+
+/* ---------- Áreas de caça e chefes ---------- */
+.areas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+.area {
+  display: flex; flex-direction: column; gap: .15rem; text-align: left;
+  padding: .55rem .7rem; border: 2px solid var(--borda); border-radius: 8px;
+  background: var(--painel-2); color: var(--texto); font: inherit; cursor: pointer;
+}
+.area:hover { border-color: #5a5040; }
+.area.selecionada { border-color: var(--ouro); box-shadow: 0 0 14px rgba(201, 169, 107, .3); }
+.area.bloqueada { opacity: .45; cursor: not-allowed; }
+.area-nome { font-family: var(--titulo); color: var(--ouro-claro); font-size: .9rem; }
+.area-nivel { color: var(--suave); font-size: .82rem; }
+
+.monstro.chefe { border-color: #7a2a22; background: linear-gradient(#1d1214, var(--painel-2)); }
+.monstro.chefe .moldura { filter: saturate(.7) brightness(.8); }
+.selo-chefe {
+  align-self: flex-start; padding: 0 .5em; border: 1px solid #d0645a; border-radius: 4px;
+  color: #f0a49b; font-family: var(--titulo); font-size: .75rem; letter-spacing: .1em; text-transform: uppercase;
+}
+.misterio { font-style: italic; color: #c9b3a0; }
+
+.aviso-chefe {
+  display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 1.2rem; align-items: center;
+  padding: 1.2rem; border: 1px solid #b8322a; border-radius: 10px;
+  background: radial-gradient(ellipse at 30% 40%, rgba(184, 50, 42, .25), transparent 70%), #120b0c;
+  animation: tremer .5s;
+}
+.aviso-chefe .moldura { aspect-ratio: 4 / 5; overflow: hidden; border-radius: 8px; border: 2px solid #b8322a; box-shadow: 0 0 30px rgba(184, 50, 42, .5); }
+.aviso-chefe .moldura img, .aviso-chefe .moldura svg { width: 100%; height: 100%; object-fit: cover; }
+.aviso-chefe h2 { color: #ffb0a4; }
+.aviso-chefe .botoes { justify-content: flex-start; margin: .8rem 0 .4rem; }
+.rugido { font-family: var(--titulo); color: #d0645a; letter-spacing: .08em; margin: 0 0 .2rem; }
+.pequeno { font-size: .85rem; }
+.resultado.vitoria-chefe { border-color: var(--lendaria); background: rgba(242, 201, 76, .08); }
+.resultado.vitoria-chefe h2 { color: var(--lendaria); text-shadow: 0 0 14px rgba(242, 201, 76, .5); }
+
+@media (max-width: 520px) {
+  .areas { grid-template-columns: 1fr 1fr; }
+  .aviso-chefe { grid-template-columns: 1fr; }
+  .aviso-chefe .moldura { max-width: 220px; margin: 0 auto; }
+}

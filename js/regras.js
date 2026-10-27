@@ -22,8 +22,12 @@ Tanka.regras = (function () {
     return base;
   }
 
-  // Exp para passar do `nivel` atual ao próximo: 10, 20, 40, 80...
-  function expNecessaria(nivel) { return D.EXP_BASE * Math.pow(2, nivel - 1); }
+  // Exp para passar do `nivel` atual ao próximo: dobra até o level 5 (10, 20, 40, 80, 160)
+  // e depois cresce 50% por level (240, 360, 540...).
+  function expNecessaria(nivel) {
+    if (nivel <= 5) return D.EXP_BASE * Math.pow(2, nivel - 1);
+    return Math.round(D.EXP_BASE * 16 * Math.pow(D.EXP_CRESCIMENTO, nivel - 5));
+  }
 
   var RARIDADES = Object.keys(D.raridades);         // comum, rara, epica, lendaria
   var TIPOS_ARMADURA = ['elmo', 'peitoral', 'luvas', 'botas'];
@@ -148,6 +152,7 @@ Tanka.regras = (function () {
       inventario: [arma],
       equipados: Object.assign(equipamentosVazios(), { arma: arma.id }),
       abates: {},
+      presencaChefe: {},   // por área: % acumulada de o chefe aparecer (o jogador não vê)
       criadoEm: new Date().toISOString(),
     };
   }
@@ -162,6 +167,7 @@ Tanka.regras = (function () {
       if (typeof i.encanto !== 'number') i.encanto = 0;
       if (!i.tipo) i.tipo = 'arma';
     });
+    if (!p.presencaChefe) p.presencaChefe = {};
     if (!p.equipados) {
       p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
       delete p.armaEquipada;
@@ -215,12 +221,13 @@ Tanka.regras = (function () {
   function ganharExp(p, quantidade) {
     var niveis = 0;
     p.exp += quantidade;
-    while (p.exp >= expNecessaria(p.nivel)) {
+    while (p.nivel < D.NIVEL_MAXIMO && p.exp >= expNecessaria(p.nivel)) {
       p.exp -= expNecessaria(p.nivel);
       p.nivel += 1;
       p.pontosLivres += D.PONTOS_POR_NIVEL;
       niveis += 1;
     }
+    if (p.nivel >= D.NIVEL_MAXIMO) p.exp = 0;
     if (niveis > 0) p.hpAtual = status(p).hpMax;
     return niveis;
   }
@@ -246,6 +253,35 @@ Tanka.regras = (function () {
   function rolarDropArmadura(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].dropsArmadura || [], rng);
     if (!raridade) return null;
+    var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
+    return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
+  }
+
+  // ---------- Áreas e chefes ----------
+
+  function areaDoMonstro(monstroId) {
+    var area = D.monstros[monstroId].area;
+    return D.areas.find(function (a) { return a.id === area; });
+  }
+  function areaLiberada(p, area) { return p.nivel >= area.nivelMin; }
+
+  // Monstros comuns de áreas liberadas podem ser caçados; chefes só aparecem sozinhos.
+  function podeCacar(p, monstroId) {
+    var m = D.monstros[monstroId];
+    return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId));
+  }
+
+  // Ao clicar em Caçar: sorteia se o chefe da área aparece no lugar do monstro.
+  function sortearChefe(p, monstroId, rng) {
+    var area = areaDoMonstro(monstroId);
+    var chance = p.presencaChefe[area.id] || 0;
+    return (rng || Math.random)() * 100 < chance ? area.chefe.id : null;
+  }
+
+  // Drop garantido do chefe: arma ou armadura, raridade pela tabela do chefe.
+  function dropChefe(p, m, rng) {
+    var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
+    if (rng() < 0.5) return novaArma(p.classe, raridade);
     var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
     return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
   }
@@ -316,18 +352,37 @@ Tanka.regras = (function () {
     p.hpAtual = b.jogador.hp;
     if (b.fim === 'vitoria') {
       var m = D.monstros[b.monstroId];
+      var area = areaDoMonstro(b.monstroId);
       p.abates[b.monstroId] = (p.abates[b.monstroId] || 0) + 1;
+      if (m.chefe) {
+        p.presencaChefe[area.id] = 0;
+      } else {
+        var presenca = (p.presencaChefe[area.id] || 0) + area.chanceChefe;
+        p.presencaChefe[area.id] = Math.min(100, Math.round(presenca * 100) / 100);
+      }
       res.exp = m.exp;
       res.ouro = m.ouro;
       p.ouro += m.ouro;
       res.niveis = ganharExp(p, m.exp);
-      res.drop = rolarDrop(p, b.monstroId, b.rng);
-      res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
+      if (m.chefe) {
+        var premio = dropChefe(p, m, b.rng);
+        if (premio.tipo === 'arma') res.drop = premio; else res.dropArmadura = premio;
+        var arma = armaEquipada(p);
+        var faixa = D.chefe.pergaminhos;
+        res.pergaminho = arma ? arma.raridade : 'comum';
+        res.qtdPergaminhos = faixa[0] + Math.floor(b.rng() * (faixa[1] - faixa[0] + 1));
+        p.pergaminhos[res.pergaminho] += res.qtdPergaminhos;
+      } else {
+        res.drop = rolarDrop(p, b.monstroId, b.rng);
+        res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
+      }
       // Mochila cheia: o item se perde e o jogador é avisado.
       if (res.drop && !guardar(p, res.drop)) { res.drop = null; res.mochilaCheia = true; }
       if (res.dropArmadura && !guardar(p, res.dropArmadura)) { res.dropArmadura = null; res.mochilaCheia = true; }
-      res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
-      if (res.pergaminho) p.pergaminhos[res.pergaminho] += 1;
+      if (!m.chefe) {
+        res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
+        if (res.pergaminho) { p.pergaminhos[res.pergaminho] += 1; res.qtdPergaminhos = 1; }
+      }
     } else if (b.fim === 'derrota') {
       p.hpAtual = Math.ceil(status(p).hpMax / 2);
     }
@@ -421,7 +476,7 @@ Tanka.regras = (function () {
   var admin = {
     ouro: function (p, quantidade) { p.ouro += quantidade; },
     subirNivel: function (p, niveis) {
-      for (var i = 0; i < niveis; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
+      for (var i = 0; i < niveis && p.nivel < D.NIVEL_MAXIMO; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
     },
     // Uma arma de cada raridade da classe, já com o encantamento escolhido.
     armas: function (p, encanto) {
@@ -507,5 +562,9 @@ Tanka.regras = (function () {
     mochilaCheia: mochilaCheia,
     podeUsar: podeUsar,
     rolarDropArmadura: rolarDropArmadura,
+    areaDoMonstro: areaDoMonstro,
+    areaLiberada: areaLiberada,
+    podeCacar: podeCacar,
+    sortearChefe: sortearChefe,
   };
 })();

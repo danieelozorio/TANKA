@@ -16,7 +16,8 @@ Tanka.dados = {
   HP_POR_NIVEL: 10,       // HP extra a cada level
   HP_POR_RES: 5,          // HP extra por ponto de Resistência distribuído
   PONTOS_POR_NIVEL: 3,    // pontos de atributo ganhos a cada level
-  EXP_BASE: 10,           // exp para sair do level 1; dobra a cada level
+  EXP_BASE: 10,           // exp para sair do level 1; dobra a cada level até o 5
+  EXP_CRESCIMENTO: 1.5,   // do level 6 em diante, cada level pede 50% a mais que o anterior
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
@@ -198,39 +199,172 @@ Tanka.dados = {
   // ouro: sempre cai (100%) ao derrotar o monstro.
   // Cada monstro tem o dobro dos atributos e da exp do anterior.
   // destreza = velocidade (usada para evasão e precisão do monstro).
+  // ---------- Áreas de caça ----------
+  // Dentro da área, cada monstro tem o dobro de vida e exp do anterior; ataque e velocidade
+  // crescem conforme `crescimento` (a Floresta dobra tudo, como Lobo → Cobra → Urso).
+  // `base` são os valores do 1º monstro; o chefe é calculado a partir do 3º (ver abaixo).
   // drops: armas; dropsArmadura: peças (4 da classe + colar + anel, sorteada).
   // Chances em % (cumulativas, roladas uma vez), multiplicadas pelo bônus de Sorte.
-  monstros: {
-    lobo: {
-      nome: 'Lobo Selvagem',
-      descricao: 'Caça em matilha nas florestas enevoadas.',
-      hp: 20, ataque: [1, 1], velocidade: 8, defesa: 0, defesaMagica: 0,
-      exp: 2,
-      ouro: 2,
-      drops: [],
-      dropsArmadura: [{ raridade: 'comum', chance: 10 }],
-      imagem: 'assets/monstros/lobo-selvagem.jpg',
+  // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
+  NIVEL_MAXIMO: 40,
+  areas: [
+    {
+      id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1,
+      crescimento: { ataque: 2, velocidade: 2 },
+      descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
+      base: { hp: 20, ataque: 1, velocidade: 8, exp: 2 }, ouro: [2, 5, 20],
+      monstros: [
+        { id: 'lobo', nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
+          drops: [], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
+        { id: 'cobra', nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
+          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 15 }, { raridade: 'rara', chance: 5 }] },
+        { id: 'urso', nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
+          drops: [{ raridade: 'epica', chance: 10 }, { raridade: 'rara', chance: 30 }],
+          dropsArmadura: [{ raridade: 'rara', chance: 10 }, { raridade: 'epica', chance: 3 }] },
+      ],
+      chefe: { id: 'grakk', nome: 'Grakk, o Lobo Alfa', descricao: 'O líder da matilha. Seus uivos gelam o sangue.',
+        drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 25 }], dropPadrao: 'rara' },
     },
-    cobra: {
-      nome: 'Cobra Viscosa',
-      descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
-      hp: 40, ataque: [2, 2], velocidade: 16, defesa: 0, defesaMagica: 0,
-      exp: 4,
-      ouro: 5,
-      drops: [{ raridade: 'rara', chance: 10 }],
-      dropsArmadura: [{ raridade: 'comum', chance: 15 }, { raridade: 'rara', chance: 5 }],
-      imagem: 'assets/monstros/cobra-viscosa.jpg',
+    {
+      id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7,
+      descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
+      base: { hp: 70, ataque: 8, velocidade: 9, exp: 10 }, ouro: [30, 60, 120],
+      monstros: [
+        { id: 'sapo', nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.',
+          drops: [{ raridade: 'rara', chance: 5 }], dropsArmadura: [{ raridade: 'comum', chance: 20 }] },
+        { id: 'aranha', nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.',
+          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 5 }] },
+        { id: 'troll', nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.',
+          drops: [{ raridade: 'epica', chance: 8 }, { raridade: 'rara', chance: 25 }],
+          dropsArmadura: [{ raridade: 'epica', chance: 3 }, { raridade: 'rara', chance: 10 }] },
+      ],
+      chefe: { id: 'morgath', nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.',
+        drops: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 40 }], dropPadrao: 'rara' },
     },
-    urso: {
-      nome: 'Urso Raivoso',
-      descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
-      hp: 80, ataque: [4, 4], velocidade: 32, defesa: 0, defesaMagica: 0,
-      exp: 8,
-      ouro: 20,
-      drops: [{ raridade: 'epica', chance: 10 }, { raridade: 'rara', chance: 30 }],
-      dropsArmadura: [{ raridade: 'rara', chance: 10 }, { raridade: 'epica', chance: 3 }],
-      chancePergaminho: 5,
-      imagem: 'assets/monstros/urso-raivoso.jpg',
+    {
+      id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5,
+      descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
+      base: { hp: 140, ataque: 15, velocidade: 10, exp: 30 }, ouro: [100, 200, 400],
+      monstros: [
+        { id: 'esqueleto', nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.',
+          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 8 }] },
+        { id: 'goblin', nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.',
+          drops: [{ raridade: 'epica', chance: 3 }, { raridade: 'rara', chance: 20 }],
+          dropsArmadura: [{ raridade: 'epica', chance: 2 }, { raridade: 'rara', chance: 12 }] },
+        { id: 'gargula', nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.',
+          drops: [{ raridade: 'epica', chance: 10 }], dropsArmadura: [{ raridade: 'epica', chance: 5 }] },
+      ],
+      chefe: { id: 'varnok', nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
+        drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
     },
-  },
+    {
+      id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3,
+      descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
+      base: { hp: 200, ataque: 22, velocidade: 11, exp: 90 }, ouro: [300, 600, 1200],
+      monstros: [
+        { id: 'golem', nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.',
+          drops: [{ raridade: 'epica', chance: 5 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
+        { id: 'cultista', nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.',
+          drops: [{ raridade: 'epica', chance: 8 }], dropsArmadura: [{ raridade: 'epica', chance: 4 }] },
+        { id: 'espectro', nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.',
+          drops: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 12 }], dropsArmadura: [{ raridade: 'epica', chance: 6 }] },
+      ],
+      chefe: { id: 'guardiao', nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.',
+        drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
+    },
+    {
+      id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2,
+      descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
+      base: { hp: 320, ataque: 37, velocidade: 12, exp: 270 }, ouro: [800, 1600, 3200],
+      monstros: [
+        { id: 'escorpiao', nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.',
+          drops: [{ raridade: 'epica', chance: 10 }], dropsArmadura: [{ raridade: 'epica', chance: 6 }] },
+        { id: 'lagarto', nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.',
+          drops: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 14 }], dropsArmadura: [{ raridade: 'epica', chance: 8 }] },
+        { id: 'mumia', nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.',
+          drops: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 18 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 10 }] },
+      ],
+      chefe: { id: 'farao', nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.',
+        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+    },
+    {
+      id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15,
+      descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
+      base: { hp: 420, ataque: 48, velocidade: 13, exp: 800 }, ouro: [2000, 4000, 8000],
+      monstros: [
+        { id: 'drake', nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.',
+          drops: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 15 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 10 }] },
+        { id: 'wyvern', nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.',
+          drops: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 18 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 12 }] },
+        { id: 'cavaleiroDraconico', nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.',
+          drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 20 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 15 }] },
+      ],
+      chefe: { id: 'vharkesh', nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.',
+        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+    },
+    {
+      id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1,
+      descricao: 'O topo do vulcão, onde a lava nunca esfria.',
+      base: { hp: 550, ataque: 60, velocidade: 14, exp: 2400 }, ouro: [5000, 10000, 20000],
+      monstros: [
+        { id: 'salamandra', nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.',
+          drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 20 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 15 }] },
+        { id: 'demonio', nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.',
+          drops: [{ raridade: 'lendaria', chance: 7 }, { raridade: 'epica', chance: 22 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 18 }] },
+        { id: 'elemental', nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.',
+          drops: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 25 }],
+          dropsArmadura: [{ raridade: 'lendaria', chance: 7 }, { raridade: 'epica', chance: 20 }] },
+      ],
+      chefe: { id: 'ignaroth', nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.',
+        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+    },
+  ],
+
+  // Crescimento de ataque e velocidade de um monstro para o próximo (dobrar tudo deixava
+  // o 3º monstro e o chefe impossíveis: 4x o ataque com 4x a velocidade = 16x o dano).
+  crescimento: { ataque: 1.5, velocidade: 1.25 },
+
+  // Chefe em relação ao 3º monstro da área.
+  chefe: { vida: 3, ataque: 1.5, exp: 5, ouro: 5, pergaminhos: [1, 3] },
+
+  // Preenchido abaixo a partir das áreas.
+  monstros: {},
 };
+
+// Monta os monstros e chefes a partir das áreas (regra do dobro dentro de cada área).
+(function (D) {
+  function arquivo(nome) {
+    return 'assets/monstros/' + nome.split(',')[0].normalize('NFD').replace(/[\u0300-\u036f']/g, '')
+      .toLowerCase().replace(/^o /, '').trim().replace(/\s+/g, '-') + '.jpg';
+  }
+  D.areas.forEach(function (area) {
+    var b = area.base, c0 = area.crescimento || D.crescimento;
+    area.monstros.forEach(function (m, i) {
+      var f = Math.pow(2, i);
+      var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i));
+      D.monstros[m.id] = {
+        nome: m.nome, descricao: m.descricao, area: area.id,
+        hp: b.hp * f, ataque: [ataque, ataque], velocidade: Math.round(b.velocidade * Math.pow(c0.velocidade, i)),
+        defesa: 0, defesaMagica: 0, exp: b.exp * f, ouro: area.ouro[i],
+        drops: m.drops, dropsArmadura: m.dropsArmadura,
+        chancePergaminho: i === 2 ? 5 : 0,
+        imagem: arquivo(m.nome),
+      };
+    });
+    var m2 = D.monstros[area.monstros[1].id], m3 = D.monstros[area.monstros[2].id], c = area.chefe;
+    D.monstros[c.id] = {
+      nome: c.nome, descricao: c.descricao, area: area.id, chefe: true,
+      hp: m3.hp * D.chefe.vida, ataque: [Math.round(m3.ataque[0] * D.chefe.ataque), Math.round(m3.ataque[1] * D.chefe.ataque)],
+      velocidade: m2.velocidade, defesa: 0, defesaMagica: 0,
+      exp: m3.exp * D.chefe.exp, ouro: m3.ouro * D.chefe.ouro,
+      drops: [], dropsArmadura: [], dropsChefe: c.drops, dropPadrao: c.dropPadrao,
+      imagem: arquivo(c.nome),
+    };
+  });
+})(Tanka.dados);
