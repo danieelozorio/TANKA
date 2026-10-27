@@ -252,7 +252,7 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .resultado.derrota { border-color: var(--ruim); background: rgba(208, 100, 90, .07); }
 .botoes { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
 
-.abas-jogo { display: flex; gap: .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--borda); overflow-x: auto; }
+.abas-jogo { display: flex; flex-wrap: wrap; gap: .2rem .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--borda); }
 .abas-jogo button { white-space: nowrap; }
 .abas-jogo button { background: none; border: 0; border-bottom: 2px solid transparent; padding: .5em .9em; color: var(--suave); font-family: var(--titulo); cursor: pointer; }
 .abas-jogo button.ativa { color: var(--ouro-claro); border-bottom-color: var(--ouro); }
@@ -278,5 +278,7 @@ table.atributos th { color: var(--suave); font-weight: 500; }
   .vs { display: none; }
   .ficha .cabeca { grid-template-columns: 80px 1fr; }
   .item { flex-direction: column; align-items: stretch; }
+  .abas-jogo { display: grid; grid-template-columns: 1fr 1fr; }
+  .abas-jogo button { padding: .5em .4em; }
   .item-acoes { justify-content: flex-start; }
 }

@@ -13,6 +13,8 @@ python3 -m http.server 8000
 
 > Use `http://localhost` ou `https://`: o hash da senha usa a Web Crypto do navegador, que só funciona em contexto seguro.
 
+> Ao publicar uma atualização, aumente o número `?v=` dos arquivos em `index.html` (ex.: `?v=5` → `?v=6`). Assim o navegador dos jogadores baixa a versão nova em vez de usar a antiga guardada.
+
 Testes das regras:
 
 ```bash
