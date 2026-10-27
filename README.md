@@ -55,6 +55,7 @@ node testes/regras.test.js
 | Se falhar | — | volta a +0 | volta a +0 | volta a +0 | quebra | quebra | quebra | quebra |
 
   Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
+- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), ganhar pergaminhos e curar. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
 
 ## Como adicionar as artes

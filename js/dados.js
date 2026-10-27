@@ -6,6 +6,11 @@ Tanka.dados = {
   NOME_JOGO: 'Tanka',
   DOMINIO: 'tankaarena.com',
 
+  // Contas com a aba Admin (ferramentas de teste). Use o nome de usuário em minúsculas.
+  // Atenção: enquanto as contas ficam no navegador, isso não é segurança de verdade;
+  // com o servidor, o servidor é quem deve decidir quem é admin.
+  ADMINS: ['admin'],
+
   // Progressão
   HP_INICIAL: 100,        // HP no level 1
   HP_POR_NIVEL: 10,       // HP extra a cada level

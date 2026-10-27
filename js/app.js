@@ -38,7 +38,8 @@
   }
   function topo(extra) {
     return '<header class="topo"><span class="logo">' + D.NOME_JOGO.toUpperCase() + '</span>'
-      + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>' + (extra || '')
+      + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>'
+      + (ehAdmin() ? '<span class="selo selo-admin">ADMIN</span>' : '') + (extra || '')
       + '<button class="btn secundario" data-acao="sair">Sair</button></div></header>';
   }
   function barra(classe, atual, max, texto) {
@@ -53,6 +54,10 @@
     var e = item.encanto || 0;
     var brilho = e >= 10 ? ' brilho-dourado' : e >= 7 ? ' brilho-roxo' : e >= 4 ? ' brilho-azul' : '';
     return '<span class="raridade-' + item.raridade + brilho + '">' + esc(R.nomeArma(item)) + '</span>';
+  }
+
+  function ehAdmin() {
+    return !!estado.conta && D.ADMINS.indexOf(estado.conta.usuario.toLowerCase()) >= 0;
   }
 
   function salvar() {
@@ -332,6 +337,27 @@
       + '<div class="itens">' + lista + '</div>';
   }
 
+  function abaAdmin() {
+    if (!ehAdmin()) return '';
+    function botoes(op, valores, rotulo) {
+      return valores.map(function (v) {
+        return '<button class="btn" data-acao="admin" data-op="' + op + '" data-valor="' + v + '">' + rotulo(v) + '</button>';
+      }).join('');
+    }
+    function grupo(titulo, descricao, conteudo) {
+      return '<div class="item"><div><div>' + titulo + '</div><div class="suave">' + descricao + '</div></div>'
+        + '<div class="item-acoes">' + conteudo + '</div></div>';
+    }
+    return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
+      + '<div class="itens">'
+      + grupo('Ouro', 'Soma ouro ao personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); }))
+      + grupo('Level', 'Sobe de level com os pontos de atributo.', botoes('nivel', [1, 5, 10], function (v) { return '+' + v; }))
+      + grupo('Armas', 'Uma arma de cada raridade da classe.', botoes('armas', [0, 7, 10], function (v) { return 'Todas +' + v; }))
+      + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; }))
+      + grupo('Vida', 'Recupera toda a vida.', '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Curar</button>')
+      + '</div>';
+  }
+
   function resultadoHtml() {
     var r = estado.resultado;
     if (!r) return '';
@@ -376,8 +402,10 @@
       painel = '<nav class="abas-jogo"><button data-acao="aba" data-aba="cacar" class="' + (estado.aba === 'cacar' ? 'ativa' : '') + '">Caçar</button>'
         + '<button data-acao="aba" data-aba="inventario" class="' + (estado.aba === 'inventario' ? 'ativa' : '') + '">Inventário (' + estado.personagem.inventario.length + ')</button>'
         + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button>'
-        + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button></nav>'
-        + ({ cacar: abaCacar, inventario: abaInventario, mercado: abaMercado, encantar: abaEncantar })[estado.aba]();
+        + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button>'
+        + (ehAdmin() ? '<button data-acao="aba" data-aba="admin" class="aba-admin' + (estado.aba === 'admin' ? ' ativa' : '') + '">Admin</button>' : '')
+        + '</nav>'
+        + ({ cacar: abaCacar, inventario: abaInventario, mercado: abaMercado, encantar: abaEncantar, admin: abaAdmin })[estado.aba]();
     }
     var trocar = estado.batalha ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
@@ -595,6 +623,22 @@
           salvar();
           telaJogo();
         }
+        break;
+      }
+      case 'admin': {
+        if (!ehAdmin()) break;
+        var v = Number(el.dataset.valor);
+        var op = el.dataset.op;
+        if (op === 'ouro') R.admin.ouro(p, v);
+        else if (op === 'nivel') R.admin.subirNivel(p, v);
+        else if (op === 'armas') R.admin.armas(p, v);
+        else if (op === 'pergaminhos') R.admin.pergaminhos(p, v);
+        else if (op === 'curar') R.descansar(p);
+        salvar();
+        avisar({ ouro: '+' + v.toLocaleString('pt-BR') + ' de ouro.', nivel: 'Agora no level ' + p.nivel + '.',
+          armas: 'Armas +' + v + ' adicionadas ao inventário.', pergaminhos: '+' + v + ' pergaminhos de cada raridade.',
+          curar: 'Vida recuperada.' }[op]);
+        telaJogo();
         break;
       }
       case 'cacar': iniciarCaca(el.dataset.monstro); break;

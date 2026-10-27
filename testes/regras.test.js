@@ -269,3 +269,16 @@ teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
   }
   assert.ok(Math.abs(n / N * 100 - 5) < 0.4, 'taxa ' + n / N * 100);
 });
+
+teste('admin: ouro, level, armas e pergaminhos', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.ouro(p, 10000);
+  assert.strictEqual(p.ouro, 10000);
+  R.admin.subirNivel(p, 5);
+  assert.strictEqual(p.nivel, 6); assert.strictEqual(p.exp, 0); assert.strictEqual(p.pontosLivres, 15);
+  R.admin.armas(p, 7);
+  assert.strictEqual(p.inventario.length, 5);
+  assert.ok(p.inventario.slice(1).every((i) => i.classe === 'cavaleiro' && i.encanto === 7));
+  R.admin.pergaminhos(p, 10);
+  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 10, rara: 10, epica: 10, lendaria: 10 });
+});

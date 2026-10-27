@@ -304,6 +304,25 @@ Tanka.regras = (function () {
     return { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
   }
 
+  // ---------- Ferramentas de administrador (para testes) ----------
+  var admin = {
+    ouro: function (p, quantidade) { p.ouro += quantidade; },
+    subirNivel: function (p, niveis) {
+      for (var i = 0; i < niveis; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
+    },
+    // Uma arma de cada raridade da classe, já com o encantamento escolhido.
+    armas: function (p, encanto) {
+      Object.keys(D.raridades).forEach(function (k) {
+        var item = novaArma(p.classe, k);
+        item.encanto = encanto || 0;
+        p.inventario.push(item);
+      });
+    },
+    pergaminhos: function (p, quantidade) {
+      Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] += quantidade; });
+    },
+  };
+
   function descansar(p) { p.hpAtual = status(p).hpMax; }
 
   function equipar(p, itemId) {
@@ -327,6 +346,7 @@ Tanka.regras = (function () {
     chanceEncantar: chanceEncantar,
     riscoEncantar: riscoEncantar,
     encantar: encantar,
+    admin: admin,
     status: status,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,

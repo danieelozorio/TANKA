@@ -202,6 +202,9 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 @keyframes pulsar { 50% { text-shadow: 0 0 22px rgba(255, 220, 100, 1), 0 0 4px #fff; } }
 
 .subtitulo { margin-top: 1.4rem; }
+.selo-admin { color: #ff8a7a; }
+.abas-jogo .aba-admin { color: #ff8a7a; }
+.abas-jogo .aba-admin.ativa { color: #ffb0a4; border-bottom-color: #ff8a7a; }
 .encanto-resultado {
   margin-bottom: 1rem; padding: .9rem 1rem; border-radius: 8px; text-align: center;
   font-family: var(--titulo); font-size: 1.15rem; letter-spacing: .03em;
