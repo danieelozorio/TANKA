@@ -12,7 +12,16 @@ Tanka.contas = (function () {
     try { return JSON.parse(localStorage.getItem(CHAVE_CONTAS)) || {}; } catch (e) { return {}; }
   }
   function gravar(contas) {
-    localStorage.setItem(CHAVE_CONTAS, JSON.stringify(contas));
+    try { localStorage.setItem(CHAVE_CONTAS, JSON.stringify(contas)); } catch (e) {
+      throw new Error('Não foi possível salvar: o navegador bloqueou o armazenamento local.');
+    }
+  }
+  function sessao(valor) {
+    try {
+      if (valor === undefined) return sessionStorage.getItem(CHAVE_SESSAO);
+      if (valor === null) sessionStorage.removeItem(CHAVE_SESSAO); else sessionStorage.setItem(CHAVE_SESSAO, valor);
+    } catch (e) { return null; }
+    return valor;
   }
 
   function paraHex(buf) {
@@ -65,14 +74,14 @@ Tanka.contas = (function () {
     if (!conta || (await hashSenha(senha, conta.sal)) !== conta.hash) {
       throw new Error('Usuário ou senha incorretos.');
     }
-    sessionStorage.setItem(CHAVE_SESSAO, conta.usuario.toLowerCase());
+    sessao(conta.usuario.toLowerCase());
     return conta;
   }
 
-  function sair() { sessionStorage.removeItem(CHAVE_SESSAO); }
+  function sair() { sessao(null); }
 
   function contaAtual() {
-    var chave = sessionStorage.getItem(CHAVE_SESSAO);
+    var chave = sessao();
     return chave ? ler()[chave] || null : null;
   }
 
@@ -86,7 +95,7 @@ Tanka.contas = (function () {
 
   // Grava (insere ou atualiza) um personagem da conta logada.
   function salvarPersonagem(p) {
-    var chave = sessionStorage.getItem(CHAVE_SESSAO);
+    var chave = sessao();
     var contas = ler();
     if (!chave || !contas[chave]) throw new Error('Sessão expirada. Entre novamente.');
     var lista = contas[chave].personagens;
