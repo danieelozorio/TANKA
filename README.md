@@ -37,7 +37,9 @@ node testes/regras.test.js
 | Cobra Viscosa | 40 | 2 | 16 | 4 | 5 | Rara 10% |
 | Urso Raivoso | 80 | 4 | 32 | 8 | 20 | Épica 10%, Rara 30% |
 
-- **Drops**: sempre a arma da classe do personagem. A Sorte aumenta a chance (+1% relativo por ponto).
+- **Drops**: armas e armaduras sempre da classe do personagem (colar e anel servem para todos). A Sorte aumenta a chance (+1% relativo por ponto). Armaduras: Lobo 10% comum; Cobra 15% comum e 5% rara; Urso 10% rara e 3% épica.
+- **Aba Personagem** (abre primeiro): retrato com 8 espaços em volta (elmo, colar, peitoral, arma, luvas, 2 anéis, botas) e a mochila de 32 espaços. Com mouse: clicar equipa/desequipa e passar o mouse mostra a ficha do item com comparação. No celular: tocar mostra a ficha com os botões. Mochila cheia não recebe drops.
+- **Armaduras por classe**: Cavaleiro (placas: defesa e vida), Arqueiro (couro: destreza e sorte), Mago (tecido: inteligência e defesa mágica), Artesão (forja: força e sorte). Colar e anel para todos. Os bônus de atributo contam para tudo que o atributo influencia. Valores em `js/dados.js` (`armaduras` e `joias`).
 - **Ouro e mercado**: o ouro aparece acima dos atributos. Qualquer arma, menos a equipada, pode ser vendida no inventário. A aba Mercado vende todas as armas da classe do personagem:
 
 | Raridade | Dano | Venda | Compra |
@@ -55,7 +57,7 @@ node testes/regras.test.js
 | Se falhar | — | volta a +0 | volta a +0 | volta a +0 | quebra | quebra | quebra | quebra |
 
   Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
-- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), ganhar pergaminhos e curar. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
+- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos e curar. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
 
 ## Como adicionar as artes
@@ -65,6 +67,8 @@ Salve em `assets/personagens/` com o nome `raca-classe.jpg`, e com `-f` no final
 - raças: `humano`, `elfo`, `elfonegro`, `orc`, `anao`
 - classes: `cavaleiro`, `arqueiro`, `mago`, `artesao`
 - exemplos: `humano-cavaleiro.jpg`, `elfonegro-mago-f.jpg`
+
+Ícones de itens (opcional) ficam em `assets/itens/`: armas `arma-<classe>-<raridade>.jpg`, armaduras `<classe>-<tipo>-<raridade>.jpg` (tipos: `elmo`, `peitoral`, `luvas`, `botas`) e joias `colar-<raridade>.jpg` / `anel-<raridade>.jpg`. Raridades: `comum`, `rara`, `epica`, `lendaria`. Sem o arquivo, aparece o ícone desenhado.
 
 Monstros ficam em `assets/monstros/`: `lobo-selvagem.jpg`, `cobra-viscosa.jpg`, `urso-raivoso.jpg`. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
 

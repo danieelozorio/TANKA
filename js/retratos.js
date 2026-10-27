@@ -235,14 +235,108 @@ Tanka.retratos = (function () {
     return MONSTROS[id] ? MONSTROS[id]() : '';
   }
 
+  // ---------- Ícones de itens ----------
+  // Material conforme a raridade: ferro, aço, metal negro e ouro (sem brilho; o brilho vem do encantamento).
+  var MATERIAL = {
+    comum:    { m: '#8b9097', d: '#4d5258', a: '#7a5a3a' },
+    rara:     { m: '#d5dbe3', d: '#7d8794', a: '#3e5f8a' },
+    epica:    { m: '#5a5268', d: '#2a2533', a: '#9b6fc8' },
+    lendaria: { m: '#e8c35a', d: '#9a7420', a: '#fff3c4' },
+    vazio:    { m: '#3a404b', d: '#2a2f38', a: '#3a404b' },
+  };
+  var MADEIRA = '#7a5230';
+
+  // Desenho de cada tipo. Arma e elmo mudam conforme a classe.
+  function formaItem(tipo, classe, c) {
+    switch (tipo === 'arma' ? classe : tipo === 'elmo' && (classe === 'arqueiro' || classe === 'mago') ? classe + '-elmo' : tipo) {
+      case 'cavaleiro':
+        return '<path d="M46 8 L56 8 L56 18 L25 49 L15 39 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M50 14 L22 42" stroke="' + c.d + '" stroke-width="1.5"/>'
+          + '<path d="M10 34 L30 54" stroke="' + c.d + '" stroke-width="6" stroke-linecap="round"/>'
+          + '<path d="M18 46 L9 55" stroke="' + c.a + '" stroke-width="5" stroke-linecap="round"/><circle cx="8" cy="56" r="4" fill="' + c.d + '"/>';
+      case 'arqueiro':
+        return '<path d="M22 6 Q60 32 22 58" fill="none" stroke="' + MADEIRA + '" stroke-width="5" stroke-linecap="round"/>'
+          + '<path d="M22 6 L22 58" stroke="#d8d0bc" stroke-width="1.5"/>'
+          + '<path d="M22 6 Q60 32 22 58" fill="none" stroke="' + c.m + '" stroke-width="2" stroke-dasharray="4 10"/>'
+          + '<rect x="35" y="26" width="7" height="12" rx="2" fill="' + c.a + '"/>';
+      case 'mago':
+        return '<path d="M14 60 L42 18" stroke="' + MADEIRA + '" stroke-width="5" stroke-linecap="round"/>'
+          + '<path d="M38 22 L36 14 M44 26 L52 24" stroke="' + c.d + '" stroke-width="3" stroke-linecap="round"/>'
+          + '<circle cx="46" cy="14" r="8" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/><circle cx="43" cy="11" r="2.5" fill="#fff" opacity=".6"/>';
+      case 'artesao':
+        return '<path d="M12 58 L38 26" stroke="' + MADEIRA + '" stroke-width="6" stroke-linecap="round"/>'
+          + '<rect x="28" y="8" width="28" height="16" rx="2" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2" transform="rotate(40 42 16)"/>'
+          + '<path d="M17 52 L21 47" stroke="' + c.a + '" stroke-width="6"/>';
+      case 'arqueiro-elmo':
+        return '<path d="M12 56 Q8 14 32 8 Q56 14 52 56 L42 56 Q44 26 32 24 Q20 26 22 56 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M32 8 Q30 18 32 24" stroke="' + c.d + '" stroke-width="1.5" fill="none"/>';
+      case 'mago-elmo':
+        return '<path d="M18 46 L38 4 L46 44 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M6 48 Q32 38 58 48 Q32 58 6 48 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M20 42 Q32 38 44 42" stroke="' + c.a + '" stroke-width="3" fill="none"/>';
+      case 'elmo':
+        return '<path d="M14 42 Q14 10 32 10 Q50 10 50 42 L50 52 L38 52 L38 40 L26 40 L26 52 L14 52 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<rect x="18" y="28" width="28" height="4" fill="' + c.d + '"/><path d="M32 10 L32 40" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M22 12 Q32 6 42 12" stroke="' + c.a + '" stroke-width="3" fill="none"/>';
+      case 'peitoral':
+        return '<path d="M14 12 L24 8 Q32 14 40 8 L50 12 L56 30 L46 32 L46 56 L18 56 L18 32 L8 30 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M32 16 L32 56 M20 38 Q32 44 44 38" stroke="' + c.d + '" stroke-width="2" fill="none"/>'
+          + '<path d="M24 8 Q32 14 40 8" stroke="' + c.a + '" stroke-width="3" fill="none"/>';
+      case 'luvas':
+        return '<path d="M20 58 L20 32 Q20 26 24 26 L24 14 Q24 10 28 10 Q31 10 31 14 L31 24 L33 12 Q34 8 37 9 Q40 10 39 14 L38 26 L41 18 Q43 14 46 16 Q48 18 46 22 L42 36 Q40 46 40 58 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<rect x="18" y="48" width="24" height="10" rx="2" fill="' + c.a + '"/>';
+      case 'botas':
+        return '<path d="M18 6 L36 6 L36 36 L52 42 Q58 45 56 52 L56 58 L16 58 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<rect x="16" y="6" width="22" height="8" rx="2" fill="' + c.a + '"/><path d="M16 50 L56 50" stroke="' + c.d + '" stroke-width="2"/>';
+      case 'colar':
+        return '<path d="M12 8 Q32 50 52 8" fill="none" stroke="' + c.m + '" stroke-width="3" stroke-dasharray="3 2"/>'
+          + '<path d="M32 30 L41 41 L32 56 L23 41 Z" fill="' + c.a + '" stroke="' + c.d + '" stroke-width="2"/>';
+      case 'anel':
+        return '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.m + '" stroke-width="6"/>'
+          + '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.d + '" stroke-width="1"/>'
+          + '<path d="M32 12 L41 21 L32 29 L23 21 Z" fill="' + c.a + '" stroke="' + c.d + '" stroke-width="2"/>';
+    }
+    return '';
+  }
+
+  function iconeSvg(tipo, classe, raridade) {
+    return '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" class="icone-svg" aria-hidden="true" stroke-linejoin="round">'
+      + formaItem(tipo, classe, MATERIAL[raridade] || MATERIAL.comum) + '</svg>';
+  }
+
+  // Arte pintada (quando existir) em assets/itens/:
+  //   armas: arma-<classe>-<raridade>.jpg   armaduras: <classe>-<tipo>-<raridade>.jpg   joias: <tipo>-<raridade>.jpg
+  var semImagem = {};
+  function arquivoItem(item) {
+    var base = item.tipo === 'arma' ? 'arma-' + item.classe : item.classe ? item.classe + '-' + item.tipo : item.tipo;
+    return 'assets/itens/' + base + '-' + item.raridade + '.jpg';
+  }
+  function icone(item) {
+    var url = arquivoItem(item);
+    if (semImagem[url]) return iconeSvg(item.tipo, item.classe, item.raridade);
+    return '<img class="icone-img" src="' + url + '" alt="" data-tipo="' + item.tipo + '" data-classe="' + (item.classe || '')
+      + '" data-raridade="' + item.raridade + '">';
+  }
+  // Silhueta apagada para espaço vazio.
+  function silhueta(tipo, classe) { return iconeSvg(tipo, classe, 'vazio'); }
+
   // Imagem que falhou ao carregar vira o desenho SVG correspondente.
   document.addEventListener('error', function (e) {
     var img = e.target;
-    if (!img || img.tagName !== 'IMG' || !img.classList.contains('retrato-img')) return;
+    if (!img || img.tagName !== 'IMG') return;
     var d = img.dataset;
+    if (img.classList.contains('icone-img')) {
+      semImagem[img.getAttribute('src')] = true;
+      img.outerHTML = iconeSvg(d.tipo, d.classe || null, d.raridade);
+      return;
+    }
+    if (!img.classList.contains('retrato-img')) return;
     var svg = d.monstro ? (MONSTROS[d.monstro] ? MONSTROS[d.monstro]() : '') : desenho(d.raca, d.classe, d.sexo);
     img.outerHTML = svg;
   }, true);
 
-  return { personagem: personagem, desenho: desenho, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro };
+  return {
+    personagem: personagem, desenho: desenho, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro,
+    icone: icone, silhueta: silhueta,
+  };
 })();

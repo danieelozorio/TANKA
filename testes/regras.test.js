@@ -152,9 +152,9 @@ teste('batalha completa contra o lobo termina e aplica resultado', () => {
 
 teste('equipar só aceita arma da própria classe', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
-  p.inventario.push({ id: 'x', classe: 'cavaleiro', raridade: 'epica' });
+  p.inventario.push({ id: 'x', tipo: 'arma', classe: 'cavaleiro', raridade: 'epica' });
   assert.ok(!R.equipar(p, 'x'));
-  p.inventario.push({ id: 'y', classe: 'mago', raridade: 'rara' });
+  p.inventario.push({ id: 'y', tipo: 'arma', classe: 'mago', raridade: 'rara' });
   assert.ok(R.equipar(p, 'y'));
 });
 
@@ -173,8 +173,8 @@ teste('ouro dos monstros: lobo 2, cobra 5, urso 20', () => {
 
 teste('vender: dá ouro e remove o item; arma equipada não pode', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
-  assert.ok(!R.vender(p, p.armaEquipada));
-  p.inventario.push({ id: 'e', classe: 'arqueiro', raridade: 'epica' });
+  assert.ok(!R.vender(p, p.equipados.arma));
+  p.inventario.push({ id: 'e', tipo: 'arma', classe: 'arqueiro', raridade: 'epica' });
   assert.ok(R.vender(p, 'e'));
   assert.strictEqual(p.ouro, 50);
   assert.strictEqual(p.inventario.length, 1);
@@ -184,11 +184,11 @@ teste('comprar: desconta o ouro e só com saldo suficiente', () => {
   const p = R.criarPersonagem('T', 'feminino', 'elfo', 'arqueiro');
   p.ouro = 109;
   const item = R.comprar(p, 'rara');
-  assert.ok(item);
+  assert.strictEqual(typeof item, 'object');
   assert.strictEqual(item.classe, 'arqueiro');
   assert.strictEqual(R.nomeArma(item), 'Arco Élfico');
   assert.strictEqual(p.ouro, 9);
-  assert.strictEqual(R.comprar(p, 'comum'), null);
+  assert.strictEqual(R.comprar(p, 'comum'), 'Ouro insuficiente.');
   assert.strictEqual(p.ouro, 9);
 });
 
@@ -207,7 +207,7 @@ const fixo = (v) => () => v; // rng que sempre devolve v (0 = sucesso, 0.999 = f
 function comArma(raridade, encanto) {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   p.atributos.sor = 0;
-  const item = { id: 'x', classe: 'arqueiro', raridade, encanto };
+  const item = { id: 'x', tipo: 'arma', classe: 'arqueiro', raridade, encanto };
   p.inventario.push(item);
   p.pergaminhos[raridade] = 5;
   return { p, item };
@@ -234,18 +234,18 @@ teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () =>
   const r1 = R.encantar(p, 'x', fixo(0.999));
   assert.ok(!r1.sucesso && !r1.quebrou); assert.strictEqual(item.encanto, 0);
   ({ p, item } = comArma('epica', 6));
-  p.armaEquipada = 'x';
+  p.equipados.arma = 'x';
   const r2 = R.encantar(p, 'x', fixo(0.999));
   assert.ok(r2.quebrou);
   assert.ok(!p.inventario.some((i) => i.id === 'x'));
-  assert.strictEqual(p.armaEquipada, null);
+  assert.strictEqual(p.equipados.arma, null);
 });
 
 teste('encantamento: dano extra por nível e venda +20% por nível', () => {
-  assert.deepStrictEqual([...R.danoArma({ classe: 'arqueiro', raridade: 'rara', encanto: 5 })], [13, 15]);
-  assert.deepStrictEqual([...R.danoArma({ classe: 'arqueiro', raridade: 'lendaria', encanto: 10 })], [80, 105]);
-  assert.strictEqual(R.precoVenda({ classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 100);
-  assert.strictEqual(R.nomeArma({ classe: 'arqueiro', raridade: 'rara', encanto: 5 }), '+5 Arco Élfico');
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5 })], [13, 15]);
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10 })], [80, 105]);
+  assert.strictEqual(R.precoVenda({ tipo: 'arma', classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 100);
+  assert.strictEqual(R.nomeArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5 }), '+5 Arco Élfico');
 });
 
 teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
@@ -281,4 +281,101 @@ teste('admin: ouro, level, armas e pergaminhos', () => {
   assert.ok(p.inventario.slice(1).every((i) => i.classe === 'cavaleiro' && i.encanto === 7));
   R.admin.pergaminhos(p, 10);
   assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 10, rara: 10, epica: 10, lendaria: 10 });
+});
+
+// ---------- Armaduras e equipamento ----------
+
+teste('armaduras: nomes e bônus por classe e raridade', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const it = (tipo, rar, classe = 'cavaleiro', encanto = 0) => ({ id: tipo + rar, tipo, classe, raridade: rar, encanto });
+  assert.strictEqual(R.nomeItem(it('luvas', 'epica')), 'Manoplas do Crepúsculo');
+  assert.strictEqual(R.nomeItem(it('elmo', 'lendaria', 'mago', 3)), '+3 Chapéu da Origem');
+  assert.strictEqual(R.nomeItem({ tipo: 'anel', classe: null, raridade: 'rara', encanto: 0 }), 'Anel de Prata');
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: 8, vida: 40 });
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: 3, defesaMagica: 5, vida: 15 });
+  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: 5, res: 1 });
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { sor: 6 });
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: 2, vida: 5 });
+});
+
+teste('equipar armaduras soma defesa, vida e atributos no status', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const s0 = R.status(p);
+  const add = (tipo, rar, classe = 'cavaleiro') => { const i = { id: tipo + rar + Math.random(), tipo, classe, raridade: rar, encanto: 0 }; p.inventario.push(i); return i; };
+  assert.strictEqual(R.equipar(p, add('peitoral', 'rara').id), 'peitoral');
+  assert.strictEqual(R.equipar(p, add('botas', 'epica').id), 'botas'); // Grevas: +6 def, +4 RES
+  assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel1');
+  assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel2');
+  const s1 = R.status(p);
+  assert.strictEqual(s1.defesa, s0.defesa + 8 + 6);
+  assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 5); // vida do peitoral + 4 RES * 5 HP
+  assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor + 2);
+  assert.strictEqual(s1.chanceCritico, (p.atributos.sor + 2) * 0.5);
+});
+
+teste('equipar: só armadura da própria classe; joia serve para todos', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  p.inventario.push({ id: 'a', tipo: 'elmo', classe: 'cavaleiro', raridade: 'comum', encanto: 0 });
+  p.inventario.push({ id: 'b', tipo: 'colar', classe: null, raridade: 'comum', encanto: 0 });
+  assert.strictEqual(R.equipar(p, 'a'), false);
+  assert.strictEqual(R.equipar(p, 'b'), 'colar');
+});
+
+teste('trocar e desequipar: item volta para a mochila; vida se ajusta', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.inventario.push({ id: 'p1', tipo: 'peitoral', classe: 'cavaleiro', raridade: 'comum', encanto: 0 });
+  p.inventario.push({ id: 'p2', tipo: 'peitoral', classe: 'cavaleiro', raridade: 'lendaria', encanto: 0 });
+  R.equipar(p, 'p1');
+  R.equipar(p, 'p2');
+  assert.strictEqual(p.equipados.peitoral, 'p2');
+  assert.ok(R.mochila(p).some((i) => i.id === 'p1'));
+  assert.strictEqual(p.hpAtual, 100 + 250);
+  assert.ok(R.desequipar(p, 'peitoral'));
+  assert.strictEqual(p.equipados.peitoral, null);
+  assert.strictEqual(p.hpAtual, 100);
+  assert.ok(!R.vender(p, p.equipados.arma));
+});
+
+teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  p.ouro = 1e6;
+  for (let i = 0; i < 32; i++) assert.strictEqual(typeof R.comprar(p, 'comum', 'anel'), 'object');
+  assert.ok(R.mochilaCheia(p));
+  assert.strictEqual(R.comprar(p, 'comum', 'elmo'), 'Mochila cheia!');
+  assert.ok(!R.desequipar(p, 'arma'));
+  p.atributos.sor = 1000; // garante drop
+  const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria';
+  const res = R.concluirBatalha(p, b);
+  assert.ok(res.mochilaCheia);
+  assert.strictEqual(R.mochila(p).length, 32);
+});
+
+teste('drops de armadura: lobo 10% comum; urso 10% rara e 3% épica', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao');
+  p.atributos.sor = 0;
+  const N = 200000, conta = (m) => { const c = {}; for (let i = 0; i < N; i++) { const d = R.rolarDropArmadura(p, m, rng); if (d) c[d.raridade] = (c[d.raridade] || 0) + 1; } return c; };
+  const lobo = conta('lobo'), urso = conta('urso');
+  assert.ok(Math.abs(lobo.comum / N * 100 - 10) < 0.4, JSON.stringify(lobo));
+  assert.ok(Math.abs(urso.rara / N * 100 - 10) < 0.4 && Math.abs(urso.epica / N * 100 - 3) < 0.3, JSON.stringify(urso));
+  const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
+  assert.deepStrictEqual([...tipos].sort(), ['anel', 'botas', 'colar', 'elmo', 'luvas', 'peitoral']);
+});
+
+teste('encantar armadura equipada que quebra libera o espaço', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.inventario.push({ id: 'e', tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 6 });
+  R.equipar(p, 'e');
+  p.pergaminhos.rara = 1;
+  assert.ok(R.encantar(p, 'e', () => 0.999).quebrou);
+  assert.strictEqual(p.equipados.elmo, null);
+  assert.ok(p.hpAtual <= R.status(p).hpMax);
+});
+
+teste('personagem antigo com armaEquipada vira equipados.arma', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  p.armaEquipada = p.equipados.arma; delete p.equipados; delete p.inventario[0].tipo;
+  R.normalizar(p);
+  assert.strictEqual(p.equipados.arma, p.inventario[0].id);
+  assert.strictEqual(p.inventario[0].tipo, 'arma');
+  assert.ok(!('armaEquipada' in p));
 });

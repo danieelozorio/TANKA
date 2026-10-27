@@ -25,11 +25,42 @@ Tanka.regras = (function () {
   // Exp para passar do `nivel` atual ao próximo: 10, 20, 40, 80...
   function expNecessaria(nivel) { return D.EXP_BASE * Math.pow(2, nivel - 1); }
 
-  function novaArma(classe, raridade) {
-    return { id: novoId(), classe: classe, raridade: raridade, encanto: 0 };
+  var RARIDADES = Object.keys(D.raridades);         // comum, rara, epica, lendaria
+  var TIPOS_ARMADURA = ['elmo', 'peitoral', 'luvas', 'botas'];
+  var TIPOS_JOIA = ['colar', 'anel'];
+
+  // Item: { id, tipo, classe, raridade, encanto }. Joias têm classe null (servem para todos).
+  function novoItem(tipo, classe, raridade) {
+    var joia = TIPOS_JOIA.indexOf(tipo) >= 0;
+    return { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
   }
+  function novaArma(classe, raridade) { return novoItem('arma', classe, raridade); }
+
+  // Definição de armadura/joia nos dados (null para arma).
+  function definicao(item) {
+    if (item.tipo === 'arma') return null;
+    if (TIPOS_JOIA.indexOf(item.tipo) >= 0) return D.joias[item.tipo];
+    return D.armaduras[item.classe][item.tipo];
+  }
+
   function nomeArma(item) {
-    return (item.encanto ? '+' + item.encanto + ' ' : '') + D.armas[item.classe][item.raridade];
+    var base = item.tipo === 'arma'
+      ? D.armas[item.classe][item.raridade]
+      : definicao(item).nomes[RARIDADES.indexOf(item.raridade)];
+    return (item.encanto ? '+' + item.encanto + ' ' : '') + base;
+  }
+
+  // Bônus de uma armadura/joia, já com o encantamento ({ defesa: 5, vida: 25, ... }).
+  function bonusItem(item) {
+    var def = definicao(item), b = {};
+    if (!def) return b;
+    var idx = RARIDADES.indexOf(item.raridade);
+    Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });
+    if (item.encanto) {
+      var k = D.encantamento.bonusPorNivel[item.tipo];
+      b[k] = (b[k] || 0) + item.encanto;
+    }
+    return b;
   }
 
   // Dano da arma já somando o bônus de encantamento.
@@ -42,8 +73,59 @@ Tanka.regras = (function () {
   function precoVenda(item) {
     return Math.round(D.raridades[item.raridade].venda * (1 + (item.encanto || 0) * D.encantamento.vendaPorNivel));
   }
-  function armaEquipada(p) {
-    return p.inventario.find(function (i) { return i.id === p.armaEquipada; }) || null;
+  // ---------- Equipamento e mochila ----------
+
+  function equipamentosVazios() {
+    var e = {};
+    Object.keys(D.slots).forEach(function (k) { e[k] = null; });
+    return e;
+  }
+  function itemPorId(p, id) {
+    return p.inventario.find(function (i) { return i.id === id; }) || null;
+  }
+  function itemNoSlot(p, slot) { return p.equipados[slot] ? itemPorId(p, p.equipados[slot]) : null; }
+  function armaEquipada(p) { return itemNoSlot(p, 'arma'); }
+  function slotDoItem(p, itemId) {
+    return Object.keys(p.equipados).find(function (k) { return p.equipados[k] === itemId; }) || null;
+  }
+  function mochila(p) {
+    return p.inventario.filter(function (i) { return !slotDoItem(p, i.id); });
+  }
+  function mochilaCheia(p) { return mochila(p).length >= D.MOCHILA_MAX; }
+
+  // Põe um item novo na mochila; falha se estiver cheia.
+  function guardar(p, item) {
+    if (mochilaCheia(p)) return false;
+    p.inventario.push(item);
+    return true;
+  }
+
+  function podeUsar(p, item) { return item.classe === null || item.classe === p.classe; }
+
+  // Soma dos bônus de todas as armaduras e joias equipadas.
+  function bonusEquipamentos(p) {
+    var total = {};
+    Object.keys(D.bonus).forEach(function (k) { total[k] = 0; });
+    Object.keys(p.equipados).forEach(function (slot) {
+      var item = itemNoSlot(p, slot);
+      if (!item) return;
+      var b = bonusItem(item);
+      Object.keys(b).forEach(function (k) { total[k] += b[k]; });
+    });
+    return total;
+  }
+
+  // Atributos básicos + bônus dos equipamentos (valem para tudo que o atributo influencia).
+  function atributosTotais(p) {
+    var b = bonusEquipamentos(p), a = {};
+    ATRIBUTOS.forEach(function (k) { a[k] = p.atributos[k] + b[k]; });
+    return a;
+  }
+
+  // Mantém a vida coerente quando o HP máximo muda (equipar, desequipar, distribuir ponto).
+  function ajustarVida(p, hpMaxAntes) {
+    var hpMax = status(p).hpMax;
+    p.hpAtual = Math.max(1, Math.min(hpMax, p.hpAtual + hpMax - hpMaxAntes));
   }
 
   function criarPersonagem(nome, sexo, raca, classe) {
@@ -64,7 +146,7 @@ Tanka.regras = (function () {
       pergaminhos: { comum: 0, rara: 0, epica: 0, lendaria: 0 },
       hpAtual: D.HP_INICIAL,
       inventario: [arma],
-      armaEquipada: arma.id,
+      equipados: Object.assign(equipamentosVazios(), { arma: arma.id }),
       abates: {},
       criadoEm: new Date().toISOString(),
     };
@@ -78,13 +160,19 @@ Tanka.regras = (function () {
     p.inventario.forEach(function (i) {
       if (i.raridade === 'basica') i.raridade = 'comum';
       if (typeof i.encanto !== 'number') i.encanto = 0;
+      if (!i.tipo) i.tipo = 'arma';
     });
+    if (!p.equipados) {
+      p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
+      delete p.armaEquipada;
+    }
     return p;
   }
 
-  // Todos os status vêm dos atributos básicos (valores em % onde indicado).
+  // Status vêm dos atributos (básicos + equipamentos) e dos bônus diretos das armaduras.
   function status(p) {
-    var a = p.atributos;
+    var a = atributosTotais(p);
+    var eq = bonusEquipamentos(p);
     var arma = armaEquipada(p);
     var magico = D.classes[p.classe].dano === 'magico';
     var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
@@ -92,14 +180,15 @@ Tanka.regras = (function () {
     return {
       hpMax: D.HP_INICIAL
         + Math.max(0, a.res - p.atributosIniciais.res) * D.HP_POR_RES
-        + (p.nivel - 1) * D.HP_POR_NIVEL,
+        + (p.nivel - 1) * D.HP_POR_NIVEL
+        + eq.vida,
       tipoDano: magico ? 'magico' : 'fisico',
       danoArma: danoArma,
       ataque: Math.floor(a.for / 5),                 // FOR
       ataqueMagico: Math.floor(a.int / 5),           // INT
       dano: [danoArma[0] + bonus, danoArma[1] + bonus],
-      defesa: Math.floor(a.res / 10),                // RES
-      defesaMagica: Math.floor(a.res / 10),          // RES
+      defesa: Math.floor(a.res / 10) + eq.defesa,              // RES + armaduras
+      defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
       precisao: 75 + a.des,                          // DES (%)
       evasao: a.des * 0.5,                           // DES (%)
       velocidade: a.des,                             // DES: 10 de DES = 10 de velocidade
@@ -118,7 +207,7 @@ Tanka.regras = (function () {
     var hpAntes = status(p).hpMax;
     p.atributos[atributo] += 1;
     p.pontosLivres -= 1;
-    p.hpAtual += status(p).hpMax - hpAntes;
+    ajustarVida(p, hpAntes);
     return true;
   }
 
@@ -137,16 +226,28 @@ Tanka.regras = (function () {
   }
 
   // Uma única rolagem; as chances são cumulativas (ex.: Urso: <10 épica, <40 rara).
-  function rolarDrop(p, monstroId, rng) {
-    var m = D.monstros[monstroId];
+  function rolarRaridade(p, tabela, rng) {
     var mult = 1 + status(p).bonusDrop / 100;
     var r = rng() * 100;
     var acumulado = 0;
-    for (var i = 0; i < m.drops.length; i++) {
-      acumulado += m.drops[i].chance * mult;
-      if (r < acumulado) return novaArma(p.classe, m.drops[i].raridade);
+    for (var i = 0; i < tabela.length; i++) {
+      acumulado += tabela[i].chance * mult;
+      if (r < acumulado) return tabela[i].raridade;
     }
     return null;
+  }
+
+  function rolarDrop(p, monstroId, rng) {
+    var raridade = rolarRaridade(p, D.monstros[monstroId].drops, rng);
+    return raridade ? novaArma(p.classe, raridade) : null;
+  }
+
+  // Peça sorteada entre as 4 armaduras da classe, o colar e o anel.
+  function rolarDropArmadura(p, monstroId, rng) {
+    var raridade = rolarRaridade(p, D.monstros[monstroId].dropsArmadura || [], rng);
+    if (!raridade) return null;
+    var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
+    return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
   }
 
   // ---------- Combate ----------
@@ -221,7 +322,10 @@ Tanka.regras = (function () {
       p.ouro += m.ouro;
       res.niveis = ganharExp(p, m.exp);
       res.drop = rolarDrop(p, b.monstroId, b.rng);
-      if (res.drop) p.inventario.push(res.drop);
+      res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
+      // Mochila cheia: o item se perde e o jogador é avisado.
+      if (res.drop && !guardar(p, res.drop)) { res.drop = null; res.mochilaCheia = true; }
+      if (res.dropArmadura && !guardar(p, res.dropArmadura)) { res.dropArmadura = null; res.mochilaCheia = true; }
       res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
       if (res.pergaminho) p.pergaminhos[res.pergaminho] += 1;
     } else if (b.fim === 'derrota') {
@@ -230,9 +334,9 @@ Tanka.regras = (function () {
     return res;
   }
 
-  // Vende qualquer item, menos a arma equipada.
+  // Vende qualquer item que não esteja equipado.
   function vender(p, itemId) {
-    if (itemId === p.armaEquipada) return false;
+    if (slotDoItem(p, itemId)) return false;
     var i = p.inventario.findIndex(function (x) { return x.id === itemId; });
     if (i < 0) return false;
     p.ouro += precoVenda(p.inventario[i]);
@@ -240,12 +344,16 @@ Tanka.regras = (function () {
     return true;
   }
 
-  // Compra no mercado a arma da classe do personagem.
-  function comprar(p, raridade) {
+  // Compra no mercado: arma (tipo 'arma'), armadura da classe ou joia.
+  // Retorna o item, ou um texto com o motivo da falha.
+  function comprar(p, raridade, tipo) {
     var r = D.raridades[raridade];
-    if (!r || p.ouro < r.compra) return null;
+    tipo = tipo || 'arma';
+    if (!r || ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA).indexOf(tipo) < 0) return 'Item inválido.';
+    if (p.ouro < r.compra) return 'Ouro insuficiente.';
+    if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= r.compra;
-    var item = novaArma(p.classe, raridade);
+    var item = novoItem(tipo, p.classe, raridade);
     p.inventario.push(item);
     return item;
   }
@@ -273,7 +381,7 @@ Tanka.regras = (function () {
   function chanceEncantar(p, item) {
     var E = D.encantamento, alvo = item.encanto + 1;
     if (alvo <= E.seguroAte) return 100;
-    return Math.min(E.chanceMaxima, E.chances[alvo] + p.atributos.sor);
+    return Math.min(E.chanceMaxima, E.chances[alvo] + atributosTotais(p).sor);
   }
 
   // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
@@ -289,19 +397,24 @@ Tanka.regras = (function () {
     if (!item || item.encanto >= D.encantamento.maximo || p.pergaminhos[item.raridade] <= 0) return null;
     var chance = chanceEncantar(p, item);
     var risco = riscoEncantar(item);
+    var hpAntes = status(p).hpMax;
+    var nivelAntes = item.encanto;
+    var res;
     p.pergaminhos[item.raridade] -= 1;
     if ((rng || Math.random)() * 100 < chance) {
       item.encanto += 1;
-      return { sucesso: true, quebrou: false, nivel: item.encanto, item: item };
-    }
-    if (risco === 'quebra') {
+      res = { sucesso: true, quebrou: false, nivel: item.encanto, item: item };
+    } else if (risco === 'quebra') {
+      var slot = slotDoItem(p, item.id);
+      if (slot) p.equipados[slot] = null;
       p.inventario.splice(p.inventario.indexOf(item), 1);
-      if (p.armaEquipada === item.id) p.armaEquipada = null;
-      return { sucesso: false, quebrou: true, nivel: item.encanto, item: item };
+      res = { sucesso: false, quebrou: true, nivel: nivelAntes, item: item };
+    } else {
+      if (risco === 'zera') item.encanto = 0;
+      res = { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
     }
-    var nivelAntes = item.encanto;
-    if (risco === 'zera') item.encanto = 0;
-    return { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
+    ajustarVida(p, hpAntes);
+    return res;
   }
 
   // ---------- Ferramentas de administrador (para testes) ----------
@@ -321,14 +434,35 @@ Tanka.regras = (function () {
     pergaminhos: function (p, quantidade) {
       Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] += quantidade; });
     },
+    // Conjunto completo de uma raridade: arma, 4 armaduras da classe, colar e 2 anéis.
+    conjunto: function (p, raridade) {
+      ['arma'].concat(TIPOS_ARMADURA, ['colar', 'anel', 'anel']).forEach(function (tipo) {
+        p.inventario.push(novoItem(tipo, p.classe, raridade));
+      });
+    },
   };
 
   function descansar(p) { p.hpAtual = status(p).hpMax; }
 
+  // Equipa no espaço certo; se já houver item lá, ele volta para a mochila.
+  // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
   function equipar(p, itemId) {
-    var item = p.inventario.find(function (i) { return i.id === itemId; });
-    if (!item || item.classe !== p.classe) return false;
-    p.armaEquipada = itemId;
+    var item = itemPorId(p, itemId);
+    if (!item || !podeUsar(p, item) || slotDoItem(p, itemId)) return false;
+    var slot = item.tipo;
+    if (item.tipo === 'anel') slot = !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
+    var hpAntes = status(p).hpMax;
+    p.equipados[slot] = itemId;
+    ajustarVida(p, hpAntes);
+    return slot;
+  }
+
+  // Desequipa e manda para a mochila (precisa de espaço).
+  function desequipar(p, slot) {
+    if (!p.equipados[slot] || mochilaCheia(p)) return false;
+    var hpAntes = status(p).hpMax;
+    p.equipados[slot] = null;
+    ajustarVida(p, hpAntes);
     return true;
   }
 
@@ -358,5 +492,20 @@ Tanka.regras = (function () {
     concluirBatalha: concluirBatalha,
     descansar: descansar,
     equipar: equipar,
+    desequipar: desequipar,
+    RARIDADES: RARIDADES,
+    TIPOS_ARMADURA: TIPOS_ARMADURA,
+    TIPOS_JOIA: TIPOS_JOIA,
+    nomeItem: nomeArma,
+    bonusItem: bonusItem,
+    definicao: definicao,
+    bonusEquipamentos: bonusEquipamentos,
+    atributosTotais: atributosTotais,
+    itemNoSlot: itemNoSlot,
+    slotDoItem: slotDoItem,
+    mochila: mochila,
+    mochilaCheia: mochilaCheia,
+    podeUsar: podeUsar,
+    rolarDropArmadura: rolarDropArmadura,
   };
 })();

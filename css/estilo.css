@@ -285,3 +285,83 @@ table.atributos th { color: var(--suave); font-weight: 500; }
   .abas-jogo button { padding: .5em .4em; }
   .item-acoes { justify-content: flex-start; }
 }
+
+/* ---------- Aba Personagem (estilo Diablo) ---------- */
+.personagem-tela { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 270px); gap: 1rem; align-items: start; }
+.boneco {
+  --slot: 64px;
+  display: grid; gap: .5rem; justify-items: center; align-items: center;
+  grid-template-columns: var(--slot) minmax(0, 1fr) var(--slot);
+  grid-template-areas:
+    ". elmo colar"
+    "peitoral retrato luvas"
+    "arma retrato anel1"
+    ". retrato anel2"
+    ". botas .";
+  max-width: 440px; margin: 0 auto; width: 100%;
+}
+.espaco-elmo { grid-area: elmo; } .espaco-colar { grid-area: colar; }
+.espaco-peitoral { grid-area: peitoral; } .espaco-arma { grid-area: arma; }
+.espaco-luvas { grid-area: luvas; } .espaco-anel1 { grid-area: anel1; }
+.espaco-anel2 { grid-area: anel2; } .espaco-botas { grid-area: botas; }
+.retrato-central {
+  grid-area: retrato; position: relative; width: 100%; max-width: 280px; aspect-ratio: 4 / 5;
+  border-radius: 10px; overflow: hidden; border: 1px solid #5a5040; background: #000;
+}
+.retrato-central > img, .retrato-central > svg { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; display: block; }
+.retrato-central::after { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 50px 18px rgba(5, 7, 10, .9); }
+
+.slot, .celula, .icone-grande, .icone-pequeno {
+  position: relative; display: grid; place-items: center; padding: 4px;
+  border: 2px solid var(--borda); border-radius: 6px; background: radial-gradient(circle at 50% 40%, #1b212b, #0b0e13);
+  color: inherit; font: inherit;
+}
+.slot { width: var(--slot); height: var(--slot); cursor: pointer; }
+.slot.vazio { cursor: default; border-style: dashed; opacity: .75; }
+.celula { aspect-ratio: 1; width: 100%; cursor: pointer; }
+.celula.vazia { cursor: default; opacity: .45; }
+.slot img, .slot svg, .celula img, .celula svg, .icone-grande img, .icone-grande svg, .icone-pequeno img, .icone-pequeno svg {
+  width: 100%; height: 100%; object-fit: contain; border-radius: 3px; display: block;
+}
+button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-claro); outline-offset: 1px; }
+.borda-comum { border-color: #8a8f98; }
+.borda-rara { border-color: var(--rara); }
+.borda-epica { border-color: var(--epica); }
+.borda-lendaria { border-color: var(--lendaria); }
+.nivel-encanto {
+  position: absolute; top: 1px; right: 3px; font-size: .72rem; font-weight: 700; line-height: 1;
+  color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
+/* Aura do encantamento: +4 azul, +7 roxo, +10 dourado pulsando */
+.aura-azul { box-shadow: 0 0 10px 2px rgba(90, 170, 255, .75); }
+.aura-roxo { box-shadow: 0 0 12px 3px rgba(190, 110, 255, .85); }
+.aura-dourado { box-shadow: 0 0 14px 4px rgba(255, 210, 80, .9); animation: auraDourada 1.6s ease-in-out infinite; }
+@keyframes auraDourada { 50% { box-shadow: 0 0 22px 7px rgba(255, 220, 100, 1); } }
+@media (prefers-reduced-motion: reduce) { .aura-dourado { animation: none; } }
+
+.mochila { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
+
+.lateral { display: grid; gap: .8rem; }
+.caixa-interna { background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; padding: .8rem; }
+.caixa-interna h3 { font-size: .95rem; }
+.ficha-item-topo { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: .6rem; align-items: center; margin-bottom: .5rem; }
+.icone-grande { width: 56px; height: 56px; }
+.ficha-item-nome { font-family: var(--titulo); font-size: 1rem; }
+.ficha-item-bonus { list-style: none; margin: 0 0 .5rem; padding: 0; font-size: .95rem; }
+.ficha-item-bonus li { padding: .1rem 0; }
+#ficha-item .item-acoes { justify-content: flex-start; }
+
+.item-com-icone { justify-content: flex-start; }
+.item-com-icone .item-texto { flex: 1; min-width: 0; }
+.icone-pequeno { width: 46px; height: 46px; flex: none; }
+.mini-opcao { min-width: 0; padding: .35em .9em; font-size: .9rem; }
+.linha-atr small { font-size: .78rem; font-weight: 400; }
+
+@media (max-width: 860px) {
+  .personagem-tela { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .boneco { --slot: 52px; gap: .35rem; }
+  .mochila { gap: 3px; }
+  .item-com-icone { flex-direction: row; flex-wrap: wrap; }
+}
