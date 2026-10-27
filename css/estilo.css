@@ -194,6 +194,23 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .raridade-epica { color: var(--epica); }
 .raridade-lendaria { color: var(--lendaria); text-shadow: 0 0 10px rgba(242, 201, 76, .35); }
 .cor-ouro { color: var(--cor-ouro); }
+
+/* Brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado pulsando */
+.brilho-azul { color: #7cc4ff; text-shadow: 0 0 8px rgba(90, 170, 255, .8); }
+.brilho-roxo { color: #d39bff; text-shadow: 0 0 10px rgba(190, 110, 255, .9); }
+.brilho-dourado { color: #ffd862; text-shadow: 0 0 12px rgba(255, 210, 80, .95); animation: pulsar 1.6s ease-in-out infinite; }
+@keyframes pulsar { 50% { text-shadow: 0 0 22px rgba(255, 220, 100, 1), 0 0 4px #fff; } }
+
+.subtitulo { margin-top: 1.4rem; }
+.encanto-resultado {
+  margin-bottom: 1rem; padding: .9rem 1rem; border-radius: 8px; text-align: center;
+  font-family: var(--titulo); font-size: 1.15rem; letter-spacing: .03em;
+}
+.encanto-resultado.sucesso { border: 1px solid var(--cor-ouro); background: rgba(232, 194, 90, .1); color: var(--cor-ouro); animation: brilhoSucesso .9s ease-out; }
+.encanto-resultado.falha { border: 1px solid var(--ruim); background: rgba(208, 100, 90, .1); color: #f0b4ad; animation: tremer .5s; }
+@keyframes brilhoSucesso { 0% { transform: scale(.9); box-shadow: 0 0 0 rgba(232, 194, 90, 0); } 40% { transform: scale(1.04); box-shadow: 0 0 40px rgba(232, 194, 90, .7); } 100% { transform: none; box-shadow: none; } }
+@keyframes tremer { 0%, 100% { transform: none; } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } }
+@media (prefers-reduced-motion: reduce) { .brilho-dourado, .encanto-resultado { animation: none; } }
 .selo { display: inline-block; padding: 0 .45em; border: 1px solid currentColor; border-radius: 4px; font-size: .78rem; }
 
 /* Monstros */

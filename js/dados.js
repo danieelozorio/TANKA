@@ -92,6 +92,18 @@ Tanka.dados = {
     lendaria: { nome: 'Lendária', dano: [30, 55], venda: 100, compra: 10000 },
   },
 
+  // Encantamento: +0 a +10, gastando 1 pergaminho da raridade da arma por tentativa.
+  encantamento: {
+    maximo: 10,
+    seguroAte: 3,              // +1 a +3 nunca falham
+    chances: { 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 },
+    chanceMaxima: 95,          // teto depois do bônus de Sorte (+1% por ponto)
+    voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
+    danoPorNivel: { comum: 1, rara: 2, epica: 3, lendaria: 5 },
+    precoPergaminho: { comum: 5, rara: 50, epica: 500, lendaria: 5000 },
+    vendaPorNivel: 0.2,        // +20% do valor de venda por nível
+  },
+
   sexos: {
     masculino: { nome: 'Homem' },
     feminino: { nome: 'Mulher' },
@@ -135,6 +147,7 @@ Tanka.dados = {
       exp: 8,
       ouro: 20,
       drops: [{ raridade: 'epica', chance: 10 }, { raridade: 'rara', chance: 30 }],
+      chancePergaminho: 5,
       imagem: 'assets/monstros/urso-raivoso.jpg',
     },
   },

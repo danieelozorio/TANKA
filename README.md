@@ -45,6 +45,14 @@ node testes/regras.test.js
 | Épica (roxo) | 10–15 | 50 | 1.000 |
 | Lendária (amarelo) | 30–55 | 100 | 10.000 |
 
+- **Encantamento** (aba Encantar): de +0 a +10, gastando 1 Pergaminho de Encantamento da raridade da arma por tentativa. O pergaminho é vendido no Mercado (comum 5, rara 50, épica 500, lendária 5.000 de ouro) e o Urso tem 5% de chance de dropar um, da raridade da arma equipada.
+
+| Nível | +1 a +3 | +4 | +5 | +6 | +7 | +8 | +9 | +10 |
+|---|---|---|---|---|---|---|---|---|
+| Chance | 100% | 70% | 60% | 50% | 40% | 30% | 20% | 10% |
+| Se falhar | — | volta a +0 | volta a +0 | volta a +0 | quebra | quebra | quebra | quebra |
+
+  Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
 
 ## Como adicionar as artes
@@ -89,4 +97,4 @@ testes/             testes das regras em Node
 ## Próximos passos para o tankaarena.com
 
 - **Servidor e banco de dados**: hoje as contas ficam no `localStorage` do navegador, então cada jogador só vê os próprios dados naquele aparelho. Para o jogo online, `js/contas.js` precisa virar chamadas a uma API (Node/PHP + PostgreSQL/MySQL), com o combate validado no servidor para evitar trapaça.
-- Sistemas de craft e encantamento (as chances já são calculadas e exibidas).
+- Sistema de craft do Artesão (a chance já é calculada e exibida).

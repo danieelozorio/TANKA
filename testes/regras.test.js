@@ -201,3 +201,71 @@ teste('personagem antigo (sem ouro/sexo, arma "basica") é convertido', () => {
   assert.strictEqual(p.inventario[0].raridade, 'comum');
   assert.deepStrictEqual([...R.status(p).danoArma], [1, 1]);
 });
+
+// ---------- Encantamento ----------
+const fixo = (v) => () => v; // rng que sempre devolve v (0 = sucesso, 0.999 = falha)
+function comArma(raridade, encanto) {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  p.atributos.sor = 0;
+  const item = { id: 'x', classe: 'arqueiro', raridade, encanto };
+  p.inventario.push(item);
+  p.pergaminhos[raridade] = 5;
+  return { p, item };
+}
+
+teste('encantamento: +1 a +3 é seguro e gasta 1 pergaminho', () => {
+  const { p, item } = comArma('rara', 0);
+  for (let i = 0; i < 3; i++) assert.ok(R.encantar(p, 'x', fixo(0.999)).sucesso);
+  assert.strictEqual(item.encanto, 3);
+  assert.strictEqual(p.pergaminhos.rara, 2);
+});
+
+teste('encantamento: chances por nível e bônus de Sorte com teto de 95%', () => {
+  const { p, item } = comArma('rara', 3);
+  assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [70, 60, 50, 40, 30, 20, 10]);
+  p.atributos.sor = 20; item.encanto = 3;
+  assert.strictEqual(R.chanceEncantar(p, item), 90);
+  p.atributos.sor = 50;
+  assert.strictEqual(R.chanceEncantar(p, item), 95);
+});
+
+teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () => {
+  let { p, item } = comArma('epica', 5);
+  const r1 = R.encantar(p, 'x', fixo(0.999));
+  assert.ok(!r1.sucesso && !r1.quebrou); assert.strictEqual(item.encanto, 0);
+  ({ p, item } = comArma('epica', 6));
+  p.armaEquipada = 'x';
+  const r2 = R.encantar(p, 'x', fixo(0.999));
+  assert.ok(r2.quebrou);
+  assert.ok(!p.inventario.some((i) => i.id === 'x'));
+  assert.strictEqual(p.armaEquipada, null);
+});
+
+teste('encantamento: dano extra por nível e venda +20% por nível', () => {
+  assert.deepStrictEqual([...R.danoArma({ classe: 'arqueiro', raridade: 'rara', encanto: 5 })], [13, 15]);
+  assert.deepStrictEqual([...R.danoArma({ classe: 'arqueiro', raridade: 'lendaria', encanto: 10 })], [80, 105]);
+  assert.strictEqual(R.precoVenda({ classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 100);
+  assert.strictEqual(R.nomeArma({ classe: 'arqueiro', raridade: 'rara', encanto: 5 }), '+5 Arco Élfico');
+});
+
+teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
+  let { p } = comArma('comum', 10);
+  assert.strictEqual(R.encantar(p, 'x', fixo(0)), null);
+  ({ p } = comArma('comum', 0));
+  p.pergaminhos.comum = 0;
+  assert.strictEqual(R.encantar(p, 'x', fixo(0)), null);
+});
+
+teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  p.ouro = 60;
+  assert.ok(R.comprarPergaminho(p, 'rara')); assert.strictEqual(p.ouro, 10);
+  assert.ok(!R.comprarPergaminho(p, 'rara'));
+  p.atributos.sor = 0;
+  let n = 0; const N = 100000;
+  for (let i = 0; i < N; i++) {
+    const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria';
+    if (R.concluirBatalha(p, b).pergaminho) n++;
+  }
+  assert.ok(Math.abs(n / N * 100 - 5) < 0.4, 'taxa ' + n / N * 100);
+});

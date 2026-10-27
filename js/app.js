@@ -48,6 +48,13 @@
   function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
 
+  // Nome da arma com cor da raridade e brilho do encantamento.
+  function nomeArmaHtml(item) {
+    var e = item.encanto || 0;
+    var brilho = e >= 10 ? ' brilho-dourado' : e >= 7 ? ' brilho-roxo' : e >= 4 ? ' brilho-azul' : '';
+    return '<span class="raridade-' + item.raridade + brilho + '">' + esc(R.nomeArma(item)) + '</span>';
+  }
+
   function salvar() {
     try { C.salvarPersonagem(estado.personagem); } catch (e) { avisar(e.message); }
   }
@@ -207,7 +214,7 @@
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
       + '<div class="secao"><h3>Arma</h3>' + (arma
-        ? '<div class="raridade-' + arma.raridade + '">' + R.nomeArma(arma) + ' <span class="selo">' + D.raridades[arma.raridade].nome + '</span></div>'
+        ? '<div>' + nomeArmaHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
         : '<div class="suave">Nenhuma</div>') + '</div>'
       + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div>'
       + '</aside>';
@@ -243,7 +250,7 @@
     var itens = p.inventario.slice().sort(function (a, b) { return ordem.indexOf(a.raridade) - ordem.indexOf(b.raridade); });
     return '<p class="suave">Venda qualquer arma, menos a equipada.</p><div class="itens">' + itens.map(function (i) {
       var equipado = i.id === p.armaEquipada;
-      var preco = D.raridades[i.raridade].venda;
+      var preco = R.precoVenda(i);
       var acoes = equipado
         ? '<span class="suave">Equipada</span>'
         : '<button class="btn" data-acao="equipar" data-id="' + i.id + '">Equipar</button>'
@@ -251,8 +258,8 @@
             ? '<button class="btn perigo" data-acao="vender" data-id="' + i.id + '">Confirmar venda</button>'
             : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + i.id + '">Vender (+' + preco + ' ouro)</button>');
       return '<div class="item' + (equipado ? ' equipado' : '') + '"><div>'
-        + '<div class="raridade-' + i.raridade + '">' + R.nomeArma(i) + ' <span class="selo">' + D.raridades[i.raridade].nome + '</span></div>'
-        + '<div class="suave">' + D.armas[i.classe].tipo + ' · dano ' + dano(D.raridades[i.raridade].dano) + '</div></div>'
+        + '<div>' + nomeArmaHtml(i) + ' <span class="selo raridade-' + i.raridade + '">' + D.raridades[i.raridade].nome + '</span></div>'
+        + '<div class="suave">' + D.armas[i.classe].tipo + ' · dano ' + dano(R.danoArma(i)) + '</div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
   }
@@ -269,7 +276,60 @@
           + '<div class="suave">Dano ' + dano(r.dano) + ' · ' + r.compra.toLocaleString('pt-BR') + ' de ouro</div></div>'
           + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
           + '<button class="btn" data-acao="comprar" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+      }).join('') + '</div>'
+      + '<h3 class="subtitulo">Pergaminhos de Encantamento</h3>'
+      + '<p class="suave">Cada tentativa de encantar gasta 1 pergaminho da mesma raridade da arma.</p><div class="itens">'
+      + Object.keys(D.raridades).map(function (k) {
+        var preco = D.encantamento.precoPergaminho[k];
+        var falta = preco - p.ouro;
+        return '<div class="item"><div>'
+          + '<div>Pergaminho para arma <span class="raridade-' + k + '">' + D.raridades[k].nome.toLowerCase() + '</span></div>'
+          + '<div class="suave">' + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + p.pergaminhos[k] + '</div></div>'
+          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
+          + '<button class="btn" data-acao="comprar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
       }).join('') + '</div>';
+  }
+
+  function abaEncantar() {
+    var p = estado.personagem, E = D.encantamento;
+    var u = estado.ultimoEncanto;
+    var aviso = '';
+    if (u) {
+      var nome = esc(D.armas[u.item.classe][u.item.raridade]);
+      var texto = u.sucesso ? 'SUCESSO! ' + nome + ' agora é +' + u.nivel + '!'
+        : u.quebrou ? 'FALHOU! ' + nome + ' +' + u.nivel + ' se despedaçou...'
+        : 'FALHOU! ' + nome + ' +' + u.nivel + ' voltou para +0.';
+      aviso = '<div class="encanto-resultado ' + (u.sucesso ? 'sucesso' : 'falha') + '" role="status">' + texto + '</div>';
+    }
+    var cont = Object.keys(D.raridades).map(function (k) {
+      return '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + p.pergaminhos[k] + '</span>';
+    }).join(' · ');
+    var ordem = Object.keys(D.raridades).reverse();
+    var itens = p.inventario.slice().sort(function (a, b) {
+      return ordem.indexOf(a.raridade) - ordem.indexOf(b.raridade) || b.encanto - a.encanto;
+    });
+    var lista = itens.map(function (i) {
+      var acao, info;
+      if (i.encanto >= E.maximo) {
+        info = 'Nível máximo';
+        acao = '<span class="suave">+' + E.maximo + '</span>';
+      } else {
+        var chance = R.chanceEncantar(p, i), risco = R.riscoEncantar(i);
+        var falha = { nada: 'sem risco', zera: 'se falhar, volta para +0', quebra: 'se falhar, a arma QUEBRA' }[risco];
+        info = '+' + i.encanto + ' → +' + (i.encanto + 1) + ' · chance <strong>' + chance + '%</strong> · <span class="' + (risco === 'quebra' ? 'menos' : '') + '">' + falha + '</span>';
+        var semPergaminho = p.pergaminhos[i.raridade] <= 0;
+        acao = risco === 'quebra' && estado.encantoPendente === i.id
+          ? '<button class="btn perigo" data-acao="encantar" data-id="' + i.id + '">Arriscar mesmo assim</button>'
+          : '<button class="btn" data-acao="' + (risco === 'quebra' ? 'pedir-encanto' : 'encantar') + '" data-id="' + i.id + '"' + (semPergaminho ? ' disabled' : '') + '>Encantar</button>';
+        if (semPergaminho) acao = '<span class="suave">Sem pergaminho</span>' + acao;
+      }
+      return '<div class="item' + (i.id === p.armaEquipada ? ' equipado' : '') + '"><div>'
+        + '<div>' + nomeArmaHtml(i) + (i.id === p.armaEquipada ? ' <span class="suave">(equipada)</span>' : '') + '</div>'
+        + '<div class="suave">Dano ' + dano(R.danoArma(i)) + ' · ' + info + '</div></div>'
+        + '<div class="item-acoes">' + acao + '</div></div>';
+    }).join('');
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Compre mais no Mercado. Sua Sorte soma +' + p.atributos.sor + '% na chance a partir do +4.</p>'
+      + '<div class="itens">' + lista + '</div>';
   }
 
   function resultadoHtml() {
@@ -280,6 +340,7 @@
       return '<div class="resultado"><h2>Vitória!</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeArma(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
+        + (r.pergaminho ? '<p>Drop: <strong>Pergaminho para arma <span class="raridade-' + r.pergaminho + '">' + D.raridades[r.pergaminho].nome.toLowerCase() + '</span></strong></p>' : '')
         + '<div class="botoes"><button class="btn" data-acao="cacar" data-monstro="' + r.monstroId + '">Caçar de novo</button>'
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
@@ -314,8 +375,9 @@
     } else {
       painel = '<nav class="abas-jogo"><button data-acao="aba" data-aba="cacar" class="' + (estado.aba === 'cacar' ? 'ativa' : '') + '">Caçar</button>'
         + '<button data-acao="aba" data-aba="inventario" class="' + (estado.aba === 'inventario' ? 'ativa' : '') + '">Inventário (' + estado.personagem.inventario.length + ')</button>'
-        + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button></nav>'
-        + ({ cacar: abaCacar, inventario: abaInventario, mercado: abaMercado })[estado.aba]();
+        + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button>'
+        + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button></nav>'
+        + ({ cacar: abaCacar, inventario: abaInventario, mercado: abaMercado, encantar: abaEncantar })[estado.aba]();
     }
     var trocar = estado.batalha ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
@@ -393,6 +455,7 @@
       linha('destaque', 'Vitória! +' + res.exp + ' de exp.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeArma(res.drop) + ' (' + D.raridades[res.drop.raridade].nome + ')!');
+      if (res.pergaminho) linha('destaque', 'Drop: Pergaminho para arma ' + D.raridades[res.pergaminho].nome.toLowerCase() + '!');
     } else if (res.resultado === 'derrota') {
       linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
     } else {
@@ -471,7 +534,11 @@
         break;
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
-      case 'aba': estado.aba = el.dataset.aba; estado.vendaPendente = null; telaJogo(); break;
+      case 'aba':
+        estado.aba = el.dataset.aba;
+        estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = null;
+        telaJogo();
+        break;
       case 'ponto':
         if (R.distribuirPonto(p, el.dataset.atributo)) { salvar(); telaJogo(); }
         break;
@@ -490,9 +557,10 @@
         break;
       case 'vender': {
         var item = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+        var valor = item ? R.precoVenda(item) : 0;
         if (item && R.vender(p, item.id)) {
           salvar();
-          avisar(R.nomeArma(item) + ' vendida por ' + D.raridades[item.raridade].venda + ' de ouro.');
+          avisar('Você vendeu ' + R.nomeArma(item) + ' por ' + valor + ' de ouro.');
         }
         estado.vendaPendente = null;
         telaJogo();
@@ -502,7 +570,29 @@
         var comprado = R.comprar(p, el.dataset.raridade);
         if (comprado) {
           salvar();
-          avisar('Você comprou ' + R.nomeArma(comprado) + '! Ela está no inventário.');
+          avisar('Você comprou ' + R.nomeArma(comprado) + '! Já está no inventário.');
+          telaJogo();
+        }
+        break;
+      }
+      case 'comprar-pergaminho':
+        if (R.comprarPergaminho(p, el.dataset.raridade)) {
+          salvar();
+          avisar('Pergaminho comprado! Use na aba Encantar.');
+          telaJogo();
+        }
+        break;
+      case 'pedir-encanto':
+        estado.encantoPendente = el.dataset.id;
+        estado.ultimoEncanto = null;
+        telaJogo();
+        break;
+      case 'encantar': {
+        var tentativa = R.encantar(p, el.dataset.id);
+        estado.encantoPendente = null;
+        if (tentativa) {
+          estado.ultimoEncanto = tentativa;
+          salvar();
           telaJogo();
         }
         break;

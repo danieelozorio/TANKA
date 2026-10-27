@@ -26,9 +26,22 @@ Tanka.regras = (function () {
   function expNecessaria(nivel) { return D.EXP_BASE * Math.pow(2, nivel - 1); }
 
   function novaArma(classe, raridade) {
-    return { id: novoId(), classe: classe, raridade: raridade };
+    return { id: novoId(), classe: classe, raridade: raridade, encanto: 0 };
   }
-  function nomeArma(item) { return D.armas[item.classe][item.raridade]; }
+  function nomeArma(item) {
+    return (item.encanto ? '+' + item.encanto + ' ' : '') + D.armas[item.classe][item.raridade];
+  }
+
+  // Dano da arma já somando o bônus de encantamento.
+  function danoArmaComEncanto(item) {
+    var base = D.raridades[item.raridade].dano;
+    var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade];
+    return [base[0] + extra, base[1] + extra];
+  }
+
+  function precoVenda(item) {
+    return Math.round(D.raridades[item.raridade].venda * (1 + (item.encanto || 0) * D.encantamento.vendaPorNivel));
+  }
   function armaEquipada(p) {
     return p.inventario.find(function (i) { return i.id === p.armaEquipada; }) || null;
   }
@@ -48,6 +61,7 @@ Tanka.regras = (function () {
       atributosIniciais: Object.assign({}, atr),
       pontosLivres: 0,
       ouro: 0,
+      pergaminhos: { comum: 0, rara: 0, epica: 0, lendaria: 0 },
       hpAtual: D.HP_INICIAL,
       inventario: [arma],
       armaEquipada: arma.id,
@@ -60,7 +74,11 @@ Tanka.regras = (function () {
   function normalizar(p) {
     if (!p.sexo) p.sexo = 'masculino';
     if (typeof p.ouro !== 'number') p.ouro = 0;
-    p.inventario.forEach(function (i) { if (i.raridade === 'basica') i.raridade = 'comum'; });
+    if (!p.pergaminhos) p.pergaminhos = { comum: 0, rara: 0, epica: 0, lendaria: 0 };
+    p.inventario.forEach(function (i) {
+      if (i.raridade === 'basica') i.raridade = 'comum';
+      if (typeof i.encanto !== 'number') i.encanto = 0;
+    });
     return p;
   }
 
@@ -69,7 +87,7 @@ Tanka.regras = (function () {
     var a = p.atributos;
     var arma = armaEquipada(p);
     var magico = D.classes[p.classe].dano === 'magico';
-    var danoArma = arma ? D.raridades[arma.raridade].dano : [0, 0];
+    var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
     var bonus = magico ? Math.floor(a.int / 5) : Math.floor(a.for / 5);
     return {
       hpMax: D.HP_INICIAL
@@ -204,6 +222,8 @@ Tanka.regras = (function () {
       res.niveis = ganharExp(p, m.exp);
       res.drop = rolarDrop(p, b.monstroId, b.rng);
       if (res.drop) p.inventario.push(res.drop);
+      res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
+      if (res.pergaminho) p.pergaminhos[res.pergaminho] += 1;
     } else if (b.fim === 'derrota') {
       p.hpAtual = Math.ceil(status(p).hpMax / 2);
     }
@@ -215,7 +235,7 @@ Tanka.regras = (function () {
     if (itemId === p.armaEquipada) return false;
     var i = p.inventario.findIndex(function (x) { return x.id === itemId; });
     if (i < 0) return false;
-    p.ouro += D.raridades[p.inventario[i].raridade].venda;
+    p.ouro += precoVenda(p.inventario[i]);
     p.inventario.splice(i, 1);
     return true;
   }
@@ -228,6 +248,60 @@ Tanka.regras = (function () {
     var item = novaArma(p.classe, raridade);
     p.inventario.push(item);
     return item;
+  }
+
+  // ---------- Encantamento ----------
+
+  // Pergaminho dropado: da mesma raridade da arma equipada. Sorte aumenta a chance.
+  function rolarPergaminho(p, monstroId, rng) {
+    var chance = D.monstros[monstroId].chancePergaminho;
+    if (!chance) return null;
+    if (rng() * 100 >= chance * (1 + status(p).bonusDrop / 100)) return null;
+    var arma = armaEquipada(p);
+    return arma ? arma.raridade : 'comum';
+  }
+
+  function comprarPergaminho(p, raridade) {
+    var preco = D.encantamento.precoPergaminho[raridade];
+    if (preco === undefined || p.ouro < preco) return false;
+    p.ouro -= preco;
+    p.pergaminhos[raridade] += 1;
+    return true;
+  }
+
+  // Chance (%) de levar a arma ao próximo nível.
+  function chanceEncantar(p, item) {
+    var E = D.encantamento, alvo = item.encanto + 1;
+    if (alvo <= E.seguroAte) return 100;
+    return Math.min(E.chanceMaxima, E.chances[alvo] + p.atributos.sor);
+  }
+
+  // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
+  function riscoEncantar(item) {
+    var E = D.encantamento, alvo = item.encanto + 1;
+    if (alvo <= E.seguroAte) return 'nada';
+    return alvo <= E.voltaZeroAte ? 'zera' : 'quebra';
+  }
+
+  // Tenta encantar. Retorna { sucesso, quebrou, nivel } ou null se não puder tentar.
+  function encantar(p, itemId, rng) {
+    var item = p.inventario.find(function (i) { return i.id === itemId; });
+    if (!item || item.encanto >= D.encantamento.maximo || p.pergaminhos[item.raridade] <= 0) return null;
+    var chance = chanceEncantar(p, item);
+    var risco = riscoEncantar(item);
+    p.pergaminhos[item.raridade] -= 1;
+    if ((rng || Math.random)() * 100 < chance) {
+      item.encanto += 1;
+      return { sucesso: true, quebrou: false, nivel: item.encanto, item: item };
+    }
+    if (risco === 'quebra') {
+      p.inventario.splice(p.inventario.indexOf(item), 1);
+      if (p.armaEquipada === item.id) p.armaEquipada = null;
+      return { sucesso: false, quebrou: true, nivel: item.encanto, item: item };
+    }
+    var nivelAntes = item.encanto;
+    if (risco === 'zera') item.encanto = 0;
+    return { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
   }
 
   function descansar(p) { p.hpAtual = status(p).hpMax; }
@@ -247,6 +321,12 @@ Tanka.regras = (function () {
     normalizar: normalizar,
     vender: vender,
     comprar: comprar,
+    danoArma: danoArmaComEncanto,
+    precoVenda: precoVenda,
+    comprarPergaminho: comprarPergaminho,
+    chanceEncantar: chanceEncantar,
+    riscoEncantar: riscoEncantar,
+    encantar: encantar,
     status: status,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,
