@@ -84,7 +84,7 @@
   function telaPersonagens() {
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
-      return '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe) + '</div>'
+      return '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
         + '<div class="nome">' + esc(p.nome) + '</div>'
         + '<div class="detalhe">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + ' · Lv ' + p.nivel + '</div>'
         + '<button class="btn largo" data-acao="jogar" data-id="' + p.id + '">Jogar</button></div>';
@@ -101,15 +101,18 @@
 
   function telaCriacao() {
     var c = estado.criacao;
+    var sexos = Object.keys(D.sexos).map(function (k) {
+      return '<button class="opcao' + (c.sexo === k ? ' selecionada' : '') + '" data-acao="escolher-sexo" data-valor="' + k + '">' + D.sexos[k].nome + '</button>';
+    }).join('');
     var racas = Object.keys(D.racas).map(function (k) {
       var r = D.racas[k];
       return '<button class="carta' + (c.raca === k ? ' selecionada' : '') + '" data-acao="escolher-raca" data-valor="' + k + '">'
-        + '<div class="moldura">' + F.imagemRaca(k) + '</div><div class="nome">' + r.nome + '</div></button>';
+        + '<div class="moldura">' + F.imagemRaca(k, c.sexo) + '</div><div class="nome">' + r.nome + '</div></button>';
     }).join('');
     var classesPermitidas = D.racas[c.raca].classes;
     var classes = classesPermitidas.map(function (k) {
       return '<button class="carta' + (c.classe === k ? ' selecionada' : '') + '" data-acao="escolher-classe" data-valor="' + k + '">'
-        + '<div class="moldura">' + F.personagem(c.raca, k) + '</div><div class="nome">' + D.classes[k].nome + '</div>'
+        + '<div class="moldura">' + F.personagem(c.raca, k, c.sexo) + '</div><div class="nome">' + D.classes[k].nome + '</div>'
         + '<div class="detalhe">' + D.armas[k].tipo + '</div></button>';
     }).join('');
 
@@ -125,12 +128,13 @@
       + '<div class="conteudo"><div class="criacao"><div>'
       + '<section class="etapa"><h2>1. Nome</h2><label>Nome do personagem'
       + '<input id="nome-personagem" maxlength="16" value="' + esc(c.nome) + '" placeholder="Ex.: Aldric"></label></section>'
-      + '<section class="etapa"><h2>2. Raça <small>— ' + esc(D.racas[c.raca].descricao) + '</small></h2><div class="grade">' + racas + '</div></section>'
-      + '<section class="etapa"><h2>3. Classe <small>— ' + esc(D.classes[c.classe].descricao) + '</small></h2><div class="grade">' + classes + '</div></section>'
-      + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe) + '</div>'
-      + '<h3 class="centro">' + D.racas[c.raca].nome + ' ' + D.classes[c.classe].nome + '</h3>'
+      + '<section class="etapa"><h2>2. Sexo</h2><div class="opcoes">' + sexos + '</div></section>'
+      + '<section class="etapa"><h2>3. Raça <small>— ' + esc(D.racas[c.raca].descricao) + '</small></h2><div class="grade">' + racas + '</div></section>'
+      + '<section class="etapa"><h2>4. Classe <small>— ' + esc(D.classes[c.classe].descricao) + '</small></h2><div class="grade">' + classes + '</div></section>'
+      + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe, c.sexo) + '</div>'
+      + '<h3 class="centro">' + D.racas[c.raca].nome + ' ' + D.classes[c.classe].nome + ' · ' + D.sexos[c.sexo].nome + '</h3>'
       + '<table class="atributos"><thead><tr><th>Atributo</th><th>Classe</th><th>Raça</th><th>Total</th></tr></thead><tbody>' + linhas + '</tbody></table>'
-      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].basica + ' (dano 1–1).</p>'
+      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].comum + ' (dano 1–1).</p>'
       + '<p class="erro" id="erro-criacao"></p>'
       + '<button class="btn largo" data-acao="criar-personagem">Criar personagem</button></aside></div></div>' + rodape();
   }
@@ -144,7 +148,7 @@
       return;
     }
     if (!C.nomePersonagemLivre(nome)) { erro.textContent = 'Esse nome já está em uso em Tanka.'; return; }
-    var p = R.criarPersonagem(nome, c.raca, c.classe);
+    var p = R.criarPersonagem(nome, c.sexo, c.raca, c.classe);
     estado.personagem = p;
     salvar();
     estado.conta = C.contaAtual();
@@ -156,8 +160,9 @@
   // ---------------- Jogo ----------------
 
   function abrirJogo(id) {
-    estado.personagem = estado.conta.personagens.find(function (p) { return p.id === id; });
+    estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
     estado.aba = 'cacar';
+    estado.vendaPendente = null;
     estado.resultado = null;
     telaJogo();
   }
@@ -193,12 +198,13 @@
     ].map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
     return '<aside class="caixa ficha">'
-      + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe) + '</div><div>'
+      + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax) + '</div>'
       + '<div class="suave">Experiência</div>' + barra('exp', p.exp, precisa, p.exp + ' / ' + precisa)
       + '<button class="btn secundario largo" data-acao="descansar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Descansar (recupera a vida)</button>'
+      + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
       + '<div class="secao"><h3>Arma</h3>' + (arma
         ? '<div class="raridade-' + arma.raridade + '">' + R.nomeArma(arma) + ' <span class="selo">' + D.raridades[arma.raridade].nome + '</span></div>'
@@ -233,16 +239,37 @@
 
   function abaInventario() {
     var p = estado.personagem;
-    var ordem = { epica: 0, rara: 1, basica: 2 };
-    var itens = p.inventario.slice().sort(function (a, b) { return ordem[a.raridade] - ordem[b.raridade]; });
-    return '<div class="itens">' + itens.map(function (i) {
+    var ordem = Object.keys(D.raridades).reverse();
+    var itens = p.inventario.slice().sort(function (a, b) { return ordem.indexOf(a.raridade) - ordem.indexOf(b.raridade); });
+    return '<p class="suave">Venda qualquer arma, menos a equipada.</p><div class="itens">' + itens.map(function (i) {
       var equipado = i.id === p.armaEquipada;
+      var preco = D.raridades[i.raridade].venda;
+      var acoes = equipado
+        ? '<span class="suave">Equipada</span>'
+        : '<button class="btn" data-acao="equipar" data-id="' + i.id + '">Equipar</button>'
+          + (estado.vendaPendente === i.id
+            ? '<button class="btn perigo" data-acao="vender" data-id="' + i.id + '">Confirmar venda</button>'
+            : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + i.id + '">Vender (+' + preco + ' ouro)</button>');
       return '<div class="item' + (equipado ? ' equipado' : '') + '"><div>'
         + '<div class="raridade-' + i.raridade + '">' + R.nomeArma(i) + ' <span class="selo">' + D.raridades[i.raridade].nome + '</span></div>'
         + '<div class="suave">' + D.armas[i.classe].tipo + ' · dano ' + dano(D.raridades[i.raridade].dano) + '</div></div>'
-        + (equipado ? '<span class="suave">Equipada</span>' : '<button class="btn" data-acao="equipar" data-id="' + i.id + '">Equipar</button>')
-        + '</div>';
+        + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
+  }
+
+  function abaMercado() {
+    var p = estado.personagem;
+    return '<p class="suave">Armas de ' + D.classes[p.classe].nome + ' (' + D.armas[p.classe].tipo + '). Você tem <strong class="cor-ouro">'
+      + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong>.</p><div class="itens">'
+      + Object.keys(D.raridades).map(function (k) {
+        var r = D.raridades[k];
+        var falta = r.compra - p.ouro;
+        return '<div class="item"><div>'
+          + '<div class="raridade-' + k + '">' + D.armas[p.classe][k] + ' <span class="selo">' + r.nome + '</span></div>'
+          + '<div class="suave">Dano ' + dano(r.dano) + ' · ' + r.compra.toLocaleString('pt-BR') + ' de ouro</div></div>'
+          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
+          + '<button class="btn" data-acao="comprar" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+      }).join('') + '</div>';
   }
 
   function resultadoHtml() {
@@ -250,7 +277,7 @@
     if (!r) return '';
     var m = D.monstros[r.monstroId];
     if (r.resultado === 'vitoria') {
-      return '<div class="resultado"><h2>Vitória!</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong>.</p>'
+      return '<div class="resultado"><h2>Vitória!</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeArma(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
         + '<div class="botoes"><button class="btn" data-acao="cacar" data-monstro="' + r.monstroId + '">Caçar de novo</button>'
@@ -268,7 +295,7 @@
     var p = estado.personagem;
     var em = !!estado.batalha;
     return '<div class="arena">'
-      + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe) + '</div><h3>' + esc(p.nome) + '</h3>'
+      + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
       + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax) + '</div>'
       + '<div class="suave">Velocidade ' + b.jogador.vel + '</div></div>'
       + '<div class="vs">VS</div>'
@@ -286,8 +313,9 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = '<nav class="abas-jogo"><button data-acao="aba" data-aba="cacar" class="' + (estado.aba === 'cacar' ? 'ativa' : '') + '">Caçar</button>'
-        + '<button data-acao="aba" data-aba="inventario" class="' + (estado.aba === 'inventario' ? 'ativa' : '') + '">Inventário (' + estado.personagem.inventario.length + ')</button></nav>'
-        + (estado.aba === 'cacar' ? abaCacar() : abaInventario());
+        + '<button data-acao="aba" data-aba="inventario" class="' + (estado.aba === 'inventario' ? 'ativa' : '') + '">Inventário (' + estado.personagem.inventario.length + ')</button>'
+        + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button></nav>'
+        + ({ cacar: abaCacar, inventario: abaInventario, mercado: abaMercado })[estado.aba]();
     }
     var trocar = estado.batalha ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
@@ -423,7 +451,7 @@
         telaPersonagens();
         break;
       case 'nova-criacao':
-        estado.criacao = { nome: '', raca: 'humano', classe: 'cavaleiro' };
+        estado.criacao = { nome: '', sexo: 'masculino', raca: 'humano', classe: 'cavaleiro' };
         telaCriacao();
         break;
       case 'escolher-raca':
@@ -433,13 +461,17 @@
         }
         telaCriacao();
         break;
+      case 'escolher-sexo':
+        estado.criacao.sexo = el.dataset.valor;
+        telaCriacao();
+        break;
       case 'escolher-classe':
         estado.criacao.classe = el.dataset.valor;
         telaCriacao();
         break;
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
-      case 'aba': estado.aba = el.dataset.aba; telaJogo(); break;
+      case 'aba': estado.aba = el.dataset.aba; estado.vendaPendente = null; telaJogo(); break;
       case 'ponto':
         if (R.distribuirPonto(p, el.dataset.atributo)) { salvar(); telaJogo(); }
         break;
@@ -450,8 +482,31 @@
         telaJogo();
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { salvar(); telaJogo(); }
+        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; salvar(); telaJogo(); }
         break;
+      case 'pedir-venda':
+        estado.vendaPendente = el.dataset.id;
+        telaJogo();
+        break;
+      case 'vender': {
+        var item = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+        if (item && R.vender(p, item.id)) {
+          salvar();
+          avisar(R.nomeArma(item) + ' vendida por ' + D.raridades[item.raridade].venda + ' de ouro.');
+        }
+        estado.vendaPendente = null;
+        telaJogo();
+        break;
+      }
+      case 'comprar': {
+        var comprado = R.comprar(p, el.dataset.raridade);
+        if (comprado) {
+          salvar();
+          avisar('Você comprou ' + R.nomeArma(comprado) + '! Ela está no inventário.');
+          telaJogo();
+        }
+        break;
+      }
       case 'cacar': iniciarCaca(el.dataset.monstro); break;
       case 'fugir': encerrar(); break;
       case 'velocidade':

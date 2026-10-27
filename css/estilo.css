@@ -15,6 +15,8 @@
   --basica: #b9b2a5;
   --rara: #5aa0ec;
   --epica: #b56ef0;
+  --lendaria: #f2c94c;
+  --cor-ouro: #e8c25a;
   --raio: 10px;
   --titulo: 'Cinzel', Georgia, serif;
   --corpo: 'EB Garamond', Georgia, serif;
@@ -129,7 +131,20 @@ label input { margin-top: .25em; }
 .carta .nome { font-family: var(--titulo); color: var(--ouro-claro); margin-top: .4rem; font-size: 1rem; }
 .carta .detalhe { color: var(--suave); font-size: .85rem; }
 
+/* Artes pintadas preenchem a moldura mantendo o rosto no topo */
+.moldura > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; color: transparent; }
+
 /* ---------- Criação ---------- */
+.opcoes { display: flex; gap: .6rem; flex-wrap: wrap; }
+.opcao {
+  min-width: 140px; padding: .6em 1.4em;
+  border: 2px solid var(--borda); border-radius: 8px;
+  background: var(--painel-2); color: var(--texto);
+  font-family: var(--titulo); font-size: 1rem; cursor: pointer;
+}
+.opcao:hover { border-color: #5a5040; }
+.opcao.selecionada { border-color: var(--ouro); color: var(--ouro-claro); box-shadow: 0 0 14px rgba(201, 169, 107, .3); }
+
 .criacao { display: grid; gap: 1.2rem; grid-template-columns: 1fr 320px; align-items: start; }
 .previa { position: sticky; top: 1rem; }
 .previa .moldura { aspect-ratio: 5 / 6; overflow: hidden; border-radius: 8px; border: 2px solid var(--ouro); margin-bottom: .8rem; }
@@ -153,6 +168,7 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 
 /* ---------- Tela de jogo ---------- */
 .jogo { display: grid; gap: 1.2rem; grid-template-columns: 320px 1fr; align-items: start; }
+.jogo > *, .criacao > * { min-width: 0; }
 .ficha .cabeca { display: grid; grid-template-columns: 96px 1fr; gap: .8rem; align-items: center; margin-bottom: .8rem; }
 .ficha .cabeca .moldura { border: 2px solid var(--ouro); border-radius: 8px; overflow: hidden; aspect-ratio: 5 / 6; }
 .ficha .cabeca h2 { margin: 0; font-size: 1.2rem; }
@@ -176,6 +192,8 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .raridade-basica { color: var(--basica); }
 .raridade-rara { color: var(--rara); }
 .raridade-epica { color: var(--epica); }
+.raridade-lendaria { color: var(--lendaria); text-shadow: 0 0 10px rgba(242, 201, 76, .35); }
+.cor-ouro { color: var(--cor-ouro); }
 .selo { display: inline-block; padding: 0 .45em; border: 1px solid currentColor; border-radius: 4px; font-size: .78rem; }
 
 /* Monstros */
@@ -193,6 +211,9 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .itens { display: grid; gap: .6rem; }
 .item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem .9rem; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; }
 .item.equipado { border-color: var(--ouro); }
+.item-acoes { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.secao.ouro { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--titulo); color: var(--ouro-claro); }
+.secao.ouro strong { color: var(--cor-ouro); font-size: 1.2rem; font-variant-numeric: tabular-nums; }
 
 /* Batalha */
 .arena { display: grid; grid-template-columns: 1fr auto 1fr; gap: 1rem; align-items: center; }
@@ -214,7 +235,8 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .resultado.derrota { border-color: var(--ruim); background: rgba(208, 100, 90, .07); }
 .botoes { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
 
-.abas-jogo { display: flex; gap: .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--borda); }
+.abas-jogo { display: flex; gap: .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--borda); overflow-x: auto; }
+.abas-jogo button { white-space: nowrap; }
 .abas-jogo button { background: none; border: 0; border-bottom: 2px solid transparent; padding: .5em .9em; color: var(--suave); font-family: var(--titulo); cursor: pointer; }
 .abas-jogo button.ativa { color: var(--ouro-claro); border-bottom-color: var(--ouro); }
 
@@ -238,4 +260,6 @@ table.atributos th { color: var(--suave); font-weight: 500; }
   .arena { grid-template-columns: 1fr 1fr; }
   .vs { display: none; }
   .ficha .cabeca { grid-template-columns: 80px 1fr; }
+  .item { flex-direction: column; align-items: stretch; }
+  .item-acoes { justify-content: flex-start; }
 }

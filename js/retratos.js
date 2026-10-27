@@ -75,7 +75,9 @@ Tanka.retratos = (function () {
     });
     // nariz e boca
     s += '<path d="M100 106 L95 121 Q100 124 105 121" fill="none" stroke="' + r.sombra + '" stroke-width="2" stroke-linecap="round"/>';
-    s += '<path d="M90 132 Q100 ' + (r.bravo ? '129' : '135') + ' 110 132" fill="none" stroke="#5a2e26" stroke-width="2.4" stroke-linecap="round"/>';
+    s += r.labios
+      ? '<path d="M91 131 Q100 127 109 131 Q100 137 91 131 Z" fill="#9a4048"/>'
+      : '<path d="M90 132 Q100 ' + (r.bravo ? '129' : '135') + ' 110 132" fill="none" stroke="#5a2e26" stroke-width="2.4" stroke-linecap="round"/>';
     if (raca === 'orc') {
       s += '<path d="M90 133 L92 120 L95 133 Z" fill="#f2ead2"/><path d="M110 133 L108 120 L105 133 Z" fill="#f2ead2"/>';
       s += '<path d="M112 84 L120 112" stroke="#3a4a26" stroke-width="2" opacity=".7"/>';
@@ -147,9 +149,20 @@ Tanka.retratos = (function () {
   }
 
   // Retrato completo de um personagem (rosto + busto) como string SVG.
-  function personagem(raca, classe) {
+  // Versão feminina do desenho: cabelo longo, sem barba, lábios marcados.
+  function feminina(r) {
+    return Object.assign({}, r, {
+      barba: false,
+      cabeloTipo: r.cabeloTipo === 'curto' ? 'longo' : r.cabeloTipo,
+      labios: true,
+    });
+  }
+
+  // Retrato desenhado em SVG (usado quando não há arte pintada).
+  function desenho(raca, classe, sexo) {
     var id = 'r' + (++contador);
-    var r = RACA[raca], c = CLASSE[classe] || CLASSE.nenhuma;
+    var r = sexo === 'feminino' ? feminina(RACA[raca]) : RACA[raca];
+    var c = CLASSE[classe] || CLASSE.nenhuma;
     return '<svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg" role="img" class="retrato-svg" preserveAspectRatio="xMidYMid slice">'
       + '<defs><radialGradient id="f' + id + '" cx=".5" cy=".35" r=".8"><stop offset="0" stop-color="' + c.fundo[0] + '"/><stop offset="1" stop-color="' + c.fundo[1] + '"/></radialGradient></defs>'
       + '<rect width="200" height="240" fill="url(#f' + id + ')"/>'
@@ -203,18 +216,35 @@ Tanka.retratos = (function () {
 
   var MONSTROS = { cobra: cobra, urso: urso };
 
-  // HTML de imagem para raça: usa a foto quando existe, senão o retrato SVG neutro.
-  function imagemRaca(raca) {
+  // Arte pintada em assets/personagens/<raca>-<classe>[-f].jpg, ex.: elfonegro-mago-f.jpg.
+  // Se o arquivo não existir, o <img> é trocado pelo desenho SVG (ver ouvinte abaixo).
+  function personagem(raca, classe, sexo) {
+    sexo = sexo || 'masculino';
+    var arquivo = 'assets/personagens/' + raca.toLowerCase() + '-' + classe + (sexo === 'feminino' ? '-f' : '') + '.jpg';
+    return '<img class="retrato-img" src="' + arquivo + '" alt="" data-raca="' + raca + '" data-classe="' + classe + '" data-sexo="' + sexo + '">';
+  }
+
+  // Carta de raça: arte própria da raça (masculina), senão o retrato de cavaleiro do sexo escolhido.
+  function imagemRaca(raca, sexo) {
     var r = Tanka.dados.racas[raca];
-    if (r.imagem) return '<img src="' + r.imagem + '" alt="' + r.nome + '" loading="lazy">';
-    return personagem(raca, null);
+    if (r.imagem && sexo !== 'feminino') return '<img src="' + r.imagem + '" alt="' + r.nome + '">';
+    return personagem(raca, 'cavaleiro', sexo);
   }
 
   function imagemMonstro(id) {
     var m = Tanka.dados.monstros[id];
-    if (m.imagem) return '<img src="' + m.imagem + '" alt="' + m.nome + '" loading="lazy">';
+    if (m.imagem) return '<img class="retrato-img" src="' + m.imagem + '" alt="' + m.nome + '" data-monstro="' + id + '">';
     return MONSTROS[id] ? MONSTROS[id]() : '';
   }
 
-  return { personagem: personagem, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro };
+  // Imagem que falhou ao carregar vira o desenho SVG correspondente.
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG' || !img.classList.contains('retrato-img')) return;
+    var d = img.dataset;
+    var svg = d.monstro ? (MONSTROS[d.monstro] ? MONSTROS[d.monstro]() : '') : desenho(d.raca, d.classe, d.sexo);
+    img.outerHTML = svg;
+  }, true);
+
+  return { personagem: personagem, desenho: desenho, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro };
 })();

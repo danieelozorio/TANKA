@@ -33,12 +33,13 @@ Tanka.regras = (function () {
     return p.inventario.find(function (i) { return i.id === p.armaEquipada; }) || null;
   }
 
-  function criarPersonagem(nome, raca, classe) {
+  function criarPersonagem(nome, sexo, raca, classe) {
     var atr = atributosIniciais(raca, classe);
-    var arma = novaArma(classe, 'basica');
+    var arma = novaArma(classe, 'comum');
     return {
       id: novoId(),
       nome: nome,
+      sexo: sexo,
       raca: raca,
       classe: classe,
       nivel: 1,
@@ -46,12 +47,21 @@ Tanka.regras = (function () {
       atributos: atr,
       atributosIniciais: Object.assign({}, atr),
       pontosLivres: 0,
+      ouro: 0,
       hpAtual: D.HP_INICIAL,
       inventario: [arma],
       armaEquipada: arma.id,
       abates: {},
       criadoEm: new Date().toISOString(),
     };
+  }
+
+  // Atualiza personagens salvos em versões antigas do jogo.
+  function normalizar(p) {
+    if (!p.sexo) p.sexo = 'masculino';
+    if (typeof p.ouro !== 'number') p.ouro = 0;
+    p.inventario.forEach(function (i) { if (i.raridade === 'basica') i.raridade = 'comum'; });
+    return p;
   }
 
   // Todos os status vêm dos atributos básicos (valores em % onde indicado).
@@ -183,12 +193,14 @@ Tanka.regras = (function () {
 
   // Aplica o resultado no personagem. Derrota: volta com metade do HP, sem perder exp.
   function concluirBatalha(p, b) {
-    var res = { resultado: b.fim || 'fuga', exp: 0, niveis: 0, drop: null };
+    var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
     p.hpAtual = b.jogador.hp;
     if (b.fim === 'vitoria') {
       var m = D.monstros[b.monstroId];
       p.abates[b.monstroId] = (p.abates[b.monstroId] || 0) + 1;
       res.exp = m.exp;
+      res.ouro = m.ouro;
+      p.ouro += m.ouro;
       res.niveis = ganharExp(p, m.exp);
       res.drop = rolarDrop(p, b.monstroId, b.rng);
       if (res.drop) p.inventario.push(res.drop);
@@ -196,6 +208,26 @@ Tanka.regras = (function () {
       p.hpAtual = Math.ceil(status(p).hpMax / 2);
     }
     return res;
+  }
+
+  // Vende qualquer item, menos a arma equipada.
+  function vender(p, itemId) {
+    if (itemId === p.armaEquipada) return false;
+    var i = p.inventario.findIndex(function (x) { return x.id === itemId; });
+    if (i < 0) return false;
+    p.ouro += D.raridades[p.inventario[i].raridade].venda;
+    p.inventario.splice(i, 1);
+    return true;
+  }
+
+  // Compra no mercado a arma da classe do personagem.
+  function comprar(p, raridade) {
+    var r = D.raridades[raridade];
+    if (!r || p.ouro < r.compra) return null;
+    p.ouro -= r.compra;
+    var item = novaArma(p.classe, raridade);
+    p.inventario.push(item);
+    return item;
   }
 
   function descansar(p) { p.hpAtual = status(p).hpMax; }
@@ -212,6 +244,9 @@ Tanka.regras = (function () {
     atributosIniciais: atributosIniciais,
     expNecessaria: expNecessaria,
     criarPersonagem: criarPersonagem,
+    normalizar: normalizar,
+    vender: vender,
+    comprar: comprar,
     status: status,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,

@@ -22,21 +22,40 @@ node testes/regras.test.js
 ## O que já existe
 
 - **Cadastro** (usuário, senha, e-mail, WhatsApp) e **login** com usuário e senha.
-- **Criação de personagem**: nome, raça e classe, até 3 por conta.
+- **Criação de personagem**: nome, sexo (Homem ou Mulher), raça e classe, até 3 por conta. O sexo muda só os retratos.
 - **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
-- **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP e uma arma básica de dano 1–1.
+- **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–1.
 - **Level**: 10 de exp para o level 2, e a exp necessária dobra a cada level (10, 20, 40, 80…). Cada level dá 3 pontos de atributo.
 - **Combate por velocidade**: velocidade = Destreza. Um monstro com o dobro da sua velocidade ataca duas vezes para cada ataque seu.
 - **Monstros**:
 
-| Monstro | HP | Ataque | Velocidade | Exp | Drops |
-|---|---|---|---|---|---|
-| Lobo Selvagem | 20 | 1 | 8 | 2 | — |
-| Cobra Viscosa | 40 | 2 | 16 | 4 | Rara 10% |
-| Urso Raivoso | 80 | 4 | 32 | 8 | Épica 10%, Rara 30% |
+| Monstro | HP | Ataque | Velocidade | Exp | Ouro (100%) | Drops |
+|---|---|---|---|---|---|---|
+| Lobo Selvagem | 20 | 1 | 8 | 2 | 2 | — |
+| Cobra Viscosa | 40 | 2 | 16 | 4 | 5 | Rara 10% |
+| Urso Raivoso | 80 | 4 | 32 | 8 | 20 | Épica 10%, Rara 30% |
 
 - **Drops**: sempre a arma da classe do personagem. A Sorte aumenta a chance (+1% relativo por ponto).
-- **Retratos**: rosto e busto em SVG para cada combinação de raça e classe. Humano, Elfo, Elfo Negro e Lobo usam as artes enviadas.
+- **Ouro e mercado**: o ouro aparece acima dos atributos. Qualquer arma, menos a equipada, pode ser vendida no inventário. A aba Mercado vende todas as armas da classe do personagem:
+
+| Raridade | Dano | Venda | Compra |
+|---|---|---|---|
+| Comum | 1–1 | 10 | 10 |
+| Rara | 3–5 | 20 | 100 |
+| Épica (roxo) | 10–15 | 50 | 1.000 |
+| Lendária (amarelo) | 30–55 | 100 | 10.000 |
+
+- **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
+
+## Como adicionar as artes
+
+Salve em `assets/personagens/` com o nome `raca-classe.jpg`, e com `-f` no final para a versão feminina:
+
+- raças: `humano`, `elfo`, `elfonegro`, `orc`, `anao`
+- classes: `cavaleiro`, `arqueiro`, `mago`, `artesao`
+- exemplos: `humano-cavaleiro.jpg`, `elfonegro-mago-f.jpg`
+
+Monstros ficam em `assets/monstros/`: `lobo-selvagem.jpg`, `cobra-viscosa.jpg`, `urso-raivoso.jpg`. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
 
 ## Fórmulas dos atributos
 
@@ -70,5 +89,4 @@ testes/             testes das regras em Node
 ## Próximos passos para o tankaarena.com
 
 - **Servidor e banco de dados**: hoje as contas ficam no `localStorage` do navegador, então cada jogador só vê os próprios dados naquele aparelho. Para o jogo online, `js/contas.js` precisa virar chamadas a uma API (Node/PHP + PostgreSQL/MySQL), com o combate validado no servidor para evitar trapaça.
-- Artes pintadas para Orc, Anão, Cobra e Urso: basta salvar em `assets/` e preencher o campo `imagem` em `js/dados.js`.
 - Sistemas de craft e encantamento (as chances já são calculadas e exibidas).
