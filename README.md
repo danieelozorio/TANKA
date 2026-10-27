@@ -1,0 +1,74 @@
+# Tanka — Arena Medieval Mística
+
+RPG medieval místico de navegador. Domínio: **tankaarena.com**.
+
+## Como jogar localmente
+
+O jogo é HTML + CSS + JavaScript puro, sem build. Sirva a pasta com qualquer servidor estático:
+
+```bash
+python3 -m http.server 8000
+# abra http://localhost:8000
+```
+
+> Use `http://localhost` ou `https://`: o hash da senha usa a Web Crypto do navegador, que só funciona em contexto seguro.
+
+Testes das regras:
+
+```bash
+node testes/regras.test.js
+```
+
+## O que já existe
+
+- **Cadastro** (usuário, senha, e-mail, WhatsApp) e **login** com usuário e senha.
+- **Criação de personagem**: nome, raça e classe, até 3 por conta.
+- **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
+- **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP e uma arma básica de dano 1–1.
+- **Level**: 10 de exp para o level 2, e a exp necessária dobra a cada level (10, 20, 40, 80…). Cada level dá 3 pontos de atributo.
+- **Combate por velocidade**: velocidade = Destreza. Um monstro com o dobro da sua velocidade ataca duas vezes para cada ataque seu.
+- **Monstros**:
+
+| Monstro | HP | Ataque | Velocidade | Exp | Drops |
+|---|---|---|---|---|---|
+| Lobo Selvagem | 20 | 1 | 8 | 2 | — |
+| Cobra Viscosa | 40 | 2 | 16 | 4 | Rara 10% |
+| Urso Raivoso | 80 | 4 | 32 | 8 | Épica 10%, Rara 30% |
+
+- **Drops**: sempre a arma da classe do personagem. A Sorte aumenta a chance (+1% relativo por ponto).
+- **Retratos**: rosto e busto em SVG para cada combinação de raça e classe. Humano, Elfo, Elfo Negro e Lobo usam as artes enviadas.
+
+## Fórmulas dos atributos
+
+Todos os números ficam em `js/dados.js` (dados) e `js/regras.js` (fórmulas).
+
+| Atributo | Afeta |
+|---|---|
+| Força | Ataque físico (+1 a cada 5), dano crítico (150% + 1% por ponto) |
+| Destreza | Velocidade (= DES), precisão (75% + DES), evasão (0,5% por ponto), chance de crítico mágico (0,5% por ponto) |
+| Resistência | Defesa e defesa mágica (+1 a cada 10), vida (+5 HP por ponto distribuído) |
+| Inteligência | Ataque mágico (+1 a cada 5) |
+| Sorte | Chance de crítico (0,5% por ponto), dano crítico mágico (150% + 1% por ponto), craft (1%/ponto), drop (+1%/ponto), encantamento (1%/ponto) |
+
+Vida máxima = 100 + 10 por level acima do 1 + 5 por ponto de Resistência distribuído.
+Ao perder uma batalha, o personagem volta com metade da vida, sem perder exp.
+
+## Estrutura
+
+```
+index.html          página única
+css/estilo.css      visual
+js/dados.js         raças, classes, monstros, armas e constantes
+js/regras.js        status, level, combate, drops (sem DOM, testável)
+js/contas.js        cadastro/login/salvamento (localStorage + PBKDF2)
+js/retratos.js      retratos SVG e ilustrações dos monstros
+js/app.js           telas e interação
+assets/             artes (raças e monstros)
+testes/             testes das regras em Node
+```
+
+## Próximos passos para o tankaarena.com
+
+- **Servidor e banco de dados**: hoje as contas ficam no `localStorage` do navegador, então cada jogador só vê os próprios dados naquele aparelho. Para o jogo online, `js/contas.js` precisa virar chamadas a uma API (Node/PHP + PostgreSQL/MySQL), com o combate validado no servidor para evitar trapaça.
+- Artes pintadas para Orc, Anão, Cobra e Urso: basta salvar em `assets/` e preencher o campo `imagem` em `js/dados.js`.
+- Sistemas de craft e encantamento (as chances já são calculadas e exibidas).
