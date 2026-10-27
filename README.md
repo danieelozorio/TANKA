@@ -82,7 +82,7 @@ js/regras.js        status, level, combate, drops (sem DOM, testável)
 js/contas.js        cadastro/login/salvamento (localStorage + PBKDF2)
 js/retratos.js      retratos SVG e ilustrações dos monstros
 js/app.js           telas e interação
-assets/             artes (raças e monstros)
+assets/             artes (personagens e monstros)
 testes/             testes das regras em Node
 ```
 

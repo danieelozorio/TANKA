@@ -224,10 +224,8 @@ Tanka.retratos = (function () {
     return '<img class="retrato-img" src="' + arquivo + '" alt="" data-raca="' + raca + '" data-classe="' + classe + '" data-sexo="' + sexo + '">';
   }
 
-  // Carta de raça: arte própria da raça (masculina), senão o retrato de cavaleiro do sexo escolhido.
+  // Carta de raça: o retrato de cavaleiro da raça, no sexo escolhido.
   function imagemRaca(raca, sexo) {
-    var r = Tanka.dados.racas[raca];
-    if (r.imagem && sexo !== 'feminino') return '<img src="' + r.imagem + '" alt="' + r.nome + '">';
     return personagem(raca, 'cavaleiro', sexo);
   }
 
