@@ -205,6 +205,9 @@ Tanka.dados = {
   // Valores das listas: um por nível da habilidade.
   // Habilidades especiais desligadas por enquanto (true religa barra de Poder, botão e evolução).
   HABILIDADES_ATIVAS: false,
+
+  // Derrota: perde este % da exp do level atual (não desce de level).
+  PERDA_EXP_DERROTA: 5,
   PODER: { maximo: 100, porAcerto: 25, porGolpeRecebido: 10 },
 
   // Vida com o tempo: % da vida máxima por minuto fora da batalha (também com o jogo fechado).

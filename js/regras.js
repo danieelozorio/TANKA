@@ -499,8 +499,8 @@ Tanka.regras = (function () {
     }
   }
 
-  // Aplica o resultado no personagem. Derrota: fica com 0 de vida (sem perder exp) e só caça de novo
-  // quando a vida voltar com o tempo ou com poção.
+  // Aplica o resultado no personagem. Derrota: fica com 0 de vida, perde 5% da exp do level
+  // (sem descer de level) e só caça de novo quando a vida voltar com o tempo ou com poção.
   // `agora`: a vida com o tempo volta a contar a partir do fim da luta.
   function concluirBatalha(p, b, agora) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
@@ -543,6 +543,9 @@ Tanka.regras = (function () {
       }
     } else if (b.fim === 'derrota') {
       p.hpAtual = 0;
+      res.expPerdida = Math.min(p.exp, Math.ceil(expNecessaria(p.nivel) * D.PERDA_EXP_DERROTA / 100));
+      if (p.nivel >= D.NIVEL_MAXIMO) res.expPerdida = 0;
+      p.exp -= res.expPerdida;
     }
     return res;
   }

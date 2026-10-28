@@ -101,7 +101,7 @@ Todos os números ficam em `js/dados.js` (dados) e `js/regras.js` (fórmulas).
 | Sorte | Chance de crítico (0,5% por ponto), dano crítico mágico (150% + 1% por ponto), craft (1%/ponto), drop (+1%/ponto), encantamento (1%/ponto) |
 
 Vida máxima = 100 + 10 por level acima do 1 + 5 por ponto de Resistência distribuído.
-Ao perder uma batalha, o personagem fica com **0 de vida** (sem perder exp) e só caça de novo quando a vida voltar com o tempo, acampando ou com poção. Por isso é preciso tomar cuidado com áreas difíceis demais.
+Ao perder uma batalha, o personagem fica com **0 de vida** e perde **5% da exp do level** (sem descer de level; `PERDA_EXP_DERROTA` em `js/dados.js`). Com 0 de vida não pode caçar; a partir de 1 de vida já pode, por sua conta e risco de morrer de novo. Por isso é preciso tomar cuidado com áreas difíceis demais.
 
 ## Estrutura
 

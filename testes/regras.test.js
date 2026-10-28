@@ -622,8 +622,15 @@ teste('derrota deixa 0 de vida; habilidades desligadas não disparam', () => {
   const p = R.criarPersonagem('Caido', 'masculino', 'humano', 'mago');
   const b = R.iniciarBatalha(p, 'urso', rng);
   b.fim = 'derrota'; b.jogador.hp = 0;
-  R.concluirBatalha(p, b, T0);
+  p.nivel = 6; p.exp = 100; // level 6 pede 240: perde 5% = 12
+  const res = R.concluirBatalha(p, b, T0);
   assert.strictEqual(p.hpAtual, 0);
+  assert.strictEqual(res.expPerdida, 12);
+  assert.strictEqual(p.exp, 88);
+  p.exp = 5;
+  R.concluirBatalha(p, Object.assign(R.iniciarBatalha(p, 'urso', rng), { fim: 'derrota' }), T0);
+  assert.strictEqual(p.exp, 0); // não desce de level
+  assert.strictEqual(p.nivel, 6);
   D.HABILIDADES_ATIVAS = false;
   const b2 = R.iniciarBatalha(R.criarPersonagem('Sem', 'masculino', 'humano', 'mago'), 'lobo', rng);
   b2.jogador.poder = 100; b2.auto = true;

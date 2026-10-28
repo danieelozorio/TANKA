@@ -557,7 +557,7 @@
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     if (r.resultado === 'derrota') {
-      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento sem vida: espere ela voltar, acampe ou use uma poção. Cuidado com áreas difíceis demais!</p>'
+      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento sem vida' + (r.expPerdida ? ' e perde <strong class="menos">' + r.expPerdida.toLocaleString('pt-BR') + ' de exp</strong>' : '') + '. Espere a vida voltar, acampe ou use uma poção. Cuidado com áreas difíceis demais!</p>'
         + '<div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
@@ -728,7 +728,7 @@
       if (res.mochilaCheia) linha('dano-recebido', 'Mochila cheia! Um item se perdeu.');
       if (res.pergaminho) linha('destaque', 'Drop: ' + (res.qtdPergaminhos > 1 ? res.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
     } else if (res.resultado === 'derrota') {
-      linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
+      linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '.');
     } else {
       linha('errou', esc(estado.personagem.nome) + ' fugiu.');
     }
