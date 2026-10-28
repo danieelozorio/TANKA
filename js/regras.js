@@ -168,6 +168,7 @@ Tanka.regras = (function () {
       if (!i.tipo) i.tipo = 'arma';
     });
     if (!p.presencaChefe) p.presencaChefe = {};
+    if (p.abates.grakk) { p.abates.velgrath = (p.abates.velgrath || 0) + p.abates.grakk; delete p.abates.grakk; } // chefe renomeado
     if (!p.equipados) {
       p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
       delete p.armaEquipada;

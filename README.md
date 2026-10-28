@@ -33,7 +33,7 @@ node testes/regras.test.js
 
 | Área | Level | Monstros | Chefe | Presença do chefe por abate |
 |---|---|---|---|---|
-| Floresta Sombria | 1+ | Lobo Selvagem, Cobra Viscosa, Urso Raivoso | Grakk, o Lobo Alfa | +1% |
+| Floresta Sombria | 1+ | Lobo Selvagem, Cobra Viscosa, Urso Raivoso | Velgrath, o Ancião Apodrecido | +1% |
 | Pântano de Brumafria | 5+ | Sapo Gigante, Aranha do Brejo, Troll do Pântano | Morgath, a Bruxa do Brejo | +0,7% |
 | Ruínas de Dravenhold | 10+ | Esqueleto Guerreiro, Goblin Saqueador, Gárgula | Varnok, o Lich | +0,5% |
 | Torre Carmesim | 15+ | Golem de Pedra, Cultista Sombrio, Espectro | O Guardião da Torre | +0,3% |
@@ -75,7 +75,7 @@ Salve em `assets/personagens/` com o nome `raca-classe.jpg`, e com `-f` no final
 
 Ícones de itens (opcional) ficam em `assets/itens/`: armas `arma-<classe>-<raridade>.jpg`, armaduras `<classe>-<tipo>-<raridade>.jpg` (tipos: `elmo`, `peitoral`, `luvas`, `botas`) e joias `colar-<raridade>.jpg` / `anel-<raridade>.jpg`. Raridades: `comum`, `rara`, `epica`, `lendaria`. Sem o arquivo, aparece o ícone desenhado.
 
-Monstros ficam em `assets/monstros/`, com o nome do monstro em minúsculas, sem acento e com hífens: `lobo-selvagem.jpg`, `aranha-do-brejo.jpg`, `cavaleiro-draconico.jpg`. Chefes usam só o primeiro nome: `grakk.jpg`, `morgath.jpg`, `varnok.jpg`, `guardiao-da-torre.jpg`, `farao-sem-nome.jpg`, `vharkesh.jpg`, `ignaroth.jpg`. Sem a arte, aparece uma silhueta provisória. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
+Monstros ficam em `assets/monstros/`, com o nome do monstro em minúsculas, sem acento e com hífens: `lobo-selvagem.jpg`, `aranha-do-brejo.jpg`, `cavaleiro-draconico.jpg`. Chefes usam só o primeiro nome: `velgrath.jpg`, `morgath.jpg`, `varnok.jpg`, `guardiao-da-torre.jpg`, `farao-sem-nome.jpg`, `vharkesh.jpg`, `ignaroth.jpg`. Sem a arte, aparece uma silhueta provisória. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
 
 ## Fórmulas dos atributos
 

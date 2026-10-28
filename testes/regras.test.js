@@ -417,7 +417,7 @@ teste('áreas bloqueadas por level; chefe não pode ser caçado direto', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   assert.ok(R.podeCacar(p, 'lobo'));
   assert.ok(!R.podeCacar(p, 'sapo'));
-  assert.ok(!R.podeCacar(p, 'grakk'));
+  assert.ok(!R.podeCacar(p, 'velgrath'));
   R.admin.subirNivel(p, 4);
   assert.strictEqual(p.nivel, 5);
   assert.ok(R.podeCacar(p, 'sapo'));
@@ -432,12 +432,12 @@ teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar',
   R.admin.subirNivel(p, 10);
   for (let i = 0; i < 3; i++) vencer('sapo');
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
-  assert.strictEqual(R.sortearChefe(p, 'cobra', () => 0.29), 'grakk');
+  assert.strictEqual(R.sortearChefe(p, 'cobra', () => 0.29), 'velgrath');
   assert.strictEqual(R.sortearChefe(p, 'cobra', () => 0.31), null);
   for (let i = 0; i < 200; i++) vencer('urso');
   assert.strictEqual(p.presencaChefe.floresta, 100);
   p.inventario = p.inventario.filter((i) => R.slotDoItem(p, i.id)); // esvazia a mochila
-  const res = vencer('grakk');
+  const res = vencer('velgrath');
   assert.strictEqual(p.presencaChefe.floresta, 0);
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
   assert.ok(res.drop || res.dropArmadura, 'chefe sempre dropa');
@@ -450,7 +450,7 @@ teste('drop do chefe: raridades pela tabela (Floresta: lend. 5%, épica 25%, sen
   const c = { lendaria: 0, epica: 0, rara: 0 }, N = 20000;
   for (let i = 0; i < N; i++) {
     p.inventario = p.inventario.slice(0, 1);
-    const b = R.iniciarBatalha(p, 'grakk', rng); b.fim = 'vitoria';
+    const b = R.iniciarBatalha(p, 'velgrath', rng); b.fim = 'vitoria';
     const res = R.concluirBatalha(p, b);
     const it = res.drop || res.dropArmadura;
     c[it.raridade]++;

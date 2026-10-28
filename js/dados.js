@@ -222,7 +222,7 @@ Tanka.dados = {
           drops: [{ raridade: 'epica', chance: 10 }, { raridade: 'rara', chance: 30 }],
           dropsArmadura: [{ raridade: 'rara', chance: 10 }, { raridade: 'epica', chance: 3 }] },
       ],
-      chefe: { id: 'grakk', nome: 'Grakk, o Lobo Alfa', descricao: 'O líder da matilha. Seus uivos gelam o sangue.',
+      chefe: { id: 'velgrath', nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
         drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 25 }], dropPadrao: 'rara' },
     },
     {
