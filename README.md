@@ -45,7 +45,7 @@ node testes/regras.test.js
 - **Poções diárias**: cada personagem tem 2 poções por dia; cada uma cura 100% da vida, fora ou dentro da batalha (na batalha gasta a vez). Não acumulam, não são vendidas e não dropam.
 - **Reset diário** à meia-noite de Brasília: vida cheia e as 2 poções de volta. (Sem servidor, o relógio é o do aparelho do jogador.)
 - **Exp reduzida em área fácil**: a faixa de cada área termina no level da próxima área. De 3 a 7 levels acima do fim da faixa, a exp cai para 50%; com 8 ou mais, 10%. O Cume do Fogo Eterno nunca reduz. Ouro e drops não mudam. Valores em `js/dados.js` (`VIDA` e `EXP_REDUZIDA`).
-- **Habilidades especiais**: na batalha, a barra de Poder enche (+25 por acerto, Mago +34; +10 por golpe recebido). Cheia, o jogador clica na habilidade (ou marca "Usar automaticamente"). Evolui nos levels 10, 20 e 30.
+- **Habilidades especiais** (*desligadas por enquanto*: para religar, mude `HABILIDADES_ATIVAS` para `true` em `js/dados.js`): na batalha, a barra de Poder enche (+25 por acerto, Mago +34; +10 por golpe recebido). Cheia, o jogador clica na habilidade (ou marca "Usar automaticamente"). Evolui nos levels 10, 20 e 30.
   - Cavaleiro, Golpe de Escudo: dano x1,5/x2/x2,5/x3 e atordoa o monstro por 1/2/2/3 ações.
   - Arqueiro, Chuva de Flechas: 2/3/3/4 flechas seguidas, com +10/+20/+30/+40% de crítico.
   - Mago, Bola de Fogo: dano x2,5/x3/x4/x5, sempre acerta e ignora a defesa mágica.
@@ -101,7 +101,7 @@ Todos os números ficam em `js/dados.js` (dados) e `js/regras.js` (fórmulas).
 | Sorte | Chance de crítico (0,5% por ponto), dano crítico mágico (150% + 1% por ponto), craft (1%/ponto), drop (+1%/ponto), encantamento (1%/ponto) |
 
 Vida máxima = 100 + 10 por level acima do 1 + 5 por ponto de Resistência distribuído.
-Ao perder uma batalha, o personagem volta com metade da vida, sem perder exp.
+Ao perder uma batalha, o personagem fica com **0 de vida** (sem perder exp) e só caça de novo quando a vida voltar com o tempo, acampando ou com poção. Por isso é preciso tomar cuidado com áreas difíceis demais.
 
 ## Estrutura
 

@@ -129,7 +129,7 @@ Tanka.regras = (function () {
   // Mantém a vida coerente quando o HP máximo muda (equipar, desequipar, distribuir ponto).
   function ajustarVida(p, hpMaxAntes) {
     var hpMax = status(p).hpMax;
-    p.hpAtual = Math.max(1, Math.min(hpMax, p.hpAtual + hpMax - hpMaxAntes));
+    p.hpAtual = Math.max(p.hpAtual > 0 ? 1 : 0, Math.min(hpMax, p.hpAtual + hpMax - hpMaxAntes));
   }
 
   function criarPersonagem(nome, sexo, raca, classe) {
@@ -447,7 +447,7 @@ Tanka.regras = (function () {
 
   // O jogador pede a habilidade (só com a barra cheia); ela sai no próximo ataque dele.
   function prepararHabilidade(b) {
-    if (b.fim || b.jogador.poder < D.PODER.maximo) return false;
+    if (!D.HABILIDADES_ATIVAS || b.fim || b.jogador.poder < D.PODER.maximo) return false;
     b.habilidadePendente = true;
     return true;
   }
@@ -491,7 +491,7 @@ Tanka.regras = (function () {
           return { ator: 'jogador', pocao: true, cura: curou };
         }
         var cheia = b.jogador.poder >= D.PODER.maximo;
-        return cheia && (b.habilidadePendente || b.auto) ? usarHabilidade(b) : ataqueJogador(b);
+        return D.HABILIDADES_ATIVAS && cheia && (b.habilidadePendente || b.auto) ? usarHabilidade(b) : ataqueJogador(b);
       }
       if (b.monstro.barra >= 100) { b.monstro.barra -= 100; return ataqueMonstro(b); }
       b.jogador.barra += b.jogador.vel;
@@ -499,7 +499,8 @@ Tanka.regras = (function () {
     }
   }
 
-  // Aplica o resultado no personagem. Derrota: volta com metade do HP, sem perder exp.
+  // Aplica o resultado no personagem. Derrota: fica com 0 de vida (sem perder exp) e só caça de novo
+  // quando a vida voltar com o tempo ou com poção.
   // `agora`: a vida com o tempo volta a contar a partir do fim da luta.
   function concluirBatalha(p, b, agora) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
@@ -541,7 +542,7 @@ Tanka.regras = (function () {
         if (res.pergaminho) { p.pergaminhos[res.pergaminho] += 1; res.qtdPergaminhos = 1; }
       }
     } else if (b.fim === 'derrota') {
-      p.hpAtual = Math.ceil(status(p).hpMax / 2);
+      p.hpAtual = 0;
     }
     return res;
   }

@@ -8,6 +8,7 @@ const ctx = {};
 vm.createContext(ctx);
 ['dados.js', 'regras.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx));
 const { dados: D, regras: R } = vm.runInContext('Tanka', ctx);
+D.HABILIDADES_ATIVAS = true; // os testes de habilidade continuam valendo para quando religar
 
 let rngSeed = 42;
 function rng() { rngSeed = (rngSeed * 1664525 + 1013904223) % 4294967296; return rngSeed / 4294967296; }
@@ -615,4 +616,18 @@ teste('exp reduzida: 50% de 3 a 7 levels acima da faixa, 10% com 8+, última ár
   const res = R.concluirBatalha(p, b, T0);
   assert.strictEqual(res.fatorExp, 10);
   assert.strictEqual(res.exp, Math.max(1, Math.floor(D.monstros.lobo.exp / 10)));
+});
+
+teste('derrota deixa 0 de vida; habilidades desligadas não disparam', () => {
+  const p = R.criarPersonagem('Caido', 'masculino', 'humano', 'mago');
+  const b = R.iniciarBatalha(p, 'urso', rng);
+  b.fim = 'derrota'; b.jogador.hp = 0;
+  R.concluirBatalha(p, b, T0);
+  assert.strictEqual(p.hpAtual, 0);
+  D.HABILIDADES_ATIVAS = false;
+  const b2 = R.iniciarBatalha(R.criarPersonagem('Sem', 'masculino', 'humano', 'mago'), 'lobo', rng);
+  b2.jogador.poder = 100; b2.auto = true;
+  assert.strictEqual(R.prepararHabilidade(b2), false);
+  for (let i = 0; i < 50 && !b2.fim; i++) assert.ok(!R.passo(b2).habilidade);
+  D.HABILIDADES_ATIVAS = true;
 });

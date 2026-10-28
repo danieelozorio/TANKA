@@ -287,9 +287,9 @@
       + vidaTempoHtml(p, s, emBatalha)
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
-      + '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
+      + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
-      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>'
+      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
       + '<div class="secao"><h3>Arma</h3>' + (arma
         ? '<div>' + nomeItemHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
         : '<div class="suave">Nenhuma</div>') + '</div>'
@@ -557,7 +557,7 @@
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     if (r.resultado === 'derrota') {
-      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento com metade da vida.</p>'
+      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento sem vida: espere ela voltar, acampe ou use uma poção. Cuidado com áreas difíceis demais!</p>'
         + '<div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
@@ -576,6 +576,7 @@
     var pocao = b.pocaoPendente
       ? '<button class="btn btn-pocao" disabled>🧪 Bebendo…</button>'
       : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>🧪 Beber poção (' + b.pocoes + ')</button>';
+    if (!D.HABILIDADES_ATIVAS) return pocao;
     return botao + pocao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
   }
 
@@ -586,7 +587,7 @@
     return '<div class="arena">'
       + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
       + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax) + '</div>'
-      + '<div id="poder-jogador">' + barraPoder(b) + '</div>'
+      + (D.HABILIDADES_ATIVAS ? '<div id="poder-jogador">' + barraPoder(b) + '</div>' : '')
       + '<div class="suave">Velocidade ' + b.jogador.vel + '</div>'
       + (em ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>'
       + '<div class="vs">VS</div>'
@@ -699,7 +700,7 @@
     document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax);
     document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
     document.getElementById('ficha-pocoes').textContent = b.pocoes + '/' + D.VIDA.pocoesPorDia;
-    document.getElementById('poder-jogador').innerHTML = barraPoder(b);
+    if (D.HABILIDADES_ATIVAS) document.getElementById('poder-jogador').innerHTML = barraPoder(b);
     document.getElementById('controle-habilidade').innerHTML = controleHabilidade(b);
     var reg = document.getElementById('registro');
     reg.insertAdjacentHTML('beforeend', estado.registro.slice(linhasAntes).join(''));
@@ -715,7 +716,7 @@
     clearTimeout(estado.timer);
     var res = R.concluirBatalha(estado.personagem, b, Date.now());
     var nivelHab = R.nivelHabilidade(estado.personagem);
-    if (nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
+    if (D.HABILIDADES_ATIVAS && nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
     res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
@@ -939,8 +940,9 @@
       case 'cacar': {
         var alvo = el.dataset.monstro;
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
-        if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); break; }
         if (R.atualizarTempo(p, Date.now())) salvar();
+        if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
+        if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); break; }
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
           clearTimeout(estado.timer);
