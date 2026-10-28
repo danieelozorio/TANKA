@@ -78,6 +78,8 @@ Salve em `assets/personagens/` com o nome `raca-classe.jpg`, e com `-f` no final
 - classes: `cavaleiro`, `arqueiro`, `mago`, `artesao`
 - exemplos: `humano-cavaleiro.jpg`, `elfonegro-mago-f.jpg`
 
+Para recortar uma grade de ícones gerada por IA (2x2, 4x4...): `python3 ferramentas/recortar_grade.py IMAGEM LINHAS COLUNAS nome1 nome2 ...` (nomes da esquerda para a direita, de cima para baixo). Os ícones vão para `assets/itens/`.
+
 Ícones de itens (opcional) ficam em `assets/itens/`: armas `arma-<classe>-<raridade>.jpg`, armaduras `<classe>-<tipo>-<raridade>.jpg` (tipos: `elmo`, `peitoral`, `luvas`, `botas`) e joias `colar-<raridade>.jpg` / `anel-<raridade>.jpg`. Raridades: `comum`, `rara`, `epica`, `lendaria`. Sem o arquivo, aparece o ícone desenhado.
 
 Monstros ficam em `assets/monstros/`, com o nome do monstro em minúsculas, sem acento e com hífens: `lobo-selvagem.jpg`, `aranha-do-brejo.jpg`, `cavaleiro-draconico.jpg`. Chefes usam só o primeiro nome: `velgrath.jpg`, `morgath.jpg`, `varnok.jpg`, `guardiao-da-torre.jpg`, `farao-sem-nome.jpg`, `vharkesh.jpg`, `ignaroth.jpg`. Sem a arte, aparece uma silhueta provisória. Não é preciso mexer no código: o jogo encontra o arquivo pelo nome.
@@ -107,7 +109,8 @@ js/regras.js        status, level, combate, drops (sem DOM, testável)
 js/contas.js        cadastro/login/salvamento (localStorage + PBKDF2)
 js/retratos.js      retratos SVG e ilustrações dos monstros
 js/app.js           telas e interação
-assets/             artes (personagens e monstros)
+assets/             artes (personagens, monstros e itens)
+ferramentas/        recortar_grade.py (recorta grades de ícones)
 testes/             testes das regras em Node
 ```
 
