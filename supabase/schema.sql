@@ -161,3 +161,6 @@ begin
 end $$;
 revoke execute on function public.silenciar(text, int) from public, anon;
 grant execute on function public.silenciar(text, int) to authenticated;
+
+-- Avisa a API do Supabase que as tabelas mudaram (evita o erro "schema cache").
+notify pgrst, 'reload schema';
