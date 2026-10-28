@@ -1,40 +1,96 @@
-// Tanka — cadastro, login e gravação de personagens.
-// Versão local: os dados ficam no localStorage do navegador. A senha nunca é
-// guardada em texto: salvamos só o hash PBKDF2 com sal. Para o tankaarena.com
-// em produção, troque estas funções por chamadas a uma API com banco de dados.
+// Tanka — cadastro, login e gravação de personagens no servidor (Supabase).
+// Fala direto com a API REST do Supabase (Auth + PostgREST), sem biblioteca externa.
+// O login é por nome de usuário: por baixo, o Auth recebe um e-mail interno
+// <usuario>@jogador.tankaarena.com. O e-mail real e o WhatsApp ficam na tabela `contas`.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 
 Tanka.contas = (function () {
-  var CHAVE_CONTAS = 'tanka.contas';
+  var CFG = Tanka.config;
   var CHAVE_SESSAO = 'tanka.sessao';
+  var sessao = null;        // { access_token, refresh_token, expires_at, user }
+  var conta = null;         // { usuario, email, admin, personagens: [...] }
+  var diferencaRelogio = 0; // servidor - aparelho (ms)
+  var fila = Promise.resolve();
 
-  function ler() {
-    try { return JSON.parse(localStorage.getItem(CHAVE_CONTAS)) || {}; } catch (e) { return {}; }
-  }
-  function gravar(contas) {
-    try { localStorage.setItem(CHAVE_CONTAS, JSON.stringify(contas)); } catch (e) {
-      throw new Error('Não foi possível salvar: o navegador bloqueou o armazenamento local.');
-    }
-  }
-  function sessao(valor) {
+  function emailInterno(usuario) { return String(usuario).toLowerCase() + '@jogador.tankaarena.com'; }
+
+  function guardarSessao(s) {
+    sessao = s;
     try {
-      if (valor === undefined) return sessionStorage.getItem(CHAVE_SESSAO);
-      if (valor === null) sessionStorage.removeItem(CHAVE_SESSAO); else sessionStorage.setItem(CHAVE_SESSAO, valor);
-    } catch (e) { return null; }
-    return valor;
+      if (s) localStorage.setItem(CHAVE_SESSAO, JSON.stringify(s)); else localStorage.removeItem(CHAVE_SESSAO);
+    } catch (e) { /* sem armazenamento: a sessão vale só nesta aba */ }
+  }
+  function lerSessao() {
+    try { return JSON.parse(localStorage.getItem(CHAVE_SESSAO)); } catch (e) { return null; }
   }
 
-  function paraHex(buf) {
-    return Array.from(new Uint8Array(buf)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('');
-  }
-  async function hashSenha(senha, salHex) {
-    if (!window.crypto || !crypto.subtle) {
-      throw new Error('Seu navegador não permite criptografia nesta página. Abra o jogo via https ou localhost.');
+  async function pedir(caminho, opcoes) {
+    opcoes = opcoes || {};
+    var cab = { apikey: CFG.supabaseChave, 'Content-Type': 'application/json' };
+    if (opcoes.logado !== false && sessao) cab.Authorization = 'Bearer ' + sessao.access_token;
+    Object.assign(cab, opcoes.cabecalhos || {});
+    var resp;
+    try {
+      resp = await fetch(CFG.supabaseUrl + caminho, {
+        method: opcoes.metodo || 'GET', headers: cab,
+        body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
+      });
+    } catch (e) {
+      throw new Error('Sem conexão com o servidor. Verifique sua internet.');
     }
-    var sal = new Uint8Array(salHex.match(/../g).map(function (h) { return parseInt(h, 16); }));
-    var chave = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveBits']);
-    var bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: sal, iterations: 100000, hash: 'SHA-256' }, chave, 256);
-    return paraHex(bits);
+    var texto = await resp.text();
+    var dados = null;
+    try { dados = texto ? JSON.parse(texto) : null; } catch (e) { dados = texto; }
+    if (!resp.ok) {
+      var erro = new Error((dados && (dados.msg || dados.message || dados.error_description || dados.error)) || 'Erro no servidor (' + resp.status + ').');
+      erro.status = resp.status;
+      erro.codigo = dados && (dados.code || dados.error_code);
+      throw erro;
+    }
+    return dados;
+  }
+  function rpc(nome, args) {
+    return pedir('/rest/v1/rpc/' + nome, { metodo: 'POST', corpo: args || {} });
+  }
+
+  // Renova o token se faltar menos de 1 minuto para vencer.
+  async function sessaoValida() {
+    if (!sessao) return false;
+    if (sessao.expires_at && sessao.expires_at * 1000 - Date.now() > 60000) return true;
+    try {
+      guardarSessao(await pedir('/auth/v1/token?grant_type=refresh_token', {
+        metodo: 'POST', logado: false, corpo: { refresh_token: sessao.refresh_token },
+      }));
+      return true;
+    } catch (e) {
+      if (e.status >= 400 && e.status < 500) guardarSessao(null);
+      return !!sessao;
+    }
+  }
+
+  async function sincronizarRelogio() {
+    try {
+      var antes = Date.now();
+      var servidor = Date.parse(await rpc('agora'));
+      diferencaRelogio = servidor - (antes + Date.now()) / 2;
+    } catch (e) { diferencaRelogio = 0; }
+  }
+  function agora() { return Date.now() + diferencaRelogio; }
+
+  async function carregarConta() {
+    if (!(await sessaoValida())) { conta = null; return null; }
+    var linhas = await pedir('/rest/v1/contas?select=usuario,email,admin');
+    if (!linhas || !linhas.length) { guardarSessao(null); conta = null; return null; }
+    var pers = await pedir('/rest/v1/personagens?select=dados&order=criado_em');
+    conta = Object.assign(linhas[0], { personagens: pers.map(function (x) { return x.dados; }) });
+    return conta;
+  }
+
+  // Ao abrir a página: retoma a sessão salva e acerta o relógio.
+  async function iniciar() {
+    sessao = lerSessao();
+    await sincronizarRelogio();
+    try { return await carregarConta(); } catch (e) { return null; }
   }
 
   function validarCadastro(d) {
@@ -50,66 +106,87 @@ Tanka.contas = (function () {
   async function registrar(d) {
     var erro = validarCadastro(d);
     if (erro) throw new Error(erro);
-    var contas = ler();
-    var chave = d.usuario.toLowerCase();
-    if (contas[chave]) throw new Error('Esse nome de usuário já existe.');
-    var emailUsado = Object.keys(contas).some(function (k) { return contas[k].email === d.email.toLowerCase(); });
-    if (emailUsado) throw new Error('Esse e-mail já está cadastrado.');
-    var sal = paraHex(crypto.getRandomValues(new Uint8Array(16)));
-    contas[chave] = {
-      usuario: d.usuario,
-      email: d.email.toLowerCase(),
-      whatsapp: d.whatsapp.replace(/\D/g, ''),
-      sal: sal,
-      hash: await hashSenha(d.senha, sal),
-      criadoEm: new Date().toISOString(),
-      personagens: [],
-    };
-    gravar(contas);
+    if (!(await rpc('usuario_livre', { u: d.usuario }))) throw new Error('Esse nome de usuário já existe.');
+    if (!(await rpc('email_livre', { e: d.email }))) throw new Error('Esse e-mail já está cadastrado.');
+    try {
+      await pedir('/auth/v1/signup', {
+        metodo: 'POST', logado: false,
+        corpo: { email: emailInterno(d.usuario), password: d.senha,
+          data: { usuario: d.usuario, email: d.email.toLowerCase(), whatsapp: d.whatsapp.replace(/\D/g, '') } },
+      });
+    } catch (e) {
+      if (e.codigo === 'user_already_exists' || /already/i.test(e.message)) throw new Error('Esse nome de usuário já existe.');
+      if (e.codigo === 'weak_password') throw new Error('Senha fraca. Use pelo menos 6 caracteres.');
+      if (e.status === 429) throw new Error('Muitos cadastros seguidos. Tente de novo em alguns minutos.');
+      throw new Error('Não foi possível criar a conta: ' + e.message);
+    }
+    // O cadastro já entra na conta; o jogo pede o login em seguida, então saímos.
+    guardarSessao(null);
   }
 
   async function entrar(usuario, senha) {
-    var contas = ler();
-    var conta = contas[String(usuario).toLowerCase()];
-    if (!conta || (await hashSenha(senha, conta.sal)) !== conta.hash) {
-      throw new Error('Usuário ou senha incorretos.');
+    try {
+      guardarSessao(await pedir('/auth/v1/token?grant_type=password', {
+        metodo: 'POST', logado: false, corpo: { email: emailInterno(usuario), password: senha },
+      }));
+    } catch (e) {
+      if (e.codigo === 'email_not_confirmed') throw new Error('Conta ainda não confirmada. No Supabase, desligue "Confirm email" (Authentication > Sign In / Providers > Email).');
+      if (e.status === 400) throw new Error('Usuário ou senha incorretos.');
+      throw e;
     }
-    sessao(conta.usuario.toLowerCase());
-    return conta;
+    await sincronizarRelogio();
+    var c = await carregarConta();
+    if (!c) throw new Error('Conta não encontrada. Fale com o administrador.');
+    return c;
   }
 
-  function sair() { sessao(null); }
-
-  function contaAtual() {
-    var chave = sessao();
-    return chave ? ler()[chave] || null : null;
+  function sair() {
+    var s = sessao;
+    guardarSessao(null);
+    conta = null;
+    if (s) fetch(CFG.supabaseUrl + '/auth/v1/logout', { method: 'POST',
+      headers: { apikey: CFG.supabaseChave, Authorization: 'Bearer ' + s.access_token } }).catch(function () {});
   }
 
-  function nomePersonagemLivre(nome) {
-    var alvo = nome.toLowerCase();
-    var contas = ler();
-    return !Object.keys(contas).some(function (k) {
-      return contas[k].personagens.some(function (p) { return p.nome.toLowerCase() === alvo; });
-    });
+  function contaAtual() { return conta; }
+
+  function nomePersonagemLivre(nome) { return rpc('nome_personagem_livre', { n: nome }); }
+
+  async function criarPersonagem(p) {
+    await sessaoValida();
+    try {
+      await pedir('/rest/v1/personagens', { metodo: 'POST', cabecalhos: { Prefer: 'return=minimal' },
+        corpo: { id: p.id, nome: p.nome, dados: p } });
+    } catch (e) {
+      if (e.codigo === '23505') throw new Error('Esse nome já está em uso em Tanka.');
+      if (/Limite/.test(e.message)) throw new Error('Limite de 3 personagens por conta.');
+      throw e;
+    }
+    conta.personagens.push(p);
   }
 
-  // Grava (insere ou atualiza) um personagem da conta logada.
+  // Grava o personagem. As gravações saem em fila, na ordem em que foram pedidas.
   function salvarPersonagem(p) {
-    var chave = sessao();
-    var contas = ler();
-    if (!chave || !contas[chave]) throw new Error('Sessão expirada. Entre novamente.');
-    var lista = contas[chave].personagens;
-    var i = lista.findIndex(function (x) { return x.id === p.id; });
-    if (i >= 0) lista[i] = p; else lista.push(p);
-    gravar(contas);
+    var copia = JSON.parse(JSON.stringify(p));
+    var i = conta ? conta.personagens.findIndex(function (x) { return x.id === p.id; }) : -1;
+    if (i >= 0) conta.personagens[i] = p;
+    fila = fila.catch(function () {}).then(async function () {
+      if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
+      await pedir('/rest/v1/personagens?id=eq.' + encodeURIComponent(copia.id), {
+        metodo: 'PATCH', cabecalhos: { Prefer: 'return=minimal' }, corpo: { dados: copia } });
+    });
+    return fila;
   }
 
   return {
+    iniciar: iniciar,
+    agora: agora,
     registrar: registrar,
     entrar: entrar,
     sair: sair,
     contaAtual: contaAtual,
     nomePersonagemLivre: nomePersonagemLivre,
+    criarPersonagem: criarPersonagem,
     salvarPersonagem: salvarPersonagem,
   };
 })();

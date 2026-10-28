@@ -98,11 +98,13 @@
   function fmtDec(n) { return String(n).replace('.', ','); }
 
   function ehAdmin() {
-    return !!estado.conta && D.ADMINS.indexOf(estado.conta.usuario.toLowerCase()) >= 0;
+    return !!estado.conta && !!estado.conta.admin;
   }
 
   function salvar() {
-    try { C.salvarPersonagem(estado.personagem); } catch (e) { avisar(e.message); }
+    try {
+      C.salvarPersonagem(estado.personagem).catch(function (e) { avisar('Não foi possível salvar: ' + e.message); });
+    } catch (e) { avisar(e.message); }
   }
 
   // ---------------- Login / cadastro ----------------
@@ -192,7 +194,7 @@
       + '<button class="btn largo" data-acao="criar-personagem">Criar personagem</button></aside></div></div>' + rodape();
   }
 
-  function criarPersonagem() {
+  async function criarPersonagem() {
     var c = estado.criacao;
     var nome = c.nome.trim();
     var erro = document.getElementById('erro-criacao');
@@ -200,10 +202,18 @@
       erro.textContent = 'O nome deve ter de 3 a 16 letras ou números, começando com letra, sem espaços.';
       return;
     }
-    if (!C.nomePersonagemLivre(nome)) { erro.textContent = 'Esse nome já está em uso em Tanka.'; return; }
+    var botao = document.querySelector('[data-acao="criar-personagem"]');
+    if (botao) botao.disabled = true;
     var p = R.criarPersonagem(nome, c.sexo, c.raca, c.classe);
+    try {
+      if (!(await C.nomePersonagemLivre(nome))) throw new Error('Esse nome já está em uso em Tanka.');
+      await C.criarPersonagem(p);
+    } catch (e) {
+      erro.textContent = e.message;
+      if (botao) botao.disabled = false;
+      return;
+    }
     estado.personagem = p;
-    salvar();
     estado.conta = C.contaAtual();
     estado.criacao = null;
     avisar('Bem-vindo a Tanka, ' + nome + '!');
@@ -221,7 +231,7 @@
     estado.itemFoco = null;
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
-    if (R.atualizarTempo(estado.personagem, Date.now())) salvar();
+    if (R.atualizarTempo(estado.personagem, C.agora())) salvar();
     telaJogo();
   }
 
@@ -242,7 +252,7 @@
     return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar
       + '<div class="secao pocoes"><span>🧪 Poções: <strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong></span>'
       + '<button class="btn mini-opcao" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + '>Usar</button></div>'
-      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(Date.now())) + ' (vida cheia e 2 poções)</div>';
+      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)</div>';
   }
 
   function fichaHtml() {
@@ -714,7 +724,7 @@
     var b = estado.batalha;
     if (!b) return;
     clearTimeout(estado.timer);
-    var res = R.concluirBatalha(estado.personagem, b, Date.now());
+    var res = R.concluirBatalha(estado.personagem, b, C.agora());
     var nivelHab = R.nivelHabilidade(estado.personagem);
     if (D.HABILIDADES_ATIVAS && nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
@@ -840,18 +850,18 @@
         if (R.distribuirPonto(p, el.dataset.atributo)) { salvar(); telaJogo(); }
         break;
       case 'acampar':
-        R.acampar(p, Date.now(), true);
+        R.acampar(p, C.agora(), true);
         salvar();
         avisar(p.nome + ' monta acampamento junto à fogueira. A vida volta 3x mais rápido.');
         telaJogo();
         break;
       case 'levantar':
-        R.acampar(p, Date.now(), false);
+        R.acampar(p, C.agora(), false);
         salvar();
         telaJogo();
         break;
       case 'usar-pocao':
-        if (R.usarPocao(p, Date.now())) { salvar(); avisar('Você bebe a poção e recupera toda a vida.'); }
+        if (R.usarPocao(p, C.agora())) { salvar(); avisar('Você bebe a poção e recupera toda a vida.'); }
         telaJogo();
         break;
       case 'beber-pocao':
@@ -917,9 +927,9 @@
         else if (op === 'armas') R.admin.armas(p, v);
         else if (op === 'pergaminhos') R.admin.pergaminhos(p, v);
         else if (op === 'conjunto') R.admin.conjunto(p, v);
-        else if (op === 'curar') R.descansar(p, Date.now());
+        else if (op === 'curar') R.descansar(p, C.agora());
         else if (op === 'pocoes') R.admin.recarregarPocoes(p);
-        else if (op === 'reset') R.admin.resetDiario(p, Date.now());
+        else if (op === 'reset') R.admin.resetDiario(p, C.agora());
         salvar();
         avisar({ ouro: '+' + Number(v).toLocaleString('pt-BR') + ' de ouro.', nivel: 'Agora no level ' + p.nivel + '.',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.', pergaminhos: '+' + v + ' pergaminhos de cada raridade.',
@@ -940,7 +950,7 @@
       case 'cacar': {
         var alvo = el.dataset.monstro;
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
-        if (R.atualizarTempo(p, Date.now())) salvar();
+        if (R.atualizarTempo(p, C.agora())) salvar();
         if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
         if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); break; }
         var chefe = R.sortearChefe(p, alvo);
@@ -1007,7 +1017,7 @@
   setInterval(function () {
     var p = estado.personagem;
     if (!p || estado.batalha || !document.querySelector('.ficha')) return;
-    if (R.atualizarTempo(p, Date.now())) salvar();
+    if (R.atualizarTempo(p, C.agora())) salvar();
     var aberta = document.querySelector('.ficha');
     var nova = document.createElement('div');
     nova.innerHTML = fichaHtml();
@@ -1015,6 +1025,9 @@
   }, 20000);
 
   // ---------------- Início ----------------
-  estado.conta = C.contaAtual();
-  if (estado.conta) telaPersonagens(); else telaAuth('entrar');
+  app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
+  C.iniciar().then(function (conta) {
+    estado.conta = conta;
+    if (conta) telaPersonagens(); else telaAuth('entrar');
+  });
 })();

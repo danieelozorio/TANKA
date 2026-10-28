@@ -21,6 +21,20 @@ Testes das regras:
 node testes/regras.test.js
 ```
 
+## Servidor (Supabase)
+
+As contas e os personagens ficam no **Supabase** (projeto `tanka`). O site continua estático (GitHub Pages) e fala direto com a API do Supabase em `js/contas.js`, sem biblioteca externa. O endereço e a chave **publishable** ficam em `js/config.js`. A chave secreta (`sb_secret_...` / service_role) **nunca** vai para o código.
+
+Para preparar um projeto Supabase novo:
+
+1. **SQL Editor → New query**: cole `supabase/schema.sql` inteiro e clique em **Run**. Cria as tabelas `contas` e `personagens`, as regras de segurança (cada um só lê e salva o que é seu), o limite de 3 personagens, nomes únicos e o relógio do servidor.
+2. **Authentication → Sign In / Providers → Email**: desligue **Confirm email**. O login é por nome de usuário; por baixo, o Auth recebe um e-mail interno `<usuario>@jogador.tankaarena.com`, que não recebe mensagens. O e-mail real e o WhatsApp ficam na tabela `contas`.
+3. **Administrador**: cadastre a conta no jogo e rode no SQL Editor: `update contas set admin = true where lower(usuario) = 'admin';`
+
+A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a **Fase 2**: hoje o combate, os drops e o ouro são calculados no navegador, então um jogador que entende de programação ainda consegue trapacear o próprio personagem.
+
+`js/contas-local.js` é a versão sem servidor (localStorage), com a mesma interface, usada só na prévia offline.
+
 ## O que já existe
 
 - **Cadastro** (usuário, senha, e-mail, WhatsApp) e **login** com usuário e senha.
@@ -71,7 +85,7 @@ node testes/regras.test.js
 | Se falhar | — | volta a +0 | volta a +0 | volta a +0 | quebra | quebra | quebra | quebra |
 
   Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
-- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos, curar, recarregar as poções e simular o reset diário. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
+- **Conta de administrador**: contas com `admin = true` na tabela `contas` (na versão local, as listadas em `ADMINS` em `js/dados.js`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos, curar, recarregar as poções e simular o reset diário. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
 
 ## Como adicionar as artes
@@ -110,7 +124,10 @@ index.html          página única
 css/estilo.css      visual
 js/dados.js         raças, classes, monstros, armas e constantes
 js/regras.js        status, level, combate, drops (sem DOM, testável)
-js/contas.js        cadastro/login/salvamento (localStorage + PBKDF2)
+js/config.js        endereço e chave pública do Supabase
+js/contas.js        cadastro/login/salvamento no Supabase
+js/contas-local.js  a mesma coisa sem servidor (localStorage + PBKDF2)
+supabase/schema.sql tabelas e regras de segurança do banco
 js/retratos.js      retratos SVG e ilustrações dos monstros
 js/app.js           telas e interação
 assets/             artes (personagens, monstros e itens)
@@ -120,5 +137,5 @@ testes/             testes das regras em Node
 
 ## Próximos passos para o tankaarena.com
 
-- **Servidor e banco de dados**: hoje as contas ficam no `localStorage` do navegador, então cada jogador só vê os próprios dados naquele aparelho. Para o jogo online, `js/contas.js` precisa virar chamadas a uma API (Node/PHP + PostgreSQL/MySQL), com o combate validado no servidor para evitar trapaça.
+- **Fase 2 do servidor**: combate, drops, compras e encantamento calculados no servidor (Supabase Edge Functions), para impedir trapaça.
 - Sistema de craft do Artesão (a chance já é calculada e exibida).

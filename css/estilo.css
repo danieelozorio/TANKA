@@ -441,3 +441,4 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .secao.pocoes { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .btn-pocao { width: 100%; max-width: 240px; }
 .registro .cura { color: #8fe0a0; }
+.carregando { text-align: center; padding: 4rem 1rem; color: var(--suave); font-family: var(--titulo); }
