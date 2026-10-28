@@ -199,6 +199,23 @@ Tanka.dados = {
   // ouro: sempre cai (100%) ao derrotar o monstro.
   // Cada monstro tem o dobro dos atributos e da exp do anterior.
   // destreza = velocidade (usada para evasão e precisão do monstro).
+  // ---------- Habilidades especiais ----------
+  // A barra de Poder (0 a 100) enche durante a luta; cheia, a habilidade pode ser usada.
+  // A habilidade evolui nos levels de `niveisHabilidade` (nível 1, 2, 3 e 4).
+  // Valores das listas: um por nível da habilidade.
+  PODER: { maximo: 100, porAcerto: 25, porGolpeRecebido: 10 },
+  niveisHabilidade: [1, 10, 20, 30],
+  habilidades: {
+    cavaleiro: { nome: 'Golpe de Escudo', descricao: 'Bate com o escudo e deixa o monstro atordoado.',
+      multiplicador: [1.5, 2, 2.5, 3], atordoa: [1, 2, 2, 3] },
+    arqueiro: { nome: 'Chuva de Flechas', descricao: 'Dispara várias flechas seguidas.',
+      flechas: [2, 3, 3, 4], bonusCritico: [10, 20, 30, 40] },
+    mago: { nome: 'Bola de Fogo', descricao: 'Uma explosão de fogo arcano.',
+      multiplicador: [2.5, 3, 4, 5], poderPorAcerto: 34 },
+    artesao: { nome: 'Martelada Sísmica', descricao: 'Um golpe que racha o chão e a armadura do inimigo.',
+      multiplicador: [2, 2.5, 3, 4], quebraArmadura: [20, 30, 40, 50], danoArmaduraQuebrada: 1.25 },
+  },
+
   // ---------- Áreas de caça ----------
   // Dentro da área, cada monstro tem o dobro de vida e exp do anterior; ataque e velocidade
   // crescem conforme `crescimento` (a Floresta dobra tudo, como Lobo → Cobra → Urso).

@@ -407,3 +407,31 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   .aviso-chefe { grid-template-columns: 1fr; }
   .aviso-chefe .moldura { max-width: 220px; margin: 0 auto; }
 }
+
+/* ---------- Habilidades especiais ---------- */
+.barra.poder { height: 14px; margin: .1rem 0 .4rem; }
+.barra.poder > i { background: linear-gradient(#f2c94c, #b7791f); }
+.barra.poder > b { line-height: 12px; font-size: .7rem; }
+.barra.poder.cheia { box-shadow: 0 0 10px rgba(242, 201, 76, .7); border-color: var(--lendaria); }
+#controle-habilidade { display: grid; gap: .35rem; margin-top: .5rem; justify-items: center; }
+.btn-habilidade { width: 100%; max-width: 240px; }
+.btn-habilidade.pronta {
+  border-color: var(--lendaria); color: #fff3c4;
+  background: linear-gradient(#6a4a12, #3a2808);
+  animation: pulsarHabilidade 1.1s ease-in-out infinite;
+}
+.btn-habilidade.preparada { opacity: 1; border-color: var(--lendaria); color: var(--lendaria); }
+@keyframes pulsarHabilidade { 50% { box-shadow: 0 0 18px 4px rgba(242, 201, 76, .75); } }
+.auto-habilidade { display: flex; align-items: center; gap: .4rem; margin: 0; font-size: .85rem; color: var(--suave); cursor: pointer; }
+.auto-habilidade input { width: auto; margin: 0; accent-color: var(--ouro); }
+.registro .habilidade-usada, .resultado .habilidade-usada { color: #ffd862; font-weight: 600; text-shadow: 0 0 8px rgba(255, 210, 80, .5); }
+.lutador.golpe-forte .moldura { animation: golpeForte .55s; }
+@keyframes golpeForte {
+  0%, 100% { transform: none; }
+  15% { transform: translateX(-12px) scale(1.04); filter: brightness(2.5) sepia(1) saturate(4) hue-rotate(-20deg); }
+  35% { transform: translateX(12px); }
+  55% { transform: translateX(-8px); }
+  75% { transform: translateX(6px); }
+}
+.nome-habilidade { font-family: var(--titulo); color: #ffd862; }
+@media (prefers-reduced-motion: reduce) { .btn-habilidade.pronta, .lutador.golpe-forte .moldura { animation: none; } }

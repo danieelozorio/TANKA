@@ -87,6 +87,16 @@
   // Dispositivo com mouse: clicar equipa e passar o mouse mostra a ficha. No toque, tocar mostra a ficha.
   var temMouse = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
 
+  // Texto da habilidade com os valores do nível atual (1 a 4).
+  function textoHabilidade(classe, nivel) {
+    var H = D.habilidades[classe], i = nivel - 1;
+    if (classe === 'cavaleiro') return 'Dano x' + fmtDec(H.multiplicador[i]) + ' e atordoa o monstro por ' + H.atordoa[i] + ' ação(ões).';
+    if (classe === 'arqueiro') return H.flechas[i] + ' flechas seguidas, cada uma com +' + H.bonusCritico[i] + '% de chance de crítico.';
+    if (classe === 'mago') return 'Dano x' + fmtDec(H.multiplicador[i]) + ', sempre acerta e ignora a defesa mágica.';
+    return 'Dano x' + fmtDec(H.multiplicador[i]) + ' ignorando a defesa; ' + H.quebraArmadura[i] + '% (+Sorte) de quebrar a armadura (+25% de dano até o fim da luta).';
+  }
+  function fmtDec(n) { return String(n).replace('.', ','); }
+
   function ehAdmin() {
     return !!estado.conta && D.ADMINS.indexOf(estado.conta.usuario.toLowerCase()) >= 0;
   }
@@ -256,6 +266,9 @@
       + '<button class="btn secundario largo" data-acao="descansar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Descansar (recupera a vida)</button>'
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
+      + '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
+      + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
+      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>'
       + '<div class="secao"><h3>Arma</h3>' + (arma
         ? '<div>' + nomeItemHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
         : '<div class="suave">Nenhuma</div>') + '</div>'
@@ -509,6 +522,7 @@
     if (r.resultado === 'vitoria') {
       return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
+        + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeItem(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
         + (r.dropArmadura ? '<p>Drop: <strong class="raridade-' + r.dropArmadura.raridade + '">' + R.nomeItem(r.dropArmadura) + ' (' + D.raridades[r.dropArmadura.raridade].nome + ')</strong></p>' : '')
         + (r.mochilaCheia ? '<p class="menos">Mochila cheia! Um item caiu e se perdeu. Venda itens na aba Personagem.</p>' : '')
@@ -523,6 +537,19 @@
     return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
   }
 
+  function barraPoder(b) {
+    return '<div class="barra poder' + (b.jogador.poder >= D.PODER.maximo ? ' cheia' : '') + '"><i style="width:' + b.jogador.poder + '%"></i><b>Poder ' + b.jogador.poder + '</b></div>';
+  }
+
+  function controleHabilidade(b) {
+    var cheia = b.jogador.poder >= D.PODER.maximo;
+    var nome = D.habilidades[b.classe].nome;
+    var botao = b.habilidadePendente
+      ? '<button class="btn btn-habilidade preparada" disabled>⚡ ' + nome + ': preparada!</button>'
+      : '<button class="btn btn-habilidade' + (cheia ? ' pronta' : '') + '" data-acao="habilidade"' + (cheia ? '' : ' disabled') + '>⚡ ' + nome + '</button>';
+    return botao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
+  }
+
   function batalhaHtml() {
     var b = estado.batalha || estado.ultimaBatalha;
     var p = estado.personagem;
@@ -530,7 +557,9 @@
     return '<div class="arena">'
       + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
       + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax) + '</div>'
-      + '<div class="suave">Velocidade ' + b.jogador.vel + '</div></div>'
+      + '<div id="poder-jogador">' + barraPoder(b) + '</div>'
+      + '<div class="suave">Velocidade ' + b.jogador.vel + '</div>'
+      + (em ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>'
       + '<div class="vs">VS</div>'
       + '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
       + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax) + '</div>'
@@ -595,20 +624,33 @@
     estado.timer = setTimeout(turno, estado.rapido ? 160 : 550);
   }
 
-  function golpe(id) {
+  function golpe(id, forte) {
     var el = document.getElementById(id);
     if (!el) return;
-    el.classList.remove('golpeado');
+    el.classList.remove('golpeado', 'golpe-forte');
     void el.offsetWidth;
-    el.classList.add('golpeado');
+    el.classList.add(forte ? 'golpe-forte' : 'golpeado');
   }
 
   function turno() {
     var b = estado.batalha;
     if (!b) return;
+    var linhasAntes = estado.registro.length;
     var ev = R.passo(b);
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
-    if (ev.ator === 'jogador') {
+    if (ev.habilidade) {
+      if (!ev.acerto) linha('errou', '⚡ ' + ev.habilidade.toUpperCase() + '! Mas ' + nomeJ + ' erra o golpe.');
+      else {
+        var golpes = ev.golpes.length > 1 ? ' em ' + ev.golpes.filter(function (g) { return g.acerto; }).length + ' golpes' : '';
+        linha('habilidade-usada', '⚡ ' + ev.habilidade.toUpperCase() + '! ' + nomeJ + ' causa <strong>' + ev.dano + '</strong> de dano' + golpes
+          + (ev.critico ? ' (com crítico!)' : '') + '.');
+        if (ev.atordoou) linha('destaque', nomeM + ' está atordoado!');
+        if (ev.quebrouArmadura) linha('destaque', 'A armadura de ' + nomeM + ' rachou! Ele recebe +25% de dano.');
+        golpe('lutador-monstro', true);
+      }
+    } else if (ev.atordoado) {
+      linha('errou', nomeM + ' está atordoado e perde a vez.');
+    } else if (ev.ator === 'jogador') {
       if (!ev.acerto) linha('errou', nomeJ + ' erra o ' + (ev.magico ? 'feitiço' : 'golpe') + '.');
       else {
         linha(ev.critico ? 'critico' : '', (ev.critico ? 'CRÍTICO! ' : '') + nomeJ + (ev.magico ? ' lança um feitiço' : ' ataca')
@@ -625,8 +667,10 @@
     document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
     document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax);
     document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
+    document.getElementById('poder-jogador').innerHTML = barraPoder(b);
+    document.getElementById('controle-habilidade').innerHTML = controleHabilidade(b);
     var reg = document.getElementById('registro');
-    reg.insertAdjacentHTML('beforeend', estado.registro[estado.registro.length - 1]);
+    reg.insertAdjacentHTML('beforeend', estado.registro.slice(linhasAntes).join(''));
     reg.scrollTop = reg.scrollHeight;
 
     if (b.fim) setTimeout(function () { encerrar(); }, 500);
@@ -638,11 +682,14 @@
     if (!b) return;
     clearTimeout(estado.timer);
     var res = R.concluirBatalha(estado.personagem, b);
+    var nivelHab = R.nivelHabilidade(estado.personagem);
+    if (nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
     res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
       linha('destaque', 'Vitória! +' + res.exp + ' de exp.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
+      if (res.habilidadeEvoluiu) linha('habilidade-usada', '⚡ Sua habilidade evoluiu para o nível ' + res.habilidadeEvoluiu + '!');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + D.raridades[res.drop.raridade].nome + ')!');
       if (res.dropArmadura) linha('destaque', 'Drop: ' + R.nomeItem(res.dropArmadura) + ' (' + D.raridades[res.dropArmadura.raridade].nome + ')!');
       if (res.mochilaCheia) linha('dano-recebido', 'Mochila cheia! Um item se perdeu.');
@@ -831,6 +878,16 @@
         telaJogo();
         break;
       }
+      case 'habilidade':
+        if (estado.batalha && R.prepararHabilidade(estado.batalha)) {
+          document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
+        }
+        break;
+      case 'auto-habilidade':
+        p.habilidadeAuto = el.checked;
+        if (estado.batalha) estado.batalha.auto = el.checked;
+        salvar();
+        break;
       case 'cacar': {
         var alvo = el.dataset.monstro;
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }

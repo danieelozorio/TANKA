@@ -458,3 +458,88 @@ teste('drop do chefe: raridades pela tabela (Floresta: lend. 5%, épica 25%, sen
   }
   assert.ok(Math.abs(c.lendaria / N * 100 - 5) < 0.8 && Math.abs(c.epica / N * 100 - 25) < 1.5, JSON.stringify(c));
 });
+
+// ---------- Habilidades especiais ----------
+
+function batalhaTeste(classe, nivel, monstro = 'urso') {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', classe);
+  R.admin.subirNivel(p, nivel - 1);
+  const b = R.iniciarBatalha(p, monstro, rng);
+  b.monstro.hp = b.monstro.hpMax = 1e6;
+  b.jogador.hp = b.jogador.hpMax = 1e6;
+  return { p, b };
+}
+
+teste('habilidade: nível 1 a 4 nos levels 1, 10, 20 e 30', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  const niveis = [];
+  for (const lv of [1, 9, 10, 19, 20, 29, 30, 40]) { R.admin.subirNivel(p, lv - p.nivel); niveis.push(R.nivelHabilidade(p)); }
+  assert.deepStrictEqual(niveis, [1, 1, 2, 2, 3, 3, 4, 4]);
+});
+
+teste('poder: +25 por acerto (Mago +34), +10 por golpe recebido, máximo 100', () => {
+  const { b } = batalhaTeste('cavaleiro', 1);
+  b.s.precisao = 1000; // sempre acerta
+  while (b.jogador.poder < 100) {
+    const antes = b.jogador.poder, ev = R.passo(b);
+    if (ev.ator === 'jogador') assert.strictEqual(b.jogador.poder, Math.min(100, antes + 25));
+    else if (ev.acerto) assert.strictEqual(b.jogador.poder, Math.min(100, antes + 10));
+  }
+  const { b: bm } = batalhaTeste('mago', 1, 'lobo');
+  bm.s.precisao = 1000; bm.monstro.vel = 1;
+  R.passo(bm);
+  assert.strictEqual(bm.jogador.poder, 34);
+});
+
+teste('habilidade só com a barra cheia; sai no próximo ataque e zera o poder', () => {
+  const { b } = batalhaTeste('mago', 1, 'lobo');
+  b.monstro.vel = 1;
+  assert.ok(!R.prepararHabilidade(b));
+  b.jogador.poder = 100;
+  assert.ok(R.prepararHabilidade(b));
+  const ev = R.passo(b);
+  assert.strictEqual(ev.habilidade, 'Bola de Fogo');
+  assert.strictEqual(b.jogador.poder, 0);
+});
+
+teste('Golpe de Escudo atordoa: o monstro perde as próximas ações', () => {
+  const { b } = batalhaTeste('cavaleiro', 30);
+  b.s.precisao = 1000; b.jogador.poder = 100; b.auto = true;
+  let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+  assert.strictEqual(ev.atordoou, 3);
+  let perdidas = 0;
+  for (let i = 0; i < 40 && perdidas < 3; i++) { const e = R.passo(b); if (e.ator === 'monstro') { assert.ok(e.atordoado); perdidas++; } }
+  assert.strictEqual(perdidas, 3);
+  let e; do { e = R.passo(b); } while (e.ator !== 'monstro');
+  assert.ok(!e.atordoado);
+});
+
+teste('Chuva de Flechas: 2/3/3/4 golpes conforme o nível', () => {
+  for (const [lv, n] of [[1, 2], [10, 3], [20, 3], [30, 4]]) {
+    const { b } = batalhaTeste('arqueiro', lv);
+    b.jogador.poder = 100; b.auto = true;
+    let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+    assert.strictEqual(ev.golpes.length, n);
+  }
+});
+
+teste('Bola de Fogo sempre acerta, mesmo com precisão zero', () => {
+  for (let i = 0; i < 50; i++) {
+    const { b } = batalhaTeste('mago', 20);
+    b.s.precisao = -1000; b.jogador.poder = 100; b.auto = true;
+    let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+    assert.ok(ev.golpes[0].acerto);
+  }
+});
+
+teste('Martelada Sísmica: quebra a armadura e o monstro passa a levar +25%', () => {
+  const { b } = batalhaTeste('artesao', 1);
+  b.s.precisao = 1000; b.sorte = 1000; b.jogador.poder = 100; b.auto = true;
+  b.s.chanceCritico = 0; b.s.dano = [10, 10];
+  let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+  assert.ok(ev.quebrouArmadura && b.monstro.armaduraQuebrada);
+  assert.strictEqual(ev.dano, 20); // a armadura quebra depois deste golpe
+  b.auto = false;
+  do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+  assert.strictEqual(ev.dano, Math.round(10 * 1.25));
+});

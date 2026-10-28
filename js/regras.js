@@ -291,6 +291,11 @@ Tanka.regras = (function () {
   // Barra de ação: cada lutador soma sua velocidade por tique e age ao chegar a 100.
   // Velocidade 20 contra 10 = duas ações para cada uma do adversário.
 
+  // Nível da habilidade (1 a 4) conforme o level do personagem.
+  function nivelHabilidade(p) {
+    return D.niveisHabilidade.filter(function (n) { return p.nivel >= n; }).length;
+  }
+
   function iniciarBatalha(p, monstroId, rng) {
     var m = D.monstros[monstroId];
     var s = status(p);
@@ -298,40 +303,96 @@ Tanka.regras = (function () {
       monstroId: monstroId,
       rng: rng || Math.random,
       s: s,
-      jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0 },
-      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 0 },
+      classe: p.classe,
+      nivelHab: nivelHabilidade(p),
+      sorte: atributosTotais(p).sor,
+      auto: !!p.habilidadeAuto,          // usa a habilidade sozinha quando carregar
+      habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
+      jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0, poder: 0 },
+      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 0,
+        atordoado: 0, armaduraQuebrada: false },
       fim: null,
     };
   }
 
-  function ataqueJogador(b) {
+  // Um golpe do jogador. opcoes: mult, sempreAcerta, ignoraDefesa, bonusCritico (%).
+  function golpeJogador(b, opcoes) {
     var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
     var magico = s.tipoDano === 'magico';
-    var evasaoMonstro = m.velocidade * 0.5;
-    var ev = { ator: 'jogador', acerto: false, critico: false, dano: 0, magico: magico };
-    if (rng() * 100 >= limitar(s.precisao - evasaoMonstro, 5, 95)) return ev;
-    var dano = rolar(s.dano, rng) - (magico ? m.defesaMagica : m.defesa);
-    dano = Math.max(1, dano);
-    var chanceCrit = magico ? s.chanceCriticoMagico : s.chanceCritico;
-    if (rng() * 100 < chanceCrit) {
-      ev.critico = true;
+    var g = { acerto: false, critico: false, dano: 0 };
+    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao - m.velocidade * 0.5, 5, 95)) return g;
+    var defesa = opcoes.ignoraDefesa ? 0 : (magico ? m.defesaMagica : m.defesa);
+    var dano = Math.max(1, Math.round(rolar(s.dano, rng) * (opcoes.mult || 1)) - defesa);
+    if (rng() * 100 < (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0)) {
+      g.critico = true;
       dano = Math.floor(dano * (magico ? s.danoCriticoMagico : s.danoCritico) / 100);
     }
-    ev.acerto = true;
-    ev.dano = dano;
+    if (b.monstro.armaduraQuebrada) dano = Math.round(dano * D.habilidades.artesao.danoArmaduraQuebrada);
+    g.acerto = true;
+    g.dano = dano;
     b.monstro.hp = Math.max(0, b.monstro.hp - dano);
     if (b.monstro.hp === 0) b.fim = 'vitoria';
+    return g;
+  }
+
+  function ganharPoder(b, quanto) {
+    b.jogador.poder = Math.min(D.PODER.maximo, b.jogador.poder + quanto);
+  }
+
+  function ataqueJogador(b) {
+    var magico = b.s.tipoDano === 'magico';
+    var g = golpeJogador(b, {});
+    if (g.acerto) ganharPoder(b, D.habilidades[b.classe].poderPorAcerto || D.PODER.porAcerto);
+    return { ator: 'jogador', acerto: g.acerto, critico: g.critico, dano: g.dano, magico: magico };
+  }
+
+  // Usa a habilidade da classe. Gasta toda a barra de Poder.
+  function usarHabilidade(b) {
+    var H = D.habilidades[b.classe], i = b.nivelHab - 1;
+    var ev = { ator: 'jogador', habilidade: H.nome, magico: b.s.tipoDano === 'magico', golpes: [], dano: 0 };
+    b.jogador.poder = 0;
+    b.habilidadePendente = false;
+    if (b.classe === 'cavaleiro') {
+      ev.golpes.push(golpeJogador(b, { mult: H.multiplicador[i] }));
+      if (ev.golpes[0].acerto && !b.fim) { b.monstro.atordoado += H.atordoa[i]; ev.atordoou = H.atordoa[i]; }
+    } else if (b.classe === 'arqueiro') {
+      for (var f = 0; f < H.flechas[i] && !b.fim; f++) ev.golpes.push(golpeJogador(b, { bonusCritico: H.bonusCritico[i] }));
+    } else if (b.classe === 'mago') {
+      ev.golpes.push(golpeJogador(b, { mult: H.multiplicador[i], sempreAcerta: true, ignoraDefesa: true }));
+    } else {
+      ev.golpes.push(golpeJogador(b, { mult: H.multiplicador[i], ignoraDefesa: true }));
+      if (ev.golpes[0].acerto && !b.monstro.armaduraQuebrada && b.rng() * 100 < H.quebraArmadura[i] + b.sorte) {
+        b.monstro.armaduraQuebrada = true;
+        ev.quebrouArmadura = true;
+      }
+    }
+    ev.golpes.forEach(function (g) { ev.dano += g.dano; });
+    ev.acerto = ev.golpes.some(function (g) { return g.acerto; });
+    ev.critico = ev.golpes.some(function (g) { return g.critico; });
     return ev;
+  }
+
+  // O jogador pede a habilidade (só com a barra cheia); ela sai no próximo ataque dele.
+  function prepararHabilidade(b) {
+    if (b.fim || b.jogador.poder < D.PODER.maximo) return false;
+    b.habilidadePendente = true;
+    return true;
   }
 
   function ataqueMonstro(b) {
     var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
     var ev = { ator: 'monstro', acerto: false, critico: false, dano: 0 };
+    if (b.monstro.atordoado > 0) {
+      b.monstro.atordoado -= 1;
+      ev.atordoado = true;
+      return ev;
+    }
     if (rng() * 100 >= limitar(75 + m.velocidade - s.evasao, 5, 95)) return ev;
     var dano = Math.max(1, rolar(m.ataque, rng) - s.defesa);
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
+    ganharPoder(b, D.PODER.porGolpeRecebido);
     if (b.jogador.hp === 0) b.fim = 'derrota';
     return ev;
   }
@@ -340,7 +401,11 @@ Tanka.regras = (function () {
   function passo(b) {
     if (b.fim) return null;
     for (;;) {
-      if (b.jogador.barra >= 100) { b.jogador.barra -= 100; return ataqueJogador(b); }
+      if (b.jogador.barra >= 100) {
+        b.jogador.barra -= 100;
+        var cheia = b.jogador.poder >= D.PODER.maximo;
+        return cheia && (b.habilidadePendente || b.auto) ? usarHabilidade(b) : ataqueJogador(b);
+      }
       if (b.monstro.barra >= 100) { b.monstro.barra -= 100; return ataqueMonstro(b); }
       b.jogador.barra += b.jogador.vel;
       b.monstro.barra += b.monstro.vel;
@@ -563,6 +628,8 @@ Tanka.regras = (function () {
     mochilaCheia: mochilaCheia,
     podeUsar: podeUsar,
     rolarDropArmadura: rolarDropArmadura,
+    nivelHabilidade: nivelHabilidade,
+    prepararHabilidade: prepararHabilidade,
     areaDoMonstro: areaDoMonstro,
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,

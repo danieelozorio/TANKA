@@ -41,6 +41,11 @@ node testes/regras.test.js
 | Vale dos Dragões | 25+ | Drake, Wyvern, Cavaleiro Dracônico | Vhar'kesh, o Dragão Ancião | +0,15% |
 | Cume do Fogo Eterno | 30+ | Salamandra, Demônio de Lava, Elemental de Fogo | Ignaroth, Senhor das Chamas | +0,1% |
 
+- **Habilidades especiais**: na batalha, a barra de Poder enche (+25 por acerto, Mago +34; +10 por golpe recebido). Cheia, o jogador clica na habilidade (ou marca "Usar automaticamente"). Evolui nos levels 10, 20 e 30.
+  - Cavaleiro, Golpe de Escudo: dano x1,5/x2/x2,5/x3 e atordoa o monstro por 1/2/2/3 ações.
+  - Arqueiro, Chuva de Flechas: 2/3/3/4 flechas seguidas, com +10/+20/+30/+40% de crítico.
+  - Mago, Bola de Fogo: dano x2,5/x3/x4/x5, sempre acerta e ignora a defesa mágica.
+  - Artesão, Martelada Sísmica: dano x2/x2,5/x3/x4 ignorando a defesa; 20/30/40/50% (+Sorte) de quebrar a armadura (+25% de dano até o fim da luta).
 - **Chefes**: vida x3, ataque +50%, exp x5 e ouro x5 do 3º monstro. Cada monstro morto na área soma presença (escondida do jogador); ao clicar em Caçar, se o sorteio cair, aparece o aviso "Enfrentar / Fugir". Fugir leva ao monstro escolhido. Derrotar o chefe zera a presença. O chefe sempre dropa 1 arma ou armadura (com chance de lendária) e 1 a 3 pergaminhos.
 - **Drops**: armas e armaduras sempre da classe do personagem (colar e anel servem para todos). A Sorte aumenta a chance (+1% relativo por ponto). Armaduras: Lobo 10% comum; Cobra 15% comum e 5% rara; Urso 10% rara e 3% épica.
 - **Aba Personagem** (abre primeiro): retrato com 8 espaços em volta (elmo, colar, peitoral, arma, luvas, 2 anéis, botas) e a mochila de 32 espaços. Com mouse: clicar equipa/desequipa e passar o mouse mostra a ficha do item com comparação. No celular: tocar mostra a ficha com os botões. Mochila cheia não recebe drops.
