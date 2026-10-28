@@ -28,7 +28,7 @@ As contas e os personagens ficam no **Supabase** (projeto `tanka`). O site conti
 Para preparar um projeto Supabase novo:
 
 1. **SQL Editor → New query**: cole `supabase/schema.sql` inteiro e clique em **Run**. Cria as tabelas `contas` e `personagens`, as regras de segurança (cada um só lê e salva o que é seu), o limite de 3 personagens, nomes únicos e o relógio do servidor.
-2. **Authentication → Sign In / Providers → Email**: desligue **Confirm email**. O login é por nome de usuário; por baixo, o Auth recebe um e-mail interno `<usuario>@jogador.tankaarena.com`, que não recebe mensagens. O e-mail real e o WhatsApp ficam na tabela `contas`.
+2. **Authentication → Sign In / Providers → Email**: desligue **Confirm email**. O login é por nome de usuário; por baixo, o Auth recebe um e-mail interno `<usuario>@jogador.tankaarena.com`, que não recebe mensagens. O e-mail real fica na tabela `contas`.
 3. **Administrador**: cadastre a conta no jogo e rode no SQL Editor: `update contas set admin = true where lower(usuario) = 'admin';`
 
 A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a **Fase 2**: hoje o combate, os drops e o ouro são calculados no navegador, então um jogador que entende de programação ainda consegue trapacear o próprio personagem.
@@ -37,7 +37,7 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
 
 ## O que já existe
 
-- **Cadastro** (usuário, senha, e-mail, WhatsApp) e **login** com usuário e senha.
+- **Cadastro** (usuário, senha e e-mail) e **login** com usuário e senha.
 - **Criação de personagem**: nome, sexo (Homem ou Mulher), raça e classe, até 3 por conta. O sexo muda só os retratos.
 - **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
 - **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–1.

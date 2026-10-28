@@ -117,7 +117,6 @@
         + '<label>Senha<input name="senha" type="password" autocomplete="new-password" required></label>'
         + '<label>Confirmar senha<input name="confirmar" type="password" autocomplete="new-password" required></label>'
         + '<label>E-mail<input name="email" type="email" autocomplete="email" required></label>'
-        + '<label>WhatsApp<input name="whatsapp" type="tel" autocomplete="tel" placeholder="(11) 91234-5678" required></label>'
         + '<p class="erro">' + esc(erro || '') + '</p>'
         + '<button class="btn largo" type="submit">Criar conta</button></form>'
       : '<form data-form="entrar" novalidate>'

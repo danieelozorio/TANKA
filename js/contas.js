@@ -1,7 +1,7 @@
 // Tanka — cadastro, login e gravação de personagens no servidor (Supabase).
 // Fala direto com a API REST do Supabase (Auth + PostgREST), sem biblioteca externa.
 // O login é por nome de usuário: por baixo, o Auth recebe um e-mail interno
-// <usuario>@jogador.tankaarena.com. O e-mail real e o WhatsApp ficam na tabela `contas`.
+// <usuario>@jogador.tankaarena.com. O e-mail real fica na tabela `contas`.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 
 Tanka.contas = (function () {
@@ -98,8 +98,6 @@ Tanka.contas = (function () {
     if (d.senha.length < 6) return 'A senha precisa ter pelo menos 6 caracteres.';
     if (d.senha !== d.confirmar) return 'As senhas não conferem.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return 'E-mail inválido.';
-    var zap = d.whatsapp.replace(/\D/g, '');
-    if (zap.length < 10 || zap.length > 13) return 'WhatsApp inválido. Use DDD + número, ex.: (11) 91234-5678.';
     return null;
   }
 
@@ -112,7 +110,7 @@ Tanka.contas = (function () {
       await pedir('/auth/v1/signup', {
         metodo: 'POST', logado: false,
         corpo: { email: emailInterno(d.usuario), password: d.senha,
-          data: { usuario: d.usuario, email: d.email.toLowerCase(), whatsapp: d.whatsapp.replace(/\D/g, '') } },
+          data: { usuario: d.usuario, email: d.email.toLowerCase() } },
       });
     } catch (e) {
       if (e.codigo === 'user_already_exists' || /already/i.test(e.message)) throw new Error('Esse nome de usuário já existe.');

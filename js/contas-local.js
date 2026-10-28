@@ -41,8 +41,6 @@ Tanka.contas = (function () {
     if (d.senha.length < 6) return 'A senha precisa ter pelo menos 6 caracteres.';
     if (d.senha !== d.confirmar) return 'As senhas não conferem.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) return 'E-mail inválido.';
-    var zap = d.whatsapp.replace(/\D/g, '');
-    if (zap.length < 10 || zap.length > 13) return 'WhatsApp inválido. Use DDD + número, ex.: (11) 91234-5678.';
     return null;
   }
 
@@ -58,7 +56,6 @@ Tanka.contas = (function () {
     contas[chave] = {
       usuario: d.usuario,
       email: d.email.toLowerCase(),
-      whatsapp: d.whatsapp.replace(/\D/g, ''),
       sal: sal,
       hash: await hashSenha(d.senha, sal),
       criadoEm: new Date().toISOString(),

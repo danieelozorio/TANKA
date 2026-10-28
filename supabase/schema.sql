@@ -4,15 +4,15 @@
 
 -- ---------- Contas ----------
 -- O login usa o Supabase Auth com um e-mail interno (<usuario>@jogador.tankaarena.com);
--- o e-mail real e o WhatsApp ficam aqui, visíveis só para o dono da conta.
+-- o e-mail real fica aqui, visível só para o dono da conta.
 create table if not exists public.contas (
   id uuid primary key references auth.users (id) on delete cascade,
   usuario text not null,
   email text not null,
-  whatsapp text not null,
   admin boolean not null default false,   -- só muda pelo SQL Editor
   criado_em timestamptz not null default now()
 );
+alter table public.contas drop column if exists whatsapp;  -- o cadastro não pede mais WhatsApp
 create unique index if not exists contas_usuario_unico on public.contas (lower(usuario));
 create unique index if not exists contas_email_unico on public.contas (lower(email));
 
@@ -24,9 +24,8 @@ create policy "conta: ler a propria" on public.contas for select using (auth.uid
 create or replace function public.criar_conta() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  insert into public.contas (id, usuario, email, whatsapp)
-  values (new.id, new.raw_user_meta_data ->> 'usuario', lower(new.raw_user_meta_data ->> 'email'),
-          new.raw_user_meta_data ->> 'whatsapp');
+  insert into public.contas (id, usuario, email)
+  values (new.id, new.raw_user_meta_data ->> 'usuario', lower(new.raw_user_meta_data ->> 'email'));
   return new;
 end $$;
 drop trigger if exists ao_criar_usuario on auth.users;
