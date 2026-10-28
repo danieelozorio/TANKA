@@ -221,7 +221,28 @@
     estado.itemFoco = null;
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
+    if (R.atualizarTempo(estado.personagem, Date.now())) salvar();
     telaJogo();
+  }
+
+  function tempoTexto(ms) {
+    var min = Math.ceil(ms / 60000);
+    return min >= 60 ? Math.floor(min / 60) + 'h ' + (min % 60) + 'min' : min + ' min';
+  }
+
+  // Vida com o tempo, acampamento, poções do dia e contagem até o reset.
+  function vidaTempoHtml(p, s, emBatalha) {
+    var min = R.minutosParaVidaCheia(p);
+    var texto = emBatalha ? 'Em batalha: a vida não volta.'
+      : min ? 'Vida cheia em ' + tempoTexto(min * 60000) + (p.acampado ? ' (acampado)' : '') : 'Vida cheia';
+    var acampar = p.acampado
+      ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
+      : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Acampar (vida 3x mais rápido)</button>';
+    var podeUsar = !emBatalha && p.pocoes > 0 && p.hpAtual < s.hpMax;
+    return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar
+      + '<div class="secao pocoes"><span>🧪 Poções: <strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong></span>'
+      + '<button class="btn mini-opcao" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + '>Usar</button></div>'
+      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(Date.now())) + ' (vida cheia e 2 poções)</div>';
   }
 
   function fichaHtml() {
@@ -263,7 +284,7 @@
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
-      + '<button class="btn secundario largo" data-acao="descansar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Descansar (recupera a vida)</button>'
+      + vidaTempoHtml(p, s, emBatalha)
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
       + '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
@@ -286,6 +307,7 @@
   function cartaMonstro(id) {
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
+    var fator = R.fatorExp(p, id);
     return '<article class="monstro"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
       + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt>Ataque</dt><dd>' + dano(m.ataque) + '</dd>'
@@ -293,6 +315,7 @@
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
       + '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd><dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>'
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
+      + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
       + '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button></div></article>';
   }
 
@@ -510,7 +533,10 @@
         return '<button class="btn" data-acao="admin" data-op="conjunto" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
       }).join(''))
       + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; }))
-      + grupo('Vida', 'Recupera toda a vida.', '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Curar</button>')
+      + grupo('Vida e poções', 'Cura, devolve as poções do dia ou simula o reset da meia-noite.',
+        '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Curar tudo</button>'
+        + '<button class="btn" data-acao="admin" data-op="pocoes" data-valor="0">Recarregar poções</button>'
+        + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>')
       + '</div>';
   }
 
@@ -520,7 +546,7 @@
     var m = D.monstros[r.monstroId];
     var cacarDeNovo = r.escolhido ? '<button class="btn" data-acao="cacar" data-monstro="' + r.escolhido + '">Caçar de novo</button>' : '';
     if (r.resultado === 'vitoria') {
-      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
+      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzida: área abaixo do seu nível)</span>' : '') + ' e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeItem(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
@@ -547,7 +573,10 @@
     var botao = b.habilidadePendente
       ? '<button class="btn btn-habilidade preparada" disabled>⚡ ' + nome + ': preparada!</button>'
       : '<button class="btn btn-habilidade' + (cheia ? ' pronta' : '') + '" data-acao="habilidade"' + (cheia ? '' : ' disabled') + '>⚡ ' + nome + '</button>';
-    return botao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
+    var pocao = b.pocaoPendente
+      ? '<button class="btn btn-pocao" disabled>🧪 Bebendo…</button>'
+      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>🧪 Beber poção (' + b.pocoes + ')</button>';
+    return botao + pocao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
   }
 
   function batalhaHtml() {
@@ -638,7 +667,9 @@
     var linhasAntes = estado.registro.length;
     var ev = R.passo(b);
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
-    if (ev.habilidade) {
+    if (ev.pocao) {
+      linha('cura', '🧪 ' + nomeJ + ' bebe uma poção e recupera <strong>' + ev.cura + '</strong> de vida.');
+    } else if (ev.habilidade) {
       if (!ev.acerto) linha('errou', '⚡ ' + ev.habilidade.toUpperCase() + '! Mas ' + nomeJ + ' erra o golpe.');
       else {
         var golpes = ev.golpes.length > 1 ? ' em ' + ev.golpes.filter(function (g) { return g.acerto; }).length + ' golpes' : '';
@@ -667,6 +698,7 @@
     document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
     document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax);
     document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
+    document.getElementById('ficha-pocoes').textContent = b.pocoes + '/' + D.VIDA.pocoesPorDia;
     document.getElementById('poder-jogador').innerHTML = barraPoder(b);
     document.getElementById('controle-habilidade').innerHTML = controleHabilidade(b);
     var reg = document.getElementById('registro');
@@ -681,13 +713,13 @@
     var b = estado.batalha;
     if (!b) return;
     clearTimeout(estado.timer);
-    var res = R.concluirBatalha(estado.personagem, b);
+    var res = R.concluirBatalha(estado.personagem, b, Date.now());
     var nivelHab = R.nivelHabilidade(estado.personagem);
     if (nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
     res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
-      linha('destaque', 'Vitória! +' + res.exp + ' de exp.');
+      linha('destaque', 'Vitória! +' + res.exp + ' de exp' + (res.fatorExp < 100 ? ' (reduzida: área abaixo do seu nível)' : '') + '.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.habilidadeEvoluiu) linha('habilidade-usada', '⚡ Sua habilidade evoluiu para o nível ' + res.habilidadeEvoluiu + '!');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + D.raridades[res.drop.raridade].nome + ')!');
@@ -806,11 +838,25 @@
       case 'ponto':
         if (R.distribuirPonto(p, el.dataset.atributo)) { salvar(); telaJogo(); }
         break;
-      case 'descansar':
-        R.descansar(p);
+      case 'acampar':
+        R.acampar(p, Date.now(), true);
         salvar();
-        avisar(p.nome + ' descansa junto à fogueira e recupera toda a vida.');
+        avisar(p.nome + ' monta acampamento junto à fogueira. A vida volta 3x mais rápido.');
         telaJogo();
+        break;
+      case 'levantar':
+        R.acampar(p, Date.now(), false);
+        salvar();
+        telaJogo();
+        break;
+      case 'usar-pocao':
+        if (R.usarPocao(p, Date.now())) { salvar(); avisar('Você bebe a poção e recupera toda a vida.'); }
+        telaJogo();
+        break;
+      case 'beber-pocao':
+        if (estado.batalha && R.beberPocao(estado.batalha)) {
+          document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
+        }
         break;
       case 'equipar':
         if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; salvar(); telaJogo(); }
@@ -870,11 +916,13 @@
         else if (op === 'armas') R.admin.armas(p, v);
         else if (op === 'pergaminhos') R.admin.pergaminhos(p, v);
         else if (op === 'conjunto') R.admin.conjunto(p, v);
-        else if (op === 'curar') R.descansar(p);
+        else if (op === 'curar') R.descansar(p, Date.now());
+        else if (op === 'pocoes') R.admin.recarregarPocoes(p);
+        else if (op === 'reset') R.admin.resetDiario(p, Date.now());
         salvar();
         avisar({ ouro: '+' + Number(v).toLocaleString('pt-BR') + ' de ouro.', nivel: 'Agora no level ' + p.nivel + '.',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.', pergaminhos: '+' + v + ' pergaminhos de cada raridade.',
-          curar: 'Vida recuperada.' }[op]);
+          curar: 'Vida recuperada.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: vida cheia e poções do dia.' }[op]);
         telaJogo();
         break;
       }
@@ -891,6 +939,8 @@
       case 'cacar': {
         var alvo = el.dataset.monstro;
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
+        if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); break; }
+        if (R.atualizarTempo(p, Date.now())) salvar();
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
           clearTimeout(estado.timer);
@@ -950,6 +1000,17 @@
   app.addEventListener('mouseout', function (e) {
     if (e.target.closest && e.target.closest('[data-acao="item"]')) clearTimeout(timerFoco);
   });
+
+  // A vida volta com o tempo: atualiza a ficha a cada 20 s (fora da batalha).
+  setInterval(function () {
+    var p = estado.personagem;
+    if (!p || estado.batalha || !document.querySelector('.ficha')) return;
+    if (R.atualizarTempo(p, Date.now())) salvar();
+    var aberta = document.querySelector('.ficha');
+    var nova = document.createElement('div');
+    nova.innerHTML = fichaHtml();
+    aberta.replaceWith(nova.firstChild);
+  }, 20000);
 
   // ---------------- Início ----------------
   estado.conta = C.contaAtual();

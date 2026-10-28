@@ -543,3 +543,76 @@ teste('Martelada Sísmica: quebra a armadura e o monstro passa a levar +25%', ()
   do { ev = R.passo(b); } while (ev.ator !== 'jogador');
   assert.strictEqual(ev.dano, Math.round(10 * 1.25));
 });
+
+// ---------- Vida com o tempo, poções e exp reduzida ----------
+const T0 = Date.UTC(2026, 9, 28, 15, 0, 0); // 12h de Brasília
+
+teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite de Brasília)', () => {
+  const p = R.criarPersonagem('Tempo', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.atualizarTempo(p, T0), true);
+  p.hpAtual = 10; p.pocoes = 0;
+  R.atualizarTempo(p, T0 + 1000);
+  assert.strictEqual(p.pocoes, 0);
+  assert.strictEqual(R.diaReset(Date.UTC(2026, 9, 29, 2, 59)), '2026-10-28'); // 23h59 em Brasília
+  R.atualizarTempo(p, Date.UTC(2026, 9, 29, 3, 0)); // meia-noite em Brasília
+  assert.strictEqual(p.hpAtual, R.status(p).hpMax);
+  assert.strictEqual(p.pocoes, 2);
+  assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
+});
+
+teste('vida volta 2% por minuto (6% acampado) e não passa do máximo', () => {
+  const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'cavaleiro');
+  R.atualizarTempo(p, T0);
+  p.hpAtual = 10; p.vidaEm = T0;
+  R.atualizarTempo(p, T0 + 10 * 60000);
+  assert.strictEqual(p.hpAtual, 30);
+  assert.strictEqual(R.minutosParaVidaCheia(p), 35);
+  R.acampar(p, T0 + 10 * 60000, true);
+  R.atualizarTempo(p, T0 + 20 * 60000);
+  assert.strictEqual(p.hpAtual, 90);
+  R.atualizarTempo(p, T0 + 600 * 60000);
+  assert.strictEqual(p.hpAtual, 100);
+});
+
+teste('poção: cura 100%, gasta 1, não usa com a vida cheia nem sem poção', () => {
+  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'cavaleiro');
+  R.atualizarTempo(p, T0);
+  assert.strictEqual(R.usarPocao(p, T0), false);
+  p.hpAtual = 5;
+  assert.strictEqual(R.usarPocao(p, T0), true);
+  assert.strictEqual(p.hpAtual, 100);
+  assert.strictEqual(p.pocoes, 1);
+  p.hpAtual = 5; R.usarPocao(p, T0);
+  p.hpAtual = 5;
+  assert.strictEqual(R.usarPocao(p, T0), false);
+});
+
+teste('poção na batalha: gasta a vez do jogador e desconta ao fim da luta', () => {
+  const p = R.criarPersonagem('Bebe', 'masculino', 'humano', 'cavaleiro');
+  R.atualizarTempo(p, T0);
+  p.hpAtual = 20;
+  const b = R.iniciarBatalha(p, 'lobo', rng);
+  assert.strictEqual(R.beberPocao(b), true);
+  let ev;
+  do { ev = R.passo(b); } while (ev.ator !== 'jogador');
+  assert.strictEqual(ev.pocao, true);
+  assert.strictEqual(b.jogador.hp, b.jogador.hpMax);
+  b.fim = 'fuga';
+  R.concluirBatalha(p, b, T0);
+  assert.strictEqual(p.pocoes, 1);
+});
+
+teste('exp reduzida: 50% de 3 a 7 levels acima da faixa, 10% com 8+, última área nunca', () => {
+  const p = R.criarPersonagem('Exp', 'masculino', 'humano', 'cavaleiro');
+  p.nivel = 7; assert.strictEqual(R.fatorExp(p, 'lobo'), 100);
+  p.nivel = 8; assert.strictEqual(R.fatorExp(p, 'lobo'), 50);
+  p.nivel = 12; assert.strictEqual(R.fatorExp(p, 'lobo'), 50);
+  p.nivel = 13; assert.strictEqual(R.fatorExp(p, 'lobo'), 10);
+  p.nivel = 40; assert.strictEqual(R.fatorExp(p, 'salamandra'), 100);
+  p.nivel = 13;
+  const b = R.iniciarBatalha(p, 'lobo', rng);
+  b.fim = 'vitoria';
+  const res = R.concluirBatalha(p, b, T0);
+  assert.strictEqual(res.fatorExp, 10);
+  assert.strictEqual(res.exp, Math.max(1, Math.floor(D.monstros.lobo.exp / 10)));
+});

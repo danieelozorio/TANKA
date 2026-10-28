@@ -153,6 +153,10 @@ Tanka.regras = (function () {
       equipados: Object.assign(equipamentosVazios(), { arma: arma.id }),
       abates: {},
       presencaChefe: {},   // por área: % acumulada de o chefe aparecer (o jogador não vê)
+      pocoes: D.VIDA.pocoesPorDia,
+      ultimoReset: null,   // dia (AAAA-MM-DD, Brasília) do último reset diário
+      vidaEm: null,        // momento (ms) até onde a vida com o tempo já foi contada
+      acampado: false,
       criadoEm: new Date().toISOString(),
     };
   }
@@ -168,6 +172,7 @@ Tanka.regras = (function () {
       if (!i.tipo) i.tipo = 'arma';
     });
     if (!p.presencaChefe) p.presencaChefe = {};
+    if (typeof p.pocoes !== 'number') { p.pocoes = D.VIDA.pocoesPorDia; p.ultimoReset = null; p.vidaEm = null; p.acampado = false; }
     if (p.abates.grakk) { p.abates.velgrath = (p.abates.velgrath || 0) + p.abates.grakk; delete p.abates.grakk; } // chefe renomeado
     if (!p.equipados) {
       p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
@@ -272,6 +277,72 @@ Tanka.regras = (function () {
     return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId));
   }
 
+  // % da exp que o personagem ganha na área do monstro (100, 50 ou 10).
+  function fatorExp(p, monstroId) {
+    var area = areaDoMonstro(monstroId);
+    var proxima = D.areas[D.areas.indexOf(area) + 1];
+    if (!proxima) return 100;
+    var acima = p.nivel - proxima.nivelMin;
+    var faixa = D.EXP_REDUZIDA.find(function (f) { return acima >= f.acima; });
+    return faixa ? faixa.pct : 100;
+  }
+
+  // ---------- Vida com o tempo, poções e reset diário ----------
+  // `agora` em ms (Date.now()). O dia do reset é contado no horário de Brasília.
+  function diaReset(agora) {
+    return new Date(agora + D.VIDA.fusoReset * 3600000).toISOString().slice(0, 10);
+  }
+  function msAteReset(agora) {
+    var local = agora + D.VIDA.fusoReset * 3600000;
+    return 86400000 - (local % 86400000);
+  }
+  function regenPorMinuto(p) {
+    return status(p).hpMax * D.VIDA.regenPorMinuto * (p.acampado ? D.VIDA.acampamento : 1) / 100;
+  }
+
+  // Aplica o reset diário e a vida recuperada desde a última conta. Não chamar durante a batalha.
+  // Retorna true se algo mudou.
+  function atualizarTempo(p, agora) {
+    var hpMax = status(p).hpMax;
+    var dia = diaReset(agora);
+    if (p.ultimoReset !== dia) {
+      p.ultimoReset = dia;
+      p.hpAtual = hpMax;
+      p.pocoes = D.VIDA.pocoesPorDia;
+      p.vidaEm = agora;
+      return true;
+    }
+    if (!p.vidaEm || p.hpAtual >= hpMax || agora < p.vidaEm) { p.vidaEm = agora; return false; }
+    var porMin = regenPorMinuto(p);
+    var ganho = Math.floor((agora - p.vidaEm) / 60000 * porMin);
+    if (ganho <= 0) return false;
+    p.hpAtual = Math.min(hpMax, p.hpAtual + ganho);
+    // Guarda a sobra de tempo que ainda não virou 1 de vida.
+    p.vidaEm = p.hpAtual >= hpMax ? agora : p.vidaEm + ganho / porMin * 60000;
+    return true;
+  }
+
+  // Minutos até a vida encher (0 se já está cheia).
+  function minutosParaVidaCheia(p) {
+    var falta = status(p).hpMax - p.hpAtual;
+    return falta > 0 ? Math.ceil(falta / regenPorMinuto(p)) : 0;
+  }
+
+  function acampar(p, agora, sim) {
+    atualizarTempo(p, agora);
+    p.acampado = !!sim;
+  }
+
+  // Poção fora da batalha: cura 100%. Retorna false sem poção ou com a vida cheia.
+  function usarPocao(p, agora) {
+    atualizarTempo(p, agora);
+    if (p.pocoes <= 0 || p.hpAtual >= status(p).hpMax) return false;
+    p.pocoes -= 1;
+    p.hpAtual = status(p).hpMax;
+    p.vidaEm = agora;
+    return true;
+  }
+
   // Ao clicar em Caçar: sorteia se o chefe da área aparece no lugar do monstro.
   function sortearChefe(p, monstroId, rng) {
     var area = areaDoMonstro(monstroId);
@@ -308,6 +379,8 @@ Tanka.regras = (function () {
       sorte: atributosTotais(p).sor,
       auto: !!p.habilidadeAuto,          // usa a habilidade sozinha quando carregar
       habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
+      pocoes: p.pocoes,                   // poções disponíveis na luta
+      pocaoPendente: false,               // bebe na próxima vez do jogador
       jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0, poder: 0 },
       monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 0,
         atordoado: 0, armaduraQuebrada: false },
@@ -379,6 +452,13 @@ Tanka.regras = (function () {
     return true;
   }
 
+  // Pede a poção na batalha: o jogador bebe na próxima vez dele (gasta a vez).
+  function beberPocao(b) {
+    if (b.fim || b.pocoes <= 0 || b.pocaoPendente || b.jogador.hp >= b.jogador.hpMax) return false;
+    b.pocaoPendente = true;
+    return true;
+  }
+
   function ataqueMonstro(b) {
     var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
     var ev = { ator: 'monstro', acerto: false, critico: false, dano: 0 };
@@ -403,6 +483,13 @@ Tanka.regras = (function () {
     for (;;) {
       if (b.jogador.barra >= 100) {
         b.jogador.barra -= 100;
+        if (b.pocaoPendente) {
+          b.pocaoPendente = false;
+          b.pocoes -= 1;
+          var curou = b.jogador.hpMax - b.jogador.hp;
+          b.jogador.hp = b.jogador.hpMax;
+          return { ator: 'jogador', pocao: true, cura: curou };
+        }
         var cheia = b.jogador.poder >= D.PODER.maximo;
         return cheia && (b.habilidadePendente || b.auto) ? usarHabilidade(b) : ataqueJogador(b);
       }
@@ -413,9 +500,12 @@ Tanka.regras = (function () {
   }
 
   // Aplica o resultado no personagem. Derrota: volta com metade do HP, sem perder exp.
-  function concluirBatalha(p, b) {
+  // `agora`: a vida com o tempo volta a contar a partir do fim da luta.
+  function concluirBatalha(p, b, agora) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
     p.hpAtual = b.jogador.hp;
+    p.pocoes = b.pocoes;
+    p.vidaEm = agora || Date.now();
     if (b.fim === 'vitoria') {
       var m = D.monstros[b.monstroId];
       var area = areaDoMonstro(b.monstroId);
@@ -426,10 +516,11 @@ Tanka.regras = (function () {
         var presenca = (p.presencaChefe[area.id] || 0) + area.chanceChefe;
         p.presencaChefe[area.id] = Math.min(100, Math.round(presenca * 100) / 100);
       }
-      res.exp = m.exp;
+      res.fatorExp = fatorExp(p, b.monstroId);
+      res.exp = res.fatorExp < 100 ? Math.max(1, Math.floor(m.exp * res.fatorExp / 100)) : m.exp;
       res.ouro = m.ouro;
       p.ouro += m.ouro;
-      res.niveis = ganharExp(p, m.exp);
+      res.niveis = ganharExp(p, res.exp);
       if (m.chefe) {
         var premio = dropChefe(p, m, b.rng);
         if (premio.tipo === 'arma') res.drop = premio; else res.dropArmadura = premio;
@@ -556,6 +647,8 @@ Tanka.regras = (function () {
       Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] += quantidade; });
     },
     // Conjunto completo de uma raridade: arma, 4 armaduras da classe, colar e 2 anéis.
+    recarregarPocoes: function (p) { p.pocoes = D.VIDA.pocoesPorDia; },
+    resetDiario: function (p, agora) { p.ultimoReset = null; atualizarTempo(p, agora); },
     conjunto: function (p, raridade) {
       ['arma'].concat(TIPOS_ARMADURA, ['colar', 'anel', 'anel']).forEach(function (tipo) {
         p.inventario.push(novoItem(tipo, p.classe, raridade));
@@ -563,7 +656,8 @@ Tanka.regras = (function () {
     },
   };
 
-  function descansar(p) { p.hpAtual = status(p).hpMax; }
+  // Cura tudo (admin).
+  function descansar(p, agora) { p.hpAtual = status(p).hpMax; p.vidaEm = agora || Date.now(); }
 
   // Equipa no espaço certo; se já houver item lá, ele volta para a mochila.
   // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
@@ -634,5 +728,13 @@ Tanka.regras = (function () {
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
     sortearChefe: sortearChefe,
+    fatorExp: fatorExp,
+    diaReset: diaReset,
+    msAteReset: msAteReset,
+    atualizarTempo: atualizarTempo,
+    minutosParaVidaCheia: minutosParaVidaCheia,
+    acampar: acampar,
+    usarPocao: usarPocao,
+    beberPocao: beberPocao,
   };
 })();

@@ -435,3 +435,9 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 }
 .nome-habilidade { font-family: var(--titulo); color: #ffd862; }
 @media (prefers-reduced-motion: reduce) { .btn-habilidade.pronta, .lutador.golpe-forte .moldura { animation: none; } }
+
+/* Vida com o tempo e poções */
+.vida-tempo { margin: .15rem 0 .4rem; }
+.secao.pocoes { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.btn-pocao { width: 100%; max-width: 240px; }
+.registro .cura { color: #8fe0a0; }

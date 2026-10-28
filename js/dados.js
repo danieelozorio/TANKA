@@ -204,6 +204,15 @@ Tanka.dados = {
   // A habilidade evolui nos levels de `niveisHabilidade` (nível 1, 2, 3 e 4).
   // Valores das listas: um por nível da habilidade.
   PODER: { maximo: 100, porAcerto: 25, porGolpeRecebido: 10 },
+
+  // Vida com o tempo: % da vida máxima por minuto fora da batalha (também com o jogo fechado).
+  // Acampado, multiplica pela velocidade do acampamento, mas não pode caçar.
+  // Reset diário à meia-noite de Brasília (UTC-3): vida cheia e as poções do dia voltam.
+  VIDA: { regenPorMinuto: 2, acampamento: 3, pocoesPorDia: 2, fusoReset: -3 },
+
+  // Exp reduzida quando o level passa do fim da faixa da área (fim = level da próxima área).
+  // Ex.: 3 a 7 levels acima: 50%; 8 ou mais: 10%. A última área nunca reduz.
+  EXP_REDUZIDA: [{ acima: 8, pct: 10 }, { acima: 3, pct: 50 }],
   niveisHabilidade: [1, 10, 20, 30],
   habilidades: {
     cavaleiro: { nome: 'Golpe de Escudo', descricao: 'Bate com o escudo e deixa o monstro atordoado.',

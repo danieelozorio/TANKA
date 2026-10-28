@@ -41,6 +41,10 @@ node testes/regras.test.js
 | Vale dos Dragões | 25+ | Drake, Wyvern, Cavaleiro Dracônico | Vhar'kesh, o Dragão Ancião | +0,15% |
 | Cume do Fogo Eterno | 30+ | Salamandra, Demônio de Lava, Elemental de Fogo | Ignaroth, Senhor das Chamas | +0,1% |
 
+- **Vida com o tempo** (único freio do jogo, sem estamina): fora da batalha a vida volta 2% da vida máxima por minuto, mesmo com o jogo fechado. **Acampar** faz a vida voltar 3x mais rápido (6%/min), mas não deixa caçar. O menu mostra "Vida cheia em X min".
+- **Poções diárias**: cada personagem tem 2 poções por dia; cada uma cura 100% da vida, fora ou dentro da batalha (na batalha gasta a vez). Não acumulam, não são vendidas e não dropam.
+- **Reset diário** à meia-noite de Brasília: vida cheia e as 2 poções de volta. (Sem servidor, o relógio é o do aparelho do jogador.)
+- **Exp reduzida em área fácil**: a faixa de cada área termina no level da próxima área. De 3 a 7 levels acima do fim da faixa, a exp cai para 50%; com 8 ou mais, 10%. O Cume do Fogo Eterno nunca reduz. Ouro e drops não mudam. Valores em `js/dados.js` (`VIDA` e `EXP_REDUZIDA`).
 - **Habilidades especiais**: na batalha, a barra de Poder enche (+25 por acerto, Mago +34; +10 por golpe recebido). Cheia, o jogador clica na habilidade (ou marca "Usar automaticamente"). Evolui nos levels 10, 20 e 30.
   - Cavaleiro, Golpe de Escudo: dano x1,5/x2/x2,5/x3 e atordoa o monstro por 1/2/2/3 ações.
   - Arqueiro, Chuva de Flechas: 2/3/3/4 flechas seguidas, com +10/+20/+30/+40% de crítico.
@@ -67,7 +71,7 @@ node testes/regras.test.js
 | Se falhar | — | volta a +0 | volta a +0 | volta a +0 | quebra | quebra | quebra | quebra |
 
   Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
-- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos e curar. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
+- **Conta de administrador**: contas listadas em `ADMINS` (em `js/dados.js`, hoje só `admin`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos, curar, recarregar as poções e simular o reset diário. É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
 
 ## Como adicionar as artes
