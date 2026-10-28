@@ -103,7 +103,36 @@ Tanka.contas = (function () {
     return Promise.resolve();
   }
 
+  // Chat local (só neste navegador), com as mesmas regras do servidor.
+  var CHAVE_CHAT = 'tanka.chat';
+  function lerChat() { try { return JSON.parse(localStorage.getItem(CHAVE_CHAT)) || []; } catch (e) { return []; } }
+  function gravarChat(l) { try { localStorage.setItem(CHAVE_CHAT, JSON.stringify(l.slice(-100))); } catch (e) { /* sem armazenamento */ } }
+  var silenciados = {};
+  var chat = {
+    recentes: async function () { return lerChat(); },
+    novas: async function (desdeId) { return lerChat().filter(function (m) { return m.id > desdeId; }); },
+    enviar: async function (personagem, texto) {
+      var conta = contaAtual();
+      var p = conta && conta.personagens.find(function (x) { return x.nome === personagem; });
+      if (!p) throw new Error('Personagem inválido.');
+      if (silenciados[conta.usuario.toLowerCase()] > Date.now()) throw new Error('Você está silenciado no chat.');
+      var lista = lerChat();
+      var ultima = lista.filter(function (m) { return m.conta === conta.usuario; }).pop();
+      if (ultima && Date.now() - Date.parse(ultima.criado_em) < 3000) throw new Error('Calma! Espere 3 segundos entre as mensagens.');
+      lista.push({ id: (lista.length ? lista[lista.length - 1].id : 0) + 1, conta: conta.usuario, personagem: p.nome,
+        classe: p.classe, nivel: p.nivel, texto: texto.trim().slice(0, 200), criado_em: new Date().toISOString() });
+      gravarChat(lista);
+    },
+    apagar: async function (id) { gravarChat(lerChat().filter(function (m) { return m.id !== id; })); },
+    silenciar: async function (personagem, horas) {
+      var m = lerChat().find(function (x) { return x.personagem.toLowerCase() === personagem.toLowerCase(); });
+      if (!m) throw new Error('Personagem não encontrado.');
+      silenciados[m.conta.toLowerCase()] = horas === null ? Infinity : horas <= 0 ? 0 : Date.now() + horas * 3600000;
+    },
+  };
+
   return {
+    chat: chat,
     iniciar: async function () { return contaAtual(); },
     agora: function () { return Date.now(); },
     criarPersonagem: async function (p) { salvarPersonagem(p); },

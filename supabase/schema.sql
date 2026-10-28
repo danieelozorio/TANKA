@@ -88,3 +88,76 @@ language sql stable as $$ select now(); $$;
 
 grant execute on function public.usuario_livre(text), public.email_livre(text),
   public.nome_personagem_livre(text), public.agora() to anon, authenticated;
+
+-- ---------- Chat global ----------
+alter table public.contas add column if not exists silenciado_ate timestamptz;  -- moderação do chat
+
+create table if not exists public.mensagens (
+  id bigint generated always as identity primary key,
+  conta_id uuid not null default auth.uid() references public.contas (id) on delete cascade,
+  personagem text not null,
+  classe text not null,
+  nivel int not null,
+  texto text not null check (char_length(texto) between 1 and 200),
+  criado_em timestamptz not null default now()
+);
+create index if not exists mensagens_conta on public.mensagens (conta_id, criado_em);
+
+create or replace function public.eh_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select admin from public.contas where id = auth.uid()), false);
+$$;
+
+alter table public.mensagens enable row level security;
+drop policy if exists "chat: logados leem" on public.mensagens;
+drop policy if exists "chat: escrever as suas" on public.mensagens;
+drop policy if exists "chat: admin apaga" on public.mensagens;
+create policy "chat: logados leem" on public.mensagens for select to authenticated using (true);
+create policy "chat: escrever as suas" on public.mensagens for insert to authenticated with check (auth.uid() = conta_id);
+create policy "chat: admin apaga" on public.mensagens for delete to authenticated using (public.eh_admin());
+
+-- Antes de gravar: silenciado? flood (1 a cada 3 s)? Nome, classe e level vêm do personagem salvo.
+create or replace function public.validar_mensagem() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare d jsonb; ate timestamptz;
+begin
+  new.conta_id := auth.uid();
+  new.texto := btrim(new.texto);
+  if new.texto = '' then raise exception 'Mensagem vazia.'; end if;
+  select silenciado_ate into ate from public.contas where id = new.conta_id;
+  if ate is not null and ate > now() then
+    if ate = 'infinity'::timestamptz then raise exception 'Você foi silenciado no chat.'; end if;
+    raise exception 'Você está silenciado no chat até %.', to_char(ate at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI');
+  end if;
+  if exists (select 1 from public.mensagens where conta_id = new.conta_id and criado_em > now() - interval '3 seconds') then
+    raise exception 'Calma! Espere 3 segundos entre as mensagens.';
+  end if;
+  select dados into d from public.personagens where conta_id = new.conta_id and lower(nome) = lower(new.personagem);
+  if d is null then raise exception 'Personagem inválido.'; end if;
+  new.personagem := d ->> 'nome';
+  new.classe := d ->> 'classe';
+  new.nivel := (d ->> 'nivel')::int;
+  new.criado_em := now();
+  delete from public.mensagens where criado_em < now() - interval '7 days';  -- faxina
+  return new;
+end $$;
+drop trigger if exists antes_de_gravar_mensagem on public.mensagens;
+create trigger antes_de_gravar_mensagem before insert on public.mensagens
+  for each row execute function public.validar_mensagem();
+
+-- Admin: silenciar o dono de um personagem. horas: null = para sempre, 0 = liberar.
+create or replace function public.silenciar(nome_personagem text, horas int) returns void
+language plpgsql security definer set search_path = public as $$
+declare alvo uuid;
+begin
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  select conta_id into alvo from public.personagens where lower(nome) = lower(nome_personagem);
+  if alvo is null then raise exception 'Personagem não encontrado.'; end if;
+  update public.contas set silenciado_ate = case
+    when horas is null then 'infinity'::timestamptz
+    when horas <= 0 then null
+    else now() + make_interval(hours => horas) end
+  where id = alvo;
+end $$;
+revoke execute on function public.silenciar(text, int) from public, anon;
+grant execute on function public.silenciar(text, int) to authenticated;

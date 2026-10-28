@@ -176,7 +176,39 @@ Tanka.contas = (function () {
     return fila;
   }
 
+  // ---------- Chat global ----------
+  var CAMPOS_CHAT = 'select=id,personagem,classe,nivel,texto,criado_em';
+  async function logado() {
+    if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
+  }
+  var chat = {
+    // Últimas 100 mensagens (da mais antiga para a mais nova).
+    recentes: async function () {
+      await logado();
+      return (await pedir('/rest/v1/mensagens?' + CAMPOS_CHAT + '&order=id.desc&limit=100')).reverse();
+    },
+    novas: async function (desdeId) {
+      await logado();
+      return pedir('/rest/v1/mensagens?' + CAMPOS_CHAT + '&id=gt.' + Number(desdeId) + '&order=id.asc&limit=100');
+    },
+    // O servidor confere flood, silêncio e preenche classe/level a partir do personagem salvo.
+    enviar: async function (personagem, texto) {
+      await logado();
+      await pedir('/rest/v1/mensagens', { metodo: 'POST', cabecalhos: { Prefer: 'return=minimal' },
+        corpo: { personagem: personagem, texto: texto, classe: '-', nivel: 0 } });
+    },
+    apagar: async function (id) {
+      await logado();
+      await pedir('/rest/v1/mensagens?id=eq.' + Number(id), { metodo: 'DELETE', cabecalhos: { Prefer: 'return=minimal' } });
+    },
+    silenciar: async function (personagem, horas) {
+      await logado();
+      await rpc('silenciar', { nome_personagem: personagem, horas: horas });
+    },
+  };
+
   return {
+    chat: chat,
     iniciar: iniciar,
     agora: agora,
     registrar: registrar,

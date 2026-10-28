@@ -110,6 +110,7 @@
   // ---------------- Login / cadastro ----------------
 
   function telaAuth(modo, erro) {
+    chatVisivel(false);
     var cadastro = modo === 'cadastro';
     var form = cadastro
       ? '<form data-form="cadastro" novalidate>'
@@ -136,6 +137,7 @@
   // ---------------- Seleção de personagens ----------------
 
   function telaPersonagens() {
+    chatVisivel(false);
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
       return '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
@@ -628,6 +630,7 @@
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape();
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
+    chatVisivel(true);
   }
 
   // Leva a tela até o painel (aviso do chefe e batalha aparecem no topo dele).
@@ -1022,6 +1025,125 @@
     nova.innerHTML = fichaHtml();
     aberta.replaceWith(nova.firstChild);
   }, 20000);
+
+  // ---------------- Chat global ----------------
+  // Fica fora do #app para não sumir quando a tela é redesenhada.
+  // Atualiza a cada 4 s com a janela aberta e a cada 20 s fechada (para o contador de novas).
+  var chat = { el: null, aberto: false, mensagens: [], ultimoId: 0, naoLidas: 0, timer: null, ativo: false, ultimaCompleta: 0 };
+
+  function chatVisivel(sim) {
+    if (!chat.el) {
+      chat.el = document.createElement('div');
+      chat.el.id = 'chat';
+      document.body.appendChild(chat.el);
+      chat.el.addEventListener('click', cliqueChat);
+      chat.el.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && e.target.id === 'chat-texto') { e.preventDefault(); enviarChat(); }
+      });
+    }
+    if (sim === chat.ativo) return;
+    chat.ativo = sim;
+    chat.el.hidden = !sim;
+    clearTimeout(chat.timer);
+    if (sim) {
+      chat.mensagens = []; chat.ultimoId = 0; chat.naoLidas = 0;
+      desenharChat();
+      buscarChat(true);
+    }
+  }
+
+  function linhaChat(m) {
+    var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    var classe = D.classes[m.classe] ? D.classes[m.classe].nome : '';
+    var acoes = ehAdmin()
+      ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
+        + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'
+      : '';
+    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> <strong class="chat-nome classe-' + esc(m.classe) + '">'
+      + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
+      + esc(m.texto) + acoes + '</p>';
+  }
+
+  function desenharChat() {
+    if (!chat.aberto) {
+      chat.el.innerHTML = '<button class="chat-botao" data-chat="abrir">💬 Chat'
+        + (chat.naoLidas ? ' <span class="chat-badge">' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas) + '</span>' : '') + '</button>';
+      return;
+    }
+    var texto = document.getElementById('chat-texto');
+    var rascunho = texto ? texto.value : '';
+    var focado = texto && document.activeElement === texto;
+    chat.el.innerHTML = '<div class="chat-janela"><div class="chat-topo"><strong>Chat Global</strong>'
+      + '<button data-chat="fechar" title="Fechar">✕</button></div>'
+      + '<div class="chat-lista" id="chat-lista">' + (chat.mensagens.length ? chat.mensagens.map(linhaChat).join('')
+        : '<p class="suave pequeno">Nenhuma mensagem ainda. Diga olá!</p>') + '</div>'
+      + '<div class="chat-envio"><input id="chat-texto" maxlength="200" placeholder="Escreva como ' + esc(estado.personagem ? estado.personagem.nome : '') + '…" autocomplete="off">'
+      + '<button class="btn" data-chat="enviar">Enviar</button></div></div>';
+    var novo = document.getElementById('chat-texto');
+    novo.value = rascunho;
+    if (focado) novo.focus();
+    var lista = document.getElementById('chat-lista');
+    lista.scrollTop = lista.scrollHeight;
+  }
+
+  async function buscarChat(completa) {
+    clearTimeout(chat.timer);
+    if (!chat.ativo) return;
+    try {
+      // A cada 30 s busca tudo de novo (para sumir o que o admin apagou).
+      if (completa || C.agora() - chat.ultimaCompleta > 30000) {
+        var todas = await C.chat.recentes();
+        chat.ultimaCompleta = C.agora();
+        var novasQtd = todas.filter(function (m) { return m.id > chat.ultimoId; }).length;
+        if (chat.ultimoId && !chat.aberto) chat.naoLidas += novasQtd;
+        chat.mensagens = todas;
+      } else {
+        var novas = await C.chat.novas(chat.ultimoId);
+        if (!chat.aberto) chat.naoLidas += novas.length;
+        chat.mensagens = chat.mensagens.concat(novas).slice(-100);
+      }
+      if (chat.mensagens.length) chat.ultimoId = Math.max(chat.ultimoId, chat.mensagens[chat.mensagens.length - 1].id);
+      if (chat.ativo) desenharChat();
+    } catch (e) { /* sem conexão: tenta de novo no próximo ciclo */ }
+    if (chat.ativo) chat.timer = setTimeout(buscarChat, document.hidden ? 60000 : chat.aberto ? 4000 : 20000);
+  }
+
+  async function enviarChat() {
+    var campo = document.getElementById('chat-texto');
+    var texto = campo.value.trim();
+    if (!texto || !estado.personagem) return;
+    try {
+      await C.chat.enviar(estado.personagem.nome, texto);
+      campo.value = '';
+      buscarChat();
+    } catch (e) { avisar(e.message); }
+  }
+
+  async function cliqueChat(e) {
+    var el = e.target.closest('[data-chat]');
+    if (!el) return;
+    var acao = el.dataset.chat;
+    if (acao === 'abrir' || acao === 'fechar') {
+      chat.aberto = acao === 'abrir';
+      chat.naoLidas = 0;
+      desenharChat();
+      if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(); }
+    } else if (acao === 'enviar') {
+      enviarChat();
+    } else if (acao === 'apagar' && ehAdmin()) {
+      try { await C.chat.apagar(Number(el.dataset.id)); buscarChat(true); } catch (erro) { avisar(erro.message); }
+    } else if (acao === 'silenciar' && ehAdmin()) {
+      var nome = el.dataset.nome;
+      var resp = window.prompt('Silenciar ' + nome + ' por quantas horas?\n(ex.: 1, 24 · "sempre" = para sempre · 0 = liberar)', '1');
+      if (resp === null || resp.trim() === '') return;
+      var horas = /^sempre$/i.test(resp.trim()) ? null : parseInt(resp, 10);
+      if (horas !== null && isNaN(horas)) { avisar('Valor inválido.'); return; }
+      try {
+        await C.chat.silenciar(nome, horas);
+        avisar(horas === 0 ? nome + ' pode falar de novo.' : nome + (horas === null ? ' não pode mais falar no chat.' : ' não pode falar no chat por ' + horas + 'h.'));
+      } catch (erro) { avisar(erro.message); }
+    }
+  }
 
   // ---------------- Início ----------------
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
