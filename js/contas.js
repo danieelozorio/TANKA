@@ -207,7 +207,14 @@ Tanka.contas = (function () {
     },
   };
 
+  // Top 100 por 'nivel' ou 'poder' (o servidor junta os personagens de todas as contas).
+  async function ranking(tipo) {
+    await sessaoValida();
+    return rpc('ranking', { tipo: tipo });
+  }
+
   return {
+    ranking: ranking,
     chat: chat,
     iniciar: iniciar,
     agora: agora,

@@ -126,8 +126,8 @@ begin
   if new.texto = '' then raise exception 'Mensagem vazia.'; end if;
   select silenciado_ate into ate from public.contas where id = new.conta_id;
   if ate is not null and ate > now() then
-    if ate = 'infinity'::timestamptz then raise exception 'Você foi silenciado no chat.'; end if;
-    raise exception 'Você está silenciado no chat até %.', to_char(ate at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI');
+    if ate = 'infinity'::timestamptz then raise exception 'Você não pode falar no chat (decisão do administrador).'; end if;
+    raise exception 'Você não pode falar no chat até %.', to_char(ate at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI');
   end if;
   if exists (select 1 from public.mensagens where conta_id = new.conta_id and criado_em > now() - interval '3 seconds') then
     raise exception 'Calma! Espere 3 segundos entre as mensagens.';
@@ -163,4 +163,23 @@ revoke execute on function public.silenciar(text, int) from public, anon;
 grant execute on function public.silenciar(text, int) to authenticated;
 
 -- Avisa a API do Supabase que as tabelas mudaram (evita o erro "schema cache").
+notify pgrst, 'reload schema';
+
+-- ---------- Ranking ----------
+-- Top 100 por level (empate: exp) ou por poder. Contas de administrador ficam de fora.
+create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint)
+language sql stable security definer set search_path = public as $$
+  select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
+         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0)
+  from public.personagens p join public.contas c on c.id = p.conta_id
+  where not c.admin
+  order by
+    case when tipo = 'poder' then coalesce((p.dados ->> 'poder')::bigint, 0) else coalesce((p.dados ->> 'nivel')::bigint, 1) end desc,
+    case when tipo = 'poder' then coalesce((p.dados ->> 'nivel')::bigint, 1) else coalesce((p.dados ->> 'exp')::bigint, 0) end desc,
+    p.criado_em
+  limit 100;
+$$;
+revoke execute on function public.ranking(text) from public, anon;
+grant execute on function public.ranking(text) to authenticated;
+
 notify pgrst, 'reload schema';

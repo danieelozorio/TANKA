@@ -214,6 +214,19 @@ Tanka.regras = (function () {
     };
   }
 
+  // Poder: nota de força para o ranking (ataque por tempo + resistência).
+  // Ataque = dano médio x crítico esperado x precisão x velocidade; resistência = vida x defesas x evasão.
+  function poder(p) {
+    var s = status(p);
+    var magico = s.tipoDano === 'magico';
+    var chanceCrit = Math.min(100, magico ? s.chanceCriticoMagico : s.chanceCritico) / 100;
+    var multCrit = (magico ? s.danoCriticoMagico : s.danoCritico) / 100;
+    var ataque = (s.dano[0] + s.dano[1]) / 2 * (1 + chanceCrit * (multCrit - 1))
+      * Math.min(95, s.precisao) / 100 * s.velocidade / 10;
+    var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / 20) * (1 + Math.min(50, s.evasao) / 100);
+    return Math.round(ataque * 10 + resistencia / 2);
+  }
+
   function distribuirPonto(p, atributo) {
     if (p.pontosLivres <= 0 || ATRIBUTOS.indexOf(atributo) < 0) return false;
     var hpAntes = status(p).hpMax;
@@ -701,6 +714,7 @@ Tanka.regras = (function () {
     encantar: encantar,
     admin: admin,
     status: status,
+    poder: poder,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,
     rolarDrop: rolarDrop,

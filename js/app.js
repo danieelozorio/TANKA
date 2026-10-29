@@ -102,6 +102,7 @@
   }
 
   function salvar() {
+    estado.personagem.poder = R.poder(estado.personagem);   // vai junto para o ranking
     try {
       C.salvarPersonagem(estado.personagem).catch(function (e) { avisar('Não foi possível salvar: ' + e.message); });
     } catch (e) { avisar(e.message); }
@@ -206,6 +207,7 @@
     var botao = document.querySelector('[data-acao="criar-personagem"]');
     if (botao) botao.disabled = true;
     var p = R.criarPersonagem(nome, c.sexo, c.raca, c.classe);
+    p.poder = R.poder(p);
     try {
       if (!(await C.nomePersonagemLivre(nome))) throw new Error('Esse nome já está em uso em Tanka.');
       await C.criarPersonagem(p);
@@ -271,6 +273,7 @@
     }).join('');
     var magico = s.tipoDano === 'magico';
     var status = [
+      ['Poder', '<strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong>'],
       ['Dano por golpe', dano(s.dano) + (magico ? ' (mágico)' : '')],
       [magico ? 'Ataque mágico' : 'Ataque', '+' + (magico ? s.ataqueMagico : s.ataque)],
       ['Defesa', s.defesa],
@@ -524,6 +527,51 @@
       + '<div class="itens">' + lista + '</div>';
   }
 
+  // Ranking: busca no servidor ao abrir a aba (e no botão Atualizar).
+  function abaRanking() {
+    var tipo = estado.rankingTipo || 'nivel';
+    var r = estado.ranking;
+    if (!r || r.tipo !== tipo) {
+      carregarRanking(tipo);
+      r = null;
+    }
+    var botoes = [['nivel', 'Level'], ['poder', 'Poder']].map(function (t) {
+      return '<button class="btn mini-opcao' + (t[0] === tipo ? '' : ' secundario') + '" data-acao="ranking-tipo" data-valor="' + t[0] + '">' + t[1] + '</button>';
+    }).join('');
+    var meus = (estado.conta.personagens || []).map(function (x) { return x.nome.toLowerCase(); });
+    var corpo;
+    if (!r) corpo = '<p class="suave">Carregando…</p>';
+    else if (r.erro) corpo = '<p class="menos">' + esc(r.erro) + '</p>';
+    else if (!r.lista.length) corpo = '<p class="suave">Ninguém no ranking ainda.</p>';
+    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th></tr></thead><tbody>'
+      + r.lista.map(function (x, i) {
+        var pos = i + 1;
+        var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
+        return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
+          + '<td><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + '</div></td>'
+          + '<td>' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + '</td>'
+          + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+    return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
+      + '<button class="btn secundario mini-opcao" data-acao="ranking-atualizar">Atualizar</button></div>'
+      + '<p class="suave pequeno">Os 100 melhores de Tanka' + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
+      + ' Seus personagens aparecem destacados. Contas de administrador não entram.</p>' + corpo;
+  }
+
+  function carregarRanking(tipo) {
+    if (estado.rankingCarregando === tipo) return;
+    estado.rankingCarregando = tipo;
+    C.ranking(tipo).then(function (lista) {
+      return { tipo: tipo, lista: lista };
+    }, function (e) {
+      return { tipo: tipo, erro: 'Não foi possível carregar o ranking: ' + e.message };
+    }).then(function (r) {
+      estado.rankingCarregando = null;
+      estado.ranking = r;
+      if (estado.aba === 'ranking' && !estado.batalha && !estado.resultado && !estado.chefeAviso) telaJogo();
+    });
+  }
+
   function abaAdmin() {
     if (!ehAdmin()) return '';
     function botoes(op, valores, rotulo) {
@@ -621,9 +669,10 @@
         + '<button data-acao="aba" data-aba="cacar" class="' + (estado.aba === 'cacar' ? 'ativa' : '') + '">Caçar</button>'
         + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button>'
         + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button>'
+        + '<button data-acao="aba" data-aba="ranking" class="' + (estado.aba === 'ranking' ? 'ativa' : '') + '">Ranking</button>'
         + (ehAdmin() ? '<button data-acao="aba" data-aba="admin" class="aba-admin' + (estado.aba === 'admin' ? ' ativa' : '') + '">Admin</button>' : '')
         + '</nav>'
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, admin: abaAdmin })[estado.aba]();
+        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, admin: abaAdmin })[estado.aba]();
     }
     var trocar = estado.batalha ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
@@ -843,6 +892,14 @@
       case 'desequipar':
         if (R.desequipar(p, el.dataset.slot)) { salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
+        break;
+      case 'ranking-tipo':
+        estado.rankingTipo = el.dataset.valor;
+        telaJogo();
+        break;
+      case 'ranking-atualizar':
+        estado.ranking = null;
+        telaJogo();
         break;
       case 'mercado-raridade':
         estado.mercadoRaridade = el.dataset.valor;

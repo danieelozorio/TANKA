@@ -471,3 +471,13 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   #chat { right: 8px; bottom: 8px; left: auto; }
   .chat-janela { width: calc(100vw - 16px); height: 60vh; }
 }
+
+/* Ranking */
+.ranking-topo { display: flex; justify-content: space-between; align-items: center; gap: .5rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.ranking-topo .botoes { display: flex; gap: .4rem; margin: 0; }
+.ranking { width: 100%; border-collapse: collapse; font-size: .95rem; }
+.ranking th { text-align: left; color: var(--suave); font-weight: 500; font-size: .85rem; border-bottom: 1px solid var(--borda); padding: .4rem; }
+.ranking td { padding: .45rem .4rem; border-bottom: 1px solid rgba(44, 52, 66, .5); vertical-align: middle; }
+.ranking td.pos { width: 2.5em; text-align: center; font-family: var(--titulo); color: var(--ouro-claro); }
+.ranking tr.meu td { background: rgba(201, 169, 107, .12); }
+@media (max-width: 600px) { .ranking { font-size: .85rem; } .ranking td, .ranking th { padding: .35rem .25rem; } }

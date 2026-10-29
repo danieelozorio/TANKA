@@ -115,7 +115,7 @@ Tanka.contas = (function () {
       var conta = contaAtual();
       var p = conta && conta.personagens.find(function (x) { return x.nome === personagem; });
       if (!p) throw new Error('Personagem inválido.');
-      if (silenciados[conta.usuario.toLowerCase()] > Date.now()) throw new Error('Você está silenciado no chat.');
+      if (silenciados[conta.usuario.toLowerCase()] > Date.now()) throw new Error('Você não pode falar no chat (decisão do administrador).');
       var lista = lerChat();
       var ultima = lista.filter(function (m) { return m.conta === conta.usuario; }).pop();
       if (ultima && Date.now() - Date.parse(ultima.criado_em) < 3000) throw new Error('Calma! Espere 3 segundos entre as mensagens.');
@@ -131,7 +131,23 @@ Tanka.contas = (function () {
     },
   };
 
+  async function ranking(tipo) {
+    var contas = ler();
+    var lista = [];
+    Object.keys(contas).forEach(function (k) {
+      if (Tanka.dados.ADMINS.indexOf(k) >= 0) return;
+      contas[k].personagens.forEach(function (p) {
+        lista.push({ nome: p.nome, classe: p.classe, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0 });
+      });
+    });
+    lista.sort(function (a, b) {
+      return tipo === 'poder' ? b.poder - a.poder || b.nivel - a.nivel : b.nivel - a.nivel || b.exp - a.exp;
+    });
+    return lista.slice(0, 100);
+  }
+
   return {
+    ranking: ranking,
     chat: chat,
     iniciar: async function () { return contaAtual(); },
     agora: function () { return Date.now(); },

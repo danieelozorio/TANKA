@@ -638,3 +638,15 @@ teste('derrota deixa 0 de vida; habilidades desligadas não disparam', () => {
   for (let i = 0; i < 50 && !b2.fim; i++) assert.ok(!R.passo(b2).habilidade);
   D.HABILIDADES_ATIVAS = true;
 });
+
+teste('poder: cresce com level e equipamento', () => {
+  const p = R.criarPersonagem('Forte', 'masculino', 'humano', 'cavaleiro');
+  const inicial = R.poder(p);
+  assert.ok(inicial > 0);
+  R.admin.subirNivel(p, 9);
+  const nivel10 = R.poder(p);
+  assert.ok(nivel10 > inicial);
+  R.admin.conjunto(p, 'rara');
+  p.inventario.slice(1).forEach((i) => R.equipar(p, i.id));
+  assert.ok(R.poder(p) > nivel10);
+});
