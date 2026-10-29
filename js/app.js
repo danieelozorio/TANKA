@@ -234,8 +234,11 @@
     estado.itemFoco = null;
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
-    if (R.atualizarTempo(estado.personagem, C.agora())) salvar();
+    R.atualizarTempo(estado.personagem, C.agora());
+    salvar();   // também marca o personagem como online para os amigos
+    estado.social = null;
     telaJogo();
+    carregarSocial();
   }
 
   function tempoTexto(ms) {
@@ -558,6 +561,96 @@
       + ' Seus personagens aparecem destacados. Contas de administrador não entram.</p>' + corpo;
   }
 
+  // ---------------- Social: amigos ----------------
+  // A lista vem do servidor ao abrir a aba e a cada minuto (junto com o "estou online").
+  var ONLINE_MS = 3 * 60000;
+
+  function socialAtual() {
+    var s = estado.social;
+    return s && estado.personagem && s.id === estado.personagem.id ? s : null;
+  }
+  function seloPedidos() {
+    var s = socialAtual();
+    var n = s && s.lista ? s.lista.filter(function (x) { return x.situacao === 'recebido'; }).length : 0;
+    return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
+  }
+
+  function carregarSocial() {
+    var p = estado.personagem;
+    if (!p || estado.socialCarregando) return;
+    estado.socialCarregando = true;
+    C.amigos.listar(p.id).then(function (lista) {
+      return { id: p.id, lista: lista };
+    }, function (e) {
+      return { id: p.id, erro: 'Não foi possível carregar os amigos: ' + e.message };
+    }).then(function (r) {
+      estado.socialCarregando = false;
+      estado.social = r;
+      if (estado.personagem !== p || estado.batalha || estado.resultado || estado.chefeAviso) return;
+      if (estado.aba === 'social') telaJogo();
+      else {
+        var aba = document.querySelector('[data-aba="social"]');
+        if (aba) aba.innerHTML = 'Social' + seloPedidos();
+      }
+    });
+  }
+
+  function vistoTexto(visto) {
+    if (!visto) return '';
+    var ms = C.agora() - Date.parse(visto);
+    if (ms < ONLINE_MS) return '<span class="online">● Online</span>';
+    var min = Math.floor(ms / 60000);
+    var quando = min < 60 ? min + ' min' : min < 1440 ? Math.floor(min / 60) + ' h' : Math.floor(min / 1440) + ' dia(s)';
+    return '<span class="suave">Visto há ' + quando + '</span>';
+  }
+
+  function linhaAmigo(x, botoes) {
+    return '<div class="item amigo"><div class="amigo-info"><div><strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
+      + '<div class="suave">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + ' · ' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+      + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
+      + '<div class="item-acoes">' + botoes + '</div></div>';
+  }
+
+  function abaSocial() {
+    var s = socialAtual();
+    if (!s) carregarSocial();
+    var form = '<form class="form-amigo" data-form="amigo" novalidate>'
+      + '<label for="nome-amigo">Adicionar amigo</label><div class="linha-form">'
+      + '<input id="nome-amigo" name="nome" maxlength="16" placeholder="Nome do personagem" autocomplete="off" required>'
+      + '<button class="btn" type="submit">Enviar pedido</button></div><p class="erro"></p></form>';
+    if (!s) return form + '<p class="suave">Carregando…</p>';
+    if (s.erro) return form + '<p class="menos">' + esc(s.erro) + '</p>';
+    var por = function (sit) { return s.lista.filter(function (x) { return x.situacao === sit; }); };
+    var recebidos = por('recebido'), amigos = por('amigo'), enviados = por('enviado');
+    amigos.sort(function (a, b) { return Date.parse(b.visto_em || 0) - Date.parse(a.visto_em || 0); });
+    var online = amigos.filter(function (x) { return x.visto_em && C.agora() - Date.parse(x.visto_em) < ONLINE_MS; }).length;
+    function bt(acao, x, texto, classe) {
+      return '<button class="btn ' + (classe || '') + '" data-acao="' + acao + '" data-pedido="' + x.pedido + '">' + texto + '</button>';
+    }
+    var html = form;
+    if (recebidos.length) html += '<h3 class="subtitulo">Pedidos recebidos (' + recebidos.length + ')</h3><div class="itens">'
+      + recebidos.map(function (x) { return linhaAmigo(x, bt('amigo-aceitar', x, 'Aceitar') + bt('amigo-recusar', x, 'Recusar', 'secundario')); }).join('') + '</div>';
+    html += '<h3 class="subtitulo">Amigos (' + amigos.length + ')' + (online ? ' <span class="online pequeno">' + online + ' online</span>' : '') + '</h3>'
+      + (amigos.length ? '<div class="itens">' + amigos.map(function (x) {
+        return linhaAmigo(x, estado.removerAmigo === x.pedido
+          ? bt('amigo-remover', x, 'Confirmar', 'perigo') + '<button class="btn secundario" data-acao="amigo-manter">Cancelar</button>'
+          : bt('amigo-pedir-remover', x, 'Remover', 'secundario'));
+      }).join('') + '</div>' : '<p class="suave">Você ainda não tem amigos. Adicione pelo nome do personagem (dá para ver os nomes no chat e no ranking).</p>');
+    if (enviados.length) html += '<h3 class="subtitulo">Pedidos enviados (' + enviados.length + ')</h3><div class="itens">'
+      + enviados.map(function (x) { return linhaAmigo(x, '<span class="suave pequeno">Aguardando</span>' + bt('amigo-remover', x, 'Cancelar', 'secundario')); }).join('') + '</div>';
+    return html + '<div class="botoes"><button class="btn secundario" data-acao="social-atualizar">Atualizar</button></div>';
+  }
+
+  async function acaoAmigo(fn, msg) {
+    try {
+      await fn();
+      if (msg) avisar(msg);
+    } catch (e) { avisar(e.message); }
+    estado.removerAmigo = null;
+    estado.social = null;
+    carregarSocial();
+  }
+
   function carregarRanking(tipo) {
     if (estado.rankingCarregando === tipo) return;
     estado.rankingCarregando = tipo;
@@ -686,9 +779,10 @@
         + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button>'
         + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button>'
         + '<button data-acao="aba" data-aba="ranking" class="' + (estado.aba === 'ranking' ? 'ativa' : '') + '">Ranking</button>'
+        + '<button data-acao="aba" data-aba="social" class="' + (estado.aba === 'social' ? 'ativa' : '') + '">Social' + seloPedidos() + '</button>'
         + (ehAdmin() ? '<button data-acao="aba" data-aba="admin" class="aba-admin' + (estado.aba === 'admin' ? ' ativa' : '') + '">Admin</button>' : '')
         + '</nav>'
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, admin: abaAdmin })[estado.aba]();
+        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, admin: abaAdmin })[estado.aba]();
     }
     var trocar = estado.batalha ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
@@ -821,6 +915,19 @@
   app.addEventListener('submit', async function (e) {
     e.preventDefault();
     var form = e.target;
+    if (form.dataset.form === 'amigo') {
+      var nome = form.nome.value.trim();
+      var erroAmigo = form.querySelector('.erro');
+      if (!nome || !estado.personagem) return;
+      if (nome.toLowerCase() === estado.personagem.nome.toLowerCase()) { erroAmigo.textContent = 'Esse é você.'; return; }
+      try {
+        var r = await C.amigos.pedir(estado.personagem.id, nome);
+        avisar(r === 'aceita' ? 'Agora você e ' + nome + ' são amigos!' : 'Pedido enviado para ' + nome + '.');
+        estado.social = null;
+        carregarSocial();
+      } catch (err) { erroAmigo.textContent = err.message; }
+      return;
+    }
     var dados = Object.fromEntries(new FormData(form));
     var botao = form.querySelector('button[type=submit]');
     botao.disabled = true;
@@ -908,6 +1015,27 @@
       case 'desequipar':
         if (R.desequipar(p, el.dataset.slot)) { salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
+        break;
+      case 'amigo-aceitar':
+        acaoAmigo(function () { return C.amigos.responder(p.id, Number(el.dataset.pedido), true); }, 'Pedido aceito!');
+        break;
+      case 'amigo-recusar':
+        acaoAmigo(function () { return C.amigos.responder(p.id, Number(el.dataset.pedido), false); });
+        break;
+      case 'amigo-pedir-remover':
+        estado.removerAmigo = Number(el.dataset.pedido);
+        telaJogo();
+        break;
+      case 'amigo-manter':
+        estado.removerAmigo = null;
+        telaJogo();
+        break;
+      case 'amigo-remover':
+        acaoAmigo(function () { return C.amigos.remover(p.id, Number(el.dataset.pedido)); });
+        break;
+      case 'social-atualizar':
+        estado.social = null;
+        telaJogo();
         break;
       case 'ranking-tipo':
         estado.rankingTipo = el.dataset.valor;
@@ -1112,6 +1240,13 @@
     nova.innerHTML = fichaHtml();
     aberta.replaceWith(nova.firstChild);
   }, 20000);
+
+  // A cada minuto: avisa o servidor que está jogando (online para os amigos) e procura pedidos novos.
+  setInterval(function () {
+    if (!estado.personagem || estado.batalha || !document.querySelector('.ficha') || document.hidden) return;
+    salvar();
+    carregarSocial();
+  }, 60000);
 
   // ---------------- Chat global ----------------
   // Fica fora do #app para não sumir quando a tela é redesenhada.

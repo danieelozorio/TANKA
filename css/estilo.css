@@ -482,3 +482,12 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .ranking tr.meu td { background: rgba(201, 169, 107, .12); }
 @media (max-width: 600px) { .ranking { font-size: .85rem; } .ranking td, .ranking th { padding: .35rem .25rem; } }
 .btn.admin-menos { border-color: var(--ruim); color: #f0b4ad; background: transparent; }
+
+/* Social: amigos */
+.selo-pedidos { display: inline-block; min-width: 1.3em; padding: 0 .3em; border-radius: 999px; background: var(--ruim); color: #fff; font-size: .75rem; text-align: center; font-family: var(--corpo, inherit); }
+.form-amigo { display: grid; gap: .35rem; margin-bottom: .5rem; }
+.form-amigo .linha-form { display: flex; gap: .5rem; flex-wrap: wrap; }
+.form-amigo input { flex: 1; min-width: 0; margin: 0; }
+.form-amigo .erro { min-height: 1.2em; margin: 0; }
+.amigo .amigo-info { min-width: 0; }
+.online { color: var(--bom); font-size: .85rem; }

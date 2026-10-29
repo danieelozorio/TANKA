@@ -146,7 +146,59 @@ Tanka.contas = (function () {
     return lista.slice(0, 100);
   }
 
+  // Amigos locais: entre personagens das contas deste navegador.
+  var CHAVE_AMIZADES = 'tanka.amizades';
+  function lerAmizades() { try { return JSON.parse(localStorage.getItem(CHAVE_AMIZADES)) || []; } catch (e) { return []; } }
+  function gravarAmizades(l) { try { localStorage.setItem(CHAVE_AMIZADES, JSON.stringify(l)); } catch (e) { /* sem armazenamento */ } }
+  function todosPersonagens() {
+    var contas = ler(), lista = [];
+    Object.keys(contas).forEach(function (k) {
+      contas[k].personagens.forEach(function (p) { lista.push({ conta: k, p: p }); });
+    });
+    return lista;
+  }
+  var amigos = {
+    listar: async function (meu) {
+      var todos = todosPersonagens();
+      return lerAmizades().filter(function (a) { return a.de === meu || a.para === meu; }).map(function (a) {
+        var outroId = a.de === meu ? a.para : a.de;
+        var o = (todos.find(function (x) { return x.p.id === outroId; }) || {}).p;
+        if (!o) return null;
+        return { pedido: a.id, situacao: a.status === 'aceita' ? 'amigo' : a.de === meu ? 'enviado' : 'recebido',
+          id: o.id, nome: o.nome, classe: o.classe, raca: o.raca, nivel: o.nivel, poder: o.poder || 0, visto_em: null };
+      }).filter(Boolean);
+    },
+    pedir: async function (meu, nome) {
+      var todos = todosPersonagens();
+      var eu = todos.find(function (x) { return x.p.id === meu; });
+      var alvo = todos.find(function (x) { return x.p.nome.toLowerCase() === nome.trim().toLowerCase(); });
+      if (!alvo) throw new Error('Nenhum personagem com esse nome.');
+      if (eu && alvo.conta === eu.conta) throw new Error('Esse personagem é seu.');
+      var l = lerAmizades();
+      var ex = l.find(function (a) { return (a.de === meu && a.para === alvo.p.id) || (a.de === alvo.p.id && a.para === meu); });
+      if (ex) {
+        if (ex.status === 'aceita') throw new Error('Vocês já são amigos.');
+        if (ex.de === meu) throw new Error('Pedido já enviado. Espere a resposta.');
+        ex.status = 'aceita'; gravarAmizades(l); return 'aceita';
+      }
+      l.push({ id: Date.now(), de: meu, para: alvo.p.id, status: 'pendente' });
+      gravarAmizades(l);
+      return 'enviado';
+    },
+    responder: async function (meu, pedido, aceitar) {
+      var l = lerAmizades();
+      var a = l.find(function (x) { return x.id === pedido && x.para === meu; });
+      if (!a) return;
+      if (aceitar) a.status = 'aceita'; else l.splice(l.indexOf(a), 1);
+      gravarAmizades(l);
+    },
+    remover: async function (meu, pedido) {
+      gravarAmizades(lerAmizades().filter(function (x) { return !(x.id === pedido && (x.de === meu || x.para === meu)); }));
+    },
+  };
+
   return {
+    amigos: amigos,
     ranking: ranking,
     chat: chat,
     iniciar: async function () { return contaAtual(); },

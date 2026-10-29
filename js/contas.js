@@ -213,7 +213,16 @@ Tanka.contas = (function () {
     return rpc('ranking', { tipo: tipo });
   }
 
+  // ---------- Amigos (sempre do ponto de vista do personagem "meu") ----------
+  var amigos = {
+    listar: async function (meu) { await logado(); return rpc('amigos_listar', { meu: meu }); },
+    pedir: async function (meu, nome) { await logado(); return rpc('amigo_pedir', { meu: meu, nome_amigo: nome }); },
+    responder: async function (meu, pedido, aceitar) { await logado(); await rpc('amigo_responder', { meu: meu, pedido: pedido, aceitar: aceitar }); },
+    remover: async function (meu, pedido) { await logado(); await rpc('amigo_remover', { meu: meu, pedido: pedido }); },
+  };
+
   return {
+    amigos: amigos,
     ranking: ranking,
     chat: chat,
     iniciar: iniciar,

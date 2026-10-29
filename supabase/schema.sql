@@ -182,4 +182,91 @@ $$;
 revoke execute on function public.ranking(text) from public, anon;
 grant execute on function public.ranking(text) to authenticated;
 
+-- ---------- Amigos ----------
+-- Amizade entre personagens. A tabela não é lida direto: tudo passa pelas funções abaixo,
+-- que conferem se o personagem "meu" é mesmo da conta logada.
+create table if not exists public.amizades (
+  id bigint generated always as identity primary key,
+  de text not null references public.personagens (id) on delete cascade,
+  para text not null references public.personagens (id) on delete cascade,
+  status text not null default 'pendente' check (status in ('pendente', 'aceita')),
+  criado_em timestamptz not null default now(),
+  unique (de, para)
+);
+create index if not exists amizades_para on public.amizades (para);
+alter table public.amizades enable row level security;
+
+create or replace function public.conferir_dono(meu text) returns void
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.personagens where id = meu and conta_id = auth.uid()) then
+    raise exception 'Personagem inválido.';
+  end if;
+end $$;
+
+-- Amigos, pedidos recebidos e enviados. visto_em = último salvamento do personagem (online se recente).
+create or replace function public.amigos_listar(meu text)
+returns table (pedido bigint, situacao text, id text, nome text, classe text, raca text, nivel int, poder bigint, visto_em timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  return query
+  select a.id,
+         case when a.status = 'aceita' then 'amigo' when a.de = meu then 'enviado' else 'recebido' end,
+         p.id, p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
+         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'poder')::bigint, 0), p.atualizado_em
+  from public.amizades a
+  join public.personagens p on p.id = case when a.de = meu then a.para else a.de end
+  where a.de = meu or a.para = meu
+  order by p.atualizado_em desc;
+end $$;
+
+-- Pede amizade pelo nome. Se o outro já tinha pedido, vira amizade na hora.
+create or replace function public.amigo_pedir(meu text, nome_amigo text) returns text
+language plpgsql security definer set search_path = public as $$
+declare alvo public.personagens; existente public.amizades;
+begin
+  perform public.conferir_dono(meu);
+  select * into alvo from public.personagens where lower(nome) = lower(btrim(nome_amigo));
+  if alvo.id is null then raise exception 'Nenhum personagem com esse nome.'; end if;
+  if alvo.conta_id = auth.uid() then raise exception 'Esse personagem é seu.'; end if;
+  select * into existente from public.amizades where (de = meu and para = alvo.id) or (de = alvo.id and para = meu);
+  if existente.id is not null then
+    if existente.status = 'aceita' then raise exception 'Vocês já são amigos.'; end if;
+    if existente.de = meu then raise exception 'Pedido já enviado. Espere a resposta.'; end if;
+    update public.amizades set status = 'aceita' where id = existente.id;
+    return 'aceita';
+  end if;
+  if (select count(*) from public.amizades where de = meu or para = meu) >= 50 then
+    raise exception 'Limite de 50 amigos e pedidos.';
+  end if;
+  insert into public.amizades (de, para) values (meu, alvo.id);
+  return 'enviado';
+end $$;
+
+-- Aceitar ou recusar um pedido recebido.
+create or replace function public.amigo_responder(meu text, pedido bigint, aceitar boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if aceitar then
+    update public.amizades set status = 'aceita' where id = pedido and para = meu and status = 'pendente';
+  else
+    delete from public.amizades where id = pedido and para = meu and status = 'pendente';
+  end if;
+end $$;
+
+-- Remove amigo, cancela pedido enviado ou recusa recebido.
+create or replace function public.amigo_remover(meu text, pedido bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  delete from public.amizades where id = pedido and (de = meu or para = meu);
+end $$;
+
+revoke execute on function public.conferir_dono(text), public.amigos_listar(text), public.amigo_pedir(text, text),
+  public.amigo_responder(text, bigint, boolean), public.amigo_remover(text, bigint) from public, anon;
+grant execute on function public.amigos_listar(text), public.amigo_pedir(text, text),
+  public.amigo_responder(text, bigint, boolean), public.amigo_remover(text, bigint) to authenticated;
+
 notify pgrst, 'reload schema';
