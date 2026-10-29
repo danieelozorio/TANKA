@@ -648,7 +648,9 @@ Tanka.regras = (function () {
 
   // ---------- Ferramentas de administrador (para testes) ----------
   var admin = {
-    ouro: function (p, quantidade) { p.ouro += quantidade; },
+    // Quantidades negativas tiram (sem ficar abaixo de 0).
+    ouro: function (p, quantidade) { p.ouro = Math.max(0, p.ouro + quantidade); },
+    zerarOuro: function (p) { p.ouro = 0; },
     subirNivel: function (p, niveis) {
       for (var i = 0; i < niveis && p.nivel < D.NIVEL_MAXIMO; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
     },
@@ -660,8 +662,34 @@ Tanka.regras = (function () {
         p.inventario.push(item);
       });
     },
+    // Desce de level: zera a exp e devolve todos os pontos para distribuir de novo.
+    baixarNivel: function (p, niveis) {
+      p.nivel = Math.max(1, p.nivel - niveis);
+      p.exp = 0;
+      admin.resetarAtributos(p);
+    },
+    resetarAtributos: function (p) {
+      var hpAntes = status(p).hpMax;
+      p.atributos = Object.assign({}, p.atributosIniciais);
+      p.pontosLivres = (p.nivel - 1) * D.PONTOS_POR_NIVEL;
+      ajustarVida(p, hpAntes);
+      p.hpAtual = Math.min(p.hpAtual, status(p).hpMax);
+    },
+    // % da exp do level atual (negativo tira). Somar pode subir de level.
+    exp: function (p, pct) {
+      if (p.nivel >= D.NIVEL_MAXIMO) return;
+      var qtd = Math.round(expNecessaria(p.nivel) * pct / 100);
+      if (qtd >= 0) ganharExp(p, qtd); else p.exp = Math.max(0, p.exp + qtd);
+    },
     pergaminhos: function (p, quantidade) {
-      Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] += quantidade; });
+      Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] = Math.max(0, p.pergaminhos[k] + quantidade); });
+    },
+    // Deixa a vida em X% da máxima (0 = sem vida).
+    vida: function (p, pct) { p.hpAtual = Math.floor(status(p).hpMax * pct / 100); },
+    zerarPocoes: function (p) { p.pocoes = 0; },
+    // Tira da mochila tudo que não está equipado.
+    esvaziarMochila: function (p) {
+      p.inventario = p.inventario.filter(function (i) { return slotDoItem(p, i.id); });
     },
     // Conjunto completo de uma raridade: arma, 4 armaduras da classe, colar e 2 anéis.
     recarregarPocoes: function (p) { p.pocoes = D.VIDA.pocoesPorDia; },

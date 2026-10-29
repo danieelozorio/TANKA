@@ -481,3 +481,4 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .ranking td.pos { width: 2.5em; text-align: center; font-family: var(--titulo); color: var(--ouro-claro); }
 .ranking tr.meu td { background: rgba(201, 169, 107, .12); }
 @media (max-width: 600px) { .ranking { font-size: .85rem; } .ranking td, .ranking th { padding: .35rem .25rem; } }
+.btn.admin-menos { border-color: var(--ruim); color: #f0b4ad; background: transparent; }

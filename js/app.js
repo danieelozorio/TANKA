@@ -574,9 +574,9 @@
 
   function abaAdmin() {
     if (!ehAdmin()) return '';
-    function botoes(op, valores, rotulo) {
+    function botoes(op, valores, rotulo, estilo) {
       return valores.map(function (v) {
-        return '<button class="btn" data-acao="admin" data-op="' + op + '" data-valor="' + v + '">' + rotulo(v) + '</button>';
+        return '<button class="btn' + (estilo ? ' admin-' + estilo : '') + '" data-acao="admin" data-op="' + op + '" data-valor="' + v + '">' + rotulo(v) + '</button>';
       }).join('');
     }
     function grupo(titulo, descricao, conteudo) {
@@ -585,17 +585,33 @@
     }
     return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
       + '<div class="itens">'
-      + grupo('Ouro', 'Soma ouro ao personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); }))
-      + grupo('Level', 'Sobe de level com os pontos de atributo.', botoes('nivel', [1, 5, 10], function (v) { return '+' + v; }))
+      + grupo('Ouro', 'Soma ou tira ouro do personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
+        + botoes('ouro', [-1000, -10000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
+        + botoes('zerar-ouro', [0], function () { return 'Zerar'; }, 'menos'))
+      + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo.',
+        botoes('nivel', [1, 5, 10], function (v) { return '+' + v; })
+        + botoes('baixar-nivel', [1, 5], function (v) { return '−' + v; }, 'menos')
+        + botoes('baixar-nivel', [99], function () { return 'Voltar ao 1'; }, 'menos'))
+      + grupo('Experiência', '% da exp do level atual.', botoes('exp', [10, 50], function (v) { return '+' + v + '%'; })
+        + botoes('exp', [-10, -50, -100], function (v) { return v === -100 ? 'Zerar' : '−' + (-v) + '%'; }, 'menos'))
+      + grupo('Atributos', 'Volta os atributos aos da raça e classe e devolve todos os pontos.', botoes('resetar-atributos', [0], function () { return 'Resetar pontos'; }, 'menos'))
       + grupo('Armas', 'Uma arma de cada raridade da classe.', botoes('armas', [0, 7, 10], function (v) { return 'Todas +' + v; }))
       + grupo('Conjunto completo', 'Arma, 4 armaduras da classe, colar e 2 anéis.', R.RARIDADES.map(function (k) {
         return '<button class="btn" data-acao="admin" data-op="conjunto" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
       }).join(''))
-      + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; }))
+      + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; })
+        + botoes('pergaminhos', [-10], function (v) { return v + ' de cada'; }, 'menos')
+        + botoes('pergaminhos', [-1000000], function () { return 'Zerar'; }, 'menos'))
+      + grupo('Mochila', 'Apaga todos os itens que não estão equipados.', estado.adminConfirmar === 'mochila'
+        ? '<button class="btn perigo" data-acao="admin" data-op="esvaziar-mochila" data-valor="0">Confirmar: apagar tudo</button>'
+          + '<button class="btn secundario" data-acao="admin" data-op="cancelar" data-valor="0">Cancelar</button>'
+        : botoes('pedir-esvaziar', [0], function () { return 'Esvaziar mochila'; }, 'menos'))
       + grupo('Vida e poções', 'Cura, devolve as poções do dia ou simula o reset da meia-noite.',
         '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Curar tudo</button>'
         + '<button class="btn" data-acao="admin" data-op="pocoes" data-valor="0">Recarregar poções</button>'
-        + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>')
+        + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>'
+        + botoes('vida', [50, 10, 0], function (v) { return v ? 'Vida em ' + v + '%' : 'Zerar vida'; }, 'menos')
+        + botoes('zerar-pocoes', [0], function () { return 'Zerar poções'; }, 'menos'))
       + '</div>';
   }
 
@@ -989,10 +1005,24 @@
         else if (op === 'curar') R.descansar(p, C.agora());
         else if (op === 'pocoes') R.admin.recarregarPocoes(p);
         else if (op === 'reset') R.admin.resetDiario(p, C.agora());
+        else if (op === 'zerar-ouro') R.admin.zerarOuro(p);
+        else if (op === 'baixar-nivel') R.admin.baixarNivel(p, v);
+        else if (op === 'exp') R.admin.exp(p, v);
+        else if (op === 'resetar-atributos') R.admin.resetarAtributos(p);
+        else if (op === 'vida') { R.admin.vida(p, v); p.vidaEm = C.agora(); }
+        else if (op === 'zerar-pocoes') R.admin.zerarPocoes(p);
+        else if (op === 'esvaziar-mochila') R.admin.esvaziarMochila(p);
+        if (op === 'pedir-esvaziar') { estado.adminConfirmar = 'mochila'; telaJogo(); break; }
+        estado.adminConfirmar = null;
+        if (op === 'cancelar') { telaJogo(); break; }
         salvar();
-        avisar({ ouro: '+' + Number(v).toLocaleString('pt-BR') + ' de ouro.', nivel: 'Agora no level ' + p.nivel + '.',
-          armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.', pergaminhos: '+' + v + ' pergaminhos de cada raridade.',
-          curar: 'Vida recuperada.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: vida cheia e poções do dia.' }[op]);
+        avisar({ ouro: (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR') + ' de ouro. Agora: ' + p.ouro.toLocaleString('pt-BR') + '.',
+          'zerar-ouro': 'Ouro zerado.', nivel: 'Agora no level ' + p.nivel + '.', 'baixar-nivel': 'Agora no level ' + p.nivel + '. Distribua os pontos de novo.',
+          exp: 'Exp agora: ' + p.exp.toLocaleString('pt-BR') + ' (level ' + p.nivel + ').', 'resetar-atributos': 'Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir.',
+          armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
+          pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',
+          curar: 'Vida recuperada.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: vida cheia e poções do dia.',
+          vida: 'Vida em ' + p.hpAtual + '.', 'zerar-pocoes': 'Poções zeradas.', 'esvaziar-mochila': 'Mochila esvaziada.' }[op]);
         telaJogo();
         break;
       }

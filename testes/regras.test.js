@@ -650,3 +650,27 @@ teste('poder: cresce com level e equipamento', () => {
   p.inventario.slice(1).forEach((i) => R.equipar(p, i.id));
   assert.ok(R.poder(p) > nivel10);
 });
+
+teste('admin: tirar ouro, baixar level, exp, pergaminhos, vida e mochila', () => {
+  const p = R.criarPersonagem('Adm', 'masculino', 'humano', 'cavaleiro');
+  R.admin.ouro(p, 500); R.admin.ouro(p, -1000);
+  assert.strictEqual(p.ouro, 0);
+  R.admin.subirNivel(p, 9);
+  R.distribuirPonto(p, 'for');
+  R.admin.baixarNivel(p, 5);
+  assert.strictEqual(p.nivel, 5);
+  assert.strictEqual(p.exp, 0);
+  assert.strictEqual(p.pontosLivres, 12);
+  assert.strictEqual(p.atributos.for, p.atributosIniciais.for);
+  assert.ok(p.hpAtual <= R.status(p).hpMax);
+  R.admin.baixarNivel(p, 99);
+  assert.strictEqual(p.nivel, 1);
+  R.admin.exp(p, 50); assert.strictEqual(p.exp, 5);
+  R.admin.exp(p, -100); assert.strictEqual(p.exp, 0);
+  R.admin.pergaminhos(p, 3); R.admin.pergaminhos(p, -10);
+  assert.strictEqual(p.pergaminhos.rara, 0);
+  R.admin.vida(p, 0); assert.strictEqual(p.hpAtual, 0);
+  R.admin.conjunto(p, 'rara');
+  R.admin.esvaziarMochila(p);
+  assert.strictEqual(p.inventario.length, 1); // só a arma equipada
+});
