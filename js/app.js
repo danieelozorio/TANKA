@@ -405,8 +405,8 @@
   function fichaItemHtml(item) {
     var p = estado.personagem;
     if (!item) {
-      return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Clique para equipar ou desequipar.'
-        : 'Toque num item para ver a ficha e equipar.') + '</p>';
+      return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam.'
+        : 'Toque num item para ampliar e comparar. Dois toques equipam ou desequipam.') + '</p>';
     }
     var slot = R.slotDoItem(p, item.id);
     var alvo = null;
@@ -447,6 +447,64 @@
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>'
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + '</p>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
+  }
+
+  // ---------- Zoom do item: o item ampliado, lado a lado com o equipado no mesmo espaço ----------
+  function itemParaComparar(p, item) {
+    if (R.slotDoItem(p, item.id)) return null;
+    if (item.tipo === 'anel') return R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2');
+    return R.itemNoSlot(p, item.tipo);
+  }
+
+  function diferenca(v, outro, sufixo) {
+    var d = Math.round((v - outro) * 10) / 10;
+    return d ? ' <span class="' + (d > 0 ? 'mais' : 'menos') + '">(' + (d > 0 ? '+' : '') + fmt(d) + (sufixo || '') + ')</span>' : '';
+  }
+
+  // Carta grande de um item; `outro` (opcional) é o item com que ele é comparado.
+  function cartaZoom(item, outro, rotulo) {
+    var linhas = [];
+    if (item.tipo === 'arma') {
+      var d = R.danoArma(item), m = (d[0] + d[1]) / 2;
+      var mo = outro ? (R.danoArma(outro)[0] + R.danoArma(outro)[1]) / 2 : null;
+      linhas.push('<li><span>Dano</span><strong>' + dano(d) + '</strong></li>');
+      linhas.push('<li><span>Dano médio</span><strong>' + fmt(m) + (outro ? diferenca(m, mo) : '') + '</strong></li>');
+    } else {
+      var b = R.bonusItem(item), bo = outro ? R.bonusItem(outro) : {};
+      Object.keys(D.bonus).filter(function (k) { return b[k] || bo[k]; }).forEach(function (k) {
+        linhas.push('<li' + (b[k] ? '' : ' class="suave"') + '><span>' + D.bonus[k] + '</span><strong>+' + (b[k] || 0) + (outro ? diferenca(b[k] || 0, bo[k] || 0) : '') + '</strong></li>');
+      });
+    }
+    linhas.push('<li><span>Encantamento</span><strong>+' + (item.encanto || 0) + '</strong></li>');
+    linhas.push('<li><span>Venda</span><strong class="cor-ouro">' + R.precoVenda(item).toLocaleString('pt-BR') + ' de ouro</strong></li>');
+    return '<div class="zoom-carta"><div class="zoom-rotulo">' + rotulo + '</div>'
+      + '<div class="icone-zoom borda-' + item.raridade + aura(item) + '">' + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</div>'
+      + '<div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
+      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span></div>'
+      + '<ul class="zoom-atributos">' + linhas.join('') + '</ul></div>';
+  }
+
+  function zoomHtml() {
+    var p = estado.personagem;
+    var item = estado.zoom && p.inventario.find(function (i) { return i.id === estado.zoom; });
+    if (!item) return '';
+    var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
+    var acoes = '';
+    if (slot) {
+      acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
+    } else {
+      acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
+          : '<span class="menos">Não é da sua classe</span>')
+        + (estado.vendaPendente === item.id
+          ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
+          : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
+    }
+    return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
+      + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
+      + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
+      + cartaZoom(item, outro, slot ? 'Equipado' : 'Este item')
+      + (outro ? cartaZoom(outro, null, 'Equipado agora') : '')
+      + '</div><div class="botoes">' + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
   }
 
   function abaPersonagem() {
@@ -816,7 +874,8 @@
     }
     var trocar = estado.batalha || estado.luta ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
-      + '<section class="caixa">' + painel + '</section></div></div>' + rodape();
+      + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
+      + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '');
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
     chatVisivel(true);
@@ -1057,25 +1116,25 @@
         if (estado.aba === 'masmorra') carregarGrupo();
         break;
       case 'item': {
-        // Toque: mostra a ficha do item. Mouse: clique equipa ou desequipa.
+        // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
         var alvoId = el.dataset.id;
-        estado.vendaPendente = null;
-        estado.itemFoco = alvoId;
-        if (temMouse) {
-          var slotAtual = R.slotDoItem(p, alvoId);
-          if (slotAtual) {
-            if (!R.desequipar(p, slotAtual)) avisar('Mochila cheia! Venda algo antes de desequipar.');
-          } else {
-            var itemClicado = p.inventario.find(function (i) { return i.id === alvoId; });
-            if (!R.equipar(p, alvoId)) avisar(itemClicado && !R.podeUsar(p, itemClicado) ? 'Esse item não é da sua classe.' : 'Não foi possível equipar.');
-          }
-          salvar();
-        }
-        telaJogo();
+        clearTimeout(estado.timerZoom);
+        estado.timerZoom = setTimeout(function () {
+          estado.vendaPendente = null;
+          estado.itemFoco = alvoId;
+          estado.zoom = alvoId;
+          telaJogo();
+        }, 260);
         break;
       }
+      case 'zoom-fechar':
+        if (el.classList.contains('zoom-fundo') && e.target !== el) break;   // clique dentro da janela
+        estado.zoom = null;
+        estado.vendaPendente = null;
+        telaJogo();
+        break;
       case 'desequipar':
-        if (R.desequipar(p, el.dataset.slot)) { salvar(); telaJogo(); }
+        if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
         break;
       case 'grupo-convidar':
@@ -1178,7 +1237,7 @@
         }
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; salvar(); telaJogo(); }
+        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; salvar(); telaJogo(); }
         break;
       case 'pedir-venda':
         estado.vendaPendente = el.dataset.id;
@@ -1191,6 +1250,7 @@
           salvar();
           avisar('Você vendeu ' + R.nomeItem(item) + ' por ' + valor + ' de ouro.');
           estado.itemFoco = null;
+          estado.zoom = null;
         }
         estado.vendaPendente = null;
         telaJogo();
@@ -1320,6 +1380,28 @@
         telaJogo();
         break;
     }
+  });
+
+  // Dois cliques (ou dois toques) num item: equipa ou desequipa direto.
+  app.addEventListener('dblclick', function (e) {
+    var el = e.target.closest('[data-acao="item"]');
+    var p = estado.personagem;
+    if (!el || !p) return;
+    clearTimeout(estado.timerZoom);
+    var id = el.dataset.id, slot = R.slotDoItem(p, id);
+    estado.zoom = null;
+    estado.vendaPendente = null;
+    if (slot) {
+      if (!R.desequipar(p, slot)) avisar('Mochila cheia! Venda algo antes de desequipar.');
+    } else {
+      var it = p.inventario.find(function (i) { return i.id === id; });
+      if (!R.equipar(p, id)) avisar(it && !R.podeUsar(p, it) ? 'Esse item não é da sua classe.' : 'Não foi possível equipar.');
+    }
+    salvar();
+    telaJogo();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && estado.zoom) { estado.zoom = null; telaJogo(); }
   });
 
   // Mouse sobre um item: mostra a ficha dele depois de um instante (para não trocar ao só passar por cima).
