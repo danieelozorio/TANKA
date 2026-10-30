@@ -179,7 +179,7 @@ Tanka.dados = {
     chanceMaxima: 95,          // teto depois do bônus de Sorte (+1% por ponto)
     voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
     danoPorNivel: { comum: 1, rara: 2, epica: 3, lendaria: 5 },
-    precoPergaminho: { comum: 5, rara: 50, epica: 500, lendaria: 5000 },
+    precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
     bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'sor' },
@@ -270,7 +270,7 @@ Tanka.dados = {
       id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1,
       crescimento: { ataque: 2 },
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
-      base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 20],
+      base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
       monstros: [
         { id: 'lobo', nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
           drops: [{ raridade: 'comum', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
@@ -279,13 +279,13 @@ Tanka.dados = {
         { id: 'urso', nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
           dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 5, raridade: 'comum' } },
       ],
-      chefe: { id: 'velgrath', nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
+      chefe: { id: 'velgrath', ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
         dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7,
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
-      base: { hp: 70, ataque: 8, exp: 10 }, ouro: [30, 60, 120],
+      base: { hp: 70, ataque: 8, exp: 10 }, ouro: [12, 20, 30],
       monstros: [
         { id: 'sapo', nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.',
           dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 10, raridade: 'comum' } },
@@ -300,7 +300,7 @@ Tanka.dados = {
     {
       id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5,
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
-      base: { hp: 140, ataque: 15, exp: 30 }, ouro: [100, 200, 400],
+      base: { hp: 140, ataque: 15, exp: 30 }, ouro: [40, 60, 80],
       monstros: [
         { id: 'esqueleto', nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.',
           drops: [{ raridade: 'rara', chance: 8 }], dropsArmadura: [{ raridade: 'rara', chance: 8 }] },
@@ -309,13 +309,13 @@ Tanka.dados = {
         { id: 'gargula', nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.',
           drops: [{ raridade: 'rara', chance: 15 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
       ],
-      chefe: { id: 'varnok', nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
+      chefe: { id: 'varnok', ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
         dropItem: [{ raridade: 'rara', chance: 25 }], pergaminhos: { raridade: 'rara', qtd: [2, 5] } },
     },
     {
       id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3,
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
-      base: { hp: 200, ataque: 22, exp: 90 }, ouro: [300, 600, 1200],
+      base: { hp: 200, ataque: 22, exp: 90 }, ouro: [100, 150, 200],
       monstros: [
         { id: 'golem', nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.',
           drops: [{ raridade: 'epica', chance: 5 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
@@ -506,7 +506,8 @@ Tanka.dados = {
       nome: c.nome, descricao: c.descricao, area: area.id, indiceArea: indiceArea, chefe: true,
       hp: Math.round(m3.hp * C.vida), ataque: [Math.round(m3.ataque[0] * C.ataque), Math.round(m3.ataque[1] * C.ataque)],
       velocidade: Math.round(vel * C.velocidade), defesa: Math.round(m3.defesa * C.defesa), defesaMagica: Math.round(m3.defesa * C.defesa),
-      exp: m3.exp * C.exp, ouro: m3.ouro * C.ouro,
+      // `ouro` e `exp` no chefe da área substituem a conta (5x o 3º monstro).
+      exp: c.exp != null ? c.exp : m3.exp * C.exp, ouro: c.ouro != null ? c.ouro : m3.ouro * C.ouro,
       drops: [], dropsArmadura: [], dropsItem: [],
       // Chefe com `dropItem`: chance de 1 item de qualquer tipo + pergaminhos fixos.
       // Sem `dropItem`: sempre dropa 1 arma ou armadura pela tabela `drops`.

@@ -213,8 +213,13 @@ teste('raridades: faixas de dano e preços de compra e venda', () => {
   for (const c of Object.keys(D.classes)) for (const r of Object.keys(D.raridades)) assert.strictEqual(D.armas[c][r].length, 8, c + ' ' + r);
 });
 
-teste('ouro dos monstros: lobo 2, cobra 5, urso 20', () => {
-  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map((m) => D.monstros[m].ouro), [2, 5, 20]);
+teste('ouro dos monstros e dos chefes com valor próprio', () => {
+  const ouro = (ids) => ids.map((m) => D.monstros[m].ouro);
+  assert.deepStrictEqual(ouro(['lobo', 'cobra', 'urso', 'velgrath']), [2, 5, 8, 20]);
+  assert.deepStrictEqual(ouro(['sapo', 'aranha', 'troll']), [12, 20, 30]);
+  assert.deepStrictEqual(ouro(['esqueleto', 'goblin', 'gargula', 'varnok']), [40, 60, 80, 200]);
+  assert.deepStrictEqual(ouro(['golem', 'cultista', 'espectro']), [100, 150, 200]);
+  assert.strictEqual(D.monstros.velgrath.exp, 40);
 });
 
 teste('vender: dá ouro e remove o item; arma equipada não pode', () => {
@@ -320,8 +325,8 @@ teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
 
 teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
-  p.ouro = 60;
-  assert.ok(R.comprarPergaminho(p, 'rara')); assert.strictEqual(p.ouro, 10);
+  p.ouro = 1050;
+  assert.ok(R.comprarPergaminho(p, 'rara')); assert.strictEqual(p.ouro, 50);
   assert.ok(!R.comprarPergaminho(p, 'rara'));
   p.atributos.sor = 0;
   let n = 0; const N = 100000;
@@ -467,7 +472,8 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     const c = D.monstros[a.chefe.id];
     assert.ok(c.chefe);
     assert.strictEqual(c.hp, Math.round(m3.hp * 1.5)); assert.strictEqual(c.ataque[0], Math.round(m3.ataque[0] * 1.2));
-    assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, m3.exp * 5); assert.strictEqual(c.ouro, m3.ouro * 5);
+    assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
+    assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
   assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [70, 280, 2200]);
   assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [8, 10, 13]);
