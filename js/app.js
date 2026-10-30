@@ -52,7 +52,7 @@
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
   function brilho(item) {
     var e = item.encanto || 0;
-    return e >= 10 ? 'dourado' : e >= 7 ? 'roxo' : e >= 4 ? 'azul' : '';
+    return e >= 10 ? 'dourado' : e >= 7 ? 'roxo' : e >= 4 ? 'azul' : e >= 1 ? 'prata' : '';
   }
 
   // Nome do item com cor da raridade e brilho do encantamento.

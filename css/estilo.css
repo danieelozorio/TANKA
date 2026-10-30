@@ -324,18 +324,23 @@ table.atributos th { color: var(--suave); font-weight: 500; }
   width: 100%; height: 100%; object-fit: contain; border-radius: 3px; display: block;
 }
 button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-claro); outline-offset: 1px; }
-.borda-comum { border-color: #8a8f98; }
-.borda-rara { border-color: var(--rara); }
-.borda-epica { border-color: var(--epica); }
-.borda-lendaria { border-color: var(--lendaria); }
+/* Fundo do quadro = cor da raridade; borda = cor do encantamento (sem encanto: escura). */
+.borda-comum, .borda-rara, .borda-epica, .borda-lendaria { border-color: #07090c; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .14), inset 0 -5px 0 rgba(0, 0, 0, .28); }
+.borda-comum { background: linear-gradient(135deg, #6f685e, #3b3631); }
+.borda-rara { background: linear-gradient(135deg, #2f6fbf, #163a73); }
+.borda-epica { background: linear-gradient(135deg, #7b3fbf, #3f1a6e); }
+.borda-lendaria { background: linear-gradient(135deg, #c9801c, #7a3a0c); }
+/* O fundo escuro das artes some e deixa aparecer a cor da raridade. */
+.borda-comum img, .borda-rara img, .borda-epica img, .borda-lendaria img { mix-blend-mode: lighten; }
 .nivel-encanto {
   position: absolute; top: 1px; right: 3px; font-size: .72rem; font-weight: 700; line-height: 1;
   color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
 }
-/* Aura do encantamento: +4 azul, +7 roxo, +10 dourado pulsando */
-.aura-azul { box-shadow: 0 0 10px 2px rgba(90, 170, 255, .75); }
-.aura-roxo { box-shadow: 0 0 12px 3px rgba(190, 110, 255, .85); }
-.aura-dourado { box-shadow: 0 0 14px 4px rgba(255, 210, 80, .9); animation: auraDourada 1.6s ease-in-out infinite; }
+/* Borda e aura do encantamento: +1 a +3 prata, +4 azul, +7 roxo, +10 dourado pulsando */
+.aura-prata { border-color: #d7dde6; }
+.aura-azul { border-color: #5aaaff; box-shadow: 0 0 10px 2px rgba(90, 170, 255, .75); }
+.aura-roxo { border-color: #be6eff; box-shadow: 0 0 12px 3px rgba(190, 110, 255, .85); }
+.aura-dourado { border-color: #ffd250; box-shadow: 0 0 14px 4px rgba(255, 210, 80, .9); animation: auraDourada 1.6s ease-in-out infinite; }
 @keyframes auraDourada { 50% { box-shadow: 0 0 22px 7px rgba(255, 220, 100, 1); } }
 @media (prefers-reduced-motion: reduce) { .aura-dourado { animation: none; } }
 
