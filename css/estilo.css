@@ -906,3 +906,6 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .dica:hover .dica-balao, .dica:focus .dica-balao, .dica:focus-within .dica-balao { display: block; }
 .dica:hover .dica-i, .dica:focus .dica-i { border-color: var(--ouro-claro); color: var(--ouro-claro); }
 .ficha .status dt[title] { cursor: help; }
+.recomeco-ficha { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .6rem; padding: .45rem .6rem;
+  border: 1px dashed rgba(242, 201, 76, .5); border-radius: 8px; font-size: .9rem; }
+.icone-recomeco { display: grid; place-items: center; font-size: 2rem; }

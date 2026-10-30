@@ -400,7 +400,14 @@
     }).join('');
     if (usados) {
       atrs += '<div class="atr-confirmar"><button class="btn" data-acao="pontos-confirmar">Confirmar ' + usados + ' ponto(s)</button>'
-        + '<button class="btn secundario" data-acao="pontos-desfazer">Desfazer</button></div>';
+        + '<button class="btn secundario" data-acao="pontos-desfazer">Cancelar</button></div>'
+        + '<p class="suave pequeno">Depois de confirmar não dá para voltar atrás: só com o ' + D.RECOMECO.nome + ' (Mercado).</p>';
+    }
+    if (p.recomecos && !emBatalha) {
+      atrs += '<div class="recomeco-ficha"><span>📜 ' + D.RECOMECO.nome + ': <strong>' + p.recomecos + '</strong></span>'
+        + (estado.recomecoPendente
+          ? '<button class="btn perigo btn-pequeno" data-acao="recomeco-usar">Confirmar: resetar</button>'
+          : '<button class="btn secundario btn-pequeno" data-acao="recomeco-pedir">Usar</button>') + '</div>';
     }
     var magico = s.tipoDano === 'magico';
     // Mostra "atual → novo" quando há pontos para confirmar.
@@ -794,6 +801,16 @@
       + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '"' + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
+  function linhaRecomeco(p) {
+    var preco = D.RECOMECO.precoReputacao, falta = preco - (p.reputacao || 0);
+    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
+      + '<div class="item-texto"><div><span class="raridade-lendaria">' + D.RECOMECO.nome + '</span></div>'
+      + '<div class="suave">Devolve todos os pontos de atributo para você distribuir de novo · '
+      + preco.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecos || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + '<button class="btn" data-acao="recomeco-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+  }
+
   function abaMercado() {
     var p = estado.personagem;
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
@@ -808,6 +825,7 @@
       + R.TIPOS_ARMADURA.map(function (tipo) {
         return linhaMercado({ tipo: tipo, classe: R.TIPOS_JOIA.indexOf(tipo) >= 0 ? null : p.classe, raridade: estado.mercadoRaridade, encanto: 0 });
       }).join('') + '</div>'
+      + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + '</div>'
       + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
       + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
       + D.SKINS_DADO.map(function (k) {
@@ -1630,6 +1648,24 @@
         var pm = pontosPendentes(), km = el.dataset.atributo;
         if (pm[km]) pm[km] -= 1;
         atualizarFicha();
+        break;
+      }
+      case 'recomeco-pedir':
+        estado.recomecoPendente = true;
+        atualizarFicha();
+        break;
+      case 'recomeco-usar': {
+        var ru = R.usarRecomeco(p);
+        estado.recomecoPendente = false;
+        estado.pontosPend = null;
+        if (ru === true) { salvar(); telaJogo(); avisar('Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir!', 'nivel'); }
+        else { avisar(ru); atualizarFicha(); }
+        break;
+      }
+      case 'recomeco-comprar': {
+        var rc = R.comprarRecomeco(p);
+        if (rc === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
+        else avisar(rc);
         break;
       }
       case 'pontos-desfazer':

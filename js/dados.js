@@ -448,6 +448,9 @@ Tanka.dados = {
 
   // Skins do D20 da Arena, vendidas no Mercado por ouro. O vermelho vem com todo personagem.
   // As cores de cada skin ficam em css/estilo.css (.d20g.skin-<id>).
+  // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
+  RECOMECO: { nome: 'Pergaminho do Recomeço', precoReputacao: 500 },
+
   SKINS_DADO: [
     { id: 'vermelho', nome: 'Rubi', preco: 0 },
     { id: 'azul', nome: 'Safira', preco: 500 },

@@ -824,3 +824,18 @@ teste('mochila: trava e venda em lote', () => {
   R.travarItem(p, 'y');
   assert.ok(R.vender(p, 'y'));
 });
+
+teste('Pergaminho do Recomeço: compra com 500 de reputação e devolve os pontos', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 4);
+  const livres = p.pontosLivres;
+  R.distribuirPonto(p, 'for'); R.distribuirPonto(p, 'for');
+  assert.strictEqual(R.usarRecomeco(p), 'Você não tem Pergaminho do Recomeço.');
+  p.reputacao = 499;
+  assert.strictEqual(R.comprarRecomeco(p), 'Reputação insuficiente.');
+  p.reputacao = 600;
+  assert.strictEqual(R.comprarRecomeco(p), true);
+  assert.deepStrictEqual([p.reputacao, p.recomecos], [100, 1]);
+  assert.strictEqual(R.usarRecomeco(p), true);
+  assert.deepStrictEqual([p.pontosLivres, p.recomecos, p.atributos.for], [livres, 0, p.atributosIniciais.for]);
+});

@@ -878,6 +878,22 @@ Tanka.regras = (function () {
   }
 
   // ---------- Skins do dado ----------
+  // Pergaminho do Recomeço: compra com reputação e usa para redistribuir os atributos.
+  // Retornam true ou um texto com o motivo.
+  function comprarRecomeco(p) {
+    var preco = D.RECOMECO.precoReputacao;
+    if ((p.reputacao || 0) < preco) return 'Reputação insuficiente.';
+    p.reputacao -= preco;
+    p.recomecos = (p.recomecos || 0) + 1;
+    return true;
+  }
+  function usarRecomeco(p) {
+    if (!p.recomecos) return 'Você não tem ' + D.RECOMECO.nome + '.';
+    p.recomecos -= 1;
+    admin.resetarAtributos(p);
+    return true;
+  }
+
   function skinsDoPersonagem(p) { return p.skinsDado || ['vermelho']; }
   // Compra uma skin. Retorna true ou um texto com o motivo.
   function comprarSkin(p, id) {
@@ -1038,6 +1054,8 @@ Tanka.regras = (function () {
     sortearChefe: sortearChefe,
     skinsDoPersonagem: skinsDoPersonagem,
     comprarSkin: comprarSkin,
+    comprarRecomeco: comprarRecomeco,
+    usarRecomeco: usarRecomeco,
     usarSkin: usarSkin,
     masmorra: masmorra,
     salasMasmorra: salasMasmorra,
