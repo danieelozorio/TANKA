@@ -151,7 +151,7 @@ teste('chances de drop (sem sorte): lobo 10% arma comum; cobra 15%; urso 15% ite
   const tipos = new Set(), rar = new Set();
   const t = taxa(() => { const d = R.rolarDropItem(p, 'urso', rng); if (d) { tipos.add(d.tipo); rar.add(d.raridade); } return d; });
   assert.ok(Math.abs(t - 15) < 0.5, t);
-  assert.strictEqual(tipos.size, 7);
+  assert.deepStrictEqual([...tipos].sort(), ['arma', 'botas', 'elmo', 'luvas', 'peitoral']); // sem colar/anel
   assert.deepStrictEqual([...rar], ['comum']);
 });
 
@@ -391,7 +391,7 @@ teste('trocar e desequipar: item volta para a mochila; vida se ajusta', () => {
 teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   p.ouro = 1e6;
-  for (let i = 0; i < 32; i++) assert.strictEqual(typeof R.comprar(p, 'comum', 'anel'), 'object');
+  for (let i = 0; i < 32; i++) assert.strictEqual(typeof R.comprar(p, 'comum', 'botas'), 'object');
   assert.ok(R.mochilaCheia(p));
   assert.strictEqual(R.comprar(p, 'comum', 'elmo'), 'Mochila cheia!');
   assert.ok(!R.desequipar(p, 'arma'));
@@ -410,7 +410,7 @@ teste('drops de armadura: lobo 10% comum; cobra 15% comum', () => {
   assert.ok(Math.abs(lobo.comum / N * 100 - 10) < 0.4, JSON.stringify(lobo));
   assert.ok(Math.abs(cobra.comum / N * 100 - 15) < 0.4 && !cobra.rara, JSON.stringify(cobra));
   const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
-  assert.deepStrictEqual([...tipos].sort(), ['anel', 'botas', 'colar', 'elmo', 'luvas', 'peitoral']);
+  assert.deepStrictEqual([...tipos].sort(), ['botas', 'elmo', 'luvas', 'peitoral']);
 });
 
 teste('encantar armadura equipada que quebra libera o espaço', () => {
@@ -734,4 +734,35 @@ teste('admin: tirar ouro, baixar level, exp, pergaminhos, vida e mochila', () =>
   R.admin.conjunto(p, 'rara');
   R.admin.esvaziarMochila(p);
   assert.strictEqual(p.inventario.length, 1); // só a arma equipada
+});
+
+teste('colar e anel não caem nas caçadas nem são vendidos no mercado', () => {
+  const p = R.criarPersonagem('J', 'masculino', 'humano', 'arqueiro');
+  p.ouro = 1e6;
+  assert.strictEqual(R.comprar(p, 'rara', 'anel'), 'Colar e anel só nas masmorras.');
+  assert.strictEqual(R.comprar(p, 'rara', 'colar'), 'Colar e anel só nas masmorras.');
+  for (const chefe of ['velgrath', 'guardiao', 'ignaroth']) {
+    for (let i = 0; i < 300; i++) {
+      p.inventario = p.inventario.slice(0, 1);
+      const b = R.iniciarBatalha(p, chefe, rng); b.fim = 'vitoria';
+      const res = R.concluirBatalha(p, b);
+      for (const it of [res.drop, res.dropArmadura]) if (it) assert.ok(it.tipo !== 'colar' && it.tipo !== 'anel', chefe + ' ' + it.tipo);
+    }
+  }
+});
+
+teste('masmorra: 3 salas (monstros da área, Elite, Chefe da Masmorra) e luta determinística', () => {
+  const salas = R.salasMasmorra('ninho');
+  assert.deepStrictEqual([...salas.map((s) => s.length)], [3, 3, 1]);
+  assert.deepStrictEqual([...salas[0].map((m) => m.id)], ['sapo', 'aranha', 'troll']);
+  const f = R.masmorra('ninho').forca;
+  assert.strictEqual(salas[1][2].nome, 'Troll Ancião do Lodo');
+  assert.strictEqual(salas[1][2].hp, Math.round(D.monstros.troll.hp * 2 * f.vida));
+  assert.strictEqual(salas[2][0].nome, 'Morgath, Mãe da Névoa');
+  assert.strictEqual(salas[2][0].hp, Math.round(D.monstros.morgath.hp * 3 * f.vida));
+  const herois = ['cavaleiro', 'arqueiro', 'mago'].map((c) => { const p = R.criarPersonagem(c, 'masculino', 'humano', c); R.admin.subirNivel(p, 14); return p; });
+  const a = R.simularMasmorra(herois, 'ninho', 123), b = R.simularMasmorra(herois, 'ninho', 123);
+  assert.strictEqual(JSON.stringify(a), JSON.stringify(b));
+  assert.strictEqual(a.eventos[0].de, 'm', 'o monstro dá o primeiro golpe');
+  assert.ok(herois.every((p) => p.hpAtual === R.status(p).hpMax), 'a luta não mexe na vida de fora');
 });

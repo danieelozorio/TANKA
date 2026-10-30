@@ -290,8 +290,8 @@ Tanka.regras = (function () {
     return raridade ? novaArma(p.classe, raridade, rng) : null;
   }
 
-  // Item de qualquer tipo: arma, 4 armaduras da classe, colar ou anel.
-  var TODOS_TIPOS = ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA);
+  // Item de qualquer tipo das caçadas: arma ou uma das 4 armaduras da classe.
+  var TODOS_TIPOS = ['arma'].concat(TIPOS_ARMADURA);
   function itemQualquer(p, raridade, rng) {
     return novoItem(TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], p.classe, raridade, rng);
   }
@@ -300,12 +300,11 @@ Tanka.regras = (function () {
     return raridade ? itemQualquer(p, raridade, rng) : null;
   }
 
-  // Peça sorteada entre as 4 armaduras da classe, o colar e o anel.
+  // Peça sorteada entre as 4 armaduras da classe (colar e anel só nas masmorras).
   function rolarDropArmadura(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].dropsArmadura || [], rng);
     if (!raridade) return null;
-    var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
-    return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
+    return novoItem(TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)], p.classe, raridade);
   }
 
   // ---------- Áreas e chefes ----------
@@ -404,8 +403,7 @@ Tanka.regras = (function () {
     }
     var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
     if (rng() < 0.5) return novaArma(p.classe, raridade, rng);
-    var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
-    return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
+    return novoItem(TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)], p.classe, raridade);
   }
 
   // ---------- Combate ----------
@@ -618,12 +616,13 @@ Tanka.regras = (function () {
     return true;
   }
 
-  // Compra no mercado: arma (tipo 'arma'), armadura da classe ou joia.
+  // Compra no mercado: arma (tipo 'arma') ou armadura da classe. Colar e anel só nas masmorras.
   // Retorna o item, ou um texto com o motivo da falha.
   function comprar(p, raridade, tipo) {
     var r = D.raridades[raridade];
     tipo = tipo || 'arma';
-    if (!r || ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA).indexOf(tipo) < 0) return 'Item inválido.';
+    if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
+    if (!r || ['arma'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
     if (p.ouro < r.compra) return 'Ouro insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= r.compra;
@@ -690,6 +689,106 @@ Tanka.regras = (function () {
     }
     ajustarVida(p, hpAntes);
     return res;
+  }
+
+  // ---------- Masmorras ----------
+  // A luta é automática e determinística: com a mesma semente e os mesmos heróis, todo
+  // navegador calcula exatamente a mesma luta (o líder envia o resultado ao servidor).
+
+  // Gerador de números com semente (mulberry32).
+  function rngSemente(semente) {
+    var a = semente >>> 0;
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function masmorra(id) { return D.masmorras.find(function (m) { return m.id === id; }) || null; }
+
+  // As 3 salas, cada uma com a lista de monstros (cópias com vida/ataque já ajustados).
+  function salasMasmorra(id) {
+    var mm = masmorra(id), area = D.areas.find(function (a) { return a.id === mm.area; }), M = D.MASMORRA;
+    var f = mm.forca || { vida: 1, ataque: 1 };   // ajuste de dificuldade da masmorra
+    function copia(monstroId, nome, vida, ataque) {
+      var m = D.monstros[monstroId], fv = (vida || 1) * f.vida, fa = (ataque || 1) * f.ataque;
+      return { id: monstroId, nome: nome || m.nome, hp: Math.round(m.hp * fv),
+        ataque: [Math.round(m.ataque[0] * fa), Math.round(m.ataque[1] * fa)],
+        velocidade: m.velocidade, defesa: m.defesa, defesaMagica: m.defesaMagica, indiceArea: m.indiceArea,
+        elite: !!nome && vida === M.elite.vida, chefe: vida === M.chefe.vida };
+    }
+    var ids = area.monstros.map(function (m) { return m.id; });
+    return [
+      ids.map(function (k) { return copia(k); }),
+      [copia(ids[2]), copia(ids[2]), copia(ids[2], mm.elite, M.elite.vida, M.elite.ataque)],
+      [copia(area.chefe.id, mm.chefe, M.chefe.vida, M.chefe.ataque)],
+    ];
+  }
+
+  // herois: dados dos personagens (cópias). Retorna { vitoria, sala (onde terminou), inicio, eventos }.
+  // Evento: { tipo: 'golpe', sala, de: 'h'|'m', i, alvo, acerto, critico, dano, caiu } ou { tipo: 'sala', sala }.
+  function simularMasmorra(herois, masmorraId, semente) {
+    var rng = rngSemente(semente);
+    var hs = herois.map(function (dados) {
+      var p = normalizar(JSON.parse(JSON.stringify(dados)));
+      var s = status(p);
+      return { nome: p.nome, classe: p.classe, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0 };
+    });
+    var salas = salasMasmorra(masmorraId);
+    var inicio = {
+      herois: hs.map(function (h) { return { nome: h.nome, classe: h.classe, raca: h.raca, sexo: h.sexo, hpMax: h.hpMax }; }),
+      salas: salas.map(function (sala) { return sala.map(function (m) { return { id: m.id, nome: m.nome, hpMax: m.hp, elite: m.elite, chefe: m.chefe }; }); }),
+    };
+    var eventos = [];
+    function vivos(lista) { return lista.filter(function (x) { return x.hp > 0; }); }
+    for (var si = 0; si < salas.length; si++) {
+      if (si > 0) eventos.push({ tipo: 'sala', sala: si });
+      var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100 }); });
+      var tiques = 0;
+      while (vivos(ms).length && vivos(hs).length) {
+        if (++tiques > 200000) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
+        // Quem tiver a barra cheia age (monstros primeiro no empate); senão todos enchem a barra.
+        var ator = null, ehHeroi = false;
+        ms.forEach(function (m) { if (m.hp > 0 && m.barra >= 100 && (!ator || m.barra > ator.barra)) ator = m; });
+        hs.forEach(function (h) { if (h.hp > 0 && h.barra >= 100 && (!ator || h.barra > ator.barra)) { ator = h; ehHeroi = true; } });
+        if (!ator) {
+          ms.forEach(function (m) { if (m.hp > 0) m.barra += m.vel; });
+          hs.forEach(function (h) { if (h.hp > 0) h.barra += h.vel; });
+          continue;
+        }
+        ator.barra -= 100;
+        var ev = { tipo: 'golpe', sala: si, de: ehHeroi ? 'h' : 'm', i: ehHeroi ? hs.indexOf(ator) : ms.indexOf(ator), acerto: false, critico: false, dano: 0, caiu: false };
+        if (ehHeroi) {
+          var alvo = vivos(ms)[0], s = ator.s, magico = s.tipoDano === 'magico';
+          ev.alvo = ms.indexOf(alvo);
+          if (rng() * 100 < limitar(s.precisao - alvo.indiceArea * 3, 5, 95)) {
+            var def = magico ? alvo.defesaMagica : alvo.defesa;
+            var dano = Math.max(1, Math.round(rolar(s.dano, rng) * 100 / (100 + def)));
+            if (rng() * 100 < (magico ? s.chanceCriticoMagico : s.chanceCritico)) {
+              ev.critico = true;
+              dano = Math.floor(dano * (magico ? s.danoCriticoMagico : s.danoCritico) / 100);
+            }
+            ev.acerto = true; ev.dano = dano;
+            alvo.hp = Math.max(0, alvo.hp - dano);
+            ev.caiu = alvo.hp === 0;
+          }
+        } else {
+          var lista = vivos(hs), heroi = lista[Math.floor(rng() * lista.length)];
+          ev.alvo = hs.indexOf(heroi);
+          if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - heroi.s.evasao, 5, 95)) {
+            var d = Math.max(1, rolar(ator.ataque, rng) - heroi.s.defesa);
+            ev.acerto = true; ev.dano = d;
+            heroi.hp = Math.max(0, heroi.hp - d);
+            ev.caiu = heroi.hp === 0;
+          }
+        }
+        eventos.push(ev);
+      }
+      if (!vivos(hs).length) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
+    }
+    return { vitoria: true, sala: salas.length - 1, inicio: inicio, eventos: eventos };
   }
 
   // ---------- Ferramentas de administrador (para testes) ----------
@@ -823,6 +922,9 @@ Tanka.regras = (function () {
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
     sortearChefe: sortearChefe,
+    masmorra: masmorra,
+    salasMasmorra: salasMasmorra,
+    simularMasmorra: simularMasmorra,
     fatorExp: fatorExp,
     diaReset: diaReset,
     msAteReset: msAteReset,

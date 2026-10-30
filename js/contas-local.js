@@ -197,7 +197,16 @@ Tanka.contas = (function () {
     },
   };
 
+  // Masmorras precisam de outros jogadores: só funcionam com o servidor.
+  function soServidor() { return Promise.reject(new Error('As masmorras precisam do servidor: jogue pelo site do Tanka.')); }
+  var grupo = {
+    estado: function () { return Promise.resolve({ local: true, entradas: 0, convites: [], grupo: null, run: null, recompensas: [] }); },
+    convidar: soServidor, responder: soServidor, sair: soServidor, expulsar: soServidor, pronto: soServidor,
+    escolher: soServidor, iniciar: soServidor, concluir: soServidor, resgatar: soServidor, adminRecarregar: soServidor,
+  };
+
   return {
+    grupo: grupo,
     amigos: amigos,
     ranking: ranking,
     chat: chat,

@@ -396,6 +396,38 @@ Tanka.dados = {
   // e 5x a exp e o ouro (para valer o risco).
   chefe: { vida: 1.5, ataque: 1.2, velocidade: 1.5, defesa: 2, exp: 5, ouro: 5, pergaminhos: [1, 3] },
 
+  // ---------- Masmorras (grupo de 3) ----------
+  // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem
+  // habilidades. Batalha automática com semente do servidor (todos calculam a mesma luta).
+  // Salas: 1) os 3 monstros da área; 2) 2x o 3º monstro + Elite; 3) Chefe da Masmorra.
+  // forca: multiplica vida e ataque de todos os monstros da masmorra (calibrado por simulação:
+  // grupo no level mínimo, itens da raridade da área +3, vence cerca de 2 em 3 vezes).
+  // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
+  MASMORRA: { entradasPorDia: 2, tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 } },
+  masmorras: [
+    { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
+      forca: { vida: 4, ataque: 4 },
+      joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
+    { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 10, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
+      forca: { vida: 3, ataque: 1.15 },
+      joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
+    { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 15, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
+      forca: { vida: 1.25, ataque: 1.15 },
+      joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
+    { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 20, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
+      forca: { vida: 1.5, ataque: 0.7 },
+      joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
+    { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 25, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
+      forca: { vida: 1.5, ataque: 0.6 },
+      joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
+    { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 30, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
+      forca: { vida: 0.6, ataque: 0.6 },
+      joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
+    { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 35, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
+      forca: { vida: 1, ataque: 0.5 },
+      joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
+  ],
+
   // Preenchido abaixo a partir das áreas.
   monstros: {},
 };

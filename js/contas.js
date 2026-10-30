@@ -229,7 +229,24 @@ Tanka.contas = (function () {
     remover: async function (meu, pedido) { await logado(); await rpc('amigo_remover', { meu: meu, pedido: pedido }); },
   };
 
+  // ---------- Grupo e masmorras ----------
+  function chamar(nome, args) { return logado().then(function () { return rpc(nome, args); }); }
+  var grupo = {
+    estado: function (meu) { return chamar('grupo_estado', { meu: meu }); },
+    convidar: function (meu, amigo) { return chamar('grupo_convidar', { meu: meu, amigo: amigo }); },
+    responder: function (meu, convite, aceitar) { return chamar('grupo_responder', { meu: meu, convite: convite, aceitar: aceitar }); },
+    sair: function (meu) { return chamar('grupo_sair', { meu: meu }); },
+    expulsar: function (meu, alvo) { return chamar('grupo_expulsar', { meu: meu, alvo: alvo }); },
+    pronto: function (meu, pronto) { return chamar('grupo_pronto', { meu: meu, pronto: pronto }); },
+    escolher: function (meu, masmorra) { return chamar('grupo_escolher', { meu: meu, masmorra: masmorra }); },
+    iniciar: function (meu) { return chamar('masmorra_iniciar', { meu: meu }); },
+    concluir: function (meu, run, vitoria) { return chamar('masmorra_concluir', { meu: meu, run_id: run, vitoria: vitoria }); },
+    resgatar: function (meu, id) { return chamar('recompensa_resgatar', { meu: meu, recompensa: id }); },
+    adminRecarregar: function (meu) { return chamar('masmorra_admin_recarregar', { meu: meu }); },
+  };
+
   return {
+    grupo: grupo,
     amigos: amigos,
     ranking: ranking,
     chat: chat,

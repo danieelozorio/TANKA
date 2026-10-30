@@ -15,6 +15,12 @@ python3 -m http.server 8000
 
 > Ao publicar uma atualização, aumente o número `?v=` dos arquivos em `index.html` (ex.: `?v=5` → `?v=6`). Assim o navegador dos jogadores baixa a versão nova em vez de usar a antiga guardada.
 
+Testes do banco (precisa de um PostgreSQL local; ver `testes/banco.test.sh`):
+
+```bash
+PGHOST=/caminho/do/socket PGPORT=5432 sh testes/banco.test.sh
+```
+
 Testes das regras:
 
 ```bash
@@ -110,6 +116,18 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
   Cada ponto de Sorte soma +1% na chance (máximo 95%). Cada nível soma dano: comum +1, rara +2, épica +3, lendária +5. A venda vale +20% por nível. O nome brilha em azul (+4 a +6), roxo (+7 a +9) e dourado (+10).
 - **Conta de administrador**: contas com `admin = true` na tabela `contas` (na versão local, as listadas em `ADMINS` em `js/dados.js`) veem a aba **Admin**, com botões para dar ouro, subir de level, pegar todas as armas da classe (+0, +7 ou +10), um conjunto completo de qualquer raridade, ganhar pergaminhos, curar, recarregar as poções e simular o reset diário. Também tira: ouro (−1.000, −10.000, zerar), level (−1, −5, voltar ao 1; zera a exp e devolve os pontos), exp (±% do level), pontos de atributo (resetar), pergaminhos, vida (50%, 10%, zerar), poções e itens da mochila (com confirmação). É para testes; quando houver servidor, quem decide quem é admin deve ser o servidor.
 - **Ranking** (aba Ranking): top 100 por **Level** (empate: exp) ou por **Poder**. O Poder também aparece na ficha: é uma nota de força = ataque (dano médio × crítico esperado × precisão × velocidade ÷ 10, vezes 10) + metade da resistência (vida × (1 + defesas ÷ 20) × (1 + evasão)). Fórmula em `R.poder` (`js/regras.js`). Contas de administrador não entram.
+- **Masmorras em grupo** (aba Masmorra): grupo de 3 personagens amigos. No Social, "Convidar para o grupo" (quem convida vira o líder 👑); o convidado aceita na aba Masmorra. O líder escolhe a masmorra, os 3 marcam "Pronto" e o líder clica em "Entrar". Luta automática, sem poções e sem habilidades, com **vida própria** (morrer lá não mexe na vida nem na exp de fora). 3 salas: os 3 monstros da área, 2x o 3º monstro + Elite, e o Chefe da Masmorra. Se pelo menos um herói vencer o chefe, **os 3 ganham um colar ou anel** (única fonte de joias: elas não caem mais nas caçadas nem são vendidas no Mercado) e gastam 1 das 2 entradas do dia; se os 3 caírem, ninguém perde nada e a entrada não é gasta. O servidor sorteia a semente da luta e cada navegador calcula a mesma luta (`R.simularMasmorra`); o líder informa o resultado e o servidor entrega as joias (tabela `recompensas`). Masmorras, níveis, Elites, Chefes e raridades em `js/dados.js` (`masmorras`) e em `supabase/schema.sql`.
+
+| Masmorra | Level | Joia |
+|---|---|---|
+| Toca dos Lobos Sombrios | 5+ | comum 80%, rara 20% |
+| Ninho da Bruxa | 10+ | comum 50%, rara 45%, épica 5% |
+| Catacumbas de Dravenhold | 15+ | rara 80%, épica 20% |
+| Biblioteca Proibida | 20+ | rara 50%, épica 48%, lendária 2% |
+| Tumba do Faraó | 25+ | épica 90%, lendária 10% |
+| Covil de Vhar'kesh | 30+ | épica 80%, lendária 20% |
+| Coração do Vulcão | 35+ | épica 65%, lendária 35% |
+
 - **Social** (aba Social): adicionar amigo pelo nome do personagem, aceitar/recusar pedidos (a aba mostra quantos chegaram), cancelar pedidos enviados e remover amigos (com confirmação). A lista mostra raça, classe, level, poder e se o amigo está **online** (jogou nos últimos 3 minutos; o jogo avisa o servidor a cada minuto) ou há quanto tempo foi visto. Se os dois pedirem um ao outro, a amizade vira na hora. Até 50 amigos e pedidos por personagem.
 - **Chat Global**: botão 💬 no canto da tela do jogo (com contador de mensagens novas). Mostra nome, classe e level do personagem e as últimas 100 mensagens; atualiza a cada 4 s com a janela aberta. Até 200 caracteres e 1 mensagem a cada 3 s (conferido no servidor, que também preenche classe e level a partir do personagem salvo). Mensagens com mais de 7 dias são apagadas. O admin vê 🗑 (apagar) e 🔇 (silenciar por X horas, "sempre" ou 0 para liberar) em cada mensagem.
 - **Retratos**: arte pintada quando existe; se o arquivo não existir, aparece um desenho SVG no lugar.
