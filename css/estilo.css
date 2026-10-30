@@ -884,3 +884,25 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .arma-stat small { display: block; font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
 .arma-stat strong { font-family: var(--titulo); font-size: .95rem; color: var(--ouro-claro); }
 .arma-stat strong small { display: inline; font-size: .75rem; letter-spacing: 0; text-transform: none; }
+
+/* Atributos: balão explicando cada um, botões − e + e confirmação */
+.linha-atr { grid-template-columns: 1fr auto auto; }
+.atr-botoes { display: inline-flex; gap: .25rem; }
+.atr-botoes .btn.mini { min-width: 1.9em; }
+.pendente { color: #7ee08a; font-weight: 700; }
+.atr-confirmar { display: grid; grid-template-columns: 1fr auto; gap: .4rem; margin-top: .5rem; }
+.atr-confirmar .btn:first-child { border-color: #7ee08a; color: #d8ffdc; background: linear-gradient(#1f4a27, #12301a); box-shadow: 0 0 12px rgba(126, 224, 138, .25); }
+.dica-texto { margin: -.2rem 0 .3rem; }
+.dica { position: relative; cursor: help; outline: none; }
+.dica-i { display: inline-grid; place-items: center; width: 15px; height: 15px; margin-left: .15rem; border-radius: 50%; border: 1px solid var(--suave);
+  color: var(--suave); font-size: .62rem; font-style: normal; vertical-align: 2px; }
+.dica-balao { position: absolute; left: 0; bottom: calc(100% + 8px); z-index: 15; width: 250px; padding: .6rem .75rem; display: none;
+  border: 1px solid var(--ouro); border-radius: 10px; background: linear-gradient(#232b3a, #141a24); box-shadow: 0 10px 30px rgba(0, 0, 0, .7);
+  font-size: .85rem; line-height: 1.35; color: var(--texto); cursor: default; }
+.dica-balao::after { content: ""; position: absolute; left: 18px; top: 100%; border: 7px solid transparent; border-top-color: var(--ouro); }
+.dica-balao strong:first-child { display: block; font-family: var(--titulo); color: var(--ouro-claro); margin-bottom: .2rem; }
+.dica-balao em { display: block; margin-top: .4rem; font-style: normal; color: var(--suave); font-size: .78rem; }
+.dica-balao ul { margin: .2rem 0 0; padding-left: 1.1rem; }
+.dica:hover .dica-balao, .dica:focus .dica-balao, .dica:focus-within .dica-balao { display: block; }
+.dica:hover .dica-i, .dica:focus .dica-i { border-color: var(--ouro-claro); color: var(--ouro-claro); }
+.ficha .status dt[title] { cursor: help; }

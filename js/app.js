@@ -386,31 +386,44 @@
     var arma = R.armaEquipada(p);
     var emBatalha = !!estado.batalha;
     var eq = R.bonusEquipamentos(p);
+    // Pontos escolhidos mas ainda não confirmados: aparecem em verde e mudam a prévia dos status.
+    var pend = pontosPendentes(), usados = totalPendentes(), restam = p.pontosLivres - usados;
+    var sNovo = usados ? R.status(comPendentes(p, pend)) : s;
     var atrs = R.ATRIBUTOS.map(function (k) {
-      var botao = p.pontosLivres > 0 && !emBatalha
-        ? '<button class="btn mini" data-acao="ponto" data-atributo="' + k + '" title="Aumentar ' + D.atributos[k].nome + '">+</button>'
+      var botoes = p.pontosLivres > 0 && !emBatalha
+        ? '<button class="btn mini" data-acao="ponto-menos" data-atributo="' + k + '" title="Tirar ponto"' + (pend[k] ? '' : ' disabled') + '>−</button>'
+          + '<button class="btn mini" data-acao="ponto" data-atributo="' + k + '" title="Pôr ponto em ' + D.atributos[k].nome + '"' + (restam > 0 ? '' : ' disabled') + '>+</button>'
         : '<span></span>';
-      return '<div class="linha-atr" title="' + esc(D.atributos[k].efeito) + '"><span>' + D.atributos[k].nome + '</span>'
-        + '<span class="valor">' + (p.atributos[k] + eq[k]) + (eq[k] ? ' <small class="mais">(+' + eq[k] + ')</small>' : '') + '</span>' + botao + '</div>';
+      return '<div class="linha-atr"><span class="dica" tabindex="0">' + D.atributos[k].nome + ' <i class="dica-i">?</i>' + dicaAtributo(p, k, pend) + '</span>'
+        + '<span class="valor">' + (p.atributos[k] + eq[k] + (pend[k] || 0)) + (eq[k] ? ' <small class="mais">(+' + eq[k] + ')</small>' : '')
+        + (pend[k] ? ' <small class="pendente">+' + pend[k] + '</small>' : '') + '</span><span class="atr-botoes">' + botoes + '</span></div>';
     }).join('');
+    if (usados) {
+      atrs += '<div class="atr-confirmar"><button class="btn" data-acao="pontos-confirmar">Confirmar ' + usados + ' ponto(s)</button>'
+        + '<button class="btn secundario" data-acao="pontos-desfazer">Desfazer</button></div>';
+    }
     var magico = s.tipoDano === 'magico';
+    // Mostra "atual → novo" quando há pontos para confirmar.
+    function mudanca(a, b, texto) { return a === b ? texto(a) : texto(a) + ' <span class="mais">→ ' + texto(b) + '</span>'; }
+    function pct(v) { return fmt(v) + '%'; }
     var status = [
-      ['Poder', '<strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong>'],
-      ['Dano por golpe', dano(s.dano) + (magico ? ' (mágico)' : '')],
-      [magico ? 'Ataque mágico' : 'Ataque', '+' + (magico ? s.ataqueMagico : s.ataque)],
-      ['Defesa', s.defesa],
-      ['Defesa mágica', s.defesaMagica],
-      ['Velocidade', s.velocidade],
-      ['Precisão', fmt(s.precisao) + '%'],
-      ['Evasão', fmt(s.evasao) + '%'],
-      ['Chance de crítico', fmt(s.chanceCritico) + '%'],
-      ['Dano crítico', s.danoCritico + '%'],
-      ['Crítico mágico', fmt(s.chanceCriticoMagico) + '%'],
-      ['Dano crítico mágico', s.danoCriticoMagico + '%'],
-      ['Sucesso no craft', s.chanceCraft + '%'],
-      ['Bônus de drop', '+' + s.bonusDrop + '%'],
-      ['Encantamento', s.chanceEncantamento + '%'],
-    ].map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+      ['Poder', '<strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong>' + (usados ? ' <span class="mais">→ ' + R.poder(comPendentes(p, pend)).toLocaleString('pt-BR') + '</span>' : ''), 'Força geral do personagem: ataque e resistência somados.'],
+      ['Vida máxima', mudanca(s.hpMax, sNovo.hpMax, String), 'Vida cheia do personagem.'],
+      ['Dano por golpe', mudanca(dano(s.dano), dano(sNovo.dano), String) + (magico ? ' (mágico)' : ''), 'Quanto cada golpe tira, antes da defesa do inimigo.'],
+      [magico ? 'Ataque mágico' : 'Ataque', mudanca(magico ? s.ataqueMagico : s.ataque, magico ? sNovo.ataqueMagico : sNovo.ataque, function (v) { return '+' + v; }), 'Somado ao dano da arma em cada golpe.'],
+      ['Defesa', mudanca(s.defesa, sNovo.defesa, String), 'Diminui em porcentagem o dano físico que você recebe.'],
+      ['Defesa mágica', mudanca(s.defesaMagica, sNovo.defesaMagica, String), 'Diminui em porcentagem o dano mágico que você recebe.'],
+      ['Velocidade', mudanca(s.velocidade, sNovo.velocidade, String), 'Quem é mais rápido ataca mais vezes. Sobe com o level.'],
+      ['Precisão', mudanca(s.precisao, sNovo.precisao, pct), 'Chance de acertar o golpe.'],
+      ['Evasão', mudanca(s.evasao, sNovo.evasao, pct), 'Chance de desviar de um ataque.'],
+      ['Chance de crítico', mudanca(s.chanceCritico, sNovo.chanceCritico, pct), 'Chance de um golpe físico ser crítico.'],
+      ['Dano crítico', mudanca(s.danoCritico, sNovo.danoCritico, pct), 'Quanto o golpe crítico físico causa (150% = 1,5x).'],
+      ['Crítico mágico', mudanca(s.chanceCriticoMagico, sNovo.chanceCriticoMagico, pct), 'Chance de uma magia ser crítica.'],
+      ['Dano crítico mágico', mudanca(s.danoCriticoMagico, sNovo.danoCriticoMagico, pct), 'Quanto a magia crítica causa.'],
+      ['Sucesso no craft', mudanca(s.chanceCraft, sNovo.chanceCraft, pct), 'Chance de sucesso ao fabricar itens (em breve).'],
+      ['Bônus de drop', mudanca(s.bonusDrop, sNovo.bonusDrop, function (v) { return '+' + v + '%'; }), 'Aumenta a chance de itens e pergaminhos caírem.'],
+      ['Encantamento', mudanca(s.chanceEncantamento, sNovo.chanceEncantamento, pct), 'Bônus na chance de sucesso ao encantar.'],
+    ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
@@ -426,12 +439,52 @@
       + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
       + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
       + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">'
-      + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
+      + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + restam + ' ponto(s) livre(s)</span>' : '') + '</h3>'
+      + '<p class="suave pequeno dica-texto">Passe o mouse (ou toque) no nome para ver o que cada atributo faz.</p>' + atrs + '</div>'
       + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
       + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
       + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
       + '</aside>';
+  }
+
+  // ----- Pontos de atributo: escolher com + e −, conferir a prévia e só então confirmar -----
+  var DESCRICAO_ATRIBUTO = {
+    for: 'Aumenta o ataque físico e o dano dos golpes críticos.',
+    des: 'Aumenta a precisão, a evasão e a chance de magia crítica.',
+    res: 'Aumenta a vida, a defesa e a defesa mágica.',
+    int: 'Aumenta o ataque mágico (dano dos magos).',
+    sor: 'Aumenta a chance de crítico, o dano crítico mágico, o drop, o encantamento e o craft.',
+  };
+  function pontosPendentes() {
+    var p = estado.personagem;
+    if (!estado.pontosPend || estado.pontosPend.id !== p.id) estado.pontosPend = { id: p.id, pontos: {} };
+    return estado.pontosPend.pontos;
+  }
+  function totalPendentes() {
+    var pend = pontosPendentes();
+    return R.ATRIBUTOS.reduce(function (t, k) { return t + (pend[k] || 0); }, 0);
+  }
+  // Cópia do personagem com os pontos pendentes já somados (só para calcular a prévia).
+  function comPendentes(p, pend) {
+    var c = JSON.parse(JSON.stringify(p));
+    R.ATRIBUTOS.forEach(function (k) { c.atributos[k] += pend[k] || 0; });
+    return c;
+  }
+  // Balão do atributo: o que ele faz, quanto cada ponto vale e quanto falta para o próximo degrau.
+  var REGRAS_ATRIBUTO = {
+    for: { ganhos: ['+1 de Ataque a cada 5 pontos (soma no dano dos golpes físicos)', '+1% de dano crítico por ponto'], degrau: [5, 'Ataque'] },
+    des: { ganhos: ['+1% de precisão por ponto', '+0,5% de evasão por ponto', '+0,5% de chance de magia crítica por ponto'] },
+    res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+1 de defesa e +1 de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
+    int: { ganhos: ['+1 de Ataque mágico a cada 5 pontos (soma no dano das magias)'], degrau: [5, 'Ataque mágico'] },
+    sor: { ganhos: ['+0,5% de chance de crítico por ponto', '+1% de dano crítico mágico por ponto', '+1% de drop, de encantamento e de craft por ponto'] },
+  };
+  function dicaAtributo(p, k, pend) {
+    var r = REGRAS_ATRIBUTO[k], total = p.atributos[k] + R.bonusEquipamentos(p)[k] + (pend[k] || 0);
+    var falta = r.degrau ? r.degrau[0] - (total % r.degrau[0]) : 0;
+    return '<span class="dica-balao" role="tooltip"><strong>' + D.atributos[k].nome + '</strong><span>' + DESCRICAO_ATRIBUTO[k] + '</span>'
+      + '<em>Cada ponto vale:</em><ul>' + r.ganhos.map(function (g) { return '<li>' + g + '</li>'; }).join('') + '</ul>'
+      + (r.degrau ? '<em class="mais">Faltam ' + falta + ' ponto(s) para o próximo +1 de ' + r.degrau[1] + '.</em>' : '') + '</span>';
   }
 
   // Poder em destaque: medalhão dourado com o número grande.
@@ -1566,9 +1619,32 @@
         estado.mercadoRaridade = el.dataset.valor;
         telaJogo();
         break;
-      case 'ponto':
-        if (R.distribuirPonto(p, el.dataset.atributo)) { salvar(); telaJogo(); }
+      case 'ponto': {
+        var pp = pontosPendentes(), ka = el.dataset.atributo;
+        if (totalPendentes() >= p.pontosLivres || R.ATRIBUTOS.indexOf(ka) < 0) break;
+        pp[ka] = (pp[ka] || 0) + 1;
+        atualizarFicha();
         break;
+      }
+      case 'ponto-menos': {
+        var pm = pontosPendentes(), km = el.dataset.atributo;
+        if (pm[km]) pm[km] -= 1;
+        atualizarFicha();
+        break;
+      }
+      case 'pontos-desfazer':
+        estado.pontosPend = null;
+        atualizarFicha();
+        break;
+      case 'pontos-confirmar': {
+        var pc = pontosPendentes(), dados = 0;
+        R.ATRIBUTOS.forEach(function (k) { while (pc[k] > 0 && R.distribuirPonto(p, k)) { pc[k] -= 1; dados++; } });
+        estado.pontosPend = null;
+        salvar();
+        telaJogo();
+        if (dados) avisar(dados + ' ponto(s) de atributo distribuído(s)!', 'nivel');
+        break;
+      }
       case 'acampar':
         R.acampar(p, C.agora(), true);
         salvar();
