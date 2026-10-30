@@ -353,7 +353,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .aura-e7 { --cor: 175, 90, 255; --forca: 18px; --vel: 1.4s; }
 .aura-e8 { --cor: 255, 210, 30; --forca: 21px; --vel: 1.3s; }
 .aura-e9 { --cor: 255, 140, 30; --forca: 23px; --vel: 1.2s; }
-.aura-e10 { --cor: 255, 50, 40; --forca: 26px; --vel: 1s; }
+.aura-e10 { --cor: 255, 55, 45; --forca: 20px; --vel: 1.8s; }
 @media (prefers-reduced-motion: reduce) {
   [class*="aura-e"] { animation: none; box-shadow: 0 0 var(--forca) calc(var(--forca) * .3) rgba(var(--cor), .8); }
 }
