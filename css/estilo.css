@@ -573,7 +573,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .trofeu-ouro { fill: #f2c94c; filter: drop-shadow(0 0 4px rgba(242, 201, 76, .6)); }
 .trofeu-prata { fill: #cfd6df; }
 .trofeu-bronze { fill: #cd8a4f; }
-.arena-pvp { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.arena-pvp { grid-template-columns: minmax(0, 1fr) minmax(0, 1.7fr) minmax(0, 1fr); align-items: start; }
 .arena-lutador .moldura { max-width: 150px; }
 .arena-centro { display: grid; gap: .6rem; justify-items: center; }
 .tempo-dado { width: 100%; max-width: 240px; height: 8px; border-radius: 4px; background: #000; border: 1px solid var(--borda); overflow: hidden; }
@@ -584,12 +584,12 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 }
 
 /* Janela do dado: D20 vermelho translúcido caindo numa mesa de madeira */
-.ultimo-dado { display: grid; justify-items: center; gap: .15rem; padding: .8rem; text-align: center; }
-.ultimo-numero { font: 700 2.4rem var(--titulo); line-height: 1; }
-.dado-fundo { z-index: 25; }
-.dado-janela { width: min(420px, 100%); display: grid; gap: .7rem; justify-items: center; text-align: center; }
-.dado-janela.do-oponente { border-color: #d0645a; }
-.mesa-madeira { position: relative; width: 100%; height: 230px; display: grid; place-items: center; border-radius: 12px; overflow: hidden;
+.vaga-dado { width: 100%; }
+.dado-janela { width: 100%; display: grid; gap: .5rem; justify-items: center; text-align: center; }
+.dado-janela.do-oponente .mesa-madeira { border-color: #6b1f1a; }
+.botoes-luta { justify-content: center; }
+.botoes-luta .btn { font-size: .85rem; padding: .45em .9em; }
+.mesa-madeira { position: relative; width: 100%; height: 250px; display: grid; place-items: center; border-radius: 12px; overflow: hidden;
   border: 4px solid #3a2414; box-shadow: inset 0 0 40px rgba(0, 0, 0, .65);
   background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 2px, transparent 2px 70px),
     repeating-linear-gradient(0deg, rgba(255, 255, 255, .03) 0 3px, transparent 3px 9px), linear-gradient(160deg, #7a4a26, #4b2c15 70%); }
@@ -663,7 +663,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 /* D20 em 3D e efeitos especiais */
 .dado-palco { position: relative; z-index: 2; width: 100%; height: 100%; display: grid; place-items: center; }
 .dado3d-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
-.mesa-madeira.em3d .sombra-dado { margin-top: 62px; }
+.mesa-madeira.em3d .sombra-dado { display: none; }
 .mesa-madeira.em3d.caindo .sombra-dado { animation: sombraCai .95s ease-out both; }
 .raios-20 { position: absolute; inset: -60%; z-index: 1; opacity: 0; pointer-events: none;
   background: repeating-conic-gradient(from 0deg, rgba(255, 215, 90, .55) 0deg 8deg, transparent 8deg 22deg);
@@ -681,10 +681,6 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   0% { transform: rotate(var(--ang)) translateX(0) scale(1.4); opacity: 1; }
   100% { transform: rotate(var(--ang)) translateX(var(--dist)) scale(.2); opacity: 0; }
 }
-/* 20 natural da skin Rubi: vídeo cobrindo a mesa (o dado 3D fica por baixo). */
-.video-20 { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; object-fit: cover; opacity: 0; pointer-events: none; transition: opacity .15s; }
-.mesa-madeira.com-video .video-20 { opacity: 1; }
-.mesa-madeira.com-video .raios-20 { display: none; }
 .selo-dado { position: absolute; left: 0; right: 0; top: 10px; z-index: 4; text-align: center; font: 700 1.35rem var(--titulo); letter-spacing: .08em; pointer-events: none; }
 .mesa-madeira.critico .selo-dado { color: #ffe08a; text-shadow: 0 0 12px rgba(255, 200, 60, .9), 0 2px 2px #000; animation: seloEntra .45s cubic-bezier(.2, 1.6, .4, 1) both; }
 .mesa-madeira.nat20 .selo-dado { font-size: 1.7rem; color: #fff1b0; text-shadow: 0 0 18px rgba(255, 200, 60, 1), 0 0 4px #fff, 0 2px 2px #000; }
