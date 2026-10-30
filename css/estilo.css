@@ -336,21 +336,21 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   position: absolute; top: 1px; right: 3px; font-size: .72rem; font-weight: 700; line-height: 1;
   color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
 }
-/* Borda do encantamento, piscando: +1 a +3 verde crescente, +4 a +6 azul crescente,
-   +7 amarelo, +8 amarelo mais forte, +9 laranja, +10 vermelho.
+/* Borda do encantamento, piscando: +1 prata fraco, +2 e +3 verde crescente, +4 e +5 azul crescente,
+   +6 rosa, +7 roxo, +8 amarelo, +9 laranja, +10 vermelho.
    --cor: cor do brilho (r, g, b); --forca: tamanho do brilho; --vel: velocidade da piscada. */
 [class*="aura-e"] { z-index: 1; border-color: rgb(var(--cor)); animation: auraEncanto var(--vel, 1.6s) ease-in-out infinite; }
 @keyframes auraEncanto {
   0%, 100% { box-shadow: 0 0 calc(var(--forca) * .6) calc(var(--forca) * .2) rgba(var(--cor), .6), inset 0 0 calc(var(--forca) * .5) rgba(var(--cor), .35); }
   50% { box-shadow: 0 0 calc(var(--forca) * 1.3) calc(var(--forca) * .45) rgba(var(--cor), 1), inset 0 0 calc(var(--forca) * .9) rgba(var(--cor), .65); }
 }
-.aura-e1 { --cor: 80, 220, 110; --forca: 6px; }
+.aura-e1 { --cor: 200, 210, 222; --forca: 5px; }
 .aura-e2 { --cor: 80, 220, 110; --forca: 10px; }
 .aura-e3 { --cor: 80, 230, 110; --forca: 14px; }
-.aura-e4 { --cor: 70, 150, 255; --forca: 10px; }
-.aura-e5 { --cor: 70, 150, 255; --forca: 14px; }
-.aura-e6 { --cor: 70, 150, 255; --forca: 18px; }
-.aura-e7 { --cor: 255, 225, 70; --forca: 16px; --vel: 1.4s; }
+.aura-e4 { --cor: 70, 150, 255; --forca: 12px; }
+.aura-e5 { --cor: 70, 150, 255; --forca: 16px; }
+.aura-e6 { --cor: 255, 105, 190; --forca: 17px; }
+.aura-e7 { --cor: 175, 90, 255; --forca: 18px; --vel: 1.4s; }
 .aura-e8 { --cor: 255, 210, 30; --forca: 21px; --vel: 1.3s; }
 .aura-e9 { --cor: 255, 140, 30; --forca: 23px; --vel: 1.2s; }
 .aura-e10 { --cor: 255, 50, 40; --forca: 26px; --vel: 1s; }
