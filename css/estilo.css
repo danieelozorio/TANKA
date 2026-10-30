@@ -659,3 +659,33 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .skin-carta .d20g { width: 84px; height: 84px; }
 .skin-carta .btn { font-size: .8rem; padding: .4em .6em; }
 @media (max-width: 600px) { .skins { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* D20 em 3D e efeitos especiais */
+.dado-palco { position: relative; z-index: 2; width: 100%; height: 100%; display: grid; place-items: center; }
+.dado3d-canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; }
+.mesa-madeira.em3d .sombra-dado { margin-top: 62px; }
+.mesa-madeira.em3d.caindo .sombra-dado { animation: sombraCai .95s ease-out both; }
+.raios-20 { position: absolute; inset: -60%; z-index: 1; opacity: 0; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 215, 90, .55) 0deg 8deg, transparent 8deg 22deg);
+  -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 60%); mask-image: radial-gradient(circle, #000 0%, transparent 60%); }
+.mesa-madeira.critico .raios-20 { opacity: .45; animation: raiosGiram 6s linear infinite; }
+.mesa-madeira.nat20 .raios-20 { opacity: 1; animation: raiosGiram 3s linear infinite, raiosPulsam .8s ease-in-out infinite alternate; }
+.mesa-madeira.nat20 { border-color: #f2c94c; box-shadow: inset 0 0 50px rgba(255, 200, 60, .55), 0 0 30px rgba(255, 200, 60, .6); }
+.mesa-madeira.falha { box-shadow: inset 0 0 60px rgba(150, 0, 0, .7); }
+@keyframes raiosGiram { to { transform: rotate(360deg); } }
+@keyframes raiosPulsam { from { filter: brightness(.8); } to { filter: brightness(1.4); } }
+.faiscas { position: absolute; left: 50%; top: 50%; z-index: 3; pointer-events: none; }
+.faiscas i { position: absolute; left: 0; top: 0; border-radius: 50%; background: radial-gradient(#fff6c8, #ffc23a 60%, transparent 70%);
+  animation: faisca 1.3s ease-out both; }
+@keyframes faisca {
+  0% { transform: rotate(var(--ang)) translateX(0) scale(1.4); opacity: 1; }
+  100% { transform: rotate(var(--ang)) translateX(var(--dist)) scale(.2); opacity: 0; }
+}
+.selo-dado { position: absolute; left: 0; right: 0; top: 10px; z-index: 4; text-align: center; font: 700 1.35rem var(--titulo); letter-spacing: .08em; pointer-events: none; }
+.mesa-madeira.critico .selo-dado { color: #ffe08a; text-shadow: 0 0 12px rgba(255, 200, 60, .9), 0 2px 2px #000; animation: seloEntra .45s cubic-bezier(.2, 1.6, .4, 1) both; }
+.mesa-madeira.nat20 .selo-dado { font-size: 1.7rem; color: #fff1b0; text-shadow: 0 0 18px rgba(255, 200, 60, 1), 0 0 4px #fff, 0 2px 2px #000; }
+.mesa-madeira.falha .selo-dado { color: #ff8a7a; text-shadow: 0 0 10px rgba(200, 0, 0, .9), 0 2px 2px #000; animation: seloEntra .45s ease-out both; }
+@keyframes seloEntra { 0% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.dado-janela.treme { animation: janelaTreme .5s ease-out .75s both; }
+@keyframes janelaTreme { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-8px, 4px); } 40% { transform: translate(7px, -5px); } 60% { transform: translate(-5px, 3px); } 80% { transform: translate(3px, -2px); } }
+@media (prefers-reduced-motion: reduce) { .raios-20, .faiscas i, .dado-janela.treme, .selo-dado { animation: none !important; } }

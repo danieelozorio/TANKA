@@ -1190,6 +1190,7 @@
         clearTimeout(estado.lutaArena.timer);
         clearInterval(estado.lutaArena.relogio);
         clearInterval(estado.lutaArena.giro);
+        fecharDado3d();
         estado.lutaArena = null;
         estado.aba = 'arena';
         estado.arena = null;
@@ -1899,9 +1900,12 @@
   async function comecarLutaArena(fn, botao) {
     if (botao) botao.disabled = true;
     try {
+      var usar3d = Tanka.dado3d && Tanka.dado3d.temWebgl()
+        ? await Promise.race([Tanka.dado3d.carregar(), new Promise(function (ok) { setTimeout(function () { ok(false); }, 5000); })]) : false;
       var luta = await fn();
       var est = luta.estado;
-      estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, modal: null, ultimo: null, fase: 'animando', registro: [] };
+      fecharDado3d();
+      estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, modal: null, ultimo: null, fase: 'animando', registro: [], usar3d: usar3d };
       estado.lutaArena.registro.push('<p class="destaque">' + esc(est.a.nome) + ' desafia ' + esc(est.d.nome) + '!</p>');
       telaJogo();
       mostrarPainel();
@@ -1940,28 +1944,108 @@
       + '<text class="n n-topo" x="50" y="18">' + viz[3] + '</text></svg>';
   }
 
-  // Janela do dado: cai na mesa trocando os números e pousa no resultado.
+  // Janela do dado: o D20 cai na mesa, gira e para no resultado (3D; sem WebGL, o desenho em SVG).
   function animarDado(final, quem, depois, jaCaindo) {
     var L = estado.lutaArena;
+    function terminar() {
+      var especial = final === 20 ? 2600 : final >= 18 || final === 1 ? 1700 : 1300;
+      L.modal = { modo: 'pousou', quem: quem, numero: final, texto: efeitoDado(final) };
+      atualizarJanelaDado();
+      L.timer = setTimeout(function () { L.modal = null; atualizarJanelaDado(); depois(); }, especial);
+    }
     function pousar() {
       clearInterval(L.giro);
-      L.modal = { modo: 'pousou', quem: quem, numero: final, texto: efeitoDado(final) };
-      redesenharArena();
-      L.timer = setTimeout(function () { L.modal = null; depois(); }, 1400);
+      if (L.dado3d) {
+        L.modal = { modo: 'pousando', quem: quem, numero: final };
+        atualizarJanelaDado();
+        L.dado3d.pousar(final, terminar);
+      } else terminar();
     }
     if (jaCaindo) { pousar(); return; }
     L.modal = { modo: 'caindo', quem: quem, numero: '?' };
-    redesenharArena();
-    girarNumeros();
-    L.timer = setTimeout(pousar, 1500);
+    atualizarJanelaDado();
+    if (!L.dado3d) girarNumeros();
+    L.timer = setTimeout(pousar, L.dado3d ? 950 : 1500);
   }
   function girarNumeros() {
     var L = estado.lutaArena;
     clearInterval(L.giro);
     L.giro = setInterval(function () {
-      var el = document.querySelector('.dado-janela .n-centro');
+      var el = document.querySelector('#dado-overlay .n-centro');
       if (el) el.textContent = 1 + Math.floor(Math.random() * 20);
     }, 80);
+  }
+
+  // A janela do dado fica fora do painel (não é redesenhada a cada golpe, para o 3D não reiniciar).
+  function atualizarJanelaDado() {
+    var L = estado.lutaArena, ov = document.getElementById('dado-overlay');
+    if (!L || !L.modal) {
+      if (ov) ov.hidden = true;
+      return;
+    }
+    var m = L.modal, est = L.luta.estado;
+    if (!ov) {
+      ov = document.createElement('div');
+      ov.id = 'dado-overlay';
+      ov.className = 'zoom-fundo dado-fundo';
+      ov.innerHTML = '<div class="zoom-janela dado-janela" role="dialog" aria-label="Dado"><div class="zoom-rotulo"></div>'
+        + '<div class="mesa-madeira"><div class="raios-20"></div><div class="sombra-dado"></div><div class="dado-palco"></div><div class="faiscas"></div>'
+        + '<div class="selo-dado"></div></div><div class="dado-baixo"></div></div>';
+      ov.addEventListener('click', function (e) { if (e.target.closest('[data-acao="arena-rolar"]')) rolarDadoArena(true); });
+      document.body.appendChild(ov);
+    }
+    ov.hidden = false;
+    var janela = ov.querySelector('.dado-janela'), mesa = ov.querySelector('.mesa-madeira'), palco = ov.querySelector('.dado-palco');
+    var skin = (m.quem === 'd' ? est.d.skin : est.a.skin || estado.personagem.skinDado) || 'vermelho';
+    janela.classList.toggle('do-oponente', m.quem === 'd');
+    var n = m.numero, pousou = m.modo === 'pousou';
+    mesa.className = 'mesa-madeira ' + m.modo + (pousou ? (n === 20 ? ' nat20 critico' : n >= 18 ? ' critico' : n === 1 ? ' falha' : '') : '') + (L.dado3d ? ' em3d' : '');
+    janela.classList.toggle('treme', pousou && n === 20);
+    ov.querySelector('.zoom-rotulo').textContent = m.quem === 'd' ? 'Dado de ' + est.d.nome + ' · rolado pelo servidor' : 'Seu ataque';
+    ov.querySelector('.selo-dado').textContent = pousou ? (n === 20 ? 'CRÍTICO NATURAL!' : n >= 18 ? 'CRÍTICO!' : n === 1 ? 'FALHA CRÍTICA' : '') : '';
+    // O dado: 3D (troca se mudou a skin) ou SVG.
+    if (L.dado3d && L.dado3dSkin !== skin) { L.dado3d.destruir(); L.dado3d = null; }
+    if (!L.dado3d && L.usar3d) {
+      palco.innerHTML = '';
+      try { L.dado3d = Tanka.dado3d.criar(palco, skin); L.dado3dSkin = skin; } catch (e) { L.usar3d = false; }
+    }
+    if (L.dado3d) {
+      if (m.modo !== L.modoMostrado) {
+        if (m.modo === 'rolar') L.dado3d.parado(20);
+        if (m.modo === 'caindo') L.dado3d.cair(m.quem === 'd' ? -1 : 1);
+      }
+      L.dado3d.brilho(pousou ? (n === 20 ? 'ouro' : n >= 18 ? 'critico' : n === 1 ? 'falha' : null) : null);
+    } else {
+      palco.innerHTML = d20Bonito(n, skin);
+    }
+    if (pousou && n === 20 && L.modoMostrado !== 'pousou') soltarFaiscas(ov.querySelector('.faiscas'));
+    L.modoMostrado = m.modo;
+    var baixo = '';
+    if (m.modo === 'rolar') {
+      baixo = '<button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
+        + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div>';
+    } else if (!pousou) {
+      baixo = '<div class="dado-resultado suave">Rolando…</div>';
+    } else {
+      baixo = '<div class="dado-resultado ' + (n === 1 ? 'menos' : n >= 18 ? 'cor-ouro' : '') + '"><strong>' + n + '</strong> · ' + esc(m.texto) + '</div>';
+    }
+    ov.querySelector('.dado-baixo').innerHTML = baixo;
+  }
+
+  function soltarFaiscas(onde) {
+    var html = '';
+    for (var i = 0; i < 28; i++) {
+      var ang = Math.random() * 360, dist = 90 + Math.random() * 120, atraso = Math.random() * 0.25, tam = 4 + Math.random() * 6;
+      html += '<i style="--ang:' + ang + 'deg;--dist:' + dist + 'px;animation-delay:' + atraso + 's;width:' + tam + 'px;height:' + tam + 'px"></i>';
+    }
+    onde.innerHTML = html;
+  }
+
+  function fecharDado3d() {
+    var L = estado.lutaArena;
+    if (L && L.dado3d) { L.dado3d.destruir(); L.dado3d = null; }
+    var ov = document.getElementById('dado-overlay');
+    if (ov) ov.remove();
   }
 
   function aplicarEventoArena(ev) {
@@ -1991,12 +2075,13 @@
       }, jaCaindo);
       return;
     }
-    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; L.modal = null; redesenharArena(); carregarArena(); return; }
+    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; L.modal = null; fecharDado3d(); redesenharArena(); carregarArena(); return; }
     // Sua vez: a janela com o D20, o botão e 5 segundos.
     L.fase = 'esperando';
     L.prazo = Date.now() + A.tempoDado * 1000;
     L.modal = { modo: 'rolar', quem: 'a', numero: 20 };
     redesenharArena();
+    atualizarJanelaDado();
     clearInterval(L.relogio);
     L.relogio = setInterval(function () {
       var resta = Math.max(0, L.prazo - Date.now());
@@ -2015,8 +2100,8 @@
     if (rolar) {
       // O dado já começa a cair enquanto o servidor sorteia o número.
       L.modal = { modo: 'caindo', quem: 'a', numero: '?' };
-      redesenharArena();
-      girarNumeros();
+      atualizarJanelaDado();
+      if (!L.dado3d) girarNumeros();
     }
     try {
       L.luta = await C.arena.rolar(estado.personagem.id, L.luta.id, rolar);
@@ -2028,28 +2113,8 @@
     }
     if (rolar) {
       L.jaCaindo = true;
-      L.timer = setTimeout(tocarEventosArena, Math.max(0, 1500 - (Date.now() - inicio)));
+      L.timer = setTimeout(tocarEventosArena, Math.max(0, (L.dado3d ? 950 : 1500) - (Date.now() - inicio)));
     } else tocarEventosArena();
-  }
-
-  function janelaDadoHtml() {
-    var L = estado.lutaArena, m = L.modal, d = L.luta.estado.d;
-    if (!m) return '';
-    var rotulo = m.quem === 'd' ? 'Dado de ' + esc(d.nome) + ' · rolado pelo servidor' : 'Seu ataque';
-    var classe = m.modo === 'pousou' ? (m.numero === 1 ? 'pousou falha' : m.numero >= 18 ? 'pousou critico' : 'pousou') : m.modo;
-    var baixo = '';
-    if (m.modo === 'rolar') {
-      baixo = '<button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
-        + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div>';
-    } else if (m.modo === 'caindo') {
-      baixo = '<div class="dado-resultado suave">Rolando…</div>';
-    } else {
-      baixo = '<div class="dado-resultado ' + (m.numero === 1 ? 'menos' : m.numero >= 18 ? 'cor-ouro' : '') + '"><strong>' + m.numero + '</strong> · ' + esc(m.texto) + '</div>';
-    }
-    return '<div class="zoom-fundo dado-fundo"><div class="zoom-janela dado-janela' + (m.quem === 'd' ? ' do-oponente' : '') + '" role="dialog" aria-label="Dado">'
-      + '<div class="zoom-rotulo">' + rotulo + '</div>'
-      + '<div class="mesa-madeira ' + classe + '"><div class="sombra-dado"></div>' + d20Bonito(m.numero, (m.quem === 'd' ? d.skin : L.luta.estado.a.skin) || (m.quem === 'a' ? estado.personagem.skinDado : null)) + '</div>'
-      + '<div class="dado-baixo">' + baixo + '</div></div></div>';
   }
 
   function lutaArenaHtml() {
@@ -2079,8 +2144,7 @@
     }
     return fim + '<h3 class="subtitulo">' + esc(nomeArena(L.luta.arena)) + (L.luta.revanche ? ' · Revanche' : '') + '</h3>'
       + '<div class="arena arena-pvp">' + lutador(a, L.hpA, 'jogador') + '<div class="arena-centro">' + mesa + controles + '</div>' + lutador(d, L.hpD, 'monstro') + '</div>'
-      + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
-      + janelaDadoHtml();
+      + '<div class="registro" id="registro">' + L.registro.join('') + '</div>';
   }
 
   // ---------------- Chat global ----------------

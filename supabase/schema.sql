@@ -10,9 +10,11 @@ create table if not exists public.contas (
   usuario text not null,
   email text not null,
   admin boolean not null default false,   -- só muda pelo SQL Editor
+  bot boolean not null default false,     -- conta dos bots de teste (supabase/bots.sql)
   criado_em timestamptz not null default now()
 );
 alter table public.contas drop column if exists whatsapp;  -- o cadastro não pede mais WhatsApp
+alter table public.contas add column if not exists bot boolean not null default false;
 create unique index if not exists contas_usuario_unico on public.contas (lower(usuario));
 create unique index if not exists contas_email_unico on public.contas (lower(email));
 
@@ -58,7 +60,8 @@ create policy "personagem: apagar os seus" on public.personagens for delete usin
 create or replace function public.validar_personagem() returns trigger
 language plpgsql as $$
 begin
-  if tg_op = 'INSERT' and (select count(*) from public.personagens where conta_id = new.conta_id) >= 3 then
+  if tg_op = 'INSERT' and not coalesce((select bot from public.contas where id = new.conta_id), false)
+     and (select count(*) from public.personagens where conta_id = new.conta_id) >= 3 then
     raise exception 'Limite de 3 personagens por conta.';
   end if;
   if tg_op = 'UPDATE' then new.nome := old.nome; end if;
@@ -172,7 +175,7 @@ language sql stable security definer set search_path = public as $$
   select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
          coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0)
   from public.personagens p join public.contas c on c.id = p.conta_id
-  where not c.admin
+  where not c.admin and not c.bot
   order by
     case when tipo = 'poder' then coalesce((p.dados ->> 'poder')::bigint, 0) else coalesce((p.dados ->> 'nivel')::bigint, 1) end desc,
     case when tipo = 'poder' then coalesce((p.dados ->> 'nivel')::bigint, 1) else coalesce((p.dados ->> 'exp')::bigint, 0) end desc,
