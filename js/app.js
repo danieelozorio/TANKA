@@ -560,6 +560,16 @@
       + R.TIPOS_ARMADURA.map(function (tipo) {
         return linhaMercado({ tipo: tipo, classe: R.TIPOS_JOIA.indexOf(tipo) >= 0 ? null : p.classe, raridade: estado.mercadoRaridade, encanto: 0 });
       }).join('') + '</div>'
+      + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
+      + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
+      + D.SKINS_DADO.map(function (k) {
+        var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
+        var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
+          : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
+          : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
+        return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
+          + '<span class="suave pequeno">' + (k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
+      }).join('') + '</div>'
       + '<h3 class="subtitulo">Pergaminhos de Encantamento</h3>'
       + '<p class="suave">Cada tentativa de encantar gasta 1 pergaminho da mesma raridade do item.</p><div class="itens">'
       + Object.keys(D.raridades).map(function (k) {
@@ -1150,6 +1160,17 @@
       case 'desequipar':
         if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
+        break;
+      case 'skin-comprar': {
+        var r = R.comprarSkin(p, el.dataset.valor);
+        if (r !== true) { avisar(r); break; }
+        salvar();
+        avisar('Skin comprada e em uso no seu D20!');
+        telaJogo();
+        break;
+      }
+      case 'skin-usar':
+        if (R.usarSkin(p, el.dataset.valor)) { salvar(); telaJogo(); }
         break;
       case 'arena-ver':
         estado.arenaVer = el.dataset.valor;
@@ -2027,7 +2048,7 @@
     }
     return '<div class="zoom-fundo dado-fundo"><div class="zoom-janela dado-janela' + (m.quem === 'd' ? ' do-oponente' : '') + '" role="dialog" aria-label="Dado">'
       + '<div class="zoom-rotulo">' + rotulo + '</div>'
-      + '<div class="mesa-madeira ' + classe + '"><div class="sombra-dado"></div>' + d20Bonito(m.numero) + '</div>'
+      + '<div class="mesa-madeira ' + classe + '"><div class="sombra-dado"></div>' + d20Bonito(m.numero, (m.quem === 'd' ? d.skin : L.luta.estado.a.skin) || (m.quem === 'a' ? estado.personagem.skinDado : null)) + '</div>'
       + '<div class="dado-baixo">' + baixo + '</div></div></div>';
   }
 

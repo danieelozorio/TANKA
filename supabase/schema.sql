@@ -819,6 +819,7 @@ begin
   select * into p from public.personagens where id = pid;
   s := public.tanka_status(p.dados);
   return jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'raca', p.dados ->> 'raca', 'sexo', p.dados ->> 'sexo',
+    'skin', coalesce(p.dados ->> 'skinDado', 'vermelho'),
     'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'hp', s -> 'hpMax', 'hpMax', s -> 'hpMax', 'dano', s -> 'dano', 'magico', s -> 'magico',
     'defesa', s -> 'defesa', 'defesaMagica', s -> 'defesaMagica', 'vel', greatest(1, (s ->> 'velocidade')::numeric), 'barra', 0);
 end $$;

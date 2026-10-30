@@ -791,6 +791,25 @@ Tanka.regras = (function () {
     return { vitoria: true, sala: salas.length - 1, inicio: inicio, eventos: eventos };
   }
 
+  // ---------- Skins do dado ----------
+  function skinsDoPersonagem(p) { return p.skinsDado || ['vermelho']; }
+  // Compra uma skin. Retorna true ou um texto com o motivo.
+  function comprarSkin(p, id) {
+    var skin = D.SKINS_DADO.find(function (s) { return s.id === id; });
+    if (!skin) return 'Skin inválida.';
+    if (skinsDoPersonagem(p).indexOf(id) >= 0) return 'Você já tem essa skin.';
+    if (p.ouro < skin.preco) return 'Ouro insuficiente.';
+    p.ouro -= skin.preco;
+    p.skinsDado = skinsDoPersonagem(p).concat([id]);
+    p.skinDado = id;
+    return true;
+  }
+  function usarSkin(p, id) {
+    if (skinsDoPersonagem(p).indexOf(id) < 0) return false;
+    p.skinDado = id;
+    return true;
+  }
+
   // ---------- Ferramentas de administrador (para testes) ----------
   var admin = {
     // Quantidades negativas tiram (sem ficar abaixo de 0).
@@ -922,6 +941,9 @@ Tanka.regras = (function () {
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
     sortearChefe: sortearChefe,
+    skinsDoPersonagem: skinsDoPersonagem,
+    comprarSkin: comprarSkin,
+    usarSkin: usarSkin,
     masmorra: masmorra,
     salasMasmorra: salasMasmorra,
     simularMasmorra: simularMasmorra,

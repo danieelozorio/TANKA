@@ -446,6 +446,15 @@ Tanka.dados = {
     ],
   },
 
+  // Skins do D20 da Arena, vendidas no Mercado por ouro. O vermelho vem com todo personagem.
+  // As cores de cada skin ficam em css/estilo.css (.d20g.skin-<id>).
+  SKINS_DADO: [
+    { id: 'vermelho', nome: 'Rubi', preco: 0 },
+    { id: 'azul', nome: 'Safira', preco: 500 },
+    { id: 'dourada', nome: 'Ouro Real', preco: 1500 },
+    { id: 'obsidiana', nome: 'Obsidiana', preco: 3000 },
+  ],
+
   // Preenchido abaixo a partir das áreas.
   monstros: {},
 };

@@ -766,3 +766,15 @@ teste('masmorra: 3 salas (monstros da área, Elite, Chefe da Masmorra) e luta de
   assert.strictEqual(a.eventos[0].de, 'm', 'o monstro dá o primeiro golpe');
   assert.ok(herois.every((p) => p.hpAtual === R.status(p).hpMax), 'a luta não mexe na vida de fora');
 });
+
+teste('skins do dado: comprar com ouro, usar e não comprar duas vezes', () => {
+  const p = R.criarPersonagem('Skin', 'masculino', 'humano', 'mago');
+  assert.deepStrictEqual([...R.skinsDoPersonagem(p)], ['vermelho']);
+  assert.strictEqual(R.comprarSkin(p, 'azul'), 'Ouro insuficiente.');
+  p.ouro = 600;
+  assert.strictEqual(R.comprarSkin(p, 'azul'), true);
+  assert.strictEqual(p.ouro, 100); assert.strictEqual(p.skinDado, 'azul');
+  assert.strictEqual(R.comprarSkin(p, 'azul'), 'Você já tem essa skin.');
+  assert.strictEqual(R.usarSkin(p, 'vermelho'), true); assert.strictEqual(p.skinDado, 'vermelho');
+  assert.strictEqual(R.usarSkin(p, 'obsidiana'), false);
+});

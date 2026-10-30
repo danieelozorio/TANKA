@@ -599,6 +599,14 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .d20g { --face-c: rgba(225, 40, 45, .93); --face-t: rgba(245, 85, 85, .92); --face-l: rgba(205, 28, 35, .93);
   --face-b: rgba(160, 14, 20, .94); --face-s: rgba(175, 18, 24, .94); --face-e: rgba(120, 8, 14, .95); --numero: #fff; }
 .d20g.skin-vermelho { }
+.d20g.skin-azul { --face-c: rgba(40, 110, 225, .93); --face-t: rgba(90, 155, 245, .92); --face-l: rgba(28, 90, 205, .93);
+  --face-b: rgba(14, 58, 160, .94); --face-s: rgba(18, 70, 175, .94); --face-e: rgba(8, 38, 120, .95); --numero: #fff; }
+.d20g.skin-dourada { --face-c: rgba(232, 182, 52, .96); --face-t: rgba(252, 218, 112, .95); --face-l: rgba(212, 156, 36, .96);
+  --face-b: rgba(168, 116, 20, .97); --face-s: rgba(182, 126, 24, .97); --face-e: rgba(122, 80, 10, .97); --numero: #3a2400; }
+.d20g.skin-obsidiana { --face-c: rgba(42, 38, 54, .97); --face-t: rgba(80, 72, 98, .96); --face-l: rgba(32, 28, 40, .97);
+  --face-b: rgba(20, 17, 26, .98); --face-s: rgba(24, 21, 32, .98); --face-e: rgba(10, 8, 14, .98); --numero: #c9a0ff; }
+.d20g.skin-obsidiana .n { stroke: rgba(150, 90, 255, .5); }
+.d20g.skin-dourada .n { stroke: rgba(255, 240, 200, .5); }
 .d20g .f-c { fill: var(--face-c); }
 .d20g .f-t { fill: var(--face-t); }
 .d20g .f-l { fill: var(--face-l); }
@@ -642,3 +650,12 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .dado-resultado { font-size: 1.15rem; }
 .dado-resultado strong { font: 700 1.6rem var(--titulo); }
 .btn-rolar { font-size: 1.15rem; padding: .7em 1.8em; border-color: var(--lendaria); color: #fff3c4; background: linear-gradient(#7a1414, #3a0808); box-shadow: 0 0 14px rgba(220, 60, 60, .35); }
+
+/* Loja de skins do dado (Mercado) */
+.skins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.skin-carta { display: grid; justify-items: center; gap: .3rem; padding: .7rem .5rem; border: 1px solid var(--borda); border-radius: 10px; text-align: center;
+  background: radial-gradient(circle at 50% 30%, #3a2716, #1a120b 75%); }
+.skin-carta.em-uso { border-color: var(--bom); }
+.skin-carta .d20g { width: 84px; height: 84px; }
+.skin-carta .btn { font-size: .8rem; padding: .4em .6em; }
+@media (max-width: 600px) { .skins { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
