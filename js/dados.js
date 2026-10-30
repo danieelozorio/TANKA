@@ -456,6 +456,7 @@ Tanka.dados = {
     { id: 'azul', nome: 'Safira', preco: 500 },
     { id: 'dourada', nome: 'Ouro Real', preco: 1500 },
     { id: 'obsidiana', nome: 'Obsidiana', preco: 3000 },
+    { id: 'dragao', nome: 'Dragão Cinzento', preco: 5000 },
   ],
 
   // Preenchido abaixo a partir das áreas.

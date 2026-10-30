@@ -589,6 +589,10 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .d20g.skin-obsidiana { --face-c: rgba(42, 38, 54, .97); --face-t: rgba(80, 72, 98, .96); --face-l: rgba(32, 28, 40, .97);
   --face-b: rgba(20, 17, 26, .98); --face-s: rgba(24, 21, 32, .98); --face-e: rgba(10, 8, 14, .98); --numero: #c9a0ff; }
 .d20g.skin-obsidiana .n { stroke: rgba(150, 90, 255, .5); }
+.d20g.skin-dragao { --face-c: rgba(98, 101, 107, .98); --face-t: rgba(130, 133, 139, .98); --face-l: rgba(82, 85, 90, .98);
+  --face-b: rgba(58, 60, 64, .99); --face-s: rgba(66, 68, 73, .99); --face-e: rgba(38, 40, 44, .99); --numero: #f1ede4; }
+.d20g.skin-dragao .f { stroke: #a9abae; stroke-width: 1.6; }
+.d20g.skin-dragao .n { font-family: Georgia, 'Times New Roman', serif; stroke: rgba(0, 0, 0, .5); }
 .d20g.skin-dourada .n { stroke: rgba(255, 240, 200, .5); }
 .d20g .f-c { fill: var(--face-c); }
 .d20g .f-t { fill: var(--face-t); }
@@ -641,7 +645,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .btn-rolar { font-size: 1.15rem; padding: .7em 1.8em; border-color: var(--lendaria); color: #fff3c4; background: linear-gradient(#7a1414, #3a0808); box-shadow: 0 0 14px rgba(220, 60, 60, .35); }
 
 /* Loja de skins do dado (Mercado) */
-.skins { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .6rem; }
+.skins { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .6rem; }
 .skin-carta { display: grid; justify-items: center; gap: .3rem; padding: .7rem .5rem; border: 1px solid var(--borda); border-radius: 10px; text-align: center;
   background: radial-gradient(circle at 50% 30%, #3a2716, #1a120b 75%); }
 .skin-carta.em-uso { border-color: var(--bom); }

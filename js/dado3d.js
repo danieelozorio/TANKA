@@ -14,6 +14,8 @@ Tanka.dado3d = (function () {
     azul: { meio: '#3a8cff', borda: '#061f55', veio: 'rgba(180,220,255,.12)', numero: ['#ffffff', '#d3dceb', '#7f8ba0'], brilhoNumero: 0, metal: 0 },
     dourada: { meio: '#ffd76a', borda: '#7a4c05', veio: 'rgba(255,250,210,.16)', numero: ['#6a3c00', '#3d2100', '#1c0e00'], brilhoNumero: 0, metal: 0.55 },
     obsidiana: { meio: '#3d3550', borda: '#050408', veio: 'rgba(170,130,255,.10)', numero: ['#f3e2ff', '#b98cff', '#6236c8'], brilhoNumero: 0.55, metal: 0.1 },
+    // Dragão Cinzento: pedra com escamas, rachaduras com brasa, moldura de metal nas arestas e fumaça.
+    dragao: { meio: '#62656b', borda: '#2a2c30', numero: ['#faf7f0', '#d2cdc1', '#77736a'], brilhoNumero: 1, metal: 0.35, estilo: 'dragao', fumaca: true },
   };
 
   function carregar() {
@@ -102,6 +104,111 @@ Tanka.dado3d = (function () {
     return { mapa: mapa, relevo: relevo, mascara: mascara };
   }
 
+  // Textura do Dragão Cinzento: escamas, rachaduras (algumas com brasa), moldura de metal e números de prata.
+  // A máscara (que brilha) leva só as brasas: no 20 natural elas acendem em dourado.
+  function texturasDragao(T, cor) {
+    var cw = TAM / COLS, ch = TAM / LINHAS, rnd = sorteio(41);
+    function tela() { var c = document.createElement('canvas'); c.width = c.height = TAM; return c; }
+    var cCor = tela(), cRel = tela(), cMas = tela();
+    var g = cCor.getContext('2d'), r = cRel.getContext('2d'), k = cMas.getContext('2d');
+    r.fillStyle = '#808080'; r.fillRect(0, 0, TAM, TAM);
+    k.fillStyle = '#000'; k.fillRect(0, 0, TAM, TAM);
+    function triangulo(c, ax, ay, bx, by, cx, cy) { c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.lineTo(cx, cy); c.closePath(); }
+    function rachadura(x, y, ang, tam, brasa) {
+      var pts = [[x, y]];
+      for (var i = 0; i < 6; i++) { ang += (rnd() - 0.5) * 1.1; x += Math.cos(ang) * tam / 6; y += Math.sin(ang) * tam / 6; pts.push([x, y]); }
+      [[g, '#0b0b0c', 4 + rnd() * 3], [r, '#202020', 6]].forEach(function (c) {
+        c[0].strokeStyle = c[1]; c[0].lineWidth = c[2]; c[0].lineJoin = c[0].lineCap = 'round';
+        c[0].beginPath(); pts.forEach(function (pt, n) { if (n) c[0].lineTo(pt[0], pt[1]); else c[0].moveTo(pt[0], pt[1]); }); c[0].stroke();
+      });
+      if (brasa) {
+        [g, k].forEach(function (c) {
+          c.save(); c.shadowColor = '#ff6a10'; c.shadowBlur = 18; c.strokeStyle = '#ffa040'; c.lineWidth = 3.5; c.lineCap = 'round';
+          c.beginPath(); pts.slice(1, 5).forEach(function (pt, n) { if (n) c.lineTo(pt[0], pt[1]); else c.moveTo(pt[0], pt[1]); }); c.stroke(); c.restore();
+        });
+      }
+    }
+    for (var i = 0; i < 20; i++) {
+      var x0 = (i % COLS) * cw, y0 = Math.floor(i / COLS) * ch;
+      var ax = x0 + cw * 0.5, ay = y0 + ch * 0.08, bx = x0 + cw * 0.08, by = y0 + ch * 0.88, cx = x0 + cw * 0.92, cy = by;
+      var mx = (ax + bx + cx) / 3, my = (ay + by + cy) / 3;
+      // pedra cinza, mais clara no meio
+      var fundo = g.createRadialGradient(mx, my, ch * 0.05, mx, my, ch * 0.6);
+      fundo.addColorStop(0, cor.meio); fundo.addColorStop(1, cor.borda);
+      g.fillStyle = fundo; g.fillRect(x0, y0, cw, ch);
+      [g, r].forEach(function (c) { c.save(); triangulo(c, ax, ay, bx, by, cx, cy); c.clip(); });
+      // escamas de dragão: fileiras de meias-luas
+      var esc = ch * 0.055;
+      for (var yy = y0; yy < y0 + ch; yy += esc * 0.75) {
+        var desl = (Math.round((yy - y0) / (esc * 0.75)) % 2) * esc;
+        for (var xx = x0 - esc; xx < x0 + cw + esc; xx += esc * 2) {
+          g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 2.5; g.beginPath(); g.arc(xx + desl, yy, esc, 0.15, Math.PI - 0.15); g.stroke();
+          g.strokeStyle = 'rgba(255,255,255,.07)'; g.lineWidth = 2; g.beginPath(); g.arc(xx + desl, yy - 3, esc, 0.3, Math.PI - 0.3); g.stroke();
+          r.strokeStyle = '#5c5c5c'; r.lineWidth = 3; r.beginPath(); r.arc(xx + desl, yy, esc, 0.15, Math.PI - 0.15); r.stroke();
+        }
+      }
+      // manchas da pedra
+      for (var m = 0; m < 18; m++) {
+        g.fillStyle = 'rgba(' + (rnd() < 0.5 ? '0,0,0' : '255,255,255') + ',' + (0.03 + rnd() * 0.05) + ')';
+        g.beginPath(); g.arc(x0 + rnd() * cw, y0 + rnd() * ch, 10 + rnd() * 40, 0, 7); g.fill();
+      }
+      // rachaduras (uma a cada duas faces com brasa)
+      for (var q = 0; q < 3; q++) rachadura(x0 + cw * (0.2 + rnd() * 0.6), y0 + ch * (0.3 + rnd() * 0.5), rnd() * 6.3, ch * (0.25 + rnd() * 0.3), q === 0);
+      [g, r].forEach(function (c) { c.restore(); });
+      // moldura de metal nas arestas (chanfrada)
+      g.lineJoin = r.lineJoin = 'round';
+      triangulo(g, ax, ay, bx, by, cx, cy);
+      g.lineWidth = 46; g.strokeStyle = '#3d3f43'; g.stroke();
+      g.lineWidth = 34; g.strokeStyle = '#8d8f92'; g.stroke();
+      g.lineWidth = 16; g.strokeStyle = '#b6b8ba'; g.stroke();
+      g.lineWidth = 4; g.strokeStyle = 'rgba(20,20,22,.8)'; g.stroke();
+      triangulo(r, ax, ay, bx, by, cx, cy); r.lineWidth = 40; r.strokeStyle = '#d8d8d8'; r.stroke();
+      // número de prata em alto relevo
+      var n = String(i + 1), ny = my + ch * 0.07;
+      var fonte = '700 ' + Math.round(ch * (n.length > 1 ? 0.3 : 0.36)) + 'px Georgia, "Times New Roman", serif';
+      [g, r].forEach(function (c) { c.font = fonte; c.textAlign = 'center'; c.textBaseline = 'middle'; });
+      g.fillStyle = 'rgba(0,0,0,.7)'; g.fillText(n, mx + 4, ny + 5);
+      var prata = g.createLinearGradient(mx, ny - ch * 0.16, mx, ny + ch * 0.16);
+      prata.addColorStop(0, cor.numero[0]); prata.addColorStop(0.55, cor.numero[1]); prata.addColorStop(1, cor.numero[2]);
+      g.fillStyle = prata; g.fillText(n, mx, ny);
+      g.lineWidth = 2.5; g.strokeStyle = 'rgba(40,38,34,.7)'; g.strokeText(n, mx, ny);
+      r.fillStyle = '#e8e8e8'; r.fillText(n, mx, ny);
+      if (n === '6' || n === '9') { g.fillStyle = prata; g.fillRect(mx - ch * 0.08, ny + ch * 0.16, ch * 0.16, ch * 0.026); }
+      // garra do dragão ao lado do 20
+      if (n === '20') {
+        g.save(); g.translate(mx + ch * 0.27, ny + ch * 0.05); g.strokeStyle = cor.numero[1]; g.lineWidth = 6; g.lineCap = 'round';
+        [-0.5, 0, 0.5].forEach(function (a) { g.beginPath(); g.moveTo(0, 10); g.quadraticCurveTo(a * 30, -14, a * 26 + 6, -34); g.stroke(); });
+        g.beginPath(); g.arc(0, 18, 12, 0, 7); g.fillStyle = cor.numero[1]; g.fill(); g.restore();
+      }
+    }
+    var mapa = new T.CanvasTexture(cCor); mapa.encoding = T.sRGBEncoding; mapa.anisotropy = 8;
+    var relevo = new T.CanvasTexture(cRel); relevo.anisotropy = 8;
+    var mascara = new T.CanvasTexture(cMas); mascara.encoding = T.sRGBEncoding;
+    return { mapa: mapa, relevo: relevo, mascara: mascara };
+  }
+
+  // Fumaça: fios ondulados e desfocados (parecem fumaça subindo de uma fresta).
+  function texturaFumaca(T) {
+    var c = document.createElement('canvas'); c.width = 128; c.height = 256;
+    var g = c.getContext('2d'), rnd = sorteio(5);
+    g.lineCap = 'round';
+    for (var i = 0; i < 2; i++) {
+      var x = 50 + rnd() * 28;
+      g.save();
+      g.filter = 'blur(5px)';
+      g.strokeStyle = 'rgba(215,218,224,' + (0.35 + rnd() * 0.2) + ')'; g.lineWidth = 10 + rnd() * 10;
+      g.beginPath(); g.moveTo(x, 250);
+      g.bezierCurveTo(x + 55, 190, x - 60, 110, x + 10 + rnd() * 30, 10);
+      g.stroke();
+      g.filter = 'blur(2px)'; g.lineWidth = 3; g.strokeStyle = 'rgba(235,237,242,.35)'; g.stroke();
+      g.restore();
+    }
+    var fade = g.createLinearGradient(0, 0, 0, 256);
+    fade.addColorStop(0, 'rgba(0,0,0,1)'); fade.addColorStop(0.45, 'rgba(0,0,0,0)'); fade.addColorStop(0.7, 'rgba(0,0,0,0)'); fade.addColorStop(1, 'rgba(0,0,0,1)');
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = fade; g.fillRect(0, 0, 128, 256);
+    return new T.CanvasTexture(c);
+  }
+
   // Ambiente para os reflexos (sala escura com luz de vela/janela): deixa a resina brilhante.
   function ambiente(T, renderer) {
     var c = document.createElement('canvas'); c.width = 512; c.height = 256;
@@ -187,10 +294,12 @@ Tanka.dado3d = (function () {
     mesa.position.y = -1.0;
     cena.add(mesa);
 
-    var G = geometria(T), tex = texturas(T, skin);
+    var dragao = cor.estilo === 'dragao';
+    var G = geometria(T), tex = dragao ? texturasDragao(T, cor) : texturas(T, skin);
     var material = new T.MeshPhysicalMaterial({
-      map: tex.mapa, bumpMap: tex.relevo, bumpScale: 0.025, emissiveMap: tex.mascara, emissive: new T.Color(0, 0, 0),
-      roughness: 0.14, metalness: cor.metal, clearcoat: 1, clearcoatRoughness: 0.06, envMapIntensity: 1.25, flatShading: true,
+      map: tex.mapa, bumpMap: tex.relevo, bumpScale: dragao ? 0.05 : 0.025, emissiveMap: tex.mascara, emissive: new T.Color(0, 0, 0),
+      roughness: dragao ? 0.5 : 0.14, metalness: cor.metal, clearcoat: dragao ? 0.25 : 1, clearcoatRoughness: dragao ? 0.4 : 0.06,
+      envMapIntensity: 1.25, flatShading: true,
     });
     var pivo = new T.Group();                  // vira o dado para a câmera
     pivo.rotation.x = -inclinacao;
@@ -213,6 +322,18 @@ Tanka.dado3d = (function () {
     halo.scale.set(4.2, 4.2, 1);
     halo.position.set(0, 0.1, -1.4);
     cena.add(halo);
+
+    // Fumaça subindo do dado (skins com fumaça): nuvens que nascem perto do dado, sobem, crescem e somem.
+    var fumacas = [];
+    if (cor.fumaca) {
+      var texFumaca = texturaFumaca(T);
+      for (var f = 0; f < 7; f++) {
+        var sp = new T.Sprite(new T.SpriteMaterial({ map: texFumaca, transparent: true, depthWrite: false, opacity: 0, color: 0xc9ccd2 }));
+        sp.userData = { fase: f / 7, x: (f % 2 ? 1 : -1) * (0.15 + Math.random() * 0.55), z: (Math.random() - 0.5) * 0.6, giro: (Math.random() - 0.5) * 1.5 };
+        cena.add(sp);
+        fumacas.push(sp);
+      }
+    }
 
     var estado = { modo: 'parado', inicio: 0, alvo: G.alvos[19].clone(), de: new T.Quaternion(), giro: new T.Vector3(1.3, 2.1, 0.7), aoFim: null, brilho: null, lado: 1 };
     var rodando = true, antes = performance.now();
@@ -254,9 +375,19 @@ Tanka.dado3d = (function () {
         halo.material.rotation = t * 0.6;
       } else {
         halo.material.opacity = 0;
-        material.emissive.copy(corNumero).multiplyScalar(cor.brilhoNumero);
+        // dragão: as brasas das rachaduras tremulam; obsidiana: números com brilho próprio
+        if (dragao) material.emissive.setScalar(1.1 + 0.35 * Math.sin(t * 2.3) * Math.sin(t * 5.1));
+        else material.emissive.copy(corNumero).multiplyScalar(cor.brilhoNumero);
         aura.intensity = 0;
       }
+      fumacas.forEach(function (sp) {
+        var u = sp.userData, vida = (t * 0.28 + u.fase) % 1;
+        sp.position.set(pivo.position.x + u.x * (1 + vida * 0.6) + Math.sin(t * 1.1 + u.giro * 5) * 0.2 * vida,
+          pivo.position.y + 0.55 + vida * 1.3, pivo.position.z + u.z + 0.3);
+        sp.scale.set(0.7 + vida * 0.7, 1.2 + vida * 1.1, 1);
+        sp.material.opacity = Math.sin(vida * Math.PI) * 0.55;
+        sp.material.rotation = u.giro * 0.25 * (vida - 0.5);
+      });
       var altura = Math.max(0, pivo.position.y);
       mesa.position.x = pivo.position.x; mesa.position.z = pivo.position.z;
       mesa.scale.setScalar(2.3 * (1 + altura * 0.35));
@@ -299,6 +430,8 @@ Tanka.dado3d = (function () {
         rodando = false;
         if (observador) observador.disconnect();
         [tex.mapa, tex.relevo, tex.mascara, halo.material.map].forEach(function (x) { x.dispose(); });
+        fumacas.forEach(function (sp) { sp.material.dispose(); });
+        if (fumacas.length) fumacas[0].material.map.dispose();
         material.dispose(); halo.material.dispose(); mesa.material.map.dispose(); mesa.material.dispose(); mesa.geometry.dispose(); G.geo.dispose(); env.dispose();
         renderer.dispose();
         renderer.domElement.remove();
