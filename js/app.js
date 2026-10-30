@@ -1187,14 +1187,6 @@
       case 'arena-rolar':
         rolarDadoArena(true);
         break;
-      case 'arena-auto':
-        estado.lutaArena.auto = !estado.lutaArena.auto;
-        el.textContent = estado.lutaArena.auto ? '✋ Parar automático' : '🎲 Rolar automático';
-        if (estado.lutaArena.auto) rolarDadoArena(true);
-        break;
-      case 'arena-pular':
-        pularLutaArena();
-        break;
       case 'arena-fechar':
         clearTimeout(estado.lutaArena.timer);
         clearInterval(estado.lutaArena.relogio);
@@ -1958,11 +1950,10 @@
   function animarDado(final, quem, depois, jaCaindo) {
     var L = estado.lutaArena;
     function terminar() {
-      if (L.pulando) return;
       var especial = final === 20 ? 2600 : final >= 18 || final === 1 ? 1700 : 1300;
       L.modal = { modo: 'pousou', quem: quem, numero: final, texto: efeitoDado(final) };
       atualizarJanelaDado();
-      L.timer = setTimeout(function () { if (L.pulando) return; L.modal = null; depois(); }, especial);
+      L.timer = setTimeout(function () { L.modal = null; depois(); }, especial);
     }
     function pousar() {
       clearInterval(L.giro);
@@ -2064,7 +2055,6 @@
   function aplicarEventoArena(ev) {
     var L = estado.lutaArena, est = L.luta.estado;
     var atk = ev.de === 'a' ? est.a : est.d, alvo = ev.de === 'a' ? est.d : est.a;
-    L.aplicados = (L.aplicados || 0) + 1;
     L.hpA = ev.hpA; L.hpD = ev.hpD;
     L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
@@ -2075,7 +2065,7 @@
   // Mostra os eventos novos um a um (o dado do oponente também cai na mesa) e depois espera o jogador.
   function tocarEventosArena() {
     var L = estado.lutaArena;
-    if (!L || L.pulando) return;
+    if (!L) return;
     var ev = L.luta.eventos[L.idx];
     if (ev) {
       L.idx++;
@@ -2097,7 +2087,6 @@
     redesenharArena();
     atualizarJanelaDado();
     clearInterval(L.relogio);
-    if (L.auto) { L.timer = setTimeout(function () { rolarDadoArena(true); }, 500); return; }
     L.relogio = setInterval(function () {
       var resta = Math.max(0, L.prazo - Date.now());
       var barra = document.querySelector('.tempo-dado i');
@@ -2124,36 +2113,12 @@
       clearInterval(L.giro);
       avisar(e.message);
       L.fase = 'esperando';
-      if (L.pulando) pularLutaArena(true);
       return;
     }
-    if (L.pulando) { L.fase = 'esperando'; pularLutaArena(true); return; }
     if (rolar) {
       L.jaCaindo = true;
       L.timer = setTimeout(tocarEventosArena, Math.max(0, (L.dado3d ? 950 : 1500) - (Date.now() - inicio)));
     } else tocarEventosArena();
-  }
-
-  // "Pular luta": o servidor rola o dado do jogador em todos os turnos que faltam e a luta vai direto para o resultado.
-  async function pularLutaArena(continuar) {
-    var L = estado.lutaArena;
-    if (!L || L.fase === 'fim' || (L.pulando && !continuar)) return;
-    L.pulando = true;
-    L.auto = false;
-    L.modal = null;
-    clearTimeout(L.timer); clearInterval(L.relogio); clearInterval(L.giro);
-    redesenharArena();
-    if (L.fase === 'rolando') return;          // termina quando a rolagem que já foi pedida voltar
-    try {
-      while (L.luta.situacao === 'andamento') L.luta = await C.arena.rolar(estado.personagem.id, L.luta.id, true);
-    } catch (e) {
-      avisar(e.message);
-    }
-    L.luta.eventos.slice(L.aplicados || 0).forEach(aplicarEventoArena);
-    L.idx = L.luta.eventos.length;
-    L.pulando = false;
-    L.modal = null;
-    tocarEventosArena();
   }
 
   function lutaArenaHtml() {
@@ -2164,9 +2129,7 @@
         + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax) + '</div>';
     }
     var mesa = L.fase === 'fim' ? '' : '<div class="vaga-dado"></div>';
-    var controles = L.fase === 'fim' ? '' : '<div class="botoes botoes-luta">'
-      + '<button class="btn secundario" data-acao="arena-auto">' + (L.auto ? '✋ Parar automático' : '🎲 Rolar automático') + '</button>'
-      + '<button class="btn perigo" data-acao="arena-pular"' + (L.pulando ? ' disabled' : '') + '>' + (L.pulando ? 'Resolvendo…' : 'Pular luta') + '</button></div>';
+    var controles = '';
     var fim = '';
     if (L.fase === 'fim') {
       var lt = L.luta;
