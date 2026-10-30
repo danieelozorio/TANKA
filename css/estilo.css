@@ -695,20 +695,33 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   border: 1px solid rgba(255, 138, 122, .5); background: transparent; color: #ff9a8c; }
 .btn-icone.ativa, .btn-icone:hover { background: rgba(255, 138, 122, .12); }
 
-/* Barra de recursos no alto */
-.barra-recursos { position: sticky; top: 0; z-index: 8; background: rgba(10, 13, 19, .93); border-bottom: 1px solid rgba(201, 162, 74, .35);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.recursos-dentro { max-width: 1180px; margin: 0 auto; padding: .45rem 16px; display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; align-items: center; justify-content: center; }
-.recurso { display: inline-flex; align-items: center; gap: .4rem; font-family: var(--titulo); font-size: 1rem; white-space: nowrap; }
-.recurso svg { width: 22px; height: 22px; flex: none; }
-.recurso strong { font-variant-numeric: tabular-nums; }
-.recurso small { font-family: var(--corpo); color: var(--suave); font-size: .8rem; }
-.r-ouro { color: var(--cor-ouro); }
-.r-reputacao { color: #8ec5ff; }
-.r-pocao { color: #ff8f86; }
-.r-pocao .btn { padding: .15em .7em; font-size: .75rem; }
-.r-arena { color: var(--ouro-claro); }
-.r-vida { display: none; color: #ff6b5a; }
+/* Barra de recursos no alto: medalhões com ícone, rótulo pequeno e valor */
+.barra-recursos { position: sticky; top: 0; z-index: 8; border-bottom: 1px solid rgba(201, 162, 74, .45);
+  background: linear-gradient(180deg, rgba(22, 29, 41, .97), rgba(12, 16, 23, .97)); box-shadow: 0 6px 20px rgba(0, 0, 0, .45);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.barra-recursos::after { content: ""; position: absolute; left: 50%; bottom: -4px; width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg);
+  background: #c9a24a; box-shadow: 0 0 8px rgba(201, 162, 74, .6); }
+.recursos-dentro { max-width: 1180px; margin: 0 auto; padding: .5rem 16px; display: flex; flex-wrap: wrap; gap: .5rem .7rem; align-items: center; justify-content: center; }
+.recurso { --cor: var(--ouro-claro); --brilho: rgba(201, 162, 74, .35);
+  display: inline-flex; align-items: center; gap: .55rem; min-width: 128px; padding: .25rem .9rem .25rem .3rem; white-space: nowrap;
+  border: 1px solid rgba(201, 162, 74, .3); border-radius: 999px; background: linear-gradient(180deg, #1c2432, #11161f);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), 0 2px 8px rgba(0, 0, 0, .35); }
+.rec-ico { display: grid; place-items: center; width: 34px; height: 34px; flex: none; border-radius: 50%; color: var(--cor); font-size: 1.1rem;
+  border: 1px solid var(--cor); background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .18), transparent 60%), radial-gradient(circle, var(--brilho), rgba(0, 0, 0, .4) 75%);
+  box-shadow: 0 0 10px var(--brilho); }
+.rec-ico svg { width: 19px; height: 19px; }
+.rec-txt { display: grid; line-height: 1.05; }
+.rec-txt small { font-family: var(--corpo); font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave); }
+.rec-txt strong { font-family: var(--titulo); font-size: 1.05rem; color: var(--cor); font-variant-numeric: tabular-nums; }
+.r-ouro { --cor: #f0c95a; --brilho: rgba(240, 201, 90, .35); }
+.r-reputacao { --cor: #8ec5ff; --brilho: rgba(110, 170, 255, .3); }
+.r-pocao { --cor: #ff8f86; --brilho: rgba(230, 80, 70, .32); }
+.r-arena { --cor: #e6cf9c; --brilho: rgba(201, 162, 74, .3); }
+.r-vida { --cor: #ff6b5a; --brilho: rgba(230, 70, 55, .32); display: none; }
+.rec-usar { margin-left: .2rem; padding: .2em .65em; border: 1px solid #c0453b; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(#7a1d17, #44100c); color: #ffd2cc; font-family: var(--titulo); font-size: .7rem; letter-spacing: .05em; }
+.rec-usar:hover { filter: brightness(1.25); }
+.rec-usar:disabled { opacity: .35; cursor: not-allowed; filter: none; }
 
 /* Abas em 5 grupos */
 .abas-jogo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .3rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 1px solid rgba(201, 162, 74, .25); }
@@ -773,23 +786,24 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   .abas-jogo button.ativa { background: radial-gradient(ellipse at 50% 0%, rgba(201, 162, 74, .3), transparent 75%); border-color: transparent; }
   .aba-ico svg { width: 24px; height: 24px; }
   #chat { bottom: 84px; }
-  .recursos-dentro { gap: .35rem .9rem; padding: .4rem 10px; }
-  .recurso { font-size: .9rem; }
-  .recurso svg { width: 18px; height: 18px; }
   #aviso { top: 104px; right: 10px; }
   /* No celular o conteúdo da aba vem primeiro; a ficha fica embaixo e a vida aparece na barra de cima */
   .jogo > section { order: -1; }
-  .r-vida { display: inline-flex; }
   .topo { flex-wrap: nowrap; padding: .45rem 10px; gap: .5rem; }
   .topo .logo { font-size: 1.15rem; }
   .topo .acoes { flex-wrap: nowrap; gap: .35rem; }
   .topo .acoes > .suave, .topo .selo-admin { display: none; }
   .topo .btn { padding: .4em .6em; font-size: .72rem; }
   .btn-icone { width: 32px; height: 32px; padding: 6px; }
-  .recursos-dentro { gap: .3rem .75rem; }
-  .recurso { font-size: .82rem; gap: .3rem; }
-  .recurso svg { width: 16px; height: 16px; }
-  .r-pocao .btn { padding: .1em .5em; font-size: .68rem; }
+  /* recursos: medalhões compactos, sem os rótulos */
+  .recursos-dentro { gap: .25rem; padding: .4rem 6px; }
+  .r-vida { display: inline-flex; }
+  .recurso { min-width: 0; padding: .15rem .45rem .15rem .15rem; gap: .25rem; }
+  .rec-ico { width: 22px; height: 22px; font-size: .75rem; }
+  .rec-ico svg { width: 13px; height: 13px; }
+  .rec-txt small { display: none; }
+  .rec-txt strong { font-size: .76rem; }
+  .rec-usar { margin-left: 0; padding: .05em .4em; font-size: .56rem; }
   .item.item-com-icone { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .item-com-icone .item-acoes { flex-basis: 100%; justify-content: flex-end; }
 }

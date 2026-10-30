@@ -311,19 +311,25 @@
   function recursosHtml() {
     var p = estado.personagem, s = R.status(p), emBatalha = !!estado.batalha;
     var podeUsar = !emBatalha && p.pocoes > 0 && p.hpAtual < s.hpMax;
-    var e = estado.arena && estado.arena.entradas, arena;
-    if (p.nivel < A.nivelMin) arena = '<strong>Lv ' + A.nivelMin + '</strong>';
-    else if (!e) arena = '<strong>…</strong>';
-    else arena = '<strong>' + e.valor + '/' + e.maximo + '</strong>'
-      + (e.proxima_em ? '<small>+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora())) + '</small>' : '');
+    var e = estado.arena && estado.arena.entradas, arena, arenaRotulo = 'Arena';
+    if (p.nivel < A.nivelMin) arena = 'Lv ' + A.nivelMin;
+    else if (!e) arena = '…';
+    else {
+      arena = e.valor + '/' + e.maximo;
+      if (e.proxima_em) arenaRotulo = '+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora()));
+    }
+    function recurso(classe, titulo, icone, rotulo, valor, extra) {
+      return '<div class="recurso ' + classe + '" title="' + titulo + '"><span class="rec-ico">' + icone + '</span>'
+        + '<span class="rec-txt"><small>' + rotulo + '</small><strong>' + valor + '</strong></span>' + (extra || '') + '</div>';
+    }
     return '<div class="barra-recursos" id="recursos"><div class="recursos-dentro">'
-      + '<div class="recurso r-vida" title="Vida">♥<strong>' + p.hpAtual + '/' + s.hpMax + '</strong></div>'
-      + '<div class="recurso r-ouro" title="Ouro">' + ICONES.ouro + '<strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
-      + '<div class="recurso r-reputacao" title="Reputação">' + ICONES.reputacao + '<strong>' + (p.reputacao || 0).toLocaleString('pt-BR') + '</strong></div>'
-      + '<div class="recurso r-pocao" title="Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)">' + ICONES.pocao
-      + '<strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong>'
-      + '<button class="btn mini-opcao" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + '>Usar</button></div>'
-      + '<div class="recurso r-arena" title="Entradas da Arena">' + ICONES.arena + arena + '</div>'
+      + recurso('r-vida', 'Vida', '♥', 'Vida', p.hpAtual + '/' + s.hpMax)
+      + recurso('r-ouro', 'Ouro', ICONES.ouro, 'Ouro', p.ouro.toLocaleString('pt-BR'))
+      + recurso('r-reputacao', 'Reputação', ICONES.reputacao, 'Reputação', (p.reputacao || 0).toLocaleString('pt-BR'))
+      + recurso('r-pocao', 'Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)', ICONES.pocao, 'Poções',
+        '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</span>',
+        '<button class="rec-usar" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + ' title="Beber uma poção">Usar</button>')
+      + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)
       + '</div></div>';
   }
 
