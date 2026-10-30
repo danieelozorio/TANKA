@@ -1046,6 +1046,10 @@
       + grupo('Ouro', 'Soma ou tira ouro do personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('ouro', [-1000, -10000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('zerar-ouro', [0], function () { return 'Zerar'; }, 'menos'))
+      + grupo('Reputação', 'Soma ou tira reputação do personagem (Arena, alianças e itens especiais).',
+        botoes('reputacao', [100, 1000, 10000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
+        + botoes('reputacao', [-100, -1000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
+        + botoes('reputacao', [-1000000], function () { return 'Zerar'; }, 'menos'))
       + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo.',
         botoes('nivel', [1, 5, 10], function (v) { return '+' + v; })
         + botoes('baixar-nivel', [1, 5], function (v) { return '−' + v; }, 'menos')
@@ -1060,11 +1064,8 @@
       + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; })
         + botoes('pergaminhos', [-10], function (v) { return v + ' de cada'; }, 'menos')
         + botoes('pergaminhos', [-1000000], function () { return 'Zerar'; }, 'menos'))
-      + grupo('Arena', 'Recarrega as 5 entradas da Arena ou mexe na Reputação.',
-        '<button class="btn" data-acao="admin-arena-entradas">Recarregar entradas</button>'
-        + botoes('reputacao', [100, 1000], function (v) { return '+' + v + ' reputação'; })
-        + botoes('reputacao', [-100], function (v) { return v + ' reputação'; }, 'menos')
-        + botoes('reputacao', [-1000000], function () { return 'Zerar reputação'; }, 'menos'))
+      + grupo('Arena', 'Recarrega as 5 entradas da Arena.',
+        '<button class="btn" data-acao="admin-arena-entradas">Recarregar entradas</button>')
       + grupo('Masmorra', 'Zera as entradas de hoje ou dá uma joia (colar ou anel sorteado) da raridade.',
         '<button class="btn" data-acao="admin-masmorra-entradas">Recarregar entradas</button>'
         + R.RARIDADES.map(function (k) { return '<button class="btn" data-acao="admin" data-op="joia" data-valor="' + k + '">Joia ' + D.raridades[k].nome.toLowerCase() + '</button>'; }).join(''))
