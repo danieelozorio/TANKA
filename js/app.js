@@ -1058,7 +1058,8 @@
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
-      + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '');
+      + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
+      + (estado.desafio && estado.aba === 'arena' && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
@@ -1357,7 +1358,20 @@
         telaJogo();
         break;
       case 'arena-desafiar':
-        comecarLutaArena(function () { return C.arena.desafiar(p.id, el.dataset.id); }, el);
+        abrirDesafio(el.dataset.id);
+        break;
+      case 'desafio-confirmar': {
+        var alvoDesafio = estado.desafio && estado.desafio.id;
+        if (!alvoDesafio) break;
+        estado.desafio = null;
+        telaJogo();
+        comecarLutaArena(function () { return C.arena.desafiar(p.id, alvoDesafio); });
+        break;
+      }
+      case 'desafio-cancelar':
+        if (el.classList.contains('zoom-fundo') && e.target !== el) break;   // clique dentro da janela
+        estado.desafio = null;
+        telaJogo();
         break;
       case 'arena-revanche':
         comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
@@ -1715,6 +1729,7 @@
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && estado.zoom) { estado.zoom = null; telaJogo(); }
+    if (e.key === 'Escape' && estado.desafio) { estado.desafio = null; telaJogo(); }
   });
 
   // Mouse sobre um item: mostra a ficha dele depois de um instante (para não trocar ao só passar por cima).
@@ -2073,6 +2088,78 @@
     return '<svg class="trofeu trofeu-' + cor + '" viewBox="0 0 24 24" aria-label="Trofeu de ' + cor + '"><path d="M7 3h10v3h3v2a5 5 0 0 1-4.6 5A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A5 5 0 0 1 8.6 13 5 5 0 0 1 4 8V6h3zM6 8a3 3 0 0 0 1.4 2.5A7 7 0 0 1 7 8zm11 0a7 7 0 0 1-.4 2.5A3 3 0 0 0 18 8z"/></svg>';
   }
 
+  // ----- Perfil do adversário antes de desafiar -----
+  function abrirDesafio(id) {
+    var p = estado.personagem;
+    estado.desafio = { id: id, perfil: null, erro: null };
+    telaJogo();
+    C.arena.perfil(p.id, id).then(function (pf) {
+      if (!estado.desafio || estado.desafio.id !== id) return;
+      estado.desafio.perfil = pf;
+      telaJogo();
+    }, function (e) {
+      if (!estado.desafio || estado.desafio.id !== id) return;
+      estado.desafio.erro = e.message;
+      telaJogo();
+    });
+  }
+  // Monta um personagem com os dados do perfil para calcular os status com as mesmas regras do jogo.
+  function personagemDoPerfil(pf) {
+    var x = R.criarPersonagem(pf.nome, pf.sexo || 'masculino', pf.raca, pf.classe);
+    x.nivel = pf.nivel;
+    if (pf.atributos) x.atributos = pf.atributos;
+    x.inventario = pf.itens || [];
+    x.equipados = pf.equipados || {};
+    return x;
+  }
+  function desafioHtml() {
+    var d = estado.desafio, p = estado.personagem, pf = d.perfil, corpo;
+    if (d.erro) corpo = '<p class="menos">' + esc(d.erro) + '</p>';
+    else if (!pf) corpo = '<p class="suave centro">Carregando o perfil…</p>';
+    else {
+      var x = personagemDoPerfil(pf), sx = R.status(x), sp = R.status(p), px = R.poder(x), pp = R.poder(p);
+      var razao = px / Math.max(1, pp);
+      var veredito = razao > 1.15 ? ['menos', 'Mais forte que você'] : razao < 0.87 ? ['mais', 'Mais fraco que você'] : ['cor-ouro', 'Força parecida com a sua'];
+      function linhaComp(nome, a, b, txtA, txtB) {
+        var cls = a > b ? 'menos' : a < b ? 'mais' : '';
+        return '<tr><th>' + nome + '</th><td class="' + cls + '">' + (txtA || a) + '</td><td>' + (txtB || b) + '</td></tr>';
+      }
+      var mediaX = (sx.dano[0] + sx.dano[1]) / 2, mediaP = (sp.dano[0] + sp.dano[1]) / 2;
+      var tabela = '<table class="comparar-tabela"><tr><th></th><th>' + esc(pf.nome) + '</th><th>Você</th></tr>'
+        + linhaComp('Poder', px, pp, px.toLocaleString('pt-BR'), pp.toLocaleString('pt-BR'))
+        + linhaComp('Vida', sx.hpMax, sp.hpMax)
+        + linhaComp('Dano por golpe', mediaX, mediaP, dano(sx.dano), dano(sp.dano))
+        + linhaComp('Defesa', sx.defesa, sp.defesa)
+        + linhaComp('Defesa mágica', sx.defesaMagica, sp.defesaMagica)
+        + linhaComp('Velocidade', sx.velocidade, sp.velocidade) + '</table>';
+      var equip = Object.keys(D.slots).map(function (k) {
+        var it = R.itemNoSlot(x, k);
+        return it ? '<div class="icone-pequeno borda-' + it.raridade + aura(it) + '" title="' + esc(R.nomeItem(it)) + ' (' + D.raridades[it.raridade].nome + ')">'
+          + F.icone(it) + (it.encanto ? '<span class="nivel-encanto">+' + it.encanto + '</span>' : '') + '</div>'
+          : '<div class="icone-pequeno vazio" title="' + D.slots[k].nome + ' vazio"></div>';
+      }).join('');
+      var sq = A.saque, ouro = pf.ouro || 0;
+      var saque = Math.floor(ouro * sq.minimo / 100).toLocaleString('pt-BR') + ' a ' + Math.floor(ouro * sq.maximo / 100).toLocaleString('pt-BR');
+      corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, pf.classe, pf.sexo) + '</div><div>'
+        + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + (D.racas[pf.raca] ? D.racas[pf.raca].nome : '') + ' · ' + (D.classes[pf.classe] ? D.classes[pf.classe].nome : '') + ' · Level ' + pf.nivel + '</div>'
+        + '<div class="desafio-selos">' + (pf.posicao ? '<span class="selo-pos">#' + pf.posicao + ' · ' + esc(nomeArena(pf.arena)) + '</span>' : '')
+        + '<span class="selo-pos">' + pf.vitorias + ' V · ' + pf.derrotas + ' D</span></div>'
+        + '<div class="veredito ' + veredito[0] + '">' + veredito[1] + '</div></div></div>'
+        + '<h3 class="subtitulo">Equipamentos</h3><div class="desafio-equip">' + equip + '</div>'
+        + tabela
+        + '<p class="desafio-ouro">Ouro: <strong class="cor-ouro">' + ouro.toLocaleString('pt-BR') + '</strong> · se vencer, saque de <strong class="cor-ouro">' + saque + ' de ouro</strong>'
+        + (pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.</p>';
+    }
+    var entradas = estado.arena && estado.arena.entradas;
+    var semEntrada = entradas && entradas.valor <= 0;
+    return '<div class="zoom-fundo" data-acao="desafio-cancelar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Perfil do adversário">'
+      + '<button class="zoom-x" data-acao="desafio-cancelar" title="Fechar">✕</button>'
+      + '<div class="zoom-rotulo">Desafiar na Arena?</div>' + corpo
+      + '<div class="botoes"><button class="btn btn-rolar" data-acao="desafio-confirmar"' + (!pf || semEntrada ? ' disabled' : '') + '>⚔ Desafiar'
+      + (entradas ? ' <small>(gasta 1 de ' + entradas.valor + ' entradas)</small>' : '') + '</button>'
+      + '<button class="btn secundario" data-acao="desafio-cancelar">Cancelar</button></div></div></div>';
+  }
+
   function linhaRanking(x, botao) {
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
       + '<div class="amigo-info"><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
@@ -2138,6 +2225,8 @@
         ? await Promise.race([Tanka.dado3d.carregar(), new Promise(function (ok) { setTimeout(function () { ok(false); }, 5000); })]) : false;
       var luta = await fn();
       var est = luta.estado;
+      var ent = estado.arena && estado.arena.entradas;
+      if (ent && ent.valor > 0) ent.valor -= 1;      // a barra de cima já mostra a entrada gasta
       fecharDado3d();
       estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, modal: null, ultimo: null, fase: 'animando', registro: [], usar3d: usar3d };
       estado.lutaArena.registro.push('<p class="destaque">' + esc(est.a.nome) + ' desafia ' + esc(est.d.nome) + '!</p>');

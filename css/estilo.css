@@ -836,3 +836,26 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .celula.marcado { outline: 3px solid #e0574b !important; outline-offset: -3px; box-shadow: 0 0 14px rgba(224, 87, 75, .6); }
 .celula.marcado::after { content: "✓"; position: absolute; right: 3px; bottom: 3px; width: 20px; height: 20px; border-radius: 50%; background: #c0392b; color: #fff; font-size: .8rem; line-height: 20px; text-align: center; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { #lote-vender.confirmar { animation: none; } }
+
+/* Perfil do adversário antes de desafiar */
+.desafio-janela { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; }
+.desafio-topo { display: grid; grid-template-columns: 110px 1fr; gap: 1rem; align-items: center; margin: .4rem 0 .6rem; }
+.desafio-topo .moldura { border: 2px solid var(--ouro); border-radius: 8px; overflow: hidden; aspect-ratio: 5 / 6; }
+.desafio-topo h2 { margin: 0; }
+.desafio-selos { display: flex; flex-wrap: wrap; gap: .35rem; margin: .4rem 0; }
+.selo-pos { padding: .1em .6em; border: 1px solid rgba(201, 162, 74, .45); border-radius: 999px; font-size: .8rem; color: var(--ouro-claro); }
+.veredito { font-family: var(--titulo); font-size: 1rem; }
+.desafio-equip { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: .35rem; margin-bottom: .8rem; }
+.desafio-equip .icone-pequeno { width: 100%; height: auto; aspect-ratio: 1; position: relative; }
+.desafio-equip .icone-pequeno.vazio { border: 1px dashed var(--borda); border-radius: 6px; opacity: .5; }
+.comparar-tabela { width: 100%; border-collapse: collapse; font-size: .95rem; margin-bottom: .6rem; }
+.comparar-tabela th, .comparar-tabela td { padding: .3rem .4rem; border-bottom: 1px solid rgba(44, 52, 66, .7); text-align: right; }
+.comparar-tabela th:first-child { text-align: left; color: var(--suave); font-weight: 500; }
+.comparar-tabela tr:first-child th { font-family: var(--titulo); color: var(--ouro-claro); font-size: .85rem; }
+.desafio-ouro { font-size: .95rem; }
+.desafio-janela .btn-rolar small { font-family: var(--corpo); font-size: .75rem; opacity: .8; }
+@media (max-width: 520px) {
+  .desafio-topo { grid-template-columns: 84px 1fr; gap: .7rem; }
+  .desafio-equip { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .desafio-janela .btn-rolar { font-size: .95rem; padding: .6em 1em; }
+}

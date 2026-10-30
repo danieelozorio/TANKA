@@ -248,6 +248,7 @@ Tanka.contas = (function () {
   // ---------- Arena (a luta roda no servidor) ----------
   var arena = {
     estado: function (meu, ver) { return chamar('arena_estado', { meu: meu, ver: ver || null }); },
+    perfil: function (meu, alvo) { return chamar('arena_perfil', { meu: meu, alvo: alvo }); },
     desafiar: function (meu, alvo) { return chamar('arena_desafiar', { meu: meu, alvo: alvo }); },
     revanche: function (meu, luta) { return chamar('arena_revanche', { meu: meu, luta: luta }); },
     rolar: function (meu, luta, rolar) { return chamar('arena_rolar', { meu: meu, luta: luta, rolar: rolar }); },

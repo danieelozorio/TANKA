@@ -1063,6 +1063,27 @@ begin
   return jsonb_build_object('ouro', c.ouro, 'reputacao', c.reputacao, 'motivo', c.motivo);
 end $$;
 
+-- Perfil do adversário (antes de desafiar): equipamentos, atributos, ouro, posição e campanha na Arena.
+create or replace function public.arena_perfil(meu text, alvo text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare p public.personagens;
+begin
+  perform public.conferir_dono(meu);
+  select * into p from public.personagens where id = alvo;
+  if p.id is null then raise exception 'Personagem não encontrado.'; end if;
+  return jsonb_build_object('id', p.id, 'nome', p.nome, 'raca', p.dados ->> 'raca', 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo',
+    'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'atributos', p.dados -> 'atributos',
+    'equipados', coalesce(p.dados -> 'equipados', '{}'::jsonb),
+    'itens', coalesce((select jsonb_agg(i) from jsonb_array_elements(coalesce(p.dados -> 'inventario', '[]'::jsonb)) i
+      where i ->> 'id' in (select value from jsonb_each_text(coalesce(p.dados -> 'equipados', '{}'::jsonb)))), '[]'::jsonb),
+    'ouro', public.ouro_real(p.id), 'reputacao', coalesce((p.dados ->> 'reputacao')::int, 0),
+    'skin', coalesce(p.dados ->> 'skinDado', 'vermelho'),
+    'posicao', (select posicao from public.arena_posicoes where personagem_id = p.id),
+    'arena', (select arena from public.arena_posicoes where personagem_id = p.id),
+    'vitorias', (select count(*) from public.arena_lutas where (atacante = p.id and situacao = 'vitoria') or (defensor = p.id and situacao = 'derrota')),
+    'derrotas', (select count(*) from public.arena_lutas where (atacante = p.id and situacao = 'derrota') or (defensor = p.id and situacao = 'vitoria')));
+end $$;
+
 create or replace function public.arena_admin_recarregar(meu text) returns void
 language plpgsql security definer set search_path = public as $$
 begin
@@ -1073,9 +1094,9 @@ begin
 end $$;
 
 revoke execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
-  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text) from public, anon;
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text) from public, anon;
 grant execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
-  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text) to authenticated;
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text) to authenticated;
 revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int), public.arena_compactar(text), public.arena_garantir(text),
   public.arena_entradas_atual(text), public.arena_gastar_entrada(text), public.creditar(text, int, int, text), public.ouro_real(text),
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
