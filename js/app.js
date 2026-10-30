@@ -1168,6 +1168,7 @@
       case 'arena-fechar':
         clearTimeout(estado.lutaArena.timer);
         clearInterval(estado.lutaArena.relogio);
+        clearInterval(estado.lutaArena.giro);
         estado.lutaArena = null;
         estado.aba = 'arena';
         estado.arena = null;
@@ -1867,14 +1868,6 @@
   }
 
   // ----- A luta -----
-  function d20Svg(numero, classe) {
-    return '<svg class="d20 ' + (classe || '') + '" viewBox="0 0 100 100" aria-hidden="true">'
-      + '<polygon class="d20-face" points="50,4 92,27 92,73 50,96 8,73 8,27"/>'
-      + '<polygon class="d20-meio" points="50,22 78,66 22,66"/>'
-      + '<path class="d20-linha" d="M50,4 L50,22 M92,27 L78,66 M92,73 L78,66 M50,96 L78,66 M50,96 L22,66 M8,73 L22,66 M8,27 L22,66 M8,27 L50,22 M92,27 L50,22"/>'
-      + '<text x="50" y="57" text-anchor="middle" class="d20-numero">' + numero + '</text></svg>';
-  }
-
   function efeitoDado(n) {
     var m = A.dado[n - 1];
     if (n === 1) return 'ERROU!';
@@ -1887,7 +1880,7 @@
     try {
       var luta = await fn();
       var est = luta.estado;
-      estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, dado: null, fase: 'animando', registro: [], rolou: false };
+      estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, modal: null, ultimo: null, fase: 'animando', registro: [] };
       estado.lutaArena.registro.push('<p class="destaque">' + esc(est.a.nome) + ' desafia ' + esc(est.d.nome) + '!</p>');
       telaJogo();
       mostrarPainel();
@@ -1906,31 +1899,61 @@
     if (reg) reg.scrollTop = reg.scrollHeight;
   }
 
-  // Anima um dado: gira pela mesa trocando números e pousa no resultado.
-  function animarDado(final, quem, depois) {
+  // D20 vermelho translúcido (vista de frente, como um dado de verdade): a face do meio mostra o número.
+  var FACES_D20 = [
+    ['50,24 23,68 77,68', 'c'], ['50,4 9,28 50,24', 't'], ['50,4 91,28 50,24', 't'], ['9,28 50,24 23,68', 'l'], ['91,28 50,24 77,68', 'l'],
+    ['23,68 77,68 50,96', 'b'], ['9,28 23,68 9,72', 's'], ['91,28 77,68 91,72', 's'], ['9,72 23,68 50,96', 'e'], ['91,72 77,68 50,96', 'e'],
+  ];
+  // skin: classe de cores do dado (hoje só 'vermelho'; skins novas = novas classes .skin-* no CSS).
+  function d20Bonito(numero, skin) {
+    var n = Number(numero) || 20;
+    var viz = [(n + 6) % 20 + 1, (n + 12) % 20 + 1, (n + 3) % 20 + 1, (n + 16) % 20 + 1];
+    var faces = FACES_D20.map(function (f) { return '<polygon class="f f-' + f[1] + '" points="' + f[0] + '"/>'; }).join('');
+    return '<svg class="d20g skin-' + (skin || 'vermelho') + '" viewBox="0 0 100 100" aria-label="D20 mostrando ' + numero + '">'
+      + '<defs><radialGradient id="d20brilho" cx="35%" cy="25%" r="70%"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset=".45" stop-color="#fff" stop-opacity=".08"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>'
+      + faces + '<polygon points="50,4 91,28 91,72 50,96 9,72 9,28" fill="url(#d20brilho)" stroke="rgba(255,255,255,.35)" stroke-width="1"/>'
+      + '<text class="n n-centro" x="50" y="57">' + numero + '</text>'
+      + '<text class="n n-lado" x="29" y="44" transform="rotate(-58 29 44)">' + viz[0] + '</text>'
+      + '<text class="n n-lado" x="71" y="44" transform="rotate(58 71 44)">' + viz[1] + '</text>'
+      + '<text class="n n-lado" x="50" y="85" transform="rotate(180 50 82)">' + viz[2] + '</text>'
+      + '<text class="n n-topo" x="50" y="18">' + viz[3] + '</text></svg>';
+  }
+
+  // Janela do dado: cai na mesa trocando os números e pousa no resultado.
+  function animarDado(final, quem, depois, jaCaindo) {
     var L = estado.lutaArena;
-    L.dado = { numero: '?', quem: quem, rolando: true, texto: '' };
+    function pousar() {
+      clearInterval(L.giro);
+      L.modal = { modo: 'pousou', quem: quem, numero: final, texto: efeitoDado(final) };
+      redesenharArena();
+      L.timer = setTimeout(function () { L.modal = null; depois(); }, 1400);
+    }
+    if (jaCaindo) { pousar(); return; }
+    L.modal = { modo: 'caindo', quem: quem, numero: '?' };
     redesenharArena();
-    var el = document.querySelector('.mesa .d20-numero');
-    var giro = setInterval(function () { if (el) el.textContent = 1 + Math.floor(Math.random() * 20); }, 70);
-    L.timer = setTimeout(function () {
-      clearInterval(giro);
-      L.dado = { numero: final, quem: quem, rolando: false, texto: efeitoDado(final) };
-      depois();
-    }, 1100);
+    girarNumeros();
+    L.timer = setTimeout(pousar, 1500);
+  }
+  function girarNumeros() {
+    var L = estado.lutaArena;
+    clearInterval(L.giro);
+    L.giro = setInterval(function () {
+      var el = document.querySelector('.dado-janela .n-centro');
+      if (el) el.textContent = 1 + Math.floor(Math.random() * 20);
+    }, 80);
   }
 
   function aplicarEventoArena(ev) {
     var L = estado.lutaArena, est = L.luta.estado;
     var atk = ev.de === 'a' ? est.a : est.d, alvo = ev.de === 'a' ? est.d : est.a;
     L.hpA = ev.hpA; L.hpD = ev.hpD;
-    L.dado.texto += ev.dano ? ' → ' + ev.dano + ' de dano' : '';
+    L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
       + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
     if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
   }
 
-  // Mostra os eventos novos um a um (o dado do oponente também anima) e depois espera o jogador.
+  // Mostra os eventos novos um a um (o dado do oponente também cai na mesa) e depois espera o jogador.
   function tocarEventosArena() {
     var L = estado.lutaArena;
     if (!L) return;
@@ -1938,18 +1961,20 @@
     if (ev) {
       L.idx++;
       L.fase = 'animando';
+      var jaCaindo = L.jaCaindo && ev.de === 'a';
+      L.jaCaindo = false;
       animarDado(ev.dado, ev.de, function () {
         aplicarEventoArena(ev);
         redesenharArena();
-        L.timer = setTimeout(tocarEventosArena, 650);
-      });
+        L.timer = setTimeout(tocarEventosArena, 350);
+      }, jaCaindo);
       return;
     }
-    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; redesenharArena(); carregarArena(); return; }
-    // Sua vez: o D20 parado, o botão e 5 segundos.
+    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; L.modal = null; redesenharArena(); carregarArena(); return; }
+    // Sua vez: a janela com o D20, o botão e 5 segundos.
     L.fase = 'esperando';
     L.prazo = Date.now() + A.tempoDado * 1000;
-    L.dado = { numero: 20, quem: 'a', rolando: false, texto: '', parado: true };
+    L.modal = { modo: 'rolar', quem: 'a', numero: 20 };
     redesenharArena();
     clearInterval(L.relogio);
     L.relogio = setInterval(function () {
@@ -1965,14 +1990,45 @@
     if (!L || L.fase !== 'esperando') return;
     clearInterval(L.relogio);
     L.fase = 'rolando';
+    var inicio = Date.now();
+    if (rolar) {
+      // O dado já começa a cair enquanto o servidor sorteia o número.
+      L.modal = { modo: 'caindo', quem: 'a', numero: '?' };
+      redesenharArena();
+      girarNumeros();
+    }
     try {
       L.luta = await C.arena.rolar(estado.personagem.id, L.luta.id, rolar);
     } catch (e) {
+      clearInterval(L.giro);
       avisar(e.message);
       L.fase = 'esperando';
       return;
     }
-    tocarEventosArena();
+    if (rolar) {
+      L.jaCaindo = true;
+      L.timer = setTimeout(tocarEventosArena, Math.max(0, 1500 - (Date.now() - inicio)));
+    } else tocarEventosArena();
+  }
+
+  function janelaDadoHtml() {
+    var L = estado.lutaArena, m = L.modal, d = L.luta.estado.d;
+    if (!m) return '';
+    var rotulo = m.quem === 'd' ? 'Dado de ' + esc(d.nome) + ' · rolado pelo servidor' : 'Seu ataque';
+    var classe = m.modo === 'pousou' ? (m.numero === 1 ? 'pousou falha' : m.numero >= 18 ? 'pousou critico' : 'pousou') : m.modo;
+    var baixo = '';
+    if (m.modo === 'rolar') {
+      baixo = '<button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
+        + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div>';
+    } else if (m.modo === 'caindo') {
+      baixo = '<div class="dado-resultado suave">Rolando…</div>';
+    } else {
+      baixo = '<div class="dado-resultado ' + (m.numero === 1 ? 'menos' : m.numero >= 18 ? 'cor-ouro' : '') + '"><strong>' + m.numero + '</strong> · ' + esc(m.texto) + '</div>';
+    }
+    return '<div class="zoom-fundo dado-fundo"><div class="zoom-janela dado-janela' + (m.quem === 'd' ? ' do-oponente' : '') + '" role="dialog" aria-label="Dado">'
+      + '<div class="zoom-rotulo">' + rotulo + '</div>'
+      + '<div class="mesa-madeira ' + classe + '"><div class="sombra-dado"></div>' + d20Bonito(m.numero) + '</div>'
+      + '<div class="dado-baixo">' + baixo + '</div></div></div>';
   }
 
   function lutaArenaHtml() {
@@ -1982,18 +2038,11 @@
         + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel + '</div>'
         + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax) + '</div>';
     }
-    var dd = L.dado, mesa = '';
-    if (dd) {
-      var cls = dd.rolando ? 'rolando' : dd.parado ? 'parado' : dd.numero === 1 ? 'falha' : dd.numero >= 18 ? 'critico' : 'pousou';
-      mesa = '<div class="mesa' + (dd.quem === 'd' ? ' do-oponente' : '') + '">' + d20Svg(dd.numero, cls)
-        + '<div class="mesa-texto">' + (dd.parado ? 'Sua vez! Role o D20.' : dd.rolando ? (dd.quem === 'd' ? 'O servidor rola o dado de ' + esc(d.nome) + '…' : 'Rolando…')
-          : '<strong>' + dd.numero + '</strong> · ' + esc(dd.texto)) + '</div></div>';
-    }
+    var u = L.ultimo;
+    var mesa = '<div class="ultimo-dado">' + (u ? '<div class="suave pequeno">Último dado · ' + esc(u.quem === 'a' ? a.nome : d.nome) + '</div>'
+      + '<div class="ultimo-numero ' + (u.numero === 1 ? 'menos' : u.numero >= 18 ? 'cor-ouro' : '') + '">' + u.numero + '</div><div class="pequeno">' + esc(u.texto) + '</div>'
+      : '<div class="suave">⚔ VS ⚔</div>') + '</div>';
     var controles = '';
-    if (L.fase === 'esperando') {
-      controles = '<div class="controle-dado"><button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
-        + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div></div>';
-    }
     var fim = '';
     if (L.fase === 'fim') {
       var lt = L.luta;
@@ -2009,7 +2058,8 @@
     }
     return fim + '<h3 class="subtitulo">' + esc(nomeArena(L.luta.arena)) + (L.luta.revanche ? ' · Revanche' : '') + '</h3>'
       + '<div class="arena arena-pvp">' + lutador(a, L.hpA, 'jogador') + '<div class="arena-centro">' + mesa + controles + '</div>' + lutador(d, L.hpD, 'monstro') + '</div>'
-      + '<div class="registro" id="registro">' + L.registro.join('') + '</div>';
+      + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
+      + janelaDadoHtml();
   }
 
   // ---------------- Chat global ----------------
