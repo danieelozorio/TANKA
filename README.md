@@ -38,6 +38,7 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
 ## O que já existe
 
 - **Cadastro** (usuário, senha e e-mail) e **login** com usuário e senha.
+- **Excluir personagem** (tela de escolha): botão Excluir em cada personagem; para confirmar é preciso digitar o nome dele (maiúsculas não importam). Apaga o personagem e as amizades dele, sem volta, e libera o nome e a vaga.
 - **Criação de personagem**: nome, sexo (Homem ou Mulher), raça e classe, até 3 por conta. O sexo muda só os retratos.
 - **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
 - **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–5.

@@ -204,6 +204,13 @@ Tanka.contas = (function () {
     iniciar: async function () { return contaAtual(); },
     agora: function () { return Date.now(); },
     criarPersonagem: async function (p) { salvarPersonagem(p); },
+    excluirPersonagem: async function (id) {
+      var chave = sessao(), contas = ler();
+      if (!chave || !contas[chave]) throw new Error('Sessão expirada. Entre novamente.');
+      contas[chave].personagens = contas[chave].personagens.filter(function (x) { return x.id !== id; });
+      gravar(contas);
+      gravarAmizades(lerAmizades().filter(function (a) { return a.de !== id && a.para !== id; }));
+    },
     registrar: registrar,
     entrar: entrar,
     sair: sair,

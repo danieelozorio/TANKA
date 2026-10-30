@@ -491,3 +491,11 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .form-amigo .erro { min-height: 1.2em; margin: 0; }
 .amigo .amigo-info { min-width: 0; }
 .online { color: var(--bom); font-size: .85rem; }
+
+/* Excluir personagem */
+.lista-personagens .carta .btn-excluir { margin-top: .35rem; font-size: .8rem; padding: .35em .6em; color: #f0b4ad; border-color: transparent; }
+.lista-personagens .carta .btn-excluir:hover { border-color: var(--ruim); }
+.excluir-confirma { display: grid; gap: .35rem; margin-top: .5rem; text-align: left; }
+.excluir-confirma p { margin: 0; }
+.excluir-confirma input { margin: 0; }
+.lista-personagens .carta .excluir-confirma .btn { margin-top: 0; }

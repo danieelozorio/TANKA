@@ -141,10 +141,20 @@
     chatVisivel(false);
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
-      return '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
+      var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
         + '<div class="nome">' + esc(p.nome) + '</div>'
-        + '<div class="detalhe">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + ' · Lv ' + p.nivel + '</div>'
-        + '<button class="btn largo" data-acao="jogar" data-id="' + p.id + '">Jogar</button></div>';
+        + '<div class="detalhe">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + ' · Lv ' + p.nivel + '</div>';
+      // Excluir pede o nome do personagem digitado, para não apagar sem querer.
+      if (estado.excluir === p.id) {
+        return topoCarta + '<div class="excluir-confirma"><p class="menos pequeno">Isso apaga ' + esc(p.nome) + ' para sempre: level, itens, ouro e amigos. Não dá para desfazer.</p>'
+          + '<label class="pequeno" for="confirmar-exclusao">Digite <strong>' + esc(p.nome) + '</strong> para confirmar</label>'
+          + '<input id="confirmar-exclusao" autocomplete="off" data-nome="' + esc(p.nome) + '">'
+          + '<p class="erro pequeno" id="erro-exclusao"></p>'
+          + '<button class="btn perigo largo" data-acao="excluir-confirmar" data-id="' + p.id + '" disabled>Excluir para sempre</button>'
+          + '<button class="btn secundario largo" data-acao="excluir-cancelar">Cancelar</button></div></div>';
+      }
+      return topoCarta + '<button class="btn largo" data-acao="jogar" data-id="' + p.id + '">Jogar</button>'
+        + '<button class="btn secundario largo btn-excluir" data-acao="excluir-pedir" data-id="' + p.id + '">Excluir</button></div>';
     }).join('');
     if (lista.length < D.MAX_PERSONAGENS) {
       cartas += '<button class="carta nova" data-acao="nova-criacao"><span>+</span><div class="nome">Criar personagem</div>'
@@ -952,6 +962,10 @@
 
   app.addEventListener('input', function (e) {
     if (e.target.id === 'nome-personagem' && estado.criacao) estado.criacao.nome = e.target.value;
+    if (e.target.id === 'confirmar-exclusao') {
+      var certo = e.target.value.trim().toLowerCase() === e.target.dataset.nome.toLowerCase();
+      document.querySelector('[data-acao="excluir-confirmar"]').disabled = !certo;
+    }
   });
 
   app.addEventListener('click', function (e) {
@@ -972,6 +986,31 @@
         estado.resultado = null;
         telaPersonagens();
         break;
+      case 'excluir-pedir':
+        estado.excluir = el.dataset.id;
+        telaPersonagens();
+        document.getElementById('confirmar-exclusao').focus();
+        break;
+      case 'excluir-cancelar':
+        estado.excluir = null;
+        telaPersonagens();
+        break;
+      case 'excluir-confirmar': {
+        var campo = document.getElementById('confirmar-exclusao');
+        if (campo.value.trim().toLowerCase() !== campo.dataset.nome.toLowerCase()) break;
+        el.disabled = true;
+        var nomeExcluido = campo.dataset.nome;
+        C.excluirPersonagem(el.dataset.id).then(function () {
+          estado.excluir = null;
+          estado.conta = C.contaAtual();
+          telaPersonagens();
+          avisar('O personagem ' + nomeExcluido + ' foi excluído.');
+        }, function (erro) {
+          document.getElementById('erro-exclusao').textContent = 'Não foi possível excluir: ' + erro.message;
+          el.disabled = false;
+        });
+        break;
+      }
       case 'nova-criacao':
         estado.criacao = { nome: '', sexo: 'masculino', raca: 'humano', classe: 'cavaleiro' };
         telaCriacao();

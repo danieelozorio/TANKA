@@ -163,6 +163,14 @@ Tanka.contas = (function () {
     conta.personagens.push(p);
   }
 
+  // Apaga o personagem do servidor (amizades vão junto).
+  async function excluirPersonagem(id) {
+    await logado();
+    await fila.catch(function () {});   // espera gravações pendentes desse personagem
+    await pedir('/rest/v1/personagens?id=eq.' + encodeURIComponent(id), { metodo: 'DELETE', cabecalhos: { Prefer: 'return=minimal' } });
+    conta.personagens = conta.personagens.filter(function (x) { return x.id !== id; });
+  }
+
   // Grava o personagem. As gravações saem em fila, na ordem em que foram pedidas.
   function salvarPersonagem(p) {
     var copia = JSON.parse(JSON.stringify(p));
@@ -233,6 +241,7 @@ Tanka.contas = (function () {
     contaAtual: contaAtual,
     nomePersonagemLivre: nomePersonagemLivre,
     criarPersonagem: criarPersonagem,
+    excluirPersonagem: excluirPersonagem,
     salvarPersonagem: salvarPersonagem,
   };
 })();
