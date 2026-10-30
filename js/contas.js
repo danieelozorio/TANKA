@@ -156,7 +156,7 @@ Tanka.contas = (function () {
       await pedir('/rest/v1/personagens', { metodo: 'POST', cabecalhos: { Prefer: 'return=minimal' },
         corpo: { id: p.id, nome: p.nome, dados: p } });
     } catch (e) {
-      if (e.codigo === '23505') throw new Error('Esse nome já está em uso em Tanka.');
+      if (e.codigo === '23505') throw new Error('Esse nome já está em uso em Eldrin.');
       if (/Limite/.test(e.message)) throw new Error('Limite de 3 personagens por conta.');
       throw e;
     }

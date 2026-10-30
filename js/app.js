@@ -37,7 +37,7 @@
   }
 
   function marca() {
-    return '<header class="marca"><h1>' + D.NOME_JOGO.toUpperCase() + '</h1><p>Arena medieval mística</p></header>';
+    return '<header class="marca"><h1><img class="logo-marca" src="assets/logo-eldrin.webp" alt="' + D.NOME_JOGO + ' — ' + D.SUBTITULO + '"></h1></header>';
   }
   function rodape() {
     return '<footer class="rodape">' + D.DOMINIO + '</footer>';
@@ -240,7 +240,7 @@
     var p = R.criarPersonagem(nome, c.sexo, c.raca, c.classe);
     p.poder = R.poder(p);
     try {
-      if (!(await C.nomePersonagemLivre(nome))) throw new Error('Esse nome já está em uso em Tanka.');
+      if (!(await C.nomePersonagemLivre(nome))) throw new Error('Esse nome já está em uso em ' + D.NOME_JOGO + '.');
       await C.criarPersonagem(p);
     } catch (e) {
       erro.textContent = e.message;
@@ -250,7 +250,7 @@
     estado.personagem = p;
     estado.conta = C.contaAtual();
     estado.criacao = null;
-    avisar('Bem-vindo a Tanka, ' + nome + '!');
+    avisar('Bem-vindo a ' + D.NOME_JOGO + ', ' + nome + '!');
     abrirJogo(p.id);
   }
 
@@ -922,7 +922,7 @@
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
       + '<button class="btn secundario mini-opcao" data-acao="ranking-atualizar">Atualizar</button></div>'
-      + '<p class="suave pequeno">Os 100 melhores de Tanka' + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
+      + '<p class="suave pequeno">Os 100 melhores de ' + D.NOME_JOGO + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
       + ' Seus personagens aparecem destacados. Contas de administrador não entram.</p>' + corpo;
   }
 
@@ -2106,7 +2106,7 @@
   function abaMasmorra() {
     var g = estado.gm, p = estado.personagem;
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }
-    if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do Tanka para entrar com seus amigos.</p>';
+    if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
     var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
     var html = '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
       + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias. Derrota não gasta entrada.</p>'
@@ -2326,7 +2326,7 @@
   function abaArena() {
     var p = estado.personagem, ar = estado.arena;
     if (!ar) { carregarArena(); return '<p class="suave">' + (estado.arenaErro ? esc(estado.arenaErro) : 'Carregando…') + '</p>'; }
-    if (ar.local) return '<p class="suave">A Arena é contra outros jogadores e precisa do servidor: jogue pelo site do Tanka.</p>';
+    if (ar.local) return '<p class="suave">A Arena é contra outros jogadores e precisa do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
     var abas = '<div class="opcoes arena-abas">' + A.arenas.map(function (a) {
       var minha = a.id === ar.minha_arena;
       return '<button class="opcao mini-opcao' + (a.id === ar.arena ? ' selecionada' : '') + '" data-acao="arena-ver" data-valor="' + a.id + '">'
@@ -2748,7 +2748,7 @@
   function abaAlianca() {
     var st = aliancaAtual();
     if (!st) { carregarAlianca(); return '<p class="suave">Carregando…</p>'; }
-    if (st.local) return '<p class="suave">As alianças juntam vários jogadores e precisam do servidor: jogue pelo site do Tanka.</p>';
+    if (st.local) return '<p class="suave">As alianças juntam vários jogadores e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
     if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
     return st.alianca ? telaMinhaAlianca(st) : telaSemAlianca(st);
   }

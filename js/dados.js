@@ -3,7 +3,8 @@
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 
 Tanka.dados = {
-  NOME_JOGO: 'Tanka',
+  NOME_JOGO: 'Eldrin',
+  SUBTITULO: 'RPG Narrado · Arena & Glória',
   DOMINIO: 'tankaarena.com',
 
   // Contas com a aba Admin (ferramentas de teste). Use o nome de usuário em minúsculas.

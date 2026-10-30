@@ -93,6 +93,8 @@ label input { margin-top: .25em; }
 
 /* ---------- Marca ---------- */
 .marca { text-align: center; margin: 2.5rem 0 1.5rem; }
+.logo-marca { display: block; width: min(620px, calc(100% - 16px)); height: auto; margin: 0 auto;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 70%, transparent 100%); }
 .marca h1 { font-size: clamp(2.6rem, 9vw, 4.2rem); margin: 0; letter-spacing: .18em; text-shadow: 0 0 24px rgba(201, 169, 107, .35); }
 .marca p { color: var(--suave); font-style: italic; margin: 0; }
 
