@@ -8,6 +8,7 @@
     conta: null,
     personagem: null,
     aba: 'cacar',
+    subAba: {},          // última sub-aba aberta em cada grupo (Herói, Aventura, Social)
     criacao: null,       // { nome, raca, classe }
     batalha: null,
     registro: [],
@@ -22,12 +23,17 @@
     });
   }
 
-  var timerAviso;
-  function avisar(msg) {
-    aviso.textContent = msg;
+  // Avisos: selos que entram pelo canto e somem sozinhos (não empurram a tela).
+  // tipo: '' (aviso), 'vitoria', 'nivel', 'item' ou 'ruim'.
+  function avisar(msg, tipo) {
     aviso.hidden = false;
-    clearTimeout(timerAviso);
-    timerAviso = setTimeout(function () { aviso.hidden = true; }, 3200);
+    var selo = document.createElement('div');
+    selo.className = 'selo-aviso' + (tipo ? ' selo-' + tipo : '');
+    selo.textContent = msg;
+    aviso.appendChild(selo);
+    while (aviso.children.length > 4) aviso.firstChild.remove();
+    setTimeout(function () { selo.classList.add('saindo'); }, 3400);
+    setTimeout(function () { selo.remove(); if (!aviso.children.length) aviso.hidden = true; }, 3900);
   }
 
   function marca() {
@@ -42,9 +48,17 @@
       + (ehAdmin() ? '<span class="selo selo-admin">ADMIN</span>' : '') + (extra || '')
       + '<button class="btn secundario" data-acao="sair">Sair</button></div></header>';
   }
-  function barra(classe, atual, max, texto) {
-    var pct = max > 0 ? Math.min(100, (atual / max) * 100) : 0;
-    return '<div class="barra ' + classe + '"><i style="width:' + pct + '%"></i><b>' + texto + '</b></div>';
+  // `chave` lembra a largura anterior da barra: quando a vida cai, um rastro claro some devagar até o valor novo.
+  var larguras = {};
+  function barra(classe, atual, max, texto, chave) {
+    var pct = max > 0 ? Math.max(0, Math.min(100, (atual / max) * 100)) : 0;
+    var rastro = '';
+    if (chave) {
+      var antes = larguras[chave];
+      larguras[chave] = pct;
+      if (antes !== undefined && antes > pct) rastro = '<s style="--de:' + antes + '%;--ate:' + pct + '%"></s>';
+    }
+    return '<div class="barra ' + classe + '">' + rastro + '<i style="width:' + pct + '%"></i><b>' + texto + '</b></div>';
   }
   function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
@@ -276,12 +290,86 @@
     var acampar = p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
       : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Acampar (vida 3x mais rápido)</button>';
+    return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar;
+  }
+
+  // Ícones (traço dourado) da barra de recursos e das abas.
+  function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
+  var ICONES = {
+    ouro: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/>'),
+    reputacao: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
+    pocao: svg('<path d="M9.5 3h5M10.5 3v5L6 15.5A3.5 3.5 0 0 0 9 21h6a3.5 3.5 0 0 0 3-5.5L13.5 8V3"/><path d="M7.5 14h9"/>'),
+    arena: svg('<path d="M4 4l9 9M4 4v3.5M4 4h3.5M20 4l-9 9M20 4v3.5M20 4h-3.5M7 15l-3 3 2 2 3-3M17 15l3 3-2 2-3-3"/>'),
+    heroi: svg('<path d="M12 3l7 3v5.5c0 4.3-3 8-7 9.5-4-1.5-7-5.2-7-9.5V6z"/><path d="M12 8v8M9 11h6"/>'),
+    aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
+    mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
+    social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
+    admin: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'),
+  };
+
+  // Barra fixa no alto: ouro, reputação, poções do dia e entradas da Arena.
+  function recursosHtml() {
+    var p = estado.personagem, s = R.status(p), emBatalha = !!estado.batalha;
     var podeUsar = !emBatalha && p.pocoes > 0 && p.hpAtual < s.hpMax;
-    return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar
-      + '<div class="secao pocoes"><span>🧪 Poções: <strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong></span>'
+    var e = estado.arena && estado.arena.entradas, arena;
+    if (p.nivel < A.nivelMin) arena = '<strong>Lv ' + A.nivelMin + '</strong>';
+    else if (!e) arena = '<strong>…</strong>';
+    else arena = '<strong>' + e.valor + '/' + e.maximo + '</strong>'
+      + (e.proxima_em ? '<small>+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora())) + '</small>' : '');
+    return '<div class="barra-recursos" id="recursos"><div class="recursos-dentro">'
+      + '<div class="recurso r-vida" title="Vida">♥<strong>' + p.hpAtual + '/' + s.hpMax + '</strong></div>'
+      + '<div class="recurso r-ouro" title="Ouro">' + ICONES.ouro + '<strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
+      + '<div class="recurso r-reputacao" title="Reputação">' + ICONES.reputacao + '<strong>' + (p.reputacao || 0).toLocaleString('pt-BR') + '</strong></div>'
+      + '<div class="recurso r-pocao" title="Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)">' + ICONES.pocao
+      + '<strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong>'
       + '<button class="btn mini-opcao" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + '>Usar</button></div>'
-      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)</div>'
-      + entradasArenaHtml(p);
+      + '<div class="recurso r-arena" title="Entradas da Arena">' + ICONES.arena + arena + '</div>'
+      + '</div></div>';
+  }
+
+  // Redesenha a ficha e a barra de recursos sem mexer no resto da tela.
+  function atualizarFicha() {
+    [['.ficha', fichaHtml], ['#recursos', recursosHtml]].forEach(function (x) {
+      var velho = document.querySelector(x[0]);
+      if (!velho) return;
+      var nova = document.createElement('div');
+      nova.innerHTML = x[1]();
+      velho.replaceWith(nova.firstChild);
+    });
+  }
+
+  // As abas em 5 grupos (no celular viram a barra de baixo).
+  var GRUPOS = [
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
+    { id: 'arena', nome: 'Arena', abas: ['arena'] },
+    { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
+    { id: 'social', nome: 'Social', abas: ['social', 'ranking'] },
+  ];
+  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking' };
+  function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
+  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : ''; }
+  function navHtml() {
+    var atual = grupoDaAba(estado.aba);
+    var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
+      var destino = estado.subAba[g.id] || g.abas[0];
+      return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + '">'
+        + '<span class="aba-ico">' + ICONES[g.id] + g.abas.map(seloDaAba).join('') + '</span><span class="aba-nome">' + g.nome + '</span></button>';
+    }).join('') + '</nav>';
+    var sub = atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
+      return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + '">' + NOME_ABA[a] + seloDaAba(a) + '</button>';
+    }).join('') + '</nav>' : '';
+    return nav + sub;
+  }
+  // Atualiza só os selos das abas (pedidos de amizade, convites, ataques na Arena).
+  function atualizarNav() {
+    var nav = document.getElementById('abas-jogo');
+    if (!nav) return;
+    var sub = document.getElementById('sub-abas');
+    var tmp = document.createElement('div');
+    tmp.innerHTML = navHtml();
+    nav.replaceWith(tmp.querySelector('#abas-jogo'));
+    if (sub && tmp.querySelector('#sub-abas')) sub.replaceWith(tmp.querySelector('#sub-abas'));
   }
 
   function fichaHtml() {
@@ -320,21 +408,22 @@
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
-      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax) + '</div>'
+      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
       + vidaTempoHtml(p, s, emBatalha)
-      + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
-      + '<div class="secao ouro reputacao"><span>Reputação</span><strong>' + (p.reputacao || 0).toLocaleString('pt-BR') + '</strong></div>'
+      + '<div class="secao"><h3>Arma</h3>' + (arma
+        ? '<div>' + nomeItemHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
+        : '<div class="suave">Nenhuma</div>') + '<div class="suave pequeno">Poder <strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong></div></div>'
+      + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
+      + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
+      + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
       + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
       + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
-      + '<div class="secao"><h3>Arma</h3>' + (arma
-        ? '<div>' + nomeItemHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
-        : '<div class="suave">Nenhuma</div>') + '</div>'
-      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div>'
+      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
       + '</aside>';
   }
 
@@ -542,7 +631,7 @@
     var falta = preco - p.ouro, faltaRep = rep - (p.reputacao || 0), faltas = [];
     if (falta > 0) faltas.push(falta.toLocaleString('pt-BR') + ' de ouro');
     if (faltaRep > 0) faltas.push(faltaRep.toLocaleString('pt-BR') + ' de reputação');
-    return '<div class="item item-com-icone"><div class="icone-pequeno borda-' + modelo.raridade + '">' + F.icone(modelo) + '</div>'
+    return '<div class="item item-com-icone carta-' + modelo.raridade + '"><div class="icone-pequeno borda-' + modelo.raridade + '">' + F.icone(modelo) + '</div>'
       + '<div class="item-texto"><div>' + nomeItemHtml(modelo) + ' <span class="selo raridade-' + modelo.raridade + '">' + r.nome + '</span></div>'
       + '<div class="suave">' + descricaoItem(modelo) + ' · ' + preco.toLocaleString('pt-BR') + ' de ouro'
       + (rep ? ' + ' + rep.toLocaleString('pt-BR') + ' de reputação' : '') + '</div></div>'
@@ -689,8 +778,7 @@
       if (estado.personagem !== p || estado.batalha || estado.resultado || estado.chefeAviso) return;
       if (estado.aba === 'social') telaJogo();
       else {
-        var aba = document.querySelector('[data-aba="social"]');
-        if (aba) aba.innerHTML = 'Social' + seloPedidos();
+        atualizarNav();
       }
     });
   }
@@ -863,13 +951,13 @@
     var em = !!estado.batalha;
     return '<div class="arena">'
       + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
-      + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax) + '</div>'
+      + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'jogador') + '</div>'
       + (D.HABILIDADES_ATIVAS ? '<div id="poder-jogador">' + barraPoder(b) + '</div>' : '')
       + '<div class="suave">Velocidade ' + b.jogador.vel + '</div>'
       + (em ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>'
       + '<div class="vs">VS</div>'
       + '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
-      + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax) + '</div>'
+      + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div>'
       + '<div class="suave">Velocidade ' + b.monstro.vel + '</div></div></div>'
       + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'
       + (em ? '<div class="botoes"><button class="btn secundario" data-acao="velocidade">' + (estado.rapido ? 'Velocidade normal' : 'Acelerar ×3') + '</button>'
@@ -887,20 +975,13 @@
     } else if (estado.batalha || estado.resultado) {
       painel = resultadoHtml() + batalhaHtml();
     } else {
-      painel = '<nav class="abas-jogo"><button data-acao="aba" data-aba="personagem" class="' + (estado.aba === 'personagem' ? 'ativa' : '') + '">Personagem</button>'
-        + '<button data-acao="aba" data-aba="cacar" class="' + (estado.aba === 'cacar' ? 'ativa' : '') + '">Caçar</button>'
-        + '<button data-acao="aba" data-aba="mercado" class="' + (estado.aba === 'mercado' ? 'ativa' : '') + '">Mercado</button>'
-        + '<button data-acao="aba" data-aba="encantar" class="' + (estado.aba === 'encantar' ? 'ativa' : '') + '">Encantar</button>'
-        + '<button data-acao="aba" data-aba="ranking" class="' + (estado.aba === 'ranking' ? 'ativa' : '') + '">Ranking</button>'
-        + '<button data-acao="aba" data-aba="social" class="' + (estado.aba === 'social' ? 'ativa' : '') + '">Social' + seloPedidos() + '</button>'
-        + '<button data-acao="aba" data-aba="masmorra" class="' + (estado.aba === 'masmorra' ? 'ativa' : '') + '">Masmorra' + seloMasmorra() + '</button>'
-        + '<button data-acao="aba" data-aba="arena" class="' + (estado.aba === 'arena' ? 'ativa' : '') + '">Arena' + seloArena() + '</button>'
-        + (ehAdmin() ? '<button data-acao="aba" data-aba="admin" class="aba-admin' + (estado.aba === 'admin' ? ' ativa' : '') + '">Admin</button>' : '')
-        + '</nav>'
+      painel = navHtml()
         + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin })[estado.aba]();
     }
-    var trocar = estado.batalha || estado.luta || estado.lutaArena ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
-    app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
+    var livre = !(estado.batalha || estado.luta || estado.lutaArena);
+    var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
+      + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
+    app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
@@ -984,9 +1065,9 @@
         golpe('lutador-jogador');
       }
     }
-    document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
-    document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax);
-    document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax);
+    document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'jogador');
+    document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro');
+    document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'ficha');
     document.getElementById('ficha-pocoes').textContent = b.pocoes + '/' + D.VIDA.pocoesPorDia;
     if (D.HABILIDADES_ATIVAS) document.getElementById('poder-jogador').innerHTML = barraPoder(b);
     document.getElementById('controle-habilidade').innerHTML = controleHabilidade(b);
@@ -1025,6 +1106,12 @@
     estado.resultado = res;
     salvar();
     telaJogo();
+    if (res.resultado === 'vitoria') {
+      avisar('Vitória! +' + res.exp + ' de exp', 'vitoria');
+      if (res.niveis) avisar('Level up! Level ' + estado.personagem.nivel, 'nivel');
+      [res.drop, res.dropArmadura].forEach(function (it) { if (it) avisar('Item novo: ' + R.nomeItem(it), 'item'); });
+      if (res.pergaminho) avisar('Pergaminho ' + ITEM_RARIDADE[res.pergaminho] + '!', 'item');
+    } else if (res.resultado === 'derrota') avisar('Derrota…', 'ruim');
   }
 
   // ---------------- Eventos ----------------
@@ -1137,6 +1224,7 @@
       case 'jogar': abrirJogo(el.dataset.id); break;
       case 'aba':
         estado.aba = el.dataset.aba;
+        if (grupoDaAba(estado.aba)) estado.subAba[grupoDaAba(estado.aba).id] = estado.aba;
         estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
         telaJogo();
         // Social e Masmorra buscam o estado novo ao abrir (pedidos e convites recentes).
@@ -1187,6 +1275,10 @@
         break;
       case 'arena-revanche':
         comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
+        break;
+      case 'ficha-status':
+        estado.fichaAberta = !estado.fichaAberta;
+        atualizarFicha();
         break;
       case 'arena-rolar':
         rolarDadoArena(true);
@@ -1500,10 +1592,7 @@
     var p = estado.personagem;
     if (!p || estado.batalha || !document.querySelector('.ficha')) return;
     if (R.atualizarTempo(p, C.agora())) salvar();
-    var aberta = document.querySelector('.ficha');
-    var nova = document.createElement('div');
-    nova.innerHTML = fichaHtml();
-    aberta.replaceWith(nova.firstChild);
+    atualizarFicha();
   }, 20000);
 
   // A cada minuto: avisa o servidor que está jogando (online para os amigos) e procura pedidos novos.
@@ -1544,8 +1633,7 @@
       if (estado.luta || estado.batalha || estado.resultado || estado.chefeAviso) return;
       if (estado.aba === 'masmorra') telaJogo();
       else {
-        var aba = document.querySelector('[data-aba="masmorra"]');
-        if (aba) aba.innerHTML = 'Masmorra' + seloMasmorra();
+        atualizarNav();
       }
     }, function (e) {
       estado.gmCarregando = false;
@@ -1672,12 +1760,12 @@
     var L = estado.luta, ini = L.sim.inicio;
     var herois = ini.herois.map(function (h, i) {
       return '<div class="mas-lutador' + (L.hpH[i] ? '' : ' caido') + '"><div class="moldura">' + F.personagem(h.raca, h.classe, h.sexo) + '</div>'
-        + '<div class="mas-nome">' + esc(h.nome) + '</div>' + barra('hp', L.hpH[i], h.hpMax, L.hpH[i] + ' / ' + h.hpMax) + '</div>';
+        + '<div class="mas-nome">' + esc(h.nome) + '</div>' + barra('hp', L.hpH[i], h.hpMax, L.hpH[i] + ' / ' + h.hpMax, 'heroi' + i) + '</div>';
     }).join('');
     var monstros = ini.salas[L.sala].map(function (m, i) {
       return '<div class="mas-lutador' + (L.hpM[i] ? '' : ' caido') + (m.chefe ? ' mas-chefe' : '') + '"><div class="moldura">' + F.imagemMonstro(m.id) + '</div>'
         + '<div class="mas-nome">' + (m.chefe ? '<span class="selo-chefe">Chefe</span> ' : m.elite ? '<span class="selo-elite">Elite</span> ' : '') + esc(m.nome) + '</div>'
-        + barra('hp', L.hpM[i], m.hpMax, L.hpM[i].toLocaleString('pt-BR') + ' / ' + m.hpMax.toLocaleString('pt-BR')) + '</div>';
+        + barra('hp', L.hpM[i], m.hpMax, L.hpM[i].toLocaleString('pt-BR') + ' / ' + m.hpMax.toLocaleString('pt-BR'), 'mas' + i) + '</div>';
     }).join('');
     var fim = '';
     if (L.fim) {
@@ -1779,14 +1867,6 @@
   }
   function seloArena() { var n = ataquesNovos(); return n ? ' <span class="selo-pedidos">' + n + '</span>' : ''; }
 
-  function entradasArenaHtml(p) {
-    if (p.nivel < A.nivelMin) return '<div class="suave pequeno">⚔ Arena: abre no level ' + A.nivelMin + '</div>';
-    var e = estado.arena && estado.arena.entradas;
-    if (!e) return '';
-    var prox = e.proxima_em ? ' (+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora())) + ')' : '';
-    return '<div class="secao pocoes"><span>⚔ Arena: <strong>' + e.valor + '/' + e.maximo + '</strong></span><span class="suave pequeno">' + prox + '</span></div>';
-  }
-
   function carregarArena() {
     var p = estado.personagem;
     if (!p || estado.arenaCarregando) return;
@@ -1802,10 +1882,8 @@
       if (estado.batalha || estado.resultado || estado.chefeAviso || estado.luta || estado.lutaArena) return;
       if (estado.aba === 'arena') telaJogo();
       else {
-        var aba = document.querySelector('[data-aba="arena"]');
-        if (aba) aba.innerHTML = 'Arena' + seloArena();
-        var ficha = document.querySelector('.ficha');
-        if (ficha) { var nova = document.createElement('div'); nova.innerHTML = fichaHtml(); ficha.replaceWith(nova.firstChild); }
+        atualizarNav();
+        atualizarFicha();
       }
     }, function (e) {
       estado.arenaCarregando = false;
@@ -1833,8 +1911,7 @@
     } catch (e) { /* tenta de novo na próxima atualização */ }
     estado.aplicandoCreditos = false;
     if (!estado.batalha && !estado.luta && !estado.lutaArena) {
-      var ficha = document.querySelector('.ficha');
-      if (ficha) { var nova = document.createElement('div'); nova.innerHTML = fichaHtml(); ficha.replaceWith(nova.firstChild); }
+      atualizarFicha();
     }
   }
 
@@ -2138,7 +2215,7 @@
     function lutador(x, hp, lado) {
       return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, x.classe, x.sexo) + '</div>'
         + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel + '</div>'
-        + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax) + '</div>';
+        + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax, 'arena-' + lado) + '</div>';
     }
     var mesa = L.fase === 'fim' ? '' : '<div class="vaga-dado"></div>';
     var controles = '';

@@ -33,8 +33,11 @@ body {
   font-size: 18px;
   line-height: 1.45;
 }
+/* Textura bem sutil de pedra por cima do fundo */
+body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .07;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-h1, h2, h3 { font-family: var(--titulo); color: var(--ouro-claro); font-weight: 700; letter-spacing: .04em; margin: 0 0 .5em; }
+h1, h2, h3 { font-family: var(--titulo); color: var(--ouro-claro); font-weight: 700; letter-spacing: .04em; margin: 0 0 .5em; text-shadow: 0 0 14px rgba(230, 207, 156, .18); }
 h2 { font-size: 1.35rem; }
 h3 { font-size: 1.05rem; }
 p { margin: 0 0 .6em; }
@@ -76,8 +79,9 @@ label { display: block; margin-bottom: .8em; color: var(--suave); font-size: .95
 label input { margin-top: .25em; }
 
 .caixa {
-  background: var(--painel);
-  border: 1px solid var(--borda);
+  position: relative;
+  background: linear-gradient(180deg, rgba(26, 34, 48, .94), rgba(18, 24, 34, .94));
+  border: 1px solid rgba(201, 162, 74, .32);
   border-radius: var(--raio);
   padding: 1.2rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, .45);
@@ -174,11 +178,6 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .ficha .cabeca h2 { margin: 0; font-size: 1.2rem; }
 .nivel { font-family: var(--titulo); color: var(--ouro); }
 
-.barra { position: relative; height: 18px; background: #0b0e13; border: 1px solid var(--borda); border-radius: 4px; overflow: hidden; margin: .25rem 0 .6rem; }
-.barra > i { position: absolute; inset: 0 auto 0 0; transition: width .3s; }
-.barra.hp > i { background: linear-gradient(#d24a3e, #8a2219); }
-.barra.exp > i { background: linear-gradient(#5aa0ec, #2a5f99); }
-.barra > b { position: relative; display: block; text-align: center; font-size: .75rem; line-height: 16px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; }
 
 .secao { border-top: 1px solid var(--borda); padding-top: .7rem; margin-top: .7rem; }
 .secao h3 { display: flex; justify-content: space-between; align-items: baseline; }
@@ -203,8 +202,6 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 
 .subtitulo { margin-top: 1.4rem; }
 .selo-admin { color: #ff8a7a; }
-.abas-jogo .aba-admin { color: #ff8a7a; }
-.abas-jogo .aba-admin.ativa { color: #ffb0a4; border-bottom-color: #ff8a7a; }
 .encanto-resultado {
   margin-bottom: 1rem; padding: .9rem 1rem; border-radius: 8px; text-align: center;
   font-family: var(--titulo); font-size: 1.15rem; letter-spacing: .03em;
@@ -229,7 +226,9 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 
 /* Inventário */
 .itens { display: grid; gap: .6rem; }
-.item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .7rem .9rem; background: var(--painel-2); border: 1px solid var(--borda); border-radius: 8px; }
+.item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem .95rem; border: 1px solid rgba(201, 162, 74, .2); border-radius: 10px;
+  background: linear-gradient(180deg, #1b2331, #141b26); box-shadow: 0 2px 10px rgba(0, 0, 0, .25); transition: border-color .15s, transform .15s; }
+.item:hover { border-color: rgba(201, 162, 74, .5); }
 .item.equipado { border-color: var(--ouro); }
 .item-acoes { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .secao.ouro { display: flex; justify-content: space-between; align-items: baseline; font-family: var(--titulo); color: var(--ouro-claro); }
@@ -255,18 +254,7 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 .resultado.derrota { border-color: var(--ruim); background: rgba(208, 100, 90, .07); }
 .botoes { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
 
-.abas-jogo { display: flex; flex-wrap: wrap; gap: .2rem .4rem; margin-bottom: 1rem; border-bottom: 1px solid var(--borda); }
-.abas-jogo button { white-space: nowrap; }
-.abas-jogo button { background: none; border: 0; border-bottom: 2px solid transparent; padding: .5em .9em; color: var(--suave); font-family: var(--titulo); cursor: pointer; }
-.abas-jogo button.ativa { color: var(--ouro-claro); border-bottom-color: var(--ouro); }
 
-#aviso {
-  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
-  max-width: calc(100% - 32px);
-  padding: .7em 1.2em; border-radius: 8px; border: 1px solid var(--ouro);
-  background: #1d1810; color: var(--ouro-claro); box-shadow: 0 8px 30px rgba(0, 0, 0, .6);
-  z-index: 10;
-}
 
 .rodape { text-align: center; color: var(--suave); font-size: .85rem; padding: 1rem 16px 2rem; }
 
@@ -281,8 +269,6 @@ table.atributos th { color: var(--suave); font-weight: 500; }
   .vs { display: none; }
   .ficha .cabeca { grid-template-columns: 80px 1fr; }
   .item { flex-direction: column; align-items: stretch; }
-  .abas-jogo { display: grid; grid-template-columns: 1fr 1fr; }
-  .abas-jogo button { padding: .5em .4em; }
   .item-acoes { justify-content: flex-start; }
 }
 
@@ -692,3 +678,118 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .dado-janela.treme { animation: janelaTreme .5s ease-out .75s both; }
 @keyframes janelaTreme { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-8px, 4px); } 40% { transform: translate(7px, -5px); } 60% { transform: translate(-5px, 3px); } 80% { transform: translate(3px, -2px); } }
 @media (prefers-reduced-motion: reduce) { .raios-20, .faiscas i, .dado-janela.treme, .selo-dado, .res-critico .res-numero, .res-critico .res-selo { animation: none !important; } }
+
+/* ================= Repaginada "Pergaminho Real" ================= */
+/* Cantoneiras douradas nos painéis */
+.caixa::before { content: ""; position: absolute; inset: -1px; pointer-events: none; border-radius: inherit;
+  --c: #c9a24a; --t: 16px; --g: 2px;
+  background:
+    linear-gradient(var(--c), var(--c)) top left / var(--t) var(--g), linear-gradient(var(--c), var(--c)) top left / var(--g) var(--t),
+    linear-gradient(var(--c), var(--c)) top right / var(--t) var(--g), linear-gradient(var(--c), var(--c)) top right / var(--g) var(--t),
+    linear-gradient(var(--c), var(--c)) bottom left / var(--t) var(--g), linear-gradient(var(--c), var(--c)) bottom left / var(--g) var(--t),
+    linear-gradient(var(--c), var(--c)) bottom right / var(--t) var(--g), linear-gradient(var(--c), var(--c)) bottom right / var(--g) var(--t);
+  background-repeat: no-repeat; }
+.topo { background: rgba(8, 10, 14, .85); border-bottom-color: rgba(201, 162, 74, .3); }
+.topo .logo { text-shadow: 0 0 18px rgba(201, 169, 107, .45); }
+.btn-icone { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 8px; border-radius: 50%; cursor: pointer;
+  border: 1px solid rgba(255, 138, 122, .5); background: transparent; color: #ff9a8c; }
+.btn-icone.ativa, .btn-icone:hover { background: rgba(255, 138, 122, .12); }
+
+/* Barra de recursos no alto */
+.barra-recursos { position: sticky; top: 0; z-index: 8; background: rgba(10, 13, 19, .93); border-bottom: 1px solid rgba(201, 162, 74, .35);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .4); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
+.recursos-dentro { max-width: 1180px; margin: 0 auto; padding: .45rem 16px; display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; align-items: center; justify-content: center; }
+.recurso { display: inline-flex; align-items: center; gap: .4rem; font-family: var(--titulo); font-size: 1rem; white-space: nowrap; }
+.recurso svg { width: 22px; height: 22px; flex: none; }
+.recurso strong { font-variant-numeric: tabular-nums; }
+.recurso small { font-family: var(--corpo); color: var(--suave); font-size: .8rem; }
+.r-ouro { color: var(--cor-ouro); }
+.r-reputacao { color: #8ec5ff; }
+.r-pocao { color: #ff8f86; }
+.r-pocao .btn { padding: .15em .7em; font-size: .75rem; }
+.r-arena { color: var(--ouro-claro); }
+.r-vida { display: none; color: #ff6b5a; }
+
+/* Abas em 5 grupos */
+.abas-jogo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .3rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 1px solid rgba(201, 162, 74, .25); }
+.abas-jogo button { position: relative; display: flex; align-items: center; justify-content: center; gap: .45rem; padding: .6em .4em; border: 1px solid transparent; border-radius: 8px;
+  background: none; color: var(--suave); font-family: var(--titulo); font-size: .95rem; cursor: pointer; white-space: nowrap; }
+.abas-jogo button:hover { color: var(--ouro-claro); background: rgba(201, 162, 74, .06); }
+.abas-jogo button.ativa { color: var(--ouro-claro); border-color: rgba(201, 162, 74, .55); background: radial-gradient(ellipse at 50% 120%, rgba(201, 162, 74, .25), rgba(201, 162, 74, .04) 70%); }
+.aba-ico { position: relative; display: inline-grid; }
+.aba-ico svg { width: 22px; height: 22px; }
+.aba-ico .selo-pedidos { position: absolute; top: -8px; right: -12px; }
+.sub-abas { display: flex; gap: .4rem; margin: -.2rem 0 1rem; }
+.sub-abas button { padding: .3em 1em; border: 1px solid var(--borda); border-radius: 999px; background: transparent; color: var(--suave); font-family: var(--titulo); font-size: .85rem; cursor: pointer; }
+.sub-abas button.ativa { border-color: var(--ouro); color: #1a1208; background: linear-gradient(#e6cf9c, #c9a24a); }
+
+/* Ficha enxuta com sanfona */
+.ficha-sanfona { display: flex; width: 100%; align-items: center; gap: .5rem; margin-top: .8rem; padding: .55rem .7rem; border: 1px solid rgba(201, 162, 74, .3); border-radius: 8px;
+  background: rgba(201, 162, 74, .05); color: var(--ouro-claro); font-family: var(--titulo); font-size: .9rem; cursor: pointer; text-align: left; }
+.ficha-sanfona span:first-child { flex: 1; }
+.ficha-sanfona i { font-style: normal; transition: transform .2s; }
+.ficha-sanfona.aberta i { transform: rotate(180deg); }
+.ficha-sanfona .pontos { font-size: .8rem; }
+
+/* Barras de vida e experiência: mais grossas, com brilho e rastro de dano */
+.barra { position: relative; height: 20px; margin: .25rem 0 .6rem; overflow: hidden; border-radius: 10px; border: 1px solid rgba(201, 162, 74, .35);
+  background: linear-gradient(#07090d, #11161e); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .6); }
+.barra > i, .barra > s { position: absolute; inset: 0 auto 0 0; border-radius: inherit; }
+.barra > i { transition: width .35s ease-out; }
+.barra > i::after { content: ""; position: absolute; inset: 0 0 50% 0; border-radius: 10px 10px 0 0; background: linear-gradient(rgba(255, 255, 255, .35), rgba(255, 255, 255, .05)); }
+.barra.hp > i { background: linear-gradient(90deg, #8a1c15, #d8473a 70%, #ff6b5a); box-shadow: 0 0 10px rgba(216, 71, 58, .5); }
+.barra.exp > i { background: linear-gradient(90deg, #1f4f86, #4f94e0 70%, #7bb6ff); box-shadow: 0 0 10px rgba(79, 148, 224, .45); }
+.barra > s { background: linear-gradient(90deg, #f7d58a, #fff1c8); opacity: .85; animation: rastro .7s ease-in .25s both; }
+@keyframes rastro { from { width: var(--de); } to { width: var(--ate); opacity: .4; } }
+.barra > b { position: relative; display: block; text-align: center; font-size: .78rem; line-height: 18px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+
+/* Cartas das listas: cor da raridade na borda */
+.carta-comum { border-left: 3px solid var(--basica); }
+.carta-rara { border-left: 3px solid var(--rara); }
+.carta-epica { border-left: 3px solid var(--epica); }
+.carta-lendaria { border-left: 3px solid var(--lendaria); }
+.item-com-icone .icone-pequeno { width: 64px; height: 64px; flex: none; }
+
+/* Avisos: selos animados no canto */
+#aviso { position: fixed; top: 64px; right: 16px; z-index: 30; display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; pointer-events: none; max-width: min(360px, calc(100% - 32px)); }
+#aviso[hidden] { display: none; }
+.selo-aviso { padding: .6em 1.1em; border-radius: 10px; border: 1px solid var(--ouro); background: linear-gradient(#232b3a, #161c27); color: var(--ouro-claro);
+  font-family: var(--titulo); font-size: .95rem; box-shadow: 0 8px 26px rgba(0, 0, 0, .6); animation: seloEntraCanto .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+.selo-aviso.saindo { animation: seloSai .45s ease-in both; }
+.selo-vitoria { border-color: #f2c94c; color: #fff0b0; box-shadow: 0 0 22px rgba(242, 201, 76, .35), 0 8px 26px rgba(0, 0, 0, .6); }
+.selo-nivel { border-color: #f2c94c; color: #1a1208; background: linear-gradient(#ffe7a3, #d9a93c); font-weight: 700; }
+.selo-item { border-color: var(--epica); color: #e7ccff; }
+.selo-ruim { border-color: var(--ruim); color: #ffc4bc; }
+@keyframes seloEntraCanto { from { transform: translateX(120%) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes seloSai { to { transform: translateX(120%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .selo-aviso, .barra > s { animation: none; } }
+
+/* Celular: as 5 abas viram uma barra fixa embaixo, com ícone e nome */
+@media (max-width: 700px) {
+  body { padding-bottom: 76px; }
+  .abas-jogo { position: fixed; left: 0; right: 0; bottom: 0; z-index: 12; margin: 0; padding: .35rem .3rem calc(.35rem + env(safe-area-inset-bottom));
+    gap: .1rem; border: 0; border-top: 1px solid rgba(201, 162, 74, .45); background: rgba(10, 13, 19, .97); box-shadow: 0 -6px 18px rgba(0, 0, 0, .5); }
+  .abas-jogo button { flex-direction: column; gap: .15rem; padding: .35em .1em; font-size: .72rem; }
+  .abas-jogo button.ativa { background: radial-gradient(ellipse at 50% 0%, rgba(201, 162, 74, .3), transparent 75%); border-color: transparent; }
+  .aba-ico svg { width: 24px; height: 24px; }
+  #chat { bottom: 84px; }
+  .recursos-dentro { gap: .35rem .9rem; padding: .4rem 10px; }
+  .recurso { font-size: .9rem; }
+  .recurso svg { width: 18px; height: 18px; }
+  #aviso { top: 104px; right: 10px; }
+  /* No celular o conteúdo da aba vem primeiro; a ficha fica embaixo e a vida aparece na barra de cima */
+  .jogo > section { order: -1; }
+  .r-vida { display: inline-flex; }
+  .topo { flex-wrap: nowrap; padding: .45rem 10px; gap: .5rem; }
+  .topo .logo { font-size: 1.15rem; }
+  .topo .acoes { flex-wrap: nowrap; gap: .35rem; }
+  .topo .acoes > .suave, .topo .selo-admin { display: none; }
+  .topo .btn { padding: .4em .6em; font-size: .72rem; }
+  .btn-icone { width: 32px; height: 32px; padding: 6px; }
+  .recursos-dentro { gap: .3rem .75rem; }
+  .recurso { font-size: .82rem; gap: .3rem; }
+  .recurso svg { width: 16px; height: 16px; }
+  .r-pocao .btn { padding: .1em .5em; font-size: .68rem; }
+  .item.item-com-icone { flex-direction: row; flex-wrap: wrap; align-items: center; }
+  .item-com-icone .item-acoes { flex-basis: 100%; justify-content: flex-end; }
+}
