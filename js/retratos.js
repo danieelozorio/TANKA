@@ -333,16 +333,19 @@ Tanka.retratos = (function () {
   }
 
   // Arte pintada (quando existir) em assets/itens/:
-  //   armas: arma-<classe>-<raridade>.jpg   armaduras: <classe>-<tipo>-<raridade>.jpg   joias: <tipo>-<raridade>.jpg
+  //   armas: arma-<classe>-<raridade>   armaduras: <classe>-<tipo>-<raridade>   joias: <tipo>-<raridade>
+  // Primeiro a versão recortada (.webp, sem fundo, gerada por ferramentas/recortar_fundo.py);
+  // se não existir, o .jpg original; se nem isso, o desenho SVG.
   var semImagem = {};
   function arquivoItem(item) {
     var base = item.tipo === 'arma' ? 'arma-' + item.classe : item.classe ? item.classe + '-' + item.tipo : item.tipo;
-    return 'assets/itens/' + base + '-' + item.raridade + '.jpg';
+    return 'assets/itens/' + base + '-' + item.raridade;
   }
   function icone(item) {
-    var url = arquivoItem(item);
-    if (semImagem[url]) return iconeSvg(item.tipo, item.classe, item.raridade);
-    return '<img class="icone-img" src="' + url + '" alt="" data-tipo="' + item.tipo + '" data-classe="' + (item.classe || '')
+    var base = arquivoItem(item);
+    if (semImagem[base + '.jpg']) return iconeSvg(item.tipo, item.classe, item.raridade);
+    var url = semImagem[base + '.webp'] ? base + '.jpg' : base + '.webp';
+    return '<img class="icone-img" src="' + url + '" alt="" data-base="' + base + '" data-tipo="' + item.tipo + '" data-classe="' + (item.classe || '')
       + '" data-raridade="' + item.raridade + '">';
   }
   // Silhueta apagada para espaço vazio.
@@ -354,7 +357,9 @@ Tanka.retratos = (function () {
     if (!img || img.tagName !== 'IMG') return;
     var d = img.dataset;
     if (img.classList.contains('icone-img')) {
-      semImagem[img.getAttribute('src')] = true;
+      var src = img.getAttribute('src');
+      semImagem[src] = true;
+      if (d.base && src === d.base + '.webp') { img.src = d.base + '.jpg'; return; }   // sem recorte: usa o original
       img.outerHTML = iconeSvg(d.tipo, d.classe || null, d.raridade);
       return;
     }
