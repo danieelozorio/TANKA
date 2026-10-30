@@ -101,7 +101,8 @@
     return '<button class="' + classe + ' borda-' + item.raridade + aura(item)
       + (estado.itemFoco === item.id ? ' focado' : '') + '" data-acao="item" data-id="' + item.id + '"'
       + ' title="' + esc(R.nomeItem(item)) + '"' + (atributos || '') + '>'
-      + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</button>';
+      + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '')
+      + (item.travado ? '<span class="cadeado" title="Travado">' + ICONES.cadeado + '</span>' : '') + '</button>';
   }
 
   // Dispositivo com mouse: clicar equipa e passar o mouse mostra a ficha. No toque, tocar mostra a ficha.
@@ -304,6 +305,7 @@
     aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
     mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
+    cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>',
     admin: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'),
   };
 
@@ -536,7 +538,7 @@
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
         : '<span class="menos">Não é da sua classe</span>';
-      acoes += estado.vendaPendente === item.id
+      acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
     }
@@ -595,10 +597,11 @@
     } else {
       acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
           : '<span class="menos">Não é da sua classe</span>')
-        + (estado.vendaPendente === item.id
+        + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
     }
+    acoes += '<button class="btn secundario" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? 'Destravar' : 'Travar') + '</button>';
     return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
       + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
@@ -619,8 +622,8 @@
     var resumo = Object.keys(D.bonus).filter(function (k) { return eq[k]; }).map(function (k) {
       return '<dt>' + D.bonus[k] + '</dt><dd class="mais">+' + eq[k] + '</dd>';
     }).join('');
-    var mochila = R.mochila(p);
-    var celulas = mochila.map(function (i) { return quadroItem(i, 'celula'); });
+    var mochila = R.mochila(p), v = visaoMochila();
+    var celulas = R.ordenarItens(mochila, v.ordem, v.crescente).map(celulaMochila);
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');
     var foco = estado.itemFoco ? p.inventario.find(function (i) { return i.id === estado.itemFoco; }) : null;
     return '<div class="personagem-tela"><div class="boneco">' + slots
@@ -629,7 +632,73 @@
       + '<div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + '<h3 class="subtitulo">Mochila <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></h3>'
-      + '<div class="mochila">' + celulas.join('') + '</div>';
+      + barraMochilaHtml()
+      + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
+  }
+
+  // ----- Mochila: ordem, filtro, trava e venda em lote -----
+  // A ordem e o filtro só mudam a visão (os dados do personagem ficam iguais); "Organizar" grava a ordem.
+  // Marcar itens e mudar o filtro só trocam classes e a posição dos quadros, sem redesenhar a tela.
+  var ORDENS = [['mochila', 'Ordem da mochila'], ['forca', 'Força'], ['raridade', 'Raridade'], ['encanto', 'Encanto'], ['tipo', 'Tipo']];
+  function visaoMochila() {
+    return estado.mochilaVisao || (estado.mochilaVisao = { ordem: 'mochila', crescente: false, raridades: [], forcaMin: 0 });
+  }
+  function celulaMochila(item) {
+    var v = visaoMochila(), lote = estado.vendaLote;
+    var html = quadroItem(item, 'celula' + (R.passaFiltro(item, v) ? '' : ' apagado') + (lote && lote.ids[item.id] ? ' marcado' : ''),
+      ' data-forca="' + R.forcaItem(item) + '"');
+    return lote ? html.replace('data-acao="item"', 'data-acao="marcar"') : html;
+  }
+  function barraMochilaHtml() {
+    var v = visaoMochila(), lote = estado.vendaLote;
+    var html = '<div class="mochila-barra"><div class="mochila-linha">'
+      + '<label class="mochila-campo">Ordenar <select id="ordem-mochila">' + ORDENS.map(function (o) {
+        return '<option value="' + o[0] + '"' + (v.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select></label>'
+      + '<button class="btn secundario btn-pequeno" data-acao="mochila-direcao"' + (v.ordem === 'mochila' ? ' disabled' : '') + '>'
+      + (v.crescente ? '↑ Crescente' : '↓ Decrescente') + '</button>'
+      + '<button class="btn secundario btn-pequeno" data-acao="mochila-organizar" title="Grava esta ordem na mochila">Organizar</button>'
+      + '<button class="btn btn-pequeno' + (lote ? ' perigo' : ' secundario') + '" data-acao="mochila-lote">' + (lote ? 'Sair da venda' : 'Vender vários') + '</button></div>'
+      + '<div class="mochila-linha"><span class="suave pequeno">Mostrar:</span>' + R.RARIDADES.map(function (k) {
+        return '<button class="chip-raridade raridade-' + k + (v.raridades.indexOf(k) >= 0 ? ' ativa' : '') + '" data-acao="mochila-filtro" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
+      }).join('')
+      + '<label class="mochila-campo">Força mín. <input id="forca-min" type="number" min="0" step="10" inputmode="numeric" value="' + (v.forcaMin || '') + '" placeholder="0"></label></div>';
+    if (lote) {
+      html += '<div class="venda-lote"><span class="suave pequeno">Selecionar:</span>'
+        + [['comum', 'Comuns'], ['rara', 'Até Raras'], ['epica', 'Até Épicas']].map(function (x) {
+          return '<button class="chip-raridade raridade-' + x[0] + '" data-acao="lote-ate" data-valor="' + x[0] + '">' + x[1] + '</button>';
+        }).join('') + '<button class="chip-raridade" data-acao="lote-limpar">Limpar</button>'
+        + '<span class="lote-total" id="lote-total"></span>'
+        + '<button class="btn perigo btn-pequeno" id="lote-vender" data-acao="lote-vender"></button>'
+        + '<p class="suave pequeno lote-dica">Toque nos itens para marcar. Itens com cadeado não podem ser vendidos.</p></div>';
+    }
+    return html + '</div>';
+  }
+  function aplicarVisaoMochila() {
+    var grade = document.querySelector('.mochila');
+    if (!grade) return;
+    var p = estado.personagem, v = visaoMochila(), lote = estado.vendaLote;
+    var celulas = {};
+    grade.querySelectorAll('[data-id]').forEach(function (el) { celulas[el.dataset.id] = el; });
+    var vazias = grade.querySelectorAll('.celula.vazia');
+    R.ordenarItens(R.mochila(p), v.ordem, v.crescente).forEach(function (it) {
+      var el = celulas[it.id];
+      if (!el) return;
+      el.classList.toggle('apagado', !R.passaFiltro(it, v));
+      el.classList.toggle('marcado', !!(lote && lote.ids[it.id]));
+      grade.appendChild(el);
+    });
+    vazias.forEach(function (el) { grade.appendChild(el); });
+    atualizarTotalLote();
+  }
+  function atualizarTotalLote() {
+    var lote = estado.vendaLote, total = document.getElementById('lote-total'), botao = document.getElementById('lote-vender');
+    if (!lote || !total || !botao) return;
+    var ids = Object.keys(lote.ids), ouro = R.valorVenda(estado.personagem, ids);
+    total.innerHTML = ids.length + ' item(ns) · <strong class="cor-ouro">+' + ouro.toLocaleString('pt-BR') + ' de ouro</strong>';
+    botao.disabled = !ids.length;
+    botao.textContent = lote.confirmar ? 'Confirmar: vender ' + ids.length : 'Vender selecionados';
+    botao.classList.toggle('confirmar', !!lote.confirmar);
   }
 
   function linhaMercado(modelo) {
@@ -1156,8 +1225,18 @@
     }
   });
 
+  app.addEventListener('change', function (e) {
+    if (e.target.id === 'ordem-mochila') {
+      visaoMochila().ordem = e.target.value;
+      var dir = document.querySelector('[data-acao="mochila-direcao"]');
+      if (dir) dir.disabled = e.target.value === 'mochila';
+      aplicarVisaoMochila();
+    }
+  });
+
   app.addEventListener('input', function (e) {
     if (e.target.id === 'nome-personagem' && estado.criacao) estado.criacao.nome = e.target.value;
+    if (e.target.id === 'forca-min') { visaoMochila().forcaMin = Number(e.target.value) || 0; aplicarVisaoMochila(); }
     if (e.target.id === 'confirmar-exclusao') {
       var certo = e.target.value.trim().toLowerCase() === e.target.dataset.nome.toLowerCase();
       document.querySelector('[data-acao="excluir-confirmar"]').disabled = !certo;
@@ -1232,6 +1311,7 @@
         estado.aba = el.dataset.aba;
         if (grupoDaAba(estado.aba)) estado.subAba[grupoDaAba(estado.aba).id] = estado.aba;
         estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
+        estado.vendaLote = null;
         telaJogo();
         // Social e Masmorra buscam o estado novo ao abrir (pedidos e convites recentes).
         if (estado.aba === 'social') carregarSocial();
@@ -1281,6 +1361,72 @@
         break;
       case 'arena-revanche':
         comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
+        break;
+      case 'marcar': {
+        var lote = estado.vendaLote, alvo = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+        if (!lote || !alvo) break;
+        if (!R.podeVender(p, alvo)) { avisar('Item travado: destrave para vender.'); break; }
+        if (lote.ids[alvo.id]) delete lote.ids[alvo.id]; else lote.ids[alvo.id] = true;
+        lote.confirmar = false;
+        el.classList.toggle('marcado', !!lote.ids[alvo.id]);
+        atualizarTotalLote();
+        break;
+      }
+      case 'mochila-direcao':
+        visaoMochila().crescente = !visaoMochila().crescente;
+        el.textContent = visaoMochila().crescente ? '↑ Crescente' : '↓ Decrescente';
+        aplicarVisaoMochila();
+        break;
+      case 'mochila-filtro': {
+        var rs = visaoMochila().raridades, k = el.dataset.valor;
+        if (rs.indexOf(k) >= 0) rs.splice(rs.indexOf(k), 1); else rs.push(k);
+        el.classList.toggle('ativa', rs.indexOf(k) >= 0);
+        aplicarVisaoMochila();
+        break;
+      }
+      case 'mochila-organizar': {
+        var vm = visaoMochila();
+        R.organizarMochila(p, vm.ordem === 'mochila' ? 'raridade' : vm.ordem, vm.ordem === 'mochila' ? false : vm.crescente);
+        vm.ordem = 'mochila';
+        salvar();
+        telaJogo();
+        avisar('Mochila organizada.');
+        break;
+      }
+      case 'mochila-lote':
+        estado.vendaLote = estado.vendaLote ? null : { ids: {}, confirmar: false };
+        estado.zoom = null;
+        telaJogo();
+        atualizarTotalLote();
+        break;
+      case 'lote-ate':
+        estado.vendaLote.ids = {};
+        R.idsAteRaridade(p, el.dataset.valor).forEach(function (id) { estado.vendaLote.ids[id] = true; });
+        estado.vendaLote.confirmar = false;
+        aplicarVisaoMochila();
+        break;
+      case 'lote-limpar':
+        estado.vendaLote.ids = {};
+        estado.vendaLote.confirmar = false;
+        aplicarVisaoMochila();
+        break;
+      case 'lote-vender': {
+        var lt = estado.vendaLote, idsLote = Object.keys(lt.ids);
+        if (!idsLote.length) break;
+        if (!lt.confirmar) { lt.confirmar = true; atualizarTotalLote(); break; }
+        var vendeu = R.venderVarios(p, idsLote);
+        estado.vendaLote = { ids: {}, confirmar: false };
+        salvar();
+        telaJogo();
+        atualizarTotalLote();
+        avisar('Vendidos ' + vendeu.vendidos + ' item(ns): +' + vendeu.ouro.toLocaleString('pt-BR') + ' de ouro', 'item');
+        break;
+      }
+      case 'item-travar':
+        R.travarItem(p, el.dataset.id);
+        estado.vendaPendente = null;
+        salvar();
+        telaJogo();
         break;
       case 'ficha-status':
         estado.fichaAberta = !estado.fichaAberta;

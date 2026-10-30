@@ -606,11 +606,11 @@ Tanka.regras = (function () {
     return res;
   }
 
-  // Vende qualquer item que não esteja equipado.
+  // Vende qualquer item que não esteja equipado nem travado.
   function vender(p, itemId) {
     if (slotDoItem(p, itemId)) return false;
     var i = p.inventario.findIndex(function (x) { return x.id === itemId; });
-    if (i < 0) return false;
+    if (i < 0 || p.inventario[i].travado) return false;
     p.ouro += precoVenda(p.inventario[i]);
     p.inventario.splice(i, 1);
     return true;
@@ -631,6 +631,90 @@ Tanka.regras = (function () {
     var item = novoItem(tipo, p.classe, raridade);
     p.inventario.push(item);
     return item;
+  }
+
+  // ---------- Mochila: força do item, ordenação, filtro, trava e venda em lote ----------
+  // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
+
+  // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
+  var PESO_BONUS = { defesa: 8, defesaMagica: 8, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6 };
+  function forcaItem(item) {
+    if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
+    var b = bonusItem(item), total = 0;
+    Object.keys(b).forEach(function (k) { total += b[k] * (PESO_BONUS[k] || 1); });
+    return Math.round(total);
+  }
+
+  // Critérios de ordem com desempate em cascata (o primeiro manda, os outros desempatam).
+  var ORDEM_TIPOS = ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA);
+  var CRITERIOS = {
+    forca: ['forca', 'raridade', 'encanto'],
+    raridade: ['raridade', 'forca', 'encanto'],
+    encanto: ['encanto', 'forca', 'raridade'],
+    tipo: ['tipo', 'raridade', 'forca'],
+  };
+  function chaveItem(item, k) {
+    if (k === 'forca') return forcaItem(item);
+    if (k === 'raridade') return RARIDADES.indexOf(item.raridade);
+    if (k === 'encanto') return item.encanto || 0;
+    return -ORDEM_TIPOS.indexOf(item.tipo);          // tipo: arma primeiro na ordem decrescente
+  }
+  // Devolve uma lista nova (não mexe na mochila). criterio 'mochila' = ordem atual.
+  function ordenarItens(itens, criterio, crescente) {
+    var lista = itens.slice(), chaves = CRITERIOS[criterio];
+    if (!chaves) return lista;
+    var sinal = crescente ? 1 : -1;
+    return lista.sort(function (a, b) {
+      for (var i = 0; i < chaves.length; i++) {
+        var d = chaveItem(a, chaves[i]) - chaveItem(b, chaves[i]);
+        if (d) return d * sinal;
+      }
+      return 0;
+    });
+  }
+  // Filtro de visualização: { raridades: ['rara', ...] (vazio = todas), forcaMin: número }.
+  function passaFiltro(item, filtro) {
+    if (!filtro) return true;
+    if (filtro.raridades && filtro.raridades.length && filtro.raridades.indexOf(item.raridade) < 0) return false;
+    return forcaItem(item) >= (filtro.forcaMin || 0);
+  }
+  // "Organizar": grava a ordem do critério na mochila (os equipados não mudam).
+  function organizarMochila(p, criterio, crescente) {
+    var equipados = p.inventario.filter(function (i) { return slotDoItem(p, i.id); });
+    p.inventario = equipados.concat(ordenarItens(mochila(p), criterio, crescente));
+  }
+  function travarItem(p, itemId) {
+    var item = p.inventario.find(function (x) { return x.id === itemId; });
+    if (!item) return false;
+    item.travado = !item.travado;
+    if (!item.travado) delete item.travado;
+    return true;
+  }
+  function podeVender(p, item) { return !!item && !item.travado && !slotDoItem(p, item.id); }
+  // Ids da mochila até uma raridade (ex.: 'rara' = comuns e raras), sem travados.
+  function idsAteRaridade(p, raridade) {
+    var limite = RARIDADES.indexOf(raridade);
+    return mochila(p).filter(function (i) { return podeVender(p, i) && RARIDADES.indexOf(i.raridade) <= limite; })
+      .map(function (i) { return i.id; });
+  }
+  function valorVenda(p, ids) {
+    return ids.reduce(function (t, id) {
+      var item = p.inventario.find(function (x) { return x.id === id; });
+      return t + (podeVender(p, item) ? precoVenda(item) : 0);
+    }, 0);
+  }
+  // Vende de uma vez; travados e equipados ficam. Retorna { vendidos, ouro }.
+  function venderVarios(p, ids) {
+    var ouro = 0, vendidos = 0;
+    ids.forEach(function (id) {
+      var item = p.inventario.find(function (x) { return x.id === id; });
+      if (!podeVender(p, item)) return;
+      ouro += precoVenda(item);
+      vendidos++;
+      p.inventario.splice(p.inventario.indexOf(item), 1);
+    });
+    p.ouro += ouro;
+    return { vendidos: vendidos, ouro: ouro };
   }
 
   // ---------- Encantamento ----------
@@ -902,6 +986,15 @@ Tanka.regras = (function () {
     comprar: comprar,
     danoArma: danoArmaComEncanto,
     precoVenda: precoVenda,
+    forcaItem: forcaItem,
+    ordenarItens: ordenarItens,
+    passaFiltro: passaFiltro,
+    organizarMochila: organizarMochila,
+    travarItem: travarItem,
+    podeVender: podeVender,
+    idsAteRaridade: idsAteRaridade,
+    valorVenda: valorVenda,
+    venderVarios: venderVarios,
     comprarPergaminho: comprarPergaminho,
     chanceEncantar: chanceEncantar,
     riscoEncantar: riscoEncantar,

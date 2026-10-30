@@ -788,3 +788,39 @@ teste('skins do dado: comprar com ouro, usar e não comprar duas vezes', () => {
   assert.strictEqual(R.usarSkin(p, 'vermelho'), true); assert.strictEqual(p.skinDado, 'vermelho');
   assert.strictEqual(R.usarSkin(p, 'obsidiana'), false);
 });
+
+teste('mochila: força do item, ordem com desempate e filtro', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const a = { id: 'a', tipo: 'arma', classe: 'cavaleiro', raridade: 'rara', encanto: 0, dano: [12, 18] };
+  const b = { id: 'b', tipo: 'arma', classe: 'cavaleiro', raridade: 'comum', encanto: 0, dano: [12, 18] };
+  const c = { id: 'c', tipo: 'elmo', classe: 'cavaleiro', raridade: 'lendaria', encanto: 0 };
+  assert.strictEqual(R.forcaItem(a), 150);
+  assert.strictEqual(R.forcaItem(c), 20 * 8 + 150);
+  assert.deepStrictEqual([...R.ordenarItens([b, a, c], 'raridade').map((x) => x.id)], ['c', 'a', 'b']);
+  assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca').map((x) => x.id)], ['c', 'a', 'b']);   // empate a/b: raridade desempata
+  assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca', true).map((x) => x.id)], ['b', 'a', 'c']);
+  assert.ok(R.passaFiltro(a, { raridades: ['rara'] }) && !R.passaFiltro(b, { raridades: ['rara'] }));
+  assert.ok(!R.passaFiltro(a, { forcaMin: 200 }) && R.passaFiltro(c, { forcaMin: 200 }));
+  p.inventario.push(b, a, c);
+  R.organizarMochila(p, 'raridade');
+  assert.deepStrictEqual([...R.mochila(p).map((x) => x.id)], ['c', 'a', 'b']);
+  assert.ok(R.slotDoItem(p, p.equipados.arma));      // a arma equipada continua equipada
+});
+
+teste('mochila: trava e venda em lote', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.ouro = 0;
+  p.inventario.push({ id: 'x', tipo: 'elmo', classe: 'cavaleiro', raridade: 'comum', encanto: 0 },
+    { id: 'y', tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 },
+    { id: 'z', tipo: 'elmo', classe: 'cavaleiro', raridade: 'epica', encanto: 0 });
+  R.travarItem(p, 'y');
+  assert.ok(!R.vender(p, 'y'));
+  assert.deepStrictEqual([...R.idsAteRaridade(p, 'rara')], ['x']);
+  const todos = ['x', 'y', 'z', p.equipados.arma];
+  assert.strictEqual(R.valorVenda(p, todos), 20 + 1000);
+  assert.deepStrictEqual({ ...R.venderVarios(p, todos) }, { vendidos: 2, ouro: 1020 });
+  assert.strictEqual(p.ouro, 1020);
+  assert.deepStrictEqual([...R.mochila(p).map((x) => x.id)], ['y']);
+  R.travarItem(p, 'y');
+  assert.ok(R.vender(p, 'y'));
+});
