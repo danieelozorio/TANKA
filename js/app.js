@@ -2639,31 +2639,24 @@
   var AL = D.ALIANCA;
   var NOME_FORMA = { classico: 'Clássico', redondo: 'Redondo', pontudo: 'Pontudo', estandarte: 'Estandarte' };
   var NOME_SIMBOLO = { dragao: 'Dragão', lobo: 'Lobo', coroa: 'Coroa', caveira: 'Caveira', espada: 'Espada', machado: 'Machado', olho: 'Olho', chama: 'Chama' };
-  var FORMAS_BRASAO = {
-    classico: 'M10 8H90V60C90 92 50 112 50 112C50 112 10 92 10 60Z',
-    redondo: 'M50 10A50 50 0 1 1 49.9 10Z',
-    pontudo: 'M8 8H92V50L50 114L8 50Z',
-    estandarte: 'M14 4H86V112L50 92L14 112Z',
-  };
-  var SIMBOLOS_BRASAO = {
-    dragao: 'M28 70C30 52 40 40 56 36L52 28L62 34L66 26L68 38C76 42 80 50 78 58L70 56L72 64L62 62C58 70 48 76 40 76L46 68C40 70 34 72 28 70ZM60 44A3 3 0 1 0 60.1 44Z',
-    lobo: 'M32 34L42 48H58L68 34L66 56L58 74L50 80L42 74L34 56ZM42 56L47 58L42 60ZM58 56L53 58L58 60ZM46 68H54L50 73Z',
-    coroa: 'M26 72L22 40L36 52L50 32L64 52L78 40L74 72ZM26 76H74V82H26Z',
-    caveira: 'M50 30C36 30 28 40 28 52C28 60 32 64 36 66V76H64V66C68 64 72 60 72 52C72 40 64 30 50 30ZM40 50A6 6 0 1 0 40.1 50ZM60 50A6 6 0 1 0 60.1 50ZM46 64L50 58L54 64Z',
-    espada: 'M48 24H52L54 30V66H46V30ZM36 66H64V71H36ZM47 71H53V82H47ZM45 82H55V87H45Z',
-    machado: 'M47 26H53V88H47ZM53 32C68 30 76 40 76 50C76 60 68 68 53 66ZM47 34C38 36 32 42 32 50C32 56 38 62 47 62Z',
-    olho: 'M22 58C32 42 68 42 78 58C68 74 32 74 22 58ZM50 48A10 10 0 1 0 50.1 48ZM50 54A4 4 0 1 0 50.1 54Z',
-    chama: 'M50 24C54 38 68 44 68 62C68 74 60 82 50 82C40 82 32 74 32 62C32 54 38 48 42 42C44 50 46 54 50 56C48 46 46 34 50 24Z',
+  // Brasão pintado (assets/aliancas/): moldura do escudo, miolo pintado com a cor escolhida e o símbolo dourado por cima.
+  // CAMPO_BRASAO: onde fica o miolo de cada escudo (em % da imagem), para centralizar o símbolo.
+  var CAMPO_BRASAO = {
+    classico: { x: 27, y: 18.8, w: 45.7, h: 62.5 }, redondo: { x: 17.6, y: 18, w: 63.7, h: 64.1 },
+    pontudo: { x: 28.1, y: 21.1, w: 43.4, h: 64.5 }, estandarte: { x: 31.2, y: 22.7, w: 37.1, h: 63.3 },
   };
   function brasaoSvg(b, classe) {
     b = b || {};
-    var forma = FORMAS_BRASAO[b.forma] || FORMAS_BRASAO.classico, cor = /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : AL.brasao.cores[0];
-    var simbolo = SIMBOLOS_BRASAO[b.simbolo] || SIMBOLOS_BRASAO.dragao;
-    return '<svg class="brasao ' + (classe || '') + '" viewBox="0 0 100 120" aria-hidden="true">'
-      + '<defs><linearGradient id="br-luz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient></defs>'
-      + '<path d="' + forma + '" fill="' + cor + '" stroke="#c9a24a" stroke-width="5" stroke-linejoin="round"/>'
-      + '<path d="' + forma + '" fill="url(#br-luz)"/>'
-      + '<path d="' + simbolo + '" fill="#f3e2b0" stroke="#5a4214" stroke-width="1.5" stroke-linejoin="round" fill-rule="evenodd"/></svg>';
+    var forma = CAMPO_BRASAO[b.forma] ? b.forma : 'classico', campo = CAMPO_BRASAO[forma];
+    var cor = /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : AL.brasao.cores[0];
+    var simbolo = AL.brasao.simbolos.indexOf(b.simbolo) >= 0 ? b.simbolo : 'dragao';
+    var pasta = 'assets/aliancas/';
+    return '<span class="brasao ' + (classe || '') + '" style="--cor:' + cor + '" aria-hidden="true">'
+      + '<i class="brasao-campo" style="-webkit-mask-image:url(' + pasta + 'campo-' + forma + '.png);mask-image:url(' + pasta + 'campo-' + forma + '.png)"></i>'
+      + '<img class="brasao-moldura" src="' + pasta + 'escudo-' + forma + '.webp" alt="">'
+      + '<img class="brasao-simbolo" src="' + pasta + 'simbolo-' + simbolo + '.webp" alt="" style="left:' + (campo.x - campo.w * 0.1) + '%;top:' + (campo.y - campo.h * 0.04)
+      + '%;width:' + campo.w * 1.2 + '%;height:' + campo.h * 1.08 + '%">'
+      + '</span>';
   }
   // Na ficha: aliança e bônus ativos.
   function bonusFichaHtml() {
