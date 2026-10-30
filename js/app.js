@@ -1967,7 +1967,7 @@
     L.modal = { modo: 'caindo', quem: quem, numero: '?' };
     atualizarJanelaDado();
     if (!L.dado3d) girarNumeros();
-    L.timer = setTimeout(pousar, L.dado3d ? 950 : 1500);
+    L.timer = setTimeout(pousar, L.dado3d ? 750 : 1500);
   }
   function girarNumeros() {
     var L = estado.lutaArena;
@@ -2000,11 +2000,11 @@
     var skin = (m.quem === 'd' ? est.d.skin : est.a.skin || estado.personagem.skinDado) || 'vermelho';
     janela.classList.toggle('do-oponente', m.quem === 'd');
     var n = m.numero, pousou = m.modo === 'pousou';
-    mesa.className = 'mesa-madeira ' + m.modo + (pousou ? (n === 20 ? ' nat20 critico' : n >= 18 ? ' critico' : n === 1 ? ' falha' : '') : '') + (L.dado3d ? ' em3d' : '');
+    mesa.className = 'mesa-madeira ' + m.modo + (pousou ? (n === 20 ? ' nat20 critico' : n === 1 ? ' falha' : '') : '') + (L.dado3d ? ' em3d' : '');
     janela.classList.toggle('treme', pousou && n === 20);
     ov.querySelector('.zoom-rotulo').textContent = m.modo === 'parado' ? (L.ultimo ? 'Último dado · ' + (m.quem === 'd' ? est.d.nome : est.a.nome) : 'Prepare-se!')
       : m.quem === 'd' ? 'Dado de ' + est.d.nome : 'Seu ataque';
-    ov.querySelector('.selo-dado').textContent = pousou ? (n === 20 ? 'CRÍTICO NATURAL!' : n >= 18 ? 'CRÍTICO!' : n === 1 ? 'FALHA CRÍTICA' : '') : '';
+    ov.querySelector('.selo-dado').textContent = '';
     // O dado: 3D (troca se mudou a skin) ou SVG.
     if (L.dado3d && L.dado3dSkin !== skin) { L.dado3d.destruir(); L.dado3d = null; }
     if (!L.dado3d && L.usar3d) {
@@ -2016,7 +2016,7 @@
         if (m.modo === 'rolar' || m.modo === 'parado') L.dado3d.parado(m.modo === 'rolar' ? 20 : n);
         if (m.modo === 'caindo') L.dado3d.cair(m.quem === 'd' ? -1 : 1);
       }
-      L.dado3d.brilho(pousou ? (n === 20 ? 'ouro' : n >= 18 ? 'critico' : n === 1 ? 'falha' : null) : null);
+      L.dado3d.brilho(pousou ? (n === 20 ? 'ouro' : n === 1 ? 'falha' : null) : null);
     } else {
       palco.innerHTML = d20Bonito(n, skin);
     }
@@ -2027,14 +2027,22 @@
       baixo = '<button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
         + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div>';
     } else if (m.modo === 'parado') {
-      baixo = L.ultimo ? '<div class="dado-resultado ' + (n === 1 ? 'menos' : n >= 18 ? 'cor-ouro' : '') + '"><strong>' + n + '</strong> · ' + esc(L.ultimo.texto) + '</div>'
+      baixo = L.ultimo ? resultadoDado(n, L.ultimo.texto)
         : '<div class="suave">⚔ VS ⚔</div>';
     } else if (!pousou) {
       baixo = '<div class="dado-resultado suave">Rolando…</div>';
     } else {
-      baixo = '<div class="dado-resultado ' + (n === 1 ? 'menos' : n >= 18 ? 'cor-ouro' : '') + '"><strong>' + n + '</strong> · ' + esc(m.texto) + '</div>';
+      baixo = resultadoDado(n, m.texto);
     }
     ov.querySelector('.dado-baixo').innerHTML = baixo;
+  }
+
+  // Número grande embaixo do dado: 20 = CRÍTICO! dourado brilhando, 1 = FALHA! acinzentado, o resto em dourado.
+  function resultadoDado(n, texto) {
+    var tipo = n === 20 ? 'res-critico' : n === 1 ? 'res-falha' : '';
+    return '<div class="dado-resultado ' + tipo + '"><div class="res-numero">' + n + '</div>'
+      + (n === 20 ? '<div class="res-selo">CRÍTICO!</div>' : n === 1 ? '<div class="res-selo">FALHA!</div>' : '')
+      + '<div class="res-efeito">' + esc(n === 1 ? 'errou o golpe' : String(texto).replace(/^CRÍTICO /, '')) + '</div></div>';
   }
 
   function soltarFaiscas(onde) {
@@ -2117,7 +2125,7 @@
     }
     if (rolar) {
       L.jaCaindo = true;
-      L.timer = setTimeout(tocarEventosArena, Math.max(0, (L.dado3d ? 950 : 1500) - (Date.now() - inicio)));
+      L.timer = setTimeout(tocarEventosArena, Math.max(0, (L.dado3d ? 750 : 1500) - (Date.now() - inicio)));
     } else tocarEventosArena();
   }
 

@@ -1,5 +1,5 @@
-// Tanka — D20 em 3D (Three.js) para a Arena: dado de resina com números gravados, sobre uma mesa de madeira
-// com sombra de verdade. Gira, cai na mesa, quica e para com o resultado virado para a câmera.
+// Tanka — D20 em 3D (Three.js) para a Arena: dado de resina com números gravados, com sombra suave no chão.
+// Gira, cai na mesa, quica e para com o resultado virado para a câmera.
 // Carrega o Three.js só quando a Arena precisa. Sem WebGL (ou sem internet), o jogo usa o D20 em SVG.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 
@@ -10,7 +10,7 @@ Tanka.dado3d = (function () {
   // Cada skin: cor do meio e da borda das faces, os 3 tons do número (claro, meio, escuro),
   // brilho próprio dos números (obsidiana) e se a resina é metálica (ouro).
   var SKINS = {
-    vermelho: { meio: '#e8262e', borda: '#5c0207', veio: 'rgba(255,170,150,.10)', numero: ['#fff3b8', '#e9b13a', '#8f5a0c'], brilhoNumero: 0, metal: 0 },
+    vermelho: { meio: '#a8141c', borda: '#3a0306', veio: 'rgba(255,140,120,.08)', numero: ['#fff3b8', '#f0b83a', '#a46a0c'], brilhoNumero: 0, metal: 0 },
     azul: { meio: '#3a8cff', borda: '#061f55', veio: 'rgba(180,220,255,.12)', numero: ['#ffffff', '#d3dceb', '#7f8ba0'], brilhoNumero: 0, metal: 0 },
     dourada: { meio: '#ffd76a', borda: '#7a4c05', veio: 'rgba(255,250,210,.16)', numero: ['#6a3c00', '#3d2100', '#1c0e00'], brilhoNumero: 0, metal: 0.55 },
     obsidiana: { meio: '#3d3550', borda: '#050408', veio: 'rgba(170,130,255,.10)', numero: ['#f3e2ff', '#b98cff', '#6236c8'], brilhoNumero: 0.55, metal: 0.1 },
@@ -74,14 +74,15 @@ Tanka.dado3d = (function () {
       g.restore();
       // aresta chanfrada: faixa clara por dentro do triângulo
       g.lineJoin = 'round';
-      g.lineWidth = 22; g.strokeStyle = 'rgba(255,255,255,.10)';
+      g.lineWidth = 30; g.strokeStyle = 'rgba(255,255,255,.12)';
       g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.lineTo(cx, cy); g.closePath(); g.stroke();
-      g.lineWidth = 6; g.strokeStyle = 'rgba(255,255,255,.28)'; g.stroke();
+      g.lineWidth = 7; g.strokeStyle = 'rgba(255,225,200,.5)'; g.stroke();
       // número gravado
       var n = String(i + 1), ny = my + ch * 0.07;
-      var fonte = '700 ' + Math.round(ch * (n.length > 1 ? 0.3 : 0.36)) + 'px "Cinzel", "Times New Roman", Georgia, serif';
+      var fonte = '700 ' + Math.round(ch * (n.length > 1 ? 0.34 : 0.4)) + 'px "Cinzel", "Times New Roman", Georgia, serif';
       [g, r, k].forEach(function (c) { c.font = fonte; c.textAlign = 'center'; c.textBaseline = 'middle'; });
-      g.fillStyle = 'rgba(0,0,0,.55)'; g.fillText(n, mx + 5, ny + 6);             // sombra do sulco
+      g.fillStyle = 'rgba(0,0,0,.6)'; g.fillText(n, mx + 5, ny + 6);              // sombra do sulco
+      g.lineWidth = 10; g.strokeStyle = 'rgba(30,0,0,.55)'; g.strokeText(n, mx, ny);   // contorno escuro: número legível
       var ouro = g.createLinearGradient(mx, ny - ch * 0.16, mx, ny + ch * 0.16);
       ouro.addColorStop(0, cor.numero[0]); ouro.addColorStop(0.5, cor.numero[1]); ouro.addColorStop(1, cor.numero[2]);
       g.fillStyle = ouro; g.fillText(n, mx, ny);
@@ -99,32 +100,6 @@ Tanka.dado3d = (function () {
     var relevo = new T.CanvasTexture(cRel); relevo.anisotropy = 8;
     var mascara = new T.CanvasTexture(cMas);
     return { mapa: mapa, relevo: relevo, mascara: mascara };
-  }
-
-  // Tampo de madeira: tábuas com veios, repetidas na mesa.
-  function texturaMadeira(T) {
-    var c = document.createElement('canvas'); c.width = c.height = 1024;
-    var g = c.getContext('2d'), rnd = sorteio(31);
-    for (var t = 0; t < 4; t++) {
-      var y0 = t * 256, tom = 0.85 + rnd() * 0.3;
-      g.fillStyle = 'rgb(' + Math.round(78 * tom) + ',' + Math.round(42 * tom) + ',' + Math.round(20 * tom) + ')';
-      g.fillRect(0, y0, 1024, 256);
-      for (var v = 0; v < 70; v++) {
-        var y = y0 + rnd() * 256, a = 0.04 + rnd() * 0.12;
-        g.strokeStyle = rnd() < 0.5 ? 'rgba(40,18,6,' + a + ')' : 'rgba(255,200,140,' + a * 0.6 + ')';
-        g.lineWidth = 1 + rnd() * 4;
-        g.beginPath(); g.moveTo(0, y);
-        for (var x = 0; x <= 1024; x += 128) g.lineTo(x, y + Math.sin(x / 160 + v) * (3 + rnd() * 5));
-        g.stroke();
-      }
-      g.fillStyle = 'rgba(20,8,2,.75)'; g.fillRect(0, y0, 1024, 4);      // junta entre as tábuas
-    }
-    var tex = new T.CanvasTexture(c);
-    tex.encoding = T.sRGBEncoding;
-    tex.wrapS = tex.wrapT = T.RepeatWrapping;
-    tex.repeat.set(5, 5);
-    tex.anisotropy = 8;
-    return tex;
   }
 
   // Ambiente para os reflexos (sala escura com luz de vela/janela): deixa a resina brilhante.
@@ -175,20 +150,17 @@ Tanka.dado3d = (function () {
   function criar(onde, skin) {
     var T = window.THREE, cor = SKINS[skin] || SKINS.vermelho;
     var largura = onde.clientWidth || 360, altura = onde.clientHeight || 250;
-    var renderer = new T.WebGLRenderer({ antialias: true });
+    var renderer = new T.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setSize(largura, altura);
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.toneMapping = T.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.15;
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = T.PCFSoftShadowMap;
     renderer.domElement.className = 'dado3d-canvas';
     onde.appendChild(renderer.domElement);
 
     var cena = new T.Scene();
-    cena.background = new T.Color(0x140b06);
-    cena.fog = new T.Fog(0x140b06, 9, 20);
     var env = ambiente(T, renderer);
     cena.environment = env.texture;
 
@@ -201,21 +173,18 @@ Tanka.dado3d = (function () {
     cena.add(new T.HemisphereLight(0xffe8cc, 0x2a160a, 0.45));
     var chave = new T.DirectionalLight(0xfff0dd, 1.6);
     chave.position.set(-3, 7, 3);
-    chave.castShadow = true;
-    chave.shadow.mapSize.set(1024, 1024);
-    chave.shadow.camera.left = chave.shadow.camera.bottom = -4;
-    chave.shadow.camera.right = chave.shadow.camera.top = 4;
-    chave.shadow.radius = 6;
-    chave.shadow.bias = -0.0005;
     cena.add(chave);
     var contra = new T.PointLight(0xffb070, 0.9, 14); contra.position.set(3.5, 1.5, -2.5); cena.add(contra);
     var aura = new T.PointLight(0xffc040, 0, 6); aura.position.set(0, 0.6, 1.4); cena.add(aura);
 
-    var madeira = texturaMadeira(T);
-    var mesa = new T.Mesh(new T.PlaneGeometry(80, 80), new T.MeshStandardMaterial({ map: madeira, roughness: 0.6, metalness: 0, envMapIntensity: 0.5 }));
+    // Sombra suave no chão (o fundo é o painel da interface): fica maior e mais clara quando o dado sobe.
+    var cSombra = document.createElement('canvas'); cSombra.width = cSombra.height = 128;
+    var gs = cSombra.getContext('2d'), rs = gs.createRadialGradient(64, 64, 0, 64, 64, 64);
+    rs.addColorStop(0, 'rgba(0,0,0,.85)'); rs.addColorStop(0.45, 'rgba(0,0,0,.45)'); rs.addColorStop(1, 'rgba(0,0,0,0)');
+    gs.fillStyle = rs; gs.fillRect(0, 0, 128, 128);
+    var mesa = new T.Mesh(new T.PlaneGeometry(1, 1), new T.MeshBasicMaterial({ map: new T.CanvasTexture(cSombra), transparent: true, depthWrite: false }));
     mesa.rotation.x = -Math.PI / 2;
-    mesa.position.y = -1.02;
-    mesa.receiveShadow = true;
+    mesa.position.y = -1.0;
     cena.add(mesa);
 
     var G = geometria(T), tex = texturas(T, skin);
@@ -226,7 +195,6 @@ Tanka.dado3d = (function () {
     var pivo = new T.Group();                  // vira o dado para a câmera
     pivo.rotation.x = -inclinacao;
     var dado = new T.Mesh(G.geo, material);
-    dado.castShadow = true;
     pivo.add(dado);
     cena.add(pivo);
     var corNumero = new T.Color(cor.numero[1]);
@@ -260,14 +228,14 @@ Tanka.dado3d = (function () {
         var alvoAgora = estado.alvo.clone().premultiply(balanco);
         dado.quaternion.slerp(alvoAgora, 1 - Math.exp(-dt * 7));
       } else if (estado.modo === 'caindo') {
-        var ms = agora - estado.inicio, k = Math.min(1, ms / 600);
+        var ms = agora - estado.inicio, k = Math.min(1, ms / 450);
         var x = (1 - k) * -2.6 * estado.lado, z = (1 - k) * -1.5;
         var y = 3.4 * (1 - k * k);
-        if (k >= 1) y = Math.abs(Math.sin((ms - 600) / 150)) * 0.5 * Math.max(0, 1 - (ms - 600) / 900);
+        if (k >= 1) y = Math.abs(Math.sin((ms - 450) / 130)) * 0.55 * Math.max(0, 1 - (ms - 450) / 700);
         pivo.position.set(x, y, z);
         dado.quaternion.setFromEuler(euler.set(t * estado.giro.x * 7, t * estado.giro.y * 7, t * estado.giro.z * 7));
       } else if (estado.modo === 'pousando') {
-        var p = Math.min(1, (agora - estado.inicio) / 800);
+        var p = Math.min(1, (agora - estado.inicio) / 750);
         var e = 1 - Math.pow(1 - p, 3);
         dado.quaternion.copy(estado.de).slerp(estado.alvo, e);
         pivo.position.set(0, Math.abs(Math.sin(p * Math.PI * 2)) * 0.4 * (1 - p), 0);
@@ -289,6 +257,10 @@ Tanka.dado3d = (function () {
         material.emissive.copy(corNumero).multiplyScalar(cor.brilhoNumero);
         aura.intensity = 0;
       }
+      var altura = Math.max(0, pivo.position.y);
+      mesa.position.x = pivo.position.x; mesa.position.z = pivo.position.z;
+      mesa.scale.setScalar(2.3 * (1 + altura * 0.35));
+      mesa.material.opacity = 0.75 / (1 + altura * 0.8);
       renderer.render(cena, cam);
       requestAnimationFrame(quadro);
     }
@@ -326,8 +298,8 @@ Tanka.dado3d = (function () {
       destruir: function () {
         rodando = false;
         if (observador) observador.disconnect();
-        [tex.mapa, tex.relevo, tex.mascara, madeira, halo.material.map].forEach(function (x) { x.dispose(); });
-        material.dispose(); halo.material.dispose(); mesa.material.dispose(); mesa.geometry.dispose(); G.geo.dispose(); env.dispose();
+        [tex.mapa, tex.relevo, tex.mascara, halo.material.map].forEach(function (x) { x.dispose(); });
+        material.dispose(); halo.material.dispose(); mesa.material.map.dispose(); mesa.material.dispose(); mesa.geometry.dispose(); G.geo.dispose(); env.dispose();
         renderer.dispose();
         renderer.domElement.remove();
       },

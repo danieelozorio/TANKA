@@ -588,9 +588,8 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .dado-janela { width: 100%; display: grid; gap: .5rem; justify-items: center; text-align: center; }
 .dado-janela.do-oponente .mesa-madeira { border-color: #6b1f1a; }
 .mesa-madeira { position: relative; width: 100%; height: 250px; display: grid; place-items: center; border-radius: 12px; overflow: hidden;
-  border: 4px solid #3a2414; box-shadow: inset 0 0 40px rgba(0, 0, 0, .65);
-  background: repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 2px, transparent 2px 70px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, .03) 0 3px, transparent 3px 9px), linear-gradient(160deg, #7a4a26, #4b2c15 70%); }
+  border: 1px solid #c9a24a; box-shadow: inset 0 0 40px rgba(0, 0, 0, .55);
+  background: radial-gradient(ellipse at 50% 55%, #2a3850 0%, #1a2230 45%, #141b26 80%); }
 .d20g { position: relative; z-index: 1; width: 150px; height: 150px; filter: drop-shadow(0 6px 6px rgba(0, 0, 0, .55)); }
 .d20g .f { stroke: rgba(255, 255, 255, .28); stroke-width: .8; stroke-linejoin: round; }
 /* Skin do dado: cada skin define as 6 tonalidades das faces e a cor dos números (para vender skins depois). */
@@ -644,9 +643,15 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 @keyframes dadoPousa { 0% { transform: scale(1.12); } 100% { transform: scale(1); } }
 @keyframes dadoTreme { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
 @media (prefers-reduced-motion: reduce) { .mesa-madeira .d20g, .mesa-madeira .sombra-dado { animation: none !important; } }
-.dado-baixo { display: grid; gap: .35rem; justify-items: center; width: 100%; min-height: 4.2rem; align-content: center; }
-.dado-resultado { font-size: 1.15rem; }
-.dado-resultado strong { font: 700 1.6rem var(--titulo); }
+.dado-baixo { display: grid; gap: .35rem; justify-items: center; width: 100%; min-height: 6.4rem; align-content: center; }
+.dado-resultado { display: grid; justify-items: center; gap: .1rem; line-height: 1.1; }
+.res-numero { font: 700 3rem var(--titulo); color: #e9b949; text-shadow: 0 2px 3px rgba(0, 0, 0, .7); }
+.res-selo { font: 700 1.25rem var(--titulo); letter-spacing: .12em; }
+.res-efeito { font-size: .95rem; color: var(--suave); }
+.res-critico .res-numero, .res-critico .res-selo { color: #fff0b0; text-shadow: 0 0 14px rgba(255, 200, 60, 1), 0 0 30px rgba(255, 170, 30, .8), 0 2px 2px #000; animation: resBrilho .9s ease-in-out infinite alternate; }
+.res-falha .res-numero, .res-falha .res-selo { color: #a99a9a; text-shadow: 0 0 12px rgba(190, 30, 30, .85), 0 2px 2px #000; }
+@keyframes resBrilho { from { filter: brightness(.9); transform: scale(1); } to { filter: brightness(1.25); transform: scale(1.06); } }
+@media (max-width: 700px) { .mesa-madeira { height: 210px; } .res-numero { font-size: 2.5rem; } }
 .btn-rolar { font-size: 1.15rem; padding: .7em 1.8em; border-color: var(--lendaria); color: #fff3c4; background: linear-gradient(#7a1414, #3a0808); box-shadow: 0 0 14px rgba(220, 60, 60, .35); }
 
 /* Loja de skins do dado (Mercado) */
@@ -667,9 +672,9 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   background: repeating-conic-gradient(from 0deg, rgba(255, 215, 90, .55) 0deg 8deg, transparent 8deg 22deg);
   -webkit-mask-image: radial-gradient(circle, #000 0%, transparent 60%); mask-image: radial-gradient(circle, #000 0%, transparent 60%); }
 .mesa-madeira.critico .raios-20 { opacity: .45; animation: raiosGiram 6s linear infinite; }
-.mesa-madeira.nat20 .raios-20 { opacity: 1; animation: raiosGiram 3s linear infinite, raiosPulsam .8s ease-in-out infinite alternate; }
+.mesa-madeira.nat20 .raios-20 { opacity: .6; animation: raiosGiram 3s linear infinite, raiosPulsam .8s ease-in-out infinite alternate; }
 .mesa-madeira.nat20 { border-color: #f2c94c; box-shadow: inset 0 0 50px rgba(255, 200, 60, .55), 0 0 30px rgba(255, 200, 60, .6); }
-.mesa-madeira.falha { box-shadow: inset 0 0 60px rgba(150, 0, 0, .7); }
+.mesa-madeira.falha { border-color: #8a2b2b; box-shadow: inset 0 0 60px rgba(150, 0, 0, .6); filter: saturate(.6); }
 @keyframes raiosGiram { to { transform: rotate(360deg); } }
 @keyframes raiosPulsam { from { filter: brightness(.8); } to { filter: brightness(1.4); } }
 .faiscas { position: absolute; left: 50%; top: 50%; z-index: 3; pointer-events: none; }
@@ -686,4 +691,4 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 @keyframes seloEntra { 0% { transform: scale(2.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 .dado-janela.treme { animation: janelaTreme .5s ease-out .75s both; }
 @keyframes janelaTreme { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-8px, 4px); } 40% { transform: translate(7px, -5px); } 60% { transform: translate(-5px, 3px); } 80% { transform: translate(3px, -2px); } }
-@media (prefers-reduced-motion: reduce) { .raios-20, .faiscas i, .dado-janela.treme, .selo-dado { animation: none !important; } }
+@media (prefers-reduced-motion: reduce) { .raios-20, .faiscas i, .dado-janela.treme, .selo-dado, .res-critico .res-numero, .res-critico .res-selo { animation: none !important; } }
