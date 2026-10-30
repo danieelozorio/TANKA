@@ -40,6 +40,19 @@
     return '<header class="marca"><h1><img class="logo-marca" src="assets/logo-eldrin.webp" alt="' + D.NOME_JOGO + ' — ' + D.SUBTITULO + '"></h1></header>';
   }
   // Fundo da tela de entrada: vídeo pintado (céu, ruínas, pinheiros e névoa) com brasas subindo por cima.
+  // O cenário fica fora do #app: trocar entre Entrar e Cadastrar não recomeça o vídeo.
+  var cenarioEl = null;
+  function mostrarCenario(sim) {
+    if (sim && !cenarioEl) {
+      var tmp = document.createElement('div');
+      tmp.innerHTML = cenarioEntrada();
+      cenarioEl = tmp.firstChild;
+      document.body.insertBefore(cenarioEl, document.body.firstChild);
+    } else if (!sim && cenarioEl) {
+      cenarioEl.remove();   // fora da entrada o vídeo não fica rodando à toa
+      cenarioEl = null;
+    }
+  }
   function cenarioEntrada() {
     var brasas = '';
     for (var i = 0; i < 18; i++) {
@@ -161,7 +174,8 @@
         + '<label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>'
         + '<p class="erro">' + esc(erro || '') + '</p>'
         + '<button class="btn largo" type="submit">Entrar</button></form>';
-    app.innerHTML = '<div class="tela-entrada">' + cenarioEntrada() + marca()
+    mostrarCenario(true);
+    app.innerHTML = '<div class="tela-entrada">' + marca()
       + '<section class="auth"><div class="caixa moldura-runica">'
       + '<i class="canto c1"></i><i class="canto c2"></i><i class="canto c3"></i><i class="canto c4"></i>'
       + '<div class="runas runas-topo">ᚠᚱᛗᚾᚨ ◆ ᚱᚲᛗᚨ</div><div class="runas runas-base">ᛟᛞᚾ ◆ ᛗᛁᚱ</div>'
@@ -197,6 +211,7 @@
       cartas += '<button class="carta nova" data-acao="nova-criacao"><span>+</span><div class="nome">Criar personagem</div>'
         + '<div class="detalhe">' + (D.MAX_PERSONAGENS - lista.length) + ' vaga(s) livre(s)</div></button>';
     }
+    mostrarCenario(false);
     app.innerHTML = topo() + '<div class="conteudo"><h2>Seus personagens</h2>'
       + '<div class="lista-personagens">' + cartas + '</div></div>' + rodape();
   }
@@ -228,6 +243,7 @@
       return '<tr><td>' + D.atributos[k].nome + '</td><td>' + base[k] + '</td><td>' + modTxt + '</td><td><strong>' + final[k] + '</strong></td></tr>';
     }).join('');
 
+    mostrarCenario(false);
     app.innerHTML = topo('<button class="btn secundario" data-acao="voltar-personagens">Voltar</button>')
       + '<div class="conteudo"><div class="criacao"><div>'
       + '<section class="etapa"><h2>1. Nome</h2><label>Nome do personagem'
@@ -1183,6 +1199,7 @@
     var livre = !(estado.batalha || estado.luta || estado.lutaArena);
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
+    mostrarCenario(false);
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
