@@ -54,6 +54,13 @@ def recortar(origem, destino, passo=7, limite=60, minimo_mancha=120):
     alfa = np.where(visto, 0, 255).astype(np.uint8)
     # Borda suave: desfoca a máscara um pouco.
     mascara = Image.fromarray(alfa).filter(ImageFilter.GaussianBlur(1.2))
+    # Perto do fundo removido, pixels com a cor do fundo ficam transparentes na proporção
+    # (tira o contorno escuro de detalhes finos, como a corda do arco).
+    perto = np.asarray(Image.fromarray(np.where(visto, 255, 0).astype(np.uint8)).filter(ImageFilter.MaxFilter(5))) > 0
+    rampa = np.clip((dist_fundo - 12) / 40.0, 0, 1) * 255
+    m = np.asarray(mascara).astype(np.float64)
+    m = np.where(perto, np.minimum(m, rampa), m)
+    mascara = Image.fromarray(m.astype(np.uint8))
     rgba = Image.open(origem).convert('RGBA')
     rgba.putalpha(mascara)
     rgba.resize((192, 192), Image.LANCZOS).save(destino, quality=86, method=6)
