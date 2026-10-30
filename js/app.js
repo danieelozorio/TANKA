@@ -421,9 +421,8 @@
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
       + vidaTempoHtml(p, s, emBatalha)
-      + '<div class="secao"><h3>Arma</h3>' + (arma
-        ? '<div>' + nomeItemHtml(arma) + ' <span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span></div>'
-        : '<div class="suave">Nenhuma</div>') + '<div class="suave pequeno">Poder <strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong></div></div>'
+      + poderHtml(p)
+      + '<div class="secao"><h3>Arma</h3>' + armaFichaHtml(p, arma, s) + '</div>'
       + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
       + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
       + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">'
@@ -433,6 +432,34 @@
       + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
       + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
       + '</aside>';
+  }
+
+  // Poder em destaque: medalhão dourado com o número grande.
+  function poderHtml(p) {
+    return '<div class="poder-destaque" title="Poder: ataque e resistência do personagem somados">'
+      + '<span class="poder-ico">' + ICONES.arena + '</span><span class="poder-txt"><small>Poder</small>'
+      + '<strong>' + R.poder(p).toLocaleString('pt-BR') + '</strong></span></div>';
+  }
+  // Carta da arma equipada: ícone, nome, raridade e os números que importam.
+  function armaFichaHtml(p, arma, s) {
+    if (!arma) return '<div class="suave">Nenhuma</div>';
+    var dArma = R.danoArma(arma), magico = s.tipoDano === 'magico';
+    var extra = (arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade];
+    var chance = magico ? s.chanceCriticoMagico : s.chanceCritico, mult = magico ? s.danoCriticoMagico : s.danoCritico;
+    function stat(rotulo, valor, dica) {
+      return '<div class="arma-stat"' + (dica ? ' title="' + dica + '"' : '') + '><small>' + rotulo + '</small><strong>' + valor + '</strong></div>';
+    }
+    return '<div class="arma-carta carta-' + arma.raridade + '">'
+      + '<div class="arma-topo"><div class="icone-pequeno arma-icone borda-' + arma.raridade + aura(arma) + '">' + F.icone(arma)
+      + (arma.encanto ? '<span class="nivel-encanto">+' + arma.encanto + '</span>' : '') + '</div><div class="arma-nome">' + nomeItemHtml(arma)
+      + '<div><span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span>'
+      + ' <span class="suave pequeno">' + (magico ? 'Dano mágico' : 'Dano físico') + '</span></div></div></div>'
+      + '<div class="arma-stats">'
+      + stat('Dano da arma', dano(dArma), extra ? 'Inclui +' + extra + ' do encanto' : '')
+      + stat('Por golpe', dano(s.dano), 'Com os seus atributos')
+      + stat('Crítico · dano', fmt(chance) + '% · ' + mult + '%', 'Chance de crítico e dano do crítico')
+      + stat('Encanto', arma.encanto ? '+' + arma.encanto + ' <small class="mais">(+' + extra + ')</small>' : '—')
+      + '</div></div>';
   }
 
   function textoDrops(lista) {
