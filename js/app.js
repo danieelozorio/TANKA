@@ -50,6 +50,12 @@
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
 
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
+  // Classe do brilho da borda do quadro: um tom por nível (+1 a +10).
+  function aura(item) {
+    var e = item.encanto || 0;
+    return e > 0 ? ' aura-e' + Math.min(10, e) : '';
+  }
+
   function brilho(item) {
     var e = item.encanto || 0;
     return e >= 10 ? 'dourado' : e >= 7 ? 'roxo' : e >= 4 ? 'azul' : e >= 1 ? 'prata' : '';
@@ -78,7 +84,7 @@
   // Quadradinho com ícone, borda da raridade, brilho do encantamento e "+N".
   function quadroItem(item, classe, atributos) {
     var b = brilho(item);
-    return '<button class="' + classe + ' borda-' + item.raridade + (b ? ' aura-' + b : '')
+    return '<button class="' + classe + ' borda-' + item.raridade + aura(item)
       + (estado.itemFoco === item.id ? ' focado' : '') + '" data-acao="item" data-id="' + item.id + '"'
       + ' title="' + esc(R.nomeItem(item)) + '"' + (atributos || '') + '>'
       + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</button>';
@@ -434,7 +440,7 @@
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
     }
-    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + item.raridade + (brilho(item) ? ' aura-' + brilho(item) : '') + '">' + F.icone(item) + '</div>'
+    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + item.raridade + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
       + (slot ? ' · equipado' : '') + '</div></div></div>'
@@ -538,7 +544,7 @@
         if (semPergaminho) acao = '<span class="suave">Sem pergaminho</span>' + acao;
       }
       var equipado = !!R.slotDoItem(p, i.id);
-      return '<div class="item item-com-icone' + (equipado ? ' equipado' : '') + '"><div class="icone-pequeno borda-' + i.raridade + (brilho(i) ? ' aura-' + brilho(i) : '') + '">' + F.icone(i) + '</div>'
+      return '<div class="item item-com-icone' + (equipado ? ' equipado' : '') + '"><div class="icone-pequeno borda-' + i.raridade + aura(i) + '">' + F.icone(i) + '</div>'
         + '<div class="item-texto"><div>' + nomeItemHtml(i) + (equipado ? ' <span class="suave">(equipado)</span>' : '') + '</div>'
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';

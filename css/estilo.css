@@ -336,13 +336,27 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   position: absolute; top: 1px; right: 3px; font-size: .72rem; font-weight: 700; line-height: 1;
   color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
 }
-/* Borda do encantamento com brilho forte: +1 a +3 prata, +4 a +6 azul, +7 a +9 roxa, +10 dourada pulsando */
-.aura-prata { border-color: #c9d1db; box-shadow: 0 0 6px 1px rgba(210, 220, 235, .55); }
-.aura-azul { border-color: #6fb4ff; box-shadow: 0 0 12px 3px rgba(80, 160, 255, .85), inset 0 0 8px rgba(80, 160, 255, .35); }
-.aura-roxo { border-color: #c27dff; box-shadow: 0 0 14px 4px rgba(180, 100, 255, .9), inset 0 0 9px rgba(180, 100, 255, .4); }
-.aura-dourado { border-color: #ffd65c; box-shadow: 0 0 16px 5px rgba(255, 205, 70, .95), inset 0 0 10px rgba(255, 205, 70, .45); animation: auraDourada 1.6s ease-in-out infinite; }
-@keyframes auraDourada { 50% { box-shadow: 0 0 24px 8px rgba(255, 220, 100, 1), inset 0 0 12px rgba(255, 220, 100, .55); } }
-@media (prefers-reduced-motion: reduce) { .aura-dourado { animation: none; } }
+/* Borda do encantamento, piscando: +1 a +3 verde crescente, +4 a +6 azul crescente,
+   +7 amarelo, +8 amarelo mais forte, +9 laranja, +10 vermelho.
+   --cor: cor do brilho (r, g, b); --forca: tamanho do brilho; --vel: velocidade da piscada. */
+[class*="aura-e"] { z-index: 1; border-color: rgb(var(--cor)); animation: auraEncanto var(--vel, 1.6s) ease-in-out infinite; }
+@keyframes auraEncanto {
+  0%, 100% { box-shadow: 0 0 calc(var(--forca) * .6) calc(var(--forca) * .2) rgba(var(--cor), .6), inset 0 0 calc(var(--forca) * .5) rgba(var(--cor), .35); }
+  50% { box-shadow: 0 0 calc(var(--forca) * 1.3) calc(var(--forca) * .45) rgba(var(--cor), 1), inset 0 0 calc(var(--forca) * .9) rgba(var(--cor), .65); }
+}
+.aura-e1 { --cor: 80, 220, 110; --forca: 6px; }
+.aura-e2 { --cor: 80, 220, 110; --forca: 10px; }
+.aura-e3 { --cor: 80, 230, 110; --forca: 14px; }
+.aura-e4 { --cor: 70, 150, 255; --forca: 10px; }
+.aura-e5 { --cor: 70, 150, 255; --forca: 14px; }
+.aura-e6 { --cor: 70, 150, 255; --forca: 18px; }
+.aura-e7 { --cor: 255, 225, 70; --forca: 16px; --vel: 1.4s; }
+.aura-e8 { --cor: 255, 210, 30; --forca: 21px; --vel: 1.3s; }
+.aura-e9 { --cor: 255, 140, 30; --forca: 23px; --vel: 1.2s; }
+.aura-e10 { --cor: 255, 50, 40; --forca: 26px; --vel: 1s; }
+@media (prefers-reduced-motion: reduce) {
+  [class*="aura-e"] { animation: none; box-shadow: 0 0 var(--forca) calc(var(--forca) * .3) rgba(var(--cor), .8); }
+}
 
 .mochila { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
 
