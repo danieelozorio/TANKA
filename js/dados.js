@@ -448,6 +448,20 @@ Tanka.dados = {
 
   // Skins do D20 da Arena, vendidas no Mercado por ouro. O vermelho vem com todo personagem.
   // As cores de cada skin ficam em css/estilo.css (.d20g.skin-<id>).
+  // Alianças: criar, cargos, tesouro, level e bônus (o servidor usa estes números; ver supabase/schema.sql).
+  ALIANCA: {
+    nivelMin: 10, custoOuro: 10000, custoReputacao: 300,
+    vagasIniciais: 15, vagasPorNivel: 3, maxOficiais: 3, nivelMax: 10,
+    expProximo: [50000, 100000, 200000, 400000, 700000, 1000000, 1500000, 2000000, 3000000],   // Lv1->2 ... Lv9->10
+    doacaoMinima: 100, esperaHoras: 24, liderSumidoDias: 14, ativoDias: 3, muralMax: 300,
+    bonus: { custo: 20000, dias: 7, minimo: 5, maximo: 15 },   // % = 5 no Lv1 até 15 no Lv10
+    brasao: {
+      formas: ['classico', 'redondo', 'pontudo', 'estandarte'],
+      cores: ['#8e1b1b', '#1f4f8e', '#2d6b34', '#5b2a86', '#b8860b', '#2b2b2b', '#7a3e12', '#1f6b6b'],
+      simbolos: ['dragao', 'lobo', 'coroa', 'caveira', 'espada', 'machado', 'olho', 'chama'],
+    },
+  },
+
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoReputacao: 500 },
 

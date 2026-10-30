@@ -8,4 +8,4 @@ $P -d postgres -c "drop database if exists tanka_teste" -c "create database tank
 $P -d tanka_teste -f testes/supabase_falso.sql >/dev/null 2>&1
 $P -d tanka_teste -f supabase/schema.sql >/dev/null 2>&1
 $P -d tanka_teste -f supabase/schema.sql >/dev/null 2>&1   # rodar duas vezes não pode quebrar
-$P -t -A -d tanka_teste -f testes/banco.test.sql 2>&1 | sed -n "s/^psql:[^ ]* NOTICE:  //p; /TODOS OS TESTES/p; /FALHA/p"
+$P -t -A -d tanka_teste -f testes/banco.test.sql 2>&1 | sed -n "s/^psql:[^ ]* NOTICE:  //p; /TODOS OS TESTES/p; /FALHA/p; /ERROR/p"

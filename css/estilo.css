@@ -913,3 +913,44 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .recomeco-ficha { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .6rem; padding: .45rem .6rem;
   border: 1px dashed rgba(242, 201, 76, .5); border-radius: 8px; font-size: .9rem; }
 .icone-recomeco { display: grid; place-items: center; font-size: 2rem; }
+
+/* Alianças */
+.sigla { font-family: var(--titulo); font-size: .85em; color: #e6c66a; letter-spacing: .04em; }
+.brasao { display: block; width: 44px; height: 53px; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .6)); }
+.brasao.grande { width: 96px; height: 115px; }
+.alianca-brasao-mini .brasao { width: 46px; height: 55px; }
+.alianca-carta { justify-content: flex-start; }
+.alianca-carta .item-texto { flex: 1; min-width: 0; }
+.alianca-topo { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: .8rem 1rem;
+  border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; background: radial-gradient(ellipse at 10% 50%, rgba(201, 162, 74, .14), transparent 60%), linear-gradient(180deg, #1b2331, #121822); }
+.alianca-titulo h2 { margin: 0 0 .1rem; }
+.alianca-mural { white-space: pre-wrap; padding: .5rem .7rem; border-left: 3px solid var(--ouro); background: rgba(201, 162, 74, .06); border-radius: 0 8px 8px 0; }
+.alianca-chamada { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.alianca-chamada p { margin: 0; }
+.alianca-form { display: grid; grid-template-columns: 2fr 1fr; gap: .6rem; }
+.brasao-editor { display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: start; margin: .6rem 0; }
+.brasao-previa { padding: .6rem; border: 1px solid var(--borda); border-radius: 10px; background: rgba(0, 0, 0, .25); }
+.brasao-opcoes { display: flex; flex-wrap: wrap; gap: .3rem; margin: .2rem 0 .5rem; }
+.brasao-opcao { display: grid; place-items: center; width: 44px; height: 48px; padding: 3px; border: 1px solid var(--borda); border-radius: 8px; background: rgba(0, 0, 0, .25); cursor: pointer; }
+.brasao-opcao .brasao { width: 32px; height: 38px; filter: none; }
+.brasao-opcao.ativa { border-color: var(--ouro-claro); box-shadow: 0 0 10px rgba(230, 207, 156, .35); }
+.cor-amostra { display: block; width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .25); }
+.bonus-lista { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .6rem; }
+.bonus-carta { display: grid; gap: .25rem; justify-items: start; padding: .6rem .7rem; border: 1px solid var(--borda); border-radius: 10px; background: rgba(0, 0, 0, .25); }
+.bonus-carta.ativo { border-color: #7ee08a; box-shadow: 0 0 12px rgba(126, 224, 138, .18); }
+.bonus-carta.ativo strong { color: #a9f0b2; }
+.alianca-membro.meu { border-color: rgba(201, 162, 74, .6); }
+.alianca-sair { margin-top: 1rem; }
+.ficha-alianca { display: flex; gap: .6rem; align-items: center; margin-top: .6rem; padding: .45rem .6rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 10px; background: rgba(0, 0, 0, .2); }
+.ficha-alianca .brasao { width: 34px; height: 41px; }
+.desafio-alianca { display: flex; align-items: center; gap: .4rem; margin-top: .3rem; font-family: var(--titulo); font-size: .9rem; }
+.desafio-alianca .brasao { width: 26px; height: 31px; }
+.chat-canais { display: inline-flex; gap: .3rem; }
+.chat-canais button { padding: .15em .7em; border: 1px solid var(--borda); border-radius: 999px; background: transparent; color: var(--suave); font-family: var(--titulo); font-size: .85rem; cursor: pointer; }
+.chat-canais button.ativo { border-color: var(--ouro); color: var(--ouro-claro); background: rgba(201, 162, 74, .1); }
+@media (max-width: 600px) {
+  .alianca-topo { grid-template-columns: auto 1fr; }
+  .alianca-topo > .btn { grid-column: 1 / -1; }
+  .alianca-form, .bonus-lista { grid-template-columns: 1fr; }
+  .brasao-editor { grid-template-columns: 1fr; justify-items: center; }
+}

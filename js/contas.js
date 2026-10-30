@@ -185,7 +185,7 @@ Tanka.contas = (function () {
   }
 
   // ---------- Chat global ----------
-  var CAMPOS_CHAT = 'select=id,personagem,classe,nivel,texto,criado_em';
+  var CAMPOS_CHAT = 'select=id,personagem,classe,nivel,texto,criado_em,sigla';
   async function logado() {
     if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
   }
@@ -246,6 +246,27 @@ Tanka.contas = (function () {
   };
 
   // ---------- Arena (a luta roda no servidor) ----------
+  // ---------- Alianças ----------
+  var alianca = {
+    estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
+    criar: function (meu, nome, sigla, brasao) { return chamar('alianca_criar', { meu: meu, nome: nome, sigla: sigla, brasao: brasao }); },
+    convidar: function (meu, nome) { return chamar('alianca_convidar', { meu: meu, nome_alvo: nome }); },
+    responder: function (meu, convite, aceitar) { return chamar('alianca_responder', { meu: meu, convite: convite, aceitar: aceitar }); },
+    pedir: function (meu, id) { return chamar('alianca_pedir', { meu: meu, aid: id }); },
+    decidir: function (meu, pedido, aceitar) { return chamar('alianca_decidir', { meu: meu, pedido: pedido, aceitar: aceitar }); },
+    sair: function (meu) { return chamar('alianca_sair', { meu: meu }); },
+    expulsar: function (meu, alvo) { return chamar('alianca_expulsar', { meu: meu, alvo: alvo }); },
+    cargo: function (meu, alvo, cargo) { return chamar('alianca_cargo', { meu: meu, alvo: alvo, cargo: cargo }); },
+    desfazer: function (meu) { return chamar('alianca_desfazer', { meu: meu }); },
+    mural: function (meu, texto) { return chamar('alianca_mural', { meu: meu, texto: texto }); },
+    brasao: function (meu, brasao) { return chamar('alianca_brasao', { meu: meu, brasao: brasao }); },
+    doar: function (meu, valor) { return chamar('alianca_doar', { meu: meu, valor: valor }); },
+    bonus: function (meu, tipo) { return chamar('alianca_bonus', { meu: meu, tipo: tipo }); },
+    chat: function (meu, depois) { return chamar('alianca_chat', { meu: meu, depois: depois || 0 }); },
+    chatEnviar: function (meu, texto) { return chamar('alianca_chat_enviar', { meu: meu, texto: texto }); },
+    admin: function (meu, id, acao, valor) { return chamar('alianca_admin', { meu: meu, aid: id, acao: acao, valor: valor == null ? null : String(valor) }); },
+  };
+
   var arena = {
     estado: function (meu, ver) { return chamar('arena_estado', { meu: meu, ver: ver || null }); },
     perfil: function (meu, alvo) { return chamar('arena_perfil', { meu: meu, alvo: alvo }); },
@@ -258,6 +279,7 @@ Tanka.contas = (function () {
 
   return {
     arena: arena,
+    alianca: alianca,
     grupo: grupo,
     amigos: amigos,
     ranking: ranking,

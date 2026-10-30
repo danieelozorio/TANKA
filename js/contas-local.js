@@ -212,6 +212,13 @@ Tanka.contas = (function () {
 
   return {
     arena: arena,
+    // Alianças juntam vários jogadores: só com o servidor.
+    alianca: {
+      estado: function () { return Promise.resolve({ local: true }); },
+      criar: soServidor, convidar: soServidor, responder: soServidor, pedir: soServidor, decidir: soServidor, sair: soServidor,
+      expulsar: soServidor, cargo: soServidor, desfazer: soServidor, mural: soServidor, brasao: soServidor, doar: soServidor,
+      bonus: soServidor, chat: function () { return Promise.resolve([]); }, chatEnviar: soServidor, admin: soServidor,
+    },
     grupo: grupo,
     amigos: amigos,
     ranking: ranking,

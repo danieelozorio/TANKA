@@ -839,3 +839,12 @@ teste('Pergaminho do Recomeço: compra com 500 de reputação e devolve os ponto
   assert.strictEqual(R.usarRecomeco(p), true);
   assert.deepStrictEqual([p.pontosLivres, p.recomecos, p.atributos.for], [livres, 0, p.atributosIniciais.for]);
 });
+
+teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
+  const D2 = D, p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const b = R.iniciarBatalha(p, 'lobo'); b.fim = 'vitoria'; b.monstro.hp = 0;
+  const m = D2.monstros.lobo;
+  const res = R.concluirBatalha(p, b, Date.now(), { exp: 10, ouro: 50 });
+  assert.strictEqual(res.ouro, Math.floor(m.ouro * 1.5));
+  assert.strictEqual(res.exp, Math.floor(m.exp * 1.1));
+});

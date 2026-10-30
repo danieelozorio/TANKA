@@ -276,6 +276,9 @@
     estado.arena = null;
     estado.lutaArena = null;
     carregarArena();
+    estado.alianca = null;
+    estado.aliancaCriar = estado.aliancaBrasao = estado.aliancaConfirmar = null;
+    carregarAlianca();
   }
 
   function tempoTexto(ms) {
@@ -352,11 +355,11 @@
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
-    { id: 'social', nome: 'Social', abas: ['social', 'ranking'] },
+    { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking' };
+  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
-  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : ''; }
+  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -441,7 +444,7 @@
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
       + vidaTempoHtml(p, s, emBatalha)
-      + poderHtml(p)
+      + poderHtml(p) + bonusFichaHtml()
       + '<div class="secao"><h3>Arma</h3>' + armaFichaHtml(p, arma, s) + '</div>'
       + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
       + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
@@ -913,7 +916,7 @@
         var pos = i + 1;
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
-          + '<td><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + '</div></td>'
+          + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + '</div></td>'
           + '<td>' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + '</td>'
           + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td></tr>';
       }).join('') + '</tbody></table>';
@@ -966,7 +969,7 @@
   }
 
   function linhaAmigo(x, botoes) {
-    return '<div class="item amigo"><div class="amigo-info"><div><strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
+    return '<div class="item amigo"><div class="amigo-info"><div>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
       + '<div class="suave">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + ' · ' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
       + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + botoes + '</div></div>';
@@ -1075,7 +1078,16 @@
         + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>'
         + botoes('vida', [50, 10, 0], function (v) { return v ? 'Vida em ' + v + '%' : 'Zerar vida'; }, 'menos')
         + botoes('zerar-pocoes', [0], function () { return 'Zerar poções'; }, 'menos'))
-      + '</div>';
+      + grupo('Alianças', 'Todas as alianças do jogo: renomear, dar exp, trocar o líder ou apagar.',
+        '<button class="btn" data-acao="al-admin-listar">' + (estado.adminAliancas ? 'Atualizar lista' : 'Ver alianças') + '</button>')
+      + '</div>'
+      + (estado.adminAliancas ? '<div class="itens">' + (estado.adminAliancas.length ? estado.adminAliancas.map(function (a) {
+        return cartaAlianca(a, '<span class="suave pequeno">Líder: ' + esc(a.lider || '—') + '</span>'
+          + ['renomear:Renomear', 'exp:+50.000 exp', 'lider:Trocar líder', 'apagar:Apagar'].map(function (o) {
+            var x = o.split(':');
+            return '<button class="btn btn-pequeno' + (x[0] === 'apagar' ? ' perigo' : ' secundario') + '" data-acao="al-admin" data-op="' + x[0] + '" data-id="' + a.id + '">' + x[1] + '</button>';
+          }).join(''));
+      }).join('') : '<p class="suave">Nenhuma aliança.</p>') + '</div>' : '');
   }
 
   function resultadoHtml() {
@@ -1149,7 +1161,7 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = navHtml()
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin })[estado.aba]();
+        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba]();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena);
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -1257,7 +1269,7 @@
     var b = estado.batalha;
     if (!b) return;
     clearTimeout(estado.timer);
-    var res = R.concluirBatalha(estado.personagem, b, C.agora());
+    var res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
     var nivelHab = R.nivelHabilidade(estado.personagem);
     if (D.HABILIDADES_ATIVAS && nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
@@ -1346,6 +1358,7 @@
     var el = e.target.closest('[data-acao]');
     if (!el) return;
     var p = estado.personagem;
+    if (el.dataset.acao.indexOf('al-') === 0 && cliqueAlianca(el.dataset.acao, el)) return;
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'sair':
@@ -1416,6 +1429,7 @@
         if (estado.aba === 'social') carregarSocial();
         if (estado.aba === 'masmorra') carregarGrupo();
         if (estado.aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
+        if (estado.aba === 'alianca') carregarAlianca();
         break;
       case 'item': {
         // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
@@ -1906,6 +1920,7 @@
     if (!estado.personagem || estado.batalha || !document.querySelector('.ficha') || document.hidden) return;
     salvar();
     carregarSocial();
+    carregarAlianca();
   }, 60000);
 
   // ---------------- Masmorras em grupo ----------------
@@ -2281,6 +2296,7 @@
       var saque = Math.floor(ouro * sq.minimo / 100).toLocaleString('pt-BR') + ' a ' + Math.floor(ouro * sq.maximo / 100).toLocaleString('pt-BR');
       corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, pf.classe, pf.sexo) + '</div><div>'
         + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + (D.racas[pf.raca] ? D.racas[pf.raca].nome : '') + ' · ' + (D.classes[pf.classe] ? D.classes[pf.classe].nome : '') + ' · Level ' + pf.nivel + '</div>'
+        + (pf.alianca ? '<div class="desafio-alianca">' + brasaoSvg(pf.alianca.brasao) + '<span>' + esc(pf.alianca.nome) + ' ' + siglaHtml(pf.alianca.sigla) + '</span></div>' : '')
         + '<div class="desafio-selos">' + (pf.posicao ? '<span class="selo-pos">#' + pf.posicao + ' · ' + esc(nomeArena(pf.arena)) + '</span>' : '')
         + '<span class="selo-pos">' + pf.vitorias + ' V · ' + pf.derrotas + ' D</span></div>'
         + '<div class="veredito ' + veredito[0] + '">' + veredito[1] + '</div></div></div>'
@@ -2301,7 +2317,7 @@
 
   function linhaRanking(x, botao) {
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
-      + '<div class="amigo-info"><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+      + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
       + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + (botao || '') + '</div></div>';
   }
@@ -2617,10 +2633,320 @@
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>';
   }
 
+  // ---------------- Alianças ----------------
+  // estado.alianca: o que o servidor diz (alianca_estado) para o personagem aberto (pid).
+  var AL = D.ALIANCA;
+  var NOME_FORMA = { classico: 'Clássico', redondo: 'Redondo', pontudo: 'Pontudo', estandarte: 'Estandarte' };
+  var NOME_SIMBOLO = { dragao: 'Dragão', lobo: 'Lobo', coroa: 'Coroa', caveira: 'Caveira', espada: 'Espada', machado: 'Machado', olho: 'Olho', chama: 'Chama' };
+  var FORMAS_BRASAO = {
+    classico: 'M10 8H90V60C90 92 50 112 50 112C50 112 10 92 10 60Z',
+    redondo: 'M50 10A50 50 0 1 1 49.9 10Z',
+    pontudo: 'M8 8H92V50L50 114L8 50Z',
+    estandarte: 'M14 4H86V112L50 92L14 112Z',
+  };
+  var SIMBOLOS_BRASAO = {
+    dragao: 'M28 70C30 52 40 40 56 36L52 28L62 34L66 26L68 38C76 42 80 50 78 58L70 56L72 64L62 62C58 70 48 76 40 76L46 68C40 70 34 72 28 70ZM60 44A3 3 0 1 0 60.1 44Z',
+    lobo: 'M32 34L42 48H58L68 34L66 56L58 74L50 80L42 74L34 56ZM42 56L47 58L42 60ZM58 56L53 58L58 60ZM46 68H54L50 73Z',
+    coroa: 'M26 72L22 40L36 52L50 32L64 52L78 40L74 72ZM26 76H74V82H26Z',
+    caveira: 'M50 30C36 30 28 40 28 52C28 60 32 64 36 66V76H64V66C68 64 72 60 72 52C72 40 64 30 50 30ZM40 50A6 6 0 1 0 40.1 50ZM60 50A6 6 0 1 0 60.1 50ZM46 64L50 58L54 64Z',
+    espada: 'M48 24H52L54 30V66H46V30ZM36 66H64V71H36ZM47 71H53V82H47ZM45 82H55V87H45Z',
+    machado: 'M47 26H53V88H47ZM53 32C68 30 76 40 76 50C76 60 68 68 53 66ZM47 34C38 36 32 42 32 50C32 56 38 62 47 62Z',
+    olho: 'M22 58C32 42 68 42 78 58C68 74 32 74 22 58ZM50 48A10 10 0 1 0 50.1 48ZM50 54A4 4 0 1 0 50.1 54Z',
+    chama: 'M50 24C54 38 68 44 68 62C68 74 60 82 50 82C40 82 32 74 32 62C32 54 38 48 42 42C44 50 46 54 50 56C48 46 46 34 50 24Z',
+  };
+  function brasaoSvg(b, classe) {
+    b = b || {};
+    var forma = FORMAS_BRASAO[b.forma] || FORMAS_BRASAO.classico, cor = /^#[0-9a-f]{6}$/i.test(b.cor || '') ? b.cor : AL.brasao.cores[0];
+    var simbolo = SIMBOLOS_BRASAO[b.simbolo] || SIMBOLOS_BRASAO.dragao;
+    return '<svg class="brasao ' + (classe || '') + '" viewBox="0 0 100 120" aria-hidden="true">'
+      + '<defs><linearGradient id="br-luz" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></linearGradient></defs>'
+      + '<path d="' + forma + '" fill="' + cor + '" stroke="#c9a24a" stroke-width="5" stroke-linejoin="round"/>'
+      + '<path d="' + forma + '" fill="url(#br-luz)"/>'
+      + '<path d="' + simbolo + '" fill="#f3e2b0" stroke="#5a4214" stroke-width="1.5" stroke-linejoin="round" fill-rule="evenodd"/></svg>';
+  }
+  // Na ficha: aliança e bônus ativos.
+  function bonusFichaHtml() {
+    var st = aliancaAtual(), a = st && st.alianca;
+    if (!a) return '';
+    var b = bonusAlianca(), partes = [];
+    if (b.exp) partes.push('+' + b.exp + '% exp');
+    if (b.ouro) partes.push('+' + b.ouro + '% ouro');
+    return '<div class="ficha-alianca">' + brasaoSvg(a.brasao) + '<div><strong>' + esc(a.nome) + '</strong> ' + siglaHtml(a.sigla)
+      + '<div class="suave pequeno">' + (partes.length ? 'Bônus ativos: <span class="mais">' + partes.join(' · ') + '</span>' : 'Nenhum bônus ativo') + '</div></div></div>';
+  }
+  function siglaHtml(sigla) { return sigla ? '<span class="sigla">[' + esc(sigla) + ']</span> ' : ''; }
+
+  function aliancaAtual() {
+    var st = estado.alianca;
+    return st && estado.personagem && st.pid === estado.personagem.id ? st : null;
+  }
+  // Bônus de exp e ouro ativos para as caçadas (0 se não tem).
+  function bonusAlianca() {
+    var st = aliancaAtual(), a = st && st.alianca, agora = C.agora();
+    if (!a) return { exp: 0, ouro: 0 };
+    return { exp: a.bonus_exp_ate && Date.parse(a.bonus_exp_ate) > agora ? a.bonus_pct : 0,
+      ouro: a.bonus_ouro_ate && Date.parse(a.bonus_ouro_ate) > agora ? a.bonus_pct : 0 };
+  }
+  function seloAlianca() {
+    var st = aliancaAtual();
+    if (!st || st.local) return '';
+    var n = st.alianca ? (st.pedidos || []).length : (st.convites || []).length;
+    return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
+  }
+  function carregarAlianca() {
+    var p = estado.personagem;
+    if (!p || estado.aliancaCarregando) return;
+    estado.aliancaCarregando = true;
+    C.alianca.estado(p.id, estado.aliancaBusca).then(function (st) {
+      estado.aliancaCarregando = false;
+      if (estado.personagem !== p) return;
+      st.pid = p.id;
+      estado.alianca = st;
+      if (estado.batalha || estado.resultado || estado.chefeAviso || estado.luta || estado.lutaArena) return;
+      if (estado.aba === 'alianca') telaJogo();
+      else { atualizarNav(); atualizarFicha(); }
+    }, function (e) {
+      estado.aliancaCarregando = false;
+      estado.alianca = { pid: p.id, erro: e.message };
+      if (estado.aba === 'alianca') telaJogo();
+    });
+  }
+  // Faz uma ação no servidor, recarrega a aliança e aplica o ouro/reputação gastos (créditos).
+  function acaoAlianca(promessa, mensagem, tipo) {
+    estado.aliancaConfirmar = null;
+    return promessa.then(function () {
+      if (mensagem) avisar(mensagem, tipo);
+      carregarAlianca();
+      carregarArena();
+    }, function (e) { avisar(e.message); });
+  }
+  function dataCurta(iso) {
+    return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+  function confirmar(chave, rotulo, rotuloConfirmar, extra) {
+    return estado.aliancaConfirmar === chave
+      ? '<button class="btn perigo btn-pequeno" data-acao="al-confirmado" data-chave="' + chave + '"' + (extra || '') + '>' + rotuloConfirmar + '</button>'
+        + '<button class="btn secundario btn-pequeno" data-acao="al-cancelar">Cancelar</button>'
+      : '<button class="btn secundario btn-pequeno" data-acao="al-pedir-confirmar" data-chave="' + chave + '">' + rotulo + '</button>';
+  }
+
+  function cartaAlianca(a, botoes) {
+    return '<div class="item alianca-carta"><div class="alianca-brasao-mini">' + brasaoSvg(a.brasao) + '</div>'
+      + '<div class="item-texto"><div><strong>' + esc(a.nome) + '</strong> ' + siglaHtml(a.sigla) + '</div>'
+      + '<div class="suave pequeno">Level ' + a.nivel + ' · ' + a.membros + '/' + a.vagas + ' membros · Poder ' + Number(a.poder || 0).toLocaleString('pt-BR') + '</div></div>'
+      + '<div class="item-acoes">' + botoes + '</div></div>';
+  }
+
+  function editorBrasao(b, titulo) {
+    function opcoes(lista, campo, desenho) {
+      return '<div class="brasao-opcoes">' + lista.map(function (v) {
+        return '<button class="brasao-opcao' + (b[campo] === v ? ' ativa' : '') + '" data-acao="al-brasao-opcao" data-campo="' + campo + '" data-valor="' + v + '" title="' + esc(desenho(v)[1]) + '">' + desenho(v)[0] + '</button>';
+      }).join('') + '</div>';
+    }
+    return '<div class="brasao-editor"><div class="brasao-previa">' + brasaoSvg(b, 'grande') + '</div><div>'
+      + (titulo ? '<h3>' + titulo + '</h3>' : '')
+      + '<div class="suave pequeno">Escudo</div>' + opcoes(AL.brasao.formas, 'forma', function (v) { return [brasaoSvg({ forma: v, cor: b.cor, simbolo: b.simbolo }), NOME_FORMA[v]]; })
+      + '<div class="suave pequeno">Cor</div>' + opcoes(AL.brasao.cores, 'cor', function (v) { return ['<i class="cor-amostra" style="background:' + v + '"></i>', v]; })
+      + '<div class="suave pequeno">Símbolo</div>' + opcoes(AL.brasao.simbolos, 'simbolo', function (v) { return [brasaoSvg({ forma: b.forma, cor: b.cor, simbolo: v }), NOME_SIMBOLO[v]]; })
+      + '</div></div>';
+  }
+
+  function abaAlianca() {
+    var st = aliancaAtual();
+    if (!st) { carregarAlianca(); return '<p class="suave">Carregando…</p>'; }
+    if (st.local) return '<p class="suave">As alianças juntam vários jogadores e precisam do servidor: jogue pelo site do Tanka.</p>';
+    if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
+    return st.alianca ? telaMinhaAlianca(st) : telaSemAlianca(st);
+  }
+
+  function telaSemAlianca(st) {
+    var p = estado.personagem, html = '';
+    if (st.espera_ate) html += '<p class="menos">Você saiu de uma aliança: só pode entrar em outra depois de ' + dataCurta(st.espera_ate) + '.</p>';
+    if (st.convites.length) {
+      html += '<h3 class="subtitulo">Convites recebidos</h3><div class="itens">' + st.convites.map(function (a) {
+        return cartaAlianca(a, '<button class="btn btn-pequeno" data-acao="al-responder" data-id="' + a.convite + '" data-sim="1">Aceitar</button>'
+          + '<button class="btn secundario btn-pequeno" data-acao="al-responder" data-id="' + a.convite + '">Recusar</button>');
+      }).join('') + '</div>';
+    }
+    var cria = estado.aliancaCriar;
+    if (p.nivel < AL.nivelMin) {
+      html += '<div class="caixa-interna"><h3>Criar uma aliança</h3><p class="suave">Abre no level ' + AL.nivelMin + '. Até lá, você pode entrar numa aliança que já existe.</p></div>';
+    } else if (!cria) {
+      html += '<div class="caixa-interna alianca-chamada"><div><h3>Funde a sua aliança</h3><p class="suave">' + AL.custoOuro.toLocaleString('pt-BR') + ' de ouro + '
+        + AL.custoReputacao + ' de reputação. Você vira o líder.</p></div><button class="btn" data-acao="al-criar-abrir">Criar aliança</button></div>';
+    } else {
+      var faltaOuro = AL.custoOuro - p.ouro, faltaRep = AL.custoReputacao - (p.reputacao || 0);
+      html += '<div class="caixa-interna"><h3>Nova aliança</h3>'
+        + '<div class="alianca-form"><label>Nome (3 a 20 letras)<input id="al-nome" maxlength="20" value="' + esc(cria.nome) + '" autocomplete="off"></label>'
+        + '<label>Sigla (3 ou 4 letras)<input id="al-sigla" maxlength="4" value="' + esc(cria.sigla) + '" autocomplete="off" style="text-transform:uppercase"></label></div>'
+        + editorBrasao(cria.brasao)
+        + '<div class="botoes"><button class="btn" data-acao="al-criar"' + (faltaOuro > 0 || faltaRep > 0 ? ' disabled' : '') + '>Fundar · '
+        + AL.custoOuro.toLocaleString('pt-BR') + ' de ouro + ' + AL.custoReputacao + ' de reputação</button>'
+        + '<button class="btn secundario" data-acao="al-criar-fechar">Cancelar</button></div>'
+        + (faltaOuro > 0 || faltaRep > 0 ? '<p class="menos pequeno centro">Faltam ' + [faltaOuro > 0 ? faltaOuro.toLocaleString('pt-BR') + ' de ouro' : '', faltaRep > 0 ? faltaRep + ' de reputação' : ''].filter(Boolean).join(' e ') + '.</p>' : '')
+        + '</div>';
+    }
+    html += '<h3 class="subtitulo">Alianças</h3><div class="linha-form"><input id="al-busca" placeholder="Buscar por nome ou sigla" value="' + esc(estado.aliancaBusca || '') + '" autocomplete="off">'
+      + '<button class="btn secundario" data-acao="al-buscar">Buscar</button></div><div class="itens">'
+      + (st.lista.length ? st.lista.map(function (a) {
+        var pedido = st.pedidos_feitos.indexOf(a.id) >= 0, cheia = a.membros >= a.vagas;
+        return cartaAlianca(a, pedido ? '<span class="suave pequeno">Pedido enviado</span>'
+          : '<button class="btn btn-pequeno" data-acao="al-pedir" data-id="' + a.id + '"' + (cheia || st.espera_ate ? ' disabled' : '') + '>' + (cheia ? 'Cheia' : 'Pedir para entrar') + '</button>');
+      }).join('') : '<p class="suave">Nenhuma aliança encontrada.</p>') + '</div>';
+    return html;
+  }
+
+  function telaMinhaAlianca(st) {
+    var p = estado.personagem, a = st.alianca, cargo = st.meu_cargo, chefe = cargo === 'lider', manda = cargo !== 'membro';
+    var html = '<div class="alianca-topo">' + brasaoSvg(a.brasao, 'grande') + '<div class="alianca-titulo">'
+      + '<h2>' + esc(a.nome) + ' ' + siglaHtml(a.sigla) + '</h2>'
+      + '<div class="suave">Level ' + a.nivel + ' · ' + a.membros + '/' + a.vagas + ' membros · Poder ' + Number(a.poder).toLocaleString('pt-BR') + '</div>'
+      + (a.exp_proximo ? barra('exp', a.exp, a.exp_proximo, Number(a.exp).toLocaleString('pt-BR') + ' / ' + Number(a.exp_proximo).toLocaleString('pt-BR') + ' de exp')
+        : '<div class="cor-ouro">Level máximo!</div>')
+      + '<div class="suave pequeno">Você é <strong>' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[cargo] + '</strong></div></div>'
+      + (chefe ? '<button class="btn secundario btn-pequeno" data-acao="al-brasao-abrir">Mudar brasão</button>' : '') + '</div>';
+    if (chefe && estado.aliancaBrasao) {
+      html += '<div class="caixa-interna">' + editorBrasao(estado.aliancaBrasao, 'Novo brasão')
+        + '<div class="botoes"><button class="btn" data-acao="al-brasao-salvar">Salvar brasão</button><button class="btn secundario" data-acao="al-brasao-fechar">Cancelar</button></div></div>';
+    }
+    // Mural
+    html += '<div class="caixa-interna"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
+      + (manda ? '<div class="linha-form"><input id="al-mural" maxlength="' + AL.muralMax + '" placeholder="Escreva um aviso para todos" value="' + esc(a.mural) + '">'
+        + '<button class="btn secundario" data-acao="al-mural">Salvar</button></div>' : '') + '</div>';
+    // Tesouro e bônus
+    var agora = C.agora();
+    function cartaBonus(tipo, nome, ate) {
+      var ativo = ate && Date.parse(ate) > agora;
+      return '<div class="bonus-carta' + (ativo ? ' ativo' : '') + '"><strong>+' + a.bonus_pct + '% ' + nome + '</strong>'
+        + '<span class="suave pequeno">' + (ativo ? 'Ativo até ' + dataCurta(ate) : 'Desligado') + '</span>'
+        + (chefe ? '<button class="btn btn-pequeno" data-acao="al-bonus" data-valor="' + tipo + '"' + (a.tesouro < AL.bonus.custo ? ' disabled' : '') + '>'
+          + (ativo ? 'Renovar' : 'Ativar') + ' · ' + AL.bonus.custo.toLocaleString('pt-BR') + '</button>' : '') + '</div>';
+    }
+    html += '<div class="caixa-interna"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
+      + '<p class="suave pequeno">Cada ouro doado vira exp da aliança e conta como sua contribuição. Os bônus valem para todos os membros por '
+      + AL.bonus.dias + ' dias e crescem com o level da aliança.</p>'
+      + '<div class="linha-form"><input id="al-doar" type="number" min="' + AL.doacaoMinima + '" step="100" inputmode="numeric" placeholder="Quanto doar (mín. ' + AL.doacaoMinima + ')">'
+      + '<button class="btn" data-acao="al-doar">Doar ouro</button></div>'
+      + '<div class="bonus-lista">' + cartaBonus('exp', 'de exp nas caçadas', a.bonus_exp_ate) + cartaBonus('ouro', 'de ouro dos monstros', a.bonus_ouro_ate) + '</div></div>';
+    // Convidar e pedidos
+    if (manda) {
+      html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
+        + '<button class="btn" data-acao="al-convidar">Convidar</button></div>'
+        + (st.pedidos.length ? '<h3 class="subtitulo">Pedidos para entrar</h3><div class="itens">' + st.pedidos.map(function (x) {
+          return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel
+            + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + '</div></div><div class="item-acoes">'
+            + '<button class="btn btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '" data-sim="1">Aceitar</button>'
+            + '<button class="btn secundario btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '">Recusar</button></div></div>';
+        }).join('') + '</div>' : '') + '</div>';
+    }
+    // Membros
+    html += '<h3 class="subtitulo">Membros (' + a.membros + '/' + a.vagas + ')</h3><div class="itens">' + st.membros.map(function (x) {
+      var eu = x.id === p.id, acoes = '';
+      if (!eu && chefe) {
+        acoes += x.cargo === 'oficial'
+          ? '<button class="btn secundario btn-pequeno" data-acao="al-cargo" data-id="' + x.id + '" data-valor="membro">Rebaixar</button>'
+          : '<button class="btn secundario btn-pequeno" data-acao="al-cargo" data-id="' + x.id + '" data-valor="oficial">Promover a oficial</button>';
+        acoes += confirmar('lider:' + x.id, 'Passar liderança', 'Confirmar: passar');
+      }
+      if (!eu && (chefe || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
+      var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'oficial' ? '⭐ ' : '';
+      return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '"><div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
+        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+        + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
+        + '<div class="item-acoes">' + acoes + '</div></div>';
+    }).join('') + '</div>';
+    html += '<div class="botoes alianca-sair">' + (chefe ? confirmar('desfazer', 'Desfazer a aliança', 'Confirmar: desfazer para sempre')
+      : confirmar('sair', 'Sair da aliança', 'Confirmar: sair (' + AL.esperaHoras + ' h sem poder entrar em outra)')) + '</div>';
+    return html;
+  }
+
+  // Cliques da aba Aliança (retorna true se tratou).
+  function cliqueAlianca(acao, el) {
+    var p = estado.personagem, A2 = C.alianca;
+    function valor(id) { var c = document.getElementById(id); return c ? c.value.trim() : ''; }
+    switch (acao) {
+      case 'al-criar-abrir':
+        estado.aliancaCriar = { nome: '', sigla: '', brasao: { forma: 'classico', cor: AL.brasao.cores[0], simbolo: 'dragao' } };
+        telaJogo(); return true;
+      case 'al-criar-fechar': estado.aliancaCriar = null; telaJogo(); return true;
+      case 'al-brasao-opcao': {
+        var alvo = estado.aliancaBrasao || (estado.aliancaCriar && estado.aliancaCriar.brasao);
+        if (!alvo) return true;
+        if (estado.aliancaCriar) { estado.aliancaCriar.nome = valor('al-nome'); estado.aliancaCriar.sigla = valor('al-sigla'); }
+        alvo[el.dataset.campo] = el.dataset.valor;
+        telaJogo(); return true;
+      }
+      case 'al-criar': {
+        var b = estado.aliancaCriar.brasao;
+        A2.criar(p.id, valor('al-nome'), valor('al-sigla').toUpperCase(), b).then(function () {
+          estado.aliancaCriar = null;
+          avisar('Aliança fundada! Você é o líder.', 'nivel');
+          carregarAlianca(); carregarArena();
+        }, function (e) { avisar(e.message); });
+        return true;
+      }
+      case 'al-buscar': estado.aliancaBusca = valor('al-busca'); carregarAlianca(); return true;
+      case 'al-pedir': acaoAlianca(A2.pedir(p.id, Number(el.dataset.id)), 'Pedido enviado. Espere o líder ou um oficial aceitar.'); return true;
+      case 'al-responder': acaoAlianca(A2.responder(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Bem-vindo à aliança!' : 'Convite recusado.', el.dataset.sim ? 'nivel' : ''); return true;
+      case 'al-decidir': acaoAlianca(A2.decidir(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Novo membro na aliança!' : 'Pedido recusado.'); return true;
+      case 'al-convidar': {
+        var nome = valor('al-convidar');
+        if (nome) acaoAlianca(A2.convidar(p.id, nome), 'Convite enviado para ' + nome + '.');
+        return true;
+      }
+      case 'al-mural': acaoAlianca(A2.mural(p.id, valor('al-mural')), 'Mural atualizado.'); return true;
+      case 'al-doar': {
+        var qtd = parseInt(valor('al-doar'), 10);
+        if (!(qtd >= AL.doacaoMinima)) { avisar('Doação mínima: ' + AL.doacaoMinima + ' de ouro.'); return true; }
+        if (qtd > p.ouro) { avisar('Você não tem esse ouro.'); return true; }
+        acaoAlianca(A2.doar(p.id, qtd), 'Você doou ' + qtd.toLocaleString('pt-BR') + ' de ouro ao tesouro!', 'item');
+        return true;
+      }
+      case 'al-bonus': acaoAlianca(A2.bonus(p.id, el.dataset.valor), 'Bônus ativado por ' + AL.bonus.dias + ' dias para todos!', 'nivel'); return true;
+      case 'al-cargo': acaoAlianca(A2.cargo(p.id, el.dataset.id, el.dataset.valor), el.dataset.valor === 'oficial' ? 'Promovido a oficial.' : 'Rebaixado a membro.'); return true;
+      case 'al-brasao-abrir': {
+        var atual = aliancaAtual().alianca.brasao || {};
+        estado.aliancaBrasao = { forma: atual.forma || 'classico', cor: atual.cor || AL.brasao.cores[0], simbolo: atual.simbolo || 'dragao' };
+        telaJogo(); return true;
+      }
+      case 'al-brasao-fechar': estado.aliancaBrasao = null; telaJogo(); return true;
+      case 'al-brasao-salvar': {
+        var nb = estado.aliancaBrasao;
+        estado.aliancaBrasao = null;
+        acaoAlianca(A2.brasao(p.id, nb), 'Brasão atualizado.');
+        return true;
+      }
+      case 'al-pedir-confirmar': estado.aliancaConfirmar = el.dataset.chave; telaJogo(); return true;
+      case 'al-cancelar': estado.aliancaConfirmar = null; telaJogo(); return true;
+      case 'al-confirmado': {
+        var partes = el.dataset.chave.split(':');
+        if (partes[0] === 'lider') acaoAlianca(A2.cargo(p.id, partes[1], 'lider'), 'Liderança passada. Agora você é oficial.');
+        else if (partes[0] === 'expulsar') acaoAlianca(A2.expulsar(p.id, partes[1]), 'Membro expulso.');
+        else if (partes[0] === 'sair') acaoAlianca(A2.sair(p.id), 'Você saiu da aliança.');
+        else if (partes[0] === 'desfazer') acaoAlianca(A2.desfazer(p.id), 'A aliança foi desfeita.');
+        return true;
+      }
+      case 'al-admin-listar':
+        A2.admin(p.id, null, 'listar', null).then(function (l) { estado.adminAliancas = l; telaJogo(); }, function (e) { avisar(e.message); });
+        return true;
+      case 'al-admin': {
+        var op = el.dataset.op, id = Number(el.dataset.id), v = null;
+        if (op === 'renomear') { v = window.prompt('Novo nome da aliança:'); if (!v) return true; }
+        if (op === 'lider') { v = window.prompt('Nome do personagem que vira líder:'); if (!v) return true; }
+        if (op === 'exp') v = 50000;
+        if (op === 'apagar' && !window.confirm('Apagar a aliança para sempre?')) return true;
+        A2.admin(p.id, id, op, v).then(function (l) { estado.adminAliancas = l; avisar('Feito.'); telaJogo(); carregarAlianca(); }, function (e) { avisar(e.message); });
+        return true;
+      }
+    }
+    return false;
+  }
+
   // ---------------- Chat global ----------------
   // Fica fora do #app para não sumir quando a tela é redesenhada.
   // Atualiza a cada 4 s com a janela aberta e a cada 20 s fechada (para o contador de novas).
-  var chat = { el: null, aberto: false, mensagens: [], ultimoId: 0, naoLidas: 0, timer: null, ativo: false, ultimaCompleta: 0 };
+  var chat = { el: null, aberto: false, mensagens: [], ultimoId: 0, naoLidas: 0, timer: null, ativo: false, ultimaCompleta: 0,
+    canal: 'global', al: { pid: null, mensagens: [], ultimoId: 0 } };   // canal 'alianca': chat só dos membros
 
   function chatVisivel(sim) {
     if (!chat.el) {
@@ -2650,10 +2976,17 @@
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'
       : '';
-    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> <strong class="chat-nome classe-' + esc(m.classe) + '">'
+    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '">'
       + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
       + esc(m.texto) + acoes + '</p>';
   }
+
+  function linhaChatAlianca(m) {
+    var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + (m.cargo === 'lider' ? '👑 ' : m.cargo === 'oficial' ? '⭐ ' : '')
+      + '<strong class="chat-nome">' + esc(m.personagem) + '</strong>: ' + esc(m.texto) + '</p>';
+  }
+  function chatDaAlianca() { var st = aliancaAtual(); return !!(st && st.alianca); }
 
   function desenharChat() {
     if (!chat.aberto) {
@@ -2664,9 +2997,15 @@
     var texto = document.getElementById('chat-texto');
     var rascunho = texto ? texto.value : '';
     var focado = texto && document.activeElement === texto;
-    chat.el.innerHTML = '<div class="chat-janela"><div class="chat-topo"><strong>Chat Global</strong>'
+    if (chat.canal === 'alianca' && !chatDaAlianca()) chat.canal = 'global';
+    var daAlianca = chat.canal === 'alianca', lista = daAlianca ? chat.al.mensagens : chat.mensagens;
+    var titulo = chatDaAlianca()
+      ? '<span class="chat-canais"><button data-chat="canal" data-canal="global" class="' + (daAlianca ? '' : 'ativo') + '">Global</button>'
+        + '<button data-chat="canal" data-canal="alianca" class="' + (daAlianca ? 'ativo' : '') + '">Aliança</button></span>'
+      : '<strong>Chat Global</strong>';
+    chat.el.innerHTML = '<div class="chat-janela"><div class="chat-topo">' + titulo
       + '<button data-chat="fechar" title="Fechar">✕</button></div>'
-      + '<div class="chat-lista" id="chat-lista">' + (chat.mensagens.length ? chat.mensagens.map(linhaChat).join('')
+      + '<div class="chat-lista" id="chat-lista">' + (lista.length ? lista.map(daAlianca ? linhaChatAlianca : linhaChat).join('')
         : '<p class="suave pequeno">Nenhuma mensagem ainda. Diga olá!</p>') + '</div>'
       + '<div class="chat-envio"><input id="chat-texto" maxlength="200" placeholder="Escreva como ' + esc(estado.personagem ? estado.personagem.nome : '') + '…" autocomplete="off">'
       + '<button class="btn" data-chat="enviar">Enviar</button></div></div>';
@@ -2694,6 +3033,13 @@
         chat.mensagens = chat.mensagens.concat(novas).slice(-100);
       }
       if (chat.mensagens.length) chat.ultimoId = Math.max(chat.ultimoId, chat.mensagens[chat.mensagens.length - 1].id);
+      if (chat.aberto && chat.canal === 'alianca' && chatDaAlianca()) {
+        var pid = estado.personagem.id;
+        if (chat.al.pid !== pid) chat.al = { pid: pid, mensagens: [], ultimoId: 0 };
+        var novasAl = await C.alianca.chat(pid, chat.al.ultimoId);
+        chat.al.mensagens = chat.al.mensagens.concat(novasAl).slice(-100);
+        if (chat.al.mensagens.length) chat.al.ultimoId = chat.al.mensagens[chat.al.mensagens.length - 1].id;
+      }
       if (chat.ativo) desenharChat();
     } catch (e) { /* sem conexão: tenta de novo no próximo ciclo */ }
     if (chat.ativo) chat.timer = setTimeout(buscarChat, document.hidden ? 60000 : chat.aberto ? 4000 : 20000);
@@ -2704,7 +3050,8 @@
     var texto = campo.value.trim();
     if (!texto || !estado.personagem) return;
     try {
-      await C.chat.enviar(estado.personagem.nome, texto);
+      if (chat.canal === 'alianca') await C.alianca.chatEnviar(estado.personagem.id, texto);
+      else await C.chat.enviar(estado.personagem.nome, texto);
       campo.value = '';
       buscarChat();
     } catch (e) { avisar(e.message); }
@@ -2721,6 +3068,10 @@
       if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(); }
     } else if (acao === 'enviar') {
       enviarChat();
+    } else if (acao === 'canal') {
+      chat.canal = el.dataset.canal;
+      desenharChat();
+      buscarChat();
     } else if (acao === 'apagar' && ehAdmin()) {
       try { await C.chat.apagar(Number(el.dataset.id)); buscarChat(true); } catch (erro) { avisar(erro.message); }
     } else if (acao === 'silenciar' && ehAdmin()) {

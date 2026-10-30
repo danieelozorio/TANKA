@@ -554,7 +554,8 @@ Tanka.regras = (function () {
   // Aplica o resultado no personagem. Derrota: fica com 0 de vida, perde 5% da exp do level
   // (sem descer de level) e só caça de novo quando a vida voltar com o tempo ou com poção.
   // `agora`: a vida com o tempo volta a contar a partir do fim da luta.
-  function concluirBatalha(p, b, agora) {
+  // `bonus`: % a mais de exp e de ouro (bônus da aliança), ex.: { exp: 9, ouro: 9 }.
+  function concluirBatalha(p, b, agora, bonus) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
     p.hpAtual = b.jogador.hp;
     p.pocoes = b.pocoes;
@@ -572,7 +573,9 @@ Tanka.regras = (function () {
       res.fatorExp = fatorExp(p, b.monstroId);
       res.exp = res.fatorExp < 100 ? Math.max(1, Math.floor(m.exp * res.fatorExp / 100)) : m.exp;
       res.ouro = m.ouro;
-      p.ouro += m.ouro;
+      if (bonus && bonus.exp) res.exp = Math.floor(res.exp * (1 + bonus.exp / 100));
+      if (bonus && bonus.ouro) res.ouro = Math.floor(res.ouro * (1 + bonus.ouro / 100));
+      p.ouro += res.ouro;
       res.niveis = ganharExp(p, res.exp);
       if (m.chefe) {
         var premio = dropChefe(p, m, b.rng);

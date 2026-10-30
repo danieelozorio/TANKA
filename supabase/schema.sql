@@ -72,6 +72,57 @@ drop trigger if exists antes_de_salvar_personagem on public.personagens;
 create trigger antes_de_salvar_personagem before insert or update on public.personagens
   for each row execute function public.validar_personagem();
 
+-- ---------- Tabelas das alianças (as funções ficam no fim do arquivo) ----------
+create table if not exists public.aliancas (
+  id bigint generated always as identity primary key,
+  nome text not null,
+  sigla text not null,
+  brasao jsonb not null default '{}'::jsonb,
+  nivel int not null default 1,
+  exp bigint not null default 0,
+  tesouro bigint not null default 0,
+  mural text not null default '',
+  bonus_exp_ate timestamptz,
+  bonus_ouro_ate timestamptz,
+  criada_em timestamptz not null default now()
+);
+create unique index if not exists aliancas_nome_unico on public.aliancas (lower(nome));
+create unique index if not exists aliancas_sigla_unica on public.aliancas (upper(sigla));
+create table if not exists public.alianca_membros (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  cargo text not null default 'membro' check (cargo in ('lider', 'oficial', 'membro')),
+  contribuicao bigint not null default 0,
+  entrou_em timestamptz not null default now()
+);
+create index if not exists alianca_membros_alianca on public.alianca_membros (alianca_id);
+create table if not exists public.alianca_convites (
+  id bigint generated always as identity primary key,
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  tipo text not null check (tipo in ('convite', 'pedido')),
+  criado_em timestamptz not null default now(),
+  unique (alianca_id, personagem_id)
+);
+create table if not exists public.alianca_espera (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  ate timestamptz not null
+);
+create table if not exists public.alianca_mensagens (
+  id bigint generated always as identity primary key,
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  personagem text not null,
+  cargo text,
+  texto text not null check (char_length(texto) between 1 and 200),
+  criado_em timestamptz not null default now()
+);
+create index if not exists alianca_mensagens_alianca on public.alianca_mensagens (alianca_id, id);
+alter table public.aliancas enable row level security;
+alter table public.alianca_membros enable row level security;
+alter table public.alianca_convites enable row level security;
+alter table public.alianca_espera enable row level security;
+alter table public.alianca_mensagens enable row level security;
+
 -- ---------- Funções públicas ----------
 create or replace function public.usuario_livre(u text) returns boolean
 language sql stable security definer set search_path = public as $$
@@ -105,6 +156,7 @@ create table if not exists public.mensagens (
   criado_em timestamptz not null default now()
 );
 create index if not exists mensagens_conta on public.mensagens (conta_id, criado_em);
+alter table public.mensagens add column if not exists sigla text;   -- sigla da aliança de quem escreveu
 
 create or replace function public.eh_admin() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -122,7 +174,7 @@ create policy "chat: admin apaga" on public.mensagens for delete to authenticate
 -- Antes de gravar: silenciado? flood (1 a cada 3 s)? Nome, classe e level vêm do personagem salvo.
 create or replace function public.validar_mensagem() returns trigger
 language plpgsql security definer set search_path = public as $$
-declare d jsonb; ate timestamptz;
+declare d jsonb; pid text; ate timestamptz;
 begin
   new.conta_id := auth.uid();
   new.texto := btrim(new.texto);
@@ -135,8 +187,9 @@ begin
   if exists (select 1 from public.mensagens where conta_id = new.conta_id and criado_em > now() - interval '3 seconds') then
     raise exception 'Calma! Espere 3 segundos entre as mensagens.';
   end if;
-  select dados into d from public.personagens where conta_id = new.conta_id and lower(nome) = lower(new.personagem);
+  select id, dados into pid, d from public.personagens where conta_id = new.conta_id and lower(nome) = lower(new.personagem);
   if d is null then raise exception 'Personagem inválido.'; end if;
+  new.sigla := (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = pid);
   new.personagem := d ->> 'nome';
   new.classe := d ->> 'classe';
   new.nivel := (d ->> 'nivel')::int;
@@ -170,10 +223,12 @@ notify pgrst, 'reload schema';
 
 -- ---------- Ranking ----------
 -- Top 100 por level (empate: exp) ou por poder. Contas de administrador ficam de fora.
-create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint)
+drop function if exists public.ranking(text);   -- a lista de colunas mudou (sigla da aliança)
+create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text)
 language sql stable security definer set search_path = public as $$
   select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
-         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0)
+         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0),
+         (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = p.id)
   from public.personagens p join public.contas c on c.id = p.conta_id
   where not c.admin and not c.bot
   order by
@@ -208,8 +263,9 @@ begin
 end $$;
 
 -- Amigos, pedidos recebidos e enviados. visto_em = último salvamento do personagem (online se recente).
+drop function if exists public.amigos_listar(text);   -- a lista de colunas mudou (sigla da aliança)
 create or replace function public.amigos_listar(meu text)
-returns table (pedido bigint, situacao text, id text, nome text, classe text, raca text, nivel int, poder bigint, visto_em timestamptz)
+returns table (pedido bigint, situacao text, id text, nome text, classe text, raca text, nivel int, poder bigint, visto_em timestamptz, sigla text)
 language plpgsql stable security definer set search_path = public as $$
 begin
   perform public.conferir_dono(meu);
@@ -217,7 +273,8 @@ begin
   select a.id,
          case when a.status = 'aceita' then 'amigo' when a.de = meu then 'enviado' else 'recebido' end,
          p.id, p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
-         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'poder')::bigint, 0), p.atualizado_em
+         coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'poder')::bigint, 0), p.atualizado_em,
+         (select al.sigla from public.alianca_membros m join public.aliancas al on al.id = m.alianca_id where m.personagem_id = p.id)
   from public.amizades a
   join public.personagens p on p.id = case when a.de = meu then a.para else a.de end
   where a.de = meu or a.para = meu
@@ -588,7 +645,7 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
 create or replace function public.tanka_dados() returns jsonb
-language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":5,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico"},"arqueiro":{"dano":"fisico"},"mago":{"dano":"magico"},"artesao":{"dano":"fisico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"danoPorNivel":{"comum":1,"rara":2,"epica":3,"lendaria":5},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]}}'::jsonb; $dados$;
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":5,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico"},"arqueiro":{"dano":"fisico"},"mago":{"dano":"magico"},"artesao":{"dano":"fisico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"danoPorNivel":{"comum":1,"rara":2,"epica":3,"lendaria":5},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}}}'::jsonb; $dados$;
 -- <<< DADOS DO JOGO
 
 -- ---------- Arena (PvP) ----------
@@ -994,12 +1051,12 @@ begin
     'reputacao_pendente', coalesce((select sum(reputacao) from public.creditos where personagem_id = meu and not aplicado), 0),
     'jackpot', jsonb_build_object('valor', j.valor, 'top1', (select nome from public.personagens where id = j.top1)),
     'top5', coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe',
-        'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0)) order by ap.posicao)
+        'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0), 'sigla', public.sigla_de(p.id)) order by ap.posicao)
       from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id where ap.arena = ver and ap.posicao <= 5), '[]'::jsonb),
     -- Os 5 logo acima (desafiáveis) e você.
     'alvos', case when pos is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome,
         'classe', p.dados ->> 'classe', 'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0),
-        'conta_minha', p.conta_id = auth.uid()) order by ap.posicao)
+        'conta_minha', p.conta_id = auth.uid(), 'sigla', public.sigla_de(p.id)) order by ap.posicao)
       from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id
       where ap.arena = ver and ap.posicao >= pos - (cfg ->> 'alcanceDesafio')::int and ap.posicao <= pos), '[]'::jsonb) end,
     'historico', coalesce((select jsonb_agg(h order by (h ->> 'id')::bigint desc) from (
@@ -1077,6 +1134,8 @@ begin
     'itens', coalesce((select jsonb_agg(i) from jsonb_array_elements(coalesce(p.dados -> 'inventario', '[]'::jsonb)) i
       where i ->> 'id' in (select value from jsonb_each_text(coalesce(p.dados -> 'equipados', '{}'::jsonb)))), '[]'::jsonb),
     'ouro', public.ouro_real(p.id), 'reputacao', coalesce((p.dados ->> 'reputacao')::int, 0),
+    'alianca', (select jsonb_build_object('nome', a.nome, 'sigla', a.sigla, 'brasao', a.brasao)
+      from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = p.id),
     'skin', coalesce(p.dados ->> 'skinDado', 'vermelho'),
     'posicao', (select posicao from public.arena_posicoes where personagem_id = p.id),
     'arena', (select arena from public.arena_posicoes where personagem_id = p.id),
@@ -1102,5 +1161,403 @@ revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
   public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
   public.arena_comecar(text, text, bigint) from public, anon, authenticated;
+
+-- ---------- Alianças ----------
+-- Tudo passa pelas funções abaixo (sem acesso direto às tabelas). Ouro e reputação gastos saem
+-- do personagem pelo sistema de créditos (o jogo aplica na próxima atualização).
+-- (as tabelas das alianças ficam lá em cima, junto dos personagens)
+
+create or replace function public.alianca_cfg() returns jsonb
+language sql immutable as $$ select public.tanka_dados() -> 'ALIANCA'; $$;
+
+-- Sigla da aliança do personagem (null se não tem).
+create or replace function public.sigla_de(pid text) returns text
+language sql stable security definer set search_path = public as $$
+  select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = pid;
+$$;
+
+create or replace function public.reputacao_real(pid text) returns int
+language sql stable as $$
+  select greatest(0, coalesce((select (dados ->> 'reputacao')::int from public.personagens where id = pid), 0)
+    + coalesce((select sum(reputacao) from public.creditos where personagem_id = pid and not aplicado), 0))::int;
+$$;
+
+create or replace function public.alianca_vagas(nivel int) returns int
+language sql immutable as $$
+  select (public.alianca_cfg() ->> 'vagasIniciais')::int + (nivel - 1) * (public.alianca_cfg() ->> 'vagasPorNivel')::int;
+$$;
+
+-- % dos bônus: 5 no Lv1 até 15 no Lv10.
+create or replace function public.alianca_bonus_pct(nivel int) returns int
+language sql immutable as $$
+  select floor((public.alianca_cfg() -> 'bonus' ->> 'minimo')::numeric
+    + (nivel - 1) * ((public.alianca_cfg() -> 'bonus' ->> 'maximo')::numeric - (public.alianca_cfg() -> 'bonus' ->> 'minimo')::numeric)
+      / ((public.alianca_cfg() ->> 'nivelMax')::int - 1))::int;
+$$;
+
+-- Membro e cargo de quem chama (erro se não estiver em aliança).
+create or replace function public.alianca_minha(meu text) returns public.alianca_membros
+language plpgsql stable security definer set search_path = public as $$
+declare m public.alianca_membros;
+begin
+  select * into m from public.alianca_membros where personagem_id = meu;
+  if m.personagem_id is null then raise exception 'Você não está em uma aliança.'; end if;
+  return m;
+end $$;
+
+create or replace function public.alianca_texto_valido(t text, minimo int, maximo int, oque text) returns text
+language plpgsql immutable as $$
+begin
+  t := btrim(regexp_replace(coalesce(t, ''), '\s+', ' ', 'g'));
+  if char_length(t) < minimo or char_length(t) > maximo then raise exception '% deve ter de % a % letras.', oque, minimo, maximo; end if;
+  if t !~ '^[[:alnum:] À-ÿ''-]+$' then raise exception '% só pode ter letras, números e espaços.', oque; end if;
+  return t;
+end $$;
+
+-- Se o líder sumiu (14 dias), a liderança passa para o oficial (ou membro) mais antigo que jogou nos últimos 3 dias.
+create or replace function public.alianca_conferir_lider(aid bigint) returns void
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.alianca_cfg(); lider_id text; visto timestamptz; novo text;
+begin
+  select m.personagem_id, p.atualizado_em into lider_id, visto
+  from public.alianca_membros m join public.personagens p on p.id = m.personagem_id
+  where m.alianca_id = aid and m.cargo = 'lider';
+  if lider_id is not null and visto > now() - make_interval(days => (cfg ->> 'liderSumidoDias')::int) then return; end if;
+  select m.personagem_id into novo from public.alianca_membros m join public.personagens p on p.id = m.personagem_id
+  where m.alianca_id = aid and m.cargo <> 'lider' and p.atualizado_em > now() - make_interval(days => (cfg ->> 'ativoDias')::int)
+  order by (m.cargo = 'oficial') desc, m.entrou_em limit 1;
+  if novo is null then return; end if;
+  update public.alianca_membros set cargo = 'membro' where personagem_id = lider_id;
+  update public.alianca_membros set cargo = 'lider' where personagem_id = novo;
+end $$;
+
+-- Coloca o personagem na aliança (confere vagas, espera de 24 h e se já está em outra).
+create or replace function public.alianca_entrar(pid text, aid bigint) returns void
+language plpgsql security definer set search_path = public as $$
+declare a public.aliancas; ate timestamptz;
+begin
+  if exists (select 1 from public.alianca_membros where personagem_id = pid) then raise exception 'Esse personagem já está em uma aliança.'; end if;
+  select e.ate into ate from public.alianca_espera e where personagem_id = pid;
+  if ate is not null and ate > now() then
+    raise exception 'Só dá para entrar em outra aliança depois de %.', to_char(ate at time zone 'America/Sao_Paulo', 'DD/MM HH24:MI');
+  end if;
+  select * into a from public.aliancas where id = aid for update;
+  if a.id is null then raise exception 'Aliança não encontrada.'; end if;
+  if (select count(*) from public.alianca_membros where alianca_id = aid) >= public.alianca_vagas(a.nivel) then
+    raise exception 'A aliança está cheia.';
+  end if;
+  insert into public.alianca_membros (personagem_id, alianca_id) values (pid, aid);
+  delete from public.alianca_convites where personagem_id = pid;
+end $$;
+
+create or replace function public.alianca_registrar_saida(pid text) returns void
+language sql security definer set search_path = public as $$
+  insert into public.alianca_espera (personagem_id, ate) values (pid, now() + make_interval(hours => (public.alianca_cfg() ->> 'esperaHoras')::int))
+  on conflict (personagem_id) do update set ate = excluded.ate;
+$$;
+
+create or replace function public.alianca_resumo(a public.aliancas) returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('id', a.id, 'nome', a.nome, 'sigla', a.sigla, 'brasao', a.brasao, 'nivel', a.nivel,
+    'membros', (select count(*) from public.alianca_membros where alianca_id = a.id), 'vagas', public.alianca_vagas(a.nivel),
+    'poder', coalesce((select sum(coalesce((p.dados ->> 'poder')::bigint, 0)) from public.alianca_membros m join public.personagens p on p.id = m.personagem_id where m.alianca_id = a.id), 0));
+$$;
+
+-- ===== Funções chamadas pelo jogo =====
+
+-- Tudo o que a aba Aliança precisa. busca: filtra a lista de alianças pelo nome ou sigla.
+create or replace function public.alianca_estado(meu text, busca text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; a public.aliancas; pct int;
+begin
+  perform public.conferir_dono(meu);
+  select * into m from public.alianca_membros where personagem_id = meu;
+  if m.personagem_id is null then
+    return jsonb_build_object('alianca', null,
+      'espera_ate', (select ate from public.alianca_espera where personagem_id = meu and ate > now()),
+      'convites', coalesce((select jsonb_agg(public.alianca_resumo(x) || jsonb_build_object('convite', c.id) order by c.id desc)
+        from public.alianca_convites c join public.aliancas x on x.id = c.alianca_id where c.personagem_id = meu and c.tipo = 'convite'), '[]'::jsonb),
+      'pedidos_feitos', coalesce((select jsonb_agg(c.alianca_id) from public.alianca_convites c where c.personagem_id = meu and c.tipo = 'pedido'), '[]'::jsonb),
+      'lista', coalesce((select jsonb_agg(r order by (r ->> 'poder')::bigint desc) from (
+        select public.alianca_resumo(x) r from public.aliancas x
+        where coalesce(btrim(busca), '') = '' or x.nome ilike '%' || btrim(busca) || '%' or x.sigla ilike '%' || btrim(busca) || '%'
+        limit 50) t), '[]'::jsonb));
+  end if;
+  perform public.alianca_conferir_lider(m.alianca_id);
+  select * into m from public.alianca_membros where personagem_id = meu;
+  select * into a from public.aliancas where id = m.alianca_id;
+  pct := public.alianca_bonus_pct(a.nivel);
+  return jsonb_build_object(
+    'alianca', public.alianca_resumo(a) || jsonb_build_object('exp', a.exp, 'tesouro', a.tesouro, 'mural', a.mural,
+      'exp_proximo', case when a.nivel >= (public.alianca_cfg() ->> 'nivelMax')::int then null else (public.alianca_cfg() -> 'expProximo' ->> (a.nivel - 1))::bigint end,
+      'bonus_pct', pct, 'bonus_exp_ate', case when a.bonus_exp_ate > now() then a.bonus_exp_ate end,
+      'bonus_ouro_ate', case when a.bonus_ouro_ate > now() then a.bonus_ouro_ate end),
+    'meu_cargo', m.cargo,
+    'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cargo', x.cargo, 'classe', p.dados ->> 'classe',
+        'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0),
+        'contribuicao', x.contribuicao, 'visto_em', p.atualizado_em)
+        order by case x.cargo when 'lider' then 0 when 'oficial' then 1 else 2 end, x.contribuicao desc, p.nome)
+      from public.alianca_membros x join public.personagens p on p.id = x.personagem_id where x.alianca_id = a.id),
+    'pedidos', case when m.cargo in ('lider', 'oficial') then coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'nome', p.nome,
+        'classe', p.dados ->> 'classe', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0)) order by c.id)
+      from public.alianca_convites c join public.personagens p on p.id = c.personagem_id where c.alianca_id = a.id and c.tipo = 'pedido'), '[]'::jsonb) else '[]'::jsonb end);
+end $$;
+
+create or replace function public.alianca_criar(meu text, nome text, sigla text, brasao jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.alianca_cfg(); d jsonb; aid bigint;
+begin
+  perform public.conferir_dono(meu);
+  select dados into d from public.personagens where id = meu;
+  if coalesce((d ->> 'nivel')::int, 1) < (cfg ->> 'nivelMin')::int then raise exception 'Precisa ser level % para criar uma aliança.', cfg ->> 'nivelMin'; end if;
+  nome := public.alianca_texto_valido(nome, 3, 20, 'O nome');
+  sigla := upper(btrim(coalesce(sigla, '')));
+  if sigla !~ '^[A-Z0-9]{3,4}$' then raise exception 'A sigla deve ter 3 ou 4 letras ou números, sem espaço.'; end if;
+  if exists (select 1 from public.aliancas where lower(aliancas.nome) = lower(alianca_criar.nome)) then raise exception 'Já existe uma aliança com esse nome.'; end if;
+  if exists (select 1 from public.aliancas where upper(aliancas.sigla) = alianca_criar.sigla) then raise exception 'Essa sigla já está em uso.'; end if;
+  if public.ouro_real(meu) < (cfg ->> 'custoOuro')::int then raise exception 'Ouro insuficiente (precisa de %).', cfg ->> 'custoOuro'; end if;
+  if public.reputacao_real(meu) < (cfg ->> 'custoReputacao')::int then raise exception 'Reputação insuficiente (precisa de %).', cfg ->> 'custoReputacao'; end if;
+  if exists (select 1 from public.alianca_membros where personagem_id = meu) then raise exception 'Você já está em uma aliança.'; end if;
+  insert into public.aliancas (nome, sigla, brasao) values (nome, sigla, coalesce(brasao, '{}'::jsonb)) returning id into aid;
+  delete from public.alianca_espera where personagem_id = meu;
+  perform public.alianca_entrar(meu, aid);
+  update public.alianca_membros set cargo = 'lider' where personagem_id = meu;
+  perform public.creditar(meu, -(cfg ->> 'custoOuro')::int, -(cfg ->> 'custoReputacao')::int, 'Fundação da aliança ' || nome);
+end $$;
+
+-- Líder ou oficial convida pelo nome do personagem.
+create or replace function public.alianca_convidar(meu text, nome_alvo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); alvo public.personagens;
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo = 'membro' then raise exception 'Só o líder e os oficiais convidam.'; end if;
+  select * into alvo from public.personagens where lower(nome) = lower(btrim(nome_alvo));
+  if alvo.id is null then raise exception 'Nenhum personagem com esse nome.'; end if;
+  if exists (select 1 from public.alianca_membros where personagem_id = alvo.id) then raise exception '% já está em uma aliança.', alvo.nome; end if;
+  if exists (select 1 from public.alianca_convites where personagem_id = alvo.id and alianca_id = m.alianca_id and tipo = 'pedido') then
+    perform public.alianca_entrar(alvo.id, m.alianca_id);   -- ele já tinha pedido: entra direto
+    return;
+  end if;
+  insert into public.alianca_convites (alianca_id, personagem_id, tipo) values (m.alianca_id, alvo.id, 'convite')
+  on conflict (alianca_id, personagem_id) do nothing;
+end $$;
+
+-- Quem foi convidado aceita ou recusa.
+create or replace function public.alianca_responder(meu text, convite bigint, aceitar boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare c public.alianca_convites;
+begin
+  perform public.conferir_dono(meu);
+  select * into c from public.alianca_convites where id = convite and personagem_id = meu and tipo = 'convite';
+  if c.id is null then raise exception 'Convite não encontrado.'; end if;
+  if aceitar then perform public.alianca_entrar(meu, c.alianca_id);
+  else delete from public.alianca_convites where id = convite; end if;
+end $$;
+
+create or replace function public.alianca_pedir(meu text, aid bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if exists (select 1 from public.alianca_membros where personagem_id = meu) then raise exception 'Você já está em uma aliança.'; end if;
+  if not exists (select 1 from public.aliancas where id = aid) then raise exception 'Aliança não encontrada.'; end if;
+  if exists (select 1 from public.alianca_convites where personagem_id = meu and alianca_id = aid and tipo = 'convite') then
+    perform public.alianca_entrar(meu, aid);   -- já tinha convite: entra direto
+    return;
+  end if;
+  insert into public.alianca_convites (alianca_id, personagem_id, tipo) values (aid, meu, 'pedido')
+  on conflict (alianca_id, personagem_id) do nothing;
+end $$;
+
+-- Líder ou oficial aceita ou recusa um pedido para entrar.
+create or replace function public.alianca_decidir(meu text, pedido bigint, aceitar boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); c public.alianca_convites;
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo = 'membro' then raise exception 'Só o líder e os oficiais aceitam pedidos.'; end if;
+  select * into c from public.alianca_convites where id = pedido and alianca_id = m.alianca_id and tipo = 'pedido';
+  if c.id is null then raise exception 'Pedido não encontrado.'; end if;
+  if aceitar then perform public.alianca_entrar(c.personagem_id, m.alianca_id);
+  else delete from public.alianca_convites where id = pedido; end if;
+end $$;
+
+create or replace function public.alianca_sair(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu);
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo = 'lider' then raise exception 'Passe a liderança antes de sair (ou desfaça a aliança).'; end if;
+  delete from public.alianca_membros where personagem_id = meu;
+  perform public.alianca_registrar_saida(meu);
+end $$;
+
+create or replace function public.alianca_expulsar(meu text, alvo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); x public.alianca_membros;
+begin
+  perform public.conferir_dono(meu);
+  select * into x from public.alianca_membros where personagem_id = alvo and alianca_id = m.alianca_id;
+  if x.personagem_id is null then raise exception 'Esse personagem não é da sua aliança.'; end if;
+  if m.cargo = 'membro' or x.cargo = 'lider' or (m.cargo = 'oficial' and x.cargo <> 'membro') then
+    raise exception 'Você não pode expulsar esse membro.';
+  end if;
+  delete from public.alianca_membros where personagem_id = alvo;
+  perform public.alianca_registrar_saida(alvo);
+end $$;
+
+-- Líder: cargo 'oficial' ou 'membro' para outro, ou 'lider' para passar a liderança.
+create or replace function public.alianca_cargo(meu text, alvo text, cargo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); x public.alianca_membros;
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo <> 'lider' then raise exception 'Só o líder muda cargos.'; end if;
+  select * into x from public.alianca_membros where personagem_id = alvo and alianca_id = m.alianca_id;
+  if x.personagem_id is null or alvo = meu then raise exception 'Membro inválido.'; end if;
+  if cargo = 'oficial' then
+    if x.cargo <> 'oficial' and (select count(*) from public.alianca_membros where alianca_id = m.alianca_id and alianca_membros.cargo = 'oficial')
+       >= (public.alianca_cfg() ->> 'maxOficiais')::int then raise exception 'Máximo de % oficiais.', public.alianca_cfg() ->> 'maxOficiais'; end if;
+    update public.alianca_membros set cargo = 'oficial' where personagem_id = alvo;
+  elsif cargo = 'membro' then
+    update public.alianca_membros set cargo = 'membro' where personagem_id = alvo;
+  elsif cargo = 'lider' then
+    update public.alianca_membros set cargo = 'oficial' where personagem_id = meu;
+    update public.alianca_membros set cargo = 'lider' where personagem_id = alvo;
+  else raise exception 'Cargo inválido.'; end if;
+end $$;
+
+create or replace function public.alianca_desfazer(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu);
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo <> 'lider' then raise exception 'Só o líder desfaz a aliança.'; end if;
+  delete from public.aliancas where id = m.alianca_id;
+end $$;
+
+create or replace function public.alianca_mural(meu text, texto text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu);
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo = 'membro' then raise exception 'Só o líder e os oficiais escrevem no mural.'; end if;
+  update public.aliancas set mural = left(btrim(coalesce(texto, '')), (public.alianca_cfg() ->> 'muralMax')::int) where id = m.alianca_id;
+end $$;
+
+create or replace function public.alianca_brasao(meu text, brasao jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu);
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo <> 'lider' then raise exception 'Só o líder muda o brasão.'; end if;
+  update public.aliancas set brasao = coalesce(alianca_brasao.brasao, '{}'::jsonb) where id = m.alianca_id;
+end $$;
+
+-- Doação ao tesouro: vira contribuição do membro e exp da aliança (pode subir de level).
+create or replace function public.alianca_doar(meu text, valor int) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); cfg jsonb := public.alianca_cfg(); a public.aliancas; prox bigint;
+begin
+  perform public.conferir_dono(meu);
+  if valor < (cfg ->> 'doacaoMinima')::int then raise exception 'Doação mínima: % de ouro.', cfg ->> 'doacaoMinima'; end if;
+  if public.ouro_real(meu) < valor then raise exception 'Ouro insuficiente.'; end if;
+  perform public.creditar(meu, -valor, 0, 'Doação ao tesouro da aliança');
+  update public.alianca_membros set contribuicao = contribuicao + valor where personagem_id = meu;
+  update public.aliancas set tesouro = tesouro + valor, exp = exp + valor where id = m.alianca_id returning * into a;
+  loop
+    exit when a.nivel >= (cfg ->> 'nivelMax')::int;
+    prox := (cfg -> 'expProximo' ->> (a.nivel - 1))::bigint;
+    exit when a.exp < prox;
+    update public.aliancas set nivel = nivel + 1, exp = exp - prox where id = a.id returning * into a;
+  end loop;
+end $$;
+
+-- Líder ativa (ou renova por mais 7 dias) um bônus: 'exp' ou 'ouro'.
+create or replace function public.alianca_bonus(meu text, tipo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); cfg jsonb := public.alianca_cfg(); custo int := (cfg -> 'bonus' ->> 'custo')::int;
+  dias interval := make_interval(days => (cfg -> 'bonus' ->> 'dias')::int);
+begin
+  perform public.conferir_dono(meu);
+  if m.cargo <> 'lider' then raise exception 'Só o líder ativa os bônus.'; end if;
+  if tipo not in ('exp', 'ouro') then raise exception 'Bônus inválido.'; end if;
+  if (select tesouro from public.aliancas where id = m.alianca_id) < custo then raise exception 'O tesouro precisa de % de ouro.', custo; end if;
+  update public.aliancas set tesouro = tesouro - custo,
+    bonus_exp_ate = case when tipo = 'exp' then greatest(coalesce(bonus_exp_ate, now()), now()) + dias else bonus_exp_ate end,
+    bonus_ouro_ate = case when tipo = 'ouro' then greatest(coalesce(bonus_ouro_ate, now()), now()) + dias else bonus_ouro_ate end
+  where id = m.alianca_id;
+end $$;
+
+-- Chat da aliança: últimas 100 (ou as novas depois de um id) e enviar (1 a cada 3 s).
+create or replace function public.alianca_chat(meu text, depois bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu);
+begin
+  perform public.conferir_dono(meu);
+  return coalesce((select jsonb_agg(jsonb_build_object('id', id, 'personagem', personagem, 'cargo', cargo, 'texto', texto, 'criado_em', criado_em) order by id)
+    from (select * from public.alianca_mensagens where alianca_id = m.alianca_id and id > coalesce(depois, 0) order by id desc limit 100) t), '[]'::jsonb);
+end $$;
+
+create or replace function public.alianca_chat_enviar(meu text, texto text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros := public.alianca_minha(meu); nome text;
+begin
+  perform public.conferir_dono(meu);
+  texto := btrim(coalesce(texto, ''));
+  if texto = '' then raise exception 'Mensagem vazia.'; end if;
+  select p.nome into nome from public.personagens p where p.id = meu;
+  if exists (select 1 from public.alianca_mensagens where alianca_id = m.alianca_id and personagem = nome and criado_em > now() - interval '3 seconds') then
+    raise exception 'Calma! Espere 3 segundos entre as mensagens.';
+  end if;
+  insert into public.alianca_mensagens (alianca_id, personagem, cargo, texto) values (m.alianca_id, nome, m.cargo, left(texto, 200));
+  delete from public.alianca_mensagens where criado_em < now() - interval '7 days';
+end $$;
+
+-- Admin: lista todas e age sobre uma. acao: 'renomear' (valor = nome novo), 'apagar', 'exp' (valor = quantidade), 'lider' (valor = nome do personagem).
+create or replace function public.alianca_admin(meu text, aid bigint, acao text, valor text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.alianca_cfg(); a public.aliancas; novo public.personagens; prox bigint;
+begin
+  perform public.conferir_dono(meu);
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  if acao = 'renomear' then
+    update public.aliancas set nome = public.alianca_texto_valido(valor, 3, 20, 'O nome') where id = aid;
+  elsif acao = 'apagar' then
+    delete from public.aliancas where id = aid;
+  elsif acao = 'exp' then
+    update public.aliancas set exp = greatest(0, exp + valor::bigint) where id = aid returning * into a;
+    loop
+      exit when a.id is null or a.nivel >= (cfg ->> 'nivelMax')::int;
+      prox := (cfg -> 'expProximo' ->> (a.nivel - 1))::bigint;
+      exit when a.exp < prox;
+      update public.aliancas set nivel = nivel + 1, exp = exp - prox where id = a.id returning * into a;
+    end loop;
+  elsif acao = 'lider' then
+    select p.* into novo from public.personagens p join public.alianca_membros m on m.personagem_id = p.id
+    where m.alianca_id = aid and lower(p.nome) = lower(btrim(valor));
+    if novo.id is null then raise exception 'Esse personagem não é dessa aliança.'; end if;
+    update public.alianca_membros set cargo = 'oficial' where alianca_id = aid and cargo = 'lider';
+    update public.alianca_membros set cargo = 'lider' where personagem_id = novo.id;
+  end if;
+  return coalesce((select jsonb_agg(public.alianca_resumo(x) || jsonb_build_object('lider',
+      (select p.nome from public.alianca_membros m join public.personagens p on p.id = m.personagem_id where m.alianca_id = x.id and m.cargo = 'lider'))
+    order by x.nome) from public.aliancas x), '[]'::jsonb);
+end $$;
+
+revoke execute on function public.alianca_cfg(), public.reputacao_real(text), public.alianca_vagas(int), public.alianca_bonus_pct(int),
+  public.alianca_minha(text), public.alianca_texto_valido(text, int, int, text), public.alianca_conferir_lider(bigint),
+  public.alianca_entrar(text, bigint), public.alianca_registrar_saida(text), public.alianca_resumo(public.aliancas), public.sigla_de(text)
+  from public, anon, authenticated;
+revoke execute on function public.alianca_estado(text, text), public.alianca_criar(text, text, text, jsonb), public.alianca_convidar(text, text),
+  public.alianca_responder(text, bigint, boolean), public.alianca_pedir(text, bigint), public.alianca_decidir(text, bigint, boolean),
+  public.alianca_sair(text), public.alianca_expulsar(text, text), public.alianca_cargo(text, text, text), public.alianca_desfazer(text),
+  public.alianca_mural(text, text), public.alianca_brasao(text, jsonb), public.alianca_doar(text, int), public.alianca_bonus(text, text),
+  public.alianca_chat(text, bigint), public.alianca_chat_enviar(text, text), public.alianca_admin(text, bigint, text, text) from public, anon;
+grant execute on function public.alianca_estado(text, text), public.alianca_criar(text, text, text, jsonb), public.alianca_convidar(text, text),
+  public.alianca_responder(text, bigint, boolean), public.alianca_pedir(text, bigint), public.alianca_decidir(text, bigint, boolean),
+  public.alianca_sair(text), public.alianca_expulsar(text, text), public.alianca_cargo(text, text, text), public.alianca_desfazer(text),
+  public.alianca_mural(text, text), public.alianca_brasao(text, jsonb), public.alianca_doar(text, int), public.alianca_bonus(text, text),
+  public.alianca_chat(text, bigint), public.alianca_chat_enviar(text, text), public.alianca_admin(text, bigint, text, text) to authenticated;
 
 notify pgrst, 'reload schema';

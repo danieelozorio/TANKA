@@ -17,6 +17,7 @@ const dados = {
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, { bonus: v.bonus }])),
   danoPorNivel: D.encantamento.danoPorNivel, bonusPorNivel: D.encantamento.bonusPorNivel,
   ARENA: D.ARENA,
+  ALIANCA: D.ALIANCA,
 };
 const json = JSON.stringify(dados).replace(/'/g, "''");
 const bloco = `-- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
