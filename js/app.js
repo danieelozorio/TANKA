@@ -538,12 +538,16 @@
   }
 
   function linhaMercado(modelo) {
-    var p = estado.personagem, preco = D.raridades[modelo.raridade].compra, falta = preco - p.ouro;
+    var p = estado.personagem, r = D.raridades[modelo.raridade], preco = r.compra, rep = r.compraReputacao || 0;
+    var falta = preco - p.ouro, faltaRep = rep - (p.reputacao || 0), faltas = [];
+    if (falta > 0) faltas.push(falta.toLocaleString('pt-BR') + ' de ouro');
+    if (faltaRep > 0) faltas.push(faltaRep.toLocaleString('pt-BR') + ' de reputação');
     return '<div class="item item-com-icone"><div class="icone-pequeno borda-' + modelo.raridade + '">' + F.icone(modelo) + '</div>'
-      + '<div class="item-texto"><div>' + nomeItemHtml(modelo) + ' <span class="selo raridade-' + modelo.raridade + '">' + D.raridades[modelo.raridade].nome + '</span></div>'
-      + '<div class="suave">' + descricaoItem(modelo) + ' · ' + preco.toLocaleString('pt-BR') + ' de ouro</div></div>'
-      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
-      + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+      + '<div class="item-texto"><div>' + nomeItemHtml(modelo) + ' <span class="selo raridade-' + modelo.raridade + '">' + r.nome + '</span></div>'
+      + '<div class="suave">' + descricaoItem(modelo) + ' · ' + preco.toLocaleString('pt-BR') + ' de ouro'
+      + (rep ? ' + ' + rep.toLocaleString('pt-BR') + ' de reputação' : '') + '</div></div>'
+      + '<div class="item-acoes">' + (faltas.length ? '<span class="suave">Faltam ' + faltas.join(' e ') + '</span>' : '')
+      + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '"' + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
   function abaMercado() {

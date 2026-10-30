@@ -91,14 +91,14 @@ Tanka.dados = {
     },
   },
 
-  // venda: ouro recebido ao vender | compra: preço no mercado
+  // venda: ouro recebido ao vender | compra: preço no mercado | compraReputacao: reputação pedida na compra
   raridades: {
     // Dano das armas: o mínimo e o máximo são sorteados em cada faixa quando a arma cai
     // (ex.: comum de 1–5 a 5–10, como uma 4–10).
-    comum: { nome: 'Comum', danoMin: [1, 5], danoMax: [5, 10], venda: 10, compra: 10 },
-    rara: { nome: 'Rara', danoMin: [11, 15], danoMax: [16, 20], venda: 20, compra: 100 },
-    epica: { nome: 'Épica', danoMin: [21, 24], danoMax: [25, 30], venda: 50, compra: 1000 },
-    lendaria: { nome: 'Lendária', danoMin: [31, 34], danoMax: [35, 40], venda: 100, compra: 10000 },
+    comum: { nome: 'Comum', danoMin: [1, 5], danoMax: [5, 10], venda: 20, compra: 100 },
+    rara: { nome: 'Rara', danoMin: [11, 15], danoMax: [16, 20], venda: 200, compra: 1000 },
+    epica: { nome: 'Épica', danoMin: [21, 24], danoMax: [25, 30], venda: 1000, compra: 5000 },
+    lendaria: { nome: 'Lendária', danoMin: [31, 34], danoMax: [35, 40], venda: 2000, compra: 10000, compraReputacao: 300 },
   },
 
   // Espaços de equipamento (aba Personagem). `tipo` é o tipo de item que cabe no espaço.

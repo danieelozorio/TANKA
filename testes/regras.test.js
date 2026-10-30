@@ -206,10 +206,10 @@ teste('equipar só aceita arma da própria classe', () => {
 
 teste('raridades: faixas de dano e preços de compra e venda', () => {
   const tab = (k) => [...D.raridades[k].danoMin, ...D.raridades[k].danoMax, D.raridades[k].venda, D.raridades[k].compra];
-  assert.deepStrictEqual(tab('comum'), [1, 5, 5, 10, 10, 10]);
-  assert.deepStrictEqual(tab('rara'), [11, 15, 16, 20, 20, 100]);
-  assert.deepStrictEqual(tab('epica'), [21, 24, 25, 30, 50, 1000]);
-  assert.deepStrictEqual(tab('lendaria'), [31, 34, 35, 40, 100, 10000]);
+  assert.deepStrictEqual(tab('comum'), [1, 5, 5, 10, 20, 100]);
+  assert.deepStrictEqual(tab('rara'), [11, 15, 16, 20, 200, 1000]);
+  assert.deepStrictEqual(tab('epica'), [21, 24, 25, 30, 1000, 5000]);
+  assert.deepStrictEqual(tab('lendaria'), [31, 34, 35, 40, 2000, 10000]);
   for (const c of Object.keys(D.classes)) for (const r of Object.keys(D.raridades)) assert.strictEqual(D.armas[c][r].length, 8, c + ' ' + r);
 });
 
@@ -222,21 +222,31 @@ teste('vender: dá ouro e remove o item; arma equipada não pode', () => {
   assert.ok(!R.vender(p, p.equipados.arma));
   p.inventario.push({ id: 'e', tipo: 'arma', classe: 'arqueiro', raridade: 'epica' });
   assert.ok(R.vender(p, 'e'));
-  assert.strictEqual(p.ouro, 50);
+  assert.strictEqual(p.ouro, 1000);
   assert.strictEqual(p.inventario.length, 1);
 });
 
 teste('comprar: desconta o ouro e só com saldo suficiente', () => {
   const p = R.criarPersonagem('T', 'feminino', 'elfo', 'arqueiro');
-  p.ouro = 109;
+  p.ouro = 1090;
   const item = R.comprar(p, 'rara');
   assert.strictEqual(typeof item, 'object');
   assert.strictEqual(item.classe, 'arqueiro');
   assert.ok(D.armas.arqueiro.rara.includes(R.nomeArma(item)));
   assert.ok(item.dano[0] >= 11 && item.dano[1] <= 20);
-  assert.strictEqual(p.ouro, 9);
+  assert.strictEqual(p.ouro, 90);
   assert.strictEqual(R.comprar(p, 'comum'), 'Ouro insuficiente.');
-  assert.strictEqual(p.ouro, 9);
+  assert.strictEqual(p.ouro, 90);
+});
+
+teste('comprar lendário: pede 10.000 de ouro e 300 de reputação', () => {
+  const p = R.criarPersonagem('T', 'feminino', 'elfo', 'arqueiro');
+  p.ouro = 10000; p.reputacao = 299;
+  assert.strictEqual(R.comprar(p, 'lendaria'), 'Reputação insuficiente.');
+  assert.deepStrictEqual([p.ouro, p.reputacao], [10000, 299]);
+  p.reputacao = 350;
+  assert.strictEqual(typeof R.comprar(p, 'lendaria', 'elmo'), 'object');
+  assert.deepStrictEqual([p.ouro, p.reputacao], [0, 50]);
 });
 
 teste('personagem antigo (sem ouro/sexo, arma "basica") é convertido', () => {
@@ -296,7 +306,7 @@ teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () =>
 teste('encantamento: dano extra por nível e venda +20% por nível', () => {
   assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, dano: [12, 18] })], [22, 28]);
   assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10, dano: [33, 39] })], [83, 89]);
-  assert.strictEqual(R.precoVenda({ tipo: 'arma', classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 100);
+  assert.strictEqual(R.precoVenda({ tipo: 'arma', classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 2000);
   assert.strictEqual(R.nomeArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, variacao: 0 }), '+5 Arco Élfico');
 });
 

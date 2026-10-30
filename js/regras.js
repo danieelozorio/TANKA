@@ -624,8 +624,10 @@ Tanka.regras = (function () {
     if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
     if (!r || ['arma'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
     if (p.ouro < r.compra) return 'Ouro insuficiente.';
+    if ((p.reputacao || 0) < (r.compraReputacao || 0)) return 'Reputação insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= r.compra;
+    p.reputacao = (p.reputacao || 0) - (r.compraReputacao || 0);
     var item = novoItem(tipo, p.classe, raridade);
     p.inventario.push(item);
     return item;
