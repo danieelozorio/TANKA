@@ -70,7 +70,7 @@
 
   // Resumo do que o item dá: "Dano 3–5" ou "Defesa +5 · Vida +25".
   function descricaoItem(item) {
-    if (item.tipo === 'arma') return 'Dano ' + dano(R.danoArma(item));
+    if (item.tipo === 'arma') return 'Dano ' + dano(R.danoArma(item)) + (item.variacao === undefined ? ' (sorteado)' : '');
     var b = R.bonusItem(item);
     return Object.keys(b).map(function (k) { return D.bonus[k] + ' +' + b[k]; }).join(' · ');
   }
@@ -191,7 +191,7 @@
       + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe, c.sexo) + '</div>'
       + '<h3 class="centro">' + D.racas[c.raca].nome + ' ' + D.classes[c.classe].nome + ' · ' + D.sexos[c.sexo].nome + '</h3>'
       + '<table class="atributos"><thead><tr><th>Atributo</th><th>Classe</th><th>Raça</th><th>Total</th></tr></thead><tbody>' + linhas + '</tbody></table>'
-      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].comum + ' (dano 1–1).</p>'
+      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].comum[0] + ' (dano ' + D.ARMA_INICIAL_DANO.join('–') + ').</p>'
       + '<p class="erro" id="erro-criacao"></p>'
       + '<button class="btn largo" data-acao="criar-personagem">Criar personagem</button></aside></div></div>' + rodape();
   }
@@ -328,9 +328,13 @@
     return '<article class="monstro"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
       + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt>Ataque</dt><dd>' + dano(m.ataque) + '</dd>'
+      + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
-      + '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd><dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>'
+      + (m.drops.length ? '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd>' : '')
+      + (m.dropsArmadura.length ? '<dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>' : '')
+      + (m.dropsItem.length ? '<dt title="Arma, armadura, colar ou anel">Qualquer item</dt><dd>' + textoDrops(m.dropsItem) + '</dd>' : '')
+      + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + (m.pergaminho.raridade ? '<span class="raridade-' + m.pergaminho.raridade + '">' + D.raridades[m.pergaminho.raridade].nome + '</span> ' : 'da arma ') + m.pergaminho.chance + '%</dd>' : '')
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
       + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
       + '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button></div></article>';

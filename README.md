@@ -40,10 +40,11 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
 - **Cadastro** (usuário, senha e e-mail) e **login** com usuário e senha.
 - **Criação de personagem**: nome, sexo (Homem ou Mulher), raça e classe, até 3 por conta. O sexo muda só os retratos.
 - **Raças**: Humano, Elfo, Elfo Negro, Orc e Anão (cada elevação +3, cada redução −3).
-- **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–1.
+- **Classes**: Cavaleiro (Espada), Arqueiro (Arco), Mago (Cajado) e Artesão (Martelo de Batalha). Todas começam com 100 HP, 0 de ouro e uma arma comum de dano 1–5.
 - **Level**: até o level 5 a exp dobra (10, 20, 40, 80, 160); do 6 em diante cada level pede 50% a mais (240, 360, 540…). **Level máximo: 40.** Cada level dá 3 pontos de atributo.
-- **Combate por velocidade**: velocidade = Destreza. Um monstro com o dobro da sua velocidade ataca duas vezes para cada ataque seu.
-- **Áreas de caça** (aba Caçar): cada área libera num level mínimo. Dentro da área, cada monstro tem o dobro de vida e exp do anterior; ataque +50% e velocidade +25% (a Floresta dobra tudo). Valores em `js/dados.js` (`areas`).
+- **Combate por velocidade**: a velocidade **não vem da Destreza**. Todo personagem começa com 15 e ganha 6% por level (composto: level 10 = 25, 20 = 45, 30 = 81, 40 = 146). Quem tem o dobro da velocidade ataca duas vezes para cada ataque do outro. **O monstro sempre dá o primeiro golpe** da luta (pode errar pela evasão). Todo golpe tira no mínimo 1.
+- **Velocidade e defesa dos monstros** (escada única por todas as áreas): o Lobo tem 15 de velocidade e 1 de defesa; cada monstro seguinte +10% de velocidade e +25% de defesa; o 1º monstro da área seguinte tem 10% a mais que o 3º da anterior. A defesa do monstro **reduz o seu dano em porcentagem**: dano × 100 / (100 + defesa) (ex.: 40 de defesa = −29%). A carta do monstro mostra a defesa e o quanto ela reduz. Acerto: sua precisão −3% por área; o monstro acerta 80% + 2% por área − sua evasão.
+- **Áreas de caça** (aba Caçar): cada área libera num level mínimo. Dentro da área, cada monstro tem o dobro de vida e exp do anterior e +25% de ataque (a Floresta dobra o ataque). Valores em `js/dados.js` (`areas`).
 
 | Área | Level | Monstros | Chefe | Presença do chefe por abate |
 |---|---|---|---|---|
@@ -64,20 +65,41 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
   - Arqueiro, Chuva de Flechas: 2/3/3/4 flechas seguidas, com +10/+20/+30/+40% de crítico.
   - Mago, Bola de Fogo: dano x2,5/x3/x4/x5, sempre acerta e ignora a defesa mágica.
   - Artesão, Martelada Sísmica: dano x2/x2,5/x3/x4 ignorando a defesa; 20/30/40/50% (+Sorte) de quebrar a armadura (+25% de dano até o fim da luta).
-- **Chefes**: vida x3, ataque +50%, exp x5 e ouro x5 do 3º monstro. Cada monstro morto na área soma presença (escondida do jogador); ao clicar em Caçar, se o sorteio cair, aparece o aviso "Enfrentar / Fugir". Fugir leva ao monstro escolhido. Derrotar o chefe zera a presença. O chefe sempre dropa 1 arma ou armadura (com chance de lendária) e 1 a 3 pergaminhos.
-- **Drops**: armas e armaduras sempre da classe do personagem (colar e anel servem para todos). A Sorte aumenta a chance (+1% relativo por ponto). Armaduras: Lobo 10% comum; Cobra 15% comum e 5% rara; Urso 10% rara e 3% épica.
+- **Chefes**: em relação ao 3º monstro, +50% de vida e velocidade, +20% de ataque, o dobro da defesa, e exp x5 e ouro x5. Cada monstro morto na área soma presença (escondida do jogador); ao clicar em Caçar, se o sorteio cair, aparece o aviso "Enfrentar / Fugir". Fugir leva ao monstro escolhido. Derrotar o chefe zera a presença. Drops dos chefes:
+
+| Chefe | Item | Pergaminhos |
+|---|---|---|
+| Velgrath | 15% de 1 item raro (qualquer tipo) | 1 a 3 comuns (sempre) |
+| Morgath | 20% de 1 item raro | 1 a 3 raros |
+| Varnok | 25% de 1 item raro | 2 a 5 raros |
+| Guardião, Faraó, Vhar'kesh, Ignaroth | sempre 1 arma ou armadura (com chance de lendária) | 1 a 3 da raridade da arma equipada |
+- **Drops**: armas e armaduras sempre da classe do personagem (colar e anel servem para todos). A Sorte aumenta a chance (+1% relativo por ponto). "Qualquer item" sorteia entre arma, as 4 armaduras da classe, colar e anel.
+
+| Monstro | Armas | Armaduras/joias | Qualquer item | Pergaminho |
+|---|---|---|---|---|
+| Lobo | comum 10% | comum 10% | | |
+| Cobra | comum 15% | comum 15% | | |
+| Urso | | | comum 15% | comum 5% |
+| Sapo | | | comum 15% | comum 10% |
+| Aranha | | | comum 18% | comum 13% |
+| Troll | | | comum 20% | comum 15% |
+| Esqueleto | rara 8% | rara 8% | | |
+| Goblin | rara 10% | rara 10% | | |
+| Gárgula | rara 15% | rara 15% | | 5% (da arma equipada) |
+
+  Da Torre Carmesim em diante, os drops continuam como antes (ver `js/dados.js`).
 - **Aba Personagem** (abre primeiro): retrato com 8 espaços em volta (elmo, colar, peitoral, arma, luvas, 2 anéis, botas) e a mochila de 32 espaços. Com mouse: clicar equipa/desequipa e passar o mouse mostra a ficha do item com comparação. No celular: tocar mostra a ficha com os botões. Mochila cheia não recebe drops.
 - **Armaduras por classe**: Cavaleiro (placas: defesa e vida), Arqueiro (couro: destreza e sorte), Mago (tecido: inteligência e defesa mágica), Artesão (forja: força e sorte). Colar e anel para todos. Os bônus de atributo contam para tudo que o atributo influencia. Valores em `js/dados.js` (`armaduras` e `joias`).
-- **Ouro e mercado**: o ouro aparece acima dos atributos. Qualquer arma, menos a equipada, pode ser vendida no inventário. A aba Mercado vende todas as armas da classe do personagem:
+- **Ouro e mercado**: o ouro aparece acima dos atributos. Qualquer arma, menos a equipada, pode ser vendida no inventário. As armas têm **8 variações por raridade** em cada classe (nomes diferentes) e o dano é **sorteado** quando a arma cai ou é comprada: o mínimo numa faixa e o máximo em outra (ex.: uma comum 4–10). Armas de antes dessa mudança viraram a variação clássica com o dano no meio das faixas. A aba Mercado vende armas sorteadas de cada raridade:
 
-| Raridade | Dano | Venda | Compra |
+| Raridade | Dano (mínimo / máximo) | Venda | Compra |
 |---|---|---|---|
-| Comum | 1–1 | 10 | 10 |
-| Rara | 3–5 | 20 | 100 |
-| Épica (roxo) | 10–15 | 50 | 1.000 |
-| Lendária (amarelo) | 30–55 | 100 | 10.000 |
+| Comum | 1–5 / 5–10 | 10 | 10 |
+| Rara | 11–15 / 16–20 | 20 | 100 |
+| Épica (roxo) | 21–24 / 25–30 | 50 | 1.000 |
+| Lendária (amarelo) | 31–34 / 35–40 | 100 | 10.000 |
 
-- **Encantamento** (aba Encantar): de +0 a +10, gastando 1 Pergaminho de Encantamento da raridade da arma por tentativa. O pergaminho é vendido no Mercado (comum 5, rara 50, épica 500, lendária 5.000 de ouro) e o Urso tem 5% de chance de dropar um, da raridade da arma equipada.
+- **Encantamento** (aba Encantar): de +0 a +10, gastando 1 Pergaminho de Encantamento da raridade da arma por tentativa. O pergaminho é vendido no Mercado (comum 5, rara 50, épica 500, lendária 5.000 de ouro) e alguns monstros e todos os chefes dropam pergaminhos (ver as tabelas de drops).
 
 | Nível | +1 a +3 | +4 | +5 | +6 | +7 | +8 | +9 | +10 |
 |---|---|---|---|---|---|---|---|---|
@@ -112,7 +134,7 @@ Todos os números ficam em `js/dados.js` (dados) e `js/regras.js` (fórmulas).
 | Atributo | Afeta |
 |---|---|
 | Força | Ataque físico (+1 a cada 5), dano crítico (150% + 1% por ponto) |
-| Destreza | Velocidade (= DES), precisão (75% + DES), evasão (0,5% por ponto), chance de crítico mágico (0,5% por ponto) |
+| Destreza | Precisão (75% + DES), evasão (0,5% por ponto), chance de crítico mágico (0,5% por ponto). Não dá mais velocidade. |
 | Resistência | Defesa e defesa mágica (+1 a cada 10), vida (+5 HP por ponto distribuído) |
 | Inteligência | Ataque mágico (+1 a cada 5) |
 | Sorte | Chance de crítico (0,5% por ponto), dano crítico mágico (150% + 1% por ponto), craft (1%/ponto), drop (+1%/ponto), encantamento (1%/ponto) |

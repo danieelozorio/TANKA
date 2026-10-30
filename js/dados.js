@@ -24,7 +24,7 @@ Tanka.dados = {
 
   atributos: {
     for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque, dano crítico' },
-    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Chance de magia crítica, evasão, precisão, velocidade de ataque' },
+    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Chance de magia crítica, evasão, precisão' },
     res: { nome: 'Resistência', sigla: 'RES', efeito: 'Defesa, defesa mágica, vida' },
     int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico' },
     sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Chance de crítico, dano crítico mágico, craft, drop e encantamento' },
@@ -93,10 +93,12 @@ Tanka.dados = {
 
   // venda: ouro recebido ao vender | compra: preço no mercado
   raridades: {
-    comum: { nome: 'Comum', dano: [1, 1], venda: 10, compra: 10 },
-    rara: { nome: 'Rara', dano: [3, 5], venda: 20, compra: 100 },
-    epica: { nome: 'Épica', dano: [10, 15], venda: 50, compra: 1000 },
-    lendaria: { nome: 'Lendária', dano: [30, 55], venda: 100, compra: 10000 },
+    // Dano das armas: o mínimo e o máximo são sorteados em cada faixa quando a arma cai
+    // (ex.: comum de 1–5 a 5–10, como uma 4–10).
+    comum: { nome: 'Comum', danoMin: [1, 5], danoMax: [5, 10], venda: 10, compra: 10 },
+    rara: { nome: 'Rara', danoMin: [11, 15], danoMax: [16, 20], venda: 20, compra: 100 },
+    epica: { nome: 'Épica', danoMin: [21, 24], danoMax: [25, 30], venda: 50, compra: 1000 },
+    lendaria: { nome: 'Lendária', danoMin: [31, 34], danoMax: [35, 40], venda: 100, compra: 10000 },
   },
 
   // Espaços de equipamento (aba Personagem). `tipo` é o tipo de item que cabe no espaço.
@@ -188,13 +190,36 @@ Tanka.dados = {
     feminino: { nome: 'Mulher' },
   },
 
-  // Arma de cada classe por raridade. O drop sempre respeita a classe do personagem.
+  // Armas de cada classe: 8 variações por raridade (a variação é sorteada junto com o dano).
+  // O drop sempre respeita a classe do personagem. A primeira de cada lista é a "clássica".
   armas: {
-    cavaleiro: { tipo: 'Espada', comum: 'Espada de Ferro', rara: 'Espada Rúnica', epica: 'Lâmina do Crepúsculo', lendaria: 'Espada do Rei Eterno' },
-    arqueiro: { tipo: 'Arco', comum: 'Arco Curto', rara: 'Arco Élfico', epica: 'Arco da Lua Sangrenta', lendaria: 'Arco do Sol Dourado' },
-    mago: { tipo: 'Cajado', comum: 'Cajado de Carvalho', rara: 'Cajado Arcano', epica: 'Cajado do Vazio Estelar', lendaria: 'Cajado da Origem' },
-    artesao: { tipo: 'Martelo de Batalha', comum: 'Martelo de Batalha', rara: 'Martelo Rúnico', epica: 'Martelo do Trovão Ancestral', lendaria: 'Martelo dos Deuses Forjadores' },
+    cavaleiro: { tipo: 'Espada',
+      comum: ['Espada de Ferro', 'Espada Curta', 'Espada de Bronze', 'Gládio Velho', 'Espada do Recruta', 'Lâmina Cega', 'Espada de Guarda', 'Sabre Enferrujado'],
+      rara: ['Espada Rúnica', 'Lâmina de Aço Negro', 'Espada do Capitão', 'Montante de Prata', 'Sabre do Vento', 'Espada Gêmea', 'Lâmina Juramentada', 'Espada da Vigília'],
+      epica: ['Lâmina do Crepúsculo', 'Espada Flamejante', 'Lâmina da Tempestade', 'Espada do Juramento Quebrado', 'Montante do Abismo', 'Lâmina Gélida', 'Espada do Eclipse', 'Lâmina Carmesim'],
+      lendaria: ['Espada do Rei Eterno', 'Lâmina do Primeiro Sol', 'Espada dos Mil Juramentos', 'Lâmina do Fim dos Tempos', 'Espada do Dragão Ancestral', 'Aurora Eterna', 'Lâmina do Destino', 'Espada da Coroa Perdida'] },
+    arqueiro: { tipo: 'Arco',
+      comum: ['Arco Curto', 'Arco de Caça', 'Arco de Teixo', 'Arco do Aprendiz', 'Arco de Bétula', 'Arco Simples', 'Arco do Batedor', 'Arco Rústico'],
+      rara: ['Arco Élfico', 'Arco Longo de Prata', 'Arco do Falcão', 'Arco Composto', 'Arco da Névoa', 'Arco do Patrulheiro', 'Arco Rúnico', 'Arco do Vento Norte'],
+      epica: ['Arco da Lua Sangrenta', 'Arco da Tempestade', 'Arco Espectral', 'Arco do Caçador de Dragões', 'Arco Gélido', 'Arco das Sombras', 'Arco do Relâmpago', 'Arco da Serpente'],
+      lendaria: ['Arco do Sol Dourado', 'Arco das Estrelas Cadentes', 'Arco do Primeiro Caçador', 'Arco da Aurora', 'Arco do Céu Partido', 'Arco do Destino', 'Arco da Fênix', 'Arco dos Ventos Eternos'] },
+    mago: { tipo: 'Cajado',
+      comum: ['Cajado de Carvalho', 'Cajado de Pinho', 'Bastão do Aprendiz', 'Cajado Torto', 'Cajado de Freixo', 'Bastão de Viagem', 'Cajado de Salgueiro', 'Cajado Simples'],
+      rara: ['Cajado Arcano', 'Cajado de Cristal', 'Cajado da Névoa', 'Bastão Rúnico', 'Cajado do Eremita', 'Cajado da Chama Azul', 'Cajado de Prata', 'Cajado do Sábio'],
+      epica: ['Cajado do Vazio Estelar', 'Cajado da Tempestade', 'Cajado do Necromante', 'Cajado Gélido', 'Cajado do Eclipse', 'Cajado da Serpente', 'Cajado do Abismo', 'Cajado das Almas'],
+      lendaria: ['Cajado da Origem', 'Cajado do Primeiro Mago', 'Cajado das Mil Estrelas', 'Cajado do Tempo', 'Cajado da Criação', 'Cajado do Sol Negro', 'Cajado da Eternidade', 'Cajado do Dragão Ancião'] },
+    artesao: { tipo: 'Martelo de Batalha',
+      comum: ['Martelo de Batalha', 'Martelo de Ferro', 'Marreta do Ferreiro', 'Martelo de Pedra', 'Malho Velho', 'Martelo do Aprendiz', 'Martelo de Bronze', 'Marreta Rústica'],
+      rara: ['Martelo Rúnico', 'Martelo de Aço Negro', 'Malho da Forja', 'Martelo do Mestre', 'Martelo de Granito', 'Martelo da Bigorna', 'Martelo do Minerador', 'Martelo de Prata'],
+      epica: ['Martelo do Trovão Ancestral', 'Martelo Vulcânico', 'Martelo da Tempestade', 'Martelo do Gigante', 'Martelo Gélido', 'Martelo do Terremoto', 'Martelo Sombrio', 'Martelo da Montanha'],
+      lendaria: ['Martelo dos Deuses Forjadores', 'Martelo do Primeiro Ferreiro', 'Martelo do Núcleo do Mundo', 'Martelo da Criação', 'Martelo do Trovão Eterno', 'Martelo do Sol Fundido', 'Martelo das Mil Forjas', 'Martelo do Titã'] },
   },
+  // Arma com que todo personagem começa (comum, variação 0).
+  ARMA_INICIAL_DANO: [1, 5],
+
+  // Velocidade não vem mais da Destreza: todo personagem começa com 15 e ganha 6% por level
+  // (composto: level 10 = 25, level 20 = 45, level 30 = 81, level 40 = 146).
+  VELOCIDADE: { inicial: 15, porNivel: 1.06 },
 
   // ouro: sempre cai (100%) ao derrotar o monstro.
   // Cada monstro tem o dobro dos atributos e da exp do anterior.
@@ -231,67 +256,66 @@ Tanka.dados = {
   },
 
   // ---------- Áreas de caça ----------
-  // Dentro da área, cada monstro tem o dobro de vida e exp do anterior; ataque e velocidade
-  // crescem conforme `crescimento` (a Floresta dobra tudo, como Lobo → Cobra → Urso).
+  // Dentro da área, cada monstro tem o dobro de vida e exp do anterior; o ataque cresce
+  // conforme `crescimento` (a Floresta dobra). Velocidade e defesa: ver MONSTRO abaixo.
   // `base` são os valores do 1º monstro; o chefe é calculado a partir do 3º (ver abaixo).
-  // drops: armas; dropsArmadura: peças (4 da classe + colar + anel, sorteada).
+  // drops: armas; dropsArmadura: peças (4 da classe + colar + anel, sorteada);
+  // dropsItem: qualquer tipo (arma, 4 armaduras da classe, colar ou anel, sorteado).
+  // pergaminho: { chance, raridade } (sem isso, o 3º monstro tem 5% na raridade da arma equipada).
   // Chances em % (cumulativas, roladas uma vez), multiplicadas pelo bônus de Sorte.
   // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
   NIVEL_MAXIMO: 40,
   areas: [
     {
       id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1,
-      crescimento: { ataque: 2, velocidade: 2 },
+      crescimento: { ataque: 2 },
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
-      base: { hp: 20, ataque: 1, velocidade: 8, exp: 2 }, ouro: [2, 5, 20],
+      base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 20],
       monstros: [
         { id: 'lobo', nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
-          drops: [], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
+          drops: [{ raridade: 'comum', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
         { id: 'cobra', nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
-          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 15 }, { raridade: 'rara', chance: 5 }] },
+          drops: [{ raridade: 'comum', chance: 15 }], dropsArmadura: [{ raridade: 'comum', chance: 15 }] },
         { id: 'urso', nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
-          drops: [{ raridade: 'epica', chance: 10 }, { raridade: 'rara', chance: 30 }],
-          dropsArmadura: [{ raridade: 'rara', chance: 10 }, { raridade: 'epica', chance: 3 }] },
+          dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 5, raridade: 'comum' } },
       ],
       chefe: { id: 'velgrath', nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
-        drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 25 }], dropPadrao: 'rara' },
+        dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7,
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
-      base: { hp: 70, ataque: 8, velocidade: 9, exp: 10 }, ouro: [30, 60, 120],
+      base: { hp: 70, ataque: 8, exp: 10 }, ouro: [30, 60, 120],
       monstros: [
         { id: 'sapo', nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.',
-          drops: [{ raridade: 'rara', chance: 5 }], dropsArmadura: [{ raridade: 'comum', chance: 20 }] },
+          dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 10, raridade: 'comum' } },
         { id: 'aranha', nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.',
-          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 5 }] },
+          dropsItem: [{ raridade: 'comum', chance: 18 }], pergaminho: { chance: 13, raridade: 'comum' } },
         { id: 'troll', nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.',
-          drops: [{ raridade: 'epica', chance: 8 }, { raridade: 'rara', chance: 25 }],
-          dropsArmadura: [{ raridade: 'epica', chance: 3 }, { raridade: 'rara', chance: 10 }] },
+          dropsItem: [{ raridade: 'comum', chance: 20 }], pergaminho: { chance: 15, raridade: 'comum' } },
       ],
       chefe: { id: 'morgath', nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.',
-        drops: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 40 }], dropPadrao: 'rara' },
+        dropItem: [{ raridade: 'rara', chance: 20 }], pergaminhos: { raridade: 'rara', qtd: [1, 3] } },
     },
     {
       id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5,
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
-      base: { hp: 140, ataque: 15, velocidade: 10, exp: 30 }, ouro: [100, 200, 400],
+      base: { hp: 140, ataque: 15, exp: 30 }, ouro: [100, 200, 400],
       monstros: [
         { id: 'esqueleto', nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.',
-          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 8 }] },
+          drops: [{ raridade: 'rara', chance: 8 }], dropsArmadura: [{ raridade: 'rara', chance: 8 }] },
         { id: 'goblin', nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.',
-          drops: [{ raridade: 'epica', chance: 3 }, { raridade: 'rara', chance: 20 }],
-          dropsArmadura: [{ raridade: 'epica', chance: 2 }, { raridade: 'rara', chance: 12 }] },
+          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 10 }] },
         { id: 'gargula', nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.',
-          drops: [{ raridade: 'epica', chance: 10 }], dropsArmadura: [{ raridade: 'epica', chance: 5 }] },
+          drops: [{ raridade: 'rara', chance: 15 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
       ],
       chefe: { id: 'varnok', nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
-        drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
+        dropItem: [{ raridade: 'rara', chance: 25 }], pergaminhos: { raridade: 'rara', qtd: [2, 5] } },
     },
     {
       id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3,
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
-      base: { hp: 200, ataque: 22, velocidade: 11, exp: 90 }, ouro: [300, 600, 1200],
+      base: { hp: 200, ataque: 22, exp: 90 }, ouro: [300, 600, 1200],
       monstros: [
         { id: 'golem', nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.',
           drops: [{ raridade: 'epica', chance: 5 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
@@ -306,7 +330,7 @@ Tanka.dados = {
     {
       id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2,
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
-      base: { hp: 320, ataque: 37, velocidade: 12, exp: 270 }, ouro: [800, 1600, 3200],
+      base: { hp: 320, ataque: 32, exp: 270 }, ouro: [800, 1600, 3200],
       monstros: [
         { id: 'escorpiao', nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.',
           drops: [{ raridade: 'epica', chance: 10 }], dropsArmadura: [{ raridade: 'epica', chance: 6 }] },
@@ -322,7 +346,7 @@ Tanka.dados = {
     {
       id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15,
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
-      base: { hp: 420, ataque: 48, velocidade: 13, exp: 800 }, ouro: [2000, 4000, 8000],
+      base: { hp: 420, ataque: 40, exp: 800 }, ouro: [2000, 4000, 8000],
       monstros: [
         { id: 'drake', nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.',
           drops: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 15 }],
@@ -340,7 +364,7 @@ Tanka.dados = {
     {
       id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1,
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
-      base: { hp: 550, ataque: 60, velocidade: 14, exp: 2400 }, ouro: [5000, 10000, 20000],
+      base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [5000, 10000, 20000],
       monstros: [
         { id: 'salamandra', nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.',
           drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 20 }],
@@ -357,12 +381,20 @@ Tanka.dados = {
     },
   ],
 
-  // Crescimento de ataque e velocidade de um monstro para o próximo (dobrar tudo deixava
-  // o 3º monstro e o chefe impossíveis: 4x o ataque com 4x a velocidade = 16x o dano).
-  crescimento: { ataque: 1.5, velocidade: 1.25 },
+  // Crescimento de ataque de um monstro para o próximo dentro da área (+25%; +50% deixava
+  // o 3º monstro e os chefes das áreas altas impossíveis nas simulações).
+  crescimento: { ataque: 1.25 },
 
-  // Chefe em relação ao 3º monstro da área.
-  chefe: { vida: 3, ataque: 1.5, exp: 5, ouro: 5, pergaminhos: [1, 3] },
+  // Velocidade e defesa seguem uma escada única por todas as áreas:
+  // o 1º monstro da Floresta tem 15 de velocidade e 1 de defesa; cada monstro seguinte +10% de
+  // velocidade e +25% de defesa; o 1º monstro da área seguinte tem 10% a mais que o 3º da anterior.
+  // A defesa do monstro reduz o dano em porcentagem: dano x 100 / (100 + defesa)
+  // (40 de defesa = -29% de dano). Nunca deixa o monstro imortal.
+  MONSTRO: { velocidade: 15, defesa: 1, velocidadePorMonstro: 1.1, defesaPorMonstro: 1.25, entreAreas: 1.1 },
+
+  // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
+  // e 5x a exp e o ouro (para valer o risco).
+  chefe: { vida: 1.5, ataque: 1.2, velocidade: 1.5, defesa: 2, exp: 5, ouro: 5, pergaminhos: [1, 3] },
 
   // Preenchido abaixo a partir das áreas.
   monstros: {},
@@ -374,27 +406,35 @@ Tanka.dados = {
     return 'assets/monstros/' + nome.split(',')[0].normalize('NFD').replace(/[\u0300-\u036f']/g, '')
       .toLowerCase().replace(/^o /, '').trim().replace(/\s+/g, '-') + '.jpg';
   }
-  D.areas.forEach(function (area) {
+  var M = D.MONSTRO, vel = M.velocidade, def = M.defesa;
+  D.areas.forEach(function (area, indiceArea) {
     var b = area.base, c0 = area.crescimento || D.crescimento;
+    if (indiceArea > 0) { vel *= M.entreAreas; def *= M.entreAreas; }
     area.monstros.forEach(function (m, i) {
+      if (i > 0) { vel *= M.velocidadePorMonstro; def *= M.defesaPorMonstro; }
       var f = Math.pow(2, i);
       var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i));
       D.monstros[m.id] = {
-        nome: m.nome, descricao: m.descricao, area: area.id,
-        hp: b.hp * f, ataque: [ataque, ataque], velocidade: Math.round(b.velocidade * Math.pow(c0.velocidade, i)),
-        defesa: 0, defesaMagica: 0, exp: b.exp * f, ouro: area.ouro[i],
-        drops: m.drops, dropsArmadura: m.dropsArmadura,
-        chancePergaminho: i === 2 ? 5 : 0,
+        nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
+        hp: b.hp * f, ataque: [ataque, ataque], velocidade: Math.round(vel),
+        defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
+        drops: m.drops || [], dropsArmadura: m.dropsArmadura || [], dropsItem: m.dropsItem || [],
+        // pergaminho: { chance, raridade } (raridade null = da arma equipada)
+        pergaminho: m.pergaminho || (i === 2 ? { chance: 5, raridade: null } : null),
         imagem: arquivo(m.nome),
       };
     });
-    var m2 = D.monstros[area.monstros[1].id], m3 = D.monstros[area.monstros[2].id], c = area.chefe;
+    var m3 = D.monstros[area.monstros[2].id], c = area.chefe, C = D.chefe;
     D.monstros[c.id] = {
-      nome: c.nome, descricao: c.descricao, area: area.id, chefe: true,
-      hp: m3.hp * D.chefe.vida, ataque: [Math.round(m3.ataque[0] * D.chefe.ataque), Math.round(m3.ataque[1] * D.chefe.ataque)],
-      velocidade: m2.velocidade, defesa: 0, defesaMagica: 0,
-      exp: m3.exp * D.chefe.exp, ouro: m3.ouro * D.chefe.ouro,
-      drops: [], dropsArmadura: [], dropsChefe: c.drops, dropPadrao: c.dropPadrao,
+      nome: c.nome, descricao: c.descricao, area: area.id, indiceArea: indiceArea, chefe: true,
+      hp: Math.round(m3.hp * C.vida), ataque: [Math.round(m3.ataque[0] * C.ataque), Math.round(m3.ataque[1] * C.ataque)],
+      velocidade: Math.round(vel * C.velocidade), defesa: Math.round(m3.defesa * C.defesa), defesaMagica: Math.round(m3.defesa * C.defesa),
+      exp: m3.exp * C.exp, ouro: m3.ouro * C.ouro,
+      drops: [], dropsArmadura: [], dropsItem: [],
+      // Chefe com `dropItem`: chance de 1 item de qualquer tipo + pergaminhos fixos.
+      // Sem `dropItem`: sempre dropa 1 arma ou armadura pela tabela `drops`.
+      dropItem: c.dropItem || null, pergaminhosChefe: c.pergaminhos || null,
+      dropsChefe: c.drops || [], dropPadrao: c.dropPadrao,
       imagem: arquivo(c.nome),
     };
   });

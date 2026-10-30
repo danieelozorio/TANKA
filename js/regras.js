@@ -34,11 +34,19 @@ Tanka.regras = (function () {
   var TIPOS_JOIA = ['colar', 'anel'];
 
   // Item: { id, tipo, classe, raridade, encanto }. Joias têm classe null (servem para todos).
-  function novoItem(tipo, classe, raridade) {
+  // Arma também tem `variacao` (qual dos 8 nomes) e `dano` [mín, máx], sorteados nas faixas da raridade.
+  function novoItem(tipo, classe, raridade, rng) {
     var joia = TIPOS_JOIA.indexOf(tipo) >= 0;
-    return { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
+    var item = { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
+    if (tipo === 'arma') {
+      rng = rng || Math.random;
+      var r = D.raridades[raridade];
+      item.variacao = Math.floor(rng() * D.armas[classe][raridade].length);
+      item.dano = [rolar(r.danoMin, rng), rolar(r.danoMax, rng)];
+    }
+    return item;
   }
-  function novaArma(classe, raridade) { return novoItem('arma', classe, raridade); }
+  function novaArma(classe, raridade, rng) { return novoItem('arma', classe, raridade, rng); }
 
   // Definição de armadura/joia nos dados (null para arma).
   function definicao(item) {
@@ -48,9 +56,9 @@ Tanka.regras = (function () {
   }
 
   function nomeArma(item) {
-    var base = item.tipo === 'arma'
-      ? D.armas[item.classe][item.raridade]
-      : definicao(item).nomes[RARIDADES.indexOf(item.raridade)];
+    var base = item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
+      : item.variacao === undefined ? D.armas[item.classe].tipo + ' ' + D.raridades[item.raridade].nome   // modelo do mercado
+      : D.armas[item.classe][item.raridade][item.variacao];
     return (item.encanto ? '+' + item.encanto + ' ' : '') + base;
   }
 
@@ -68,8 +76,10 @@ Tanka.regras = (function () {
   }
 
   // Dano da arma já somando o bônus de encantamento.
+  // Sem `dano` (modelo do mercado): mostra a faixa possível inteira.
   function danoArmaComEncanto(item) {
-    var base = D.raridades[item.raridade].dano;
+    var r = D.raridades[item.raridade];
+    var base = item.dano || [r.danoMin[0], r.danoMax[1]];
     var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade];
     return [base[0] + extra, base[1] + extra];
   }
@@ -135,6 +145,8 @@ Tanka.regras = (function () {
   function criarPersonagem(nome, sexo, raca, classe) {
     var atr = atributosIniciais(raca, classe);
     var arma = novaArma(classe, 'comum');
+    arma.variacao = 0;                                  // arma clássica da classe
+    arma.dano = D.ARMA_INICIAL_DANO.slice();
     return {
       id: novoId(),
       nome: nome,
@@ -170,6 +182,12 @@ Tanka.regras = (function () {
       if (i.raridade === 'basica') i.raridade = 'comum';
       if (typeof i.encanto !== 'number') i.encanto = 0;
       if (!i.tipo) i.tipo = 'arma';
+      // Armas de antes do dano sorteado: nome clássico e dano no meio das faixas.
+      if (i.tipo === 'arma' && !i.dano) {
+        var r = D.raridades[i.raridade];
+        i.variacao = 0;
+        i.dano = [Math.round((r.danoMin[0] + r.danoMin[1]) / 2), Math.round((r.danoMax[0] + r.danoMax[1]) / 2)];
+      }
     });
     if (!p.presencaChefe) p.presencaChefe = {};
     if (typeof p.pocoes !== 'number') { p.pocoes = D.VIDA.pocoesPorDia; p.ultimoReset = null; p.vidaEm = null; p.acampado = false; }
@@ -179,6 +197,10 @@ Tanka.regras = (function () {
       delete p.armaEquipada;
     }
     return p;
+  }
+
+  function velocidadeDoNivel(nivel) {
+    return Math.round(D.VELOCIDADE.inicial * Math.pow(D.VELOCIDADE.porNivel, nivel - 1));
   }
 
   // Status vêm dos atributos (básicos + equipamentos) e dos bônus diretos das armaduras.
@@ -203,7 +225,7 @@ Tanka.regras = (function () {
       defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
       precisao: 75 + a.des,                          // DES (%)
       evasao: a.des * 0.5,                           // DES (%)
-      velocidade: a.des,                             // DES: 10 de DES = 10 de velocidade
+      velocidade: velocidadeDoNivel(p.nivel),        // 15 no level 1, +6% por level (não depende da DES)
       chanceCritico: a.sor * 0.5,                    // SOR (%)
       danoCritico: 150 + a.for,                      // FOR (% do dano)
       chanceCriticoMagico: a.des * 0.5,              // DES (%)
@@ -265,7 +287,17 @@ Tanka.regras = (function () {
 
   function rolarDrop(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].drops, rng);
-    return raridade ? novaArma(p.classe, raridade) : null;
+    return raridade ? novaArma(p.classe, raridade, rng) : null;
+  }
+
+  // Item de qualquer tipo: arma, 4 armaduras da classe, colar ou anel.
+  var TODOS_TIPOS = ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA);
+  function itemQualquer(p, raridade, rng) {
+    return novoItem(TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], p.classe, raridade, rng);
+  }
+  function rolarDropItem(p, monstroId, rng) {
+    var raridade = rolarRaridade(p, D.monstros[monstroId].dropsItem || [], rng);
+    return raridade ? itemQualquer(p, raridade, rng) : null;
   }
 
   // Peça sorteada entre as 4 armaduras da classe, o colar e o anel.
@@ -363,10 +395,15 @@ Tanka.regras = (function () {
     return (rng || Math.random)() * 100 < chance ? area.chefe.id : null;
   }
 
-  // Drop garantido do chefe: arma ou armadura, raridade pela tabela do chefe.
+  // Drop do chefe. Com `dropItem`: chance de 1 item de qualquer tipo (pode não vir nada).
+  // Sem: sempre 1 arma ou armadura, raridade pela tabela do chefe.
   function dropChefe(p, m, rng) {
+    if (m.dropItem) {
+      var r = rolarRaridade(p, m.dropItem, rng);
+      return r ? itemQualquer(p, r, rng) : null;
+    }
     var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
-    if (rng() < 0.5) return novaArma(p.classe, raridade);
+    if (rng() < 0.5) return novaArma(p.classe, raridade, rng);
     var tipos = TIPOS_ARMADURA.concat(TIPOS_JOIA);
     return novoItem(tipos[Math.floor(rng() * tipos.length)], p.classe, raridade);
   }
@@ -395,7 +432,8 @@ Tanka.regras = (function () {
       pocoes: p.pocoes,                   // poções disponíveis na luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
       jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0, poder: 0 },
-      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 0,
+      // O monstro começa com a barra cheia: o primeiro golpe da luta é sempre dele.
+      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100,
         atordoado: 0, armaduraQuebrada: false },
       fim: null,
     };
@@ -406,9 +444,11 @@ Tanka.regras = (function () {
     var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
     var magico = s.tipoDano === 'magico';
     var g = { acerto: false, critico: false, dano: 0 };
-    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao - m.velocidade * 0.5, 5, 95)) return g;
+    // Precisão menos 3% por área (Floresta 0%, Cume do Fogo -18%).
+    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao - m.indiceArea * 3, 5, 95)) return g;
     var defesa = opcoes.ignoraDefesa ? 0 : (magico ? m.defesaMagica : m.defesa);
-    var dano = Math.max(1, Math.round(rolar(s.dano, rng) * (opcoes.mult || 1)) - defesa);
+    // A defesa do monstro reduz em porcentagem: 100 / (100 + defesa).
+    var dano = Math.max(1, Math.round(rolar(s.dano, rng) * (opcoes.mult || 1) * 100 / (100 + defesa)));
     if (rng() * 100 < (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0)) {
       g.critico = true;
       dano = Math.floor(dano * (magico ? s.danoCriticoMagico : s.danoCritico) / 100);
@@ -480,7 +520,8 @@ Tanka.regras = (function () {
       ev.atordoado = true;
       return ev;
     }
-    if (rng() * 100 >= limitar(75 + m.velocidade - s.evasao, 5, 95)) return ev;
+    // Acerto do monstro: 80% + 2% por área, menos a evasão do jogador.
+    if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
     var dano = Math.max(1, rolar(m.ataque, rng) - s.defesa);
     ev.acerto = true;
     ev.dano = dano;
@@ -537,15 +578,19 @@ Tanka.regras = (function () {
       res.niveis = ganharExp(p, res.exp);
       if (m.chefe) {
         var premio = dropChefe(p, m, b.rng);
-        if (premio.tipo === 'arma') res.drop = premio; else res.dropArmadura = premio;
+        if (premio && premio.tipo === 'arma') res.drop = premio; else if (premio) res.dropArmadura = premio;
         var arma = armaEquipada(p);
-        var faixa = D.chefe.pergaminhos;
-        res.pergaminho = arma ? arma.raridade : 'comum';
+        var perg = m.pergaminhosChefe;
+        var faixa = perg ? perg.qtd : D.chefe.pergaminhos;
+        res.pergaminho = perg ? perg.raridade : arma ? arma.raridade : 'comum';
         res.qtdPergaminhos = faixa[0] + Math.floor(b.rng() * (faixa[1] - faixa[0] + 1));
         p.pergaminhos[res.pergaminho] += res.qtdPergaminhos;
       } else {
         res.drop = rolarDrop(p, b.monstroId, b.rng);
         res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
+        var qualquer = rolarDropItem(p, b.monstroId, b.rng);
+        if (qualquer && qualquer.tipo === 'arma' && !res.drop) res.drop = qualquer;
+        else if (qualquer && !res.dropArmadura) res.dropArmadura = qualquer;
       }
       // Mochila cheia: o item se perde e o jogador é avisado.
       if (res.drop && !guardar(p, res.drop)) { res.drop = null; res.mochilaCheia = true; }
@@ -589,11 +634,12 @@ Tanka.regras = (function () {
 
   // ---------- Encantamento ----------
 
-  // Pergaminho dropado: da mesma raridade da arma equipada. Sorte aumenta a chance.
+  // Pergaminho dropado: raridade fixa do monstro ou, sem ela, a da arma equipada. Sorte aumenta a chance.
   function rolarPergaminho(p, monstroId, rng) {
-    var chance = D.monstros[monstroId].chancePergaminho;
-    if (!chance) return null;
-    if (rng() * 100 >= chance * (1 + status(p).bonusDrop / 100)) return null;
+    var perg = D.monstros[monstroId].pergaminho;
+    if (!perg || !perg.chance) return null;
+    if (rng() * 100 >= perg.chance * (1 + status(p).bonusDrop / 100)) return null;
+    if (perg.raridade) return perg.raridade;
     var arma = armaEquipada(p);
     return arma ? arma.raridade : 'comum';
   }
@@ -768,6 +814,9 @@ Tanka.regras = (function () {
     mochilaCheia: mochilaCheia,
     podeUsar: podeUsar,
     rolarDropArmadura: rolarDropArmadura,
+    rolarDropItem: rolarDropItem,
+    novaArma: novaArma,
+    velocidadeDoNivel: velocidadeDoNivel,
     nivelHabilidade: nivelHabilidade,
     prepararHabilidade: prepararHabilidade,
     areaDoMonstro: areaDoMonstro,

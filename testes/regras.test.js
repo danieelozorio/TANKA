@@ -10,6 +10,8 @@ vm.createContext(ctx);
 const { dados: D, regras: R } = vm.runInContext('Tanka', ctx);
 D.HABILIDADES_ATIVAS = true; // os testes de habilidade continuam valendo para quando religar
 
+const fixo = (v) => () => v; // rng que sempre devolve v (0 = sucesso, 0.999 = falha)
+const fixo0 = fixo(0);
 let rngSeed = 42;
 function rng() { rngSeed = (rngSeed * 1664525 + 1013904223) % 4294967296; return rngSeed / 4294967296; }
 
@@ -31,7 +33,7 @@ teste('modificadores de raça (+3 / -3)', () => {
   assert.deepStrictEqual({ ...R.atributosIniciais('anao', 'artesao') }, { for: 15, des: 7, res: 18, int: 7, sor: 23 });
 });
 
-teste('personagem novo: level 1, 100 HP, 0 de ouro, arma comum 1-1', () => {
+teste('personagem novo: level 1, 100 HP, 0 de ouro, arma comum 1-5', () => {
   const p = R.criarPersonagem('Teste', 'masculino', 'humano', 'cavaleiro');
   assert.strictEqual(p.nivel, 1);
   assert.strictEqual(R.status(p).hpMax, 100);
@@ -40,7 +42,7 @@ teste('personagem novo: level 1, 100 HP, 0 de ouro, arma comum 1-1', () => {
   assert.strictEqual(p.sexo, 'masculino');
   const arma = R.armaEquipada(p);
   assert.strictEqual(R.nomeArma(arma), 'Espada de Ferro');
-  assert.deepStrictEqual([...D.raridades[arma.raridade].dano], [1, 1]);
+  assert.deepStrictEqual([...arma.dano], [1, 5]);
   assert.strictEqual(R.nomeArma(R.armaEquipada(R.criarPersonagem('a', 'masculino', 'humano', 'artesao'))), 'Martelo de Batalha');
 });
 
@@ -66,12 +68,50 @@ teste('lobo: 5 lobos (2 exp cada) sobem para o level 2', () => {
   assert.strictEqual(p.nivel, 2);
 });
 
-teste('cobra = 2x lobo, urso = 2x cobra', () => {
+teste('cobra = 2x lobo, urso = 2x cobra (vida, ataque e exp)', () => {
   const { lobo, cobra, urso } = D.monstros;
   for (const [a, b] of [[lobo, cobra], [cobra, urso]]) {
-    assert.strictEqual(b.hp, a.hp * 2); assert.strictEqual(b.velocidade, a.velocidade * 2);
+    assert.strictEqual(b.hp, a.hp * 2);
     assert.strictEqual(b.ataque[0], a.ataque[0] * 2); assert.strictEqual(b.exp, a.exp * 2);
   }
+});
+
+teste('velocidade e defesa dos monstros: 15, +10% por monstro, +10% entre áreas; chefe +50% / defesa x2', () => {
+  const v = (id) => D.monstros[id].velocidade, d = (id) => D.monstros[id].defesa;
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso', 'velgrath'].map(v), [15, 17, 18, 27]);
+  assert.strictEqual(v('sapo'), Math.round(15 * 1.1 * 1.1 * 1.1));
+  assert.strictEqual(d('lobo'), 1);
+  assert.strictEqual(d('velgrath'), d('urso') * 2);
+  assert.ok(d('salamandra') > 20 && d('ignaroth') < 100, d('salamandra') + ' ' + d('ignaroth'));
+  const urso = D.monstros.urso, chefe = D.monstros.velgrath;
+  assert.strictEqual(chefe.hp, urso.hp * 1.5);
+  assert.strictEqual(chefe.exp, urso.exp * 5);
+});
+
+teste('velocidade do personagem: 15 no level 1, +6% por level; não depende da DES', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  assert.strictEqual(R.status(p).velocidade, 15);
+  p.atributos.des += 50;
+  assert.strictEqual(R.status(p).velocidade, 15);
+  assert.deepStrictEqual([10, 20, 30, 40].map(R.velocidadeDoNivel), [25, 45, 81, 146]);
+});
+
+teste('o monstro sempre dá o primeiro golpe', () => {
+  for (let i = 0; i < 20; i++) {
+    const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+    p.nivel = 40;
+    const b = R.iniciarBatalha(p, 'lobo', rng);
+    assert.strictEqual(R.passo(b).ator, 'monstro');
+  }
+});
+
+teste('defesa do monstro reduz o dano em porcentagem', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const b = R.iniciarBatalha(p, 'ignaroth', fixo0);
+  b.s = Object.assign({}, b.s, { dano: [100, 100], precisao: 200, chanceCritico: 0 });
+  b.monstro.hp = 1e9; b.jogador.barra = 100; b.monstro.barra = 0;
+  const ev = R.passo(b);
+  assert.strictEqual(ev.dano, Math.round(100 * 100 / (100 + D.monstros.ignaroth.defesa)));
 });
 
 teste('distribuir ponto em RES aumenta o HP máximo e atual', () => {
@@ -84,15 +124,13 @@ teste('distribuir ponto em RES aumenta o HP máximo e atual', () => {
   assert.ok(!R.distribuirPonto(p, 'res'));
 });
 
-teste('velocidade: monstro com o dobro ataca 2x mais', () => {
-  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'); // DES 10 -> velocidade 10
-  p.hpAtual = 1e9; p.atributosIniciais.res = -1e9;            // aguenta a luta toda
-  const b = R.iniciarBatalha(p, 'urso', rng);                  // velocidade 32
-  b.monstro.hp = 1e9;
+teste('velocidade: 30 contra 15 ataca 2x mais', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const b = R.iniciarBatalha(p, 'lobo', rng);
+  b.jogador.vel = 30; b.monstro.vel = 15; b.jogador.hp = 1e9; b.monstro.hp = 1e9;
   const conta = { jogador: 0, monstro: 0 };
-  for (let i = 0; i < 4200; i++) conta[R.passo(b).ator]++;
-  const razao = conta.monstro / conta.jogador;
-  assert.ok(Math.abs(razao - 3.2) < 0.05, 'razão ' + razao);
+  for (let i = 0; i < 3000; i++) conta[R.passo(b).ator]++;
+  assert.ok(Math.abs(conta.jogador / conta.monstro - 2) < 0.01, JSON.stringify(conta));
 });
 
 teste('velocidade 20 vs 10: 2 ataques para 1', () => {
@@ -103,27 +141,33 @@ teste('velocidade 20 vs 10: 2 ataques para 1', () => {
   assert.strictEqual(atores.filter((a) => a === 'monstro').length, 20);
 });
 
-teste('chances de drop (sem sorte): cobra 10% rara; urso 10% épica e 30% rara', () => {
+teste('chances de drop (sem sorte): lobo 10% arma comum; cobra 15%; urso 15% item comum de qualquer tipo', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.atributos.sor = 0;
-  const N = 200000, cont = (id) => {
-    const c = { rara: 0, epica: 0 };
-    for (let i = 0; i < N; i++) { const d = R.rolarDrop(p, id, rng); if (d) c[d.raridade]++; }
-    return { rara: c.rara / N * 100, epica: c.epica / N * 100 };
-  };
-  const cobra = cont('cobra'), urso = cont('urso');
-  assert.ok(Math.abs(cobra.rara - 10) < 0.5 && cobra.epica === 0, JSON.stringify(cobra));
-  assert.ok(Math.abs(urso.epica - 10) < 0.5 && Math.abs(urso.rara - 30) < 0.6, JSON.stringify(urso));
-  assert.strictEqual(R.rolarDrop(p, 'lobo', rng), null);
+  const N = 100000, taxa = (fn) => { let n = 0; for (let i = 0; i < N; i++) if (fn()) n++; return n / N * 100; };
+  assert.ok(Math.abs(taxa(() => R.rolarDrop(p, 'lobo', rng)) - 10) < 0.5);
+  assert.ok(Math.abs(taxa(() => R.rolarDrop(p, 'cobra', rng)) - 15) < 0.5);
+  assert.strictEqual(R.rolarDrop(p, 'urso', rng), null);
+  const tipos = new Set(), rar = new Set();
+  const t = taxa(() => { const d = R.rolarDropItem(p, 'urso', rng); if (d) { tipos.add(d.tipo); rar.add(d.raridade); } return d; });
+  assert.ok(Math.abs(t - 15) < 0.5, t);
+  assert.strictEqual(tipos.size, 7);
+  assert.deepStrictEqual([...rar], ['comum']);
 });
 
-teste('drop é sempre a arma da classe', () => {
+teste('drop de arma é sempre da classe, com variação e dano sorteados na faixa', () => {
   for (const classe of ['cavaleiro', 'arqueiro', 'mago', 'artesao']) {
     const p = R.criarPersonagem('T', 'masculino', 'humano', classe);
     let d = null;
-    while (!d) d = R.rolarDrop(p, 'urso', rng);
+    while (!d) d = R.rolarDrop(p, 'gargula', rng);
     assert.strictEqual(d.classe, classe);
+    assert.strictEqual(d.raridade, 'rara');
+    assert.ok(d.dano[0] >= 11 && d.dano[0] <= 15 && d.dano[1] >= 16 && d.dano[1] <= 20, d.dano);
+    assert.ok(D.armas[classe].rara[d.variacao]);
   }
+  const nomes = new Set();
+  for (let i = 0; i < 400; i++) nomes.add(R.nomeArma(R.novaArma('mago', 'lendaria')));
+  assert.strictEqual(nomes.size, 8);
 });
 
 teste('sorte: 1% de encantamento por ponto', () => {
@@ -135,7 +179,7 @@ teste('mago causa dano mágico com INT', () => {
   const p = R.criarPersonagem('T', 'masculino', 'elfo', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [1 + Math.floor(23 / 5), 1 + Math.floor(23 / 5)]);
+  assert.deepStrictEqual([...s.dano], [1 + Math.floor(23 / 5), 5 + Math.floor(23 / 5)]);
 });
 
 teste('batalha completa contra o lobo termina e aplica resultado', () => {
@@ -147,6 +191,7 @@ teste('batalha completa contra o lobo termina e aplica resultado', () => {
     while (!b.fim) { R.passo(b); passos++; assert.ok(passos < 10000); }
     const r = R.concluirBatalha(p, b);
     if (r.resultado === 'vitoria') { vitorias++; assert.strictEqual(p.exp, 2); assert.strictEqual(p.ouro, 2); assert.strictEqual(r.ouro, 2); assert.strictEqual(p.abates.lobo, 1); }
+    if (r.drop) assert.strictEqual(r.drop.classe, 'cavaleiro');
   }
   assert.ok(vitorias > 190, 'vitórias: ' + vitorias);
 });
@@ -159,13 +204,13 @@ teste('equipar só aceita arma da própria classe', () => {
   assert.ok(R.equipar(p, 'y'));
 });
 
-teste('raridades: dano e preços de compra e venda', () => {
-  const tab = (k) => [...D.raridades[k].dano, D.raridades[k].venda, D.raridades[k].compra];
-  assert.deepStrictEqual(tab('comum'), [1, 1, 10, 10]);
-  assert.deepStrictEqual(tab('rara'), [3, 5, 20, 100]);
-  assert.deepStrictEqual(tab('epica'), [10, 15, 50, 1000]);
-  assert.deepStrictEqual(tab('lendaria'), [30, 55, 100, 10000]);
-  for (const c of Object.keys(D.classes)) for (const r of Object.keys(D.raridades)) assert.ok(D.armas[c][r], c + ' ' + r);
+teste('raridades: faixas de dano e preços de compra e venda', () => {
+  const tab = (k) => [...D.raridades[k].danoMin, ...D.raridades[k].danoMax, D.raridades[k].venda, D.raridades[k].compra];
+  assert.deepStrictEqual(tab('comum'), [1, 5, 5, 10, 10, 10]);
+  assert.deepStrictEqual(tab('rara'), [11, 15, 16, 20, 20, 100]);
+  assert.deepStrictEqual(tab('epica'), [21, 24, 25, 30, 50, 1000]);
+  assert.deepStrictEqual(tab('lendaria'), [31, 34, 35, 40, 100, 10000]);
+  for (const c of Object.keys(D.classes)) for (const r of Object.keys(D.raridades)) assert.strictEqual(D.armas[c][r].length, 8, c + ' ' + r);
 });
 
 teste('ouro dos monstros: lobo 2, cobra 5, urso 20', () => {
@@ -187,7 +232,8 @@ teste('comprar: desconta o ouro e só com saldo suficiente', () => {
   const item = R.comprar(p, 'rara');
   assert.strictEqual(typeof item, 'object');
   assert.strictEqual(item.classe, 'arqueiro');
-  assert.strictEqual(R.nomeArma(item), 'Arco Élfico');
+  assert.ok(D.armas.arqueiro.rara.includes(R.nomeArma(item)));
+  assert.ok(item.dano[0] >= 11 && item.dano[1] <= 20);
   assert.strictEqual(p.ouro, 9);
   assert.strictEqual(R.comprar(p, 'comum'), 'Ouro insuficiente.');
   assert.strictEqual(p.ouro, 9);
@@ -200,11 +246,16 @@ teste('personagem antigo (sem ouro/sexo, arma "basica") é convertido', () => {
   assert.strictEqual(p.ouro, 0);
   assert.strictEqual(p.sexo, 'masculino');
   assert.strictEqual(p.inventario[0].raridade, 'comum');
-  assert.deepStrictEqual([...R.status(p).danoArma], [1, 1]);
+  assert.deepStrictEqual([...R.status(p).danoArma], [1, 5]);
+  // arma antiga sem dano sorteado: nome clássico e dano no meio das faixas
+  p.inventario.push({ id: 'velha', tipo: 'arma', classe: 'mago', raridade: 'epica', encanto: 0 });
+  R.normalizar(p);
+  const velha = p.inventario.find((i) => i.id === 'velha');
+  assert.strictEqual(R.nomeArma(velha), 'Cajado do Vazio Estelar');
+  assert.deepStrictEqual([...velha.dano], [23, 28]);
 });
 
 // ---------- Encantamento ----------
-const fixo = (v) => () => v; // rng que sempre devolve v (0 = sucesso, 0.999 = falha)
 function comArma(raridade, encanto) {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   p.atributos.sor = 0;
@@ -243,10 +294,10 @@ teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () =>
 });
 
 teste('encantamento: dano extra por nível e venda +20% por nível', () => {
-  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5 })], [13, 15]);
-  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10 })], [80, 105]);
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, dano: [12, 18] })], [22, 28]);
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10, dano: [33, 39] })], [83, 89]);
   assert.strictEqual(R.precoVenda({ tipo: 'arma', classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 100);
-  assert.strictEqual(R.nomeArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5 }), '+5 Arco Élfico');
+  assert.strictEqual(R.nomeArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, variacao: 0 }), '+5 Arco Élfico');
 });
 
 teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
@@ -351,13 +402,13 @@ teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
   assert.strictEqual(R.mochila(p).length, 32);
 });
 
-teste('drops de armadura: lobo 10% comum; urso 10% rara e 3% épica', () => {
+teste('drops de armadura: lobo 10% comum; cobra 15% comum', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao');
   p.atributos.sor = 0;
   const N = 200000, conta = (m) => { const c = {}; for (let i = 0; i < N; i++) { const d = R.rolarDropArmadura(p, m, rng); if (d) c[d.raridade] = (c[d.raridade] || 0) + 1; } return c; };
-  const lobo = conta('lobo'), urso = conta('urso');
+  const lobo = conta('lobo'), cobra = conta('cobra');
   assert.ok(Math.abs(lobo.comum / N * 100 - 10) < 0.4, JSON.stringify(lobo));
-  assert.ok(Math.abs(urso.rara / N * 100 - 10) < 0.4 && Math.abs(urso.epica / N * 100 - 3) < 0.3, JSON.stringify(urso));
+  assert.ok(Math.abs(cobra.comum / N * 100 - 15) < 0.4 && !cobra.rara, JSON.stringify(cobra));
   const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
   assert.deepStrictEqual([...tipos].sort(), ['anel', 'botas', 'colar', 'elmo', 'luvas', 'peitoral']);
 });
@@ -392,7 +443,7 @@ teste('curva de level: dobra até o 5, depois +50% por level; máximo 40', () =>
   assert.strictEqual(p.nivel, 40); assert.strictEqual(p.exp, 0);
 });
 
-teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra tudo), chefe pela regra', () => {
+teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela regra', () => {
   assert.strictEqual(D.areas.length, 7);
   for (const a of D.areas) {
     const [m1, m2, m3] = a.monstros.map((m) => D.monstros[m.id]);
@@ -401,16 +452,15 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra tudo), chefe pela reg
     [m1, m2, m3].forEach((m, i) => {
       assert.strictEqual(m.hp, a.base.hp * 2 ** i); assert.strictEqual(m.exp, a.base.exp * 2 ** i);
       assert.strictEqual(m.ataque[0], Math.round(a.base.ataque * cr.ataque ** i));
-      assert.strictEqual(m.velocidade, Math.round(a.base.velocidade * cr.velocidade ** i));
     });
+    assert.ok(m1.velocidade < m2.velocidade && m2.velocidade < m3.velocidade);
     const c = D.monstros[a.chefe.id];
     assert.ok(c.chefe);
-    assert.strictEqual(c.hp, m3.hp * 3); assert.strictEqual(c.ataque[0], Math.round(m3.ataque[0] * 1.5));
-    assert.strictEqual(c.velocidade, m2.velocidade); assert.strictEqual(c.exp, m3.exp * 5); assert.strictEqual(c.ouro, m3.ouro * 5);
+    assert.strictEqual(c.hp, Math.round(m3.hp * 1.5)); assert.strictEqual(c.ataque[0], Math.round(m3.ataque[0] * 1.2));
+    assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, m3.exp * 5); assert.strictEqual(c.ouro, m3.ouro * 5);
   }
   assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [70, 280, 2200]);
-  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [8, 12, 18]);
-  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].velocidade), [9, 11, 14]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [8, 10, 13]);
   assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
 });
 
@@ -441,23 +491,32 @@ teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar',
   const res = vencer('velgrath');
   assert.strictEqual(p.presencaChefe.floresta, 0);
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
-  assert.ok(res.drop || res.dropArmadura, 'chefe sempre dropa');
+  assert.strictEqual(res.pergaminho, 'comum');
   assert.ok(res.qtdPergaminhos >= 1 && res.qtdPergaminhos <= 3);
 });
 
-teste('drop do chefe: raridades pela tabela (Floresta: lend. 5%, épica 25%, senão rara)', () => {
+teste('drop do chefe: Velgrath 15% item raro + 1 a 3 pergaminhos comuns; Varnok 2 a 5 raros; Guardião sempre dropa', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   p.atributos.sor = 0;
-  const c = { lendaria: 0, epica: 0, rara: 0 }, N = 20000;
-  for (let i = 0; i < N; i++) {
-    p.inventario = p.inventario.slice(0, 1);
-    const b = R.iniciarBatalha(p, 'velgrath', rng); b.fim = 'vitoria';
-    const res = R.concluirBatalha(p, b);
-    const it = res.drop || res.dropArmadura;
-    c[it.raridade]++;
-    if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago');
-  }
-  assert.ok(Math.abs(c.lendaria / N * 100 - 5) < 0.8 && Math.abs(c.epica / N * 100 - 25) < 1.5, JSON.stringify(c));
+  const N = 20000, rodar = (chefe) => {
+    const c = { nada: 0, lendaria: 0, epica: 0, rara: 0, comum: 0 }, perg = new Set();
+    for (let i = 0; i < N; i++) {
+      p.inventario = p.inventario.slice(0, 1);
+      const b = R.iniciarBatalha(p, chefe, rng); b.fim = 'vitoria';
+      const res = R.concluirBatalha(p, b);
+      const it = res.drop || res.dropArmadura;
+      if (it) { c[it.raridade]++; if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago'); } else c.nada++;
+      perg.add(res.pergaminho + res.qtdPergaminhos);
+    }
+    return { c, perg: [...perg].sort() };
+  };
+  const v = rodar('velgrath');
+  assert.ok(Math.abs(v.c.rara / N * 100 - 15) < 1 && v.c.rara + v.c.nada === N, JSON.stringify(v.c));
+  assert.deepStrictEqual(v.perg, ['comum1', 'comum2', 'comum3']);
+  assert.deepStrictEqual(rodar('varnok').perg, ['rara2', 'rara3', 'rara4', 'rara5']);
+  const g = rodar('guardiao');
+  assert.strictEqual(g.c.nada, 0);
+  assert.ok(Math.abs(g.c.lendaria / N * 100 - 20) < 1.2, JSON.stringify(g.c));
 });
 
 // ---------- Habilidades especiais ----------
@@ -468,6 +527,7 @@ function batalhaTeste(classe, nivel, monstro = 'urso') {
   const b = R.iniciarBatalha(p, monstro, rng);
   b.monstro.hp = b.monstro.hpMax = 1e6;
   b.jogador.hp = b.jogador.hpMax = 1e6;
+  b.monstro.barra = 0; // sem o primeiro golpe garantido do monstro, para medir a habilidade
   return { p, b };
 }
 
@@ -483,7 +543,7 @@ teste('poder: +25 por acerto (Mago +34), +10 por golpe recebido, máximo 100', (
   b.s.precisao = 1000; // sempre acerta
   while (b.jogador.poder < 100) {
     const antes = b.jogador.poder, ev = R.passo(b);
-    if (ev.ator === 'jogador') assert.strictEqual(b.jogador.poder, Math.min(100, antes + 25));
+    if (ev.ator === 'jogador' && ev.acerto) assert.strictEqual(b.jogador.poder, Math.min(100, antes + 25));
     else if (ev.acerto) assert.strictEqual(b.jogador.poder, Math.min(100, antes + 10));
   }
   const { b: bm } = batalhaTeste('mago', 1, 'lobo');
@@ -505,7 +565,8 @@ teste('habilidade só com a barra cheia; sai no próximo ataque e zera o poder',
 
 teste('Golpe de Escudo atordoa: o monstro perde as próximas ações', () => {
   const { b } = batalhaTeste('cavaleiro', 30);
-  b.s.precisao = 1000; b.jogador.poder = 100; b.auto = true;
+  b.s.precisao = 1000; b.jogador.poder = 100; b.habilidadePendente = true; // uma vez só (o level 30 é rápido e recarregaria)
+  b.rng = fixo0;                                                         // o golpe sempre acerta
   let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
   assert.strictEqual(ev.atordoou, 3);
   let perdidas = 0;
