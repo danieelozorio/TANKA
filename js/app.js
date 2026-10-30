@@ -48,8 +48,8 @@
     }
     // Vídeo pintado (repete sem emenda); sem vídeo ou com "menos animação", fica a imagem parada.
     var video = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches ? ''
-      : '<video class="video-fundo" autoplay muted loop playsinline preload="auto" poster="assets/fundo-entrada.webp">'
-        + '<source src="assets/fundo-entrada.webm" type="video/webm"><source src="assets/fundo-entrada.mp4" type="video/mp4"></video>';
+      : '<video class="video-fundo" autoplay muted loop playsinline preload="auto" poster="assets/fundo-entrada.webp?v=2">'
+        + '<source src="assets/fundo-entrada.webm?v=2" type="video/webm"><source src="assets/fundo-entrada.mp4?v=2" type="video/mp4"></video>';
     return '<div class="cenario" aria-hidden="true">' + video
       + '<div class="nevoa"></div><div class="brasas-entrada">' + brasas + '</div></div>';
   }
