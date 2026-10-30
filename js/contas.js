@@ -245,7 +245,18 @@ Tanka.contas = (function () {
     adminRecarregar: function (meu) { return chamar('masmorra_admin_recarregar', { meu: meu }); },
   };
 
+  // ---------- Arena (a luta roda no servidor) ----------
+  var arena = {
+    estado: function (meu, ver) { return chamar('arena_estado', { meu: meu, ver: ver || null }); },
+    desafiar: function (meu, alvo) { return chamar('arena_desafiar', { meu: meu, alvo: alvo }); },
+    revanche: function (meu, luta) { return chamar('arena_revanche', { meu: meu, luta: luta }); },
+    rolar: function (meu, luta, rolar) { return chamar('arena_rolar', { meu: meu, luta: luta, rolar: rolar }); },
+    aplicarCredito: function (meu, id) { return chamar('credito_aplicar', { meu: meu, credito: id }); },
+    adminRecarregar: function (meu) { return chamar('arena_admin_recarregar', { meu: meu }); },
+  };
+
   return {
+    arena: arena,
     grupo: grupo,
     amigos: amigos,
     ranking: ranking,

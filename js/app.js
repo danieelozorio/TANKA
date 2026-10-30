@@ -258,6 +258,9 @@
     telaJogo();
     carregarSocial();
     carregarGrupo();
+    estado.arena = null;
+    estado.lutaArena = null;
+    carregarArena();
   }
 
   function tempoTexto(ms) {
@@ -277,7 +280,8 @@
     return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar
       + '<div class="secao pocoes"><span>🧪 Poções: <strong id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</strong></span>'
       + '<button class="btn mini-opcao" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + '>Usar</button></div>'
-      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)</div>';
+      + '<div class="suave pequeno">Próximo reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)</div>'
+      + entradasArenaHtml(p);
   }
 
   function fichaHtml() {
@@ -322,6 +326,7 @@
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
       + vidaTempoHtml(p, s, emBatalha)
       + '<div class="secao ouro"><span>Ouro</span><strong>' + p.ouro.toLocaleString('pt-BR') + '</strong></div>'
+      + '<div class="secao ouro reputacao"><span>Reputação</span><strong>' + (p.reputacao || 0).toLocaleString('pt-BR') + '</strong></div>'
       + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s) livre(s)</span>' : '') + '</h3>' + atrs + '</div>'
       + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
@@ -777,6 +782,11 @@
       + grupo('Pergaminhos', 'De todas as raridades.', botoes('pergaminhos', [10, 100], function (v) { return '+' + v + ' de cada'; })
         + botoes('pergaminhos', [-10], function (v) { return v + ' de cada'; }, 'menos')
         + botoes('pergaminhos', [-1000000], function () { return 'Zerar'; }, 'menos'))
+      + grupo('Arena', 'Recarrega as 5 entradas da Arena ou mexe na Reputação.',
+        '<button class="btn" data-acao="admin-arena-entradas">Recarregar entradas</button>'
+        + botoes('reputacao', [100, 1000], function (v) { return '+' + v + ' reputação'; })
+        + botoes('reputacao', [-100], function (v) { return v + ' reputação'; }, 'menos')
+        + botoes('reputacao', [-1000000], function () { return 'Zerar reputação'; }, 'menos'))
       + grupo('Masmorra', 'Zera as entradas de hoje ou dá uma joia (colar ou anel sorteado) da raridade.',
         '<button class="btn" data-acao="admin-masmorra-entradas">Recarregar entradas</button>'
         + R.RARIDADES.map(function (k) { return '<button class="btn" data-acao="admin" data-op="joia" data-valor="' + k + '">Joia ' + D.raridades[k].nome.toLowerCase() + '</button>'; }).join(''))
@@ -854,7 +864,9 @@
 
   function telaJogo() {
     var painel;
-    if (estado.luta) {
+    if (estado.lutaArena) {
+      painel = lutaArenaHtml();
+    } else if (estado.luta) {
       painel = lutaMasmorraHtml();
     } else if (estado.chefeAviso) {
       painel = avisoChefeHtml();
@@ -868,11 +880,12 @@
         + '<button data-acao="aba" data-aba="ranking" class="' + (estado.aba === 'ranking' ? 'ativa' : '') + '">Ranking</button>'
         + '<button data-acao="aba" data-aba="social" class="' + (estado.aba === 'social' ? 'ativa' : '') + '">Social' + seloPedidos() + '</button>'
         + '<button data-acao="aba" data-aba="masmorra" class="' + (estado.aba === 'masmorra' ? 'ativa' : '') + '">Masmorra' + seloMasmorra() + '</button>'
+        + '<button data-acao="aba" data-aba="arena" class="' + (estado.aba === 'arena' ? 'ativa' : '') + '">Arena' + seloArena() + '</button>'
         + (ehAdmin() ? '<button data-acao="aba" data-aba="admin" class="aba-admin' + (estado.aba === 'admin' ? ' ativa' : '') + '">Admin</button>' : '')
         + '</nav>'
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, admin: abaAdmin })[estado.aba]();
+        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin })[estado.aba]();
     }
-    var trocar = estado.batalha || estado.luta ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
+    var trocar = estado.batalha || estado.luta || estado.lutaArena ? '' : '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     app.innerHTML = topo(trocar) + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '');
@@ -1114,6 +1127,7 @@
         // Social e Masmorra buscam o estado novo ao abrir (pedidos e convites recentes).
         if (estado.aba === 'social') carregarSocial();
         if (estado.aba === 'masmorra') carregarGrupo();
+        if (estado.aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
         break;
       case 'item': {
         // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
@@ -1136,6 +1150,32 @@
       case 'desequipar':
         if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
+        break;
+      case 'arena-ver':
+        estado.arenaVer = el.dataset.valor;
+        estado.arena = null;
+        telaJogo();
+        break;
+      case 'arena-desafiar':
+        comecarLutaArena(function () { return C.arena.desafiar(p.id, el.dataset.id); }, el);
+        break;
+      case 'arena-revanche':
+        comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
+        break;
+      case 'arena-rolar':
+        rolarDadoArena(true);
+        break;
+      case 'arena-fechar':
+        clearTimeout(estado.lutaArena.timer);
+        clearInterval(estado.lutaArena.relogio);
+        estado.lutaArena = null;
+        estado.aba = 'arena';
+        estado.arena = null;
+        telaJogo();
+        carregarArena();
+        break;
+      case 'admin-arena-entradas':
+        C.arena.adminRecarregar(p.id).then(function () { avisar('Entradas da Arena recarregadas.'); estado.arena = null; carregarArena(); }, function (e2) { avisar(e2.message); });
         break;
       case 'grupo-convidar':
         acaoGrupo(function () { return C.grupo.convidar(p.id, el.dataset.id); }, 'Convite enviado para ' + el.dataset.nome + '.');
@@ -1314,6 +1354,7 @@
         else if (op === 'vida') { R.admin.vida(p, v); p.vidaEm = C.agora(); }
         else if (op === 'zerar-pocoes') R.admin.zerarPocoes(p);
         else if (op === 'esvaziar-mochila') R.admin.esvaziarMochila(p);
+        else if (op === 'reputacao') p.reputacao = Math.max(0, (p.reputacao || 0) + v);
         if (op === 'pedir-esvaziar') { estado.adminConfirmar = 'mochila'; telaJogo(); break; }
         estado.adminConfirmar = null;
         if (op === 'cancelar') { telaJogo(); break; }
@@ -1324,7 +1365,7 @@
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
           pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',
           curar: 'Vida recuperada.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: vida cheia e poções do dia.',
-          vida: 'Vida em ' + p.hpAtual + '.', 'zerar-pocoes': 'Poções zeradas.', 'esvaziar-mochila': 'Mochila esvaziada.' }[op]);
+          vida: 'Vida em ' + p.hpAtual + '.', 'zerar-pocoes': 'Poções zeradas.', 'esvaziar-mochila': 'Mochila esvaziada.', reputacao: 'Reputação: ' + (p.reputacao || 0) + '.' }[op]);
         telaJogo();
         break;
       }
@@ -1682,11 +1723,294 @@
   // Atualiza o grupo: a cada 4 s na aba Masmorra ou em grupo; senão a cada 30 s (convites).
   var ciclosGrupo = 0;
   setInterval(function () {
-    if (!estado.personagem || estado.batalha || estado.luta || document.hidden) return;
+    if (!estado.personagem || estado.batalha || estado.luta || estado.lutaArena || document.hidden) return;
     ciclosGrupo++;
     var emGrupo = estado.gm && estado.gm.grupo;
     if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
+    if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);
+
+  // ---------------- Arena (PvP com D20) ----------------
+  // O servidor calcula tudo (dados, dano, saque, ranking). Aqui só mostramos e animamos o D20.
+  var A = D.ARENA;
+  var TROFEU = { 1: 'ouro', 2: 'prata', 3: 'bronze' };
+
+  function nomeArena(id) { var a = A.arenas.find(function (x) { return x.id === id; }); return a ? a.nome : ''; }
+  function chaveVisto() { return 'tanka.arenaVisto.' + (estado.personagem ? estado.personagem.id : ''); }
+  function vistoAte() { try { return Number(localStorage.getItem(chaveVisto())) || 0; } catch (e) { return 0; } }
+  function ataquesNovos() {
+    var ar = estado.arena;
+    if (!ar || !ar.historico) return 0;
+    var v = vistoAte();
+    return ar.historico.filter(function (h) { return !h.ataquei && h.id > v; }).length;
+  }
+  function marcarAtaquesVistos() {
+    var ar = estado.arena;
+    if (!ar || !ar.historico || !ar.historico.length) return;
+    try { localStorage.setItem(chaveVisto(), String(Math.max.apply(null, ar.historico.map(function (h) { return h.id; })))); } catch (e) { /* sem armazenamento */ }
+  }
+  function seloArena() { var n = ataquesNovos(); return n ? ' <span class="selo-pedidos">' + n + '</span>' : ''; }
+
+  function entradasArenaHtml(p) {
+    if (p.nivel < A.nivelMin) return '<div class="suave pequeno">⚔ Arena: abre no level ' + A.nivelMin + '</div>';
+    var e = estado.arena && estado.arena.entradas;
+    if (!e) return '';
+    var prox = e.proxima_em ? ' (+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora())) + ')' : '';
+    return '<div class="secao pocoes"><span>⚔ Arena: <strong>' + e.valor + '/' + e.maximo + '</strong></span><span class="suave pequeno">' + prox + '</span></div>';
+  }
+
+  function carregarArena() {
+    var p = estado.personagem;
+    if (!p || estado.arenaCarregando) return;
+    estado.arenaCarregando = true;
+    C.arena.estado(p.id, estado.arenaVer).then(function (r) {
+      estado.arenaCarregando = false;
+      if (estado.personagem !== p) return;
+      estado.arena = r;
+      estado.arenaErro = null;
+      if (!estado.arenaVer && r.minha_arena) estado.arenaVer = r.minha_arena;
+      aplicarCreditos(r.creditos || []);
+      if (estado.aba === 'arena') marcarAtaquesVistos();
+      if (estado.batalha || estado.resultado || estado.chefeAviso || estado.luta || estado.lutaArena) return;
+      if (estado.aba === 'arena') telaJogo();
+      else {
+        var aba = document.querySelector('[data-aba="arena"]');
+        if (aba) aba.innerHTML = 'Arena' + seloArena();
+        var ficha = document.querySelector('.ficha');
+        if (ficha) { var nova = document.createElement('div'); nova.innerHTML = fichaHtml(); ficha.replaceWith(nova.firstChild); }
+      }
+    }, function (e) {
+      estado.arenaCarregando = false;
+      estado.arenaErro = e.message;
+      if (estado.aba === 'arena' && !estado.lutaArena) telaJogo();
+    });
+  }
+
+  // Ouro e reputação ganhos ou perdidos (Arena, jackpot) entram no personagem e o jogo salva.
+  async function aplicarCreditos(lista) {
+    var p = estado.personagem;
+    if (!p || !lista.length || estado.aplicandoCreditos) return;
+    estado.aplicandoCreditos = true;
+    try {
+      for (var i = 0; i < lista.length; i++) {
+        var c = await C.arena.aplicarCredito(p.id, lista[i].id);
+        p.ouro = Math.max(0, p.ouro + c.ouro);
+        p.reputacao = Math.max(0, (p.reputacao || 0) + c.reputacao);
+        salvar();
+        var partes = [];
+        if (c.ouro) partes.push((c.ouro > 0 ? '+' : '−') + Math.abs(c.ouro).toLocaleString('pt-BR') + ' de ouro');
+        if (c.reputacao) partes.push('+' + c.reputacao + ' de reputação');
+        avisar(c.motivo + ': ' + partes.join(' e ') + '.');
+      }
+    } catch (e) { /* tenta de novo na próxima atualização */ }
+    estado.aplicandoCreditos = false;
+    if (!estado.batalha && !estado.luta && !estado.lutaArena) {
+      var ficha = document.querySelector('.ficha');
+      if (ficha) { var nova = document.createElement('div'); nova.innerHTML = fichaHtml(); ficha.replaceWith(nova.firstChild); }
+    }
+  }
+
+  function trofeu(pos) {
+    var cor = TROFEU[pos];
+    if (!cor) return '<span class="pos-numero">' + pos + '</span>';
+    return '<svg class="trofeu trofeu-' + cor + '" viewBox="0 0 24 24" aria-label="Trofeu de ' + cor + '"><path d="M7 3h10v3h3v2a5 5 0 0 1-4.6 5A5 5 0 0 1 13 15.9V18h3v3H8v-3h3v-2.1A5 5 0 0 1 8.6 13 5 5 0 0 1 4 8V6h3zM6 8a3 3 0 0 0 1.4 2.5A7 7 0 0 1 7 8zm11 0a7 7 0 0 1-.4 2.5A3 3 0 0 0 18 8z"/></svg>';
+  }
+
+  function linhaRanking(x, botao) {
+    return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
+      + '<div class="amigo-info"><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+      + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
+      + '<div class="item-acoes">' + (botao || '') + '</div></div>';
+  }
+
+  function abaArena() {
+    var p = estado.personagem, ar = estado.arena;
+    if (!ar) { carregarArena(); return '<p class="suave">' + (estado.arenaErro ? esc(estado.arenaErro) : 'Carregando…') + '</p>'; }
+    if (ar.local) return '<p class="suave">A Arena é contra outros jogadores e precisa do servidor: jogue pelo site do Tanka.</p>';
+    var abas = '<div class="opcoes arena-abas">' + A.arenas.map(function (a) {
+      var minha = a.id === ar.minha_arena;
+      return '<button class="opcao mini-opcao' + (a.id === ar.arena ? ' selecionada' : '') + '" data-acao="arena-ver" data-valor="' + a.id + '">'
+        + a.nome + (minha ? ' ★' : '') + '</button>';
+    }).join('') + '</div>';
+    var html = abas;
+    if (p.nivel < A.nivelMin) return html + '<p class="suave">A Arena abre no level ' + A.nivelMin + '. Você entra no último lugar da Arena 5~10.</p>';
+    var e = ar.entradas;
+    html += '<div class="arena-topo"><div class="secao ouro"><span>Entradas</span><strong>' + e.valor + '/' + e.maximo + '</strong></div>'
+      + '<div class="secao ouro"><span>🏆 Jackpot</span><strong>' + ar.jackpot.valor.toLocaleString('pt-BR') + '</strong></div></div>'
+      + '<p class="suave pequeno">Derrote o Top 1 para levar o jackpot. Ele cresce a cada 10 minutos com o mesmo Top 1 e é entregue ao Top 1 às 00:00. '
+      + 'Na Arena só o D20 decide: 1 erra, 18 a 20 são críticos.</p>';
+    html += '<h3 class="subtitulo">Top 5 · ' + esc(nomeArena(ar.arena)) + '</h3><div class="itens">'
+      + (ar.top5.length ? ar.top5.map(function (x) { return linhaRanking(x); }).join('') : '<p class="suave">Ninguém nesta arena ainda.</p>') + '</div>';
+    if (ar.arena === ar.minha_arena && ar.posicao) {
+      var semEntrada = e.valor <= 0;
+      html += '<h3 class="subtitulo">Sua posição: #' + ar.posicao + ' de ' + ar.total + '</h3><p class="suave pequeno">Você pode desafiar os 5 logo acima de você. Vencendo, toma a posição dele e saqueia parte do ouro.</p><div class="itens">'
+        + ar.alvos.map(function (x) {
+          if (x.id === p.id) return linhaRanking(x, '<span class="suave pequeno">Você</span>');
+          var bloq = semEntrada ? ' disabled title="Sem entradas"' : x.conta_minha ? ' disabled title="Personagem seu"' : '';
+          return linhaRanking(x, '<button class="btn" data-acao="arena-desafiar" data-id="' + esc(x.id) + '"' + bloq + '>Desafiar</button>');
+        }).join('') + '</div>';
+      if (ar.posicao === 1) html += '<p class="destaque">Você é o Top 1! Defenda a posição.</p>';
+    } else if (ar.arena !== ar.minha_arena) {
+      html += '<p class="suave">Você só luta na ' + esc(nomeArena(ar.minha_arena)) + ' (pelo seu level). Esta arena é só para ver.</p>';
+    }
+    html += '<h3 class="subtitulo">Histórico</h3>' + (ar.historico.length ? '<div class="itens">' + ar.historico.map(function (h) {
+      var texto = h.ataquei
+        ? (h.venceu_atacante ? 'Você venceu <strong>' + esc(h.oponente) + '</strong>' : 'Você perdeu para <strong>' + esc(h.oponente) + '</strong>')
+        : (h.venceu_atacante ? '<strong>' + esc(h.oponente) + '</strong> te atacou e venceu' : '<strong>' + esc(h.oponente) + '</strong> te atacou e perdeu');
+      var ouro = h.saque ? ' <span class="' + (h.ataquei === h.venceu_atacante ? 'mais' : 'menos') + '">(' + (h.ataquei === h.venceu_atacante ? '+' : '−') + h.saque.toLocaleString('pt-BR') + ' de ouro)</span>' : '';
+      var botao = h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '';
+      return '<div class="item"><div>' + (h.revanche ? '<span class="suave pequeno">Revanche · </span>' : '') + texto + ouro
+        + '<div class="suave pequeno">' + (h.quando ? new Date(h.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</div></div>'
+        + '<div class="item-acoes">' + botao + '</div></div>';
+    }).join('') + '</div>' : '<p class="suave">Nenhuma luta ainda.</p>');
+    return html;
+  }
+
+  // ----- A luta -----
+  function d20Svg(numero, classe) {
+    return '<svg class="d20 ' + (classe || '') + '" viewBox="0 0 100 100" aria-hidden="true">'
+      + '<polygon class="d20-face" points="50,4 92,27 92,73 50,96 8,73 8,27"/>'
+      + '<polygon class="d20-meio" points="50,22 78,66 22,66"/>'
+      + '<path class="d20-linha" d="M50,4 L50,22 M92,27 L78,66 M92,73 L78,66 M50,96 L78,66 M50,96 L22,66 M8,73 L22,66 M8,27 L22,66 M8,27 L50,22 M92,27 L50,22"/>'
+      + '<text x="50" y="57" text-anchor="middle" class="d20-numero">' + numero + '</text></svg>';
+  }
+
+  function efeitoDado(n) {
+    var m = A.dado[n - 1];
+    if (n === 1) return 'ERROU!';
+    var pct = Math.round((m - 1) * 100);
+    return (n >= 18 ? 'CRÍTICO ' : '') + (pct === 0 ? 'ataque normal' : (pct > 0 ? '+' : '') + pct + '% de dano');
+  }
+
+  async function comecarLutaArena(fn, botao) {
+    if (botao) botao.disabled = true;
+    try {
+      var luta = await fn();
+      var est = luta.estado;
+      estado.lutaArena = { luta: luta, idx: 0, hpA: est.a.hpMax, hpD: est.d.hpMax, dado: null, fase: 'animando', registro: [], rolou: false };
+      estado.lutaArena.registro.push('<p class="destaque">' + esc(est.a.nome) + ' desafia ' + esc(est.d.nome) + '!</p>');
+      telaJogo();
+      mostrarPainel();
+      tocarEventosArena();
+    } catch (e) {
+      avisar(e.message);
+      if (botao) botao.disabled = false;
+    }
+  }
+
+  function redesenharArena() {
+    var painel = document.querySelector('.jogo > section');
+    if (!painel || !estado.lutaArena) return;
+    painel.innerHTML = lutaArenaHtml();
+    var reg = document.getElementById('registro');
+    if (reg) reg.scrollTop = reg.scrollHeight;
+  }
+
+  // Anima um dado: gira pela mesa trocando números e pousa no resultado.
+  function animarDado(final, quem, depois) {
+    var L = estado.lutaArena;
+    L.dado = { numero: '?', quem: quem, rolando: true, texto: '' };
+    redesenharArena();
+    var el = document.querySelector('.mesa .d20-numero');
+    var giro = setInterval(function () { if (el) el.textContent = 1 + Math.floor(Math.random() * 20); }, 70);
+    L.timer = setTimeout(function () {
+      clearInterval(giro);
+      L.dado = { numero: final, quem: quem, rolando: false, texto: efeitoDado(final) };
+      depois();
+    }, 1100);
+  }
+
+  function aplicarEventoArena(ev) {
+    var L = estado.lutaArena, est = L.luta.estado;
+    var atk = ev.de === 'a' ? est.a : est.d, alvo = ev.de === 'a' ? est.d : est.a;
+    L.hpA = ev.hpA; L.hpD = ev.hpD;
+    L.dado.texto += ev.dano ? ' → ' + ev.dano + ' de dano' : '';
+    L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
+      + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
+    if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
+  }
+
+  // Mostra os eventos novos um a um (o dado do oponente também anima) e depois espera o jogador.
+  function tocarEventosArena() {
+    var L = estado.lutaArena;
+    if (!L) return;
+    var ev = L.luta.eventos[L.idx];
+    if (ev) {
+      L.idx++;
+      L.fase = 'animando';
+      animarDado(ev.dado, ev.de, function () {
+        aplicarEventoArena(ev);
+        redesenharArena();
+        L.timer = setTimeout(tocarEventosArena, 650);
+      });
+      return;
+    }
+    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; redesenharArena(); carregarArena(); return; }
+    // Sua vez: o D20 parado, o botão e 5 segundos.
+    L.fase = 'esperando';
+    L.prazo = Date.now() + A.tempoDado * 1000;
+    L.dado = { numero: 20, quem: 'a', rolando: false, texto: '', parado: true };
+    redesenharArena();
+    clearInterval(L.relogio);
+    L.relogio = setInterval(function () {
+      var resta = Math.max(0, L.prazo - Date.now());
+      var barra = document.querySelector('.tempo-dado i');
+      if (barra) barra.style.width = (resta / (A.tempoDado * 10)) + '%';
+      if (resta <= 0) rolarDadoArena(false);
+    }, 100);
+  }
+
+  async function rolarDadoArena(rolar) {
+    var L = estado.lutaArena;
+    if (!L || L.fase !== 'esperando') return;
+    clearInterval(L.relogio);
+    L.fase = 'rolando';
+    try {
+      L.luta = await C.arena.rolar(estado.personagem.id, L.luta.id, rolar);
+    } catch (e) {
+      avisar(e.message);
+      L.fase = 'esperando';
+      return;
+    }
+    tocarEventosArena();
+  }
+
+  function lutaArenaHtml() {
+    var L = estado.lutaArena, est = L.luta.estado, a = est.a, d = est.d;
+    function lutador(x, hp, lado) {
+      return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, x.classe, x.sexo) + '</div>'
+        + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel + '</div>'
+        + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax) + '</div>';
+    }
+    var dd = L.dado, mesa = '';
+    if (dd) {
+      var cls = dd.rolando ? 'rolando' : dd.parado ? 'parado' : dd.numero === 1 ? 'falha' : dd.numero >= 18 ? 'critico' : 'pousou';
+      mesa = '<div class="mesa' + (dd.quem === 'd' ? ' do-oponente' : '') + '">' + d20Svg(dd.numero, cls)
+        + '<div class="mesa-texto">' + (dd.parado ? 'Sua vez! Role o D20.' : dd.rolando ? (dd.quem === 'd' ? 'O servidor rola o dado de ' + esc(d.nome) + '…' : 'Rolando…')
+          : '<strong>' + dd.numero + '</strong> · ' + esc(dd.texto)) + '</div></div>';
+    }
+    var controles = '';
+    if (L.fase === 'esperando') {
+      controles = '<div class="controle-dado"><button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
+        + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div></div>';
+    }
+    var fim = '';
+    if (L.fase === 'fim') {
+      var lt = L.luta;
+      if (lt.situacao === 'vitoria') {
+        fim = '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>Você derrotou ' + esc(d.nome) + '.'
+          + (lt.revanche ? ' Revanche: a posição não muda.' : lt.pos_depois !== lt.pos_antes ? ' Agora você está em <strong>#' + lt.pos_depois + '</strong>.' : '') + '</p>'
+          + '<p>Saque: <strong class="cor-ouro">' + lt.saque.toLocaleString('pt-BR') + ' de ouro</strong> (' + lt.saque_pct + '% do ouro do oponente) e <strong>+' + A.reputacaoVitoria + ' de reputação</strong>.</p>'
+          + (lt.jackpot ? '<p class="destaque">🏆 JACKPOT! +' + lt.jackpot.toLocaleString('pt-BR') + ' de ouro!</p>' : '');
+      } else {
+        fim = '<div class="resultado derrota"><h2>Derrota</h2><p>' + esc(d.nome) + ' venceu. Você continua na mesma posição e não perde nada.</p>';
+      }
+      fim += '<div class="botoes"><button class="btn" data-acao="arena-fechar">Voltar à Arena</button></div></div>';
+    }
+    return fim + '<h3 class="subtitulo">' + esc(nomeArena(L.luta.arena)) + (L.luta.revanche ? ' · Revanche' : '') + '</h3>'
+      + '<div class="arena arena-pvp">' + lutador(a, L.hpA, 'jogador') + '<div class="arena-centro">' + mesa + controles + '</div>' + lutador(d, L.hpD, 'monstro') + '</div>'
+      + '<div class="registro" id="registro">' + L.registro.join('') + '</div>';
+  }
 
   // ---------------- Chat global ----------------
   // Fica fora do #app para não sumir quando a tela é redesenhada.

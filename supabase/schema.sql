@@ -582,5 +582,500 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
   public.masmorra_iniciar(text), public.masmorra_concluir(text, bigint, boolean), public.recompensa_resgatar(text, bigint),
   public.masmorra_admin_recarregar(text) to authenticated;
 
-notify pgrst, 'reload schema';
 
+-- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
+create or replace function public.tanka_dados() returns jsonb
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":5,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico"},"arqueiro":{"dano":"fisico"},"mago":{"dano":"magico"},"artesao":{"dano":"fisico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"danoPorNivel":{"comum":1,"rara":2,"epica":3,"lendaria":5},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]}}'::jsonb; $dados$;
+-- <<< DADOS DO JOGO
+
+-- ---------- Arena (PvP) ----------
+-- Tudo roda aqui no servidor: força dos personagens, dados (D20), dano, saque de ouro e ranking.
+-- Ouro e reputação ganhos ou perdidos viram "créditos" que o jogo de cada um aplica ao entrar.
+
+-- Força de combate de um personagem a partir dos dados salvos (mesmas fórmulas de js/regras.js: status).
+create or replace function public.tanka_status(p jsonb) returns jsonb
+language plpgsql stable as $$
+declare
+  T jsonb := public.tanka_dados();
+  raridades text[] := array['comum', 'rara', 'epica', 'lendaria'];
+  eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int;
+  fo numeric; de numeric; re numeric; inte numeric; nivel int := coalesce((p ->> 'nivel')::int, 1);
+  magico boolean; dmin numeric := 0; dmax numeric := 0; extra numeric; bonus numeric;
+begin
+  for iid in select value #>> '{}' from jsonb_each(coalesce(p -> 'equipados', '{}'::jsonb)) where jsonb_typeof(value) = 'string' loop
+    select x into it from jsonb_array_elements(p -> 'inventario') x where x ->> 'id' = iid limit 1;
+    if it is null or it ->> 'tipo' = 'arma' then continue; end if;
+    tipo := it ->> 'tipo';
+    idx := array_position(raridades, it ->> 'raridade') - 1;
+    def := case when tipo in ('colar', 'anel') then T -> 'joias' -> tipo else T -> 'armaduras' -> (it ->> 'classe') -> tipo end;
+    if def is null then continue; end if;
+    for k, arr in select * from jsonb_each(def -> 'bonus') loop
+      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (arr ->> idx)::numeric));
+    end loop;
+    enc := coalesce((it ->> 'encanto')::int, 0);
+    if enc > 0 then
+      k := T -> 'bonusPorNivel' ->> tipo;
+      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + enc));
+    end if;
+  end loop;
+  fo := (p -> 'atributos' ->> 'for')::numeric + coalesce((eq ->> 'for')::numeric, 0);
+  de := (p -> 'atributos' ->> 'des')::numeric + coalesce((eq ->> 'des')::numeric, 0);
+  re := (p -> 'atributos' ->> 'res')::numeric + coalesce((eq ->> 'res')::numeric, 0);
+  inte := (p -> 'atributos' ->> 'int')::numeric + coalesce((eq ->> 'int')::numeric, 0);
+  magico := T -> 'classes' -> (p ->> 'classe') ->> 'dano' = 'magico';
+  iid := p -> 'equipados' ->> 'arma';
+  select x into it from jsonb_array_elements(p -> 'inventario') x where x ->> 'id' = iid limit 1;
+  if it is not null then
+    if it ? 'dano' then dmin := (it -> 'dano' ->> 0)::numeric; dmax := (it -> 'dano' ->> 1)::numeric;
+    else dmin := (T -> 'raridades' -> (it ->> 'raridade') -> 'danoMin' ->> 0)::numeric; dmax := (T -> 'raridades' -> (it ->> 'raridade') -> 'danoMax' ->> 1)::numeric;
+    end if;
+    extra := coalesce((it ->> 'encanto')::int, 0) * (T -> 'danoPorNivel' ->> (it ->> 'raridade'))::numeric;
+    dmin := dmin + extra; dmax := dmax + extra;
+  end if;
+  bonus := floor((case when magico then inte else fo end) / 5);
+  return jsonb_build_object(
+    'hpMax', (T ->> 'HP_INICIAL')::numeric + greatest(0, re - (p -> 'atributosIniciais' ->> 'res')::numeric) * (T ->> 'HP_POR_RES')::numeric
+      + (nivel - 1) * (T ->> 'HP_POR_NIVEL')::numeric + coalesce((eq ->> 'vida')::numeric, 0),
+    'dano', jsonb_build_array(dmin + bonus, dmax + bonus), 'magico', magico,
+    'defesa', floor(re / 10) + coalesce((eq ->> 'defesa')::numeric, 0),
+    'defesaMagica', floor(re / 10) + coalesce((eq ->> 'defesaMagica')::numeric, 0),
+    'velocidade', round((T -> 'VELOCIDADE' ->> 'inicial')::numeric * power((T -> 'VELOCIDADE' ->> 'porNivel')::numeric, nivel - 1)));
+end $$;
+
+create table if not exists public.arena_posicoes (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  arena text not null,
+  posicao int not null,
+  entrou_em timestamptz not null default now()
+);
+create index if not exists arena_posicoes_arena on public.arena_posicoes (arena, posicao);
+create table if not exists public.arena_entradas (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  valor int not null,
+  atualizado_em timestamptz not null default now()
+);
+create table if not exists public.arena_lutas (
+  id bigint generated always as identity primary key,
+  arena text,
+  atacante text references public.personagens (id) on delete set null,
+  defensor text references public.personagens (id) on delete set null,
+  nome_atacante text not null,
+  nome_defensor text not null,
+  revanche_de bigint,
+  estado jsonb not null,
+  eventos jsonb not null default '[]'::jsonb,
+  situacao text not null default 'andamento' check (situacao in ('andamento', 'vitoria', 'derrota')),
+  saque int not null default 0,
+  saque_pct int not null default 0,
+  pos_antes int,
+  pos_depois int,
+  jackpot int not null default 0,
+  revanche_usada boolean not null default false,
+  criado_em timestamptz not null default now(),
+  concluido_em timestamptz
+);
+create index if not exists arena_lutas_atacante on public.arena_lutas (atacante, id desc);
+create index if not exists arena_lutas_defensor on public.arena_lutas (defensor, id desc);
+create table if not exists public.arena_jackpot (
+  arena text primary key,
+  valor int not null default 0,
+  top1 text,
+  ultima_soma timestamptz not null default now(),
+  ultima_paga timestamptz not null default now(),
+  ultimo_dia date not null default public.dia_jogo()
+);
+create table if not exists public.creditos (
+  id bigint generated always as identity primary key,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  ouro int not null default 0,
+  reputacao int not null default 0,
+  motivo text not null,
+  aplicado boolean not null default false,
+  criado_em timestamptz not null default now()
+);
+create index if not exists creditos_pendentes on public.creditos (personagem_id) where not aplicado;
+alter table public.arena_posicoes enable row level security;
+alter table public.arena_entradas enable row level security;
+alter table public.arena_lutas enable row level security;
+alter table public.arena_jackpot enable row level security;
+alter table public.creditos enable row level security;
+
+create or replace function public.arena_de_nivel(n int) returns text
+language sql stable as $$
+  select a ->> 'id' from jsonb_array_elements(public.tanka_dados() -> 'ARENA' -> 'arenas') a
+  where n between (a -> 'nivel' ->> 0)::int and (a -> 'nivel' ->> 1)::int limit 1;
+$$;
+
+create or replace function public.arena_compactar(ar text) returns void
+language sql as $$
+  update public.arena_posicoes ap set posicao = r.n
+  from (select personagem_id, row_number() over (order by posicao, entrou_em) as n from public.arena_posicoes where arena = ar) r
+  where ap.personagem_id = r.personagem_id and ap.posicao <> r.n;
+$$;
+
+-- Coloca o personagem na arena do level dele (no último lugar se for novo ou trocou de arena).
+create or replace function public.arena_garantir(pid text) returns text
+language plpgsql as $$
+declare alvo text; atual text;
+begin
+  alvo := public.arena_de_nivel((select coalesce((dados ->> 'nivel')::int, 1) from public.personagens where id = pid));
+  select arena into atual from public.arena_posicoes where personagem_id = pid;
+  if atual is not distinct from alvo then return alvo; end if;
+  if atual is not null then
+    delete from public.arena_posicoes where personagem_id = pid;
+    perform public.arena_compactar(atual);
+  end if;
+  if alvo is not null then
+    perform public.arena_compactar(alvo);
+    insert into public.arena_posicoes (personagem_id, arena, posicao)
+    values (pid, alvo, coalesce((select max(posicao) from public.arena_posicoes where arena = alvo), 0) + 1);
+  end if;
+  return alvo;
+end $$;
+
+-- Entradas: até 5 guardadas, +1 a cada hora. Retorna { valor, proxima_em }.
+create or replace function public.arena_entradas_atual(pid text) returns jsonb
+language plpgsql as $$
+declare cfg jsonb := public.tanka_dados() -> 'ARENA'; maximo int := (cfg ->> 'entradasMax')::int;
+  passo interval := make_interval(mins => (cfg ->> 'recargaMinutos')::int); e public.arena_entradas; n int;
+begin
+  select * into e from public.arena_entradas where personagem_id = pid;
+  if e.personagem_id is null then
+    insert into public.arena_entradas (personagem_id, valor) values (pid, maximo) returning * into e;
+  end if;
+  if e.valor < maximo then
+    n := floor(extract(epoch from now() - e.atualizado_em) / extract(epoch from passo));
+    if n > 0 then
+      e.valor := least(maximo, e.valor + n);
+      e.atualizado_em := case when e.valor >= maximo then now() else e.atualizado_em + n * passo end;
+      update public.arena_entradas set valor = e.valor, atualizado_em = e.atualizado_em where personagem_id = pid;
+    end if;
+  end if;
+  return jsonb_build_object('valor', e.valor, 'maximo', maximo,
+    'proxima_em', case when e.valor < maximo then e.atualizado_em + passo end);
+end $$;
+
+create or replace function public.arena_gastar_entrada(pid text) returns void
+language plpgsql as $$
+declare atual int := (public.arena_entradas_atual(pid) ->> 'valor')::int; maximo int := (public.tanka_dados() -> 'ARENA' ->> 'entradasMax')::int;
+begin
+  if atual <= 0 then raise exception 'Sem entradas na Arena. Recupera 1 por hora.'; end if;
+  update public.arena_entradas set valor = valor - 1, atualizado_em = case when atual >= maximo then now() else atualizado_em end
+  where personagem_id = pid;
+end $$;
+
+create or replace function public.creditar(pid text, ouro int, reputacao int, motivo text) returns void
+language sql as $$
+  insert into public.creditos (personagem_id, ouro, reputacao, motivo)
+  select pid, ouro, reputacao, motivo where pid is not null and (ouro <> 0 or reputacao <> 0);
+$$;
+
+-- Ouro de um personagem contando o que ainda não foi aplicado no jogo dele.
+create or replace function public.ouro_real(pid text) returns int
+language sql stable as $$
+  select greatest(0, coalesce((select (dados ->> 'ouro')::int from public.personagens where id = pid), 0)
+    + coalesce((select sum(ouro) from public.creditos where personagem_id = pid and not aplicado), 0))::int;
+$$;
+
+-- Jackpot: soma por tempo do mesmo Top 1, paga 10% por hora ao Top 1 e entrega tudo às 00:00.
+create or replace function public.arena_jackpot_atualizar(ar text) returns public.arena_jackpot
+language plpgsql as $$
+declare cfg jsonb := public.tanka_dados() -> 'ARENA'; j public.arena_jackpot; top text; n int; pago int;
+  por10 int := (select (a ->> 'jackpotPor10min')::int from jsonb_array_elements(cfg -> 'arenas') a where a ->> 'id' = ar);
+begin
+  insert into public.arena_jackpot (arena) values (ar) on conflict (arena) do nothing;
+  select * into j from public.arena_jackpot where arena = ar for update;
+  select personagem_id into top from public.arena_posicoes where arena = ar order by posicao limit 1;
+  if top is distinct from j.top1 then
+    j.top1 := top; j.ultima_soma := now(); j.ultima_paga := now();
+  elsif top is not null then
+    n := floor(extract(epoch from now() - j.ultima_soma) / 600);
+    if n > 0 then j.valor := j.valor + n * por10; j.ultima_soma := j.ultima_soma + n * interval '10 minutes'; end if;
+    n := floor(extract(epoch from now() - j.ultima_paga) / 3600);
+    for i in 1 .. least(n, 48) loop
+      pago := floor(j.valor * (cfg ->> 'top1PorHora')::numeric);
+      j.valor := j.valor - pago;
+      perform public.creditar(top, pago, 0, 'Jackpot da Arena (1 hora no Top 1)');
+    end loop;
+    if n > 0 then j.ultima_paga := j.ultima_paga + n * interval '1 hour'; end if;
+  end if;
+  if j.ultimo_dia < public.dia_jogo() then
+    if top is not null then
+      perform public.creditar(top, j.valor, (cfg ->> 'reputacaoTop1Diario')::int, 'Prêmio diário do Top 1 da Arena');
+      j.valor := 0;
+    end if;
+    j.ultimo_dia := public.dia_jogo();
+  end if;
+  update public.arena_jackpot set valor = j.valor, top1 = j.top1, ultima_soma = j.ultima_soma, ultima_paga = j.ultima_paga, ultimo_dia = j.ultimo_dia
+  where arena = ar;
+  return j;
+end $$;
+
+-- Lutador da luta a partir dos dados salvos do personagem.
+create or replace function public.arena_lutador(pid text) returns jsonb
+language plpgsql stable as $$
+declare p public.personagens; s jsonb;
+begin
+  select * into p from public.personagens where id = pid;
+  s := public.tanka_status(p.dados);
+  return jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'raca', p.dados ->> 'raca', 'sexo', p.dados ->> 'sexo',
+    'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'hp', s -> 'hpMax', 'hpMax', s -> 'hpMax', 'dano', s -> 'dano', 'magico', s -> 'magico',
+    'defesa', s -> 'defesa', 'defesaMagica', s -> 'defesaMagica', 'vel', greatest(1, (s ->> 'velocidade')::numeric), 'barra', 0);
+end $$;
+
+-- Um golpe com o dado: 1 erra; os outros multiplicam o dano (tabela ARENA.dado); a defesa do alvo é descontada.
+create or replace function public.arena_golpe(atk jsonb, alvo jsonb, dado int) returns int
+language plpgsql volatile as $$
+declare mult numeric := (public.tanka_dados() -> 'ARENA' -> 'dado' ->> (dado - 1))::numeric;
+  dmin int := (atk -> 'dano' ->> 0)::int; dmax int := (atk -> 'dano' ->> 1)::int; base int;
+begin
+  if mult = 0 then return 0; end if;
+  base := dmin + floor(random() * (greatest(dmax, dmin) - dmin + 1));
+  return greatest(1, round(base * mult) - (case when (atk ->> 'magico')::boolean then alvo ->> 'defesaMagica' else alvo ->> 'defesa' end)::int);
+end $$;
+
+-- Termina a luta: saque, reputação, ranking e jackpot.
+create or replace function public.arena_finalizar(luta_id bigint, vitoria boolean) returns void
+language plpgsql as $$
+declare cfg jsonb := public.tanka_dados() -> 'ARENA'; L public.arena_lutas; a jsonb; perda numeric; pct int := 0; valor_saque int := 0;
+  pa int; pd int; ar text; j public.arena_jackpot; premio int := 0; depois int;
+begin
+  select * into L from public.arena_lutas where id = luta_id for update;
+  a := L.estado -> 'a';
+  if vitoria then
+    perda := ((a ->> 'hpMax')::numeric - greatest(0, (a ->> 'hp')::numeric)) * 100 / (a ->> 'hpMax')::numeric;
+    pct := case when perda <= (cfg -> 'saque' ->> 'ate')::numeric then (cfg -> 'saque' ->> 'minimo')::int
+                when perda >= (cfg -> 'saque' ->> 'desde')::numeric then (cfg -> 'saque' ->> 'maximo')::int
+                else (cfg -> 'saque' -> 'meio' ->> 0)::int + floor(random() * ((cfg -> 'saque' -> 'meio' ->> 1)::int - (cfg -> 'saque' -> 'meio' ->> 0)::int + 1))::int end;
+    valor_saque := floor(public.ouro_real(L.defensor) * pct / 100.0);
+    perform public.creditar(L.atacante, valor_saque, (cfg ->> 'reputacaoVitoria')::int, 'Vitória na Arena contra ' || L.nome_defensor);
+    perform public.creditar(L.defensor, -valor_saque, 0, 'Saque na Arena por ' || L.nome_atacante);
+  end if;
+  select posicao, arena into pa, ar from public.arena_posicoes where personagem_id = L.atacante;
+  select posicao into pd from public.arena_posicoes where personagem_id = L.defensor and arena = ar;
+  depois := pa;
+  if L.revanche_de is null and pd is not null then
+    j := public.arena_jackpot_atualizar(ar);
+    if vitoria and pa > pd then
+      -- Toma a posição do oponente; quem estava entre os dois desce uma.
+      update public.arena_posicoes set posicao = posicao + 1 where arena = ar and posicao >= pd and posicao < pa;
+      update public.arena_posicoes set posicao = pd where personagem_id = L.atacante;
+      depois := pd;
+      if pd = 1 and j.valor > 0 then
+        premio := j.valor;
+        perform public.creditar(L.atacante, premio, 0, 'Jackpot da Arena: derrotou o Top 1');
+        update public.arena_jackpot set valor = 0, top1 = L.atacante, ultima_soma = now(), ultima_paga = now() where arena = ar;
+      end if;
+    elsif not vitoria and pd = 1 then
+      update public.arena_jackpot set valor = valor + (cfg ->> 'jackpotPorDefesa')::int where arena = ar;
+    end if;
+  end if;
+  update public.arena_lutas set situacao = case when vitoria then 'vitoria' else 'derrota' end, saque = valor_saque,
+    saque_pct = pct, pos_antes = pa, pos_depois = depois, jackpot = premio, concluido_em = now(),
+    estado = jsonb_set(estado, '{pendente}', 'false')
+  where id = luta_id;
+end $$;
+
+-- Avança a luta até a próxima vez do atacante (que rola o dado) ou até o fim.
+-- O defensor está offline: o servidor rola o dado por ele.
+create or replace function public.arena_avancar(luta_id bigint) returns void
+language plpgsql as $$
+declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; ev jsonb := '[]'::jsonb; dado int; dano int; turnos int; limite int;
+begin
+  select * into L from public.arena_lutas where id = luta_id for update;
+  e := L.estado; a := e -> 'a'; d := e -> 'd'; turnos := (e ->> 'turnos')::int;
+  limite := (public.tanka_dados() -> 'ARENA' ->> 'limiteTurnos')::int;
+  loop
+    if turnos >= limite then
+      -- Luta longa demais: vence quem tiver a maior porcentagem de vida.
+      update public.arena_lutas set eventos = eventos || ev, estado = jsonb_build_object('a', a, 'd', d, 'turnos', turnos, 'pendente', false) where id = luta_id;
+      perform public.arena_finalizar(luta_id, (a ->> 'hp')::numeric / (a ->> 'hpMax')::numeric >= (d ->> 'hp')::numeric / (d ->> 'hpMax')::numeric);
+      return;
+    end if;
+    if (a ->> 'barra')::numeric >= 100 and (a ->> 'barra')::numeric >= (d ->> 'barra')::numeric then
+      update public.arena_lutas set eventos = eventos || ev, estado = jsonb_build_object('a', a, 'd', d, 'turnos', turnos, 'pendente', true) where id = luta_id;
+      return;
+    elsif (d ->> 'barra')::numeric >= 100 then
+      dado := 1 + floor(random() * 20)::int;
+      dano := public.arena_golpe(d, a, dado);
+      a := jsonb_set(a, '{hp}', to_jsonb(greatest(0, (a ->> 'hp')::int - dano)));
+      d := jsonb_set(d, '{barra}', to_jsonb((d ->> 'barra')::numeric - 100));
+      turnos := turnos + 1;
+      ev := ev || jsonb_build_object('de', 'd', 'dado', dado, 'dano', dano, 'hpA', a -> 'hp', 'hpD', d -> 'hp');
+      if (a ->> 'hp')::int <= 0 then
+        update public.arena_lutas set eventos = eventos || ev, estado = jsonb_build_object('a', a, 'd', d, 'turnos', turnos, 'pendente', false) where id = luta_id;
+        perform public.arena_finalizar(luta_id, false);
+        return;
+      end if;
+    else
+      a := jsonb_set(a, '{barra}', to_jsonb((a ->> 'barra')::numeric + (a ->> 'vel')::numeric));
+      d := jsonb_set(d, '{barra}', to_jsonb((d ->> 'barra')::numeric + (d ->> 'vel')::numeric));
+    end if;
+  end loop;
+end $$;
+
+-- O atacante rola o dado (rolar = false: o tempo acabou, ataque normal = face 6).
+create or replace function public.arena_jogar(luta_id bigint, rolar boolean) returns void
+language plpgsql as $$
+declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; dado int; dano int;
+begin
+  select * into L from public.arena_lutas where id = luta_id for update;
+  e := L.estado;
+  if L.situacao <> 'andamento' or not (e ->> 'pendente')::boolean then raise exception 'Não é a sua vez.'; end if;
+  a := e -> 'a'; d := e -> 'd';
+  dado := case when rolar then 1 + floor(random() * 20)::int else 6 end;
+  dano := public.arena_golpe(a, d, dado);
+  d := jsonb_set(d, '{hp}', to_jsonb(greatest(0, (d ->> 'hp')::int - dano)));
+  a := jsonb_set(a, '{barra}', to_jsonb((a ->> 'barra')::numeric - 100));
+  update public.arena_lutas set
+    eventos = eventos || jsonb_build_array(jsonb_build_object('de', 'a', 'dado', dado, 'dano', dano, 'auto', not rolar, 'hpA', a -> 'hp', 'hpD', d -> 'hp')),
+    estado = jsonb_build_object('a', a, 'd', d, 'turnos', (e ->> 'turnos')::int + 1, 'pendente', false)
+  where id = luta_id;
+  if (d ->> 'hp')::int <= 0 then perform public.arena_finalizar(luta_id, true);
+  else perform public.arena_avancar(luta_id);
+  end if;
+end $$;
+
+-- Termina lutas abandonadas (página fechada no meio) com ataques normais.
+create or replace function public.arena_encerrar_abandonadas(pid text) returns void
+language plpgsql as $$
+declare lid bigint;
+begin
+  for lid in select id from public.arena_lutas where atacante = pid and situacao = 'andamento' loop
+    while (select situacao from public.arena_lutas where id = lid) = 'andamento' loop
+      perform public.arena_jogar(lid, false);
+    end loop;
+  end loop;
+end $$;
+
+create or replace function public.arena_luta_json(luta_id bigint) returns jsonb
+language sql stable as $$
+  select jsonb_build_object('id', id, 'arena', arena, 'revanche', revanche_de is not null, 'situacao', situacao, 'estado', estado,
+    'eventos', eventos, 'saque', saque, 'saque_pct', saque_pct, 'pos_antes', pos_antes, 'pos_depois', pos_depois, 'jackpot', jackpot)
+  from public.arena_lutas where id = luta_id;
+$$;
+
+create or replace function public.arena_comecar(meu text, alvo text, revanche bigint) returns jsonb
+language plpgsql as $$
+declare ar text; lid bigint;
+begin
+  perform public.arena_encerrar_abandonadas(meu);
+  perform public.arena_gastar_entrada(meu);
+  select arena into ar from public.arena_posicoes where personagem_id = meu;
+  insert into public.arena_lutas (arena, atacante, defensor, nome_atacante, nome_defensor, revanche_de, estado)
+  values (ar, meu, alvo, (select nome from public.personagens where id = meu), (select nome from public.personagens where id = alvo), revanche,
+    jsonb_build_object('a', public.arena_lutador(meu), 'd', public.arena_lutador(alvo), 'turnos', 0, 'pendente', false))
+  returning id into lid;
+  perform public.arena_avancar(lid);
+  return public.arena_luta_json(lid);
+end $$;
+
+-- ===== Funções chamadas pelo jogo =====
+
+-- Tudo da aba Arena. ver: arena a mostrar (null = a do personagem).
+create or replace function public.arena_estado(meu text, ver text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare minha text; pos int; total int; j public.arena_jackpot; cfg jsonb := public.tanka_dados() -> 'ARENA';
+begin
+  perform public.conferir_dono(meu);
+  minha := public.arena_garantir(meu);
+  perform public.arena_encerrar_abandonadas(meu);
+  ver := coalesce(ver, minha, 'a1');
+  j := public.arena_jackpot_atualizar(ver);
+  select posicao into pos from public.arena_posicoes where personagem_id = meu and arena = ver;
+  select count(*) into total from public.arena_posicoes where arena = ver;
+  return jsonb_build_object(
+    'minha_arena', minha, 'arena', ver, 'posicao', pos, 'total', total,
+    'entradas', public.arena_entradas_atual(meu),
+    'reputacao_pendente', coalesce((select sum(reputacao) from public.creditos where personagem_id = meu and not aplicado), 0),
+    'jackpot', jsonb_build_object('valor', j.valor, 'top1', (select nome from public.personagens where id = j.top1)),
+    'top5', coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe',
+        'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0)) order by ap.posicao)
+      from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id where ap.arena = ver and ap.posicao <= 5), '[]'::jsonb),
+    -- Os 5 logo acima (desafiáveis) e você.
+    'alvos', case when pos is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome,
+        'classe', p.dados ->> 'classe', 'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0),
+        'conta_minha', p.conta_id = auth.uid()) order by ap.posicao)
+      from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id
+      where ap.arena = ver and ap.posicao >= pos - (cfg ->> 'alcanceDesafio')::int and ap.posicao <= pos), '[]'::jsonb) end,
+    'historico', coalesce((select jsonb_agg(h order by (h ->> 'id')::bigint desc) from (
+        select jsonb_build_object('id', l.id, 'ataquei', l.atacante = meu, 'oponente', case when l.atacante = meu then l.nome_defensor else l.nome_atacante end,
+          'venceu_atacante', l.situacao = 'vitoria', 'saque', l.saque, 'revanche', l.revanche_de is not null, 'quando', l.concluido_em,
+          'pode_revanche', l.defensor = meu and l.situacao = 'vitoria' and l.revanche_de is null and not l.revanche_usada and l.atacante is not null) as h
+        from public.arena_lutas l where (l.atacante = meu or l.defensor = meu) and l.situacao <> 'andamento' order by l.id desc limit 10) x), '[]'::jsonb),
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
+      from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb));
+end $$;
+
+create or replace function public.arena_desafiar(meu text, alvo text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare pm int; pa int; ar text;
+begin
+  perform public.conferir_dono(meu);
+  ar := public.arena_garantir(meu);
+  if ar is null then raise exception 'A Arena abre no level 5.'; end if;
+  perform public.arena_encerrar_abandonadas(meu);
+  select posicao into pm from public.arena_posicoes where personagem_id = meu;
+  select posicao into pa from public.arena_posicoes where personagem_id = alvo and arena = ar;
+  if pa is null then raise exception 'Esse oponente não está na sua arena.'; end if;
+  if pa >= pm or pm - pa > (public.tanka_dados() -> 'ARENA' ->> 'alcanceDesafio')::int then
+    raise exception 'Só dá para desafiar os 5 logo acima de você.';
+  end if;
+  if (select conta_id from public.personagens where id = alvo) = auth.uid() then raise exception 'Esse personagem é seu.'; end if;
+  return public.arena_comecar(meu, alvo, null);
+end $$;
+
+create or replace function public.arena_revanche(meu text, luta bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare L public.arena_lutas;
+begin
+  perform public.conferir_dono(meu);
+  select * into L from public.arena_lutas where id = luta for update;
+  if L.id is null or L.defensor is distinct from meu or L.situacao <> 'vitoria' or L.revanche_de is not null or L.atacante is null then
+    raise exception 'Revanche indisponível.';
+  end if;
+  if L.revanche_usada then raise exception 'Você já fez a revanche dessa luta.'; end if;
+  update public.arena_lutas set revanche_usada = true where id = luta;
+  return public.arena_comecar(meu, L.atacante, luta);
+end $$;
+
+create or replace function public.arena_rolar(meu text, luta bigint, rolar boolean) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if (select atacante from public.arena_lutas where id = luta) is distinct from meu then raise exception 'Luta não encontrada.'; end if;
+  perform public.arena_jogar(luta, rolar);
+  return public.arena_luta_json(luta);
+end $$;
+
+-- O jogo aplica o crédito (ouro/reputação) no personagem e avisa que aplicou.
+create or replace function public.credito_aplicar(meu text, credito bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare c public.creditos;
+begin
+  perform public.conferir_dono(meu);
+  update public.creditos set aplicado = true where id = credito and personagem_id = meu and not aplicado returning * into c;
+  if c.id is null then raise exception 'Crédito não encontrado.'; end if;
+  return jsonb_build_object('ouro', c.ouro, 'reputacao', c.reputacao, 'motivo', c.motivo);
+end $$;
+
+create or replace function public.arena_admin_recarregar(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  insert into public.arena_entradas (personagem_id, valor) values (meu, 5)
+  on conflict (personagem_id) do update set valor = 5, atualizado_em = now();
+end $$;
+
+revoke execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text) from public, anon;
+grant execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text) to authenticated;
+revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int), public.arena_compactar(text), public.arena_garantir(text),
+  public.arena_entradas_atual(text), public.arena_gastar_entrada(text), public.creditar(text, int, int, text), public.ouro_real(text),
+  public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
+  public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
+  public.arena_comecar(text, text, bigint) from public, anon, authenticated;
+
+notify pgrst, 'reload schema';

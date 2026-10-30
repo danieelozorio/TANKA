@@ -560,3 +560,55 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .zoom-atributos li { display: flex; justify-content: space-between; gap: .5rem; border-bottom: 1px solid rgba(44, 52, 66, .6); padding: .2rem 0; }
 .zoom-janela .botoes { justify-content: center; margin-top: 1rem; }
 @media (max-width: 520px) { .icone-zoom { width: min(150px, 100%); } }
+
+/* Arena (PvP com D20) */
+.secao.reputacao strong { color: #9fd3ff; }
+.arena-abas { flex-wrap: wrap; }
+.arena-topo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.arena-linha { display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; text-align: left; }
+.arena-linha.meu { border-color: var(--ouro); background: rgba(201, 169, 107, .08); }
+.arena-pos { width: 2.4rem; display: grid; place-items: center; flex: none; }
+.pos-numero { font-family: var(--titulo); color: var(--suave); font-size: 1.1rem; }
+.trofeu { width: 28px; height: 28px; }
+.trofeu-ouro { fill: #f2c94c; filter: drop-shadow(0 0 4px rgba(242, 201, 76, .6)); }
+.trofeu-prata { fill: #cfd6df; }
+.trofeu-bronze { fill: #cd8a4f; }
+.arena-pvp { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+.arena-lutador .moldura { max-width: 150px; }
+.arena-centro { display: grid; gap: .6rem; justify-items: center; }
+.mesa { position: relative; width: 100%; min-height: 170px; display: grid; justify-items: center; align-content: center; gap: .4rem; padding: .8rem; border-radius: 14px;
+  border: 3px solid #4a3220; background: radial-gradient(ellipse at 50% 40%, #1f4a33, #0f2419 75%); box-shadow: inset 0 0 30px rgba(0, 0, 0, .6); overflow: hidden; }
+.mesa-texto { text-align: center; font-size: .95rem; }
+.d20 { width: 96px; height: 96px; }
+.d20-face { fill: #e9e2d0; stroke: #2a2318; stroke-width: 3; }
+.d20-meio { fill: #f6f1e4; stroke: #2a2318; stroke-width: 2; }
+.d20-linha { fill: none; stroke: #2a2318; stroke-width: 2; opacity: .55; }
+.d20-numero { font: 700 28px var(--titulo, serif); fill: #2a2318; }
+.d20.parado { animation: d20Respira 1.6s ease-in-out infinite; }
+.d20.rolando { animation: d20Rola 1.1s cubic-bezier(.2, .7, .3, 1) both; }
+.mesa.do-oponente .d20.rolando { animation-name: d20RolaOponente; }
+.d20.critico .d20-face, .d20.critico .d20-meio { fill: #ffd862; }
+.d20.critico { filter: drop-shadow(0 0 10px rgba(255, 210, 80, .9)); }
+.d20.falha .d20-face, .d20.falha .d20-meio { fill: #e06a5a; }
+@keyframes d20Respira { 50% { transform: scale(1.06); } }
+@keyframes d20Rola {
+  0% { transform: translate(-140px, -50px) rotate(0) scale(.7); }
+  60% { transform: translate(18px, 8px) rotate(620deg) scale(1.05); }
+  80% { transform: translate(-6px, 0) rotate(700deg) scale(1); }
+  100% { transform: translate(0, 0) rotate(720deg) scale(1); }
+}
+@keyframes d20RolaOponente {
+  0% { transform: translate(140px, -50px) rotate(0) scale(.7); }
+  60% { transform: translate(-18px, 8px) rotate(-620deg) scale(1.05); }
+  80% { transform: translate(6px, 0) rotate(-700deg) scale(1); }
+  100% { transform: translate(0, 0) rotate(-720deg) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { .d20.rolando, .d20.parado { animation: none; } }
+.controle-dado { display: grid; gap: .35rem; justify-items: center; width: 100%; }
+.btn-rolar { font-size: 1.1rem; padding: .7em 1.6em; border-color: var(--lendaria); color: #fff3c4; background: linear-gradient(#5a4210, #2e2108); }
+.tempo-dado { width: 100%; max-width: 240px; height: 8px; border-radius: 4px; background: #000; border: 1px solid var(--borda); overflow: hidden; }
+.tempo-dado i { display: block; height: 100%; background: linear-gradient(90deg, #d0645a, #f2c94c); }
+@media (max-width: 700px) {
+  .arena-pvp { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .arena-pvp .arena-centro { grid-column: 1 / -1; order: 3; }
+}

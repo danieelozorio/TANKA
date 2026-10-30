@@ -428,6 +428,24 @@ Tanka.dados = {
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 
+  // ---------- Arena (PvP) ----------
+  // A luta roda no servidor (supabase/schema.sql). Estes valores vão para o banco pela
+  // ferramenta ferramentas/gerar_dados_sql.js: depois de mudar aqui, rode a ferramenta e o schema.
+  // dado: multiplicador de dano de cada face do D20 (índice 0 = face 1). 1 erra; 18 a 20 são críticos.
+  ARENA: {
+    nivelMin: 5, entradasMax: 5, recargaMinutos: 60, alcanceDesafio: 5, tempoDado: 5, limiteTurnos: 200,
+    reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
+    dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
+    // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.
+    saque: { ate: 30, minimo: 5, desde: 80, maximo: 10, meio: [5, 8] },
+    arenas: [
+      { id: 'a1', nome: 'Arena 5~10', nivel: [5, 10], jackpotPor10min: 50 },
+      { id: 'a2', nome: 'Arena 11~20', nivel: [11, 20], jackpotPor10min: 100 },
+      { id: 'a3', nome: 'Arena 21~30', nivel: [21, 30], jackpotPor10min: 150 },
+      { id: 'a4', nome: 'Arena 30+', nivel: [31, 40], jackpotPor10min: 200 },
+    ],
+  },
+
   // Preenchido abaixo a partir das áreas.
   monstros: {},
 };
