@@ -961,3 +961,70 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
   .alianca-form, .bonus-lista { grid-template-columns: 1fr; }
   .brasao-editor { grid-template-columns: 1fr; justify-items: center; }
 }
+
+/* ================= Tela de entrada (Eldrin) ================= */
+.tela-entrada { position: relative; min-height: 100vh; overflow: hidden; padding-top: .5rem; }
+.cenario { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: url("../assets/fundo-entrada.webp") center / cover no-repeat,
+    radial-gradient(ellipse 60% 40% at 50% 18%, rgba(120, 150, 210, .18), transparent 70%),
+    radial-gradient(ellipse at 20% 10%, rgba(70, 90, 130, .35), transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #16223a 38%, #1b2638 60%, #0b0f16 100%); }
+.cenario::before { content: ""; position: absolute; inset: 0 0 45% 0; opacity: .8;
+  background-image: radial-gradient(1px 1px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 28% 8%, #cfe0ff, transparent),
+    radial-gradient(1.5px 1.5px at 47% 22%, #fff, transparent), radial-gradient(1px 1px at 63% 12%, #fff, transparent),
+    radial-gradient(1px 1px at 78% 26%, #cfe0ff, transparent), radial-gradient(1.5px 1.5px at 88% 6%, #fff, transparent),
+    radial-gradient(1px 1px at 6% 35%, #fff, transparent), radial-gradient(1px 1px at 36% 30%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 40%, #fff, transparent), radial-gradient(1px 1px at 94% 33%, #fff, transparent); }
+.cenario-silhuetas { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; height: 70%; }
+.monte-longe { fill: #1a2335; }
+.monte-perto { fill: #121928; }
+.ruinas, .pinheiros { fill: #0d121d; }
+.chao { fill: #090c13; }
+.nevoa { position: absolute; left: -10%; right: -10%; bottom: 8%; height: 35%; opacity: .55;
+  background: radial-gradient(ellipse 40% 50% at 20% 60%, rgba(150, 165, 190, .25), transparent 70%), radial-gradient(ellipse 45% 45% at 75% 55%, rgba(150, 165, 190, .22), transparent 70%);
+  animation: nevoaAnda 40s ease-in-out infinite alternate; }
+@keyframes nevoaAnda { from { transform: translateX(-4%); } to { transform: translateX(4%); } }
+.brasas-entrada i { position: absolute; bottom: -10px; width: var(--tam); height: var(--tam); border-radius: 50%;
+  background: radial-gradient(#fff3c0, #ff9a2e 55%, transparent 70%); box-shadow: 0 0 6px 2px rgba(255, 140, 40, .55);
+  animation: brasaSobe linear infinite; }
+@keyframes brasaSobe { 0% { transform: translate(0, 0); opacity: 0; } 10% { opacity: 1; } 80% { opacity: .8; } 100% { transform: translate(var(--deriva), -95vh); opacity: 0; } }
+
+.tela-entrada .marca { margin: 1rem 0 .4rem; }
+.tela-entrada .logo-marca { -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, #000 62%, transparent 100%); }
+
+/* Moldura de metal com runas */
+.moldura-runica { position: relative; padding: 2.3rem 1.7rem 2.1rem; border-radius: 6px;
+  border: 3px solid #4b4330; outline: 1px solid rgba(214, 178, 98, .75); outline-offset: -9px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 210, 120, .08), transparent 60%), linear-gradient(180deg, #1d2129, #121419);
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2519, 0 0 0 5px #8c7442, 0 24px 60px rgba(0, 0, 0, .75), inset 0 0 40px rgba(0, 0, 0, .65); }
+.moldura-runica::before { display: none; }
+.moldura-runica .canto { position: absolute; width: 30px; height: 30px; border: 3px solid #c9a24a; z-index: 2;
+  background: linear-gradient(135deg, rgba(255, 230, 160, .35), transparent 60%); box-shadow: 0 0 8px rgba(201, 162, 74, .45); }
+.moldura-runica .canto::after { content: ""; position: absolute; width: 9px; height: 9px; background: #e8c46a; transform: rotate(45deg); box-shadow: 0 0 6px rgba(255, 200, 90, .8); }
+.moldura-runica .c1 { top: -7px; left: -7px; border-right: 0; border-bottom: 0; } .moldura-runica .c1::after { top: 4px; left: 4px; }
+.moldura-runica .c2 { top: -7px; right: -7px; border-left: 0; border-bottom: 0; } .moldura-runica .c2::after { top: 4px; right: 4px; }
+.moldura-runica .c3 { bottom: -7px; left: -7px; border-right: 0; border-top: 0; } .moldura-runica .c3::after { bottom: 4px; left: 4px; }
+.moldura-runica .c4 { bottom: -7px; right: -7px; border-left: 0; border-top: 0; } .moldura-runica .c4::after { bottom: 4px; right: 4px; }
+.runas { position: absolute; left: 50%; transform: translateX(-50%); padding: 0 .7rem; background: #15171c; white-space: nowrap;
+  font-size: .78rem; letter-spacing: .45em; color: #c9a24a; text-shadow: 0 0 6px rgba(255, 190, 80, .55); }
+.runas-topo { top: -11px; }
+.runas-base { bottom: -11px; }
+
+.moldura-runica .abas { gap: 0; margin-bottom: 1.2rem; border: 1px solid #4b4330; border-radius: 4px; overflow: hidden; }
+.moldura-runica .abas button { border: 0; border-radius: 0; padding: .6em; background: rgba(0, 0, 0, .35); color: var(--suave); }
+.moldura-runica .abas button.ativa { color: #ffe7a6; background: linear-gradient(180deg, rgba(201, 162, 74, .25), rgba(201, 162, 74, .05));
+  box-shadow: inset 0 -2px 0 #e0b65a, 0 0 14px rgba(224, 182, 90, .25); text-shadow: 0 0 8px rgba(255, 200, 100, .6); }
+.moldura-runica label { color: #cdbf9f; }
+.moldura-runica input { margin-top: .3rem; padding: .7em .8em; border: 1px solid #6b5a33; border-radius: 3px; background: linear-gradient(180deg, #0a0c11, #11151c);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, .8), 0 0 0 1px #000; }
+.moldura-runica input:focus { outline: none; border-color: #e0b65a; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .8), 0 0 10px rgba(224, 182, 90, .45); }
+.moldura-runica .btn[type="submit"] { margin-top: .4rem; padding: .85em; border: 1px solid #ffd98a; border-radius: 4px; font-size: 1.05rem; font-weight: 700; letter-spacing: .12em;
+  color: #2a1704; text-shadow: 0 1px 0 rgba(255, 240, 200, .6);
+  background: linear-gradient(180deg, #ffe39a 0%, #e9b450 45%, #b9801f 55%, #d8a13c 100%);
+  box-shadow: 0 0 0 2px #3a2a10, 0 0 22px rgba(255, 180, 60, .55), inset 0 1px 0 rgba(255, 255, 255, .6); animation: botaoBrilha 2.4s ease-in-out infinite; }
+.moldura-runica .btn[type="submit"]:hover { filter: brightness(1.1); }
+@keyframes botaoBrilha { 0%, 100% { box-shadow: 0 0 0 2px #3a2a10, 0 0 16px rgba(255, 180, 60, .45), inset 0 1px 0 rgba(255, 255, 255, .6); }
+  50% { box-shadow: 0 0 0 2px #3a2a10, 0 0 30px rgba(255, 190, 70, .8), inset 0 1px 0 rgba(255, 255, 255, .6); } }
+.tela-entrada .rodape { position: relative; color: #b9ab8c; }
+@media (prefers-reduced-motion: reduce) { .brasas-entrada i, .nevoa, .moldura-runica .btn[type="submit"] { animation: none; } .brasas-entrada { display: none; } }
+@media (max-width: 520px) { .moldura-runica { padding: 2rem 1.1rem 1.8rem; } .runas { letter-spacing: .3em; font-size: .7rem; } }

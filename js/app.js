@@ -39,6 +39,28 @@
   function marca() {
     return '<header class="marca"><h1><img class="logo-marca" src="assets/logo-eldrin.webp" alt="' + D.NOME_JOGO + ' — ' + D.SUBTITULO + '"></h1></header>';
   }
+  // Fundo da tela de entrada: céu noturno, montanhas, ruínas, pinheiros, névoa e brasas subindo.
+  // Se existir assets/fundo-entrada.webp (pintura), ela fica por cima do desenho.
+  function cenarioEntrada() {
+    var brasas = '';
+    for (var i = 0; i < 34; i++) {
+      brasas += '<i style="left:' + (Math.random() * 100).toFixed(1) + '%;animation-delay:-' + (Math.random() * 9).toFixed(1) + 's;animation-duration:'
+        + (6 + Math.random() * 6).toFixed(1) + 's;--deriva:' + Math.round(Math.random() * 80 - 40) + 'px;--tam:' + (2 + Math.random() * 3).toFixed(1) + 'px"></i>';
+    }
+    return '<div class="cenario" aria-hidden="true">'
+      + '<svg class="cenario-silhuetas" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMax slice">'
+      + '<path class="monte-longe" d="M0 420L120 330L210 380L330 250L430 340L520 300L600 360L700 230L790 320L880 270L990 350L1080 260L1200 340V600H0Z"/>'
+      + '<path class="monte-perto" d="M0 470L90 430L170 460L260 400L350 450L470 420L560 470L680 430L780 470L900 410L1010 460L1110 420L1200 450V600H0Z"/>'
+      + '<g class="ruinas"><rect x="40" y="330" width="34" height="150"/><rect x="34" y="320" width="46" height="14"/><rect x="110" y="360" width="30" height="120"/>'
+      + '<rect x="104" y="350" width="42" height="12"/><path d="M160 480V380Q200 330 240 380V480H222V392Q200 362 178 392V480Z"/><rect x="262" y="400" width="26" height="80"/>'
+      + '<rect x="0" y="300" width="22" height="180"/></g>'
+      + '<g class="pinheiros">' + [930, 965, 1000, 1040, 1080, 1120, 1160].map(function (x, k) {
+        var h = 70 + (k % 3) * 22;
+        return '<path d="M' + x + ' ' + (480 - h) + 'L' + (x - 16) + ' 480H' + (x + 16) + 'Z"/>';
+      }).join('') + '<rect x="1150" y="250" width="50" height="230"/><rect x="1140" y="240" width="70" height="16"/></g>'
+      + '<path class="chao" d="M0 500Q300 470 600 495T1200 490V600H0Z"/></svg>'
+      + '<div class="nevoa"></div><div class="brasas-entrada">' + brasas + '</div></div>';
+  }
   function rodape() {
     return '<footer class="rodape">' + D.DOMINIO + '</footer>';
   }
@@ -147,11 +169,13 @@
         + '<label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>'
         + '<p class="erro">' + esc(erro || '') + '</p>'
         + '<button class="btn largo" type="submit">Entrar</button></form>';
-    app.innerHTML = marca()
-      + '<section class="auth"><div class="caixa">'
+    app.innerHTML = '<div class="tela-entrada">' + cenarioEntrada() + marca()
+      + '<section class="auth"><div class="caixa moldura-runica">'
+      + '<i class="canto c1"></i><i class="canto c2"></i><i class="canto c3"></i><i class="canto c4"></i>'
+      + '<div class="runas runas-topo">ᚠᚱᛗᚾᚨ ◆ ᚱᚲᛗᚨ</div><div class="runas runas-base">ᛟᛞᚾ ◆ ᛗᛁᚱ</div>'
       + '<div class="abas"><button data-acao="auth" data-modo="entrar" class="' + (cadastro ? '' : 'ativa') + '">Entrar</button>'
       + '<button data-acao="auth" data-modo="cadastro" class="' + (cadastro ? 'ativa' : '') + '">Cadastrar</button></div>'
-      + form + '</div></section>' + rodape();
+      + form + '</div></section>' + rodape() + '</div>';
     var primeiro = app.querySelector('input');
     if (primeiro) primeiro.focus();
   }
