@@ -1955,6 +1955,7 @@
     }
     function pousar() {
       clearInterval(L.giro);
+      if (final === 20 && tocarVideo20(quem, terminar)) return;
       if (L.dado3d) {
         L.modal = { modo: 'pousando', quem: quem, numero: final };
         atualizarJanelaDado();
@@ -1966,6 +1967,34 @@
     atualizarJanelaDado();
     if (!L.dado3d) girarNumeros();
     L.timer = setTimeout(pousar, L.dado3d ? 950 : 1500);
+  }
+  // 20 natural com a skin Rubi: toca o vídeo do dado caindo e pegando fogo (assets/dado/).
+  // Devolve false se não houver vídeo para a skin; se o vídeo falhar, segue sem ele.
+  function tocarVideo20(quem, depois) {
+    var L = estado.lutaArena, est = L.luta.estado;
+    var skin = (quem === 'd' ? est.d.skin : est.a.skin || estado.personagem.skinDado) || 'vermelho';
+    var ov = document.getElementById('dado-overlay'), video = ov && ov.querySelector('.video-20');
+    if (skin !== 'vermelho' || !video || video.dataset.falhou) return false;
+    var feito = false;
+    function fim() {
+      if (feito) return;
+      feito = true;
+      clearTimeout(L.timerVideo);
+      depois();
+    }
+    L.modal = { modo: 'video', quem: quem, numero: '?' };
+    atualizarJanelaDado();
+    video.currentTime = 0;
+    video.onended = fim;
+    L.timerVideo = setTimeout(fim, 6000);
+    var tocar = video.play();
+    if (tocar && tocar.catch) {
+      tocar.catch(function () {
+        video.muted = true;
+        video.play().catch(function () { video.dataset.falhou = '1'; fim(); });
+      });
+    }
+    return true;
   }
   function girarNumeros() {
     var L = estado.lutaArena;
@@ -1990,8 +2019,12 @@
       ov.className = 'zoom-fundo dado-fundo';
       ov.innerHTML = '<div class="zoom-janela dado-janela" role="dialog" aria-label="Dado"><div class="zoom-rotulo"></div>'
         + '<div class="mesa-madeira"><div class="raios-20"></div><div class="sombra-dado"></div><div class="dado-palco"></div><div class="faiscas"></div>'
+        + '<video class="video-20" poster="assets/dado/nat20-vermelho-fim.jpg" playsinline preload="auto">'
+        + '<source src="assets/dado/nat20-vermelho.webm" type="video/webm"><source src="assets/dado/nat20-vermelho.mp4" type="video/mp4"></video>'
         + '<div class="selo-dado"></div></div><div class="dado-baixo"></div></div>';
       ov.addEventListener('click', function (e) { if (e.target.closest('[data-acao="arena-rolar"]')) rolarDadoArena(true); });
+      var fontes = ov.querySelectorAll('.video-20 source');
+      fontes[fontes.length - 1].addEventListener('error', function () { this.parentNode.dataset.falhou = '1'; });
       document.body.appendChild(ov);
     }
     ov.hidden = false;
@@ -2000,7 +2033,11 @@
     janela.classList.toggle('do-oponente', m.quem === 'd');
     var n = m.numero, pousou = m.modo === 'pousou';
     mesa.className = 'mesa-madeira ' + m.modo + (pousou ? (n === 20 ? ' nat20 critico' : n >= 18 ? ' critico' : n === 1 ? ' falha' : '') : '') + (L.dado3d ? ' em3d' : '');
-    janela.classList.toggle('treme', pousou && n === 20);
+    // O vídeo fica na tela enquanto toca e parado no último quadro depois que pousa.
+    var comVideo = m.modo === 'video' || (pousou && n === 20 && L.modoMostrado === 'video') || (pousou && L.videoNaMesa);
+    L.videoNaMesa = comVideo && m.modo !== 'rolar';
+    mesa.classList.toggle('com-video', comVideo);
+    janela.classList.toggle('treme', pousou && n === 20 && !comVideo);
     ov.querySelector('.zoom-rotulo').textContent = m.quem === 'd' ? 'Dado de ' + est.d.nome + ' · rolado pelo servidor' : 'Seu ataque';
     ov.querySelector('.selo-dado').textContent = pousou ? (n === 20 ? 'CRÍTICO NATURAL!' : n >= 18 ? 'CRÍTICO!' : n === 1 ? 'FALHA CRÍTICA' : '') : '';
     // O dado: 3D (troca se mudou a skin) ou SVG.
@@ -2018,14 +2055,14 @@
     } else {
       palco.innerHTML = d20Bonito(n, skin);
     }
-    if (pousou && n === 20 && L.modoMostrado !== 'pousou') soltarFaiscas(ov.querySelector('.faiscas'));
+    if (pousou && n === 20 && !comVideo && L.modoMostrado !== 'pousou') soltarFaiscas(ov.querySelector('.faiscas'));
     L.modoMostrado = m.modo;
     var baixo = '';
     if (m.modo === 'rolar') {
       baixo = '<button class="btn btn-rolar" data-acao="arena-rolar">🎲 ROLAR DADO</button>'
         + '<div class="tempo-dado"><i style="width:100%"></i></div><div class="suave pequeno">Sem rolar em ' + A.tempoDado + ' s: ataque normal.</div>';
     } else if (!pousou) {
-      baixo = '<div class="dado-resultado suave">Rolando…</div>';
+      baixo = '<div class="dado-resultado suave">' + (m.modo === 'video' ? '…' : 'Rolando…') + '</div>';
     } else {
       baixo = '<div class="dado-resultado ' + (n === 1 ? 'menos' : n >= 18 ? 'cor-ouro' : '') + '"><strong>' + n + '</strong> · ' + esc(m.texto) + '</div>';
     }
