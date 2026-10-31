@@ -451,8 +451,13 @@ Tanka.dados = {
   // As cores de cada skin ficam em css/estilo.css (.d20g.skin-<id>).
   // Caçada contínua: tempo de busca (cai com a Velocidade), peso extra dos monstros mais fortes pela Sorte,
   // vida mínima para caçar (% da vida máxima), segundos para responder ao encontro e opções de poção automática.
-  CACADA: { buscaBase: 3000, velocidadeBase: 15, buscaMin: 800, buscaMax: 3000, sortePorPeso: 50, vidaMinima: 5,
-    contagem: 3, pocaoAuto: [10, 5], historico: 10 },
+  // Caçada contínua. Tempo de busca (ms) do monstro mais fraco ao mais forte da região: no começo da região
+  // `tempoInicio` e, com a evolução, até `tempoFinal`. Rastreio = Velocidade + Sorte. A evolução na região vai de 0%
+  // (rastreio igual ao de referência: velocidade do level mínimo da região + `sorteBase`) a 100% (`faixaEvolucao`
+  // = +60% acima da referência). Chance: o mais fraco pesa 1 + `pesoFraco` (3x o mais forte) no começo; com a
+  // evolução os pesos se igualam.
+  CACADA: { tempoInicio: [3000, 5000], tempoFinal: [2000, 3000], sorteBase: 15, faixaEvolucao: 0.6, pesoFraco: 2,
+    vidaMinima: 5, contagem: 3, pocaoAuto: [10, 5], historico: 10 },
 
   // Missões diárias (renovam às 00:00 de Brasília) e semanais (renovam na segunda às 00:00).
   // evento: o que conta progresso | prêmio: ouroPorNivel (x level), reputacao, pergaminhoArma (da raridade da arma equipada).

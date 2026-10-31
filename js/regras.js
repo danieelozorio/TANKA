@@ -733,22 +733,45 @@ Tanka.regras = (function () {
   }
 
   // ---------- Caçada contínua ----------
-  // Tempo procurando o próximo monstro: 3 s com velocidade 15, menos quanto mais rápido (entre 0,8 s e 3 s).
-  function tempoBusca(p) {
-    var C = D.CACADA;
-    return Math.round(Math.min(C.buscaMax, Math.max(C.buscaMin, C.buscaBase * C.velocidadeBase / Math.max(1, status(p).velocidade))));
+  // ---------- Caçada contínua ----------
+  // Rastreio = Velocidade + Sorte. Evolução na região (0 a 1): quanto o rastreio passa da referência da região.
+  function rastreio(p) { return status(p).velocidade + atributosTotais(p).sor; }
+  function evolucaoCacada(p, areaId) {
+    var C = D.CACADA, area = D.areas.filter(function (a) { return a.id === areaId; })[0];
+    var base = velocidadeDoNivel(area ? area.nivelMin : 1) + C.sorteBase;
+    return Math.max(0, Math.min(1, (rastreio(p) / base - 1) / C.faixaEvolucao));
   }
-  // Sorteia o próximo monstro entre os escolhidos (só os liberados). Do mais fraco ao mais forte, cada posição
-  // ganha +1 de peso a cada 50 de Sorte: com mais Sorte aparecem mais os fortes (mais exp e drop, mais risco).
+  // Posição do monstro na região: 0 = o mais fraco, 1 = o mais forte.
+  function posicaoNaArea(id) {
+    var m = D.monstros[id], area = D.areas.filter(function (a) { return a.id === m.area; })[0];
+    if (!area || area.monstros.length < 2) return 0;
+    var i = area.monstros.map(function (x) { return x.id; }).indexOf(id);
+    return i < 0 ? 1 : i / (area.monstros.length - 1);
+  }
+  // Tempo procurando um monstro: o mais fraco é achado mais rápido; diminui com a evolução na região.
+  function tempoBusca(p, id) {
+    var C = D.CACADA, f = posicaoNaArea(id), ev = evolucaoCacada(p, D.monstros[id].area);
+    var ini = C.tempoInicio[0] + f * (C.tempoInicio[1] - C.tempoInicio[0]);
+    var fim = C.tempoFinal[0] + f * (C.tempoFinal[1] - C.tempoFinal[0]);
+    return Math.round(ini - ev * (ini - fim));
+  }
+  // Chance (%) e tempo de cada monstro escolhido (só os liberados): o mais fraco aparece mais; com a evolução
+  // na região (Velocidade + Sorte) a chance dos fortes sobe até todos ficarem iguais.
+  function chancesCacada(p, ids) {
+    var lista = ids.filter(function (id) { return podeCacar(p, id); });
+    var pesos = lista.map(function (id) {
+      return 1 + (1 - posicaoNaArea(id)) * D.CACADA.pesoFraco * (1 - evolucaoCacada(p, D.monstros[id].area));
+    });
+    var total = pesos.reduce(function (t, x) { return t + x; }, 0);
+    return lista.map(function (id, i) { return { id: id, chance: pesos[i] * 100 / total, tempo: tempoBusca(p, id) }; })
+      .sort(function (a, b) { return posicaoNaArea(a.id) - posicaoNaArea(b.id); });
+  }
   function escolherMonstroCacada(p, ids, rng) {
-    var lista = ids.filter(function (id) { return podeCacar(p, id); })
-      .sort(function (a, b) { return D.monstros[a].hp - D.monstros[b].hp; });
+    var lista = chancesCacada(p, ids);
     if (!lista.length) return null;
-    var sor = atributosTotais(p).sor;
-    var pesos = lista.map(function (id, i) { return 1 + i * sor / D.CACADA.sortePorPeso; });
-    var r = (rng || Math.random)() * pesos.reduce(function (t, x) { return t + x; }, 0);
-    for (var i = 0; i < lista.length; i++) { r -= pesos[i]; if (r < 0) return lista[i]; }
-    return lista[lista.length - 1];
+    var r = (rng || Math.random)() * 100;
+    for (var i = 0; i < lista.length; i++) { r -= lista[i].chance; if (r < 0) return lista[i].id; }
+    return lista[lista.length - 1].id;
   }
   // Para caçar é preciso ter mais que 5% da vida.
   function vidaParaCacar(p) { return p.hpAtual > status(p).hpMax * D.CACADA.vidaMinima / 100; }
@@ -1162,6 +1185,9 @@ Tanka.regras = (function () {
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
     tempoBusca: tempoBusca,
+    rastreio: rastreio,
+    evolucaoCacada: evolucaoCacada,
+    chancesCacada: chancesCacada,
     escolherMonstroCacada: escolherMonstroCacada,
     vidaParaCacar: vidaParaCacar,
     precisaPocao: precisaPocao,

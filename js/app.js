@@ -1658,7 +1658,10 @@
     c.fase = 'buscando';
     c.encontro = null;
     c.prazo = null;
-    c.busca = Math.round(R.tempoBusca(p) / (estado.rapido ? 2 : 1));
+    // O monstro é sorteado já no começo: o mais forte demora mais para ser achado.
+    c.proximo = R.escolherMonstroCacada(p, c.alvos);
+    if (!c.proximo) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
+    c.busca = Math.round(R.tempoBusca(p, c.proximo) / (estado.rapido ? 2 : 1));
     telaJogo();
     clearTimeout(c.timer);
     c.timer = setTimeout(encontrarMonstro, c.busca);
@@ -1666,7 +1669,7 @@
   function encontrarMonstro() {
     var c = estado.cacada, p = estado.personagem;
     if (!c || !c.ativa) return;
-    var id = R.escolherMonstroCacada(p, c.alvos);
+    var id = c.proximo && R.podeCacar(p, c.proximo) ? c.proximo : R.escolherMonstroCacada(p, c.alvos);
     if (!id) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
     var chefe = R.sortearChefe(p, id);
     c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
@@ -1751,7 +1754,11 @@
     if (c.fase === 'buscando' || c.fase === 'pausa') {
       direita = '<div class="cacada-busca"><div class="busca-icone">🔎</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Procurando monstros…') + '</div>'
         + '<div class="busca-barra"><i style="animation-duration:' + (c.fase === 'pausa' ? 900 : c.busca) + 'ms"></i></div>'
-        + '<div class="suave pequeno">Velocidade ' + s.velocidade + ': ~' + (R.tempoBusca(p) / 1000).toFixed(1) + ' s por busca</div></div>';
+        + '<div class="suave pequeno">Rastreio ' + R.rastreio(p) + ' (Velocidade ' + s.velocidade + ' + Sorte ' + R.atributosTotais(p).sor + ')'
+        + ' · evolução na região ' + Math.round(R.evolucaoCacada(p, c.area) * 100) + '%</div>'
+        + '<div class="busca-chances">' + R.chancesCacada(p, c.alvos).map(function (x) {
+          return '<span><b>' + D.monstros[x.id].nome + '</b> ' + Math.round(x.chance) + '% · ' + (x.tempo / 1000).toFixed(1).replace('.', ',') + ' s</span>';
+        }).join('') + '</div></div>';
     } else if (c.fase === 'encontrou') {
       var m = D.monstros[c.encontro.monstro];
       direita = '<div class="lutador cacada-encontro' + (c.encontro.chefe ? ' chefe' : '') + '" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(c.encontro.monstro) + '</div>'

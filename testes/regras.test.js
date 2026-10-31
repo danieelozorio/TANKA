@@ -892,17 +892,28 @@ teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
   assert.strictEqual(res.exp, Math.floor(m.exp * 1.1));
 });
 
-teste('caçada contínua: busca pela velocidade, sorteio pela sorte, vida mínima e poção automática', () => {
+teste('caçada contínua: tempo e chance por força do monstro e rastreio (velocidade + sorte), vida mínima e poção automática', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
-  assert.strictEqual(R.tempoBusca(p), 3000);
-  R.admin.subirNivel(p, 29);
-  assert.ok(R.tempoBusca(p) < 1500 && R.tempoBusca(p) >= 800, 'mais rápido no level 30');
+  // tempo: 3 s o mais fraco, 4 s o do meio, 5 s o mais forte no começo da região
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [3000, 4000, 5000]);
+  // com Velocidade + Sorte bem acima da referência da região: 2 s, 2,5 s e 3 s
+  p.atributos.sor = 200;
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [2000, 2500, 3000]);
+  // na região seguinte começa de novo (referência maior)
+  const r = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(r, 4); r.atributos.sor = 25;
+  assert.ok(R.evolucaoCacada(r, 'pantano') < R.evolucaoCacada(r, 'floresta'));
   // só sorteia monstros liberados
   const q = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   for (let i = 0; i < 50; i++) assert.strictEqual(R.escolherMonstroCacada(q, ['lobo', 'cobra', 'urso']), 'lobo');
   q.abates.lobo = 1; q.abates.cobra = 1;
+  // no começo: o mais fraco 3x mais fácil que o mais forte (50% / 33% / 17%)
+  q.atributos.sor = 0;
+  const ch = R.chancesCacada(q, ['urso', 'lobo', 'cobra']).map(x => Math.round(x.chance));
+  assert.deepStrictEqual(ch, [50, 33, 17]);
   const conta = (sor) => { q.atributos.sor = sor; let urso = 0; for (let i = 0; i < 4000; i++) if (R.escolherMonstroCacada(q, ['lobo', 'cobra', 'urso']) === 'urso') urso++; return urso / 4000; };
-  assert.ok(conta(100) > conta(0) + 0.1, 'mais sorte, mais monstros fortes');
+  assert.ok(conta(100) > conta(0) + 0.1, 'mais Velocidade + Sorte, mais monstros fortes');
+  q.atributos.sor = 200;
+  assert.deepStrictEqual(R.chancesCacada(q, ['lobo', 'cobra', 'urso']).map(x => Math.round(x.chance)), [33, 33, 33]);
   assert.strictEqual(R.escolherMonstroCacada(q, ['sapo']), null);
   // vida mínima: mais que 5%
   const hpMax = R.status(q).hpMax;
