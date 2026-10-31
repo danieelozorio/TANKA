@@ -628,10 +628,11 @@
 
   // ---------------- Caçar: mapa mundial → região (escolher monstros) → caçada contínua ----------------
   var ESTILO_AREA = {
-    floresta: { icone: '🌲', cor: '#2f6b3a', x: 12, y: 74 }, pantano: { icone: '🌫️', cor: '#3c6a66', x: 28, y: 48 },
-    ruinas: { icone: '🏛️', cor: '#6b6250', x: 44, y: 70 }, torre: { icone: '🗼', cor: '#7a2a3a', x: 57, y: 38 },
-    areias: { icone: '🏜️', cor: '#a8742c', x: 71, y: 66 }, vale: { icone: '🐉', cor: '#4a5f86', x: 80, y: 30 },
-    cume: { icone: '🌋', cor: '#a33a1c', x: 91, y: 58 },
+    // x/y = clareira de cada região na imagem assets/mapa-reino.webp (em %)
+    floresta: { icone: '🌲', cor: '#2f6b3a', x: 16, y: 80.5 }, pantano: { icone: '🌫️', cor: '#3c6a66', x: 21.5, y: 36 },
+    ruinas: { icone: '🏛️', cor: '#6b6250', x: 44.3, y: 69.5 }, torre: { icone: '🗼', cor: '#7a2a3a', x: 48.5, y: 32 },
+    areias: { icone: '🏜️', cor: '#a8742c', x: 66.5, y: 76 }, vale: { icone: '🐉', cor: '#4a5f86', x: 75.7, y: 28 },
+    cume: { icone: '🌋', cor: '#a33a1c', x: 89.3, y: 64.5 },
   };
   function estiloArea(a, i) { return ESTILO_AREA[a.id] || { icone: '⚔', cor: '#555', x: 10 + i * 13, y: i % 2 ? 40 : 70 }; }
   function abaCacar() {
@@ -641,7 +642,6 @@
   }
   function mapaHtml() {
     var p = estado.personagem;
-    var pontos = D.areas.map(function (a, i) { var e = estiloArea(a, i); return e.x + ',' + e.y; }).join(' ');
     var nos = D.areas.map(function (a, i) {
       var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
       var faixa = proxima ? 'Lv ' + a.nivelMin + '–' + proxima.nivelMin : 'Lv ' + a.nivelMin + '+';
@@ -651,8 +651,7 @@
         + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
     return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.</p>'
-      + '<div class="mapa-mundo"><svg class="mapa-trilha" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pontos + '"/></svg>'
-      + nos + '</div>';
+      + '<div class="mapa-mundo">' + nos + '</div>';
   }
   function selecaoArea(area) {
     var p = estado.personagem, sel = estado.cacaSel || (estado.cacaSel = {});
