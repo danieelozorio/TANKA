@@ -891,3 +891,25 @@ teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
   assert.strictEqual(res.ouro, Math.floor(m.ouro * 1.5));
   assert.strictEqual(res.exp, Math.floor(m.exp * 1.1));
 });
+
+teste('caçada contínua: busca pela velocidade, sorteio pela sorte, vida mínima e poção automática', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.tempoBusca(p), 3000);
+  R.admin.subirNivel(p, 29);
+  assert.ok(R.tempoBusca(p) < 1500 && R.tempoBusca(p) >= 800, 'mais rápido no level 30');
+  // só sorteia monstros liberados
+  const q = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  for (let i = 0; i < 50; i++) assert.strictEqual(R.escolherMonstroCacada(q, ['lobo', 'cobra', 'urso']), 'lobo');
+  q.abates.lobo = 1; q.abates.cobra = 1;
+  const conta = (sor) => { q.atributos.sor = sor; let urso = 0; for (let i = 0; i < 4000; i++) if (R.escolherMonstroCacada(q, ['lobo', 'cobra', 'urso']) === 'urso') urso++; return urso / 4000; };
+  assert.ok(conta(100) > conta(0) + 0.1, 'mais sorte, mais monstros fortes');
+  assert.strictEqual(R.escolherMonstroCacada(q, ['sapo']), null);
+  // vida mínima: mais que 5%
+  const hpMax = R.status(q).hpMax;
+  q.hpAtual = Math.floor(hpMax * 0.05); assert.ok(!R.vidaParaCacar(q));
+  q.hpAtual = Math.floor(hpMax * 0.05) + 1; assert.ok(R.vidaParaCacar(q));
+  // poção automática
+  const b = { fim: null, pocoes: 1, pocaoPendente: false, jogador: { hp: 9, hpMax: 100 } };
+  assert.ok(R.precisaPocao(b, 10)); assert.ok(!R.precisaPocao(b, 5)); assert.ok(!R.precisaPocao(b, 0));
+  b.pocoes = 0; assert.ok(!R.precisaPocao(b, 10));
+});

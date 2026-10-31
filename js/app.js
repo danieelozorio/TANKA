@@ -329,6 +329,9 @@
     estado.social = null;
     estado.gm = null;
     estado.luta = null;
+    if (estado.cacada) { clearTimeout(estado.cacada.timer); clearInterval(estado.cacada.relogio); }
+    estado.cacada = null;
+    estado.areaAberta = null;
     telaJogo();
     carregarSocial();
     carregarGrupo();
@@ -591,11 +594,11 @@
     }).join(', ');
   }
 
-  function cartaMonstro(id) {
+  function cartaMonstro(id, selecionado) {
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
     var fator = R.fatorExp(p, id);
-    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
       + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + dano(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
@@ -607,7 +610,8 @@
       + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + (m.pergaminho.raridade ? '<span class="raridade-' + m.pergaminho.raridade + '">' + D.raridades[m.pergaminho.raridade].nome + '</span> ' : 'da arma ') + m.pergaminho.chance + '%</dd>' : '')
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
       + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
-      + (R.monstroLiberado(p, id) ? '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button>'
+      + (R.monstroLiberado(p, id) ? '<button class="btn largo' + (selecionado ? '' : ' secundario') + '" data-acao="cacada-alvo" data-monstro="' + id + '">'
+          + (selecionado ? '✔ Na caçada' : 'Adicionar à caçada') + '</button>'
         : '<button class="btn largo" disabled>🔒 Derrote ' + esc(D.monstros[R.monstroAnterior(id)].nome) + ' primeiro</button>') + '</div></article>';
   }
 
@@ -622,24 +626,51 @@
       + '</div></article>';
   }
 
+  // ---------------- Caçar: mapa mundial → região (escolher monstros) → caçada contínua ----------------
+  var ESTILO_AREA = {
+    floresta: { icone: '🌲', cor: '#2f6b3a', x: 12, y: 74 }, pantano: { icone: '🌫️', cor: '#3c6a66', x: 28, y: 48 },
+    ruinas: { icone: '🏛️', cor: '#6b6250', x: 44, y: 70 }, torre: { icone: '🗼', cor: '#7a2a3a', x: 57, y: 38 },
+    areias: { icone: '🏜️', cor: '#a8742c', x: 71, y: 66 }, vale: { icone: '🐉', cor: '#4a5f86', x: 80, y: 30 },
+    cume: { icone: '🌋', cor: '#a33a1c', x: 91, y: 58 },
+  };
+  function estiloArea(a, i) { return ESTILO_AREA[a.id] || { icone: '⚔', cor: '#555', x: 10 + i * 13, y: i % 2 ? 40 : 70 }; }
   function abaCacar() {
-    var p = estado.personagem, s = R.status(p);
-    var area = D.areas.find(function (a) { return a.id === estado.area; }) || D.areas[0];
-    var lista = D.areas.map(function (a) {
-      var livre = R.areaLiberada(p, a);
-      var proxima = D.areas[D.areas.indexOf(a) + 1];
+    var p = estado.personagem;
+    var area = estado.areaAberta && D.areas.find(function (a) { return a.id === estado.areaAberta; });
+    return area && R.areaLiberada(p, area) ? regiaoHtml(area) : mapaHtml();
+  }
+  function mapaHtml() {
+    var p = estado.personagem;
+    var pontos = D.areas.map(function (a, i) { var e = estiloArea(a, i); return e.x + ',' + e.y; }).join(' ');
+    var nos = D.areas.map(function (a, i) {
+      var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
       var faixa = proxima ? 'Lv ' + a.nivelMin + '–' + proxima.nivelMin : 'Lv ' + a.nivelMin + '+';
-      return '<button class="area' + (a.id === area.id ? ' selecionada' : '') + (livre ? '' : ' bloqueada') + '"'
-        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + '>'
-        + '<span class="area-nome">' + (livre ? '' : '🔒 ') + a.nome + '</span>'
-        + '<span class="area-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
+      return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
+        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
+        + '<span class="mapa-icone">' + (livre ? e.icone : '🔒') + '</span>'
+        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
-    return '<div class="areas">' + lista + '</div>'
-      + '<h3 class="subtitulo">' + area.nome + '</h3><p class="suave">' + area.descricao + ' '
-      + 'As armas e armaduras que caem são sempre da sua classe (colar e anel servem para todos). '
-      + 'Sua Sorte aumenta as chances em +' + s.bonusDrop + '%.'
-      + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '')
-      + '</p><div class="monstros">' + area.monstros.map(function (m) { return cartaMonstro(m.id); }).join('') + cartaChefe(area) + '</div>';
+    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.</p>'
+      + '<div class="mapa-mundo"><svg class="mapa-trilha" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + pontos + '"/></svg>'
+      + nos + '</div>';
+  }
+  function selecaoArea(area) {
+    var p = estado.personagem, sel = estado.cacaSel || (estado.cacaSel = {});
+    var livres = area.monstros.map(function (m) { return m.id; }).filter(function (id) { return R.monstroLiberado(p, id); });
+    if (!sel[area.id]) sel[area.id] = livres.slice();
+    sel[area.id] = sel[area.id].filter(function (id) { return livres.indexOf(id) >= 0; });
+    return sel[area.id];
+  }
+  function regiaoHtml(area) {
+    var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
+    var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
+    return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
+      + '<div><h3>' + e.icone + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + s.bonusDrop + '% nos drops.'
+      + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
+      + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
+      + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'
+      + '<button class="btn btn-iniciar" data-acao="cacada-iniciar" data-valor="' + area.id + '"' + (sel.length ? '' : ' disabled') + '>⚔ INICIAR CAÇADA</button></div>'
+      + '<div class="monstros">' + area.monstros.map(function (m) { return cartaMonstro(m.id, sel.indexOf(m.id) >= 0); }).join('') + cartaChefe(area) + '</div>';
   }
 
   // Aviso antes da luta contra o chefe.
@@ -1402,7 +1433,7 @@
       + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div>'
       + '<div class="suave">Velocidade ' + b.monstro.vel + '</div></div></div>'
       + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'
-      + (em ? '<div class="botoes"><button class="btn secundario" data-acao="velocidade">' + (estado.rapido ? 'Velocidade normal' : 'Acelerar ×3') + '</button>'
+      + (em ? '<div class="botoes"><button class="btn secundario" data-acao="velocidade">' + (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button>'
         + '<button class="btn perigo" data-acao="fugir">Fugir</button></div>' : '');
   }
 
@@ -1412,6 +1443,8 @@
       painel = lutaArenaHtml();
     } else if (estado.luta) {
       painel = lutaMasmorraHtml();
+    } else if (estado.cacada) {
+      painel = cacadaHtml();
     } else if (estado.chefeAviso) {
       painel = avisoChefeHtml();
     } else if (estado.batalha || estado.resultado) {
@@ -1420,7 +1453,7 @@
       painel = navHtml()
         + (({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
-    var livre = !(estado.batalha || estado.luta || estado.lutaArena);
+    var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     mostrarCenario(false);
@@ -1466,7 +1499,7 @@
 
   function agendar() {
     clearTimeout(estado.timer);
-    estado.timer = setTimeout(turno, estado.rapido ? 160 : 550);
+    estado.timer = setTimeout(turno, estado.rapido ? 275 : 550);
   }
 
   function golpe(id, forte) {
@@ -1481,6 +1514,7 @@
     var b = estado.batalha;
     if (!b) return;
     var linhasAntes = estado.registro.length;
+    if (estado.cacada && R.precisaPocao(b, prefsCacada().pocao)) R.beberPocao(b);
     var ev = R.passo(b);
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
     if (ev.pocao) {
@@ -1535,6 +1569,13 @@
       R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
       if (D.monstros[b.monstroId].chefe) R.registrarMissao(estado.personagem, 'chefe', 1, C.agora());
     }
+    if (estado.cacada) {
+      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.');
+      else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
+      else linha('errou', esc(estado.personagem.nome) + ' fugiu.');
+      fimLutaCacada(res, b, primeiraVez);
+      return;
+    }
     var nivelHab = R.nivelHabilidade(estado.personagem);
     if (D.HABILIDADES_ATIVAS && nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
@@ -1565,6 +1606,197 @@
       [res.drop, res.dropArmadura].forEach(function (it) { if (it) avisar('Item novo: ' + R.nomeItem(it), 'item'); });
       if (res.pergaminho) avisar('Pergaminho ' + ITEM_RARIDADE[res.pergaminho] + '!', 'item');
     } else if (res.resultado === 'derrota') avisar('Derrota…', 'ruim');
+  }
+
+  // ---------------- Caçada contínua ----------------
+  // Ciclo: procurando → encontrou (Lutar/Fugir; luta sozinho em 3 s, chefe sempre pergunta) → luta (o mesmo combate
+  // de sempre) → resultado entra no resumo → procura de novo. Para com a vida em ≤5% ou quando o jogador para.
+  function prefsCacada() {
+    var p = estado.personagem;
+    return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0 });
+  }
+  function iniciarCacada(areaId) {
+    var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
+    var alvos = area ? selecaoArea(area).slice() : [];
+    if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
+    if (R.atualizarTempo(p, C.agora())) salvar();
+    if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); return; }
+    if (!R.vidaParaCacar(p)) { avisar('Vida baixa demais: é preciso ter mais de ' + D.CACADA.vidaMinima + '% da vida para caçar.'); return; }
+    pararTimersCacada();
+    estado.resultado = null;
+    estado.ultimaBatalha = null;
+    estado.cacada = { area: areaId, alvos: alvos, ativa: true, fase: 'buscando', inicio: Date.now(), mortos: 0, exp: 0, ouro: 0,
+      itens: [], historico: [], encontro: null, motivo: '', timer: null, relogio: null };
+    estado.cacada.relogio = setInterval(tiqueCacada, 250);
+    procurarMonstro();
+    mostrarPainel();
+  }
+  function pararTimersCacada() {
+    var c = estado.cacada;
+    if (!c) return;
+    clearTimeout(c.timer);
+    clearInterval(c.relogio);
+  }
+  // Relógio da tela: tempo de caçada e contagem do encontro (sem redesenhar tudo).
+  function tiqueCacada() {
+    var c = estado.cacada;
+    if (!c) return;
+    var t = document.getElementById('cacada-tempo');
+    if (t) t.textContent = duracaoTexto(Date.now() - c.inicio);
+    var k = document.getElementById('cacada-contagem');
+    if (k && c.prazo) k.textContent = Math.max(0, Math.ceil((c.prazo - Date.now()) / 1000));
+  }
+  function duracaoTexto(ms) {
+    var s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60;
+    return (h ? h + 'h ' : '') + (h || m ? m + 'min ' : '') + (s % 60) + 's';
+  }
+  function procurarMonstro() {
+    var c = estado.cacada, p = estado.personagem;
+    if (!c || !c.ativa) return;
+    if (R.atualizarTempo(p, C.agora())) salvar();
+    if (!R.vidaParaCacar(p)) { pararCacada('Vida baixa: a caçada parou. Espere a vida voltar, acampe ou use uma poção.'); return; }
+    c.fase = 'buscando';
+    c.encontro = null;
+    c.prazo = null;
+    c.busca = Math.round(R.tempoBusca(p) / (estado.rapido ? 2 : 1));
+    telaJogo();
+    clearTimeout(c.timer);
+    c.timer = setTimeout(encontrarMonstro, c.busca);
+  }
+  function encontrarMonstro() {
+    var c = estado.cacada, p = estado.personagem;
+    if (!c || !c.ativa) return;
+    var id = R.escolherMonstroCacada(p, c.alvos);
+    if (!id) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
+    var chefe = R.sortearChefe(p, id);
+    c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
+    c.fase = 'encontrou';
+    if (!chefe && prefsCacada().lutarSempre) { lutarCacada(); return; }
+    c.prazo = chefe ? null : Date.now() + D.CACADA.contagem * 1000;
+    telaJogo();
+    clearTimeout(c.timer);
+    if (!chefe) c.timer = setTimeout(lutarCacada, D.CACADA.contagem * 1000);
+  }
+  function lutarCacada() {
+    var c = estado.cacada, p = estado.personagem;
+    if (!c || !c.ativa || !c.encontro) return;
+    clearTimeout(c.timer);
+    c.prazo = null;
+    c.fase = 'lutando';
+    estado.escolhido = c.encontro.normal;
+    estado.batalha = R.iniciarBatalha(p, c.encontro.monstro);
+    estado.registro = [];
+    linha('destaque', esc(p.nome) + (c.encontro.chefe ? ' enfrenta ' : ' encontra ') + D.monstros[c.encontro.monstro].nome + '!');
+    telaJogo();
+    agendar();
+  }
+  function fugirEncontro() {
+    var c = estado.cacada;
+    if (!c || c.fase !== 'encontrou') return;
+    clearTimeout(c.timer);
+    c.historico.unshift({ monstro: c.encontro.monstro, resultado: 'evitou' });
+    c.historico = c.historico.slice(0, D.CACADA.historico);
+    procurarMonstro();
+  }
+  function pararCacada(motivo) {
+    var c = estado.cacada;
+    if (!c) return;
+    c.ativa = false;
+    clearTimeout(c.timer);
+    c.prazo = null;
+    c.motivo = motivo || 'Você parou a caçada.';
+    if (estado.batalha) { encerrar(); return; }        // parar no meio da luta = fugir dela
+    c.fase = 'parada';
+    clearInterval(c.relogio);
+    telaJogo();
+  }
+  // Chamado pelo encerrar(): soma no resumo e segue para o próximo monstro (ou para).
+  function fimLutaCacada(res, b, primeiraVez) {
+    var c = estado.cacada, p = estado.personagem;
+    var itens = [res.drop, res.dropArmadura].filter(Boolean);
+    if (res.resultado === 'vitoria') { c.mortos++; c.exp += res.exp; c.ouro += res.ouro; c.itens = itens.concat(c.itens).slice(0, 30); }
+    c.historico.unshift({ monstro: b.monstroId, resultado: res.resultado, exp: res.exp, ouro: res.ouro, itens: itens.map(R.nomeItem),
+      pergaminho: res.pergaminho ? ITEM_RARIDADE[res.pergaminho] : null });
+    c.historico = c.historico.slice(0, D.CACADA.historico);
+    estado.ultimaBatalha = b;
+    estado.batalha = null;
+    salvar();
+    if (res.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
+    var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
+    if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
+    itens.forEach(function (it) { avisar('Item novo: ' + R.nomeItem(it), 'item'); });
+    if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
+    if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
+    c.fase = 'pausa';
+    telaJogo();
+    clearTimeout(c.timer);
+    c.timer = setTimeout(procurarMonstro, estado.rapido ? 450 : 900);
+  }
+  function fecharCacada() {
+    pararTimersCacada();
+    estado.cacada = null;
+    estado.ultimaBatalha = null;
+    telaJogo();
+  }
+
+  function cacadaHtml() {
+    var c = estado.cacada, p = estado.personagem, b = estado.batalha, s = R.status(p), pref = prefsCacada();
+    var area = D.areas.find(function (a) { return a.id === c.area; }), e = estiloArea(area, D.areas.indexOf(area));
+    var emLuta = c.fase === 'lutando' && b;
+    var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
+    var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
+      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>'
+      + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
+    var direita;
+    if (c.fase === 'buscando' || c.fase === 'pausa') {
+      direita = '<div class="cacada-busca"><div class="busca-icone">🔎</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Procurando monstros…') + '</div>'
+        + '<div class="busca-barra"><i style="animation-duration:' + (c.fase === 'pausa' ? 900 : c.busca) + 'ms"></i></div>'
+        + '<div class="suave pequeno">Velocidade ' + s.velocidade + ': ~' + (R.tempoBusca(p) / 1000).toFixed(1) + ' s por busca</div></div>';
+    } else if (c.fase === 'encontrou') {
+      var m = D.monstros[c.encontro.monstro];
+      direita = '<div class="lutador cacada-encontro' + (c.encontro.chefe ? ' chefe' : '') + '" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(c.encontro.monstro) + '</div>'
+        + (c.encontro.chefe ? '<div class="selo-chefe">Chefe</div>' : '') + '<h3>' + m.nome + '</h3>'
+        + '<div class="suave pequeno">Vida ' + m.hp.toLocaleString('pt-BR') + ' · Dano ' + dano(m.ataque) + '</div>'
+        + '<div class="botoes"><button class="btn' + (c.encontro.chefe ? ' perigo' : '') + '" data-acao="cacada-lutar">⚔ Lutar</button>'
+        + '<button class="btn secundario" data-acao="cacada-fugir">Fugir</button></div>'
+        + (c.encontro.chefe ? '<p class="destaque pequeno">Um chefe! Você decide.</p>'
+          : '<p class="suave pequeno">Luta sozinho em <strong id="cacada-contagem">' + D.CACADA.contagem + '</strong> s</p>') + '</div>';
+    } else if (emLuta) {
+      direita = '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
+        + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div></div>';
+    } else {
+      direita = '<div class="cacada-busca parada"><div class="busca-icone">⛺</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
+        + '<div class="botoes"><button class="btn" data-acao="cacada-continuar"' + (R.vidaParaCacar(p) ? '' : ' disabled') + '>Continuar caçada</button>'
+        + '<button class="btn secundario" data-acao="cacada-fechar">Voltar à região</button></div>'
+        + (R.vidaParaCacar(p) ? '' : '<p class="suave pequeno">Precisa de mais de ' + D.CACADA.vidaMinima + '% da vida. Use uma poção ou acampe.</p>') + '</div>';
+    }
+    var ativa = c.ativa;
+    var topo = '<div class="cacada-topo" style="--cor:' + e.cor + '"><div><h3>' + e.icone + ' Caçada · ' + area.nome + '</h3>'
+      + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
+      + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
+        + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
+    var opcoes = '<div class="cacada-opcoes"><label><input type="checkbox" data-acao="cacada-sempre"' + (pref.lutarSempre ? ' checked' : '') + '> Lutar sempre sem perguntar (chefes sempre perguntam)</label>'
+      + '<label>Poção automática <select id="cacada-pocao"><option value="0"' + (pref.pocao ? '' : ' selected') + '>desligada</option>'
+      + D.CACADA.pocaoAuto.map(function (v) { return '<option value="' + v + '"' + (pref.pocao === v ? ' selected' : '') + '>abaixo de ' + v + '% da vida</option>'; }).join('')
+      + '</select></label></div>';
+    var resumo = '<div class="cacada-resumo">'
+      + [['⚔', 'Derrotados', c.mortos], ['✦', 'Exp', c.exp.toLocaleString('pt-BR')], ['◎', 'Ouro', c.ouro.toLocaleString('pt-BR')], ['🎒', 'Itens', c.itens.length],
+        ['⏱', 'Tempo', '<span id="cacada-tempo">' + duracaoTexto(Date.now() - c.inicio) + '</span>']].map(function (x) {
+        return '<div class="cacada-num"><small>' + x[0] + ' ' + x[1] + '</small><strong>' + x[2] + '</strong></div>';
+      }).join('') + '</div>';
+    var itens = c.itens.length ? '<div class="cacada-itens">' + c.itens.map(function (it) {
+      return '<div class="icone-pequeno borda-' + it.raridade + '" title="' + esc(R.nomeItem(it)) + '">' + F.icone(it) + '</div>';
+    }).join('') + '</div>' : '';
+    var historico = '<div class="cacada-historico"><h4>Últimos combates</h4>' + (c.historico.length ? c.historico.map(function (h) {
+      var nome = D.monstros[h.monstro].nome;
+      if (h.resultado === 'vitoria') return '<p class="mais">✔ ' + nome + ' <span class="suave">+' + h.exp + ' exp · +' + h.ouro + ' ouro'
+        + (h.itens.length ? ' · ' + esc(h.itens.join(', ')) : '') + (h.pergaminho ? ' · pergaminho ' + h.pergaminho : '') + '</span></p>';
+      if (h.resultado === 'derrota') return '<p class="menos">✖ ' + nome + ' <span class="suave">derrota</span></p>';
+      return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
+    }).join('') : '<p class="suave pequeno">Nenhum combate ainda.</p>') + '</div>';
+    return topo + '<div class="arena cacada-arena">' + jogador + '<div class="vs">' + (emLuta ? 'VS' : '') + '</div>' + direita + '</div>'
+      + (emLuta || estado.registro.length ? '<div class="registro" id="registro">' + estado.registro.join('') + '</div>' : '')
+      + opcoes + resumo + itens + historico;
   }
 
   // ---------------- Eventos ----------------
@@ -1604,6 +1836,7 @@
   });
 
   app.addEventListener('change', function (e) {
+    if (e.target.id === 'cacada-pocao') { prefsCacada().pocao = Number(e.target.value) || 0; salvar(); }
     if (e.target.id === 'ordem-mochila') {
       visaoMochila().ordem = e.target.value;
       var dir = document.querySelector('[data-acao="mochila-direcao"]');
@@ -2119,13 +2352,43 @@
         }
         break;
       case 'area':
-        estado.area = el.dataset.valor;
+        estado.area = estado.areaAberta = el.dataset.valor;
         telaJogo();
+        mostrarPainel();
         break;
       case 'fugir': encerrar(); break;
       case 'velocidade':
         estado.rapido = !estado.rapido;
-        el.textContent = estado.rapido ? 'Velocidade normal' : 'Acelerar ×3';
+        el.textContent = estado.cacada ? (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') : (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x');
+        break;
+      case 'mapa':
+        estado.areaAberta = null;
+        telaJogo();
+        break;
+      case 'cacada-alvo': {
+        var areaAlvo = D.monstros[el.dataset.monstro].area, selA = selecaoArea(D.areas.find(function (a) { return a.id === areaAlvo; }));
+        var posA = selA.indexOf(el.dataset.monstro);
+        if (posA >= 0) selA.splice(posA, 1); else selA.push(el.dataset.monstro);
+        telaJogo();
+        break;
+      }
+      case 'cacada-todos': {
+        var areaT = D.areas.find(function (a) { return a.id === el.dataset.valor; }), selT = selecaoArea(areaT);
+        var livresT = areaT.monstros.map(function (m) { return m.id; }).filter(function (id) { return R.monstroLiberado(p, id); });
+        estado.cacaSel[areaT.id] = selT.length === livresT.length ? [] : livresT;
+        telaJogo();
+        break;
+      }
+      case 'cacada-iniciar': iniciarCacada(el.dataset.valor); break;
+      case 'cacada-lutar': lutarCacada(); break;
+      case 'cacada-fugir': fugirEncontro(); break;
+      case 'cacada-parar': pararCacada(); break;
+      case 'cacada-continuar': if (estado.cacada) { var areaC = estado.cacada.area; iniciarCacada(areaC); } break;
+      case 'cacada-fechar': fecharCacada(); break;
+      case 'cacada-sempre':
+        prefsCacada().lutarSempre = el.checked;
+        salvar();
+        if (el.checked && estado.cacada && estado.cacada.fase === 'encontrou' && !estado.cacada.encontro.chefe) lutarCacada();
         break;
       case 'fechar-resultado':
         estado.resultado = null;

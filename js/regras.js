@@ -732,6 +732,31 @@ Tanka.regras = (function () {
     return { vendidos: vendidos, ouro: ouro };
   }
 
+  // ---------- Caçada contínua ----------
+  // Tempo procurando o próximo monstro: 3 s com velocidade 15, menos quanto mais rápido (entre 0,8 s e 3 s).
+  function tempoBusca(p) {
+    var C = D.CACADA;
+    return Math.round(Math.min(C.buscaMax, Math.max(C.buscaMin, C.buscaBase * C.velocidadeBase / Math.max(1, status(p).velocidade))));
+  }
+  // Sorteia o próximo monstro entre os escolhidos (só os liberados). Do mais fraco ao mais forte, cada posição
+  // ganha +1 de peso a cada 50 de Sorte: com mais Sorte aparecem mais os fortes (mais exp e drop, mais risco).
+  function escolherMonstroCacada(p, ids, rng) {
+    var lista = ids.filter(function (id) { return podeCacar(p, id); })
+      .sort(function (a, b) { return D.monstros[a].hp - D.monstros[b].hp; });
+    if (!lista.length) return null;
+    var sor = atributosTotais(p).sor;
+    var pesos = lista.map(function (id, i) { return 1 + i * sor / D.CACADA.sortePorPeso; });
+    var r = (rng || Math.random)() * pesos.reduce(function (t, x) { return t + x; }, 0);
+    for (var i = 0; i < lista.length; i++) { r -= pesos[i]; if (r < 0) return lista[i]; }
+    return lista[lista.length - 1];
+  }
+  // Para caçar é preciso ter mais que 5% da vida.
+  function vidaParaCacar(p) { return p.hpAtual > status(p).hpMax * D.CACADA.vidaMinima / 100; }
+  // Poção automática na luta: abaixo do limite (% da vida), se ainda houver poção.
+  function precisaPocao(b, limite) {
+    return !!limite && !b.fim && b.pocoes > 0 && !b.pocaoPendente && b.jogador.hp > 0 && b.jogador.hp * 100 / b.jogador.hpMax < limite;
+  }
+
   // ---------- Missões diárias e semanais ----------
   // A semana começa na segunda-feira, 00:00 de Brasília.
   function semanaReset(agora) {
@@ -1136,6 +1161,10 @@ Tanka.regras = (function () {
     areaDoMonstro: areaDoMonstro,
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
+    tempoBusca: tempoBusca,
+    escolherMonstroCacada: escolherMonstroCacada,
+    vidaParaCacar: vidaParaCacar,
+    precisaPocao: precisaPocao,
     monstroAnterior: monstroAnterior,
     monstroLiberado: monstroLiberado,
     semanaReset: semanaReset,

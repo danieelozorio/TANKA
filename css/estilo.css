@@ -1138,3 +1138,83 @@ html { scrollbar-gutter: stable; }
 @media (prefers-reduced-motion: reduce) { .missoes-painel { animation: none; } }
 /* Com o painel de missões aberto, os avisos vão para a esquerda para não cobrir o painel */
 body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: flex-start; }
+
+/* ================= Mapa mundial e caçada contínua ================= */
+.mapa-mundo { position: relative; height: 430px; margin-bottom: .5rem; border-radius: 14px; overflow: hidden; border: 1px solid rgba(201, 162, 74, .45);
+  background:
+    radial-gradient(ellipse 30% 25% at 12% 78%, rgba(47, 107, 58, .45), transparent 70%), radial-gradient(ellipse 25% 22% at 28% 50%, rgba(60, 106, 102, .4), transparent 70%),
+    radial-gradient(ellipse 22% 22% at 45% 72%, rgba(107, 98, 80, .4), transparent 70%), radial-gradient(ellipse 20% 25% at 57% 38%, rgba(122, 42, 58, .4), transparent 70%),
+    radial-gradient(ellipse 25% 22% at 71% 68%, rgba(168, 116, 44, .4), transparent 70%), radial-gradient(ellipse 22% 25% at 80% 30%, rgba(74, 95, 134, .45), transparent 70%),
+    radial-gradient(ellipse 18% 22% at 92% 58%, rgba(163, 58, 28, .5), transparent 70%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, .015) 0 2px, transparent 2px 12px), linear-gradient(160deg, #1d2534, #10151e);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, .7); }
+.mapa-trilha { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mapa-trilha polyline { fill: none; stroke: rgba(230, 207, 156, .45); stroke-width: .5; stroke-dasharray: 1.4 1.2; vector-effect: non-scaling-stroke; stroke-width: 2.5px; }
+.mapa-no { position: absolute; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: .1rem; width: 128px; padding: .35rem .3rem .45rem;
+  border: 0; background: none; color: var(--texto); cursor: pointer; text-align: center; }
+.mapa-icone { display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; font-size: 1.7rem;
+  border: 2px solid #c9a24a; background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, .25), transparent 55%), var(--cor);
+  box-shadow: 0 0 0 4px rgba(0, 0, 0, .45), 0 6px 16px rgba(0, 0, 0, .6); transition: transform .15s, box-shadow .15s; }
+.mapa-nome { font: 700 .82rem/1.15 var(--titulo); color: var(--ouro-claro); text-shadow: 0 1px 3px #000, 0 0 6px #000; }
+.mapa-nivel { font-size: .72rem; color: #cbbd9c; text-shadow: 0 1px 2px #000; }
+.mapa-no:hover .mapa-icone { transform: scale(1.08); box-shadow: 0 0 0 4px rgba(0, 0, 0, .45), 0 0 18px var(--cor), 0 0 24px rgba(242, 201, 76, .5); }
+.mapa-no.bloqueada { cursor: not-allowed; }
+.mapa-no.bloqueada .mapa-icone { filter: grayscale(1) brightness(.5); border-color: #555; }
+.mapa-no.bloqueada .mapa-nome { color: #8a8478; }
+.regiao-topo { display: flex; gap: .9rem; align-items: flex-start; margin-bottom: .8rem; padding: .7rem .8rem; border-radius: 10px; border: 1px solid rgba(201, 162, 74, .3);
+  background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--cor) 35%, transparent), transparent 60%), rgba(0, 0, 0, .2); }
+.regiao-topo h3 { margin: 0 0 .2rem; }
+.regiao-topo p { margin: 0; }
+.cacada-escolha { position: sticky; top: 64px; z-index: 5; display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; margin-bottom: .9rem;
+  padding: .55rem .7rem; border: 1px solid rgba(201, 162, 74, .45); border-radius: 10px; background: rgba(14, 19, 27, .95); box-shadow: 0 6px 18px rgba(0, 0, 0, .4); }
+.cacada-escolha > span { flex: 1; }
+.btn-iniciar { font-size: 1rem; padding: .6em 1.4em; color: #2a1704; border-color: #ffd98a; font-weight: 700;
+  background: linear-gradient(180deg, #ffe39a, #e9b450 45%, #b9801f 55%, #d8a13c); box-shadow: 0 0 16px rgba(255, 180, 60, .45); }
+.monstro.monstro-escolhido { border-color: #f2c94c; box-shadow: 0 0 16px rgba(242, 201, 76, .3); }
+.cacada-topo { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: space-between; align-items: center; margin-bottom: .8rem; padding: .55rem .8rem; border-radius: 10px;
+  border: 1px solid rgba(201, 162, 74, .35); background: radial-gradient(ellipse at 0% 50%, color-mix(in srgb, var(--cor) 40%, transparent), transparent 60%), rgba(0, 0, 0, .25); }
+.cacada-topo h3 { margin: 0; }
+.cacada-topo .botoes { margin: 0; }
+.cacada-arena { align-items: center; }
+.cacada-busca { display: grid; justify-items: center; gap: .5rem; padding: 1.2rem .8rem; text-align: center; }
+.busca-icone { font-size: 2.6rem; animation: buscaBalanca 1.2s ease-in-out infinite alternate; }
+@keyframes buscaBalanca { from { transform: translateX(-12px) rotate(-8deg); } to { transform: translateX(12px) rotate(8deg); } }
+.busca-txt { font: 700 1.1rem var(--titulo); color: var(--ouro-claro); }
+.busca-barra { width: min(240px, 100%); height: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(201, 162, 74, .4); background: #07090d; }
+.busca-barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2a5f99, #5aa0ec, #9cd0ff); animation: buscaEnche linear forwards; }
+@keyframes buscaEnche { to { width: 100%; } }
+.cacada-busca.parada .busca-icone { animation: none; }
+.cacada-encontro { animation: encontroEntra .35s cubic-bezier(.2, 1.4, .4, 1) both; text-align: center; }
+.cacada-encontro.chefe .moldura { border-color: #d0645a; box-shadow: 0 0 20px rgba(208, 100, 90, .6); }
+.cacada-encontro .botoes { margin-top: .4rem; }
+@keyframes encontroEntra { from { transform: scale(.85) translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+#cacada-contagem { color: #f2c94c; font-size: 1.1rem; }
+.cacada-opcoes { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; margin: .8rem 0; padding: .5rem .7rem; border: 1px dashed rgba(201, 162, 74, .3); border-radius: 8px; font-size: .9rem; color: #cdbf9f; }
+.cacada-opcoes label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; color: inherit; }
+.cacada-opcoes input[type="checkbox"] { width: auto; margin: 0; accent-color: #c9a24a; }
+.cacada-opcoes select { padding: .25em .4em; border: 1px solid var(--borda); border-radius: 6px; background: #0d1118; color: var(--texto); font: inherit; }
+.cacada-resumo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; margin-bottom: .7rem; }
+.cacada-num { padding: .4rem .5rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 8px; background: rgba(0, 0, 0, .25); text-align: center; }
+.cacada-num small { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
+.cacada-num strong { font: 700 1.05rem var(--titulo); color: var(--ouro-claro); font-variant-numeric: tabular-nums; }
+.cacada-itens { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
+.cacada-itens .icone-pequeno { width: 42px; height: 42px; }
+.cacada-historico { padding: .5rem .7rem; border: 1px solid rgba(201, 162, 74, .2); border-radius: 8px; background: rgba(0, 0, 0, .2); font-size: .9rem; }
+.cacada-historico h4 { margin: 0 0 .3rem; font-family: var(--titulo); color: var(--ouro-claro); font-size: .9rem; }
+.cacada-historico p { margin: .15rem 0; }
+@media (max-width: 700px) {
+  .mapa-mundo { height: 520px; }
+  .mapa-no { width: 96px; }
+  .mapa-icone { width: 46px; height: 46px; font-size: 1.35rem; }
+  .cacada-resumo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .cacada-escolha { top: 52px; }
+}
+@media (prefers-reduced-motion: reduce) { .busca-icone, .busca-barra i, .cacada-encontro { animation: none; } .busca-barra i { width: 100%; } }
+/* No celular o mapa vira uma trilha vertical (uma região embaixo da outra) */
+@media (max-width: 700px) {
+  .mapa-mundo { height: auto; display: grid; gap: .55rem; padding: .7rem; }
+  .mapa-trilha { display: none; }
+  .mapa-no { position: static; transform: none; width: auto; display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: .7rem;
+    align-items: center; justify-items: start; text-align: left; padding: .45rem .6rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 10px; background: rgba(0, 0, 0, .25); }
+  .mapa-icone { grid-row: 1 / 3; }
+}

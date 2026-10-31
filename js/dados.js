@@ -449,6 +449,11 @@ Tanka.dados = {
 
   // Skins do D20 da Arena, vendidas no Mercado por ouro. O vermelho vem com todo personagem.
   // As cores de cada skin ficam em css/estilo.css (.d20g.skin-<id>).
+  // Caçada contínua: tempo de busca (cai com a Velocidade), peso extra dos monstros mais fortes pela Sorte,
+  // vida mínima para caçar (% da vida máxima), segundos para responder ao encontro e opções de poção automática.
+  CACADA: { buscaBase: 3000, velocidadeBase: 15, buscaMin: 800, buscaMax: 3000, sortePorPeso: 50, vidaMinima: 5,
+    contagem: 3, pocaoAuto: [10, 5], historico: 10 },
+
   // Missões diárias (renovam às 00:00 de Brasília) e semanais (renovam na segunda às 00:00).
   // evento: o que conta progresso | prêmio: ouroPorNivel (x level), reputacao, pergaminhoArma (da raridade da arma equipada).
   MISSOES: {
