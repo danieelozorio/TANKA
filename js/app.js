@@ -953,6 +953,116 @@
       + '<div class="itens">' + lista + '</div>';
   }
 
+  // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
+  function abrirForja(item, res, chance, risco) {
+    var tipo = res.sucesso ? 'sucesso' : res.quebrou ? 'quebra' : risco === 'zera' ? 'zera' : 'falha';
+    var parada = res.sucesso ? 100 : 18 + Math.random() * 74;          // onde a barra para na falha
+    var duracao = 2600 * parada / 100 + 300;
+    var nome = esc(R.nomeItem(Object.assign({}, item, { encanto: 0 })));
+    var ov = document.createElement('div');
+    ov.className = 'zoom-fundo forja-fundo';
+    ov.innerHTML = '<div class="zoom-janela forja-janela" role="dialog" aria-label="Encantamento">'
+      + '<div class="zoom-rotulo">Forja de encantamento</div>'
+      + '<div class="forja-item"><div class="icone-grande borda-' + item.raridade + aura(item) + '">' + F.icone(item) + '</div>'
+      + '<div><div class="forja-nome raridade-' + item.raridade + '">' + nome + '</div>'
+      + '<div class="suave">+' + item.encanto + ' → <strong class="cor-ouro">+' + (item.encanto + 1) + '</strong> · chance ' + chance + '%</div></div></div>'
+      + '<div class="forja-barra"><i></i><span class="forja-pct">0%</span></div>'
+      + '<div class="forja-resultado" aria-live="assertive">Encantando…</div>'
+      + '<div class="botoes"><button class="btn" data-forja="ok" disabled>Continuar</button></div></div>';
+    document.body.appendChild(ov);
+    var barra = ov.querySelector('.forja-barra'), fill = barra.querySelector('i'), pct = barra.querySelector('.forja-pct');
+    var parar = Sons.carregar(duracao / 1000);
+    var inicio = performance.now();
+    (function passo(agora) {
+      var k = Math.min(1, (agora - inicio) / duracao);
+      // enche rápido no começo e vai ficando tenso no fim
+      var v = parada * (1 - Math.pow(1 - k, 1.6));
+      fill.style.width = v + '%';
+      pct.textContent = Math.floor(v) + '%';
+      if (k < 1) { requestAnimationFrame(passo); return; }
+      parar();
+      terminar();
+    })(inicio);
+    function terminar() {
+      var r = ov.querySelector('.forja-resultado');
+      barra.classList.add(res.sucesso ? 'cheia' : 'rachou');
+      ov.querySelector('.forja-janela').classList.add('forja-' + tipo);
+      r.className = 'forja-resultado ' + tipo;
+      r.innerHTML = {
+        sucesso: 'SUCESSO! <span>' + nome + ' agora é +' + res.nivel + '!</span>',
+        falha: 'FALHOU! <span>O pergaminho se perdeu, mas o item continua +' + res.nivel + '.</span>',
+        zera: 'FALHOU! <span>' + nome + ' voltou para +0.</span>',
+        quebra: 'QUEBROU! <span>' + nome + ' +' + res.nivel + ' se despedaçou…</span>',
+      }[tipo];
+      Sons[tipo]();
+      var ok = ov.querySelector('[data-forja="ok"]');
+      ok.disabled = false;
+      ok.focus();
+    }
+    ov.addEventListener('click', function (e) {
+      if (!e.target.closest('[data-forja="ok"]')) return;
+      ov.remove();
+      estado.ultimoEncanto = res;
+      telaJogo();
+    });
+  }
+
+  // ----- Sons do jogo (criados no navegador, sem arquivos) -----
+  var Sons = (function () {
+    var ctx = null;
+    function ac() {
+      var A = window.AudioContext || window.webkitAudioContext;
+      if (!A) return null;
+      if (!ctx) ctx = new A();
+      if (ctx.state === 'suspended') ctx.resume();
+      return ctx;
+    }
+    function nota(freq, ini, dur, tipo, vol, freqFim) {
+      var c = ac(); if (!c) return;
+      var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + ini;
+      o.type = tipo || 'sine';
+      o.frequency.setValueAtTime(freq, t);
+      if (freqFim) o.frequency.exponentialRampToValueAtTime(freqFim, t + dur);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t); o.stop(t + dur + 0.05);
+    }
+    function ruido(ini, dur, vol, corte) {
+      var c = ac(); if (!c) return;
+      var buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate), d = buf.getChannelData(0);
+      for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+      var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+      s.buffer = buf; f.type = 'highpass'; f.frequency.value = corte || 1200; g.gain.value = vol || 0.3;
+      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.start(c.currentTime + ini);
+    }
+    return {
+      // zumbido mágico subindo enquanto a barra enche; devolve a função que corta o som
+      carregar: function (seg) {
+        var c = ac(); if (!c) return function () {};
+        var o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+        o.type = 'triangle'; o2.type = 'sine';
+        o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(720, t + seg);
+        o2.frequency.setValueAtTime(183, t); o2.frequency.exponentialRampToValueAtTime(728, t + seg);
+        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.3);
+        o.connect(g); o2.connect(g); g.connect(c.destination); o.start(t); o2.start(t);
+        return function () { var n = c.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value, n); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.08); o.stop(n + 0.1); o2.stop(n + 0.1); };
+      },
+      sucesso: function () {
+        [523, 659, 784, 1047].forEach(function (f, i) { nota(f, i * 0.09, 0.5, 'triangle', 0.16); });
+        nota(1568, 0.36, 0.9, 'sine', 0.08); nota(2093, 0.42, 1.1, 'sine', 0.05);
+      },
+      falha: function () { nota(220, 0, 0.25, 'square', 0.06, 180); nota(165, 0.22, 0.45, 'square', 0.06, 110); },
+      zera: function () { nota(660, 0, 0.9, 'sawtooth', 0.07, 90); nota(440, 0.05, 0.8, 'triangle', 0.06, 70); },
+      quebra: function () {
+        ruido(0, 0.35, 0.35, 1500); nota(90, 0, 0.35, 'sine', 0.3, 45);
+        for (var i = 0; i < 7; i++) nota(2200 + Math.random() * 2600, 0.05 + Math.random() * 0.4, 0.18, 'sine', 0.05);
+      },
+    };
+  })();
+
   // Ranking: busca no servidor ao abrir a aba (e no botão Atualizar).
   function abaRanking() {
     var tipo = estado.rankingTipo || 'nivel';
@@ -1817,12 +1927,15 @@
         telaJogo();
         break;
       case 'encantar': {
+        var alvoEnc = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+        var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
+        var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
+        // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
         var tentativa = R.encantar(p, el.dataset.id);
         estado.encantoPendente = null;
         if (tentativa) {
-          estado.ultimoEncanto = tentativa;
           salvar();
-          telaJogo();
+          abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
         }
         break;
       }
