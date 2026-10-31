@@ -176,6 +176,28 @@
         + '<button class="btn largo" type="submit">Entrar</button></form>';
     mostrarCenario(true);
     areaMusica(true);
+    // Já está na entrada: troca só o formulário (com fade e a caixa crescendo devagar), sem redesenhar logo e moldura.
+    var caixa = app.querySelector('.tela-entrada .moldura-runica'), atual = caixa && caixa.querySelector('form');
+    if (atual) {
+      var trocou = atual.dataset.form !== (cadastro ? 'cadastro' : 'entrar');
+      caixa.querySelectorAll('.abas button').forEach(function (b) { b.classList.toggle('ativa', (b.dataset.modo === 'cadastro') === cadastro); });
+      var antes = caixa.offsetHeight, tmp = document.createElement('div');
+      tmp.innerHTML = form;
+      var novo = tmp.firstChild;
+      if (trocou) novo.classList.add('form-entra');
+      atual.replaceWith(novo);
+      if (trocou) {
+        var depois = caixa.offsetHeight;
+        caixa.style.height = antes + 'px';
+        void caixa.offsetHeight;            // aplica a altura antiga antes de animar
+        caixa.style.transition = 'height .3s ease';
+        caixa.style.height = depois + 'px';
+        setTimeout(function () { caixa.style.height = ''; caixa.style.transition = ''; }, 320);
+      }
+      var campo = novo.querySelector('input');
+      if (campo) campo.focus({ preventScroll: true });
+      return;
+    }
     app.innerHTML = '<div class="tela-entrada">' + marca()
       + '<section class="auth"><div class="caixa moldura-runica">'
       + '<i class="canto c1"></i><i class="canto c2"></i><i class="canto c3"></i><i class="canto c4"></i>'
