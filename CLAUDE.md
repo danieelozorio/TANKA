@@ -59,6 +59,13 @@ encantamento até +10 na Forja (barra enche, sons); masmorras em grupo de 3; Are
 de level, entradas, saque, revanche, jackpot, perfil do adversário antes de desafiar); alianças (sigla, brasão,
 cargos, tesouro, bônus, chat); missões diárias e semanais (painel na direita); ranking por level e poder; amigos;
 chat global; admin completo; tela de entrada com vídeo, logo e música.
+Caçada contínua (Aventura > Caçar): Mapa do Reino (`assets/mapa-reino.webp`, medalhões e fundos em `assets/regioes/`),
+escolha de 1–3 monstros, busca automática ("Caçada em andamento"), encontro com 3 s para lutar sozinho, "lutar sempre"
+(chefe sempre pergunta), velocidade normal/2x, poção automática 10%/5%, vida mínima >5%, resumo e últimos combates.
+Tempo/chance da busca em `CACADA` (dados.js): 3/4/5 s do mais fraco ao mais forte, caindo até 2/2,5/3 s com
+Rastreio (Velocidade + Sorte) na região; o mais fraco aparece 3x mais no começo, iguala com a evolução.
+Músicas por cena (`FAIXAS` em app.js, `assets/musica/`): entrada, jogo (Brumas do Reino + Luz das Brumas em revezamento),
+masmorra (Halls Below), arena (Arena e Glória), chefe (Eldrin of Fate). Botão ⚙ = configurações (música, volumes).
 
 ## Pendências e ideias conversadas
 - **Curva de exp**: do 25 ao 40 ficou longa demais (simulação: ~2.700 h até o 40 para Cavaleiro, muito mais para Mago).
@@ -66,5 +73,5 @@ chat global; admin completo; tela de entrada com vídeo, logo e música.
 - Mago fraco nas áreas altas; dano novo dos monstros deixou o começo bem mais difícil (ele pediu assim).
 - Ranking só atualiza ao abrir a aba ou clicar em Atualizar (ofereci atualizar sozinho).
 - Rodapé ainda mostra `tankaarena.com`; trocar quando houver domínio novo do Eldrin.
-- Ideias: arma secundária (mão esquerda), músicas de Arena e aventura (prompts do Suno já feitos), Fase 2 anti-trapaça
+- Ideias: arma secundária (mão esquerda), música céltica "Vale Sereno" (prompt feito, ainda não gerada), Fase 2 anti-trapaça
   (servidor conferir lutas/ouro/itens), avisos do jogo no Discord por webhook.

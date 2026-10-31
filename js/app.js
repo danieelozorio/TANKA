@@ -1105,14 +1105,16 @@
 
   // ----- Sons do jogo (criados no navegador, sem arquivos) -----
   var Sons = (function () {
-    var ctx = null;
+    var ctx = null, geral = null, volumeGeral = 1;
     function ac() {
       var A = window.AudioContext || window.webkitAudioContext;
       if (!A) return null;
-      if (!ctx) ctx = new A();
+      if (!ctx) { ctx = new A(); geral = ctx.createGain(); geral.gain.value = volumeGeral; geral.connect(ctx.destination); }
       if (ctx.state === 'suspended') ctx.resume();
       return ctx;
     }
+    // Todos os efeitos passam por aqui: o volume dos efeitos das configurações.
+    function saida() { return geral; }
     function nota(freq, ini, dur, tipo, vol, freqFim) {
       var c = ac(); if (!c) return;
       var o = c.createOscillator(), g = c.createGain(), t = c.currentTime + ini;
@@ -1122,7 +1124,7 @@
       g.gain.setValueAtTime(0.0001, t);
       g.gain.exponentialRampToValueAtTime(vol || 0.15, t + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(c.destination);
+      o.connect(g); g.connect(saida());
       o.start(t); o.stop(t + dur + 0.05);
     }
     function ruido(ini, dur, vol, corte) {
@@ -1131,17 +1133,18 @@
       for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
       var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
       s.buffer = buf; f.type = 'highpass'; f.frequency.value = corte || 1200; g.gain.value = vol || 0.3;
-      s.connect(f); f.connect(g); g.connect(c.destination);
+      s.connect(f); f.connect(g); g.connect(saida());
       s.start(c.currentTime + ini);
     }
     return {
+      volume: function (v) { volumeGeral = v; if (geral) geral.gain.value = v; },
       // forja enquanto a barra enche: marteladas na bigorna acelerando e o fogo roncando por baixo.
       // Devolve a função que corta tudo na hora em que a barra para.
       carregar: function (seg) {
         var c = ac(); if (!c) return function () {};
         var mestre = c.createGain(), t0 = c.currentTime;
         mestre.gain.value = 1;
-        mestre.connect(c.destination);
+        mestre.connect(saida());
         // ronco do fogo: ruído grave filtrado que cresce
         var buf = c.createBuffer(1, Math.floor(c.sampleRate * (seg + 0.5)), c.sampleRate), d = buf.getChannelData(0);
         for (var n = 0; n < d.length; n++) d[n] = Math.random() * 2 - 1;
@@ -1460,7 +1463,7 @@
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     mostrarCenario(false);
-    areaMusica(false);
+    atualizarMusica();
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
@@ -2599,6 +2602,7 @@
       L.sala = ev.sala;
       L.hpM = L.sim.inicio.salas[L.sala].map(function (m) { return m.hpMax; });
       L.registro.push('<p class="destaque">— ' + NOMES_SALA[L.sala] + ' —</p>');
+      atualizarMusica();
     } else if (ev.de === 'h') {
       var h = herois[ev.i], m = monstros[ev.alvo];
       if (!ev.acerto) L.registro.push('<p class="errou">' + esc(h.nome) + ' erra ' + esc(m.nome) + '.</p>');
@@ -3636,70 +3640,152 @@
     }
   }
 
-  // ---------------- Música de fundo ----------------
+  // ---------------- Música de fundo e configurações ----------------
+  // Cada cena tem a sua música: entrada (login, personagens, criação), jogo (as duas célticas se revezando),
+  // masmorra, arena e chefe. Ao trocar de cena uma música some aos poucos e a outra entra.
   // Os navegadores não deixam tocar som sozinho: a música começa no primeiro clique ou tecla.
-  // O botão 🔊/🔇 liga e desliga, e o jogo lembra a escolha neste aparelho.
-  // Toca só na entrada, na escolha e na criação de personagem (area); dentro do jogo ela some aos poucos.
-  var musica = { audio: null, ligada: true, botao: null, area: false, tocou: false, fade: null, VOLUME: 0.35, ARQUIVO: 'assets/musica/tema-eldrin.mp3?v=1' };
-  try { musica.ligada = localStorage.getItem('eldrin.musica') !== 'off'; } catch (e) { /* sem armazenamento: fica ligada */ }
+  // O botão ⚙ abre as configurações (música ligada, volume da música e dos efeitos), guardadas neste aparelho.
+  var FAIXAS = {
+    entrada: [{ nome: 'Arena & Glória (tema)', arquivo: 'tema-eldrin.mp3' }],
+    jogo: [{ nome: 'Brumas do Reino', arquivo: 'brumas-do-reino.mp3' }, { nome: 'Luz das Brumas', arquivo: 'luz-das-brumas.mp3' }],
+    masmorra: [{ nome: 'Halls Below', arquivo: 'masmorra-halls-below.mp3' }],
+    arena: [{ nome: 'Eldrin — Arena e Glória', arquivo: 'arena-e-gloria.mp3' }],
+    chefe: [{ nome: 'Eldrin of Fate', arquivo: 'chefe-eldrin-of-fate.mp3' }],
+  };
+  var musica = { ligada: true, volume: 35, efeitos: 100, cena: null, atual: null, faixa: 0, botao: null, painel: null };
+  try {
+    musica.ligada = localStorage.getItem('eldrin.musica') !== 'off';
+    var vGuardado = parseInt(localStorage.getItem('eldrin.volume'), 10), eGuardado = parseInt(localStorage.getItem('eldrin.efeitos'), 10);
+    if (!isNaN(vGuardado)) musica.volume = Math.max(0, Math.min(100, vGuardado));
+    if (!isNaN(eGuardado)) musica.efeitos = Math.max(0, Math.min(100, eGuardado));
+  } catch (e) { /* sem armazenamento: usa o padrão */ }
+  Sons.volume(musica.efeitos / 100);
+  function guardar(chave, valor) { try { localStorage.setItem(chave, valor); } catch (e) { /* ignora */ } }
+  function volumeAlvo() { return musica.volume / 100; }
+  // Some com um áudio aos poucos (~1,2 s) e pausa.
+  function sumir(audio) {
+    if (!audio) return;
+    var t = setInterval(function () {
+      var v = audio.volume - 0.04;
+      if (v <= 0.01 || audio.paused) { clearInterval(t); audio.pause(); } else audio.volume = v;
+    }, 50);
+  }
+  function entrar(audio) {
+    audio.volume = 0;
+    var t = setInterval(function () {
+      var alvo = volumeAlvo(), v = Math.min(alvo, audio.volume + 0.03);
+      audio.volume = v;
+      if (v >= alvo || audio !== (musica.atual && musica.atual.audio)) clearInterval(t);
+    }, 50);
+  }
+  function novaFaixa(cena) {
+    var lista = FAIXAS[cena], i = cena === 'jogo' ? musica.faixa % lista.length : 0, f = lista[i];
+    var audio = new Audio('assets/musica/' + f.arquivo + '?v=1');
+    audio.loop = lista.length === 1;
+    audio.addEventListener('ended', function () {   // playlist do jogo: passa para a próxima
+      if (musica.atual && musica.atual.audio === audio) { musica.faixa++; musica.atual = null; tocarMusica(); }
+    });
+    return { cena: cena, nome: f.nome, audio: audio };
+  }
+  function tocarMusica() {
+    if (!musica.ligada || !musica.cena) return;
+    var a = musica.atual;
+    if (a && a.cena !== musica.cena) { sumir(a.audio); a = musica.atual = null; }
+    if (!a) a = musica.atual = novaFaixa(musica.cena);
+    if (!a.audio.paused) return;
+    var p = a.audio.play();
+    entrar(a.audio);
+    if (p && p.then) p.then(function () { desenharBotaoMusica(); }, function () { desenharBotaoMusica(); /* sem toque ainda: tenta no próximo */ });
+    desenharBotaoMusica();
+  }
+  function cenaMusica(cena) {
+    if (musica.cena === cena) return;
+    musica.cena = cena;
+    if (!cena) { if (musica.atual) sumir(musica.atual.audio); musica.atual = null; }
+    else tocarMusica();
+    desenharBotaoMusica();
+  }
+  // Compat: telas de entrada chamam areaMusica(true).
+  function areaMusica(sim) { cenaMusica(sim ? 'entrada' : 'jogo'); }
+  // Qual música combina com o que está na tela do jogo.
+  function cenaDoJogo() {
+    var c = estado.cacada, b = estado.batalha, L = estado.luta;
+    if (c && c.ativa && c.encontro && c.encontro.chefe && (c.fase === 'encontrou' || c.fase === 'lutando')) return 'chefe';
+    if (b && !b.fim && D.monstros[b.monstroId] && D.monstros[b.monstroId].chefe) return 'chefe';
+    if (L && L.sim && L.sim.inicio.salas[L.sala] && L.sim.inicio.salas[L.sala].some(function (m) { return m.chefe; })) return 'chefe';
+    if (estado.lutaArena || estado.aba === 'arena') return 'arena';
+    if (L || estado.aba === 'masmorra') return 'masmorra';
+    return 'jogo';
+  }
+  function atualizarMusica() { cenaMusica(cenaDoJogo()); }
+
   function desenharBotaoMusica() {
     if (!musica.botao) {
       musica.botao = document.createElement('button');
       musica.botao.id = 'botao-musica';
-      musica.botao.addEventListener('click', function (e) { e.stopPropagation(); alternarMusica(); });
+      musica.botao.textContent = '⚙';
+      musica.botao.addEventListener('click', function (e) { e.stopPropagation(); tocarMusica(); alternarPainel(); });
       document.body.appendChild(musica.botao);
     }
-    musica.botao.hidden = !musica.area;
     // Ligada mas ainda sem tocar (o navegador espera um toque): o botão pisca chamando.
-    var esperando = musica.ligada && (!musica.audio || musica.audio.paused);
+    var esperando = musica.ligada && !!musica.cena && (!musica.atual || musica.atual.audio.paused);
     musica.botao.classList.toggle('esperando', esperando);
-    musica.botao.textContent = musica.ligada ? '🔊' : '🔇';
-    musica.botao.title = esperando ? 'Tocar a música' : musica.ligada ? 'Desligar a música' : 'Ligar a música';
-    musica.botao.setAttribute('aria-label', musica.botao.title);
-  }
-  function tocarMusica() {
-    if (!musica.ligada || !musica.area) return;
-    clearInterval(musica.fade);
-    if (!musica.audio) {
-      musica.audio = new Audio(musica.ARQUIVO);
-      musica.audio.loop = true;
-      musica.audio.volume = musica.VOLUME;
-      musica.audio.addEventListener('error', function () { if (musica.botao) musica.botao.hidden = true; });
+    musica.botao.title = esperando ? 'Configurações (toque para a música começar)' : 'Configurações';
+    musica.botao.setAttribute('aria-label', 'Configurações');
+    if (musica.painel) {
+      var t = musica.painel.querySelector('.config-tocando');
+      if (t) t.textContent = !musica.ligada ? 'Música desligada' : musica.atual && !musica.atual.audio.paused ? '♪ ' + musica.atual.nome : '♪ —';
     }
-    musica.audio.volume = musica.VOLUME;
-    var p = musica.audio.play();
-    if (p && p.then) p.then(function () { musica.tocou = true; desenharBotaoMusica(); }, function () { desenharBotaoMusica(); /* ainda sem toque: tenta no próximo */ });
   }
-  // Entra ou sai das telas com música. Ao entrar tenta tocar já (o navegador deixa se o jogador já interagiu
-  // com o site antes); ao sair, abaixa o volume em ~1,5 s e pausa.
-  function areaMusica(sim) {
-    if (musica.area === sim) return;
-    musica.area = sim;
-    if (sim) tocarMusica();
-    else if (musica.audio && !musica.audio.paused) {
-      clearInterval(musica.fade);
-      musica.fade = setInterval(function () {
-        var v = musica.audio.volume - musica.VOLUME / 15;
-        if (v <= 0.01) { clearInterval(musica.fade); musica.audio.pause(); musica.audio.volume = musica.VOLUME; }
-        else musica.audio.volume = v;
-      }, 100);
+  function alternarPainel(fechar) {
+    if (musica.painel || fechar) {
+      if (musica.painel) { musica.painel.remove(); musica.painel = null; }
+      return;
     }
+    var p = musica.painel = document.createElement('div');
+    p.id = 'config-painel';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'Configurações');
+    p.innerHTML = '<div class="config-topo"><strong>Configurações</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
+      + '<label class="config-linha"><span>Música</span><input type="checkbox" id="config-musica"' + (musica.ligada ? ' checked' : '') + '></label>'
+      + '<label class="config-faixa"><span>Volume da música <b id="config-vol-txt">' + musica.volume + '%</b></span>'
+      + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
+      + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
+      + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
+      + '<p class="config-tocando suave pequeno"></p>';
+    p.addEventListener('click', function (e) { e.stopPropagation(); });
+    p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
+    p.querySelector('#config-musica').addEventListener('change', function (e) {
+      musica.ligada = e.target.checked;
+      guardar('eldrin.musica', musica.ligada ? 'on' : 'off');
+      if (musica.ligada) tocarMusica(); else if (musica.atual) musica.atual.audio.pause();
+      desenharBotaoMusica();
+    });
+    p.querySelector('#config-volume').addEventListener('input', function (e) {
+      musica.volume = parseInt(e.target.value, 10);
+      p.querySelector('#config-vol-txt').textContent = musica.volume + '%';
+      if (musica.atual) musica.atual.audio.volume = volumeAlvo();
+      guardar('eldrin.volume', musica.volume);
+    });
+    p.querySelector('#config-efeitos').addEventListener('input', function (e) {
+      musica.efeitos = parseInt(e.target.value, 10);
+      p.querySelector('#config-efe-txt').textContent = musica.efeitos + '%';
+      Sons.volume(musica.efeitos / 100);
+      guardar('eldrin.efeitos', musica.efeitos);
+    });
+    p.querySelector('#config-efeitos').addEventListener('change', function () { Sons.sucesso && Sons.sucesso(); });
+    document.body.appendChild(p);
     desenharBotaoMusica();
   }
-  function alternarMusica() {
-    // Ligada mas bloqueada pelo navegador: o primeiro clique no botão só faz tocar.
-    if (musica.ligada && (!musica.audio || musica.audio.paused)) { tocarMusica(); return; }
-    musica.ligada = !musica.ligada;
-    musica.tocou = musica.tocou || musica.ligada;
-    try { localStorage.setItem('eldrin.musica', musica.ligada ? 'on' : 'off'); } catch (e) { /* ignora */ }
-    if (musica.ligada) tocarMusica(); else if (musica.audio) musica.audio.pause();
-    desenharBotaoMusica();
-  }
+  document.addEventListener('click', function (e) {
+    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica')) alternarPainel(true);
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && musica.painel) alternarPainel(true); });
   // Eventos que o navegador aceita como "o jogador interagiu" (no celular o toque conta no fim: touchend/click).
   var TOQUES = ['click', 'touchend', 'keydown'];
   function primeiroToque(e) {
     if (e && e.target && e.target.closest && e.target.closest('#botao-musica')) return;   // o próprio botão cuida
-    if (musica.audio && !musica.audio.paused) return;
+    if (musica.atual && !musica.atual.audio.paused) return;
     tocarMusica();
   }
   TOQUES.forEach(function (ev) { document.addEventListener(ev, primeiroToque, true); });
