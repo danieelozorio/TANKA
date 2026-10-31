@@ -3114,6 +3114,48 @@
     }
   }
 
+  // ---------------- Música de fundo ----------------
+  // Os navegadores não deixam tocar som sozinho: a música começa no primeiro clique ou tecla.
+  // O botão 🔊/🔇 liga e desliga, e o jogo lembra a escolha neste aparelho.
+  var musica = { audio: null, ligada: true, botao: null, VOLUME: 0.35, ARQUIVO: 'assets/musica/tema-eldrin.mp3?v=1' };
+  try { musica.ligada = localStorage.getItem('eldrin.musica') !== 'off'; } catch (e) { /* sem armazenamento: fica ligada */ }
+  function desenharBotaoMusica() {
+    if (!musica.botao) {
+      musica.botao = document.createElement('button');
+      musica.botao.id = 'botao-musica';
+      musica.botao.addEventListener('click', function (e) { e.stopPropagation(); alternarMusica(); });
+      document.body.appendChild(musica.botao);
+    }
+    musica.botao.textContent = musica.ligada ? '🔊' : '🔇';
+    musica.botao.title = musica.ligada ? 'Desligar a música' : 'Ligar a música';
+    musica.botao.setAttribute('aria-label', musica.botao.title);
+  }
+  function tocarMusica() {
+    if (!musica.ligada) return;
+    if (!musica.audio) {
+      musica.audio = new Audio(musica.ARQUIVO);
+      musica.audio.loop = true;
+      musica.audio.volume = musica.VOLUME;
+      musica.audio.addEventListener('error', function () { if (musica.botao) musica.botao.hidden = true; });
+    }
+    var p = musica.audio.play();
+    if (p && p.catch) p.catch(function () { /* ainda sem clique: tenta no próximo */ });
+  }
+  function alternarMusica() {
+    musica.ligada = !musica.ligada;
+    try { localStorage.setItem('eldrin.musica', musica.ligada ? 'on' : 'off'); } catch (e) { /* ignora */ }
+    if (musica.ligada) tocarMusica(); else if (musica.audio) musica.audio.pause();
+    desenharBotaoMusica();
+  }
+  function primeiroToque() {
+    document.removeEventListener('pointerdown', primeiroToque, true);
+    document.removeEventListener('keydown', primeiroToque, true);
+    tocarMusica();
+  }
+  document.addEventListener('pointerdown', primeiroToque, true);
+  document.addEventListener('keydown', primeiroToque, true);
+  desenharBotaoMusica();
+
   // ---------------- Início ----------------
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
   C.iniciar().then(function (conta) {

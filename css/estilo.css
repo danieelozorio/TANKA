@@ -1021,3 +1021,10 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .tela-entrada .rodape { position: relative; color: #b9ab8c; }
 @media (prefers-reduced-motion: reduce) { .brasas-entrada i, .nevoa, .moldura-runica .btn[type="submit"] { animation: none; } .brasas-entrada { display: none; } }
 @media (max-width: 520px) { .moldura-runica { padding: 2rem 1.1rem 1.8rem; } .runas { letter-spacing: .3em; font-size: .7rem; } }
+
+/* Botão da música de fundo (canto de baixo, à esquerda) */
+#botao-musica { position: fixed; left: 16px; bottom: 16px; z-index: 13; width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--ouro); background: #1d1810; font-size: 1.15rem; line-height: 1; box-shadow: 0 6px 20px rgba(0, 0, 0, .5); }
+#botao-musica:hover { filter: brightness(1.25); }
+#botao-musica[hidden] { display: none; }
+@media (max-width: 700px) { #botao-musica { left: 8px; bottom: 84px; width: 40px; height: 40px; } }
