@@ -1039,16 +1039,42 @@
       s.start(c.currentTime + ini);
     }
     return {
-      // zumbido mágico subindo enquanto a barra enche; devolve a função que corta o som
+      // forja enquanto a barra enche: marteladas na bigorna acelerando e o fogo roncando por baixo.
+      // Devolve a função que corta tudo na hora em que a barra para.
       carregar: function (seg) {
         var c = ac(); if (!c) return function () {};
-        var o = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), t = c.currentTime;
-        o.type = 'triangle'; o2.type = 'sine';
-        o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(720, t + seg);
-        o2.frequency.setValueAtTime(183, t); o2.frequency.exponentialRampToValueAtTime(728, t + seg);
-        g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.06, t + 0.3);
-        o.connect(g); o2.connect(g); g.connect(c.destination); o.start(t); o2.start(t);
-        return function () { var n = c.currentTime; g.gain.cancelScheduledValues(n); g.gain.setValueAtTime(g.gain.value, n); g.gain.exponentialRampToValueAtTime(0.0001, n + 0.08); o.stop(n + 0.1); o2.stop(n + 0.1); };
+        var mestre = c.createGain(), t0 = c.currentTime;
+        mestre.gain.value = 1;
+        mestre.connect(c.destination);
+        // ronco do fogo: ruído grave filtrado que cresce
+        var buf = c.createBuffer(1, Math.floor(c.sampleRate * (seg + 0.5)), c.sampleRate), d = buf.getChannelData(0);
+        for (var n = 0; n < d.length; n++) d[n] = Math.random() * 2 - 1;
+        var fogo = c.createBufferSource(), lp = c.createBiquadFilter(), gf = c.createGain();
+        fogo.buffer = buf; lp.type = 'lowpass'; lp.frequency.setValueAtTime(220, t0); lp.frequency.linearRampToValueAtTime(700, t0 + seg);
+        gf.gain.setValueAtTime(0.0001, t0); gf.gain.exponentialRampToValueAtTime(0.12, t0 + seg);
+        fogo.connect(lp); lp.connect(gf); gf.connect(mestre); fogo.start(t0);
+        // marteladas: intervalo cai de 0,42 s para 0,11 s
+        var t = 0.05;
+        while (t < seg) {
+          var k = t / seg, forte = 0.12 + 0.1 * k;
+          [[880, 1], [1320, 0.5], [2280, 0.3]].forEach(function (h) {      // metal: parciais desafinados
+            var o = c.createOscillator(), g = c.createGain(), ini = t0 + t;
+            o.type = 'square'; o.frequency.value = h[0] * (1 + k * 0.15);
+            g.gain.setValueAtTime(forte * h[1], ini); g.gain.exponentialRampToValueAtTime(0.0001, ini + 0.18);
+            o.connect(g); g.connect(mestre); o.start(ini); o.stop(ini + 0.2);
+          });
+          var o2 = c.createOscillator(), g2 = c.createGain(), ini2 = t0 + t;        // pancada grave
+          o2.type = 'sine'; o2.frequency.setValueAtTime(140, ini2); o2.frequency.exponentialRampToValueAtTime(60, ini2 + 0.12);
+          g2.gain.setValueAtTime(0.25, ini2); g2.gain.exponentialRampToValueAtTime(0.0001, ini2 + 0.15);
+          o2.connect(g2); g2.connect(mestre); o2.start(ini2); o2.stop(ini2 + 0.16);
+          t += 0.42 - 0.31 * k;
+        }
+        return function () {
+          var agora = c.currentTime;
+          mestre.gain.cancelScheduledValues(agora); mestre.gain.setValueAtTime(mestre.gain.value, agora);
+          mestre.gain.linearRampToValueAtTime(0, agora + 0.05);
+          setTimeout(function () { mestre.disconnect(); try { fogo.stop(); } catch (e) { /* já parou */ } }, 120);
+        };
       },
       sucesso: function () {
         [523, 659, 784, 1047].forEach(function (f, i) { nota(f, i * 0.09, 0.5, 'triangle', 0.16); });
