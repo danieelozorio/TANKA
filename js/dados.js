@@ -244,6 +244,90 @@ Tanka.dados = {
   // Exp reduzida quando o level passa do fim da faixa da área (fim = level da próxima área).
   // Ex.: 3 a 7 levels acima: 50%; 8 ou mais: 10%. A última área nunca reduz.
   EXP_REDUZIDA: [{ acima: 8, pct: 10 }, { acima: 3, pct: 50 }],
+  // ---------- Habilidades (aba Herói > Habilidades) e segunda classe ----------
+  // Antes do level 10: só a habilidade inicial da classe (sem pontos). No level 10 o jogador escolhe a segunda
+  // classe e ganha 4 pontos (+1 por level depois), até 10 pontos por habilidade. Uma habilidade precisa de pelo
+  // menos 1 ponto para ser usada. Valor = base + porPonto x pontos.
+  // Na luta, a cada vez do herói: usa a 1ª habilidade pronta da ordem escolhida (caçada / masmorra / arena).
+  // Reforços (tipo reforco, furtivo, provocar) não gastam a vez: o herói usa e ataca junto.
+  // "turnos" = vezes do herói. recarga 3 = usada na vez 2, volta na vez 5.
+  TALENTOS: {
+    nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
+    unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
+    area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
+    atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
+    bonusPorPonto: 1,                          // % a mais por ponto em reforços, cura e passivas
+    atordoarChefeMax: 1,                       // contra chefes o atordoar dura no máximo 1 turno
+    curaSoAbaixo: 80,                          // em grupo, só cura se alguém estiver abaixo de 80% da vida
+  },
+  RECOMECO_HABILIDADES: { nome: 'Pergaminho das Habilidades', precoReputacao: 500 },
+  HABILIDADE_INICIAL: {
+    cavaleiro: { id: 'espada-giratoria', nome: 'Espada Giratória', tipo: 'area', recarga: 3, descricao: 'Gira a espada e acerta todos os inimigos.' },
+    arqueiro: { id: 'chuva-de-flechas', nome: 'Chuva de Flechas', tipo: 'area', recarga: 3, descricao: 'Uma chuva de flechas sobre todos os inimigos.' },
+    mago: { id: 'meteoro', nome: 'Meteoro', tipo: 'area', recarga: 3, descricao: 'Uma pedra de fogo cai sobre todos os inimigos.' },
+    artesao: { id: 'tremor', nome: 'Tremor', tipo: 'area', recarga: 3, descricao: 'Bate no chão e faz a terra tremer sob todos os inimigos.' },
+  },
+  // tipos: unico, area (atordoa: turnos), atordoar (alvo único), reforco (turnos + bônus em %), furtivo, provocar,
+  // cura, passiva. Campos em % (dano, danoCritico, critico, velocidade, precisao, vidaPct, defesaPct, evasao,
+  // danoCriticoMagico, recompensa) ganham +1 por ponto; atributos (+5) são fixos. grupo: vale para todos do grupo.
+  SEGUNDAS_CLASSES: {
+    paladino: { de: 'cavaleiro', nome: 'Paladino', nomeF: 'Paladina', descricao: 'Protege o grupo: atordoa, chama os ataques para si e aguenta firme.',
+      habilidades: [
+        { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
+        { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
+        { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
+        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre.' },
+      ] },
+    destruidor: { de: 'cavaleiro', nome: 'Destruidor', nomeF: 'Destruidora', descricao: 'Pura força: entra em fúria e derruba tudo.',
+      habilidades: [
+        { id: 'furia', nome: 'Fúria', tipo: 'reforco', turnos: 2, dano: 10, danoCritico: 10, recarga: 4, descricao: 'Mais dano e mais dano crítico.' },
+        { id: 'terremoto', nome: 'Terremoto', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
+        { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
+        { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
+      ] },
+    cacador: { de: 'arqueiro', nome: 'Caçador', nomeF: 'Caçadora', descricao: 'Controla a luta de longe: prende, dispara e corre.',
+      habilidades: [
+        { id: 'flecha-na-perna', nome: 'Flecha na Perna', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica parado.' },
+        { id: 'saraivada', nome: 'Saraivada', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
+        { id: 'pes-ligeiros', nome: 'Pés Ligeiros', tipo: 'reforco', turnos: 2, velocidade: 100, recarga: 4, descricao: 'Dobra a sua velocidade.' },
+        { id: 'reflexo-rapido', nome: 'Reflexo Rápido', tipo: 'passiva', atributos: { des: 5 }, evasao: 5, descricao: '+5 de Destreza e mais esquiva, sempre.' },
+      ] },
+    assassino: { de: 'arqueiro', nome: 'Assassino', nomeF: 'Assassina', descricao: 'Some nas sombras e volta com golpes críticos.',
+      habilidades: [
+        { id: 'mira-certeira', nome: 'Mira Certeira', tipo: 'reforco', turnos: 2, critico: 5, danoCritico: 5, recarga: 4, descricao: 'Mais chance e mais dano crítico.' },
+        { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque e o seu próximo golpe é crítico.' },
+        { id: 'golpe-fatal', nome: 'Golpe Fatal', tipo: 'unico', recarga: 3, descricao: 'Um golpe enorme em um inimigo.' },
+        { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
+      ] },
+    bruxo: { de: 'mago', nome: 'Bruxo', nomeF: 'Bruxa', descricao: 'Magia de destruição: congela, queima e fulmina.',
+      habilidades: [
+        { id: 'nevasca', nome: 'Nevasca', tipo: 'area', atordoa: 1, congela: true, recarga: 5, descricao: 'Dano em área e congela todos os inimigos.' },
+        { id: 'chuva-de-meteoros', nome: 'Chuva de Meteoros', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
+        { id: 'raio-da-morte', nome: 'Raio da Morte', tipo: 'unico', recarga: 2, descricao: 'Um raio forte em um inimigo.' },
+        { id: 'mente-sombria', nome: 'Mente Sombria', tipo: 'passiva', atributos: { int: 5 }, dano: 10, descricao: '+5 de Inteligência e mais dano, sempre.' },
+      ] },
+    curandeiro: { de: 'mago', nome: 'Curandeiro', nomeF: 'Curandeira', descricao: 'Cuida do grupo: cura, fortalece e ainda castiga.',
+      habilidades: [
+        { id: 'luz-que-cura', nome: 'Luz que Cura', tipo: 'cura', vidaPct: 20, recarga: 4, descricao: 'Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro.' },
+        { id: 'explosao-de-luz', nome: 'Explosão de Luz', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
+        { id: 'bencao', nome: 'Bênção', tipo: 'reforco', grupo: true, turnos: 2, vidaPct: 20, precisao: 5, recarga: 4, descricao: 'Mais vida máxima e precisão para você e o grupo.' },
+        { id: 'fe-profunda', nome: 'Fé Profunda', tipo: 'passiva', atributos: { int: 5 }, danoCriticoMagico: 10, descricao: '+5 de Inteligência e mais dano crítico mágico, sempre.' },
+      ] },
+    ferreiro: { de: 'artesao', nome: 'Ferreiro', nomeF: 'Ferreira', descricao: 'Mão pesada e couro grosso.',
+      habilidades: [
+        { id: 'marretada-no-chao', nome: 'Marretada no Chão', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
+        { id: 'martelada', nome: 'Martelada', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
+        { id: 'pancada-tonta', nome: 'Pancada Tonta', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica tonto.' },
+        { id: 'couro-grosso', nome: 'Couro Grosso', tipo: 'passiva', atributos: { sor: 5 }, defesaPct: 20, descricao: '+5 de Sorte e mais defesa, sempre.' },
+      ] },
+    coletor: { de: 'artesao', nome: 'Coletor', nomeF: 'Coletora', descricao: 'Bate menos, mas sai de toda luta com o bolso cheio.',
+      habilidades: [
+        { id: 'chuva-de-pedras', nome: 'Chuva de Pedras', tipo: 'area', reduzido: true, recarga: 3, descricao: 'Dano em área (mais fraco).' },
+        { id: 'pedrada', nome: 'Pedrada', tipo: 'unico', reduzido: true, recarga: 2, descricao: 'Um golpe em um inimigo (mais fraco).' },
+        { id: 'rede', nome: 'Rede', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Joga a rede em um inimigo e ele fica preso.' },
+        { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada.' },
+      ] },
+  },
   niveisHabilidade: [1, 10, 20, 30],
   habilidades: {
     cavaleiro: { nome: 'Golpe de Escudo', descricao: 'Bate com o escudo e deixa o monstro atordoado.',

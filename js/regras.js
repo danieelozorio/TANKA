@@ -131,10 +131,193 @@ Tanka.regras = (function () {
 
   // Atributos básicos + bônus dos equipamentos (valem para tudo que o atributo influencia).
   function atributosTotais(p) {
-    var b = bonusEquipamentos(p), a = {};
-    ATRIBUTOS.forEach(function (k) { a[k] = p.atributos[k] + b[k]; });
+    var b = bonusEquipamentos(p), a = {}, pas = passiva(p), extra = pas ? pas.def.atributos || {} : {};
+    ATRIBUTOS.forEach(function (k) { a[k] = p.atributos[k] + b[k] + (extra[k] || 0); });
     return a;
   }
+
+  // ---------- Habilidades e segunda classe ----------
+  var T = D.TALENTOS;
+  function talentos(p) {
+    var t = p.talentos || (p.talentos = {});
+    if (t.classe2 === undefined) t.classe2 = null;
+    if (!t.pontos) t.pontos = {};
+    if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [] };
+    return t;
+  }
+  function segundaClasse(p) { var t = p.talentos; return t && t.classe2 ? D.SEGUNDAS_CLASSES[t.classe2] : null; }
+  function opcoesSegundaClasse(classe) {
+    return Object.keys(D.SEGUNDAS_CLASSES).filter(function (k) { return D.SEGUNDAS_CLASSES[k].de === classe; });
+  }
+  function pontosHabilidadeTotal(p) {
+    return p.nivel >= T.nivelSegunda ? T.pontosIniciais + (p.nivel - T.nivelSegunda) * T.pontosPorNivel : 0;
+  }
+  function pontosHabilidadeLivres(p) {
+    var t = talentos(p), gastos = 0;
+    Object.keys(t.pontos).forEach(function (k) { gastos += t.pontos[k] || 0; });
+    return pontosHabilidadeTotal(p) - gastos;
+  }
+  function pontosEm(p, id) { return (p.talentos && p.talentos.pontos[id]) || 0; }
+  // A passiva da segunda classe (precisa de 1 ponto).
+  function passiva(p) {
+    var c = segundaClasse(p);
+    if (!c) return null;
+    var def = c.habilidades.filter(function (h) { return h.tipo === 'passiva'; })[0], pts = pontosEm(p, def.id);
+    return pts > 0 ? { def: def, pts: pts } : null;
+  }
+  // Valor de um campo em % de um reforço/cura/passiva com N pontos.
+  function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
+  // Multiplicador (%) de dano de uma habilidade de golpe.
+  function multHabilidade(def, pts) {
+    var tab = def.tipo === 'atordoar' ? T.atordoar : def.tipo === 'area' ? (def.reduzido ? T.areaReduzida : T.area)
+      : def.tipo === 'unico' ? (def.reduzido ? T.unicoReduzido : T.unico) : null;
+    if (!tab) return 0;
+    return def.inicial ? tab.base : tab.base + tab.porPonto * pts;
+  }
+  // Escolhe a segunda classe (level 10+, uma vez; o Pergaminho das Habilidades libera de novo).
+  function escolherSegundaClasse(p, id) {
+    var c = D.SEGUNDAS_CLASSES[id], t = talentos(p);
+    if (p.nivel < T.nivelSegunda) return 'Só a partir do level ' + T.nivelSegunda + '.';
+    if (!c || c.de !== p.classe) return 'Classe inválida.';
+    if (t.classe2) return 'Você já escolheu a segunda classe.';
+    var hpAntes = status(p).hpMax;
+    t.classe2 = id;
+    t.pontos = {};
+    var ativas = c.habilidades.filter(function (h) { return h.tipo !== 'passiva'; }).map(function (h) { return h.id; });
+    t.ordem = { cacada: ativas.slice(), masmorra: ativas.slice(), arena: ativas.slice() };
+    ajustarVida(p, hpAntes);
+    return true;
+  }
+  // Põe (+1) ou tira (-1) um ponto. Retorna true ou o motivo.
+  function mudarPontoHabilidade(p, id, delta) {
+    var c = segundaClasse(p), t = talentos(p);
+    if (!c || !c.habilidades.some(function (h) { return h.id === id; })) return 'Escolha a segunda classe primeiro.';
+    var atual = t.pontos[id] || 0, novo = atual + delta;
+    if (novo < 0) return false;
+    if (novo > T.maxPorHabilidade) return 'Máximo de ' + T.maxPorHabilidade + ' pontos por habilidade.';
+    if (delta > 0 && pontosHabilidadeLivres(p) < delta) return 'Sem pontos livres.';
+    var hpAntes = status(p).hpMax;
+    if (novo) t.pontos[id] = novo; else delete t.pontos[id];
+    ajustarVida(p, hpAntes);
+    return true;
+  }
+  // Ordem de uso: move uma habilidade para cima/baixo, tira ou põe de volta (modo: cacada, masmorra, arena).
+  function moverHabilidade(p, modo, id, acao) {
+    var t = talentos(p), c = segundaClasse(p), lista = t.ordem[modo];
+    if (!c || !lista) return false;
+    var i = lista.indexOf(id);
+    if (acao === 'tirar') { if (i >= 0) lista.splice(i, 1); return true; }
+    if (acao === 'por') { if (i < 0 && c.habilidades.some(function (h) { return h.id === id && h.tipo !== 'passiva'; })) lista.push(id); return true; }
+    var j = acao === 'subir' ? i - 1 : i + 1;
+    if (i < 0 || j < 0 || j >= lista.length) return false;
+    lista[i] = lista[j]; lista[j] = id;
+    return true;
+  }
+  // Habilidades ativas na ordem do modo, só as que têm ponto. Antes da segunda classe: a habilidade inicial.
+  function kitHabilidades(p, modo) {
+    var c = segundaClasse(p);
+    if (!c) {
+      var ini = D.HABILIDADE_INICIAL[p.classe];
+      return ini ? [{ def: Object.assign({ inicial: true }, ini), pts: 0 }] : [];
+    }
+    return (talentos(p).ordem[modo] || []).map(function (id) {
+      var def = c.habilidades.filter(function (h) { return h.id === id; })[0];
+      return def && def.tipo !== 'passiva' && pontosEm(p, id) > 0 ? { def: def, pts: pontosEm(p, id) } : null;
+    }).filter(Boolean);
+  }
+  // Pergaminho das Habilidades: devolve os pontos e deixa escolher a segunda classe de novo.
+  function comprarRecomecoHabilidades(p) {
+    var preco = D.RECOMECO_HABILIDADES.precoReputacao;
+    if ((p.reputacao || 0) < preco) return 'Reputação insuficiente.';
+    p.reputacao -= preco;
+    p.recomecosHab = (p.recomecosHab || 0) + 1;
+    return true;
+  }
+  function usarRecomecoHabilidades(p) {
+    if (!p.recomecosHab) return 'Você não tem ' + D.RECOMECO_HABILIDADES.nome + '.';
+    var hpAntes = status(p).hpMax;
+    p.recomecosHab -= 1;
+    p.talentos = { classe2: null, pontos: {}, ordem: { cacada: [], masmorra: [], arena: [] } };
+    ajustarVida(p, hpAntes);
+    p.hpAtual = Math.min(p.hpAtual, status(p).hpMax);
+    return true;
+  }
+
+  // --- Na luta: estado de um lutador (herói) com as habilidades ---
+  function novoLutador(p, modo) {
+    return { kit: kitHabilidades(p, modo), turno: 0, pronto: {}, buffs: [], furtivo: false, critEm: -1, provocaAte: -1, vidaExtra: 0 };
+  }
+  function somaBuff(L, campo) {
+    var t = 0;
+    if (L) L.buffs.forEach(function (x) { if (x.ate >= L.turno) t += x[campo] || 0; });
+    return t;
+  }
+  // Começo da vez do herói: conta o turno e tira os reforços que acabaram. h: { hp, hpMax, vel, velBase }.
+  function inicioVez(L, h) {
+    L.turno++;
+    L.buffs = L.buffs.filter(function (x) {
+      if (x.ate >= L.turno) return true;
+      if (x.vidaExtra) { h.hpMax -= x.vidaExtra; h.hp = Math.min(h.hp, h.hpMax); }
+      return false;
+    });
+    if (L.mudaVel) h.vel = Math.max(1, Math.round(h.velBase * (1 + somaBuff(L, 'velocidade') / 100)));
+  }
+  // A 1ª habilidade pronta da ordem. ctx.grupoFerido: alguém do grupo abaixo do limite (para a cura em grupo).
+  function escolherHabilidade(L, ctx) {
+    for (var i = 0; i < L.kit.length; i++) {
+      var k = L.kit[i];
+      if ((L.pronto[k.def.id] || 0) > L.turno) continue;
+      if (k.def.tipo === 'cura' && ctx.grupo && !ctx.grupoFerido) continue;
+      return k;
+    }
+    return null;
+  }
+  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + (k.def.recarga || 1); }
+  function ehReforco(def) { return def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar'; }
+  // Aplica um reforço no próprio herói (e no grupo, se for de grupo: alvos = [{ L, h }]).
+  function aplicarReforco(k, dono, alvos) {
+    var def = k.def, pts = k.pts;
+    if (def.tipo === 'furtivo') {
+      dono.L.furtivo = true;
+      dono.L.critEm = dono.L.turno + 1;
+      dono.L.buffs.push({ ate: dono.L.turno + 1, danoCritico: valorBonus(def, 'danoCritico', pts) });
+      return;
+    }
+    if (def.tipo === 'provocar') {
+      dono.L.provocaAte = dono.L.turno + def.turnos - 1;
+      dono.L.buffs.push({ ate: dono.L.turno + def.turnos - 1, defesaPct: valorBonus(def, 'defesaPct', pts) });
+      return;
+    }
+    (def.grupo ? alvos : [dono]).forEach(function (a) {
+      var b = { ate: a.L.turno + def.turnos - (a === dono ? 1 : 0) };
+      ['dano', 'danoCritico', 'critico', 'velocidade', 'precisao'].forEach(function (c) { if (def[c]) b[c] = valorBonus(def, c, pts); });
+      if (def.vidaPct && a.h.hp > 0) {
+        b.vidaExtra = Math.round(a.h.hpMax * valorBonus(def, 'vidaPct', pts) / 100);
+        a.h.hpMax += b.vidaExtra; a.h.hp += b.vidaExtra;
+      }
+      a.L.buffs.push(b);
+      if (b.velocidade) { a.L.mudaVel = true; a.h.vel = Math.max(1, Math.round(a.h.velBase * (1 + somaBuff(a.L, 'velocidade') / 100))); }
+    });
+  }
+  // Um golpe de herói contra um alvo (monstro). opcoes: mult (%), sempreAcerta, ignoraDefesa.
+  function calcularGolpe(s, L, alvo, opcoes, rng) {
+    var magico = s.tipoDano === 'magico', g = { acerto: false, critico: false, dano: 0 };
+    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, 5, 95)) return g;
+    var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
+    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100);
+    dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
+    var chance = (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0) + somaBuff(L, 'critico');
+    var garantido = L && L.critEm === L.turno;
+    if (garantido || rng() * 100 < chance) {
+      g.critico = true;
+      dano = Math.floor(dano * ((magico ? s.danoCriticoMagico : s.danoCritico) + somaBuff(L, 'danoCritico')) / 100);
+    }
+    if (garantido) L.critEm = -1;
+    g.acerto = true; g.dano = dano;
+    return g;
+  }
+  // Defesa do herói com os reforços (ex.: Grito de Desafio).
+  function defesaHeroi(s, L) { return Math.round(s.defesa * (1 + somaBuff(L, 'defesaPct') / 100)); }
 
   // Mantém a vida coerente quando o HP máximo muda (equipar, desequipar, distribuir ponto).
   function ajustarVida(p, hpMaxAntes) {
@@ -211,7 +394,7 @@ Tanka.regras = (function () {
     var magico = D.classes[p.classe].dano === 'magico';
     var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
     var bonus = magico ? Math.floor(a.int / 5) : Math.floor(a.for / 5);
-    return {
+    return comPassiva({
       hpMax: D.HP_INICIAL
         + Math.max(0, a.res - p.atributosIniciais.res) * D.HP_POR_RES
         + (p.nivel - 1) * D.HP_POR_NIVEL
@@ -233,7 +416,23 @@ Tanka.regras = (function () {
       chanceCraft: a.sor,                            // SOR (%)
       bonusDrop: a.sor,                              // SOR (% a mais sobre a chance base)
       chanceEncantamento: a.sor,                     // 1% por ponto de SOR
-    };
+      bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)
+    }, p);
+  }
+  // Passiva da segunda classe: % a mais em vida, defesa, dano, crítico, esquiva e recompensas.
+  function comPassiva(s, p) {
+    var pas = passiva(p);
+    if (!pas) return s;
+    var d = pas.def, n = pas.pts, v = function (c) { return valorBonus(d, c, n); };
+    if (d.vidaPct) s.hpMax = Math.round(s.hpMax * (1 + v('vidaPct') / 100));
+    if (d.defesaPct) { s.defesa = Math.round(s.defesa * (1 + v('defesaPct') / 100)); s.defesaMagica = Math.round(s.defesaMagica * (1 + v('defesaPct') / 100)); }
+    if (d.dano) s.dano = [Math.round(s.dano[0] * (1 + v('dano') / 100)), Math.round(s.dano[1] * (1 + v('dano') / 100))];
+    if (d.evasao) s.evasao += v('evasao');
+    if (d.critico) s.chanceCritico += v('critico');
+    if (d.danoCritico) s.danoCritico += v('danoCritico');
+    if (d.danoCriticoMagico) s.danoCriticoMagico += v('danoCriticoMagico');
+    if (d.recompensa) s.bonusRecompensa = v('recompensa');
+    return s;
   }
 
   // Poder: nota de força para o ranking (ataque por tempo + resistência).
@@ -441,7 +640,9 @@ Tanka.regras = (function () {
       habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
       pocoes: p.pocoes,                   // poções disponíveis na luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
-      jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0, poder: 0 },
+      jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
+      lutador: novoLutador(p, 'cacada'),   // habilidades da caçada (ordem, recargas, reforços)
+      chefe: !!m.chefe,
       // O monstro começa com a barra cheia: o primeiro golpe da luta é sempre dele.
       monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100,
         atordoado: 0, armaduraQuebrada: false },
@@ -450,19 +651,13 @@ Tanka.regras = (function () {
   }
 
   // Um golpe do jogador. opcoes: mult, sempreAcerta, ignoraDefesa, bonusCritico (%).
+  // Precisão menos 3% por área (Floresta 0%, Cume do Fogo -18%); a defesa do monstro reduz o dano em
+  // porcentagem: 100 / (100 + defesa). opcoes.mult: multiplicador (1 = normal).
   function golpeJogador(b, opcoes) {
-    var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
-    var magico = s.tipoDano === 'magico';
-    var g = { acerto: false, critico: false, dano: 0 };
-    // Precisão menos 3% por área (Floresta 0%, Cume do Fogo -18%).
-    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao - m.indiceArea * 3, 5, 95)) return g;
-    var defesa = opcoes.ignoraDefesa ? 0 : (magico ? m.defesaMagica : m.defesa);
-    // A defesa do monstro reduz em porcentagem: 100 / (100 + defesa).
-    var dano = Math.max(1, Math.round(rolar(s.dano, rng) * (opcoes.mult || 1) * 100 / (100 + defesa)));
-    if (rng() * 100 < (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0)) {
-      g.critico = true;
-      dano = Math.floor(dano * (magico ? s.danoCriticoMagico : s.danoCritico) / 100);
-    }
+    var m = D.monstros[b.monstroId];
+    var g = calcularGolpe(b.s, b.lutador, m, Object.assign({}, opcoes, { mult: (opcoes.mult || 1) * 100 }), b.rng);
+    if (!g.acerto) return g;
+    var dano = g.dano;
     if (b.monstro.armaduraQuebrada) dano = Math.round(dano * D.habilidades.artesao.danoArmaduraQuebrada);
     g.acerto = true;
     g.dano = dano;
@@ -530,9 +725,11 @@ Tanka.regras = (function () {
       ev.atordoado = true;
       return ev;
     }
+    // Sombra (Assassino): o próximo ataque erra.
+    if (b.lutador && b.lutador.furtivo) { b.lutador.furtivo = false; ev.sombra = true; return ev; }
     // Acerto do monstro: 80% + 2% por área, menos a evasão do jogador.
     if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
-    var dano = Math.max(1, rolar(m.ataque, rng) - s.defesa);
+    var dano = Math.max(1, rolar(m.ataque, rng) - defesaHeroi(s, b.lutador));
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
@@ -547,6 +744,7 @@ Tanka.regras = (function () {
     for (;;) {
       if (b.jogador.barra >= 100) {
         b.jogador.barra -= 100;
+        if (b.lutador) inicioVez(b.lutador, b.jogador);
         if (b.pocaoPendente) {
           b.pocaoPendente = false;
           b.pocoes -= 1;
@@ -555,12 +753,47 @@ Tanka.regras = (function () {
           return { ator: 'jogador', pocao: true, cura: curou };
         }
         var cheia = b.jogador.poder >= D.PODER.maximo;
-        return D.HABILIDADES_ATIVAS && cheia && (b.habilidadePendente || b.auto) ? usarHabilidade(b) : ataqueJogador(b);
+        if (D.HABILIDADES_ATIVAS && cheia && (b.habilidadePendente || b.auto)) return usarHabilidade(b);
+        return b.lutador ? vezComHabilidades(b) : ataqueJogador(b);
       }
       if (b.monstro.barra >= 100) { b.monstro.barra -= 100; return ataqueMonstro(b); }
       b.jogador.barra += b.jogador.vel;
       b.monstro.barra += b.monstro.vel;
     }
+  }
+
+  // Vez do herói na caçada: usa a 1ª habilidade pronta da ordem (reforço + ataque, ou golpe da habilidade).
+  function vezComHabilidades(b) {
+    var L = b.lutador, k = escolherHabilidade(L, { grupo: false });
+    if (!k) return ataqueJogador(b);
+    var def = k.def, magico = b.s.tipoDano === 'magico';
+    gastarHabilidade(L, k);
+    if (ehReforco(def)) {
+      aplicarReforco(k, { L: L, h: b.jogador }, null);
+      var ev = ataqueJogador(b);
+      ev.reforco = def.nome;
+      return ev;
+    }
+    var hab = { ator: 'jogador', habilidade: def.nome, magico: magico, golpes: [], dano: 0 };
+    if (def.tipo === 'cura') {
+      // Na caçada a cura vira dano: % da vida máxima do herói, sempre acerta.
+      var d = Math.max(1, Math.round(b.jogador.hpMax * valorBonus(def, 'vidaPct', k.pts) / 100));
+      b.monstro.hp = Math.max(0, b.monstro.hp - d);
+      if (b.monstro.hp === 0) b.fim = 'vitoria';
+      hab.golpes.push({ acerto: true, critico: false, dano: d });
+    } else {
+      var g = golpeJogador(b, { mult: multHabilidade(def, k.pts) / 100 });
+      hab.golpes.push(g);
+      if (g.acerto && def.atordoa && !b.fim) {
+        var t = b.chefe ? Math.min(def.atordoa, T.atordoarChefeMax) : def.atordoa;
+        b.monstro.atordoado = Math.max(b.monstro.atordoado, t);
+        hab.atordoou = t; hab.congelou = !!def.congela;
+      }
+    }
+    hab.golpes.forEach(function (g) { hab.dano += g.dano; });
+    hab.acerto = hab.golpes.some(function (g) { return g.acerto; });
+    hab.critico = hab.golpes.some(function (g) { return g.critico; });
+    return hab;
   }
 
   // Aplica o resultado no personagem. Derrota: fica com 0 de vida, perde 5% da exp do level
@@ -569,7 +802,7 @@ Tanka.regras = (function () {
   // `bonus`: % a mais de exp e de ouro (bônus da aliança), ex.: { exp: 9, ouro: 9 }.
   function concluirBatalha(p, b, agora, bonus) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
-    p.hpAtual = b.jogador.hp;
+    p.hpAtual = Math.min(b.jogador.hp, status(p).hpMax);   // a vida extra da Bênção acaba com a luta
     p.pocoes = b.pocoes;
     p.vidaEm = agora || Date.now();
     if (b.fim === 'vitoria') {
@@ -587,6 +820,10 @@ Tanka.regras = (function () {
       res.ouro = m.ouro;
       if (bonus && bonus.exp) res.exp = Math.floor(res.exp * (1 + bonus.exp / 100));
       if (bonus && bonus.ouro) res.ouro = Math.floor(res.ouro * (1 + bonus.ouro / 100));
+      if (b.s.bonusRecompensa) {   // passiva do Coletor
+        res.exp = Math.floor(res.exp * (1 + b.s.bonusRecompensa / 100));
+        res.ouro = Math.floor(res.ouro * (1 + b.s.bonusRecompensa / 100));
+      }
       p.ouro += res.ouro;
       res.niveis = ganharExp(p, res.exp);
       if (m.chefe) {
@@ -953,7 +1190,8 @@ Tanka.regras = (function () {
     var hs = herois.map(function (dados) {
       var p = normalizar(JSON.parse(JSON.stringify(dados)));
       var s = status(p);
-      return { nome: p.nome, classe: p.classe, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), barra: 0 };
+      return { nome: p.nome, classe: p.classe, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
+        velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
     var salas = salasMasmorra(masmorraId);
     var inicio = {
@@ -961,10 +1199,12 @@ Tanka.regras = (function () {
       salas: salas.map(function (sala) { return sala.map(function (m) { return { id: m.id, nome: m.nome, hpMax: m.hp, elite: m.elite, chefe: m.chefe }; }); }),
     };
     var eventos = [];
+    // Cada evento leva a vida de todos os heróis depois dele (cura, Bênção e golpes).
+    function registrar(e) { e.hp = hs.map(function (x) { return x.hp; }); eventos.push(e); }
     function vivos(lista) { return lista.filter(function (x) { return x.hp > 0; }); }
     for (var si = 0; si < salas.length; si++) {
-      if (si > 0) eventos.push({ tipo: 'sala', sala: si });
-      var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100 }); });
+      if (si > 0) registrar({ tipo: 'sala', sala: si });
+      var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100, atordoado: 0 }); });
       var tiques = 0;
       while (vivos(ms).length && vivos(hs).length) {
         if (++tiques > 200000) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
@@ -980,30 +1220,57 @@ Tanka.regras = (function () {
         ator.barra -= 100;
         var ev = { tipo: 'golpe', sala: si, de: ehHeroi ? 'h' : 'm', i: ehHeroi ? hs.indexOf(ator) : ms.indexOf(ator), acerto: false, critico: false, dano: 0, caiu: false };
         if (ehHeroi) {
-          var alvo = vivos(ms)[0], s = ator.s, magico = s.tipoDano === 'magico';
-          ev.alvo = ms.indexOf(alvo);
-          if (rng() * 100 < limitar(s.precisao - alvo.indiceArea * 3, 5, 95)) {
-            var def = magico ? alvo.defesaMagica : alvo.defesa;
-            var dano = Math.max(1, Math.round(rolar(s.dano, rng) * 100 / (100 + def)));
-            if (rng() * 100 < (magico ? s.chanceCriticoMagico : s.chanceCritico)) {
-              ev.critico = true;
-              dano = Math.floor(dano * (magico ? s.danoCriticoMagico : s.danoCritico) / 100);
-            }
-            ev.acerto = true; ev.dano = dano;
-            alvo.hp = Math.max(0, alvo.hp - dano);
-            ev.caiu = alvo.hp === 0;
+          var H = ator, L = H.L;
+          inicioVez(L, H);
+          var ferido = vivos(hs).some(function (x) { return x.hp * 100 / x.hpMax < T.curaSoAbaixo; });
+          var k = escolherHabilidade(L, { grupo: true, grupoFerido: ferido });
+          if (k) gastarHabilidade(L, k);
+          if (k && ehReforco(k.def)) {
+            aplicarReforco(k, { L: L, h: H }, vivos(hs).map(function (x) { return { L: x.L, h: x }; }));
+            registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome, reforco: true });
+            k = null;   // reforço: ataca normalmente em seguida
           }
+          if (k && k.def.tipo === 'cura') {
+            var pct = valorBonus(k.def, 'vidaPct', k.pts);
+            vivos(hs).forEach(function (x) { x.hp = Math.min(x.hpMax, x.hp + Math.round(x.hpMax * pct / 100)); });
+            registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome, cura: true });
+            continue;
+          }
+          var alvos = !k ? [vivos(ms)[0]] : k.def.tipo === 'area' ? vivos(ms) : [vivos(ms)[0]];
+          var mult = k ? multHabilidade(k.def, k.pts) : 100;
+          if (k) registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome });
+          alvos.forEach(function (alvo, n) {
+            var e = n === 0 ? ev : { tipo: 'golpe', sala: si, de: 'h', i: ev.i, acerto: false, critico: false, dano: 0, caiu: false };
+            e.alvo = ms.indexOf(alvo);
+            var g = calcularGolpe(H.s, L, alvo, { mult: mult }, rng);
+            if (g.acerto) {
+              e.acerto = true; e.critico = g.critico; e.dano = g.dano;
+              alvo.hp = Math.max(0, alvo.hp - g.dano);
+              e.caiu = alvo.hp === 0;
+              if (k && k.def.atordoa && alvo.hp > 0) {
+                var t = alvo.chefe ? Math.min(k.def.atordoa, T.atordoarChefeMax) : k.def.atordoa;
+                alvo.atordoado = Math.max(alvo.atordoado, t);
+                e.atordoou = t; e.congelou = !!k.def.congela;
+              }
+            }
+            registrar(e);
+          });
+          ev = null;
         } else {
-          var lista = vivos(hs), heroi = lista[Math.floor(rng() * lista.length)];
+          if (ator.atordoado > 0) { ator.atordoado -= 1; ev.atordoado = true; registrar(ev); continue; }
+          // Grito de Desafio: os monstros atacam quem provocou.
+          var lista = vivos(hs), provocador = lista.filter(function (x) { return x.L.provocaAte >= x.L.turno; })[0];
+          var heroi = provocador || lista[Math.floor(rng() * lista.length)];
           ev.alvo = hs.indexOf(heroi);
-          if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - heroi.s.evasao, 5, 95)) {
-            var d = Math.max(1, rolar(ator.ataque, rng) - heroi.s.defesa);
+          if (heroi.L.furtivo) { heroi.L.furtivo = false; ev.sombra = true; }
+          else if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - heroi.s.evasao, 5, 95)) {
+            var d = Math.max(1, rolar(ator.ataque, rng) - defesaHeroi(heroi.s, heroi.L));
             ev.acerto = true; ev.dano = d;
             heroi.hp = Math.max(0, heroi.hp - d);
             ev.caiu = heroi.hp === 0;
           }
         }
-        eventos.push(ev);
+        if (ev) registrar(ev);
       }
       if (!vivos(hs).length) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
     }
@@ -1177,6 +1444,21 @@ Tanka.regras = (function () {
     descansar: descansar,
     equipar: equipar,
     itemMelhor: itemMelhor,
+    talentos: talentos,
+    segundaClasse: segundaClasse,
+    opcoesSegundaClasse: opcoesSegundaClasse,
+    pontosHabilidadeTotal: pontosHabilidadeTotal,
+    pontosHabilidadeLivres: pontosHabilidadeLivres,
+    pontosEm: pontosEm,
+    passiva: passiva,
+    valorBonus: valorBonus,
+    multHabilidade: multHabilidade,
+    escolherSegundaClasse: escolherSegundaClasse,
+    mudarPontoHabilidade: mudarPontoHabilidade,
+    moverHabilidade: moverHabilidade,
+    kitHabilidades: kitHabilidades,
+    comprarRecomecoHabilidades: comprarRecomecoHabilidades,
+    usarRecomecoHabilidades: usarRecomecoHabilidades,
     desequipar: desequipar,
     RARIDADES: RARIDADES,
     TIPOS_ARMADURA: TIPOS_ARMADURA,

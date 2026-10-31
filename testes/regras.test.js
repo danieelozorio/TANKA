@@ -109,6 +109,7 @@ teste('o monstro sempre dá o primeiro golpe', () => {
 teste('defesa do monstro reduz o dano em porcentagem', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const b = R.iniciarBatalha(p, 'ignaroth', fixo0);
+  b.lutador.kit = [];
   b.s = Object.assign({}, b.s, { dano: [100, 100], precisao: 200, chanceCritico: 0 });
   b.monstro.hp = 1e9; b.jogador.barra = 100; b.monstro.barra = 0;
   const ev = R.passo(b);
@@ -581,6 +582,7 @@ function batalhaTeste(classe, nivel, monstro = 'urso') {
   b.monstro.hp = b.monstro.hpMax = 1e6;
   b.jogador.hp = b.jogador.hpMax = 1e6;
   b.monstro.barra = 0; // sem o primeiro golpe garantido do monstro, para medir a habilidade
+  b.lutador.kit = [];  // sem as habilidades novas (aba Habilidades): mede só a barra de Poder antiga
   return { p, b };
 }
 
@@ -747,6 +749,7 @@ teste('derrota deixa 0 de vida; habilidades desligadas não disparam', () => {
   assert.strictEqual(p.nivel, 6);
   D.HABILIDADES_ATIVAS = false;
   const b2 = R.iniciarBatalha(R.criarPersonagem('Sem', 'masculino', 'humano', 'mago'), 'lobo', rng);
+  b2.lutador.kit = [];
   b2.jogador.poder = 100; b2.auto = true;
   assert.strictEqual(R.prepararHabilidade(b2), false);
   for (let i = 0; i < 50 && !b2.fim; i++) assert.ok(!R.passo(b2).habilidade);
@@ -941,4 +944,79 @@ teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', (
   assert.deepStrictEqual([...D.monstros.lobo.ataque], [3, 5]);
   const chefeToca = R.salasMasmorra('toca')[2][0];
   assert.deepStrictEqual([...chefeToca.ataque], [80, 100], 'masmorra quase igual (era 75–100)');
+});
+
+teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), passiva no status e recomeço', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.kitHabilidades(p, 'cacada')[0].def.nome, 'Espada Giratória');
+  assert.strictEqual(R.pontosHabilidadeTotal(p), 0);
+  assert.notStrictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
+  R.admin.subirNivel(p, 9);
+  assert.strictEqual(R.pontosHabilidadeTotal(p), 4);
+  assert.notStrictEqual(R.escolherSegundaClasse(p, 'assassino'), true, 'só as da própria classe');
+  assert.strictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
+  assert.strictEqual(R.kitHabilidades(p, 'cacada').length, 0, 'sem ponto, nenhuma ativa');
+  const antes = R.status(p).hpMax;
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), true);
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva 10% + 1% por ponto');
+  for (let i = 0; i < 3; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
+  assert.strictEqual(R.pontosHabilidadeLivres(p), 0);
+  assert.notStrictEqual(R.mudarPontoHabilidade(p, 'golpe-justo', 1), true, 'sem pontos');
+  R.admin.subirNivel(p, 10);
+  for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
+  assert.strictEqual(R.pontosEm(p, 'golpe-justo'), 10, 'máximo 10');
+  assert.strictEqual(R.multHabilidade(D.SEGUNDAS_CLASSES.paladino.habilidades[2], 10), 200);
+  // ordem
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['martelo-sagrado', 'grito-de-desafio', 'golpe-justo']);
+  R.moverHabilidade(p, 'cacada', 'golpe-justo', 'subir');
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['martelo-sagrado', 'golpe-justo', 'grito-de-desafio']);
+  R.moverHabilidade(p, 'cacada', 'martelo-sagrado', 'tirar');
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['golpe-justo', 'grito-de-desafio']);
+  // recomeço das habilidades
+  p.reputacao = 500;
+  assert.strictEqual(R.comprarRecomecoHabilidades(p), true);
+  assert.strictEqual(R.usarRecomecoHabilidades(p), true);
+  assert.strictEqual(R.segundaClasse(p), null);
+  assert.strictEqual(R.status(p).hpMax, antes + 10 * D.HP_POR_NIVEL);
+});
+
+teste('habilidades na caçada: Sombra faz o monstro errar e o próximo golpe ser crítico; chefe atordoado só 1 turno', () => {
+  const p = R.criarPersonagem('T', 'feminino', 'humano', 'arqueiro');
+  R.admin.subirNivel(p, 9);
+  R.escolherSegundaClasse(p, 'assassino');
+  R.mudarPontoHabilidade(p, 'sombra', 1); R.mudarPontoHabilidade(p, 'golpe-fatal', 2);
+  R.talentos(p).ordem.cacada = ['sombra', 'golpe-fatal'];
+  const b = R.iniciarBatalha(p, 'aranha', rng);
+  b.s.precisao = 1000; b.monstro.hp = b.monstro.hpMax = 1e6; b.jogador.hp = b.jogador.hpMax = 1e6;
+  b.monstro.barra = 0; b.jogador.barra = 100;
+  const e1 = R.passo(b);
+  assert.strictEqual(e1.reforco, 'Sombra');
+  const evs = []; for (let i = 0; i < 4; i++) evs.push(R.passo(b));
+  const m1 = evs.find((e) => e.ator === 'monstro');
+  assert.ok(m1.sombra && !m1.acerto, 'o monstro erra');
+  const fatal = evs.find((e) => e.habilidade === 'Golpe Fatal');
+  assert.ok(fatal && fatal.critico, 'na vez seguinte: Golpe Fatal com crítico garantido');
+  // chefe: atordoar dura no máximo 1
+  const q = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  R.admin.subirNivel(q, 9); R.escolherSegundaClasse(q, 'cacador'); R.mudarPontoHabilidade(q, 'flecha-na-perna', 1);
+  const c = R.iniciarBatalha(q, 'velgrath', rng);
+  c.s.precisao = 1000; c.monstro.hp = 1e6; c.monstro.barra = 0; c.jogador.barra = 100;
+  const ev = R.passo(c);
+  assert.strictEqual(ev.habilidade, 'Flecha na Perna');
+  assert.strictEqual(c.monstro.atordoado, 1);
+});
+
+teste('habilidades na masmorra: mesma semente, mesma luta; cura e área aparecem', () => {
+  const grupo = ['curandeiro', 'paladino', 'bruxo'].map((sc) => {
+    const p = R.criarPersonagem(sc, 'masculino', 'humano', D.SEGUNDAS_CLASSES[sc].de);
+    R.admin.subirNivel(p, 14);
+    R.escolherSegundaClasse(p, sc);
+    D.SEGUNDAS_CLASSES[sc].habilidades.forEach((h) => { R.mudarPontoHabilidade(p, h.id, 2); });
+    return p;
+  });
+  const a = R.simularMasmorra(grupo, 'toca', 'semente-1'), b = R.simularMasmorra(grupo, 'toca', 'semente-1');
+  assert.strictEqual(JSON.stringify(a), JSON.stringify(b));
+  const nomes = new Set(a.eventos.filter((e) => e.tipo === 'hab').map((e) => e.nome));
+  assert.ok(nomes.has('Martelo Sagrado') || nomes.has('Nevasca'), 'usa habilidade de área');
+  assert.ok(a.eventos.every((e) => Array.isArray(e.hp)));
 });

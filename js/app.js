@@ -219,7 +219,7 @@
     var cartas = lista.map(function (p) {
       var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
         + '<div class="nome">' + esc(p.nome) + '</div>'
-        + '<div class="detalhe">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasse(p.classe, p.sexo) + ' · Lv ' + p.nivel + '</div>';
+        + '<div class="detalhe">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + ' · Lv ' + p.nivel + '</div>';
       // Excluir pede o nome do personagem digitado, para não apagar sem querer.
       if (estado.excluir === p.id) {
         return topoCarta + '<div class="excluir-confirma"><p class="menos pequeno">Isso apaga ' + esc(p.nome) + ' para sempre: level, itens, ouro e amigos. Não dá para desfazer.</p>'
@@ -413,18 +413,20 @@
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
-    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar'] },
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   function nomeClasse(k, sexo) { var x = D.classes[k]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
-  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
+  function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
+  function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -502,7 +504,7 @@
 
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
-      + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasse(p.classe, p.sexo) + '</div>'
+      + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
@@ -904,6 +906,116 @@
       + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '"' + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
+  function linhaRecomecoHab(p) {
+    var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoReputacao - (p.reputacao || 0);
+    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📘</div>'
+      + '<div class="item-texto"><div><span class="raridade-lendaria">' + R2.nome + '</span></div>'
+      + '<div class="suave">Devolve os pontos de habilidade e deixa escolher a segunda classe de novo · '
+      + R2.precoReputacao.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecosHab || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + '<button class="btn" data-acao="hab-pergaminho-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+  }
+
+  // ----- Aba Habilidades: habilidade inicial, segunda classe, pontos e ordem de uso -----
+  var TIPO_HAB = { unico: 'Golpe', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
+  var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
+    vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
+  var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
+  // O que a habilidade faz com N pontos (com 0 pontos mostra como fica com 1).
+  function efeitoHabilidade(def, pts) {
+    var n = def.inicial ? 0 : Math.max(1, pts), T = D.TALENTOS;
+    var bonus = function () {
+      return Object.keys(CAMPO_HAB).filter(function (c) { return def[c]; }).map(function (c) {
+        return CAMPO_HAB[c] + ' +' + R.valorBonus(def, c, n) + '%';
+      });
+    };
+    var turnos = function (t) { return t + (t === 1 ? ' turno' : ' turnos'); };
+    switch (def.tipo) {
+      case 'unico': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> do seu dano em um inimigo.';
+      case 'area': return '<b>' + R.multHabilidade(def, n) + '%</b> do seu dano em cada inimigo'
+        + (def.atordoa ? ' e ' + (def.congela ? 'congela' : 'atordoa') + ' todos por ' + turnos(def.atordoa) + ' (chefe: 1)' : '') + '.';
+      case 'atordoar': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> e o inimigo fica parado por ' + turnos(def.atordoa) + ' (chefe: ' + T.atordoarChefeMax + ').';
+      case 'reforco': return (def.grupo ? 'Você e o grupo: ' : '') + '<b>' + bonus().join(', ') + '</b> por ' + turnos(def.turnos) + '.';
+      case 'furtivo': return 'Esquiva do próximo ataque e o seu próximo golpe é <b>crítico</b>' + (R.valorBonus(def, 'danoCritico', n) > 0 ? ' (+' + R.valorBonus(def, 'danoCritico', n) + '% de dano crítico)' : '') + '.';
+      case 'provocar': return 'Os inimigos atacam só você por ' + turnos(def.turnos) + ' e a sua defesa sobe <b>' + R.valorBonus(def, 'defesaPct', n) + '%</b>.';
+      case 'cura': return 'Cura <b>' + R.valorBonus(def, 'vidaPct', n) + '%</b> da vida máxima de todo o grupo. Na caçada vira dano no monstro.';
+      case 'passiva': {
+        var atr = def.atributos ? Object.keys(def.atributos).map(function (k) { return '+' + def.atributos[k] + ' de ' + NOME_ATR[k]; }) : [];
+        return 'Sempre: <b>' + atr.concat(bonus()).join(', ') + '</b>.';
+      }
+    }
+    return def.descricao || '';
+  }
+  function emGrupo(def) { return def.tipo === 'provocar' || def.tipo === 'cura' || def.grupo || (def.tipo === 'area'); }
+  function cartaHabilidade(def, pts, pend, editavel) {
+    var total = pts + (pend || 0), max = D.TALENTOS.maxPorHabilidade;
+    return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + '">'
+      + '<div class="hab-topo"><strong>' + def.nome + '</strong><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
+      + '<p class="hab-efeito">' + efeitoHabilidade(def, total) + '</p>'
+      + '<p class="suave pequeno">' + (def.recarga ? 'Recarga: ' + def.recarga + ' turnos' : 'Sempre ligada') + (emGrupo(def) && def.tipo !== 'passiva' ? ' · melhor em grupo' : '')
+      + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' ? ' · não gasta a vez' : '') + '</p>'
+      + (editavel ? '<div class="hab-pontos"><button class="btn-mini" data-acao="hab-menos" data-id="' + def.id + '"' + (pend ? '' : ' disabled') + '>−</button>'
+        + '<span><b>' + total + '</b>/' + max + (pend ? ' <em class="mais">(+' + pend + ')</em>' : '') + '</span>'
+        + '<button class="btn-mini" data-acao="hab-mais" data-id="' + def.id + '"' + (total >= max ? ' disabled' : '') + '>+</button></div>' : '')
+      + '</div>';
+  }
+  function pendHab() { return estado.habPend || (estado.habPend = {}); }
+  function totalPendHab() { var t = 0, pd = pendHab(); Object.keys(pd).forEach(function (k) { t += pd[k]; }); return t; }
+  function seloHabilidades() {
+    var p = estado.personagem;
+    if (!p || p.nivel < D.TALENTOS.nivelSegunda) return '';
+    var n = R.segundaClasse(p) ? R.pontosHabilidadeLivres(p) : 1;
+    return n > 0 ? ' <span class="selo-pedidos">' + (R.segundaClasse(p) ? n : '!') + '</span>' : '';
+  }
+  function abaHabilidades() {
+    var p = estado.personagem, T = D.TALENTOS, c = R.segundaClasse(p), fem = p.sexo === 'feminino';
+    var h = '';
+    if (!c) {
+      var ini = D.HABILIDADE_INICIAL[p.classe];
+      h += '<h3 class="subtitulo">Habilidade de ' + nomeClasse(p.classe, p.sexo) + '</h3><div class="grade-hab">'
+        + cartaHabilidade(Object.assign({ inicial: true }, ini), 0, 0, false) + '</div>'
+        + '<p class="suave pequeno">Usada sozinha na luta sempre que estiver pronta.</p>';
+      var opcoes = R.opcoesSegundaClasse(p.classe), pode = p.nivel >= T.nivelSegunda;
+      h += '<h3 class="subtitulo">Segunda classe ' + (pode ? '— escolha a sua' : '<span class="suave">— libera no level ' + T.nivelSegunda + '</span>') + '</h3>'
+        + (pode ? '<p class="suave pequeno">Escolha com calma: só dá para trocar com o ' + D.RECOMECO_HABILIDADES.nome + ' (Mercado). Você ganha '
+          + T.pontosIniciais + ' pontos agora e +' + T.pontosPorNivel + ' a cada level.</p>' : '')
+        + '<div class="escolha-classe2">' + opcoes.map(function (id) {
+          var sc = D.SEGUNDAS_CLASSES[id];
+          return '<div class="classe2"><h4>' + (fem && sc.nomeF || sc.nome) + '</h4><p class="suave">' + sc.descricao + '</p>'
+            + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span><br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>'
+            + (pode ? '<button class="btn" data-acao="hab-classe" data-valor="' + id + '">Ser ' + (fem && sc.nomeF || sc.nome) + '</button>' : '') + '</div>';
+        }).join('') + '</div>';
+    } else {
+      var livres = R.pontosHabilidadeLivres(p) - totalPendHab(), pd = pendHab();
+      h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
+        + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
+        + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
+        + 'Você ganha +' + T.pontosPorNivel + ' ponto a cada level.</p>'
+        + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosEm(p, x.id), pd[x.id] || 0, true); }).join('') + '</div>'
+        + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
+      var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
+      h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
+        + 'Se nenhuma estiver pronta, ataca normalmente.</p><div class="ordem-hab">'
+        + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena']].map(function (m) {
+          var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
+          return '<div class="ordem-col"><h4>' + m[1] + (m[0] === 'arena' ? ' <span class="suave pequeno">(em breve)</span>' : '') + '</h4><ol>'
+            + lista.map(function (id, i) {
+              var x = ativas.filter(function (a) { return a.id === id; })[0];
+              if (!x) return '';
+              var b = function (op, txt, off) { return '<button class="btn-mini" data-acao="hab-ordem" data-modo="' + m[0] + '" data-id="' + id + '" data-op="' + op + '"' + (off ? ' disabled' : '') + ' title="' + op + '">' + txt + '</button>'; };
+              return '<li' + (R.pontosEm(p, id) ? '' : ' class="sem-ponto"') + '><span>' + x.nome + (R.pontosEm(p, id) ? '' : ' <em class="suave">(sem ponto)</em>') + '</span>'
+                + b('subir', '↑', i === 0) + b('descer', '↓', i === lista.length - 1) + b('tirar', '✕') + '</li>';
+            }).join('') + '</ol>'
+            + (fora.length ? '<div class="ordem-fora">' + fora.map(function (x) {
+              return '<button class="btn-mini largo" data-acao="hab-ordem" data-modo="' + m[0] + '" data-id="' + x.id + '" data-op="por">+ ' + x.nome + '</button>';
+            }).join('') + '</div>' : '') + '</div>';
+        }).join('') + '</div>';
+    }
+    if (p.recomecosHab) h += '<div class="recomeco-ficha"><span>📘 ' + D.RECOMECO_HABILIDADES.nome + ': <strong>' + p.recomecosHab + '</strong></span>'
+      + (c ? '<button class="btn secundario btn-pequeno" data-acao="hab-pergaminho-usar">Usar</button>' : '') + '</div>';
+    return h;
+  }
+
   function linhaRecomeco(p) {
     var preco = D.RECOMECO.precoReputacao, falta = preco - (p.reputacao || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
@@ -928,7 +1040,7 @@
       + R.TIPOS_ARMADURA.map(function (tipo) {
         return linhaMercado({ tipo: tipo, classe: R.TIPOS_JOIA.indexOf(tipo) >= 0 ? null : p.classe, raridade: estado.mercadoRaridade, encanto: 0 });
       }).join('') + '</div>'
-      + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + '</div>'
+      + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>'
       + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
       + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
       + D.SKINS_DADO.map(function (k) {
@@ -1463,7 +1575,7 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = navHtml()
-        + (({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -1537,13 +1649,16 @@
         var golpes = ev.golpes.length > 1 ? ' em ' + ev.golpes.filter(function (g) { return g.acerto; }).length + ' golpes' : '';
         linha('habilidade-usada', '⚡ ' + ev.habilidade.toUpperCase() + '! ' + nomeJ + ' causa <strong>' + ev.dano + '</strong> de dano' + golpes
           + (ev.critico ? ' (com crítico!)' : '') + '.');
-        if (ev.atordoou) linha('destaque', nomeM + ' está atordoado!');
+        if (ev.atordoou) linha('destaque', nomeM + (ev.congelou ? ' está congelado!' : ' está atordoado!'));
         if (ev.quebrouArmadura) linha('destaque', 'A armadura de ' + nomeM + ' rachou! Ele recebe +25% de dano.');
         golpe('lutador-monstro', true);
       }
     } else if (ev.atordoado) {
       linha('errou', nomeM + ' está atordoado e perde a vez.');
+    } else if (ev.sombra) {
+      linha('errou', nomeM + ' ataca, mas ' + nomeJ + ' está nas sombras e o golpe passa direto.');
     } else if (ev.ator === 'jogador') {
+      if (ev.reforco) linha('habilidade-usada', '✨ ' + ev.reforco.toUpperCase() + '! ' + nomeJ + ' usa ' + ev.reforco + '.');
       if (!ev.acerto) linha('errou', nomeJ + ' erra o ' + (ev.magico ? 'feitiço' : 'golpe') + '.');
       else {
         linha(ev.critico ? 'critico' : '', (ev.critico ? 'CRÍTICO! ' : '') + nomeJ + (ev.magico ? ' lança um feitiço' : ' ataca')
@@ -2203,6 +2318,53 @@
         else { avisar(ru); atualizarFicha(); }
         break;
       }
+      case 'hab-classe': {
+        var sc = D.SEGUNDAS_CLASSES[el.dataset.valor];
+        if (!sc || !confirm('Virar ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '? Só dá para trocar com o ' + D.RECOMECO_HABILIDADES.nome + '.')) break;
+        var rcl = R.escolherSegundaClasse(p, el.dataset.valor);
+        if (rcl === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Agora você é ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '! Distribua os seus pontos.', 'nivel'); }
+        else avisar(rcl);
+        break;
+      }
+      case 'hab-mais': {
+        var idm = el.dataset.id, pdm = pendHab();
+        if (R.pontosHabilidadeLivres(p) - totalPendHab() <= 0) { avisar('Sem pontos livres.'); break; }
+        if (R.pontosEm(p, idm) + (pdm[idm] || 0) >= D.TALENTOS.maxPorHabilidade) break;
+        pdm[idm] = (pdm[idm] || 0) + 1;
+        telaJogo();
+        break;
+      }
+      case 'hab-menos': {
+        var pdn = pendHab();
+        if (pdn[el.dataset.id]) { pdn[el.dataset.id]--; if (!pdn[el.dataset.id]) delete pdn[el.dataset.id]; }
+        telaJogo();
+        break;
+      }
+      case 'hab-cancelar': estado.habPend = {}; telaJogo(); break;
+      case 'hab-confirmar': {
+        var pdc = pendHab();
+        Object.keys(pdc).forEach(function (k) { for (var i = 0; i < pdc[k]; i++) R.mudarPontoHabilidade(p, k, 1); });
+        estado.habPend = {};
+        salvar(); telaJogo(); avisar('Pontos de habilidade confirmados!');
+        break;
+      }
+      case 'hab-ordem':
+        R.moverHabilidade(p, el.dataset.modo, el.dataset.id, el.dataset.op);
+        salvar(); telaJogo();
+        break;
+      case 'hab-pergaminho-comprar': {
+        var rh = R.comprarRecomecoHabilidades(p);
+        if (rh === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO_HABILIDADES.nome + '!', 'item'); }
+        else avisar(rh);
+        break;
+      }
+      case 'hab-pergaminho-usar': {
+        if (!confirm('Usar o ' + D.RECOMECO_HABILIDADES.nome + '? Os pontos voltam e você escolhe a segunda classe de novo.')) break;
+        var uh = R.usarRecomecoHabilidades(p);
+        if (uh === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Habilidades zeradas: escolha a segunda classe de novo.', 'nivel'); }
+        else avisar(uh);
+        break;
+      }
       case 'recomeco-comprar': {
         var rc = R.comprarRecomeco(p);
         if (rc === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
@@ -2636,6 +2798,13 @@
       L.hpM = L.sim.inicio.salas[L.sala].map(function (m) { return m.hpMax; });
       L.registro.push('<p class="destaque">— ' + NOMES_SALA[L.sala] + ' —</p>');
       atualizarMusica();
+    } else if (ev.tipo === 'hab') {
+      L.registro.push('<p class="habilidade-usada">' + (ev.cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + esc(herois[ev.i].nome) + ' usa <strong>' + esc(ev.nome) + '</strong>'
+        + (ev.cura ? ' e cura o grupo' : '') + '!</p>');
+    } else if (ev.atordoado) {
+      L.registro.push('<p class="errou">' + esc(monstros[ev.i].nome) + ' está atordoado e perde a vez.</p>');
+    } else if (ev.sombra) {
+      L.registro.push('<p class="errou">' + esc(monstros[ev.i].nome) + ' ataca ' + esc(herois[ev.alvo].nome) + ', que está nas sombras.</p>');
     } else if (ev.de === 'h') {
       var h = herois[ev.i], m = monstros[ev.alvo];
       if (!ev.acerto) L.registro.push('<p class="errou">' + esc(h.nome) + ' erra ' + esc(m.nome) + '.</p>');
@@ -2643,6 +2812,7 @@
         L.hpM[ev.alvo] = Math.max(0, L.hpM[ev.alvo] - ev.dano);
         L.registro.push('<p class="' + (ev.critico ? 'critico' : '') + '">' + (ev.critico ? 'CRÍTICO! ' : '') + esc(h.nome) + ' acerta ' + esc(m.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
         if (ev.caiu) L.registro.push('<p class="destaque">' + esc(m.nome) + ' caiu!</p>');
+        else if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(m.nome) + (ev.congelou ? ' está congelado!' : ' está atordoado!') + '</p>');
       }
     } else {
       var mo = monstros[ev.i], alvo = herois[ev.alvo];
@@ -2653,6 +2823,7 @@
         if (ev.caiu) L.registro.push('<p class="dano-recebido"><strong>' + esc(alvo.nome) + ' caiu!</strong></p>');
       }
     }
+    if (ev.hp) L.hpH = ev.hp.slice();   // vida certa de todos (cura, Bênção)
     if (L.registro.length > 80) L.registro.splice(0, L.registro.length - 80);
   }
 
