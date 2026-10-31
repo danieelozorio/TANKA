@@ -1034,3 +1034,24 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 #botao-musica.esperando { animation: musicaChama 1.2s ease-in-out infinite; }
 @keyframes musicaChama { 0%, 100% { box-shadow: 0 6px 20px rgba(0, 0, 0, .5), 0 0 0 0 rgba(242, 201, 76, .6); } 50% { box-shadow: 0 6px 20px rgba(0, 0, 0, .5), 0 0 0 8px rgba(242, 201, 76, 0); } }
 @media (prefers-reduced-motion: reduce) { #botao-musica.esperando { animation: none; } }
+
+/* Entrada cabendo numa tela só: logo acompanha a altura da tela e o cadastro usa duas colunas */
+html { scrollbar-gutter: stable; }
+.tela-entrada .marca { margin: .4rem 0 .2rem; }
+.tela-entrada .logo-marca { width: auto; max-width: min(620px, calc(100% - 16px)); max-height: 34vh; }
+.tela-entrada .auth { margin-bottom: 1rem; }
+.moldura-runica { padding: 1.9rem 1.6rem 1.7rem; }
+.moldura-runica label { margin-bottom: .6em; }
+.moldura-runica form[data-form="cadastro"] { display: grid; grid-template-columns: 1fr 1fr; column-gap: .8rem; }
+.moldura-runica form[data-form="cadastro"] > * { grid-column: 1 / -1; }
+.moldura-runica form[data-form="cadastro"] > label:nth-of-type(2), .moldura-runica form[data-form="cadastro"] > label:nth-of-type(3) { grid-column: auto; }
+.tela-entrada .auth { max-width: 460px; }
+.tela-entrada .rodape { padding: .4rem 16px 1rem; }
+@media (max-width: 340px) { .moldura-runica form[data-form="cadastro"] { grid-template-columns: 1fr; } .moldura-runica form[data-form="cadastro"] > label { grid-column: 1 / -1; } }
+@media (max-height: 700px) { .tela-entrada .logo-marca { max-height: 26vh; } .moldura-runica input { padding: .55em .7em; } }
+/* No cadastro (formulário maior) o logo encolhe devagar para tudo caber sem rolagem */
+.tela-entrada .logo-marca { transition: max-height .3s ease; }
+.tela-entrada.modo-cadastro .logo-marca { max-height: 22vh; }
+@media (max-width: 520px) { .tela-entrada.modo-cadastro .logo-marca { max-height: 15vh; } .tela-entrada.modo-cadastro .moldura-runica { padding-top: 1.6rem; padding-bottom: 1.4rem; } }
+@media (max-width: 700px) { body:has(.tela-entrada) { padding-bottom: 0; } }
+@media (max-width: 700px) { body:has(.tela-entrada) #botao-musica { bottom: 12px; } }

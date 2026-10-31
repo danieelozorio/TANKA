@@ -180,6 +180,7 @@
     var caixa = app.querySelector('.tela-entrada .moldura-runica'), atual = caixa && caixa.querySelector('form');
     if (atual) {
       var trocou = atual.dataset.form !== (cadastro ? 'cadastro' : 'entrar');
+      app.querySelector('.tela-entrada').classList.toggle('modo-cadastro', cadastro);
       caixa.querySelectorAll('.abas button').forEach(function (b) { b.classList.toggle('ativa', (b.dataset.modo === 'cadastro') === cadastro); });
       var antes = caixa.offsetHeight, tmp = document.createElement('div');
       tmp.innerHTML = form;
@@ -198,7 +199,7 @@
       if (campo) campo.focus({ preventScroll: true });
       return;
     }
-    app.innerHTML = '<div class="tela-entrada">' + marca()
+    app.innerHTML = '<div class="tela-entrada' + (cadastro ? ' modo-cadastro' : '') + '">' + marca()
       + '<section class="auth"><div class="caixa moldura-runica">'
       + '<i class="canto c1"></i><i class="canto c2"></i><i class="canto c3"></i><i class="canto c4"></i>'
       + '<div class="runas runas-topo">ᚠᚱᛗᚾᚨ ◆ ᚱᚲᛗᚨ</div><div class="runas runas-base">ᛟᛞᚾ ◆ ᛗᛁᚱ</div>'
