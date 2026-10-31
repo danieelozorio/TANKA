@@ -316,9 +316,21 @@ Tanka.regras = (function () {
   function areaLiberada(p, area) { return p.nivel >= area.nivelMin; }
 
   // Monstros comuns de áreas liberadas podem ser caçados; chefes só aparecem sozinhos.
+  // Ordem das caçadas: cada monstro só libera depois de derrotar o anterior
+  // (o 1º de cada área pede o último monstro da área anterior).
+  function monstroAnterior(monstroId) {
+    var lista = [];
+    D.areas.forEach(function (a) { a.monstros.forEach(function (m) { lista.push(m.id); }); });
+    var i = lista.indexOf(monstroId);
+    return i > 0 ? lista[i - 1] : null;
+  }
+  function monstroLiberado(p, monstroId) {
+    var antes = monstroAnterior(monstroId);
+    return !antes || (p.abates[antes] || 0) > 0;
+  }
   function podeCacar(p, monstroId) {
     var m = D.monstros[monstroId];
-    return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId));
+    return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId)) && monstroLiberado(p, monstroId);
   }
 
   // % da exp que o personagem ganha na área do monstro (100, 50 ou 10).
@@ -720,6 +732,76 @@ Tanka.regras = (function () {
     return { vendidos: vendidos, ouro: ouro };
   }
 
+  // ---------- Missões diárias e semanais ----------
+  // A semana começa na segunda-feira, 00:00 de Brasília.
+  function semanaReset(agora) {
+    var local = new Date(agora + D.VIDA.fusoReset * 3600000);
+    var diaSemana = (local.getUTCDay() + 6) % 7;            // segunda = 0
+    return new Date(local.getTime() - diaSemana * 86400000).toISOString().slice(0, 10);
+  }
+  function msAteSemana(agora) {
+    var local = new Date(agora + D.VIDA.fusoReset * 3600000);
+    return ((7 - (local.getUTCDay() + 6) % 7) - 1) * 86400000 + msAteReset(agora);
+  }
+  function garantirMissoes(p, agora) {
+    var dia = diaReset(agora), semana = semanaReset(agora);
+    var m = p.missoes || (p.missoes = { dia: null, semana: null, d: {}, s: {}, dOk: {}, sOk: {}, bonus: false, runs: [] });
+    if (m.dia !== dia) { m.dia = dia; m.d = {}; m.dOk = {}; m.bonus = false; }
+    if (m.semana !== semana) { m.semana = semana; m.s = {}; m.sOk = {}; }
+    if (!m.runs) m.runs = [];
+    return m;
+  }
+  // Conta progresso: evento 'abate', 'chefe', 'encantar', 'encantoSucesso', 'arena', 'arenaVitoria' ou 'masmorra'.
+  function registrarMissao(p, evento, qtd, agora) {
+    var m = garantirMissoes(p, agora);
+    [['diarias', 'd', 'dOk'], ['semanais', 's', 'sOk']].forEach(function (t) {
+      D.MISSOES[t[0]].forEach(function (x) {
+        if (x.evento === evento && !m[t[2]][x.id]) m[t[1]][x.id] = Math.min(x.meta, (m[t[1]][x.id] || 0) + (qtd || 1));
+      });
+    });
+  }
+  function premioTexto(p, pr) {
+    var partes = [];
+    if (pr.ouroPorNivel) partes.push((pr.ouroPorNivel * p.nivel).toLocaleString('pt-BR') + ' de ouro');
+    if (pr.reputacao) partes.push(pr.reputacao + ' de reputação');
+    if (pr.pergaminhoArma) {
+      var arma = armaEquipada(p), r = arma ? arma.raridade : 'comum';
+      partes.push(pr.pergaminhoArma + ' pergaminho' + (pr.pergaminhoArma > 1 ? 's' : '') + ' ' + D.raridades[r].nome.toLowerCase());
+    }
+    return partes.join(' + ');
+  }
+  function darPremio(p, pr) {
+    if (pr.ouroPorNivel) p.ouro += pr.ouroPorNivel * p.nivel;
+    if (pr.reputacao) p.reputacao = (p.reputacao || 0) + pr.reputacao;
+    if (pr.pergaminhoArma) { var arma = armaEquipada(p); p.pergaminhos[arma ? arma.raridade : 'comum'] += pr.pergaminhoArma; }
+  }
+  // tipo 'diarias' ou 'semanais'. Retorna o texto do prêmio ou null.
+  function resgatarMissao(p, tipo, id, agora) {
+    var m = garantirMissoes(p, agora), chave = tipo === 'diarias' ? 'd' : 's', ok = chave + 'Ok';
+    var x = D.MISSOES[tipo].find(function (y) { return y.id === id; });
+    if (!x || m[ok][id] || (m[chave][id] || 0) < x.meta) return null;
+    var texto = premioTexto(p, x.premio);
+    darPremio(p, x.premio);
+    m[ok][id] = true;
+    return texto;
+  }
+  function resgatarBonusDiario(p, agora) {
+    var m = garantirMissoes(p, agora);
+    if (m.bonus || D.MISSOES.diarias.some(function (x) { return !m.dOk[x.id]; })) return null;
+    var texto = premioTexto(p, D.MISSOES.bonusDiario);
+    darPremio(p, D.MISSOES.bonusDiario);
+    m.bonus = true;
+    return texto;
+  }
+  // Quantas missões (e o bônus) estão prontas para resgatar.
+  function missoesProntas(p, agora) {
+    var m = garantirMissoes(p, agora), n = 0;
+    D.MISSOES.diarias.forEach(function (x) { if (!m.dOk[x.id] && (m.d[x.id] || 0) >= x.meta) n++; });
+    D.MISSOES.semanais.forEach(function (x) { if (!m.sOk[x.id] && (m.s[x.id] || 0) >= x.meta) n++; });
+    if (!m.bonus && D.MISSOES.diarias.every(function (x) { return m.dOk[x.id]; })) n++;
+    return n;
+  }
+
   // ---------- Encantamento ----------
 
   // Pergaminho dropado: raridade fixa do monstro ou, sem ela, a da arma equipada. Sorte aumenta a chance.
@@ -1054,6 +1136,16 @@ Tanka.regras = (function () {
     areaDoMonstro: areaDoMonstro,
     areaLiberada: areaLiberada,
     podeCacar: podeCacar,
+    monstroAnterior: monstroAnterior,
+    monstroLiberado: monstroLiberado,
+    semanaReset: semanaReset,
+    msAteSemana: msAteSemana,
+    garantirMissoes: garantirMissoes,
+    registrarMissao: registrarMissao,
+    premioTexto: premioTexto,
+    resgatarMissao: resgatarMissao,
+    resgatarBonusDiario: resgatarBonusDiario,
+    missoesProntas: missoesProntas,
     sortearChefe: sortearChefe,
     skinsDoPersonagem: skinsDoPersonagem,
     comprarSkin: comprarSkin,

@@ -1086,3 +1086,12 @@ html { scrollbar-gutter: stable; }
 .forja-janela.forja-quebra .icone-grande { animation: itemQuebra .6s ease-in forwards; }
 @keyframes itemQuebra { 40% { transform: rotate(-6deg) scale(1.05); } 100% { transform: rotate(12deg) scale(.6); opacity: .15; filter: grayscale(1); } }
 @media (prefers-reduced-motion: reduce) { .forja-barra > i::after, .forja-barra.rachou, .forja-resultado, .forja-janela.forja-quebra .icone-grande { animation: none; } }
+
+/* Missões e caçadas bloqueadas */
+.missao .item-texto { flex: 1; min-width: 0; }
+.missao .barra { margin: .35rem 0 .3rem; }
+.missao.pronta { border-color: #f2c94c; box-shadow: 0 0 14px rgba(242, 201, 76, .25); }
+.missao.feita { opacity: .6; }
+.missao-bonus { background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .12), transparent 60%), linear-gradient(180deg, #1b2331, #141b26); }
+.monstro-bloqueado .moldura { filter: grayscale(1) brightness(.45); }
+.monstro-bloqueado h3, .monstro-bloqueado .ficha-monstro { opacity: .55; }

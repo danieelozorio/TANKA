@@ -68,12 +68,13 @@ teste('lobo: 5 lobos (2 exp cada) sobem para o level 2', () => {
   assert.strictEqual(p.nivel, 2);
 });
 
-teste('cobra = 2x lobo, urso = 2x cobra (vida, ataque e exp)', () => {
+teste('cobra = 2x lobo, urso = 2x cobra (vida e exp); dano em faixa', () => {
   const { lobo, cobra, urso } = D.monstros;
   for (const [a, b] of [[lobo, cobra], [cobra, urso]]) {
-    assert.strictEqual(b.hp, a.hp * 2);
-    assert.strictEqual(b.ataque[0], a.ataque[0] * 2); assert.strictEqual(b.exp, a.exp * 2);
+    assert.strictEqual(b.hp, a.hp * 2); assert.strictEqual(b.exp, a.exp * 2);
   }
+  assert.deepStrictEqual([...lobo.ataque, ...cobra.ataque, ...urso.ataque, ...D.monstros.velgrath.ataque], [5, 10, 7, 12, 10, 15, 15, 20]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll', 'morgath'].map((m) => [...D.monstros[m].ataque]), [[10, 15], [15, 20], [18, 22], [25, 30]]);
 });
 
 teste('velocidade e defesa dos monstros: 15, +10% por monstro, +10% entre áreas; chefe +50% / defesa x2', () => {
@@ -466,17 +467,17 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     const cr = a.crescimento || D.crescimento;
     [m1, m2, m3].forEach((m, i) => {
       assert.strictEqual(m.hp, a.base.hp * 2 ** i); assert.strictEqual(m.exp, a.base.exp * 2 ** i);
-      assert.strictEqual(m.ataque[0], Math.round(a.base.ataque * cr.ataque ** i));
+      assert.ok(m.ataque[0] < m.ataque[1], 'dano em faixa');
     });
     assert.ok(m1.velocidade < m2.velocidade && m2.velocidade < m3.velocidade);
     const c = D.monstros[a.chefe.id];
     assert.ok(c.chefe);
-    assert.strictEqual(c.hp, Math.round(m3.hp * 1.5)); assert.strictEqual(c.ataque[0], Math.round(m3.ataque[0] * 1.2));
+    assert.strictEqual(c.hp, Math.round(m3.hp * 1.5)); assert.ok(c.ataque[0] > m3.ataque[0]);
     assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
     assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
   assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [70, 280, 2200]);
-  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [8, 10, 13]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [10, 15, 18]);
   assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
 });
 
@@ -487,8 +488,44 @@ teste('áreas bloqueadas por level; chefe não pode ser caçado direto', () => {
   assert.ok(!R.podeCacar(p, 'velgrath'));
   R.admin.subirNivel(p, 4);
   assert.strictEqual(p.nivel, 5);
+  assert.ok(!R.podeCacar(p, 'sapo'), 'precisa derrotar o urso antes');
+  p.abates.urso = 1;
   assert.ok(R.podeCacar(p, 'sapo'));
   assert.ok(!R.podeCacar(p, 'esqueleto'));
+});
+
+teste('caçadas em sequência: cada monstro libera o próximo', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.ok(R.podeCacar(p, 'lobo') && !R.podeCacar(p, 'cobra'));
+  p.abates.lobo = 1;
+  assert.ok(R.podeCacar(p, 'cobra') && !R.podeCacar(p, 'urso'));
+  assert.strictEqual(R.monstroAnterior('sapo'), 'urso');
+});
+
+teste('missões: progresso, resgate, bônus diário e reset do dia/semana', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 9);
+  const seg = Date.UTC(2026, 10, 2, 15);      // segunda-feira, 12h em Brasília
+  p.ouro = 0; p.reputacao = 0;
+  R.registrarMissao(p, 'abate', 14, seg);
+  assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), null);
+  R.registrarMissao(p, 'abate', 5, seg);
+  assert.strictEqual(p.missoes.d['d-cacar'], 15);
+  assert.strictEqual(R.missoesProntas(p, seg), 1);
+  assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), '300 de ouro');
+  assert.strictEqual(p.ouro, 300);
+  assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), null, 'não resgata duas vezes');
+  R.registrarMissao(p, 'encantar', 3, seg); R.registrarMissao(p, 'arena', 2, seg); R.registrarMissao(p, 'masmorra', 1, seg);
+  ['d-encantar', 'd-arena', 'd-masmorra'].forEach((id) => assert.ok(R.resgatarMissao(p, 'diarias', id, seg)));
+  assert.ok(R.resgatarBonusDiario(p, seg));
+  assert.strictEqual(p.reputacao, 40);
+  assert.strictEqual(p.missoes.s['s-cacar'], 19);
+  const terca = seg + 86400000;
+  R.garantirMissoes(p, terca);
+  assert.strictEqual(p.missoes.d['d-cacar'], undefined, 'diárias renovam no dia seguinte');
+  assert.strictEqual(p.missoes.s['s-cacar'], 19, 'semanais continuam na mesma semana');
+  R.garantirMissoes(p, seg + 7 * 86400000);
+  assert.strictEqual(p.missoes.s['s-cacar'], undefined, 'semanais renovam na segunda');
 });
 
 teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar', () => {

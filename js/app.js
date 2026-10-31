@@ -410,14 +410,14 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'missoes'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança', missoes: 'Missões' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
-  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : aba === 'missoes' ? seloMissoes() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -594,9 +594,9 @@
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
     var fator = R.fatorExp(p, id);
-    return '<article class="monstro"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
-      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt>Ataque</dt><dd>' + dano(m.ataque) + '</dd>'
+      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + dano(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
@@ -606,7 +606,8 @@
       + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + (m.pergaminho.raridade ? '<span class="raridade-' + m.pergaminho.raridade + '">' + D.raridades[m.pergaminho.raridade].nome + '</span> ' : 'da arma ') + m.pergaminho.chance + '%</dd>' : '')
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
       + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
-      + '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button></div></article>';
+      + (R.monstroLiberado(p, id) ? '<button class="btn largo" data-acao="cacar" data-monstro="' + id + '">Caçar</button>'
+        : '<button class="btn largo" disabled>🔒 Derrote ' + esc(D.monstros[R.monstroAnterior(id)].nome) + ' primeiro</button>') + '</div></article>';
   }
 
   // Carta do chefe: sem números, só o mistério.
@@ -951,6 +952,33 @@
     }).join('');
     return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Compre mais no Mercado. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
       + '<div class="itens">' + lista + '</div>';
+  }
+
+  // ----- Missões diárias e semanais -----
+  function seloMissoes() {
+    var n = estado.personagem ? R.missoesProntas(estado.personagem, C.agora()) : 0;
+    return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
+  }
+  function abaMissoes() {
+    var p = estado.personagem, agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES;
+    function carta(tipo, x) {
+      var chave = tipo === 'diarias' ? 'd' : 's', feito = m[chave + 'Ok'][x.id], prog = m[chave][x.id] || 0, pronto = !feito && prog >= x.meta;
+      return '<div class="item missao' + (feito ? ' feita' : pronto ? ' pronta' : '') + '"><div class="item-texto">'
+        + '<div><strong>' + x.nome + '</strong> <span class="suave pequeno">· ' + x.texto + '</span></div>'
+        + barra('exp', prog, x.meta, prog + ' / ' + x.meta)
+        + '<div class="pequeno">Prêmio: <span class="cor-ouro">' + R.premioTexto(p, x.premio) + '</span></div></div>'
+        + '<div class="item-acoes">' + (feito ? '<span class="mais">✔ Resgatada</span>'
+          : '<button class="btn" data-acao="missao-resgatar" data-tipo="' + tipo + '" data-id="' + x.id + '"' + (pronto ? '' : ' disabled') + '>Resgatar</button>') + '</div></div>';
+    }
+    var todas = M.diarias.every(function (x) { return m.dOk[x.id]; });
+    var bonus = '<div class="item missao missao-bonus' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><div class="item-texto"><div><strong>🎁 Baú do dia</strong> '
+      + '<span class="suave pequeno">· Resgate todas as missões diárias</span></div><div class="pequeno">Prêmio: <span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span></div></div>'
+      + '<div class="item-acoes">' + (m.bonus ? '<span class="mais">✔ Aberto</span>' : '<button class="btn" data-acao="missao-bonus"' + (todas ? '' : ' disabled') + '>Abrir baú</button>') + '</div></div>';
+    var dias = Math.floor(R.msAteSemana(agora) / 86400000);
+    return '<h3 class="subtitulo">Missões diárias <span class="suave pequeno">· renovam em ' + tempoTexto(R.msAteReset(agora)) + '</span></h3>'
+      + '<div class="itens">' + M.diarias.map(function (x) { return carta('diarias', x); }).join('') + bonus + '</div>'
+      + '<h3 class="subtitulo">Missões semanais <span class="suave pequeno">· renovam em ' + (dias ? dias + ' dia(s) e ' : '') + tempoTexto(R.msAteSemana(agora) % 86400000) + '</span></h3>'
+      + '<div class="itens">' + M.semanais.map(function (x) { return carta('semanais', x); }).join('') + '</div>';
   }
 
   // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
@@ -1356,7 +1384,7 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = navHtml()
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba]();
+        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca, missoes: abaMissoes })[estado.aba]();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena);
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -1466,7 +1494,12 @@
     var b = estado.batalha;
     if (!b) return;
     clearTimeout(estado.timer);
+    var primeiraVez = !(estado.personagem.abates[b.monstroId] || 0);
     var res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
+    if (res.resultado === 'vitoria') {
+      R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
+      if (D.monstros[b.monstroId].chefe) R.registrarMissao(estado.personagem, 'chefe', 1, C.agora());
+    }
     var nivelHab = R.nivelHabilidade(estado.personagem);
     if (D.HABILIDADES_ATIVAS && nivelHab > b.nivelHab) res.habilidadeEvoluiu = nivelHab;
     res.monstroId = b.monstroId;
@@ -1492,6 +1525,8 @@
     if (res.resultado === 'vitoria') {
       avisar('Vitória! +' + res.exp + ' de exp', 'vitoria');
       if (res.niveis) avisar('Level up! Level ' + estado.personagem.nivel, 'nivel');
+      var proximo = primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
+      if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
       [res.drop, res.dropArmadura].forEach(function (it) { if (it) avisar('Item novo: ' + R.nomeItem(it), 'item'); });
       if (res.pergaminho) avisar('Pergaminho ' + ITEM_RARIDADE[res.pergaminho] + '!', 'item');
     } else if (res.resultado === 'derrota') avisar('Derrota…', 'ruim');
@@ -1751,6 +1786,16 @@
         salvar();
         telaJogo();
         break;
+      case 'missao-resgatar': {
+        var premio = R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
+        if (premio) { salvar(); telaJogo(); avisar('Missão concluída: ' + premio + '!', 'nivel'); }
+        break;
+      }
+      case 'missao-bonus': {
+        var bau = R.resgatarBonusDiario(p, C.agora());
+        if (bau) { salvar(); telaJogo(); avisar('Baú do dia: ' + bau + '!', 'item'); }
+        break;
+      }
       case 'ficha-status':
         estado.fichaAberta = !estado.fichaAberta;
         atualizarFicha();
@@ -1960,6 +2005,8 @@
         var tentativa = R.encantar(p, el.dataset.id);
         estado.encantoPendente = null;
         if (tentativa) {
+          R.registrarMissao(p, 'encantar', 1, C.agora());
+          if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
           salvar();
           abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
         }
@@ -2020,6 +2067,7 @@
         break;
       case 'cacar': {
         var alvo = el.dataset.monstro;
+        if (!R.monstroLiberado(p, alvo)) { avisar('Derrote ' + D.monstros[R.monstroAnterior(alvo)].nome + ' primeiro.'); break; }
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
         if (R.atualizarTempo(p, C.agora())) salvar();
         if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
@@ -2208,6 +2256,13 @@
   function assistirLuta(run, sim) {
     vistas[run.id] = true;
     sim = sim || R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
+    // Missão: cada masmorra vencida conta uma vez por personagem.
+    var mis = R.garantirMissoes(estado.personagem, C.agora());
+    if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
+      mis.runs = mis.runs.concat(run.id).slice(-20);
+      R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
+      salvar();
+    }
     estado.luta = {
       run: run, sim: sim, mm: R.masmorra(run.masmorra), idx: 0, sala: 0, fim: false, rapido: false, registro: [],
       hpH: sim.inicio.herois.map(function (h) { return h.hpMax; }),
@@ -2764,7 +2819,13 @@
       }, jaCaindo);
       return;
     }
-    if (L.luta.situacao !== 'andamento') { L.fase = 'fim'; L.modal = null; fecharDado3d(); redesenharArena(); carregarArena(); return; }
+    if (L.luta.situacao !== 'andamento') {
+      L.fase = 'fim'; L.modal = null;
+      R.registrarMissao(estado.personagem, 'arena', 1, C.agora());
+      if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
+      salvar();
+      fecharDado3d(); redesenharArena(); carregarArena(); return;
+    }
     // Sua vez: a janela com o D20, o botão e 5 segundos.
     L.fase = 'esperando';
     L.prazo = Date.now() + A.tempoDado * 1000;
