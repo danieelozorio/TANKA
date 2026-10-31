@@ -1752,13 +1752,9 @@
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
-      direita = '<div class="cacada-busca"><div class="busca-icone">🔎</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Procurando monstros…') + '</div>'
+      direita = '<div class="cacada-busca"><div class="busca-icone">🔎</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Caçada em andamento…') + '</div>'
         + '<div class="busca-barra"><i style="animation-duration:' + (c.fase === 'pausa' ? 900 : c.busca) + 'ms"></i></div>'
-        + '<div class="suave pequeno">Rastreio ' + R.rastreio(p) + ' (Velocidade ' + s.velocidade + ' + Sorte ' + R.atributosTotais(p).sor + ')'
-        + ' · evolução na região ' + Math.round(R.evolucaoCacada(p, c.area) * 100) + '%</div>'
-        + '<div class="busca-chances">' + R.chancesCacada(p, c.alvos).map(function (x) {
-          return '<span><b>' + D.monstros[x.id].nome + '</b> ' + Math.round(x.chance) + '% · ' + (x.tempo / 1000).toFixed(1).replace('.', ',') + ' s</span>';
-        }).join('') + '</div></div>';
+        + '</div>';
     } else if (c.fase === 'encontrou') {
       var m = D.monstros[c.encontro.monstro];
       direita = '<div class="lutador cacada-encontro' + (c.encontro.chefe ? ' chefe' : '') + '" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(c.encontro.monstro) + '</div>'
