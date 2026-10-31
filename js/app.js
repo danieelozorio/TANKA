@@ -43,6 +43,7 @@
   // O cenário fica fora do #app: trocar entre Entrar e Cadastrar não recomeça o vídeo.
   var cenarioEl = null;
   function mostrarCenario(sim) {
+    desenharMissoes(false);
     if (sim && !cenarioEl) {
       var tmp = document.createElement('div');
       tmp.innerHTML = cenarioEntrada();
@@ -410,14 +411,14 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'missoes'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança', missoes: 'Missões' };
+  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
-  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : aba === 'missoes' ? seloMissoes() : ''; }
+  function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -955,30 +956,63 @@
   }
 
   // ----- Missões diárias e semanais -----
-  function seloMissoes() {
-    var n = estado.personagem ? R.missoesProntas(estado.personagem, C.agora()) : 0;
-    return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
-  }
-  function abaMissoes() {
-    var p = estado.personagem, agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES;
+  // Painel de missões: aba fixa na direita da tela que abre um painel com as Diárias e as Semanais
+  // (cada uma abre e fecha). Fica fora do #app, como o chat.
+  var missoesUI = { el: null, aberto: false, diarias: true, semanais: false };
+  function desenharMissoes(visivel) {
+    var p = estado.personagem;
+    if (!missoesUI.el) {
+      missoesUI.el = document.createElement('div');
+      missoesUI.el.id = 'painel-missoes';
+      missoesUI.el.addEventListener('click', cliqueMissoes);
+      document.body.appendChild(missoesUI.el);
+    }
+    if (visivel === false || !p) { missoesUI.el.hidden = true; return; }
+    missoesUI.el.hidden = false;
+    var agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES, prontas = R.missoesProntas(p, agora);
+    var aba = '<button class="missoes-aba" data-missao="painel" aria-expanded="' + missoesUI.aberto + '" title="Missões">'
+      + '<span class="missoes-aba-ico">📜</span><span class="missoes-aba-txt">Missões</span>'
+      + (prontas ? '<span class="selo-pedidos">' + prontas + '</span>' : '') + '</button>';
+    if (!missoesUI.aberto) { missoesUI.el.className = ''; missoesUI.el.innerHTML = aba; return; }
     function carta(tipo, x) {
       var chave = tipo === 'diarias' ? 'd' : 's', feito = m[chave + 'Ok'][x.id], prog = m[chave][x.id] || 0, pronto = !feito && prog >= x.meta;
-      return '<div class="item missao' + (feito ? ' feita' : pronto ? ' pronta' : '') + '"><div class="item-texto">'
-        + '<div><strong>' + x.nome + '</strong> <span class="suave pequeno">· ' + x.texto + '</span></div>'
-        + barra('exp', prog, x.meta, prog + ' / ' + x.meta)
-        + '<div class="pequeno">Prêmio: <span class="cor-ouro">' + R.premioTexto(p, x.premio) + '</span></div></div>'
-        + '<div class="item-acoes">' + (feito ? '<span class="mais">✔ Resgatada</span>'
-          : '<button class="btn" data-acao="missao-resgatar" data-tipo="' + tipo + '" data-id="' + x.id + '"' + (pronto ? '' : ' disabled') + '>Resgatar</button>') + '</div></div>';
+      return '<div class="missao-carta' + (feito ? ' feita' : pronto ? ' pronta' : '') + '">'
+        + '<div class="missao-topo"><strong>' + x.nome + '</strong><span class="missao-num">' + prog + '/' + x.meta + '</span></div>'
+        + '<div class="missao-texto">' + x.texto + '</div>'
+        + '<div class="missao-barra"><i style="width:' + Math.min(100, prog / x.meta * 100) + '%"></i></div>'
+        + '<div class="missao-pe"><span class="cor-ouro">' + R.premioTexto(p, x.premio) + '</span>'
+        + (feito ? '<span class="mais">✔</span>' : pronto ? '<button class="btn btn-pequeno" data-missao="resgatar" data-tipo="' + tipo + '" data-id="' + x.id + '">Resgatar</button>' : '')
+        + '</div></div>';
+    }
+    function secao(tipo, titulo, renova, lista, extra) {
+      var chave = tipo === 'diarias' ? 'dOk' : 'sOk', feitas = lista.filter(function (x) { return m[chave][x.id]; }).length;
+      var aberta = missoesUI[tipo];
+      return '<section class="missoes-secao' + (aberta ? ' aberta' : '') + '"><button class="missoes-cabeca" data-missao="secao" data-tipo="' + tipo + '" aria-expanded="' + aberta + '">'
+        + '<span>' + titulo + '</span><span class="suave pequeno">' + feitas + '/' + lista.length + ' · ' + renova + '</span><i aria-hidden="true">▾</i></button>'
+        + (aberta ? '<div class="missoes-lista">' + lista.map(function (x) { return carta(tipo, x); }).join('') + (extra || '') + '</div>' : '') + '</section>';
     }
     var todas = M.diarias.every(function (x) { return m.dOk[x.id]; });
-    var bonus = '<div class="item missao missao-bonus' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><div class="item-texto"><div><strong>🎁 Baú do dia</strong> '
-      + '<span class="suave pequeno">· Resgate todas as missões diárias</span></div><div class="pequeno">Prêmio: <span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span></div></div>'
-      + '<div class="item-acoes">' + (m.bonus ? '<span class="mais">✔ Aberto</span>' : '<button class="btn" data-acao="missao-bonus"' + (todas ? '' : ' disabled') + '>Abrir baú</button>') + '</div></div>';
+    var bau = '<div class="missao-carta missao-bau' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><div class="missao-topo"><strong>🎁 Baú do dia</strong></div>'
+      + '<div class="missao-texto">Resgate todas as diárias</div><div class="missao-pe"><span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span>'
+      + (m.bonus ? '<span class="mais">✔</span>' : todas ? '<button class="btn btn-pequeno" data-missao="bau">Abrir</button>' : '') + '</div></div>';
     var dias = Math.floor(R.msAteSemana(agora) / 86400000);
-    return '<h3 class="subtitulo">Missões diárias <span class="suave pequeno">· renovam em ' + tempoTexto(R.msAteReset(agora)) + '</span></h3>'
-      + '<div class="itens">' + M.diarias.map(function (x) { return carta('diarias', x); }).join('') + bonus + '</div>'
-      + '<h3 class="subtitulo">Missões semanais <span class="suave pequeno">· renovam em ' + (dias ? dias + ' dia(s) e ' : '') + tempoTexto(R.msAteSemana(agora) % 86400000) + '</span></h3>'
-      + '<div class="itens">' + M.semanais.map(function (x) { return carta('semanais', x); }).join('') + '</div>';
+    missoesUI.el.className = 'aberto';
+    missoesUI.el.innerHTML = aba + '<div class="missoes-painel" role="dialog" aria-label="Missões"><div class="missoes-titulo"><span>📜 Missões</span>'
+      + '<button data-missao="painel" title="Fechar">✕</button></div>'
+      + secao('diarias', 'Diárias', 'renova em ' + tempoTexto(R.msAteReset(agora)), M.diarias, bau)
+      + secao('semanais', 'Semanais', 'renova em ' + (dias ? dias + 'd ' : '') + tempoTexto(R.msAteSemana(agora) % 86400000), M.semanais) + '</div>';
+  }
+  function cliqueMissoes(e) {
+    var el = e.target.closest('[data-missao]'), p = estado.personagem;
+    if (!el || !p) return;
+    var acao = el.dataset.missao;
+    if (acao === 'painel') missoesUI.aberto = !missoesUI.aberto;
+    else if (acao === 'secao') missoesUI[el.dataset.tipo] = !missoesUI[el.dataset.tipo];
+    else if (acao === 'resgatar' || acao === 'bau') {
+      var premio = acao === 'bau' ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
+      if (premio) { salvar(); atualizarFicha(); avisar((acao === 'bau' ? 'Baú do dia: ' : 'Missão concluída: ') + premio + '!', acao === 'bau' ? 'item' : 'nivel'); }
+    }
+    desenharMissoes();
   }
 
   // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
@@ -1384,7 +1418,7 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = navHtml()
-        + ({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca, missoes: abaMissoes })[estado.aba]();
+        + (({ personagem: abaPersonagem, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena);
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -1399,6 +1433,7 @@
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
     chatVisivel(true);
+    desenharMissoes(true);
   }
 
   // Leva a tela até o painel (aviso do chefe e batalha aparecem no topo dele).
@@ -1786,16 +1821,6 @@
         salvar();
         telaJogo();
         break;
-      case 'missao-resgatar': {
-        var premio = R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
-        if (premio) { salvar(); telaJogo(); avisar('Missão concluída: ' + premio + '!', 'nivel'); }
-        break;
-      }
-      case 'missao-bonus': {
-        var bau = R.resgatarBonusDiario(p, C.agora());
-        if (bau) { salvar(); telaJogo(); avisar('Baú do dia: ' + bau + '!', 'item'); }
-        break;
-      }
       case 'ficha-status':
         estado.fichaAberta = !estado.fichaAberta;
         atualizarFicha();
