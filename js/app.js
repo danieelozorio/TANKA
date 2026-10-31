@@ -175,6 +175,7 @@
         + '<p class="erro">' + esc(erro || '') + '</p>'
         + '<button class="btn largo" type="submit">Entrar</button></form>';
     mostrarCenario(true);
+    areaMusica(true);
     app.innerHTML = '<div class="tela-entrada">' + marca()
       + '<section class="auth"><div class="caixa moldura-runica">'
       + '<i class="canto c1"></i><i class="canto c2"></i><i class="canto c3"></i><i class="canto c4"></i>'
@@ -212,6 +213,7 @@
         + '<div class="detalhe">' + (D.MAX_PERSONAGENS - lista.length) + ' vaga(s) livre(s)</div></button>';
     }
     mostrarCenario(false);
+    areaMusica(true);
     app.innerHTML = topo() + '<div class="conteudo"><h2>Seus personagens</h2>'
       + '<div class="lista-personagens">' + cartas + '</div></div>' + rodape();
   }
@@ -244,6 +246,7 @@
     }).join('');
 
     mostrarCenario(false);
+    areaMusica(true);
     app.innerHTML = topo('<button class="btn secundario" data-acao="voltar-personagens">Voltar</button>')
       + '<div class="conteudo"><div class="criacao"><div>'
       + '<section class="etapa"><h2>1. Nome</h2><label>Nome do personagem'
@@ -1200,6 +1203,7 @@
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     mostrarCenario(false);
+    areaMusica(false);
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
@@ -3117,7 +3121,8 @@
   // ---------------- Música de fundo ----------------
   // Os navegadores não deixam tocar som sozinho: a música começa no primeiro clique ou tecla.
   // O botão 🔊/🔇 liga e desliga, e o jogo lembra a escolha neste aparelho.
-  var musica = { audio: null, ligada: true, botao: null, VOLUME: 0.35, ARQUIVO: 'assets/musica/tema-eldrin.mp3?v=1' };
+  // Toca só na entrada, na escolha e na criação de personagem (area); dentro do jogo ela some aos poucos.
+  var musica = { audio: null, ligada: true, botao: null, area: false, tocou: false, fade: null, VOLUME: 0.35, ARQUIVO: 'assets/musica/tema-eldrin.mp3?v=1' };
   try { musica.ligada = localStorage.getItem('eldrin.musica') !== 'off'; } catch (e) { /* sem armazenamento: fica ligada */ }
   function desenharBotaoMusica() {
     if (!musica.botao) {
@@ -3126,23 +3131,42 @@
       musica.botao.addEventListener('click', function (e) { e.stopPropagation(); alternarMusica(); });
       document.body.appendChild(musica.botao);
     }
+    musica.botao.hidden = !musica.area;
     musica.botao.textContent = musica.ligada ? '🔊' : '🔇';
     musica.botao.title = musica.ligada ? 'Desligar a música' : 'Ligar a música';
     musica.botao.setAttribute('aria-label', musica.botao.title);
   }
   function tocarMusica() {
-    if (!musica.ligada) return;
+    if (!musica.ligada || !musica.area) return;
+    clearInterval(musica.fade);
     if (!musica.audio) {
       musica.audio = new Audio(musica.ARQUIVO);
       musica.audio.loop = true;
       musica.audio.volume = musica.VOLUME;
       musica.audio.addEventListener('error', function () { if (musica.botao) musica.botao.hidden = true; });
     }
+    musica.audio.volume = musica.VOLUME;
     var p = musica.audio.play();
-    if (p && p.catch) p.catch(function () { /* ainda sem clique: tenta no próximo */ });
+    if (p && p.then) p.then(function () { musica.tocou = true; }, function () { /* ainda sem clique: tenta no próximo */ });
+  }
+  // Entra ou sai das telas com música. Ao sair, abaixa o volume em ~1,5 s e pausa.
+  function areaMusica(sim) {
+    if (musica.area === sim) return;
+    musica.area = sim;
+    if (sim) { if (musica.tocou) tocarMusica(); }
+    else if (musica.audio && !musica.audio.paused) {
+      clearInterval(musica.fade);
+      musica.fade = setInterval(function () {
+        var v = musica.audio.volume - musica.VOLUME / 15;
+        if (v <= 0.01) { clearInterval(musica.fade); musica.audio.pause(); musica.audio.volume = musica.VOLUME; }
+        else musica.audio.volume = v;
+      }, 100);
+    }
+    desenharBotaoMusica();
   }
   function alternarMusica() {
     musica.ligada = !musica.ligada;
+    musica.tocou = musica.tocou || musica.ligada;
     try { localStorage.setItem('eldrin.musica', musica.ligada ? 'on' : 'off'); } catch (e) { /* ignora */ }
     if (musica.ligada) tocarMusica(); else if (musica.audio) musica.audio.pause();
     desenharBotaoMusica();
