@@ -3154,8 +3154,11 @@
       document.body.appendChild(musica.botao);
     }
     musica.botao.hidden = !musica.area;
+    // Ligada mas ainda sem tocar (o navegador espera um toque): o botão pisca chamando.
+    var esperando = musica.ligada && (!musica.audio || musica.audio.paused);
+    musica.botao.classList.toggle('esperando', esperando);
     musica.botao.textContent = musica.ligada ? '🔊' : '🔇';
-    musica.botao.title = musica.ligada ? 'Desligar a música' : 'Ligar a música';
+    musica.botao.title = esperando ? 'Tocar a música' : musica.ligada ? 'Desligar a música' : 'Ligar a música';
     musica.botao.setAttribute('aria-label', musica.botao.title);
   }
   function tocarMusica() {
@@ -3169,13 +3172,14 @@
     }
     musica.audio.volume = musica.VOLUME;
     var p = musica.audio.play();
-    if (p && p.then) p.then(function () { musica.tocou = true; }, function () { /* ainda sem clique: tenta no próximo */ });
+    if (p && p.then) p.then(function () { musica.tocou = true; desenharBotaoMusica(); }, function () { desenharBotaoMusica(); /* ainda sem toque: tenta no próximo */ });
   }
-  // Entra ou sai das telas com música. Ao sair, abaixa o volume em ~1,5 s e pausa.
+  // Entra ou sai das telas com música. Ao entrar tenta tocar já (o navegador deixa se o jogador já interagiu
+  // com o site antes); ao sair, abaixa o volume em ~1,5 s e pausa.
   function areaMusica(sim) {
     if (musica.area === sim) return;
     musica.area = sim;
-    if (sim) { if (musica.tocou) tocarMusica(); }
+    if (sim) tocarMusica();
     else if (musica.audio && !musica.audio.paused) {
       clearInterval(musica.fade);
       musica.fade = setInterval(function () {
@@ -3187,19 +3191,22 @@
     desenharBotaoMusica();
   }
   function alternarMusica() {
+    // Ligada mas bloqueada pelo navegador: o primeiro clique no botão só faz tocar.
+    if (musica.ligada && (!musica.audio || musica.audio.paused)) { tocarMusica(); return; }
     musica.ligada = !musica.ligada;
     musica.tocou = musica.tocou || musica.ligada;
     try { localStorage.setItem('eldrin.musica', musica.ligada ? 'on' : 'off'); } catch (e) { /* ignora */ }
     if (musica.ligada) tocarMusica(); else if (musica.audio) musica.audio.pause();
     desenharBotaoMusica();
   }
-  function primeiroToque() {
-    document.removeEventListener('pointerdown', primeiroToque, true);
-    document.removeEventListener('keydown', primeiroToque, true);
+  // Eventos que o navegador aceita como "o jogador interagiu" (no celular o toque conta no fim: touchend/click).
+  var TOQUES = ['click', 'touchend', 'keydown'];
+  function primeiroToque(e) {
+    if (e && e.target && e.target.closest && e.target.closest('#botao-musica')) return;   // o próprio botão cuida
+    if (musica.audio && !musica.audio.paused) return;
     tocarMusica();
   }
-  document.addEventListener('pointerdown', primeiroToque, true);
-  document.addEventListener('keydown', primeiroToque, true);
+  TOQUES.forEach(function (ev) { document.addEventListener(ev, primeiroToque, true); });
   desenharBotaoMusica();
 
   // ---------------- Início ----------------
