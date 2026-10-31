@@ -65,7 +65,10 @@ escolha de 1–3 monstros, busca automática ("Caçada em andamento"), encontro 
 Tempo/chance da busca em `CACADA` (dados.js): 3/4/5 s do mais fraco ao mais forte, caindo até 2/2,5/3 s com
 Rastreio (Velocidade + Sorte) na região; o mais fraco aparece 3x mais no começo, iguala com a evolução.
 Músicas por cena (`FAIXAS` em app.js, `assets/musica/`): entrada, jogo (Brumas do Reino + Luz das Brumas em revezamento),
-masmorra (Halls Below), arena (Arena e Glória), chefe (Eldrin of Fate). Botão ⚙ = configurações (música, volumes).
+masmorra (Halls Below), arena (Arena e Glória), chefe (Eldrin of Fate). Botão ⚙ = configurações (música, volumes), à direita;
+chat à esquerda. Raça/classe no feminino (`nomeF` em dados.js, `nomeRaca`/`nomeClasse` em app.js). Mochila: seta verde
+(`R.itemMelhor`, pelo Poder) e botão direito equipa (menu do navegador bloqueado no jogo). Caçada: opção Chefes
+(perguntar/fugir/lutar). Floresta com metade do dano (masmorra Toca compensada com ataque 8).
 
 ## Pendências e ideias conversadas
 - **Curva de exp**: do 25 ao 40 ficou longa demais (simulação: ~2.700 h até o 40 para Cavaleiro, muito mais para Mago).
