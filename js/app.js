@@ -634,6 +634,10 @@
     areias: { icone: '🏜️', cor: '#a8742c', x: 66.5, y: 76 }, vale: { icone: '🐉', cor: '#4a5f86', x: 75.7, y: 28 },
     cume: { icone: '🌋', cor: '#a33a1c', x: 89.3, y: 64.5 },
   };
+  // Arte da região (medalhão e fundo da caçada) em assets/regioes/; regiões sem arte usam o emoji.
+  function iconeArea(a, classe) {
+    return ESTILO_AREA[a.id] ? '<img class="' + (classe || 'icone-area') + '" src="assets/regioes/icone-' + a.id + '.webp" alt="">' : estiloArea(a, D.areas.indexOf(a)).icone;
+  }
   function estiloArea(a, i) { return ESTILO_AREA[a.id] || { icone: '⚔', cor: '#555', x: 10 + i * 13, y: i % 2 ? 40 : 70 }; }
   function abaCacar() {
     var p = estado.personagem;
@@ -647,7 +651,7 @@
       var faixa = proxima ? 'Lv ' + a.nivelMin + '–' + proxima.nivelMin : 'Lv ' + a.nivelMin + '+';
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
         + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
-        + '<span class="mapa-icone">' + (livre ? e.icone : '🔒') + '</span>'
+        + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
         + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
     return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.</p>'
@@ -664,7 +668,7 @@
     var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
     var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
     return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
-      + '<div><h3>' + e.icone + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + s.bonusDrop + '% nos drops.'
+      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + s.bonusDrop + '% nos drops.'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
       + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
       + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'
@@ -1773,7 +1777,7 @@
         + (R.vidaParaCacar(p) ? '' : '<p class="suave pequeno">Precisa de mais de ' + D.CACADA.vidaMinima + '% da vida. Use uma poção ou acampe.</p>') + '</div>';
     }
     var ativa = c.ativa;
-    var topo = '<div class="cacada-topo" style="--cor:' + e.cor + '"><div><h3>' + e.icone + ' Caçada · ' + area.nome + '</h3>'
+    var topo = '<div class="cacada-topo" style="--cor:' + e.cor + '"><div><h3>' + iconeArea(area) + ' Caçada · ' + area.nome + '</h3>'
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
       + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
@@ -1796,7 +1800,8 @@
       if (h.resultado === 'derrota') return '<p class="menos">✖ ' + nome + ' <span class="suave">derrota</span></p>';
       return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
     }).join('') : '<p class="suave pequeno">Nenhum combate ainda.</p>') + '</div>';
-    return topo + '<div class="arena cacada-arena">' + jogador + '<div class="vs">' + (emLuta ? 'VS' : '') + '</div>' + direita + '</div>'
+    var fundo = ESTILO_AREA[area.id] ? ' style="background-image:radial-gradient(ellipse at center, rgba(8,10,14,.25), rgba(8,10,14,.8)),url(assets/regioes/fundo-' + area.id + '.webp)"' : '';
+    return topo + '<div class="arena cacada-arena"' + fundo + '>' + jogador + '<div class="vs">' + (emLuta ? 'VS' : '') + '</div>' + direita + '</div>'
       + (emLuta || estado.registro.length ? '<div class="registro" id="registro">' + estado.registro.join('') + '</div>' : '')
       + opcoes + resumo + itens + historico;
   }
