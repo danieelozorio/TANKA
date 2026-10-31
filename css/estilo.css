@@ -1264,10 +1264,11 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .ordem-hab { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .7rem; }
 .ordem-col { padding: .6rem .7rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 10px; background: rgba(0, 0, 0, .18); }
 .ordem-col h4 { margin: 0 0 .4rem; font-family: var(--titulo); color: var(--ouro-claro); }
-.ordem-col ol { margin: 0; padding-left: 1.3rem; display: grid; gap: .35rem; }
+.ordem-col ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: .35rem; }
 .ordem-col li { display: flex; align-items: center; gap: .3rem; }
 .ordem-col li span { flex: 1; }
 .ordem-col li.sem-ponto span { opacity: .6; }
 .ordem-col .btn-mini { min-width: 26px; height: 26px; font-size: .85rem; }
 .ordem-fora { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .5rem; }
 @media (max-width: 700px) { .hab-cabeca { flex-direction: column; gap: .3rem; } }
+.ordem-n { color: var(--ouro-claro); margin-right: .2rem; }

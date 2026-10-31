@@ -1003,7 +1003,7 @@
               var x = ativas.filter(function (a) { return a.id === id; })[0];
               if (!x) return '';
               var b = function (op, txt, off) { return '<button class="btn-mini" data-acao="hab-ordem" data-modo="' + m[0] + '" data-id="' + id + '" data-op="' + op + '"' + (off ? ' disabled' : '') + ' title="' + op + '">' + txt + '</button>'; };
-              return '<li' + (R.pontosEm(p, id) ? '' : ' class="sem-ponto"') + '><span>' + x.nome + (R.pontosEm(p, id) ? '' : ' <em class="suave">(sem ponto)</em>') + '</span>'
+              return '<li' + (R.pontosEm(p, id) ? '' : ' class="sem-ponto"') + '><span><b class="ordem-n">' + (i + 1) + '.</b> ' + x.nome + (R.pontosEm(p, id) ? '' : ' <em class="suave">(sem ponto)</em>') + '</span>'
                 + b('subir', '↑', i === 0) + b('descer', '↓', i === lista.length - 1) + b('tirar', '✕') + '</li>';
             }).join('') + '</ol>'
             + (fora.length ? '<div class="ordem-fora">' + fora.map(function (x) {
