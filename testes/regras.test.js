@@ -73,7 +73,7 @@ teste('cobra = 2x lobo, urso = 2x cobra (vida e exp); dano em faixa', () => {
   for (const [a, b] of [[lobo, cobra], [cobra, urso]]) {
     assert.strictEqual(b.hp, a.hp * 2); assert.strictEqual(b.exp, a.exp * 2);
   }
-  assert.deepStrictEqual([...lobo.ataque, ...cobra.ataque, ...urso.ataque, ...D.monstros.velgrath.ataque], [5, 10, 7, 12, 10, 15, 15, 20]);
+  assert.deepStrictEqual([...lobo.ataque, ...cobra.ataque, ...urso.ataque, ...D.monstros.velgrath.ataque], [3, 5, 4, 6, 5, 8, 8, 10]);
   assert.deepStrictEqual(['sapo', 'aranha', 'troll', 'morgath'].map((m) => [...D.monstros[m].ataque]), [[10, 15], [15, 20], [18, 22], [25, 30]]);
 });
 
@@ -923,4 +923,22 @@ teste('caçada contínua: tempo e chance por força do monstro e rastreio (veloc
   const b = { fim: null, pocoes: 1, pocaoPendente: false, jogador: { hp: 9, hpMax: 100 } };
   assert.ok(R.precisaPocao(b, 10)); assert.ok(!R.precisaPocao(b, 5)); assert.ok(!R.precisaPocao(b, 0));
   b.pocoes = 0; assert.ok(!R.precisaPocao(b, 10));
+});
+
+teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', () => {
+  const p = R.criarPersonagem('T', 'feminino', 'humano', 'cavaleiro');
+  const arma = (id, classe, raridade, dano) => ({ id, tipo: 'arma', classe, raridade, encanto: 0, variacao: 0, dano });
+  const fraca = arma('fraca', 'cavaleiro', 'comum', [1, 2]);
+  const forte = arma('forte', 'cavaleiro', 'lendaria', [60, 90]);
+  const outra = arma('outra', 'mago', 'lendaria', [60, 90]);
+  [fraca, forte, outra].forEach((i) => p.inventario.push(i));
+  assert.ok(R.itemMelhor(p, forte));
+  assert.ok(!R.itemMelhor(p, outra));
+  R.equipar(p, forte.id);
+  assert.ok(!R.itemMelhor(p, fraca));
+  assert.ok(!R.itemMelhor(p, forte), 'o equipado não ganha seta');
+  // Floresta com metade do dano; a masmorra da Floresta continua com o mesmo dano de antes
+  assert.deepStrictEqual([...D.monstros.lobo.ataque], [3, 5]);
+  const chefeToca = R.salasMasmorra('toca')[2][0];
+  assert.deepStrictEqual([...chefeToca.ataque], [80, 100], 'masmorra quase igual (era 75–100)');
 });

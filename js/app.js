@@ -219,7 +219,7 @@
     var cartas = lista.map(function (p) {
       var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
         + '<div class="nome">' + esc(p.nome) + '</div>'
-        + '<div class="detalhe">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + ' · Lv ' + p.nivel + '</div>';
+        + '<div class="detalhe">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasse(p.classe, p.sexo) + ' · Lv ' + p.nivel + '</div>';
       // Excluir pede o nome do personagem digitado, para não apagar sem querer.
       if (estado.excluir === p.id) {
         return topoCarta + '<div class="excluir-confirma"><p class="menos pequeno">Isso apaga ' + esc(p.nome) + ' para sempre: level, itens, ouro e amigos. Não dá para desfazer.</p>'
@@ -252,12 +252,12 @@
     var racas = Object.keys(D.racas).map(function (k) {
       var r = D.racas[k];
       return '<button class="carta' + (c.raca === k ? ' selecionada' : '') + '" data-acao="escolher-raca" data-valor="' + k + '">'
-        + '<div class="moldura">' + F.imagemRaca(k, c.sexo) + '</div><div class="nome">' + r.nome + '</div></button>';
+        + '<div class="moldura">' + F.imagemRaca(k, c.sexo) + '</div><div class="nome">' + nomeRaca(k, c.sexo) + '</div></button>';
     }).join('');
     var classesPermitidas = D.racas[c.raca].classes;
     var classes = classesPermitidas.map(function (k) {
       return '<button class="carta' + (c.classe === k ? ' selecionada' : '') + '" data-acao="escolher-classe" data-valor="' + k + '">'
-        + '<div class="moldura">' + F.personagem(c.raca, k, c.sexo) + '</div><div class="nome">' + D.classes[k].nome + '</div>'
+        + '<div class="moldura">' + F.personagem(c.raca, k, c.sexo) + '</div><div class="nome">' + nomeClasse(k, c.sexo) + '</div>'
         + '<div class="detalhe">' + D.armas[k].tipo + '</div></button>';
     }).join('');
 
@@ -279,7 +279,7 @@
       + '<section class="etapa"><h2>3. Raça <small>— ' + esc(D.racas[c.raca].descricao) + '</small></h2><div class="grade">' + racas + '</div></section>'
       + '<section class="etapa"><h2>4. Classe <small>— ' + esc(D.classes[c.classe].descricao) + '</small></h2><div class="grade">' + classes + '</div></section>'
       + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe, c.sexo) + '</div>'
-      + '<h3 class="centro">' + D.racas[c.raca].nome + ' ' + D.classes[c.classe].nome + ' · ' + D.sexos[c.sexo].nome + '</h3>'
+      + '<h3 class="centro">' + nomeRaca(c.raca, c.sexo) + ' ' + nomeClasse(c.classe, c.sexo) + ' · ' + D.sexos[c.sexo].nome + '</h3>'
       + '<table class="atributos"><thead><tr><th>Atributo</th><th>Classe</th><th>Raça</th><th>Total</th></tr></thead><tbody>' + linhas + '</tbody></table>'
       + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].comum[0] + ' (dano ' + D.ARMA_INICIAL_DANO.join('–') + ').</p>'
       + '<p class="erro" id="erro-criacao"></p>'
@@ -421,6 +421,9 @@
   ];
   var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
+  // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
+  function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
+  function nomeClasse(k, sexo) { var x = D.classes[k]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   function seloDaAba(aba) { return aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
@@ -499,7 +502,7 @@
 
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
-      + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + D.racas[p.raca].nome + ' · ' + D.classes[p.classe].nome + '</div>'
+      + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasse(p.classe, p.sexo) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
@@ -691,7 +694,7 @@
   function fichaItemHtml(item) {
     var p = estado.personagem;
     if (!item) {
-      return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam.'
+      return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam; o botão direito equipa. A seta verde ▲ mostra o que é melhor que o equipado.'
         : 'Toque num item para ampliar e comparar. Dois toques equipam ou desequipam.') + '</p>';
     }
     var slot = R.slotDoItem(p, item.id);
@@ -827,10 +830,13 @@
   function visaoMochila() {
     return estado.mochilaVisao || (estado.mochilaVisao = { ordem: 'mochila', crescente: false, raridades: [], forcaMin: 0 });
   }
+  var SETA_MELHOR = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2 14 9H10v5H6V9H2z" fill="currentColor"/></svg>';
   function celulaMochila(item) {
     var v = visaoMochila(), lote = estado.vendaLote;
     var html = quadroItem(item, 'celula' + (R.passaFiltro(item, v) ? '' : ' apagado') + (lote && lote.ids[item.id] ? ' marcado' : ''),
       ' data-forca="' + R.forcaItem(item) + '"');
+    // Seta verde: equipar este item deixaria o herói mais forte que o equipado agora.
+    if (R.itemMelhor(estado.personagem, item)) html = html.replace('>' + F.icone(item), '>' + F.icone(item) + '<span class="seta-melhor" title="Melhor que o equipado">' + SETA_MELHOR + '</span>');
     return lote ? html.replace('data-acao="item"', 'data-acao="marcar"') : html;
   }
   function barraMochilaHtml() {
@@ -1209,8 +1215,8 @@
         var pos = i + 1;
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
-          + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + '</div></td>'
-          + '<td>' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + '</td>'
+          + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
+          + '<td>' + nomeClasse(x.classe, x.sexo) + '</td>'
           + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td></tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
@@ -1263,7 +1269,7 @@
 
   function linhaAmigo(x, botoes) {
     return '<div class="item amigo"><div class="amigo-info"><div>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-      + '<div class="suave">' + (D.racas[x.raca] ? D.racas[x.raca].nome : '') + ' · ' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+      + '<div class="suave">' + nomeRaca(x.raca, x.sexo) + ' · ' + nomeClasse(x.classe, x.sexo)
       + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + botoes + '</div></div>';
   }
@@ -1619,7 +1625,7 @@
   // de sempre) → resultado entra no resumo → procura de novo. Para com a vida em ≤5% ou quando o jogador para.
   function prefsCacada() {
     var p = estado.personagem;
-    return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0 });
+    return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
   }
   function iniciarCacada(areaId) {
     var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
@@ -1681,6 +1687,9 @@
     c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
     c.fase = 'encontrou';
     if (!chefe && prefsCacada().lutarSempre) { lutarCacada(); return; }
+    // Chefe: o jogador escolhe nas opções se sempre pergunta, sempre foge ou sempre luta.
+    if (chefe && prefsCacada().chefe === 'lutar') { lutarCacada(); return; }
+    if (chefe && prefsCacada().chefe === 'fugir') { fugirEncontro(); return; }
     c.prazo = chefe ? null : Date.now() + D.CACADA.contagem * 1000;
     telaJogo();
     clearTimeout(c.timer);
@@ -1784,7 +1793,10 @@
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
       + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
-    var opcoes = '<div class="cacada-opcoes"><label><input type="checkbox" data-acao="cacada-sempre"' + (pref.lutarSempre ? ' checked' : '') + '> Lutar sempre sem perguntar (chefes sempre perguntam)</label>'
+    var opcoes = '<div class="cacada-opcoes"><label><input type="checkbox" data-acao="cacada-sempre"' + (pref.lutarSempre ? ' checked' : '') + '> Lutar sempre sem perguntar</label>'
+      + '<label>Chefes <select id="cacada-chefe">' + [['perguntar', 'sempre perguntar'], ['fugir', 'sempre fugir'], ['lutar', 'sempre lutar']].map(function (o) {
+        return '<option value="' + o[0] + '"' + ((pref.chefe || 'perguntar') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select></label>'
       + '<label>Poção automática <select id="cacada-pocao"><option value="0"' + (pref.pocao ? '' : ' selected') + '>desligada</option>'
       + D.CACADA.pocaoAuto.map(function (v) { return '<option value="' + v + '"' + (pref.pocao === v ? ' selected' : '') + '>abaixo de ' + v + '% da vida</option>'; }).join('')
       + '</select></label></div>';
@@ -1847,6 +1859,11 @@
 
   app.addEventListener('change', function (e) {
     if (e.target.id === 'cacada-pocao') { prefsCacada().pocao = Number(e.target.value) || 0; salvar(); }
+    if (e.target.id === 'cacada-chefe') {
+      prefsCacada().chefe = e.target.value; salvar();
+      var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
+      if (cc && cc.fase === 'encontrou' && cc.encontro.chefe) { if (e.target.value === 'lutar') lutarCacada(); else if (e.target.value === 'fugir') fugirEncontro(); }
+    }
     if (e.target.id === 'ordem-mochila') {
       visaoMochila().ordem = e.target.value;
       var dir = document.querySelector('[data-acao="mochila-direcao"]');
@@ -2426,6 +2443,22 @@
     salvar();
     telaJogo();
   });
+  // Dentro do jogo o botão direito não abre o menu do navegador: a única função dele é equipar um item da mochila.
+  // (Nos campos de texto, como o chat, o menu continua para copiar e colar.)
+  document.addEventListener('contextmenu', function (e) {
+    if (!estado.personagem || !document.querySelector('.jogo')) return;
+    if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
+    e.preventDefault();
+    var el = e.target.closest && e.target.closest('[data-acao="item"]');
+    var p = estado.personagem;
+    if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
+    var it = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+    if (!R.equipar(p, el.dataset.id)) { avisar(it && !R.podeUsar(p, it) ? 'Esse item não é da sua classe.' : 'Não foi possível equipar.'); return; }
+    estado.zoom = null;
+    estado.vendaPendente = null;
+    salvar();
+    telaJogo();
+  });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && estado.zoom) { estado.zoom = null; telaJogo(); }
     if (e.key === 'Escape' && estado.desafio) { estado.desafio = null; telaJogo(); }
@@ -2678,7 +2711,7 @@
       if (!m) { vagas.push('<div class="mas-vaga vazia">Vaga livre' + (gr.convidados[i - gr.membros.length] ? '<div class="suave pequeno">Convidado: ' + esc(gr.convidados[i - gr.membros.length]) + '</div>' : '') + '</div>'); continue; }
       vagas.push('<div class="mas-vaga' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, m.classe, m.sexo) + '</div>'
         + '<div><strong>' + (m.id === gr.lider ? '👑 ' : '') + esc(m.nome) + '</strong></div>'
-        + '<div class="suave pequeno">' + (D.classes[m.classe] ? D.classes[m.classe].nome : '') + ' · Lv ' + m.nivel + ' · entradas ' + (M.entradasPorDia - m.entradas) + '/' + M.entradasPorDia + '</div>'
+        + '<div class="suave pequeno">' + nomeClasse(m.classe, m.sexo) + ' · Lv ' + m.nivel + ' · entradas ' + (M.entradasPorDia - m.entradas) + '/' + M.entradasPorDia + '</div>'
         + '<div class="' + (m.pronto ? 'online' : 'suave') + ' pequeno">' + (m.pronto ? '✔ Pronto' : 'Aguardando') + '</div>'
         + (souLider && m.id !== p.id ? '<button class="btn secundario mini-opcao" data-acao="grupo-expulsar" data-id="' + esc(m.id) + '">Expulsar</button>' : '') + '</div>');
     }
@@ -2849,7 +2882,7 @@
       var sq = A.saque, ouro = pf.ouro || 0;
       var saque = Math.floor(ouro * sq.minimo / 100).toLocaleString('pt-BR') + ' a ' + Math.floor(ouro * sq.maximo / 100).toLocaleString('pt-BR');
       corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, pf.classe, pf.sexo) + '</div><div>'
-        + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + (D.racas[pf.raca] ? D.racas[pf.raca].nome : '') + ' · ' + (D.classes[pf.classe] ? D.classes[pf.classe].nome : '') + ' · Level ' + pf.nivel + '</div>'
+        + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + nomeRaca(pf.raca, pf.sexo) + ' · ' + nomeClasse(pf.classe, pf.sexo) + ' · Level ' + pf.nivel + '</div>'
         + (pf.alianca ? '<div class="desafio-alianca">' + brasaoSvg(pf.alianca.brasao) + '<span>' + esc(pf.alianca.nome) + ' ' + siglaHtml(pf.alianca.sigla) + '</span></div>' : '')
         + '<div class="desafio-selos">' + (pf.posicao ? '<span class="selo-pos">#' + pf.posicao + ' · ' + esc(nomeArena(pf.arena)) + '</span>' : '')
         + '<span class="selo-pos">' + pf.vitorias + ' V · ' + pf.derrotas + ' D</span></div>'
@@ -2871,7 +2904,7 @@
 
   function linhaRanking(x, botao) {
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
-      + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+      + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo)
       + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + (botao || '') + '</div></div>';
   }
@@ -3170,7 +3203,7 @@
     var L = estado.lutaArena, est = L.luta.estado, a = est.a, d = est.d;
     function lutador(x, hp, lado) {
       return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, x.classe, x.sexo) + '</div>'
-        + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel + '</div>'
+        + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo) + ' · Lv ' + x.nivel + '</div>'
         + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax, 'arena-' + lado) + '</div>';
     }
     var mesa = L.fase === 'fim' ? '' : '<div class="vaga-dado"></div>';
@@ -3386,7 +3419,7 @@
       html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
         + '<button class="btn" data-acao="al-convidar">Convidar</button></div>'
         + (st.pedidos.length ? '<h3 class="subtitulo">Pedidos para entrar</h3><div class="itens">' + st.pedidos.map(function (x) {
-          return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + (D.classes[x.classe] ? D.classes[x.classe].nome : '') + ' · Lv ' + x.nivel
+          return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo) + ' · Lv ' + x.nivel
             + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + '</div></div><div class="item-acoes">'
             + '<button class="btn btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '" data-sim="1">Aceitar</button>'
             + '<button class="btn secundario btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '">Recusar</button></div></div>';
@@ -3404,7 +3437,7 @@
       if (!eu && (chefe || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
       var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'oficial' ? '⭐ ' : '';
       return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '"><div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + (D.classes[x.classe] ? D.classes[x.classe].nome : '')
+        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + nomeClasse(x.classe, x.sexo)
         + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
@@ -3524,7 +3557,7 @@
 
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    var classe = D.classes[m.classe] ? D.classes[m.classe].nome : '';
+    var classe = nomeClasse(m.classe, m.sexo);
     var acoes = ehAdmin()
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'

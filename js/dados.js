@@ -33,25 +33,25 @@ Tanka.dados = {
 
   classes: {
     cavaleiro: {
-      nome: 'Cavaleiro',
+      nome: 'Cavaleiro', nomeF: 'Cavaleira',
       descricao: 'Força e resistência elevadas. A muralha de aço da linha de frente.',
       atributos: { for: 15, des: 10, res: 20, int: 10, sor: 10 },
       dano: 'fisico',
     },
     arqueiro: {
-      nome: 'Arqueiro',
+      nome: 'Arqueiro', nomeF: 'Arqueira',
       descricao: 'Destreza e sorte elevadas. Flechas rápidas e certeiras.',
       atributos: { for: 15, des: 20, res: 10, int: 10, sor: 20 },
       dano: 'fisico',
     },
     mago: {
-      nome: 'Mago',
+      nome: 'Mago', nomeF: 'Maga',
       descricao: 'Destreza e inteligência elevadas. Domina as artes arcanas.',
       atributos: { for: 10, des: 15, res: 10, int: 20, sor: 10 },
       dano: 'magico',
     },
     artesao: {
-      nome: 'Artesão',
+      nome: 'Artesão', nomeF: 'Artesã',
       descricao: 'Força e sorte elevadas. Forja, encanta e esmaga com o martelo.',
       atributos: { for: 15, des: 10, res: 15, int: 10, sor: 20 },
       dano: 'fisico',
@@ -61,31 +61,31 @@ Tanka.dados = {
   // elevado: +3 | reduzido: -3
   racas: {
     humano: {
-      nome: 'Humano',
+      nome: 'Humano', nomeF: 'Humana',
       descricao: 'Versáteis e equilibrados. Podem seguir qualquer caminho.',
       elevados: [], reduzidos: [],
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     elfo: {
-      nome: 'Elfo',
+      nome: 'Elfo', nomeF: 'Elfa',
       descricao: 'Ágeis e sábios, porém de corpo frágil.',
       elevados: ['des', 'int'], reduzidos: ['res', 'for'],
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     elfoNegro: {
-      nome: 'Elfo Negro',
+      nome: 'Elfo Negro', nomeF: 'Elfa Negra',
       descricao: 'Fortes e astutos, mas pouco resistentes e de sorte amaldiçoada.',
       elevados: ['for', 'int'], reduzidos: ['res', 'sor'],
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     orc: {
-      nome: 'Orc',
+      nome: 'Orc', nomeF: 'Orc',
       descricao: 'Brutos e duros como rocha, mas lentos de corpo e mente.',
       elevados: ['for', 'res'], reduzidos: ['des', 'int'],
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     anao: {
-      nome: 'Anão',
+      nome: 'Anão', nomeF: 'Anã',
       descricao: 'Robustos e sortudos, mestres das minas, pouco ágeis.',
       elevados: ['res', 'sor'], reduzidos: ['des', 'int'],
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
@@ -273,14 +273,14 @@ Tanka.dados = {
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
       base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
       monstros: [
-        { id: 'lobo', dano: [5, 10], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
+        { id: 'lobo', dano: [3, 5], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
           drops: [{ raridade: 'comum', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
-        { id: 'cobra', dano: [7, 12], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
+        { id: 'cobra', dano: [4, 6], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
           drops: [{ raridade: 'comum', chance: 15 }], dropsArmadura: [{ raridade: 'comum', chance: 15 }] },
-        { id: 'urso', dano: [10, 15], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
+        { id: 'urso', dano: [5, 8], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
           dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 5, raridade: 'comum' } },
       ],
-      chefe: { id: 'velgrath', dano: [15, 20], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
+      chefe: { id: 'velgrath', dano: [8, 10], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
         dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
     },
     {
@@ -407,7 +407,7 @@ Tanka.dados = {
   MASMORRA: { entradasPorDia: 2, tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 } },
   masmorras: [
     { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
-      forca: { vida: 4, ataque: 4 },
+      forca: { vida: 4, ataque: 8 },   // ataque 8 (era 4): o dano da Floresta caiu pela metade e a masmorra continua igual
       joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
     { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 10, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
       forca: { vida: 3, ataque: 1.15 },

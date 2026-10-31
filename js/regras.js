@@ -1116,6 +1116,21 @@ Tanka.regras = (function () {
     return slot;
   }
 
+  // O item da mochila deixaria o personagem mais forte (mais poder) se fosse equipado no lugar do atual?
+  // Anel: compara com os dois espaços de anel. Item de outra classe nunca é "melhor".
+  function itemMelhor(p, item) {
+    if (!item || !podeUsar(p, item) || slotDoItem(p, item.id)) return false;
+    var slots = item.tipo === 'anel' ? ['anel1', 'anel2'] : [item.tipo];
+    if (!(slots[0] in p.equipados)) return false;
+    if (slots.some(function (slot) { return !p.equipados[slot]; })) return true;   // espaço vazio: qualquer peça ajuda
+    var base = poder(p);
+    return slots.some(function (slot) {
+      var q = Object.assign({}, p, { equipados: Object.assign({}, p.equipados) });
+      q.equipados[slot] = item.id;
+      return poder(q) > base;
+    });
+  }
+
   // Desequipa e manda para a mochila (precisa de espaço).
   function desequipar(p, slot) {
     if (!p.equipados[slot] || mochilaCheia(p)) return false;
@@ -1161,6 +1176,7 @@ Tanka.regras = (function () {
     concluirBatalha: concluirBatalha,
     descansar: descansar,
     equipar: equipar,
+    itemMelhor: itemMelhor,
     desequipar: desequipar,
     RARIDADES: RARIDADES,
     TIPOS_ARMADURA: TIPOS_ARMADURA,
