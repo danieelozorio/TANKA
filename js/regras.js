@@ -51,7 +51,7 @@ Tanka.regras = (function () {
     if (nivel) {
       item.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, nivel));
       item.qualidade = sortearQualidade(raridade, rng);
-      if (tipo === 'arma') item.dano = danoDoNivel(item.nivel, item.qualidade);
+      if (tipo === 'arma') { item.dano = danoDoNivel(item.nivel, item.qualidade); item.extras = sortearExtrasArma(item.nivel, rng); }
     }
     if (tipo === 'secundaria') {
       item.mao = especifico;
@@ -87,6 +87,30 @@ Tanka.regras = (function () {
   }
   function bonusDoNivel(valorRaro, nivel, q) {
     return Math.max(1, Math.round(valorRaro * escalaNivel(nivel) * multQualidade(q) / multQualidade(0.55)));
+  }
+  // Extras da arma pela faixa de nível (EXTRAS_ARMA).
+  function sortearExtrasArma(nivel, rng) {
+    rng = rng || Math.random;
+    var f = D.EXTRAS_ARMA.filter(function (x) { return nivel <= x.ate; })[0] || D.EXTRAS_ARMA[D.EXTRAS_ARMA.length - 1], e = {};
+    if (f.atributos) {
+      var livres = ATRIBUTOS.slice(); e.atributos = {};
+      for (var i = 0; i < f.atributos[0]; i++) {
+        var k = livres.splice(Math.floor(rng() * livres.length), 1)[0];
+        e.atributos[k] = rolar([f.atributos[1], f.atributos[2]], rng);
+      }
+    }
+    if (f.pve) e.pve = rolar(f.pve, rng);
+    if (f.pvp) e.pvp = rolar(f.pvp, rng);
+    if (f.hab) e.hab = { i: Math.floor(rng() * 4), n: rolar(f.hab, rng) };
+    return e;
+  }
+  // Pontos de habilidade que a arma equipada dá (além do limite de 10): { id da habilidade: n }.
+  function pontosDaArma(p) {
+    var a = armaEquipada(p), c = segundaClasse(p), r = {};
+    if (!a || !c || !a.extras || !a.extras.hab) return r;
+    var h = c.habilidades[a.extras.hab.i];
+    if (h) r[h.id] = a.extras.hab.n;
+    return r;
   }
   function precoDoNivel(nivel) { return Math.round(N_.precoBase * Math.pow(N_.precoCresce, Math.max(1, nivel) - 1)); }
   // Joia da masmorra (vem do servidor sem nível): ganha nível de drop e bônus sorteados.
@@ -174,8 +198,12 @@ Tanka.regras = (function () {
   function bonusItem(item) {
     var def = definicao(item), b = {};
     var idx = RARIDADES.indexOf(item.raridade);
-    if (item.tipo === 'arma') {   // arma rara ou melhor: + atributo de dano da classe
-      var n = D.RARIDADE_ARMA.atributo[idx], c = D.classes[item.classe];
+    if (item.tipo === 'arma') {
+      if (item.extras) {   // armas por nível: atributos sorteados da faixa
+        Object.keys(item.extras.atributos || {}).forEach(function (k) { b[k] = item.extras.atributos[k]; });
+        return b;
+      }
+      var n = D.RARIDADE_ARMA.atributo[idx], c = D.classes[item.classe];   // armas antigas: rara ou melhor, + atributo
       if (n && c) b[c.atributoDano] = n;
       return b;
     }
@@ -279,7 +307,9 @@ Tanka.regras = (function () {
     Object.keys(t.pontos).forEach(function (k) { gastos += t.pontos[k] || 0; });
     return pontosHabilidadeTotal(p) - gastos;
   }
-  function pontosEm(p, id) { return (p.talentos && p.talentos.pontos[id]) || 0; }
+  // Pontos numa habilidade: os distribuídos + os da arma equipada (que passam do limite de 10).
+  function pontosEm(p, id) { return ((p.talentos && p.talentos.pontos[id]) || 0) + (pontosDaArma(p)[id] || 0); }
+  function pontosDistribuidos(p, id) { return (p.talentos && p.talentos.pontos[id]) || 0; }
   // A passiva da segunda classe (precisa de 1 ponto).
   function passiva(p) {
     var c = segundaClasse(p);
@@ -314,6 +344,7 @@ Tanka.regras = (function () {
   function mudarPontoHabilidade(p, id, delta) {
     var c = segundaClasse(p), t = talentos(p);
     if (!c || !c.habilidades.some(function (h) { return h.id === id; })) return 'Escolha a segunda classe primeiro.';
+    // (o limite de 10 vale só para os pontos distribuídos; a arma soma por fora)
     var atual = t.pontos[id] || 0, novo = atual + delta;
     if (novo < 0) return false;
     if (novo > T.maxPorHabilidade) return 'Máximo de ' + T.maxPorHabilidade + ' pontos por habilidade.';
@@ -552,8 +583,9 @@ Tanka.regras = (function () {
       bonusDrop: a.sor,                              // SOR (% a mais sobre a chance base)
       chanceEncantamento: a.sor,                     // 1% por ponto de SOR
       bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)
-      danoPvE: arma ? D.RARIDADE_ARMA.pve[idxArma] : 0,   // % a mais contra monstros (arma épica ou lendária)
-      danoPvP: arma ? D.RARIDADE_ARMA.pvp[idxArma] : 0,   // % a mais na Arena (arma lendária; calculado no servidor)
+      // % a mais contra monstros / na Arena: extras da arma por nível; armas antigas pela raridade (épica/lendária)
+      danoPvE: !arma ? 0 : arma.extras ? arma.extras.pve || 0 : D.RARIDADE_ARMA.pve[idxArma],
+      danoPvP: !arma ? 0 : arma.extras ? arma.extras.pvp || 0 : D.RARIDADE_ARMA.pvp[idxArma],
     }, p);
   }
   // Dano mágico % da mão esquerda (orbe, livro), só para quem bate com magia.
@@ -1647,6 +1679,9 @@ Tanka.regras = (function () {
     maoPermitida: maoPermitida,
     soSegundaClasse: soSegundaClasse,
     faixaBonus: faixaBonus,
+    pontosDaArma: pontosDaArma,
+    pontosDistribuidos: pontosDistribuidos,
+    sortearExtrasArma: sortearExtrasArma,
     nivelDoDrop: nivelDoDrop,
     nivelDoMercado: nivelDoMercado,
     danoDoNivel: danoDoNivel,

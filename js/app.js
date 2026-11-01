@@ -123,9 +123,20 @@
     var atr = D.classes[item.classe] && D.classes[item.classe].atributoDano;
     var l = [t.duasMaos ? 'Duas mãos (ocupa a mão esquerda)' : 'Uma mão', 'Velocidade: ' + D.NOME_VELOCIDADE[t.vel]
       + (t.fator !== 1 ? ' · dano x' + String(t.fator).replace('.', ',') : '')];
-    if (RA.atributo[i]) l.push('+' + RA.atributo[i] + ' de ' + D.atributos[atr].nome);
-    if (RA.pve[i]) l.push('+' + RA.pve[i] + '% de dano contra monstros');
-    if (RA.pvp[i]) l.push('+' + RA.pvp[i] + '% de dano na Arena');
+    var e = item.extras;
+    if (e) {   // arma por nível: extras da faixa
+      Object.keys(e.atributos || {}).forEach(function (k) { l.push('+' + e.atributos[k] + ' de ' + D.atributos[k].nome); });
+      if (e.pve) l.push('+' + e.pve + '% de dano contra monstros');
+      if (e.pvp) l.push('+' + e.pvp + '% de dano na Arena');
+      if (e.hab) {
+        var c2 = R.segundaClasse(estado.personagem), h = c2 && c2.habilidades[e.hab.i];
+        l.push('+' + e.hab.n + ' ponto' + (e.hab.n > 1 ? 's' : '') + ' em ' + (h ? h.nome : 'habilidade nº ' + (e.hab.i + 1) + ' da segunda classe') + ' (passa do limite de 10)');
+      }
+    } else {
+      if (RA.atributo[i]) l.push('+' + RA.atributo[i] + ' de ' + D.atributos[atr].nome);
+      if (RA.pve[i]) l.push('+' + RA.pve[i] + '% de dano contra monstros');
+      if (RA.pvp[i]) l.push('+' + RA.pvp[i] + '% de dano na Arena');
+    }
     if (t.proibe) l.push('Não combina com: ' + t.proibe.map(function (m) { return D.MAO_ESQUERDA[m].nome; }).join(', '));
     return l;
   }
@@ -1015,16 +1026,17 @@
     return def.descricao || '';
   }
   function emGrupo(def) { return def.tipo === 'provocar' || def.tipo === 'cura' || def.grupo || (def.tipo === 'area'); }
-  function cartaHabilidade(def, pts, pend, editavel) {
-    var total = pts + (pend || 0), max = D.TALENTOS.maxPorHabilidade;
+  // pts: distribuídos; arma: pontos extras da arma equipada (passam do limite de 10).
+  function cartaHabilidade(def, pts, pend, editavel, arma) {
+    var dist = pts + (pend || 0), total = dist + (arma || 0), max = D.TALENTOS.maxPorHabilidade;
     return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + '">'
       + '<div class="hab-topo"><strong>' + def.nome + '</strong><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
       + '<p class="hab-efeito">' + efeitoHabilidade(def, total) + '</p>'
       + '<p class="suave pequeno">' + (def.recarga ? 'Recarga: ' + def.recarga + ' turnos' : 'Sempre ligada') + (emGrupo(def) && def.tipo !== 'passiva' ? ' · melhor em grupo' : '')
       + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' ? ' · não gasta a vez' : '') + '</p>'
       + (editavel ? '<div class="hab-pontos"><button class="btn-mini" data-acao="hab-menos" data-id="' + def.id + '"' + (pend ? '' : ' disabled') + '>−</button>'
-        + '<span><b>' + total + '</b>/' + max + (pend ? ' <em class="mais">(+' + pend + ')</em>' : '') + '</span>'
-        + '<button class="btn-mini" data-acao="hab-mais" data-id="' + def.id + '"' + (total >= max ? ' disabled' : '') + '>+</button></div>' : '')
+        + '<span><b>' + dist + '</b>/' + max + (pend ? ' <em class="mais">(+' + pend + ')</em>' : '') + (arma ? ' <em class="raridade-lendaria" title="Pontos da arma equipada">+' + arma + ' da arma</em>' : '') + '</span>'
+        + '<button class="btn-mini" data-acao="hab-mais" data-id="' + def.id + '"' + (dist >= max ? ' disabled' : '') + '>+</button></div>' : '')
       + '</div>';
   }
   function pendHab() { return estado.habPend || (estado.habPend = {}); }
@@ -1061,7 +1073,7 @@
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
         + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
         + 'Você ganha +' + T.pontosPorNivel + ' ponto a cada level.</p>'
-        + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosEm(p, x.id), pd[x.id] || 0, true); }).join('') + '</div>'
+        + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
@@ -2402,7 +2414,7 @@
       case 'hab-mais': {
         var idm = el.dataset.id, pdm = pendHab();
         if (R.pontosHabilidadeLivres(p) - totalPendHab() <= 0) { avisar('Sem pontos livres.'); break; }
-        if (R.pontosEm(p, idm) + (pdm[idm] || 0) >= D.TALENTOS.maxPorHabilidade) break;
+        if (R.pontosDistribuidos(p, idm) + (pdm[idm] || 0) >= D.TALENTOS.maxPorHabilidade) break;
         pdm[idm] = (pdm[idm] || 0) + 1;
         telaJogo();
         break;

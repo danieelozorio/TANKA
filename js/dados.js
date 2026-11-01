@@ -304,6 +304,18 @@ Tanka.dados = {
     // Venda: 10% do preço do nível do item, x raridade.
     precoBase: 100, precoCresce: 1.12, mercadoRara: 0.5, vendaPct: 10, vendaRaridade: { comum: 1, rara: 1.5, epica: 3, lendaria: 6 },
   },
+  // Extras das armas pela faixa de nível (sorteados quando a arma cai ou é comprada). atributos: [quantos, mín, máx]
+  // (atributos diferentes, sorteados entre FOR/DES/RES/INT/SOR); pve/pvp: % de dano; hab: pontos numa habilidade
+  // sorteada da segunda classe (nº 1 a 4 da lista de quem usar a arma), além do limite de 10.
+  // Estes extras substituem os da raridade (RARIDADE_ARMA), que ficam só para as armas antigas.
+  EXTRAS_ARMA: [
+    { ate: 10 },
+    { ate: 20, atributos: [1, 1, 2] },
+    { ate: 30, atributos: [1, 3, 5] },
+    { ate: 40, atributos: [1, 5, 8] },
+    { ate: 50, atributos: [2, 5, 10], pve: [5, 10], hab: [1, 1] },
+    { ate: 60, atributos: [2, 5, 10], pve: [5, 10], pvp: [5, 10], hab: [2, 3] },
+  ],
   // Armaduras, joias e mão esquerda caem com os bônus sorteados (como o dano das armas): cada bônus entre 80% e 120%
   // do valor da raridade (mínimo 1). Da rara em diante ganham também 1 atributo extra sorteado (FOR, DES, RES, INT ou SOR).
   // Itens antigos (sem `bonus` salvo) continuam com o valor fixo.

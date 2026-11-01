@@ -114,5 +114,6 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   Mercado por tipo (`comprar(p, tipo, especifico)` → `comprarNoNivel`): nível ±3, comum/rara, preço `precoDoNivel`.
   Venda = 10% do preço do nível × raridade. Itens antigos ganham `nivel` = level do herói (status iguais).
   Joia da masmorra vem do servidor sem nível: `completarItem`. Chefes com a velocidade do 3º monstro.
-- Falta: parte 2 (extras das armas por faixa de nível 11–60: atributos, PvE, PvP, pontos de habilidade além de 10) e
-  parte 3 (conjuntos das segundas classes, 2/3/4 peças com o mesmo nome; Destruidor (2) = +5 de Força).
+- Parte 2 FEITA: `EXTRAS_ARMA` → `item.extras` {atributos, pve, pvp, hab:{i,n}} (armas por nível; antigas seguem RARIDADE_ARMA).
+  `pontosEm` = distribuídos + `pontosDaArma` (passa de 10); servidor: `arena_pontos_arma`, extras em tanka_status.
+- Falta: parte 3 (conjuntos das segundas classes, 2/3/4 peças com o mesmo nome; Destruidor (2) = +5 de Força).

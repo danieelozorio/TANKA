@@ -1007,6 +1007,7 @@ teste('habilidades na caçada: Sombra faz o monstro errar e o próximo golpe ser
   R.admin.subirNivel(q, 9); R.escolherSegundaClasse(q, 'cacador'); R.mudarPontoHabilidade(q, 'flecha-na-perna', 1);
   const c = R.iniciarBatalha(q, 'velgrath', rng);
   c.s.precisao = 1000; c.monstro.hp = 1e6; c.monstro.barra = 0; c.jogador.barra = 100;
+  c.rng = () => 0.01;   // sempre acerta
   const ev = R.passo(c);
   assert.strictEqual(ev.habilidade, 'Flecha na Perna');
   assert.strictEqual(c.monstro.atordoado, 1);
@@ -1146,4 +1147,29 @@ teste('itens por nível: drop ±3 (35+ vai de 35 a 60), qualidade pela raridade,
   // item antigo vira do nível do herói
   const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 12; delete v.inventario[0].nivel; R.normalizar(v);
   assert.strictEqual(v.inventario[0].nivel, 12);
+});
+
+teste('armas por nível: extras por faixa (atributos, PvE, PvP e pontos de habilidade além de 10)', () => {
+  const faixa = (n) => { const e = R.sortearExtrasArma(n, Math.random); return e; };
+  assert.deepStrictEqual(JSON.stringify(faixa(8)), '{}');
+  for (let i = 0; i < 50; i++) {
+    const a = faixa(15).atributos; const k = Object.keys(a); assert.strictEqual(k.length, 1); assert.ok(a[k[0]] >= 1 && a[k[0]] <= 2);
+    const b = faixa(35).atributos; assert.ok(Object.values(b)[0] >= 5 && Object.values(b)[0] <= 8);
+    const c = faixa(45); assert.strictEqual(Object.keys(c.atributos).length, 2); assert.ok(c.pve >= 5 && c.pve <= 10 && !c.pvp && c.hab.n === 1);
+    const d = faixa(58); assert.ok(d.pvp >= 5 && d.pvp <= 10 && d.hab.n >= 2 && d.hab.n <= 3);
+  }
+  // arma 51+: pontos na habilidade da segunda classe, além do limite de 10
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, 'assassino');
+  for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, 'golpe-fatal', 1);
+  const arma = R.novoItem('arma', 'arqueiro', 'lendaria', Math.random, 'adaga', 55);
+  arma.extras.hab = { i: 2, n: 3 };   // Golpe Fatal é a 3ª habilidade do Assassino
+  p.inventario.push(arma); R.equipar(p, arma.id);
+  assert.strictEqual(R.pontosEm(p, 'golpe-fatal'), 13);
+  assert.strictEqual(R.pontosDistribuidos(p, 'golpe-fatal'), 10);
+  assert.ok(R.status(p).danoPvP >= 5 && R.status(p).danoPvE >= 5);
+  const atr = arma.extras.atributos, k = Object.keys(atr)[0];
+  const sem = R.atributosTotais(p)[k]; R.desequipar(p, 'arma');
+  assert.strictEqual(R.atributosTotais(p)[k], sem - atr[k]);
+  assert.strictEqual(R.pontosEm(p, 'golpe-fatal'), 10);
 });

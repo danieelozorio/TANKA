@@ -667,6 +667,19 @@ begin
     and soma <= (T ->> 'pontosIniciais')::int + (nivel - (T ->> 'nivelSegunda')::int) * (T ->> 'pontosPorNivel')::int));
 end $$;
 
+-- Pontos de habilidade da arma equipada (armas 41+): { id da habilidade: n }, além do limite de 10.
+create or replace function public.arena_pontos_arma(p jsonb) returns jsonb
+language plpgsql immutable as $$
+declare c2 text := p -> 'talentos' ->> 'classe2'; it jsonb; h jsonb;
+begin
+  if c2 is null then return '{}'::jsonb; end if;
+  select x into it from jsonb_array_elements(coalesce(p -> 'inventario', '[]'::jsonb)) x where x ->> 'id' = p -> 'equipados' ->> 'arma' limit 1;
+  if it is null or it -> 'extras' -> 'hab' is null then return '{}'::jsonb; end if;
+  h := public.tanka_dados() -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades' -> ((it -> 'extras' -> 'hab' ->> 'i')::int);
+  if h is null then return '{}'::jsonb; end if;
+  return jsonb_build_object(h ->> 'id', least(3, greatest(0, (it -> 'extras' -> 'hab' ->> 'n')::int)));
+end $$;
+
 -- A passiva da segunda classe com os pontos: { h, pts } ou null.
 create or replace function public.arena_passiva(p jsonb) returns jsonb
 language plpgsql immutable as $$
@@ -674,7 +687,7 @@ declare c2 text := p -> 'talentos' ->> 'classe2'; h jsonb; n int;
 begin
   if c2 is null or not public.arena_pontos_ok(p) then return null; end if;
   select x into h from jsonb_array_elements(public.tanka_dados() -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades') x where x ->> 'tipo' = 'passiva' limit 1;
-  n := coalesce((p -> 'talentos' -> 'pontos' ->> (h ->> 'id'))::int, 0);
+  n := coalesce((p -> 'talentos' -> 'pontos' ->> (h ->> 'id'))::int, 0) + coalesce((public.arena_pontos_arma(p) ->> (h ->> 'id'))::int, 0);
   if h is null or n <= 0 then return null; end if;
   return jsonb_build_object('h', h, 'pts', n);
 end $$;
@@ -694,7 +707,7 @@ begin
   if not public.arena_pontos_ok(p) then return kit; end if;
   for hid in select value #>> '{}' from jsonb_array_elements(coalesce(p -> 'talentos' -> 'ordem' -> modo, p -> 'talentos' -> 'ordem' -> 'arena', '[]'::jsonb)) loop
     select x into h from jsonb_array_elements(D -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades') x where x ->> 'id' = hid limit 1;
-    n := coalesce((p -> 'talentos' -> 'pontos' ->> hid)::int, 0);
+    n := coalesce((p -> 'talentos' -> 'pontos' ->> hid)::int, 0) + coalesce((public.arena_pontos_arma(p) ->> hid)::int, 0);
     if h is null or n <= 0 or h ->> 'tipo' = 'passiva' then continue; end if;
     tab := case h ->> 'tipo' when 'atordoar' then TL -> 'atordoar'
       when 'area' then case when (h ->> 'reduzido')::boolean then TL -> 'areaReduzida' else TL -> 'area' end
@@ -832,8 +845,15 @@ begin
     if it is null then continue; end if;
     tipo := it ->> 'tipo';
     idx := array_position(raridades, it ->> 'raridade') - 1;
+    if tipo = 'arma' and jsonb_typeof(it -> 'extras') = 'object' then
+      -- arma por nível: atributos sorteados da faixa
+      for k, arr in select * from jsonb_each(coalesce(it -> 'extras' -> 'atributos', '{}'::jsonb)) loop
+        eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (arr #>> '{}')::numeric));
+      end loop;
+      continue;
+    end if;
     if tipo = 'arma' then
-      -- arma rara ou melhor: + atributo de dano da classe
+      -- arma antiga rara ou melhor: + atributo de dano da classe
       k := T -> 'classes' -> (it ->> 'classe') ->> 'atributoDano';
       if k is not null and coalesce((T -> 'RARIDADE_ARMA' -> 'atributo' ->> idx)::numeric, 0) > 0 then
         eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (T -> 'RARIDADE_ARMA' -> 'atributo' ->> idx)::numeric));
@@ -875,7 +895,8 @@ begin
     tarma := T -> 'TIPOS_ARMA' -> coalesce(it ->> 'arma', T -> 'ARMA_PADRAO' ->> (it ->> 'classe'));
     dmin := round((dmin + extra) * coalesce((tarma ->> 'fator')::numeric, 1)); dmax := round((dmax + extra) * coalesce((tarma ->> 'fator')::numeric, 1));
     velarma := coalesce((T -> 'VELOCIDADE_ARMA' ->> (tarma ->> 'vel'))::numeric, 1);
-    pvp := coalesce((T -> 'RARIDADE_ARMA' -> 'pvp' ->> (array_position(raridades, it ->> 'raridade') - 1))::numeric, 0);
+    pvp := case when jsonb_typeof(it -> 'extras') = 'object' then coalesce((it -> 'extras' ->> 'pvp')::numeric, 0)
+      else coalesce((T -> 'RARIDADE_ARMA' -> 'pvp' ->> (array_position(raridades, it ->> 'raridade') - 1))::numeric, 0) end;
   end if;
   -- +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
   bonus := floor((case T -> 'classes' -> (p ->> 'classe') ->> 'atributoDano' when 'des' then de when 'int' then inte
@@ -1376,7 +1397,8 @@ revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
   public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
   public.arena_comecar(text, text, bigint), public.arena_pontos_ok(jsonb), public.arena_passiva(jsonb), public.arena_kit(jsonb),
-  public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int), public.arena_kit(jsonb, text), public.arena_lutador(text, text)
+  public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int), public.arena_kit(jsonb, text), public.arena_lutador(text, text),
+  public.arena_pontos_arma(jsonb)
   from public, anon, authenticated;
 
 -- ---------- Alianças ----------
