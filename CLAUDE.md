@@ -101,3 +101,9 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   20 imagens 2x2; enquanto não chegam, desenho SVG).
 - Parte 3 FEITA: armaduras, joias e mão esquerda caem com `bonus` sorteado (80–120% do valor da raridade, mín. 1) e, da rara
   em diante, +1 atributo extra (`VARIACAO_ITEM`). Itens antigos sem `bonus` usam o valor fixo. Servidor lê `it.bonus`.
+
+## App no celular
+- PWA: `manifest.webmanifest`, `sw.js` (cache: mídia primeiro do cache, js/css/html da rede primeiro; trocar `CACHE` se
+  uma imagem mudar sem mudar de nome), ícones em `assets/app/` (recorte do logo; dá para trocar por um ícone próprio).
+- APK: precisa do Android SDK (dl.google.com está bloqueado neste ambiente). Caminhos: liberar dl.google.com na rede do
+  ambiente e montar um TWA aqui, ou o Daniel gerar no PWABuilder.com com a URL do jogo.
