@@ -1261,7 +1261,7 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .classe2 p { margin: 0; }
 .classe2 ul { margin: .2rem 0; padding-left: 1.1rem; display: grid; gap: .35rem; }
 .classe2 .btn { margin-top: auto; }
-.ordem-hab { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: .7rem; }
+.ordem-hab { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .7rem; }
 .ordem-col { padding: .6rem .7rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 10px; background: rgba(0, 0, 0, .18); }
 .ordem-col h4 { margin: 0 0 .4rem; font-family: var(--titulo); color: var(--ouro-claro); }
 .ordem-col ol { margin: 0; padding-left: 0; list-style: none; display: grid; gap: .35rem; }

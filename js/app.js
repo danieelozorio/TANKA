@@ -997,9 +997,9 @@
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
-        + 'Se nenhuma estiver pronta, ataca normalmente.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
+        + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
         + 'a Sombra faz o próximo golpe valer o 20 do dado e a esquiva da passiva vira chance de desviar.</p><div class="ordem-hab">'
-        + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena']].map(function (m) {
+        + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
             + lista.map(function (id, i) {

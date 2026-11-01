@@ -680,7 +680,8 @@ begin
 end $$;
 
 -- Habilidades ativas na ordem da Arena, já com os números: [{ id, nome, tipo, recarga, mult, atordoa, turnos, v: {campo: %} }].
-create or replace function public.arena_kit(p jsonb) returns jsonb
+-- modo: 'arena' (quando ataca) ou 'defesa' (quando é desafiado; sem a lista, usa a da Arena).
+create or replace function public.arena_kit(p jsonb, modo text) returns jsonb
 language plpgsql immutable as $$
 declare D jsonb := public.tanka_dados(); TL jsonb := D -> 'TALENTOS'; c2 text := p -> 'talentos' ->> 'classe2';
   kit jsonb := '[]'::jsonb; hid text; h jsonb; n int; tab jsonb; v jsonb; k text;
@@ -691,7 +692,7 @@ begin
     return jsonb_build_array(h || jsonb_build_object('mult', (TL -> 'area' ->> 'base')::numeric, 'v', '{}'::jsonb));
   end if;
   if not public.arena_pontos_ok(p) then return kit; end if;
-  for hid in select value #>> '{}' from jsonb_array_elements(coalesce(p -> 'talentos' -> 'ordem' -> 'arena', '[]'::jsonb)) loop
+  for hid in select value #>> '{}' from jsonb_array_elements(coalesce(p -> 'talentos' -> 'ordem' -> modo, p -> 'talentos' -> 'ordem' -> 'arena', '[]'::jsonb)) loop
     select x into h from jsonb_array_elements(D -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades') x where x ->> 'id' = hid limit 1;
     n := coalesce((p -> 'talentos' -> 'pontos' ->> hid)::int, 0);
     if h is null or n <= 0 or h ->> 'tipo' = 'passiva' then continue; end if;
@@ -711,6 +712,8 @@ begin
   end loop;
   return kit;
 end $$;
+create or replace function public.arena_kit(p jsonb) returns jsonb
+language sql immutable as $$ select public.arena_kit(p, 'arena'); $$;
 
 -- Soma de um bônus dos reforços ativos de um lutador.
 create or replace function public.arena_buff(f jsonb, campo text) returns numeric
@@ -1040,8 +1043,8 @@ begin
   return j;
 end $$;
 
--- Lutador da luta a partir dos dados salvos do personagem.
-create or replace function public.arena_lutador(pid text) returns jsonb
+-- Lutador da luta a partir dos dados salvos do personagem. modo: 'arena' (atacante) ou 'defesa' (desafiado).
+create or replace function public.arena_lutador(pid text, modo text) returns jsonb
 language plpgsql stable as $$
 declare p public.personagens; s jsonb;
 begin
@@ -1053,8 +1056,10 @@ begin
     'defesa', s -> 'defesa', 'defesaMagica', s -> 'defesaMagica', 'vel', greatest(1, (s ->> 'velocidade')::numeric), 'barra', 0,
     'velBase', greatest(1, (s ->> 'velocidade')::numeric), 'esquiva', coalesce(s -> 'esquiva', '0'::jsonb),
     'classe2', case when public.arena_pontos_ok(p.dados) then p.dados -> 'talentos' -> 'classe2' else 'null'::jsonb end,
-    'kit', public.arena_kit(p.dados), 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
+    'kit', public.arena_kit(p.dados, modo), 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
 end $$;
+create or replace function public.arena_lutador(pid text) returns jsonb
+language sql stable as $$ select public.arena_lutador(pid, 'arena'); $$;
 
 -- Um golpe com o dado: 1 erra; os outros multiplicam o dano (tabela ARENA.dado); a defesa do alvo é descontada.
 create or replace function public.arena_golpe(atk jsonb, alvo jsonb, dado int) returns int
@@ -1206,7 +1211,7 @@ begin
   select arena into ar from public.arena_posicoes where personagem_id = meu;
   insert into public.arena_lutas (arena, atacante, defensor, nome_atacante, nome_defensor, revanche_de, estado)
   values (ar, meu, alvo, (select nome from public.personagens where id = meu), (select nome from public.personagens where id = alvo), revanche,
-    jsonb_build_object('a', public.arena_lutador(meu), 'd', public.arena_lutador(alvo), 'turnos', 0, 'pendente', false))
+    jsonb_build_object('a', public.arena_lutador(meu, 'arena'), 'd', public.arena_lutador(alvo, 'defesa'), 'turnos', 0, 'pendente', false))
   returning id into lid;
   perform public.arena_avancar(lid);
   return public.arena_luta_json(lid);
@@ -1342,7 +1347,8 @@ revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
   public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
   public.arena_comecar(text, text, bigint), public.arena_pontos_ok(jsonb), public.arena_passiva(jsonb), public.arena_kit(jsonb),
-  public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int) from public, anon, authenticated;
+  public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int), public.arena_kit(jsonb, text), public.arena_lutador(text, text)
+  from public, anon, authenticated;
 
 -- ---------- Alianças ----------
 -- Tudo passa pelas funções abaixo (sem acesso direto às tabelas). Ouro e reputação gastos saem

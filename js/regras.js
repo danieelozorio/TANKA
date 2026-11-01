@@ -142,7 +142,8 @@ Tanka.regras = (function () {
     var t = p.talentos || (p.talentos = {});
     if (t.classe2 === undefined) t.classe2 = null;
     if (!t.pontos) t.pontos = {};
-    if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [] };
+    if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [], defesa: [] };
+    if (!t.ordem.defesa) t.ordem.defesa = (t.ordem.arena || []).slice();   // personagens de antes: copia a da Arena
     return t;
   }
   function segundaClasse(p) { var t = p.talentos; return t && t.classe2 ? D.SEGUNDAS_CLASSES[t.classe2] : null; }
@@ -184,7 +185,7 @@ Tanka.regras = (function () {
     t.classe2 = id;
     t.pontos = {};
     var ativas = c.habilidades.filter(function (h) { return h.tipo !== 'passiva'; }).map(function (h) { return h.id; });
-    t.ordem = { cacada: ativas.slice(), masmorra: ativas.slice(), arena: ativas.slice() };
+    t.ordem = { cacada: ativas.slice(), masmorra: ativas.slice(), arena: ativas.slice(), defesa: ativas.slice() };
     ajustarVida(p, hpAntes);
     return true;
   }
@@ -201,7 +202,8 @@ Tanka.regras = (function () {
     ajustarVida(p, hpAntes);
     return true;
   }
-  // Ordem de uso: move uma habilidade para cima/baixo, tira ou põe de volta (modo: cacada, masmorra, arena).
+  // Ordem de uso: move uma habilidade para cima/baixo, tira ou põe de volta (modo: cacada, masmorra, arena, defesa).
+  // arena = quando o herói ataca na Arena; defesa = quando ele é desafiado (o servidor luta por ele).
   function moverHabilidade(p, modo, id, acao) {
     var t = talentos(p), c = segundaClasse(p), lista = t.ordem[modo];
     if (!c || !lista) return false;
@@ -237,7 +239,7 @@ Tanka.regras = (function () {
     if (!p.recomecosHab) return 'Você não tem ' + D.RECOMECO_HABILIDADES.nome + '.';
     var hpAntes = status(p).hpMax;
     p.recomecosHab -= 1;
-    p.talentos = { classe2: null, pontos: {}, ordem: { cacada: [], masmorra: [], arena: [] } };
+    p.talentos = { classe2: null, pontos: {}, ordem: { cacada: [], masmorra: [], arena: [], defesa: [] } };
     ajustarVida(p, hpAntes);
     p.hpAtual = Math.min(p.hpAtual, status(p).hpMax);
     return true;
