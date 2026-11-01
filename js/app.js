@@ -231,7 +231,7 @@
       + '<div class="runas runas-topo">ᚠᚱᛗᚾᚨ ◆ ᚱᚲᛗᚨ</div><div class="runas runas-base">ᛟᛞᚾ ◆ ᛗᛁᚱ</div>'
       + '<div class="abas"><button data-acao="auth" data-modo="entrar" class="' + (cadastro ? '' : 'ativa') + '">Entrar</button>'
       + '<button data-acao="auth" data-modo="cadastro" class="' + (cadastro ? 'ativa' : '') + '">Cadastrar</button></div>'
-      + form + '</div></section>' + rodape() + '</div>';
+      + form + '</div>' + botaoInstalar() + '</section>' + rodape() + '</div>';
     var primeiro = app.querySelector('input');
     if (primeiro) primeiro.focus();
   }
@@ -3926,6 +3926,36 @@
     }
   }
 
+  // ---------------- Instalar o jogo na tela inicial (app) ----------------
+  // Android/Chrome: o navegador avisa que dá para instalar (beforeinstallprompt) e o botão abre a janela de instalar.
+  // iPhone: não existe essa janela; o botão explica o caminho pelo Safari. Já instalado: o botão some.
+  var instalacao = { evento: null };
+  function jaInstalado() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  function ehIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+  function podeInstalar() { return !jaInstalado() && (!!instalacao.evento || ehIOS()); }
+  function botaoInstalar() {
+    return '<button class="btn secundario largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar na tela inicial</button>';
+  }
+  function atualizarBotoesInstalar() {
+    document.querySelectorAll('[data-acao="instalar-app"]').forEach(function (b) { b.hidden = !podeInstalar(); });
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); instalacao.evento = e; atualizarBotoesInstalar(); });
+  window.addEventListener('appinstalled', function () { instalacao.evento = null; atualizarBotoesInstalar(); avisar('Eldrin instalado! Procure o ícone na tela inicial. 🎉'); });
+  function instalarApp() {
+    if (instalacao.evento) {
+      var ev = instalacao.evento;
+      ev.prompt();
+      (ev.userChoice || Promise.resolve()).then(function () { instalacao.evento = null; atualizarBotoesInstalar(); });
+      return;
+    }
+    if (ehIOS()) avisar('No iPhone: toque em Compartilhar (quadrado com a seta) e depois em "Adicionar à Tela de Início".');
+    else avisar('Abra o menu ⋮ do navegador e toque em "Instalar app" ou "Adicionar à tela inicial".');
+  }
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-acao="instalar-app"]');
+    if (b) { e.preventDefault(); e.stopPropagation(); instalarApp(); }
+  }, true);
+
   // ---------------- Música de fundo e configurações ----------------
   // Cada cena tem a sua música: entrada (login, personagens, criação), jogo (as duas célticas se revezando),
   // masmorra, arena e chefe. Ao trocar de cena uma música some aos poucos e a outra entra.
@@ -4038,7 +4068,7 @@
       + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
       + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
       + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
-      + '<p class="config-tocando suave pequeno"></p>';
+      + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     p.addEventListener('click', function (e) { e.stopPropagation(); });
     p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
     p.querySelector('#config-musica').addEventListener('change', function (e) {
