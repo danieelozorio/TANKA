@@ -72,8 +72,10 @@ chat à esquerda. Raça/classe no feminino (`nomeF` em dados.js, `nomeRaca`/`nom
 Habilidades (Herói > Habilidades): `TALENTOS`, `HABILIDADE_INICIAL`, `SEGUNDAS_CLASSES` em dados.js; regras em regras.js
 (`talentos`, `kitHabilidades`, `novoLutador`, `vezComHabilidades`, masmorra em `simularMasmorra`). Inicial antes do 10;
 segunda classe no 10 (4 pontos +1/level, máx. 10 por habilidade, 1 ponto libera); uma habilidade por vez (1ª pronta da
-ordem); reforços não gastam a vez; atordoar em chefe máx. 1; Pergaminho das Habilidades (500 rep). Falta: Arena (luta no
-servidor), Coletor na masmorra, segunda classe nas listas do servidor.
+ordem); reforços não gastam a vez; atordoar em chefe máx. 1; Pergaminho das Habilidades (500 rep).
+Arena com habilidades no servidor (schema.sql: `arena_kit`, `arena_passiva`, `arena_vez`, passiva em `tanka_status`; sem
+crítico na Arena: bônus de crítico viram dano, Sombra = próximo golpe vale o 20, evasão vira esquiva). Falta: Coletor na
+masmorra, segunda classe nas listas do servidor (ranking/amigos).
 
 ## Pendências e ideias conversadas
 - **Curva de exp**: do 25 ao 40 ficou longa demais (simulação: ~2.700 h até o 40 para Cavaleiro, muito mais para Mago).
