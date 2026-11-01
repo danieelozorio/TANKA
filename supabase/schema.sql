@@ -843,9 +843,16 @@ begin
     def := case when tipo in ('colar', 'anel') then T -> 'joias' -> tipo when tipo = 'secundaria' then T -> 'MAO_ESQUERDA' -> (it ->> 'mao')
       else T -> 'armaduras' -> (it ->> 'classe') -> tipo end;
     if def is null then continue; end if;
-    for k, arr in select * from jsonb_each(def -> 'bonus') loop
-      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (arr ->> idx)::numeric));
-    end loop;
+    if jsonb_typeof(it -> 'bonus') = 'object' then
+      -- bônus sorteados quando o item caiu (armaduras novas)
+      for k, arr in select * from jsonb_each(it -> 'bonus') loop
+        eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (arr #>> '{}')::numeric));
+      end loop;
+    else
+      for k, arr in select * from jsonb_each(def -> 'bonus') loop
+        eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + (arr ->> idx)::numeric));
+      end loop;
+    end if;
     enc := coalesce((it ->> 'encanto')::int, 0);
     if enc > 0 then
       k := case when tipo = 'secundaria' then def ->> 'encanto' else T -> 'bonusPorNivel' ->> tipo end;

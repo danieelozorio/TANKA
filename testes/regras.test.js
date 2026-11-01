@@ -1096,3 +1096,23 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(c.equipados.secundaria, null, 'adaga tira a aljava');
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
+
+teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em diante', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const vistos = new Set();
+  for (let i = 0; i < 300; i++) {
+    const it = R.comprar(Object.assign(p, { ouro: 1e9, reputacao: 1e9 }), 'epica', 'peitoral');
+    const b = it.bonus;   // peitoral épico: defesa 16 (13–19), vida 100 (80–120)
+    assert.ok(b.defesa >= 13 && b.defesa <= 19 && b.vida >= 80 && b.vida <= 120, JSON.stringify(b));
+    const extras = Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
+    assert.strictEqual(extras.length, 1); assert.ok(b[extras[0]] >= 2 && b[extras[0]] <= 4);
+    vistos.add(b.defesa);
+    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(b));
+    p.inventario = [];
+  }
+  assert.ok(vistos.size > 3, 'varia');
+  const comum = R.comprar(p, 'comum', 'elmo');
+  assert.ok(Object.keys(comum.bonus).every((k) => k === 'defesa' || k === 'vida'), 'comum sem atributo extra');
+  // item antigo (sem bonus salvo) continua com o valor fixo
+  assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, 5);
+});

@@ -99,4 +99,5 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   tipos de segunda classe só a partir de rara. Servidor (tanka_status) replica fator, velocidade, mão esquerda, atributo e PvP
   (conferido com 40 personagens). Ícones: `assets/itens/arma-<tipo>-<raridade>` e `mao-<tipo>-<raridade>` (prompts mandados,
   20 imagens 2x2; enquanto não chegam, desenho SVG).
-- Parte 3 (falta): armaduras com atributos variados.
+- Parte 3 FEITA: armaduras, joias e mão esquerda caem com `bonus` sorteado (80–120% do valor da raridade, mín. 1) e, da rara
+  em diante, +1 atributo extra (`VARIACAO_ITEM`). Itens antigos sem `bonus` usam o valor fixo. Servidor lê `it.bonus`.

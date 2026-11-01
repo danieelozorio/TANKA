@@ -287,6 +287,10 @@ Tanka.dados = {
   // Extras da arma pela raridade (comum, rara, épica, lendária): atributo de dano da classe, % de dano contra monstros (PvE)
   // e % de dano na Arena (PvP).
   RARIDADE_ARMA: { atributo: [0, 2, 4, 6], pve: [0, 0, 10, 10], pvp: [0, 0, 0, 10] },
+  // Armaduras, joias e mão esquerda caem com os bônus sorteados (como o dano das armas): cada bônus entre 80% e 120%
+  // do valor da raridade (mínimo 1). Da rara em diante ganham também 1 atributo extra sorteado (FOR, DES, RES, INT ou SOR).
+  // Itens antigos (sem `bonus` salvo) continuam com o valor fixo.
+  VARIACAO_ITEM: { faixa: [0.8, 1.2], extra: { comum: null, rara: [1, 2], epica: [2, 4], lendaria: [3, 6] } },
 
   // Arma com que todo personagem começa (comum, variação 0).
   ARMA_INICIAL_DANO: [1, 5],

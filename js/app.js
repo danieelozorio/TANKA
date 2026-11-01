@@ -136,6 +136,14 @@
       var t = R.tipoArma(item);
       return 'Dano ' + dano(R.danoArma(item)) + (item.variacao === undefined ? ' (sorteado)' : '') + ' · ' + D.NOME_VELOCIDADE[t.vel] + (t.duasMaos ? ' · duas mãos' : '');
     }
+    // Modelo do Mercado (ainda não sorteado): mostra a faixa de cada bônus e o atributo extra.
+    if (!item.id && R.definicao(item)) {
+      var idx = Object.keys(D.raridades).indexOf(item.raridade), def = R.definicao(item), ex = D.VARIACAO_ITEM.extra[item.raridade];
+      return Object.keys(def.bonus).map(function (k) {
+        var f = R.faixaBonus(def.bonus[k][idx]);
+        return D.bonus[k] + ' +' + (f[0] === f[1] ? f[0] : f[0] + '–' + f[1]);
+      }).concat(ex ? ['+1 atributo sorteado (+' + ex[0] + '–' + ex[1] + ')'] : []).join(' · ');
+    }
     var b = R.bonusItem(item);
     return Object.keys(b).map(function (k) { return D.bonus[k] + ' +' + b[k]; }).join(' · ');
   }

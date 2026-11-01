@@ -51,7 +51,25 @@ Tanka.regras = (function () {
       item.mao = especifico;
       item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     }
+    if (tipo !== 'arma') item.bonus = sortearBonus(item, rng);
     return item;
+  }
+  // Faixa de um bônus (mín., máx.) pela variação de 80% a 120%.
+  function faixaBonus(base) {
+    var V = D.VARIACAO_ITEM.faixa;
+    return base > 0 ? [Math.max(1, Math.round(base * V[0])), Math.max(1, Math.round(base * V[1]))] : [base, base];
+  }
+  // Bônus sorteados de uma armadura, joia ou item da mão esquerda (+ atributo extra da rara em diante).
+  function sortearBonus(item, rng) {
+    var def = definicao(item), idx = RARIDADES.indexOf(item.raridade), b = {};
+    if (!def) return b;
+    Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
+    var extra = D.VARIACAO_ITEM.extra[item.raridade];
+    if (extra) {
+      var k = ATRIBUTOS[Math.floor(rng() * ATRIBUTOS.length)];
+      b[k] = (b[k] || 0) + rolar(extra, rng);
+    }
+    return b;
   }
   function novaArma(classe, raridade, rng, especifico) { return novoItem('arma', classe, raridade, rng, especifico); }
 
@@ -117,7 +135,8 @@ Tanka.regras = (function () {
       return b;
     }
     if (!def) return b;
-    Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });
+    if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
+    else Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });          // itens antigos: valor fixo
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = (b[k] || 0) + item.encanto;
@@ -1554,6 +1573,7 @@ Tanka.regras = (function () {
     armasPermitidas: armasPermitidas,
     maoPermitida: maoPermitida,
     soSegundaClasse: soSegundaClasse,
+    faixaBonus: faixaBonus,
     motivoNaoEquipa: motivoNaoEquipa,
     talentos: talentos,
     segundaClasse: segundaClasse,
