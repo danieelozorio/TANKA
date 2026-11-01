@@ -978,7 +978,8 @@
         + cartaHabilidade(Object.assign({ inicial: true }, ini), 0, 0, false) + '</div>'
         + '<p class="suave pequeno">Usada sozinha na luta sempre que estiver pronta.</p>';
       var opcoes = R.opcoesSegundaClasse(p.classe), pode = p.nivel >= T.nivelSegunda;
-      h += '<h3 class="subtitulo">Segunda classe ' + (pode ? '— escolha a sua' : '<span class="suave">— libera no level ' + T.nivelSegunda + '</span>') + '</h3>'
+      // A escolha da segunda classe só aparece a partir do level 10.
+      if (pode) h += '<h3 class="subtitulo">Segunda classe ' + (pode ? '— escolha a sua' : '<span class="suave">— libera no level ' + T.nivelSegunda + '</span>') + '</h3>'
         + (pode ? '<p class="suave pequeno">Escolha com calma: só dá para trocar com o ' + D.RECOMECO_HABILIDADES.nome + ' (Mercado). Você ganha '
           + T.pontosIniciais + ' pontos agora e +' + T.pontosPorNivel + ' a cada level.</p>' : '')
         + '<div class="escolha-classe2">' + opcoes.map(function (id) {
