@@ -949,6 +949,7 @@ teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', (
 teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), passiva no status e recomeço', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   assert.strictEqual(R.kitHabilidades(p, 'cacada')[0].def.nome, 'Espada Giratória');
+  assert.strictEqual(R.multHabilidade(R.kitHabilidades(p, 'cacada')[0].def, 0), 150, 'inicial: golpe de 150% em um alvo');
   assert.strictEqual(R.pontosHabilidadeTotal(p), 0);
   assert.notStrictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
   R.admin.subirNivel(p, 9);

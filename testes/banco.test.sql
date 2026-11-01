@@ -205,6 +205,7 @@ create function pg_temp.heroi(classe text, nivel int, talentos jsonb) returns js
     'talentos', talentos);
 $$;
 select pg_temp.igual(public.arena_kit(pg_temp.heroi('arqueiro', 5, null)) -> 0 ->> 'nome', 'Chuva de Flechas', 'arena: antes do 10, a habilidade inicial');
+select pg_temp.igual((public.arena_kit(pg_temp.heroi('arqueiro', 5, null)) -> 0 ->> 'mult')::numeric, 150::numeric, 'arena: habilidade inicial em um alvo = 150%');
 select pg_temp.igual((select string_agg(x ->> 'nome', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 11,
   '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2,"lamina-afiada":1},"ordem":{"arena":["golpe-fatal","sombra","mira-certeira"]}}'))) x),
   'Golpe Fatal,Sombra', 'arena: ordem da Arena, só com ponto');
