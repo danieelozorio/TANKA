@@ -116,4 +116,6 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   Joia da masmorra vem do servidor sem nível: `completarItem`. Chefes com a velocidade do 3º monstro.
 - Parte 2 FEITA: `EXTRAS_ARMA` → `item.extras` {atributos, pve, pvp, hab:{i,n}} (armas por nível; antigas seguem RARIDADE_ARMA).
   `pontosEm` = distribuídos + `pontosDaArma` (passa de 10); servidor: `arena_pontos_arma`, extras em tanka_status.
-- Falta: parte 3 (conjuntos das segundas classes, 2/3/4 peças com o mesmo nome; Destruidor (2) = +5 de Força).
+- Parte 3 FEITA: `CONJUNTOS` (dados.js): peça de armadura de quem tem 2ª classe ganha `conjunto` '<classe2>-<faixa 1..6>'
+  (`marcarConjunto` nos drops/Mercado/admin); `bonusConjuntos` (2/3/4 peças, só da própria 2ª classe) em `comConjunto`/
+  `atributosTotais`; servidor soma igual (crítico de conjunto vira dano na Arena).

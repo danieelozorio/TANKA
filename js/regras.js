@@ -104,6 +104,45 @@ Tanka.regras = (function () {
     if (f.hab) e.hab = { i: Math.floor(rng() * 4), n: rolar(f.hab, rng) };
     return e;
   }
+  // ---------- Conjuntos das segundas classes ----------
+  // id do conjunto: '<segunda classe>-<faixa>' (faixa 1 = níveis 1–10 ... 6 = 51–60).
+  function conjuntoPara(p, nivel) {
+    var c2 = p.talentos && p.talentos.classe2;
+    return c2 && D.CONJUNTOS[c2] ? c2 + '-' + Math.min(6, Math.max(1, Math.ceil(nivel / 10))) : null;
+  }
+  function infoConjunto(id) {
+    var partes = String(id || '').split('-'), c = D.CONJUNTOS[partes[0]], f = Number(partes[1]);
+    return c && f ? { classe2: partes[0], faixa: f, nome: c.nomes[f - 1], bonus: c.bonus } : null;
+  }
+  // Peças equipadas por conjunto (só valem os da segunda classe do herói) e o bônus somado.
+  function contarConjuntos(p) {
+    var c2 = p.talentos && p.talentos.classe2, n = {};
+    TIPOS_ARMADURA.forEach(function (slot) {
+      var it = itemNoSlot(p, slot);
+      if (it && it.conjunto && it.conjunto.split('-')[0] === c2) n[it.conjunto] = (n[it.conjunto] || 0) + 1;
+    });
+    return n;
+  }
+  function bonusConjuntos(p) {
+    var n = contarConjuntos(p), b = {};
+    Object.keys(n).forEach(function (id) {
+      var info = infoConjunto(id);
+      if (!info) return;
+      [2, 3, 4].forEach(function (q) {
+        if (n[id] >= q) Object.keys(info.bonus[q]).forEach(function (k) { b[k] = (b[k] || 0) + info.bonus[q][k]; });
+      });
+    });
+    return b;
+  }
+  // Peça de armadura nova de quem tem segunda classe vira peça do conjunto da faixa.
+  function marcarConjunto(p, item) {
+    if (item && TIPOS_ARMADURA.indexOf(item.tipo) >= 0 && item.nivel) {
+      var id = conjuntoPara(p, item.nivel);
+      if (id) item.conjunto = id;
+    }
+    return item;
+  }
+
   // Pontos de habilidade que a arma equipada dá (além do limite de 10): { id da habilidade: n }.
   function pontosDaArma(p) {
     var a = armaEquipada(p), c = segundaClasse(p), r = {};
@@ -186,7 +225,9 @@ Tanka.regras = (function () {
 
   function nomeArma(item) {
     var sufixo = item.variacao === undefined ? D.raridades[item.raridade].nome : D.SUFIXOS_ARMA[item.raridade][item.variacao];
-    var base = item.tipo === 'secundaria' ? D.MAO_ESQUERDA[item.mao].nome + ' ' + sufixo
+    var cj = item.conjunto && infoConjunto(item.conjunto);
+    var base = cj ? definicao(item).tipo + ' ' + cj.nome
+      : item.tipo === 'secundaria' ? D.MAO_ESQUERDA[item.mao].nome + ' ' + sufixo
       : item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
       : tipoArmaId(item) !== D.ARMA_PADRAO[item.classe] ? tipoArma(item).nome + ' ' + sufixo
       : item.variacao === undefined ? D.armas[item.classe].tipo + ' ' + D.raridades[item.raridade].nome   // modelo do mercado
@@ -280,8 +321,8 @@ Tanka.regras = (function () {
 
   // Atributos básicos + bônus dos equipamentos (valem para tudo que o atributo influencia).
   function atributosTotais(p) {
-    var b = bonusEquipamentos(p), a = {}, pas = passiva(p), extra = pas ? pas.def.atributos || {} : {};
-    ATRIBUTOS.forEach(function (k) { a[k] = p.atributos[k] + b[k] + (extra[k] || 0); });
+    var b = bonusEquipamentos(p), a = {}, pas = passiva(p), extra = pas ? pas.def.atributos || {} : {}, cj = bonusConjuntos(p);
+    ATRIBUTOS.forEach(function (k) { a[k] = p.atributos[k] + b[k] + (extra[k] || 0) + (cj[k] || 0); });
     return a;
   }
 
@@ -559,7 +600,7 @@ Tanka.regras = (function () {
     var ta = arma ? tipoArma(arma) : null, idxArma = arma ? RARIDADES.indexOf(arma.raridade) : 0;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
-    return comPassiva({
+    return comConjunto(comPassiva({
       hpMax: D.HP_INICIAL
         + Math.max(0, a.res - p.atributosIniciais.res) * D.HP_POR_RES
         + (p.nivel - 1) * D.HP_POR_NIVEL
@@ -586,7 +627,19 @@ Tanka.regras = (function () {
       // % a mais contra monstros / na Arena: extras da arma por nível; armas antigas pela raridade (épica/lendária)
       danoPvE: !arma ? 0 : arma.extras ? arma.extras.pve || 0 : D.RARIDADE_ARMA.pve[idxArma],
       danoPvP: !arma ? 0 : arma.extras ? arma.extras.pvp || 0 : D.RARIDADE_ARMA.pvp[idxArma],
-    }, p);
+    }, p), p);
+  }
+  // Bônus de conjunto (2/3/4 peças): somados depois da passiva.
+  function comConjunto(s, p) {
+    var b = bonusConjuntos(p);
+    if (b.defesa) { s.defesa += b.defesa; s.defesaMagica += b.defesa; }
+    if (b.vida) s.hpMax += b.vida;
+    if (b.dano) s.dano = [s.dano[0] + b.dano, s.dano[1] + b.dano];
+    if (b.velocidade) s.velocidade += b.velocidade;
+    if (b.critico) s.chanceCritico += b.critico;
+    if (b.evasao) s.evasao += b.evasao;
+    if (b.criticoMagico) s.chanceCriticoMagico += b.criticoMagico;
+    return s;
   }
   // Dano mágico % da mão esquerda (orbe, livro), só para quem bate com magia.
   function danoComMao(d, pct) { return pct ? [Math.round(d[0] * (1 + pct / 100)), Math.round(d[1] * (1 + pct / 100))] : d; }
@@ -670,7 +723,7 @@ Tanka.regras = (function () {
       tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
     }
     if (tipo === 'arma') return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
-    return novoItem(tipo, p.classe, raridade, rng, null, nivelDoDrop(p, rng));
+    return marcarConjunto(p, novoItem(tipo, p.classe, raridade, rng, null, nivelDoDrop(p, rng)));
   }
   function itemQualquer(p, raridade, rng) {
     return itemDoTipo(p, TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], raridade, rng);
@@ -1102,7 +1155,7 @@ Tanka.regras = (function () {
     if (p.ouro < preco) return 'Ouro insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= preco;
-    var item = novoItem(tipo, p.classe, raridade, rng, especifico, nivelDoMercado(p, rng));
+    var item = marcarConjunto(p, novoItem(tipo, p.classe, raridade, rng, especifico, nivelDoMercado(p, rng)));
     p.inventario.push(item);
     return item;
   }
@@ -1584,7 +1637,7 @@ Tanka.regras = (function () {
     resetDiario: function (p, agora) { p.ultimoReset = null; atualizarTempo(p, agora); },
     conjunto: function (p, raridade) {
       ['arma'].concat(TIPOS_ARMADURA, ['colar', 'anel', 'anel']).forEach(function (tipo) {
-        p.inventario.push(novoItem(tipo, p.classe, raridade, null, null, p.nivel));
+        p.inventario.push(marcarConjunto(p, novoItem(tipo, p.classe, raridade, null, null, p.nivel)));
       });
       var m = sortearDaLista(maoPermitida(p), raridade, true, function () { return 0; });
       if (m) p.inventario.push(novoItem('secundaria', null, raridade, null, m, p.nivel));
@@ -1679,6 +1732,10 @@ Tanka.regras = (function () {
     maoPermitida: maoPermitida,
     soSegundaClasse: soSegundaClasse,
     faixaBonus: faixaBonus,
+    infoConjunto: infoConjunto,
+    contarConjuntos: contarConjuntos,
+    bonusConjuntos: bonusConjuntos,
+    conjuntoPara: conjuntoPara,
     pontosDaArma: pontosDaArma,
     pontosDistribuidos: pontosDistribuidos,
     sortearExtrasArma: sortearExtrasArma,

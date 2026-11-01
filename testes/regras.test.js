@@ -1173,3 +1173,29 @@ teste('armas por nível: extras por faixa (atributos, PvE, PvP e pontos de habil
   assert.strictEqual(R.atributosTotais(p)[k], sem - atr[k]);
   assert.strictEqual(R.pontosEm(p, 'golpe-fatal'), 10);
 });
+
+teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2, 3 e 4 peças', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 14); R.escolherSegundaClasse(p, 'paladino');
+  const pecas = ['elmo', 'peitoral', 'luvas', 'botas'].map((t) => R.comprar(Object.assign(p, { ouro: 1e9 }), t));
+  pecas.forEach((it) => assert.strictEqual(it.conjunto, 'paladino-' + Math.ceil(it.nivel / 10)));
+  // força todas no mesmo conjunto (mesmo nome)
+  pecas.forEach((it) => { it.conjunto = 'paladino-2'; });
+  assert.ok(R.nomeItem(pecas[0]).endsWith('do Juramento'), R.nomeItem(pecas[0]));
+  const s0 = R.status(p);
+  R.equipar(p, pecas[0].id); const s1 = R.status(p);
+  R.equipar(p, pecas[1].id); const s2 = R.status(p);
+  const semSet = (pecas[0].bonus.defesa || 0) + (pecas[1].bonus.defesa || 0);
+  assert.strictEqual(s2.defesa, s0.defesa + semSet + 5, '2 peças: +5 de defesa');
+  R.equipar(p, pecas[2].id); const s3 = R.status(p);
+  assert.strictEqual(s3.dano[0] - s2.dano[0] - Math.floor((R.atributosTotais(p).for) / 3) + Math.floor((R.atributosTotais(p).for - (pecas[2].bonus.for || 0)) / 3), 5, '3 peças: +5 de dano');
+  R.equipar(p, pecas[3].id);
+  assert.deepStrictEqual(Object.assign({}, R.bonusConjuntos(p)), { defesa: 5, dano: 5, vida: 30 });
+  // outra segunda classe não ganha o bônus
+  p.talentos.classe2 = 'destruidor';
+  assert.deepStrictEqual(Object.assign({}, R.bonusConjuntos(p)), {});
+  // Destruidor: 2 peças = +5 de Força
+  pecas.forEach((it) => { it.conjunto = 'destruidor-2'; });
+  const forSem = p.atributos.for + R.bonusEquipamentos(p).for;
+  assert.strictEqual(R.atributosTotais(p).for, forSem + 5);
+});

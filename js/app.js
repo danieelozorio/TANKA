@@ -790,9 +790,23 @@
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
-      + '<ul class="ficha-item-bonus">' + linhas + '</ul>'
+      + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item)
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + '</p>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
+  }
+
+  // Conjunto da peça: nome, peças equipadas e o bônus de 2/3/4 (aceso quando ativo).
+  function conjuntoHtml(p, item) {
+    var info = item.conjunto && R.infoConjunto(item.conjunto);
+    if (!info) return '';
+    var sc = D.SEGUNDAS_CLASSES[info.classe2], meu = p.talentos && p.talentos.classe2 === info.classe2;
+    var n = meu ? (R.contarConjuntos(p)[item.conjunto] || 0) : 0;
+    return '<div class="conjunto-ficha"><strong>Conjunto ' + info.nome + '</strong> <span class="suave pequeno">(' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome)
+      + (meu ? ' · ' + n + '/4 equipados' : ' · só vale para essa segunda classe') + ')</span><ul>'
+      + [2, 3, 4].map(function (q) {
+        var b = info.bonus[q];
+        return '<li class="' + (n >= q ? 'ativo' : 'suave') + '">(' + q + ') ' + Object.keys(b).map(function (k) { return '+' + b[k] + ' ' + D.NOME_BONUS_CONJUNTO[k]; }).join(', ') + '</li>';
+      }).join('') + '</ul></div>';
   }
 
   // ---------- Zoom do item: o item ampliado, lado a lado com o equipado no mesmo espaço ----------
@@ -871,6 +885,8 @@
     var resumo = Object.keys(D.bonus).filter(function (k) { return eq[k]; }).map(function (k) {
       return '<dt>' + D.bonus[k] + '</dt><dd class="mais">+' + eq[k] + '</dd>';
     }).join('');
+    var cjB = R.bonusConjuntos(p);
+    resumo += Object.keys(cjB).map(function (k) { return '<dt class="conjunto-dt">Conjunto</dt><dd class="mais">+' + cjB[k] + ' ' + D.NOME_BONUS_CONJUNTO[k] + '</dd>'; }).join('');
     var mochila = R.mochila(p), v = visaoMochila();
     var celulas = R.ordenarItens(mochila, v.ordem, v.crescente).map(celulaMochila);
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');

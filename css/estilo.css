@@ -1287,3 +1287,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .nivel-item { position: absolute; left: 3px; bottom: 2px; font-size: .68rem; font-weight: 700; line-height: 1; padding: 1px 3px; border-radius: 4px;
   color: #e9dcb8; background: rgba(0, 0, 0, .65); pointer-events: none; }
 .cadeado ~ .nivel-item, .nivel-item { z-index: 1; }
+.conjunto-ficha { margin: .5rem 0; padding: .45rem .6rem; border: 1px solid rgba(90, 200, 120, .35); border-radius: 8px; background: rgba(40, 90, 50, .12); }
+.conjunto-ficha strong { color: #8fe0a0; }
+.conjunto-ficha ul { margin: .3rem 0 0; padding-left: 1rem; }
+.conjunto-ficha li.ativo { color: #8fe0a0; font-weight: 600; }
+.conjunto-dt { color: #8fe0a0; }

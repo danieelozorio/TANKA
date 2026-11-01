@@ -304,6 +304,30 @@ Tanka.dados = {
     // Venda: 10% do preço do nível do item, x raridade.
     precoBase: 100, precoCresce: 1.12, mercadoRara: 0.5, vendaPct: 10, vendaRaridade: { comum: 1, rara: 1.5, epica: 3, lendaria: 6 },
   },
+  // Conjuntos das segundas classes: elmo, peitoral, luvas e botas que caem (ou são comprados) por quem tem a segunda
+  // classe vêm de um conjunto com o nome da faixa de nível do item (1–10, 11–20, ... 51–60). Peças com o MESMO nome
+  // equipadas por alguém da MESMA segunda classe dão o bônus de 2, 3 e 4 peças (somam).
+  // Chaves: defesa, vida, dano, for (Força), velocidade, critico (% físico), evasao (%), criticoMagico (%).
+  CONJUNTOS: {
+    paladino: { nomes: ['da Fé', 'do Juramento', 'da Luz Sagrada', 'do Templo', 'do Santo Guardião', 'da Aurora Divina'],
+      bonus: { 2: { defesa: 5 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+    destruidor: { nomes: ['da Fúria', 'do Sangue', 'da Ruína', 'do Trovão', 'do Massacre', 'do Fim do Mundo'],
+      bonus: { 2: { for: 5 }, 3: { dano: 5 }, 4: { velocidade: 2 } } },
+    cacador: { nomes: ['do Batedor', 'do Vento', 'do Falcão', 'da Floresta Antiga', 'do Olho de Águia', 'da Estrela Cadente'],
+      bonus: { 2: { critico: 5 }, 3: { dano: 5 }, 4: { velocidade: 3 } } },
+    assassino: { nomes: ['da Sombra', 'da Noite', 'do Silêncio', 'da Lâmina Oculta', 'do Véu Negro', 'da Morte Silenciosa'],
+      bonus: { 2: { evasao: 5 }, 3: { dano: 5 }, 4: { velocidade: 3 } } },
+    bruxo: { nomes: ['do Gelo', 'da Brasa', 'da Tempestade', 'do Abismo', 'do Eclipse', 'do Caos Eterno'],
+      bonus: { 2: { criticoMagico: 5 }, 3: { dano: 5 }, 4: { velocidade: 3 } } },
+    curandeiro: { nomes: ['da Esperança', 'da Graça', 'da Fonte', 'da Luz Serena', 'da Vida Eterna', 'do Milagre'],
+      bonus: { 2: { criticoMagico: 5 }, 3: { dano: 5 }, 4: { velocidade: 3 } } },
+    ferreiro: { nomes: ['da Bigorna', 'da Forja', 'do Aço Rúnico', 'do Mestre Ferreiro', 'da Forja Ancestral', 'do Coração de Ferro'],
+      bonus: { 2: { defesa: 5 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+    coletor: { nomes: ['do Viajante', 'do Garimpeiro', 'do Tesouro', 'da Fortuna', 'do Rei Mercador', 'da Riqueza Perdida'],
+      bonus: { 2: { defesa: 5 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+  },
+  NOME_BONUS_CONJUNTO: { defesa: 'de defesa', vida: 'de vida', dano: 'de dano', for: 'de Força', velocidade: 'de velocidade',
+    critico: '% de chance de crítico', evasao: '% de esquiva', criticoMagico: '% de chance de crítico mágico' },
   // Extras das armas pela faixa de nível (sorteados quando a arma cai ou é comprada). atributos: [quantos, mín, máx]
   // (atributos diferentes, sorteados entre FOR/DES/RES/INT/SOR); pve/pvp: % de dano; hab: pontos numa habilidade
   // sorteada da segunda classe (nº 1 a 4 da lista de quem usar a arma), além do limite de 10.
