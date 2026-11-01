@@ -18,24 +18,31 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 ### Henri (colaborador)
 - Falar em português simples, como com o Daniel (o jeito "Claudia" e o "Bom dia!" são preferências do Daniel;
   seguir o que o Henri preferir).
-- Henri **não publica**: trabalha no branch dele (`henri/<assunto>`, ex.: `henri/arena-ranking`), faz commit e push
-  só nesse branch. Nunca mexer em `main` nem no branch do Daniel.
-- Ao terminar, mostrar prints e dizer ao Henri para avisar o Daniel, que pede ao Claude dele para juntar.
+- Henri trabalha no branch dele (`henri/<assunto>`, ex.: `henri/arena-ranking`), faz commit e push nesse branch.
+  Nunca mexer no branch do Daniel.
+- Henri **pode publicar** as próprias mudanças, com as mesmas regras: mostrar prints, lembrar o Henri de **avisar o
+  Daniel antes** (com os prints) e só publicar quando o Henri disser "pode publicar".
+- Para publicar (Henri): `git fetch origin && git merge origin/main` no branch dele (trazer o que o Daniel publicou),
+  resolver conflitos, rodar os testes, e então `git push origin HEAD:main` (precisa ser avanço normal, nunca `--force`).
+  A prévia (Artifact) é da conta do Daniel: o Henri não atualiza; avisar que o Daniel pode atualizá-la depois.
 
 ## Regras de trabalho (IMPORTANTE)
 1. Claude do Daniel: trabalhar no branch local `trabalho-local`. Fazer commit e
    `git push origin trabalho-local:claude/amazing-volta-b0x1fb`.
-2. **Só o Daniel publica. Nunca publicar sem ele dizer "pode publicar".** Antes, mostrar prints/vídeo e perguntar.
+2. **Cada um publica as próprias mudanças, avisando o outro antes (com prints). Nunca publicar sem a pessoa dizer
+   "pode publicar".** Antes, mostrar prints/vídeo e perguntar.
 3. Quando o Daniel pedir para juntar o trabalho do Henri: `git fetch origin`, ver os branches `henri/*`, revisar o que
    mudou, `git merge` no `trabalho-local`, rodar os testes, resolver conflitos e mostrar prints antes de publicar.
-4. Ao ouvir "pode publicar":
-   - `git checkout main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
+4. Ao ouvir "pode publicar" (Daniel):
+   - Antes: `git fetch origin && git merge origin/main` no `trabalho-local` (pode ter coisa que o Henri publicou),
+     rodar os testes.
+   - `git checkout main && git merge --ff-only origin/main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
    - Republicar o Artifact: copiar `ferramentas/artifact.html` para o scratchpad (igual ao `index.html`, mas usa
      `js/contas-local.js` no lugar de `config.js` + `contas.js`) e publicar com o mesmo URL acima, mandando em
      `files` os arquivos que mudaram (ex.: `js/app.js`, `css/estilo.css`, assets novos). A prévia é da conta do Daniel.
 5. A cada mudança de JS/CSS, subir o `?v=N` em `index.html` e em `ferramentas/artifact.html` (cache do navegador).
    Se os dois mudarem o número ao mesmo tempo, na junção ficar com o maior + 1.
-6. Se mudar `supabase/schema.sql`, avisar que o Daniel precisa **rodar o schema de novo** no SQL Editor do Supabase
+6. Se mudar `supabase/schema.sql`, avisar que alguém com acesso ao Supabase (Daniel, ou o Henri se for convidado) precisa **rodar o schema de novo** no SQL Editor do Supabase
    (o arquivo é idempotente; o aviso de RLS pode ser aceito no botão verde).
 7. Segurança: nunca pedir, guardar ou mandar senha do banco nem a chave `service_role`/`sb_secret`.
    A URL e a chave *publishable* em `js/config.js` são públicas. Acesso ao Supabase é por convite (Team), nunca por senha.
