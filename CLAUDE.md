@@ -4,26 +4,43 @@ RPG medieval místico de navegador, em português (PT-BR). Repositório `danieel
 Jogo publicado: https://danieelozorio.github.io/TANKA/ (GitHub Pages, branch `main`).
 Prévia no Claude (Artifact, modo sem servidor): https://claude.ai/artifact/VuX81TkgHJXZovvQSqQy8r
 
-## Como falar com o dono (Daniel)
+## Quem trabalha no projeto
+São duas pessoas, cada uma com o seu Claude: **Daniel** (dono) e **Henri** (amigo, colaborador).
+No começo da conversa, se não estiver claro quem está falando, perguntar: "Você é o Daniel ou o Henri?".
+
+### Daniel (dono)
 - Assistente se chama **Claudia/Claudinha**. Toda resposta começa com um **"Bom dia! ☀️"** caloroso.
 - **Não** mandar ideias de livro (ele pediu para parar).
 - Ele não é programador: explicar em português simples, com o que mudou "para o jogador".
 - Prompts para ele levar a outras IAs (Gemini, Suno): **em inglês**, num bloco de notas `.txt` sem acentos.
 - Para economizar: só mandar print/vídeo quando a mudança é visual; nada de simulação se ele já deu o número.
 
+### Henri (colaborador)
+- Falar em português simples, como com o Daniel (o jeito "Claudia" e o "Bom dia!" são preferências do Daniel;
+  seguir o que o Henri preferir).
+- Henri **não publica**: trabalha no branch dele (`henri/<assunto>`, ex.: `henri/arena-ranking`), faz commit e push
+  só nesse branch. Nunca mexer em `main` nem no branch do Daniel.
+- Ao terminar, mostrar prints e dizer ao Henri para avisar o Daniel, que pede ao Claude dele para juntar.
+
 ## Regras de trabalho (IMPORTANTE)
-1. Trabalhar no branch local `trabalho-local`. Fazer commit e `git push origin trabalho-local:claude/amazing-volta-b0x1fb`.
-2. **Nunca publicar sem ele dizer "pode publicar".** Antes, mostrar prints/vídeo e perguntar.
-3. Ao ouvir "pode publicar":
+1. Claude do Daniel: trabalhar no branch local `trabalho-local`. Fazer commit e
+   `git push origin trabalho-local:claude/amazing-volta-b0x1fb`.
+2. **Só o Daniel publica. Nunca publicar sem ele dizer "pode publicar".** Antes, mostrar prints/vídeo e perguntar.
+3. Quando o Daniel pedir para juntar o trabalho do Henri: `git fetch origin`, ver os branches `henri/*`, revisar o que
+   mudou, `git merge` no `trabalho-local`, rodar os testes, resolver conflitos e mostrar prints antes de publicar.
+4. Ao ouvir "pode publicar":
    - `git checkout main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
    - Republicar o Artifact: copiar `ferramentas/artifact.html` para o scratchpad (igual ao `index.html`, mas usa
      `js/contas-local.js` no lugar de `config.js` + `contas.js`) e publicar com o mesmo URL acima, mandando em
-     `files` os arquivos que mudaram (ex.: `js/app.js`, `css/estilo.css`, assets novos).
-4. A cada mudança de JS/CSS, subir o `?v=N` em `index.html` e em `ferramentas/artifact.html` (cache do navegador).
-5. Se mudar `supabase/schema.sql`, avisar que ele precisa **rodar o schema de novo** no SQL Editor do Supabase
+     `files` os arquivos que mudaram (ex.: `js/app.js`, `css/estilo.css`, assets novos). A prévia é da conta do Daniel.
+5. A cada mudança de JS/CSS, subir o `?v=N` em `index.html` e em `ferramentas/artifact.html` (cache do navegador).
+   Se os dois mudarem o número ao mesmo tempo, na junção ficar com o maior + 1.
+6. Se mudar `supabase/schema.sql`, avisar que o Daniel precisa **rodar o schema de novo** no SQL Editor do Supabase
    (o arquivo é idempotente; o aviso de RLS pode ser aceito no botão verde).
-6. Segurança: nunca pedir, guardar ou mandar senha do banco nem a chave `service_role`/`sb_secret`.
-   A URL e a chave *publishable* em `js/config.js` são públicas.
+7. Segurança: nunca pedir, guardar ou mandar senha do banco nem a chave `service_role`/`sb_secret`.
+   A URL e a chave *publishable* em `js/config.js` são públicas. Acesso ao Supabase é por convite (Team), nunca por senha.
+8. Para não dar conflito: combinar quem mexe em qual parte do jogo (ex.: Henri na Arena, Daniel nas caçadas).
+   `js/app.js` é um arquivo grande; evitar os dois mexerem na mesma tela ao mesmo tempo.
 
 ## Estrutura
 - `index.html` — página do jogo. `js/config.js` (Supabase), `js/contas.js` (login e chamadas ao servidor via REST/RPC),
