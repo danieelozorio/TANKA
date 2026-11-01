@@ -76,7 +76,7 @@ if __name__ == '__main__':
         passo, limite = AJUSTES.get(nome, (7, 60))
         # Fundo preso por dentro só existe em itens vazados (anel, colar, arco); nos outros a regra
         # apagaria partes escuras do próprio item.
-        vazado = nome.startswith(('anel-', 'colar-', 'arma-arqueiro-'))
+        vazado = nome.startswith(('anel-', 'colar-', 'arma-arqueiro-', 'arma-besta-', 'arma-balestra-', 'arma-mangual-', 'mao-shuriken-'))
         recortar(os.path.join(pasta, nome + '.jpg'), os.path.join(pasta, nome + '.webp'), passo, limite,
                  minimo_mancha=120 if vazado else 10 ** 9)
         print('ok', nome)
