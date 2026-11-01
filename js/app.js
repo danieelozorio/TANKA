@@ -3932,9 +3932,11 @@
   var instalacao = { evento: null };
   function jaInstalado() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
   function ehIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
-  function podeInstalar() { return !jaInstalado() && (!!instalacao.evento || ehIOS()); }
+  function ehCelular() { return ehIOS() || /android|mobi/i.test(navigator.userAgent); }
+  // No celular aparece sempre (se ainda não instalou); no computador, só quando o navegador deixa instalar.
+  function podeInstalar() { return !jaInstalado() && (!!instalacao.evento || ehCelular()); }
   function botaoInstalar() {
-    return '<button class="btn secundario largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar na tela inicial</button>';
+    return '<button class="btn largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar para celular</button>';
   }
   function atualizarBotoesInstalar() {
     document.querySelectorAll('[data-acao="instalar-app"]').forEach(function (b) { b.hidden = !podeInstalar(); });

@@ -1277,6 +1277,10 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .classe2-retrato { width: 160px; aspect-ratio: 500 / 621; margin: 0 auto .3rem; border-radius: 10px; overflow: hidden; border: 1px solid rgba(201, 162, 74, .5); }
 .classe2-retrato img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .classe2 h4 { text-align: center; }
-.btn-instalar { margin-top: .8rem; }
+.btn-instalar { margin-top: .9rem; padding: .85em 1em; font-size: 1.05rem; letter-spacing: .06em;
+  background: linear-gradient(180deg, #f2d27a, #c9a24a 60%, #a77f2c); color: #1a1408; border: 1px solid #f7e2a0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 6px 22px rgba(242, 201, 76, .35); animation: instalarBrilha 2.4s ease-in-out infinite; }
+@keyframes instalarBrilha { 0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 6px 22px rgba(242, 201, 76, .25); } 50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 6px 30px rgba(242, 201, 76, .6); } }
+@media (prefers-reduced-motion: reduce) { .btn-instalar { animation: none; } }
 .btn-instalar[hidden] { display: none; }
 #config-painel .btn-instalar { width: 100%; margin-top: .5rem; }
