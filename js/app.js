@@ -424,6 +424,8 @@
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   function nomeClasse(k, sexo) { var x = D.classes[k]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
+  // Classe de um lutador vindo do servidor (com a segunda classe, quando tiver).
+  function nomeClasseX(x) { var c = x.classe2 && D.SEGUNDAS_CLASSES[x.classe2]; return c ? (x.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(x.classe, x.sexo); }
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
   function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
   function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
@@ -995,10 +997,11 @@
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
-        + 'Se nenhuma estiver pronta, ataca normalmente.</p><div class="ordem-hab">'
+        + 'Se nenhuma estiver pronta, ataca normalmente.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
+        + 'a Sombra faz o próximo golpe valer o 20 do dado e a esquiva da passiva vira chance de desviar.</p><div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
-          return '<div class="ordem-col"><h4>' + m[1] + (m[0] === 'arena' ? ' <span class="suave pequeno">(em breve)</span>' : '') + '</h4><ol>'
+          return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
             + lista.map(function (id, i) {
               var x = ativas.filter(function (a) { return a.id === id; })[0];
               if (!x) return '';
@@ -3299,9 +3302,23 @@
     var L = estado.lutaArena, est = L.luta.estado;
     var atk = ev.de === 'a' ? est.a : est.d, alvo = ev.de === 'a' ? est.d : est.a;
     L.hpA = ev.hpA; L.hpD = ev.hpD;
-    L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
+    if (ev.hpMaxA) est.a.hpMax = ev.hpMaxA;   // a Bênção aumenta a vida máxima por 2 turnos
+    if (ev.hpMaxD) est.d.hpMax = ev.hpMaxD;
+    // Habilidades: o nome antes do dado; atordoado e cura não têm golpe.
+    if (ev.hab) L.registro.push('<p class="habilidade-usada">' + (ev.cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + esc(atk.nome) + ' usa <strong>' + esc(ev.hab) + '</strong>'
+      + (ev.cura ? ' e recupera <strong>' + ev.cura + '</strong> de vida' : '') + '!</p>');
+    if (ev.atordoado) {
+      L.registro.push('<p class="errou">' + esc(atk.nome) + ' está atordoado e perde a vez.</p>');
+      if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
+      return;
+    }
+    if (ev.cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; return; }
+    L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20)' : '') + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
+    if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
+    if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
       + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
+    if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(alvo.nome) + (ev.congelou ? ' está congelado' : ' está atordoado') + ' por ' + ev.atordoou + (ev.atordoou > 1 ? ' turnos!' : ' turno!') + '</p>');
     if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
   }
 
@@ -3315,6 +3332,12 @@
       L.fase = 'animando';
       var jaCaindo = L.jaCaindo && ev.de === 'a';
       L.jaCaindo = false;
+      if (!ev.dado) {   // atordoado: perde a vez, sem dado na mesa
+        aplicarEventoArena(ev);
+        redesenharArena();
+        L.timer = setTimeout(tocarEventosArena, 700);
+        return;
+      }
       animarDado(ev.dado, ev.de, function () {
         aplicarEventoArena(ev);
         redesenharArena();
@@ -3374,7 +3397,7 @@
     var L = estado.lutaArena, est = L.luta.estado, a = est.a, d = est.d;
     function lutador(x, hp, lado) {
       return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, x.classe, x.sexo) + '</div>'
-        + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo) + ' · Lv ' + x.nivel + '</div>'
+        + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + nomeClasseX(x) + ' · Lv ' + x.nivel + '</div>'
         + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax, 'arena-' + lado) + '</div>';
     }
     var mesa = L.fase === 'fim' ? '' : '<div class="vaga-dado"></div>';

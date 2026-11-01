@@ -1,5 +1,5 @@
 // Copia para o banco (supabase/schema.sql) as tabelas do jogo que o servidor precisa para calcular
-// a força dos personagens na Arena: armaduras, joias, encantamento, raridades, classes e ARENA.
+// a força dos personagens na Arena: armaduras, joias, encantamento, raridades, classes, ARENA e habilidades.
 // Uso: node ferramentas/gerar_dados_sql.js   (reescreve o bloco entre as marcas no schema)
 const fs = require('fs');
 const path = require('path');
@@ -18,6 +18,7 @@ const dados = {
   danoPorNivel: D.encantamento.danoPorNivel, bonusPorNivel: D.encantamento.bonusPorNivel,
   ARENA: D.ARENA,
   ALIANCA: D.ALIANCA,
+  TALENTOS: D.TALENTOS, HABILIDADE_INICIAL: D.HABILIDADE_INICIAL, SEGUNDAS_CLASSES: D.SEGUNDAS_CLASSES,
 };
 const json = JSON.stringify(dados).replace(/'/g, "''");
 const bloco = `-- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)

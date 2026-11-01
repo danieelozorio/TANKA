@@ -647,12 +647,160 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
 create or replace function public.tanka_dados() returns jsonb
-language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":5,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico"},"arqueiro":{"dano":"fisico"},"mago":{"dano":"magico"},"artesao":{"dano":"fisico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"danoPorNivel":{"comum":1,"rara":2,"epica":3,"lendaria":5},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}}}'::jsonb; $dados$;
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":5,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico"},"arqueiro":{"dano":"fisico"},"mago":{"dano":"magico"},"artesao":{"dano":"fisico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"danoPorNivel":{"comum":1,"rara":2,"epica":3,"lendaria":5},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"area","recarga":3,"descricao":"Gira a espada e acerta todos os inimigos."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"area","recarga":3,"descricao":"Uma chuva de flechas sobre todos os inimigos."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"area","recarga":3,"descricao":"Uma pedra de fogo cai sobre todos os inimigos."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"area","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob todos os inimigos."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Caçador","nomeF":"Caçadora","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Pés Ligeiros","tipo":"reforco","turnos":2,"velocidade":100,"recarga":4,"descricao":"Dobra a sua velocidade."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}}}'::jsonb; $dados$;
 -- <<< DADOS DO JOGO
 
 -- ---------- Arena (PvP) ----------
 -- Tudo roda aqui no servidor: força dos personagens, dados (D20), dano, saque de ouro e ranking.
 -- Ouro e reputação ganhos ou perdidos viram "créditos" que o jogo de cada um aplica ao entrar.
+
+-- ---------- Habilidades na Arena (mesmas regras de js/regras.js; ver TALENTOS em js/dados.js) ----------
+-- Pontos de habilidade válidos: no máximo 10 por habilidade e o total do level. Se passar, nada vale (dados adulterados).
+create or replace function public.arena_pontos_ok(p jsonb) returns boolean
+language plpgsql immutable as $$
+declare T jsonb := public.tanka_dados() -> 'TALENTOS'; nivel int := coalesce((p ->> 'nivel')::int, 1); soma int := 0; v int; maxi int := 0;
+begin
+  for v in select coalesce((value #>> '{}')::int, 0) from jsonb_each(coalesce(p -> 'talentos' -> 'pontos', '{}'::jsonb)) loop
+    soma := soma + v; maxi := greatest(maxi, v);
+  end loop;
+  return maxi <= (T ->> 'maxPorHabilidade')::int and (soma = 0 or (nivel >= (T ->> 'nivelSegunda')::int
+    and soma <= (T ->> 'pontosIniciais')::int + (nivel - (T ->> 'nivelSegunda')::int) * (T ->> 'pontosPorNivel')::int));
+end $$;
+
+-- A passiva da segunda classe com os pontos: { h, pts } ou null.
+create or replace function public.arena_passiva(p jsonb) returns jsonb
+language plpgsql immutable as $$
+declare c2 text := p -> 'talentos' ->> 'classe2'; h jsonb; n int;
+begin
+  if c2 is null or not public.arena_pontos_ok(p) then return null; end if;
+  select x into h from jsonb_array_elements(public.tanka_dados() -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades') x where x ->> 'tipo' = 'passiva' limit 1;
+  n := coalesce((p -> 'talentos' -> 'pontos' ->> (h ->> 'id'))::int, 0);
+  if h is null or n <= 0 then return null; end if;
+  return jsonb_build_object('h', h, 'pts', n);
+end $$;
+
+-- Habilidades ativas na ordem da Arena, já com os números: [{ id, nome, tipo, recarga, mult, atordoa, turnos, v: {campo: %} }].
+create or replace function public.arena_kit(p jsonb) returns jsonb
+language plpgsql immutable as $$
+declare D jsonb := public.tanka_dados(); TL jsonb := D -> 'TALENTOS'; c2 text := p -> 'talentos' ->> 'classe2';
+  kit jsonb := '[]'::jsonb; hid text; h jsonb; n int; tab jsonb; v jsonb; k text;
+begin
+  if c2 is null then
+    h := D -> 'HABILIDADE_INICIAL' -> (p ->> 'classe');
+    if h is null then return kit; end if;
+    return jsonb_build_array(h || jsonb_build_object('mult', (TL -> 'area' ->> 'base')::numeric, 'v', '{}'::jsonb));
+  end if;
+  if not public.arena_pontos_ok(p) then return kit; end if;
+  for hid in select value #>> '{}' from jsonb_array_elements(coalesce(p -> 'talentos' -> 'ordem' -> 'arena', '[]'::jsonb)) loop
+    select x into h from jsonb_array_elements(D -> 'SEGUNDAS_CLASSES' -> c2 -> 'habilidades') x where x ->> 'id' = hid limit 1;
+    n := coalesce((p -> 'talentos' -> 'pontos' ->> hid)::int, 0);
+    if h is null or n <= 0 or h ->> 'tipo' = 'passiva' then continue; end if;
+    tab := case h ->> 'tipo' when 'atordoar' then TL -> 'atordoar'
+      when 'area' then case when (h ->> 'reduzido')::boolean then TL -> 'areaReduzida' else TL -> 'area' end
+      when 'unico' then case when (h ->> 'reduzido')::boolean then TL -> 'unicoReduzido' else TL -> 'unico' end else null end;
+    v := '{}'::jsonb;
+    for k in select jsonb_object_keys(h) loop
+      if k in ('dano', 'danoCritico', 'critico', 'velocidade', 'precisao', 'vidaPct', 'defesaPct') then
+        v := jsonb_set(v, array[k], to_jsonb((h ->> k)::numeric + n * (TL ->> 'bonusPorPonto')::numeric));
+      end if;
+    end loop;
+    kit := kit || jsonb_build_array(jsonb_build_object('id', hid, 'nome', h ->> 'nome', 'tipo', h ->> 'tipo', 'recarga', (h ->> 'recarga')::int,
+      'mult', case when tab is null then 100 else (tab ->> 'base')::numeric + (tab ->> 'porPonto')::numeric * n end,
+      'atordoa', coalesce((h ->> 'atordoa')::int, 0), 'congela', coalesce((h ->> 'congela')::boolean, false),
+      'turnos', coalesce((h ->> 'turnos')::int, 1), 'v', v));
+  end loop;
+  return kit;
+end $$;
+
+-- Soma de um bônus dos reforços ativos de um lutador.
+create or replace function public.arena_buff(f jsonb, campo text) returns numeric
+language sql immutable as $$
+  select coalesce(sum((b ->> campo)::numeric), 0) from jsonb_array_elements(coalesce(f -> 'buffs', '[]'::jsonb)) b
+  where (b ->> 'ate')::int >= (f ->> 'turno')::int and b ? campo;
+$$;
+
+-- Uma vez de um lutador na Arena: conta o turno, tira reforços vencidos, perde a vez se atordoado, usa a 1ª habilidade
+-- pronta da ordem (reforço + ataque, cura, ou golpe da habilidade com o dado) e aplica no outro.
+-- dado: a face rolada (null = atordoado, sem dado). Retorna { eu, outro, ev }.
+create or replace function public.arena_vez(eu jsonb, outro jsonb, dado int) returns jsonb
+language plpgsql volatile as $$
+declare TL jsonb := public.tanka_dados() -> 'TALENTOS'; turno int := coalesce((eu ->> 'turno')::int, 0) + 1;
+  buffs jsonb := '[]'::jsonb; b jsonb; k jsonb := null; item jsonb; ev jsonb := '{}'::jsonb; t text; extra int;
+  mult numeric; fator numeric; dmin int; dmax int; base int; dano int := 0; def numeric; garantido boolean := false; cura int;
+begin
+  eu := jsonb_set(eu, '{turno}', to_jsonb(turno));
+  for b in select x from jsonb_array_elements(coalesce(eu -> 'buffs', '[]'::jsonb)) x loop
+    if (b ->> 'ate')::int >= turno then buffs := buffs || jsonb_build_array(b);
+    elsif b ? 'vidaExtra' then
+      eu := jsonb_set(eu, '{hpMax}', to_jsonb((eu ->> 'hpMax')::int - (b ->> 'vidaExtra')::int));
+      eu := jsonb_set(eu, '{hp}', to_jsonb(least((eu ->> 'hp')::int, (eu ->> 'hpMax')::int)));
+    end if;
+  end loop;
+  eu := jsonb_set(eu, '{buffs}', buffs);
+  eu := jsonb_set(eu, '{vel}', to_jsonb(greatest(1, round((eu ->> 'velBase')::numeric * (1 + public.arena_buff(eu, 'velocidade') / 100)))));
+  if coalesce((eu ->> 'atordoado')::int, 0) > 0 then
+    eu := jsonb_set(eu, '{atordoado}', to_jsonb((eu ->> 'atordoado')::int - 1));
+    return jsonb_build_object('eu', eu, 'outro', outro, 'ev', jsonb_build_object('atordoado', true, 'dano', 0));
+  end if;
+  -- A 1ª habilidade pronta da ordem (a cura só com menos de 80% da vida).
+  for item in select x from jsonb_array_elements(coalesce(eu -> 'kit', '[]'::jsonb)) x loop
+    if coalesce((eu -> 'pronto' ->> (item ->> 'id'))::int, 0) > turno then continue; end if;
+    if item ->> 'tipo' = 'cura' and (eu ->> 'hp')::numeric * 100 / (eu ->> 'hpMax')::numeric >= (TL ->> 'curaSoAbaixo')::numeric then continue; end if;
+    k := item; exit;
+  end loop;
+  if k is not null then
+    eu := jsonb_set(eu, array['pronto', k ->> 'id'], to_jsonb(turno + (k ->> 'recarga')::int));
+    ev := jsonb_build_object('hab', k ->> 'nome');
+    t := k ->> 'tipo';
+    if t = 'furtivo' then
+      eu := eu || jsonb_build_object('furtivo', true, 'critEm', turno + 1);
+      ev := ev || jsonb_build_object('reforco', true); k := null;
+    elsif t = 'provocar' then
+      eu := jsonb_set(eu, '{buffs}', (eu -> 'buffs') || jsonb_build_array(jsonb_build_object('ate', turno + (k ->> 'turnos')::int - 1,
+        'defesaPct', coalesce((k -> 'v' ->> 'defesaPct')::numeric, 0))));
+      ev := ev || jsonb_build_object('reforco', true); k := null;
+    elsif t = 'reforco' then
+      extra := round((eu ->> 'hpMax')::numeric * coalesce((k -> 'v' ->> 'vidaPct')::numeric, 0) / 100);
+      -- Sem crítico na Arena: os bônus de crítico do reforço viram dano.
+      b := jsonb_build_object('ate', turno + (k ->> 'turnos')::int - 1,
+        'dano', coalesce((k -> 'v' ->> 'dano')::numeric, 0) + coalesce((k -> 'v' ->> 'critico')::numeric, 0) + coalesce((k -> 'v' ->> 'danoCritico')::numeric, 0) / 2,
+        'velocidade', coalesce((k -> 'v' ->> 'velocidade')::numeric, 0), 'vidaExtra', extra);
+      eu := jsonb_set(eu, '{buffs}', (eu -> 'buffs') || jsonb_build_array(b));
+      if extra > 0 then eu := eu || jsonb_build_object('hpMax', (eu ->> 'hpMax')::int + extra, 'hp', (eu ->> 'hp')::int + extra); end if;
+      eu := jsonb_set(eu, '{vel}', to_jsonb(greatest(1, round((eu ->> 'velBase')::numeric * (1 + public.arena_buff(eu, 'velocidade') / 100)))));
+      ev := ev || jsonb_build_object('reforco', true); k := null;
+    elsif t = 'cura' then
+      cura := round((eu ->> 'hpMax')::numeric * coalesce((k -> 'v' ->> 'vidaPct')::numeric, 0) / 100);
+      eu := jsonb_set(eu, '{hp}', to_jsonb(least((eu ->> 'hpMax')::int, (eu ->> 'hp')::int + cura)));
+      return jsonb_build_object('eu', eu, 'outro', outro, 'ev', ev || jsonb_build_object('cura', cura, 'dano', 0));
+    end if;
+  end if;
+  -- Ataque com o dado (1 erra). Sombra: o golpe seguinte vale pelo menos o 20 do dado.
+  mult := (public.tanka_dados() -> 'ARENA' -> 'dado' ->> (dado - 1))::numeric;
+  if coalesce((eu ->> 'critEm')::int, -1) = turno then
+    garantido := true; mult := greatest(mult, (public.tanka_dados() -> 'ARENA' -> 'dado' ->> 19)::numeric);
+    eu := jsonb_set(eu, '{critEm}', '-1'); ev := ev || jsonb_build_object('garantido', true);
+  end if;
+  fator := (case when k is null then 100 else (k ->> 'mult')::numeric end) / 100 * (1 + public.arena_buff(eu, 'dano') / 100);
+  if mult > 0 then
+    dmin := (eu -> 'dano' ->> 0)::int; dmax := (eu -> 'dano' ->> 1)::int;
+    base := dmin + floor(random() * (greatest(dmax, dmin) - dmin + 1));
+    def := (case when (eu ->> 'magico')::boolean then outro ->> 'defesaMagica' else outro ->> 'defesa' end)::numeric
+      * (1 + public.arena_buff(outro, 'defesaPct') / 100);
+    dano := greatest(1, round(base * mult * fator - round(def)));
+  end if;
+  if dano > 0 and coalesce((outro ->> 'furtivo')::boolean, false) then
+    dano := 0; outro := jsonb_set(outro, '{furtivo}', 'false'); ev := ev || jsonb_build_object('sombra', true);
+  elsif dano > 0 and random() * 100 < coalesce((outro ->> 'esquiva')::numeric, 0) then
+    dano := 0; ev := ev || jsonb_build_object('esquiva', true);
+  end if;
+  outro := jsonb_set(outro, '{hp}', to_jsonb(greatest(0, (outro ->> 'hp')::int - dano)));
+  if k is not null and dano > 0 and coalesce((k ->> 'atordoa')::int, 0) > 0 and (outro ->> 'hp')::int > 0 then
+    outro := jsonb_set(outro, '{atordoado}', to_jsonb(greatest(coalesce((outro ->> 'atordoado')::int, 0), (k ->> 'atordoa')::int)));
+    ev := ev || jsonb_build_object('atordoou', (k ->> 'atordoa')::int, 'congelou', (k ->> 'congela')::boolean);
+  end if;
+  return jsonb_build_object('eu', eu, 'outro', outro, 'ev', ev || jsonb_build_object('dano', dano));
+end $$;
 
 -- Força de combate de um personagem a partir dos dados salvos (mesmas fórmulas de js/regras.js: status).
 create or replace function public.tanka_status(p jsonb) returns jsonb
@@ -663,7 +811,18 @@ declare
   eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int;
   fo numeric; de numeric; re numeric; inte numeric; nivel int := coalesce((p ->> 'nivel')::int, 1);
   magico boolean; dmin numeric := 0; dmax numeric := 0; extra numeric; bonus numeric;
+  pas jsonb; npas int := 0; pv jsonb := '{}'::jsonb; hp numeric; dfs numeric; dfm numeric; pct numeric;
 begin
+  -- Passiva da segunda classe (mesmos valores de js/regras.js): atributos fixos e bônus em % (+1 por ponto).
+  pas := public.arena_passiva(p);
+  if pas is not null then
+    npas := (pas ->> 'pts')::int;
+    for k in select jsonb_object_keys(pas -> 'h') loop
+      if k in ('dano', 'danoCritico', 'critico', 'vidaPct', 'defesaPct', 'evasao', 'danoCriticoMagico') then
+        pv := jsonb_set(pv, array[k], to_jsonb((pas -> 'h' ->> k)::numeric + npas * (T -> 'TALENTOS' ->> 'bonusPorPonto')::numeric));
+      end if;
+    end loop;
+  end if;
   for iid in select value #>> '{}' from jsonb_each(coalesce(p -> 'equipados', '{}'::jsonb)) where jsonb_typeof(value) = 'string' loop
     select x into it from jsonb_array_elements(p -> 'inventario') x where x ->> 'id' = iid limit 1;
     if it is null or it ->> 'tipo' = 'arma' then continue; end if;
@@ -680,10 +839,10 @@ begin
       eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + enc));
     end if;
   end loop;
-  fo := (p -> 'atributos' ->> 'for')::numeric + coalesce((eq ->> 'for')::numeric, 0);
-  de := (p -> 'atributos' ->> 'des')::numeric + coalesce((eq ->> 'des')::numeric, 0);
-  re := (p -> 'atributos' ->> 'res')::numeric + coalesce((eq ->> 'res')::numeric, 0);
-  inte := (p -> 'atributos' ->> 'int')::numeric + coalesce((eq ->> 'int')::numeric, 0);
+  fo := (p -> 'atributos' ->> 'for')::numeric + coalesce((eq ->> 'for')::numeric, 0) + coalesce((pas -> 'h' -> 'atributos' ->> 'for')::numeric, 0);
+  de := (p -> 'atributos' ->> 'des')::numeric + coalesce((eq ->> 'des')::numeric, 0) + coalesce((pas -> 'h' -> 'atributos' ->> 'des')::numeric, 0);
+  re := (p -> 'atributos' ->> 'res')::numeric + coalesce((eq ->> 'res')::numeric, 0) + coalesce((pas -> 'h' -> 'atributos' ->> 'res')::numeric, 0);
+  inte := (p -> 'atributos' ->> 'int')::numeric + coalesce((eq ->> 'int')::numeric, 0) + coalesce((pas -> 'h' -> 'atributos' ->> 'int')::numeric, 0);
   magico := T -> 'classes' -> (p ->> 'classe') ->> 'dano' = 'magico';
   iid := p -> 'equipados' ->> 'arma';
   select x into it from jsonb_array_elements(p -> 'inventario') x where x ->> 'id' = iid limit 1;
@@ -695,12 +854,20 @@ begin
     dmin := dmin + extra; dmax := dmax + extra;
   end if;
   bonus := floor((case when magico then inte else fo end) / 5);
+  dmin := dmin + bonus; dmax := dmax + bonus;
+  hp := (T ->> 'HP_INICIAL')::numeric + greatest(0, re - (p -> 'atributosIniciais' ->> 'res')::numeric) * (T ->> 'HP_POR_RES')::numeric
+      + (nivel - 1) * (T ->> 'HP_POR_NIVEL')::numeric + coalesce((eq ->> 'vida')::numeric, 0);
+  dfs := floor(re / 10) + coalesce((eq ->> 'defesa')::numeric, 0);
+  dfm := floor(re / 10) + coalesce((eq ->> 'defesaMagica')::numeric, 0);
+  if pv ? 'vidaPct' then hp := round(hp * (1 + (pv ->> 'vidaPct')::numeric / 100)); end if;
+  if pv ? 'defesaPct' then dfs := round(dfs * (1 + (pv ->> 'defesaPct')::numeric / 100)); dfm := round(dfm * (1 + (pv ->> 'defesaPct')::numeric / 100)); end if;
+  -- Na Arena não há crítico: bônus de crítico da passiva viram dano (chance inteira, dano crítico pela metade).
+  pct := coalesce((pv ->> 'dano')::numeric, 0) + coalesce((pv ->> 'critico')::numeric, 0)
+    + (coalesce((pv ->> 'danoCritico')::numeric, 0) + coalesce((pv ->> 'danoCriticoMagico')::numeric, 0)) / 2;
+  if pct > 0 then dmin := round(dmin * (1 + pct / 100)); dmax := round(dmax * (1 + pct / 100)); end if;
   return jsonb_build_object(
-    'hpMax', (T ->> 'HP_INICIAL')::numeric + greatest(0, re - (p -> 'atributosIniciais' ->> 'res')::numeric) * (T ->> 'HP_POR_RES')::numeric
-      + (nivel - 1) * (T ->> 'HP_POR_NIVEL')::numeric + coalesce((eq ->> 'vida')::numeric, 0),
-    'dano', jsonb_build_array(dmin + bonus, dmax + bonus), 'magico', magico,
-    'defesa', floor(re / 10) + coalesce((eq ->> 'defesa')::numeric, 0),
-    'defesaMagica', floor(re / 10) + coalesce((eq ->> 'defesaMagica')::numeric, 0),
+    'hpMax', hp, 'dano', jsonb_build_array(dmin, dmax), 'magico', magico, 'defesa', dfs, 'defesaMagica', dfm,
+    'esquiva', coalesce((pv ->> 'evasao')::numeric, 0),
     'velocidade', round((T -> 'VELOCIDADE' ->> 'inicial')::numeric * power((T -> 'VELOCIDADE' ->> 'porNivel')::numeric, nivel - 1)));
 end $$;
 
@@ -883,7 +1050,10 @@ begin
   return jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca',
     'skin', coalesce(p.dados ->> 'skinDado', 'vermelho'),
     'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'hp', s -> 'hpMax', 'hpMax', s -> 'hpMax', 'dano', s -> 'dano', 'magico', s -> 'magico',
-    'defesa', s -> 'defesa', 'defesaMagica', s -> 'defesaMagica', 'vel', greatest(1, (s ->> 'velocidade')::numeric), 'barra', 0);
+    'defesa', s -> 'defesa', 'defesaMagica', s -> 'defesaMagica', 'vel', greatest(1, (s ->> 'velocidade')::numeric), 'barra', 0,
+    'velBase', greatest(1, (s ->> 'velocidade')::numeric), 'esquiva', coalesce(s -> 'esquiva', '0'::jsonb),
+    'classe2', case when public.arena_pontos_ok(p.dados) then p.dados -> 'talentos' -> 'classe2' else 'null'::jsonb end,
+    'kit', public.arena_kit(p.dados), 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
 end $$;
 
 -- Um golpe com o dado: 1 erra; os outros multiplicam o dano (tabela ARENA.dado); a defesa do alvo é descontada.
@@ -943,7 +1113,7 @@ end $$;
 -- O defensor está offline: o servidor rola o dado por ele.
 create or replace function public.arena_avancar(luta_id bigint) returns void
 language plpgsql as $$
-declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; ev jsonb := '[]'::jsonb; dado int; dano int; turnos int; limite int;
+declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; ev jsonb := '[]'::jsonb; dado int; dano int; turnos int; limite int; r jsonb;
 begin
   select * into L from public.arena_lutas where id = luta_id for update;
   e := L.estado; a := e -> 'a'; d := e -> 'd'; turnos := (e ->> 'turnos')::int;
@@ -955,16 +1125,24 @@ begin
       perform public.arena_finalizar(luta_id, (a ->> 'hp')::numeric / (a ->> 'hpMax')::numeric >= (d ->> 'hp')::numeric / (d ->> 'hpMax')::numeric);
       return;
     end if;
-    if (a ->> 'barra')::numeric >= 100 and (a ->> 'barra')::numeric >= (d ->> 'barra')::numeric then
+    if (a ->> 'barra')::numeric >= 100 and (a ->> 'barra')::numeric >= (d ->> 'barra')::numeric
+       and coalesce((a ->> 'atordoado')::int, 0) > 0 then
+      -- O atacante está atordoado: perde a vez sem rolar o dado.
+      r := public.arena_vez(a, d, null);
+      a := r -> 'eu'; d := r -> 'outro';
+      a := jsonb_set(a, '{barra}', to_jsonb((a ->> 'barra')::numeric - 100));
+      turnos := turnos + 1;
+      ev := ev || ((r -> 'ev') || jsonb_build_object('de', 'a', 'hpA', a -> 'hp', 'hpD', d -> 'hp', 'hpMaxA', a -> 'hpMax', 'hpMaxD', d -> 'hpMax'));
+    elsif (a ->> 'barra')::numeric >= 100 and (a ->> 'barra')::numeric >= (d ->> 'barra')::numeric then
       update public.arena_lutas set eventos = eventos || ev, estado = jsonb_build_object('a', a, 'd', d, 'turnos', turnos, 'pendente', true) where id = luta_id;
       return;
     elsif (d ->> 'barra')::numeric >= 100 then
-      dado := 1 + floor(random() * 20)::int;
-      dano := public.arena_golpe(d, a, dado);
-      a := jsonb_set(a, '{hp}', to_jsonb(greatest(0, (a ->> 'hp')::int - dano)));
+      dado := case when coalesce((d ->> 'atordoado')::int, 0) > 0 then null else 1 + floor(random() * 20)::int end;
+      r := public.arena_vez(d, a, dado);
+      d := r -> 'eu'; a := r -> 'outro'; dano := (r -> 'ev' ->> 'dano')::int;
       d := jsonb_set(d, '{barra}', to_jsonb((d ->> 'barra')::numeric - 100));
       turnos := turnos + 1;
-      ev := ev || jsonb_build_object('de', 'd', 'dado', dado, 'dano', dano, 'hpA', a -> 'hp', 'hpD', d -> 'hp');
+      ev := ev || ((r -> 'ev') || jsonb_build_object('de', 'd', 'dado', dado, 'hpA', a -> 'hp', 'hpD', d -> 'hp', 'hpMaxA', a -> 'hpMax', 'hpMaxD', d -> 'hpMax'));
       if (a ->> 'hp')::int <= 0 then
         update public.arena_lutas set eventos = eventos || ev, estado = jsonb_build_object('a', a, 'd', d, 'turnos', turnos, 'pendente', false) where id = luta_id;
         perform public.arena_finalizar(luta_id, false);
@@ -980,18 +1158,19 @@ end $$;
 -- O atacante rola o dado (rolar = false: o tempo acabou, ataque normal = face 6).
 create or replace function public.arena_jogar(luta_id bigint, rolar boolean) returns void
 language plpgsql as $$
-declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; dado int; dano int;
+declare L public.arena_lutas; e jsonb; a jsonb; d jsonb; dado int; r jsonb;
 begin
   select * into L from public.arena_lutas where id = luta_id for update;
   e := L.estado;
   if L.situacao <> 'andamento' or not (e ->> 'pendente')::boolean then raise exception 'Não é a sua vez.'; end if;
   a := e -> 'a'; d := e -> 'd';
   dado := case when rolar then 1 + floor(random() * 20)::int else 6 end;
-  dano := public.arena_golpe(a, d, dado);
-  d := jsonb_set(d, '{hp}', to_jsonb(greatest(0, (d ->> 'hp')::int - dano)));
+  r := public.arena_vez(a, d, dado);
+  a := r -> 'eu'; d := r -> 'outro';
   a := jsonb_set(a, '{barra}', to_jsonb((a ->> 'barra')::numeric - 100));
   update public.arena_lutas set
-    eventos = eventos || jsonb_build_array(jsonb_build_object('de', 'a', 'dado', dado, 'dano', dano, 'auto', not rolar, 'hpA', a -> 'hp', 'hpD', d -> 'hp')),
+    eventos = eventos || jsonb_build_array((r -> 'ev') || jsonb_build_object('de', 'a', 'dado', dado, 'auto', not rolar,
+      'hpA', a -> 'hp', 'hpD', d -> 'hp', 'hpMaxA', a -> 'hpMax', 'hpMaxD', d -> 'hpMax')),
     estado = jsonb_build_object('a', a, 'd', d, 'turnos', (e ->> 'turnos')::int + 1, 'pendente', false)
   where id = luta_id;
   if (d ->> 'hp')::int <= 0 then perform public.arena_finalizar(luta_id, true);
@@ -1162,7 +1341,8 @@ revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int
   public.arena_entradas_atual(text), public.arena_gastar_entrada(text), public.creditar(text, int, int, text), public.ouro_real(text),
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
   public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
-  public.arena_comecar(text, text, bigint) from public, anon, authenticated;
+  public.arena_comecar(text, text, bigint), public.arena_pontos_ok(jsonb), public.arena_passiva(jsonb), public.arena_kit(jsonb),
+  public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int) from public, anon, authenticated;
 
 -- ---------- Alianças ----------
 -- Tudo passa pelas funções abaixo (sem acesso direto às tabelas). Ouro e reputação gastos saem

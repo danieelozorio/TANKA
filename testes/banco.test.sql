@@ -198,4 +198,51 @@ select pg_temp.igual(public.alianca_estado('pb', null) -> 'alianca', 'null'::jso
 select pg_temp.igual((select count(*) from public.aliancas)::int, 0, 'tabela de alianças fechada para leitura direta');
 reset role;
 select pg_temp.igual((select count(*) from public.aliancas)::int, 0, 'aliança apagada de verdade');
+-- Habilidades na Arena (funções internas, rodando como dono do banco)
+create function pg_temp.heroi(classe text, nivel int, talentos jsonb) returns jsonb language sql as $$
+  select jsonb_build_object('nome', 'X', 'nivel', nivel, 'classe', classe, 'inventario', '[]'::jsonb, 'equipados', '{}'::jsonb,
+    'atributos', '{"for":15,"des":20,"res":10,"int":10,"sor":20}'::jsonb, 'atributosIniciais', '{"for":15,"des":20,"res":10,"int":10,"sor":20}'::jsonb,
+    'talentos', talentos);
+$$;
+select pg_temp.igual(public.arena_kit(pg_temp.heroi('arqueiro', 5, null)) -> 0 ->> 'nome', 'Chuva de Flechas', 'arena: antes do 10, a habilidade inicial');
+select pg_temp.igual((select string_agg(x ->> 'nome', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 11,
+  '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2,"lamina-afiada":1},"ordem":{"arena":["golpe-fatal","sombra","mira-certeira"]}}'))) x),
+  'Golpe Fatal,Sombra', 'arena: ordem da Arena, só com ponto');
+select pg_temp.igual((public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"golpe-fatal":2},"ordem":{"arena":["golpe-fatal"]}}')) -> 0 ->> 'mult')::numeric,
+  160::numeric, 'arena: Golpe Fatal com 2 pontos = 160%');
+select pg_temp.igual(jsonb_array_length(public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"golpe-fatal":9},"ordem":{"arena":["golpe-fatal"]}}'))),
+  0, 'arena: pontos acima do level não valem');
+select pg_temp.igual((public.tanka_status(pg_temp.heroi('cavaleiro', 11, '{"classe2":"paladino","pontos":{"pele-de-ferro":1},"ordem":{}}')) ->> 'hpMax')::numeric,
+  round((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric * 1.11), 'arena: passiva Pele de Ferro +11% de vida');
+do $$
+declare a jsonb; d jsonb; r jsonb; i int := 0;
+begin
+  a := jsonb_build_object('hp', 500, 'hpMax', 500, 'dano', '[20,20]'::jsonb, 'magico', false, 'defesa', 0, 'defesaMagica', 0, 'velBase', 20, 'vel', 20,
+    'esquiva', 0, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2},"ordem":{"arena":["sombra","golpe-fatal"]}}')),
+    'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
+  d := a || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"cacador","pontos":{"flecha-na-perna":1},"ordem":{"arena":["flecha-na-perna"]}}')));
+  r := public.arena_vez(a, d, 10); a := r -> 'eu'; d := r -> 'outro';
+  if r -> 'ev' ->> 'hab' <> 'Sombra' then raise exception 'FALHA arena: 1ª vez devia usar Sombra: %', r -> 'ev'; end if;
+  r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
+  if not (r -> 'ev' ? 'sombra') or (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: ataque devia errar na Sombra: %', r -> 'ev'; end if;
+  r := public.arena_vez(a, d, 2); a := r -> 'eu'; d := r -> 'outro';
+  if r -> 'ev' ->> 'hab' <> 'Golpe Fatal' or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <> 64 then
+    raise exception 'FALHA arena: Golpe Fatal com dado garantido devia dar 20 x 2 x 1,6 = 64: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Sombra faz errar e o golpe seguinte vale o 20 do dado';
+  -- Flecha na Perna atordoa: o outro perde a vez sem dado (a 1ª flecha foi gasta na Sombra)
+  d := jsonb_set(d, '{pronto}', '{}');
+  r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
+  if (a ->> 'atordoado')::int <> 2 then raise exception 'FALHA arena: devia atordoar 2: %', r -> 'ev'; end if;
+  r := public.arena_vez(a, d, null); a := r -> 'eu'; d := r -> 'outro';
+  if not (r -> 'ev' ? 'atordoado') then raise exception 'FALHA arena: devia perder a vez: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: atordoado perde a vez';
+  -- luta inteira sem erro
+  while (a ->> 'hp')::int > 0 and (d ->> 'hp')::int > 0 and i < 400 loop
+    r := public.arena_vez(a, d, case when (a ->> 'atordoado')::int > 0 then null else 1 + floor(random() * 20)::int end); a := r -> 'eu'; d := r -> 'outro';
+    r := public.arena_vez(d, a, case when (d ->> 'atordoado')::int > 0 then null else 1 + floor(random() * 20)::int end); d := r -> 'eu'; a := r -> 'outro';
+    i := i + 1;
+  end loop;
+  if i >= 400 then raise exception 'FALHA arena: a luta não acabou'; end if;
+  raise notice 'ok   arena: luta com habilidades até o fim (% rodadas)', i;
+end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM
