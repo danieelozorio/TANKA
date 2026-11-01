@@ -217,7 +217,7 @@
     chatVisivel(false);
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
-      var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div>'
+      var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div>'
         + '<div class="nome">' + esc(p.nome) + '</div>'
         + '<div class="detalhe">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + ' · Lv ' + p.nivel + '</div>';
       // Excluir pede o nome do personagem digitado, para não apagar sem querer.
@@ -424,6 +424,8 @@
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   function nomeClasse(k, sexo) { var x = D.classes[k]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
+  // Retrato: o da segunda classe quando já escolheu (assets/personagens/<raca>-<segunda classe>[-f].jpg).
+  function classeRetrato(x) { var c2 = x.classe2 || (x.talentos && x.talentos.classe2); return c2 && D.SEGUNDAS_CLASSES[c2] ? c2 : x.classe; }
   // Classe de um lutador vindo do servidor (com a segunda classe, quando tiver).
   function nomeClasseX(x) { var c = x.classe2 && D.SEGUNDAS_CLASSES[x.classe2]; return c ? (x.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(x.classe, x.sexo); }
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
@@ -505,7 +507,7 @@
     ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
     return '<aside class="caixa ficha">'
-      + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><div>'
+      + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
@@ -818,7 +820,7 @@
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');
     var foco = estado.itemFoco ? p.inventario.find(function (i) { return i.id === estado.itemFoco; }) : null;
     return '<div class="personagem-tela"><div class="boneco">' + slots
-      + '<div class="retrato-central">' + F.personagem(p.raca, p.classe, p.sexo) + '</div></div>'
+      + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
       + '<div class="lateral"><div class="caixa-interna" id="ficha-item">' + fichaItemHtml(foco) + '</div>'
       + '<div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
@@ -1551,7 +1553,7 @@
     var p = estado.personagem;
     var em = !!estado.batalha;
     return '<div class="arena">'
-      + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
+      + '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
       + '<div id="hp-jogador">' + barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'jogador') + '</div>'
       + (D.HABILIDADES_ATIVAS ? '<div id="poder-jogador">' + barraPoder(b) + '</div>' : '')
       + '<div class="suave">Velocidade ' + b.jogador.vel + '</div>'
@@ -1881,7 +1883,7 @@
     var area = D.areas.find(function (a) { return a.id === c.area; }), e = estiloArea(area, D.areas.indexOf(area));
     var emLuta = c.fase === 'lutando' && b;
     var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
-    var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, p.classe, p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
+    var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
       + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>'
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
@@ -2842,7 +2844,7 @@
   function lutaMasmorraHtml() {
     var L = estado.luta, ini = L.sim.inicio;
     var herois = ini.herois.map(function (h, i) {
-      return '<div class="mas-lutador' + (L.hpH[i] ? '' : ' caido') + '"><div class="moldura">' + F.personagem(h.raca, h.classe, h.sexo) + '</div>'
+      return '<div class="mas-lutador' + (L.hpH[i] ? '' : ' caido') + '"><div class="moldura">' + F.personagem(h.raca, classeRetrato(h), h.sexo) + '</div>'
         + '<div class="mas-nome">' + esc(h.nome) + '</div>' + barra('hp', L.hpH[i], h.hpMax, L.hpH[i] + ' / ' + h.hpMax, 'heroi' + i) + '</div>';
     }).join('');
     var monstros = ini.salas[L.sala].map(function (m, i) {
@@ -2884,7 +2886,7 @@
     for (var i = 0; i < M.tamanhoGrupo; i++) {
       var m = gr.membros[i];
       if (!m) { vagas.push('<div class="mas-vaga vazia">Vaga livre' + (gr.convidados[i - gr.membros.length] ? '<div class="suave pequeno">Convidado: ' + esc(gr.convidados[i - gr.membros.length]) + '</div>' : '') + '</div>'); continue; }
-      vagas.push('<div class="mas-vaga' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, m.classe, m.sexo) + '</div>'
+      vagas.push('<div class="mas-vaga' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
         + '<div><strong>' + (m.id === gr.lider ? '👑 ' : '') + esc(m.nome) + '</strong></div>'
         + '<div class="suave pequeno">' + nomeClasse(m.classe, m.sexo) + ' · Lv ' + m.nivel + ' · entradas ' + (M.entradasPorDia - m.entradas) + '/' + M.entradasPorDia + '</div>'
         + '<div class="' + (m.pronto ? 'online' : 'suave') + ' pequeno">' + (m.pronto ? '✔ Pronto' : 'Aguardando') + '</div>'
@@ -3056,7 +3058,7 @@
       }).join('');
       var sq = A.saque, ouro = pf.ouro || 0;
       var saque = Math.floor(ouro * sq.minimo / 100).toLocaleString('pt-BR') + ' a ' + Math.floor(ouro * sq.maximo / 100).toLocaleString('pt-BR');
-      corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, pf.classe, pf.sexo) + '</div><div>'
+      corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, classeRetrato(pf), pf.sexo) + '</div><div>'
         + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + nomeRaca(pf.raca, pf.sexo) + ' · ' + nomeClasse(pf.classe, pf.sexo) + ' · Level ' + pf.nivel + '</div>'
         + (pf.alianca ? '<div class="desafio-alianca">' + brasaoSvg(pf.alianca.brasao) + '<span>' + esc(pf.alianca.nome) + ' ' + siglaHtml(pf.alianca.sigla) + '</span></div>' : '')
         + '<div class="desafio-selos">' + (pf.posicao ? '<span class="selo-pos">#' + pf.posicao + ' · ' + esc(nomeArena(pf.arena)) + '</span>' : '')
@@ -3397,7 +3399,7 @@
   function lutaArenaHtml() {
     var L = estado.lutaArena, est = L.luta.estado, a = est.a, d = est.d;
     function lutador(x, hp, lado) {
-      return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, x.classe, x.sexo) + '</div>'
+      return '<div class="lutador arena-lutador" id="lutador-' + lado + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
         + '<h3>' + esc(x.nome) + '</h3><div class="suave pequeno">' + nomeClasseX(x) + ' · Lv ' + x.nivel + '</div>'
         + barra('hp', hp, x.hpMax, hp + ' / ' + x.hpMax, 'arena-' + lado) + '</div>';
     }

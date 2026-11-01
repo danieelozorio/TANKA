@@ -1192,12 +1192,12 @@ Tanka.regras = (function () {
     var hs = herois.map(function (dados) {
       var p = normalizar(JSON.parse(JSON.stringify(dados)));
       var s = status(p);
-      return { nome: p.nome, classe: p.classe, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
+      return { nome: p.nome, classe: p.classe, classe2: p.talentos && p.talentos.classe2 || null, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
     var salas = salasMasmorra(masmorraId);
     var inicio = {
-      herois: hs.map(function (h) { return { nome: h.nome, classe: h.classe, raca: h.raca, sexo: h.sexo, hpMax: h.hpMax }; }),
+      herois: hs.map(function (h) { return { nome: h.nome, classe: h.classe, classe2: h.classe2, raca: h.raca, sexo: h.sexo, hpMax: h.hpMax }; }),
       salas: salas.map(function (sala) { return sala.map(function (m) { return { id: m.id, nome: m.nome, hpMax: m.hp, elite: m.elite, chefe: m.chefe }; }); }),
     };
     var eventos = [];
