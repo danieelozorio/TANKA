@@ -986,7 +986,8 @@
           + T.pontosIniciais + ' pontos agora e +' + T.pontosPorNivel + ' a cada level.</p>' : '')
         + '<div class="escolha-classe2">' + opcoes.map(function (id) {
           var sc = D.SEGUNDAS_CLASSES[id];
-          return '<div class="classe2"><h4>' + (fem && sc.nomeF || sc.nome) + '</h4><p class="suave">' + sc.descricao + '</p>'
+          return '<div class="classe2"><div class="classe2-retrato moldura">' + F.personagem(p.raca, id, p.sexo) + '</div>'
+            + '<h4>' + (fem && sc.nomeF || sc.nome) + '</h4><p class="suave">' + sc.descricao + '</p>'
             + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span><br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>'
             + (pode ? '<button class="btn" data-acao="hab-classe" data-valor="' + id + '">Ser ' + (fem && sc.nomeF || sc.nome) + '</button>' : '') + '</div>';
         }).join('') + '</div>';
