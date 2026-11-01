@@ -121,8 +121,8 @@ teste('distribuir ponto em RES aumenta o HP máximo e atual', () => {
   p.pontosLivres = 1;
   assert.ok(R.distribuirPonto(p, 'res'));
   assert.strictEqual(p.atributos.res, 21);
-  assert.strictEqual(R.status(p).hpMax, 105);
-  assert.strictEqual(p.hpAtual, 105);
+  assert.strictEqual(R.status(p).hpMax, 103);   // +3 de vida por ponto de RES
+  assert.strictEqual(p.hpAtual, 103);
   assert.ok(!R.distribuirPonto(p, 'res'));
 });
 
@@ -181,7 +181,8 @@ teste('mago causa dano mágico com INT', () => {
   const p = R.criarPersonagem('T', 'masculino', 'elfo', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [1 + Math.floor(23 / 5), 5 + Math.floor(23 / 5)]);
+  assert.deepStrictEqual([...s.dano], [1 + Math.floor(23 / 3), 5 + Math.floor(23 / 3)]);   // +1 a cada 3 de INT
+  assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).sor, 'crítico mágico: 1% por ponto de Sorte');
 });
 
 teste('batalha completa contra o lobo termina e aplica resultado', () => {
@@ -377,9 +378,9 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel2');
   const s1 = R.status(p);
   assert.strictEqual(s1.defesa, s0.defesa + 8 + 6);
-  assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 5); // vida do peitoral + 4 RES * 5 HP
+  assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor + 2);
-  assert.strictEqual(s1.chanceCritico, (p.atributos.sor + 2) * 0.5);
+  assert.strictEqual(s1.chanceCritico, (p.atributos.sor + 2 + p.atributos.des) * 0.5);   // Sorte e Destreza
 });
 
 teste('equipar: só armadura da própria classe; joia serve para todos', () => {
@@ -464,10 +465,11 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
   assert.strictEqual(D.areas.length, 7);
   for (const a of D.areas) {
     const [m1, m2, m3] = a.monstros.map((m) => D.monstros[m.id]);
-    assert.strictEqual(m1.hp, a.base.hp); assert.strictEqual(m1.exp, a.base.exp);
+    const aj = a.ajusteVida || 1;
+    assert.strictEqual(m1.hp, Math.round(a.base.hp * aj)); assert.strictEqual(m1.exp, a.base.exp);
     const cr = a.crescimento || D.crescimento;
     [m1, m2, m3].forEach((m, i) => {
-      assert.strictEqual(m.hp, a.base.hp * 2 ** i); assert.strictEqual(m.exp, a.base.exp * 2 ** i);
+      assert.strictEqual(m.hp, Math.round(a.base.hp * 2 ** i * aj)); assert.strictEqual(m.exp, a.base.exp * 2 ** i);
       assert.ok(m.ataque[0] < m.ataque[1], 'dano em faixa');
     });
     assert.ok(m1.velocidade < m2.velocidade && m2.velocidade < m3.velocidade);
@@ -477,7 +479,7 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
     assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
-  assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [70, 280, 2200]);
+  assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [112, 448, 2970]);   // com o ajusteVida da área
   assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [10, 15, 18]);
   assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
 });
@@ -1034,4 +1036,19 @@ teste('fugir ou evitar o chefe zera a chance dele aparecer na área', () => {
   p.presencaChefe.floresta = 12;
   assert.ok(!R.evitarChefe(p, 'lobo'), 'monstro comum não mexe');
   assert.strictEqual(p.presencaChefe.floresta, 12);
+});
+
+teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa Destreza)', () => {
+  const c = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  assert.strictEqual(D.classes.arqueiro.nome, 'Caçador');
+  assert.strictEqual(D.SEGUNDAS_CLASSES.cacador.nome, 'Arqueiro');
+  const antes = R.status(c).dano[0];
+  c.atributos.for += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Força não dá dano ao Caçador');
+  c.atributos.des += 3; assert.strictEqual(R.status(c).dano[0], antes + 1);
+  const k = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'), d0 = R.status(k).dano[0];
+  k.atributos.for += 3; assert.strictEqual(R.status(k).dano[0], d0 + 1);
+  // presente: 1 Pergaminho do Recomeço para quem já tinha level
+  const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 8; delete v.recomecoPresente; v.recomecos = 0;
+  R.normalizar(v); R.normalizar(v);
+  assert.strictEqual(v.recomecos, 1);
 });

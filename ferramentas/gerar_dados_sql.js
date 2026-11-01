@@ -12,7 +12,8 @@ const D = vm.runInContext('Tanka.dados', ctx);
 const dados = {
   HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, VELOCIDADE: D.VELOCIDADE,
   raridades: Object.fromEntries(Object.entries(D.raridades).map(([k, r]) => [k, { danoMin: r.danoMin, danoMax: r.danoMax }])),
-  classes: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, { dano: c.dano }])),
+  classes: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, { dano: c.dano, atributoDano: c.atributoDano }])),
+  PONTOS_POR_DANO: D.PONTOS_POR_DANO,
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, { bonus: v.bonus }])),
   danoPorNivel: D.encantamento.danoPorNivel, bonusPorNivel: D.encantamento.bonusPorNivel,

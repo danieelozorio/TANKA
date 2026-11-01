@@ -68,7 +68,7 @@ Músicas por cena (`FAIXAS` em app.js, `assets/musica/`): entrada, jogo (Brumas 
 masmorra (Halls Below), arena (Arena e Glória), chefe (Eldrin of Fate). Botão ⚙ = configurações (música, volumes), à direita;
 chat à esquerda. Raça/classe no feminino (`nomeF` em dados.js, `nomeRaca`/`nomeClasse` em app.js). Mochila: seta verde
 (`R.itemMelhor`, pelo Poder) e botão direito equipa (menu do navegador bloqueado no jogo). Caçada: opção Chefes
-(perguntar/fugir/lutar). Floresta com metade do dano (masmorra Toca compensada com ataque 8).
+(perguntar/fugir/lutar). Fugir/evitar chefe zera a presença dele (`evitarChefe`). Floresta com metade do dano (masmorra Toca compensada com ataque 8).
 Habilidades (Herói > Habilidades): `TALENTOS`, `HABILIDADE_INICIAL`, `SEGUNDAS_CLASSES` em dados.js; regras em regras.js
 (`talentos`, `kitHabilidades`, `novoLutador`, `vezComHabilidades`, masmorra em `simularMasmorra`). Inicial antes do 10;
 segunda classe no 10 (4 pontos +1/level, máx. 10 por habilidade, 1 ponto libera); uma habilidade por vez (1ª pronta da
@@ -83,6 +83,16 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   Sugestão feita: crescimento de +50% para +25–30% por level, e dar exp em missões/masmorras. Esperando ele escolher.
 - Mago fraco nas áreas altas; dano novo dos monstros deixou o começo bem mais difícil (ele pediu assim).
 - Ranking só atualiza ao abrir a aba ou clicar em Atualizar (ofereci atualizar sozinho).
-- Rodapé ainda mostra `tankaarena.com`; trocar quando houver domínio novo do Eldrin.
 - Ideias: arma secundária (mão esquerda), música céltica "Vale Sereno" (prompt feito, ainda não gerada), Fase 2 anti-trapaça
   (servidor conferir lutas/ouro/itens), avisos do jogo no Discord por webhook.
+
+## Atributos (rebalanceados) e armas (em andamento)
+- +1 de dano a cada `PONTOS_POR_DANO` (3) do `atributoDano` da classe: FOR (Cavaleiro/Artesão), DES (Caçador = id `arqueiro`),
+  INT (Mago). Crítico físico = (SOR + DES) × 0,5%; crítico mágico = SOR × 1%. RES = 3 de vida por ponto; 10 de vida por level.
+  Monstros com `ajusteVida` por área (compensa o dano maior). Presente: 1 Pergaminho do Recomeço (`recomecoPresente`).
+- Nomes: classe base `arqueiro` aparece como **Caçador**; segunda classe `cacador` aparece como **Arqueiro** (ids não mudam).
+- Rodapé: Eldrinonline.com.br (o e-mail interno do login continua @jogador.tankaarena.com — NÃO mudar).
+- Parte 2 (armas) aprovada, falta fazer: 3 tipos por classe + mão esquerda (Escudo só defesa; Aljava não com Balestra/Adaga;
+  duas mãos ocupa a esquerda e mostra a mesma arma apagada com a ficha da principal), velocidade Devagar/Normal/Rápida,
+  rara +atributo, épica +10% PvE, lendária +10% PvP; armas de segunda classe só a partir de rara; arma incompatível fica
+  usável até desequipar. Lista completa no arquivo do Daniel (Armas_Secundarias.txt). Parte 3: armaduras com atributos variados.

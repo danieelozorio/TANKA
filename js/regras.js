@@ -361,6 +361,12 @@ Tanka.regras = (function () {
   // Atualiza personagens salvos em versões antigas do jogo.
   function normalizar(p) {
     if (!p.sexo) p.sexo = 'masculino';
+    // Atributos rebalanceados (3 pontos = +1 de dano, Destreza para o Caçador): quem já tinha level ganha
+    // 1 Pergaminho do Recomeço de presente, uma vez só (1 = ainda não avisou o jogador; 2 = avisado).
+    if (!p.recomecoPresente) {
+      if (p.nivel > 1) p.recomecos = (p.recomecos || 0) + 1;
+      p.recomecoPresente = p.nivel > 1 ? 1 : 2;
+    }
     if (typeof p.ouro !== 'number') p.ouro = 0;
     if (!p.pergaminhos) p.pergaminhos = { comum: 0, rara: 0, epica: 0, lendaria: 0 };
     p.inventario.forEach(function (i) {
@@ -395,7 +401,8 @@ Tanka.regras = (function () {
     var arma = armaEquipada(p);
     var magico = D.classes[p.classe].dano === 'magico';
     var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
-    var bonus = magico ? Math.floor(a.int / 5) : Math.floor(a.for / 5);
+    // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
+    var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
     return comPassiva({
       hpMax: D.HP_INICIAL
         + Math.max(0, a.res - p.atributosIniciais.res) * D.HP_POR_RES
@@ -403,17 +410,17 @@ Tanka.regras = (function () {
         + eq.vida,
       tipoDano: magico ? 'magico' : 'fisico',
       danoArma: danoArma,
-      ataque: Math.floor(a.for / 5),                 // FOR
-      ataqueMagico: Math.floor(a.int / 5),           // INT
+      ataque: magico ? 0 : bonus,                    // FOR (Cavaleiro/Artesão) ou DES (Caçador)
+      ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       dano: [danoArma[0] + bonus, danoArma[1] + bonus],
       defesa: Math.floor(a.res / 10) + eq.defesa,              // RES + armaduras
       defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
       precisao: 75 + a.des,                          // DES (%)
       evasao: a.des * 0.5,                           // DES (%)
       velocidade: velocidadeDoNivel(p.nivel),        // 15 no level 1, +6% por level (não depende da DES)
-      chanceCritico: a.sor * 0.5,                    // SOR (%)
+      chanceCritico: (a.sor + a.des) * 0.5,          // SOR e DES (%)
       danoCritico: 150 + a.for,                      // FOR (% do dano)
-      chanceCriticoMagico: a.des * 0.5,              // DES (%)
+      chanceCriticoMagico: a.sor,                    // SOR (1% por ponto)
       danoCriticoMagico: 150 + a.sor,                // SOR (% do dano)
       chanceCraft: a.sor,                            // SOR (%)
       bonusDrop: a.sor,                              // SOR (% a mais sobre a chance base)

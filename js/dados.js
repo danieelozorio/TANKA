@@ -5,7 +5,7 @@ var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 Tanka.dados = {
   NOME_JOGO: 'Eldrin',
   SUBTITULO: 'RPG Narrado · Arena & Glória',
-  DOMINIO: 'tankaarena.com',
+  DOMINIO: 'Eldrinonline.com.br',
 
   // Contas com a aba Admin (ferramentas de teste). Use o nome de usuário em minúsculas.
   // Atenção: enquanto as contas ficam no navegador, isso não é segurança de verdade;
@@ -15,7 +15,8 @@ Tanka.dados = {
   // Progressão
   HP_INICIAL: 100,        // HP no level 1
   HP_POR_NIVEL: 10,       // HP extra a cada level
-  HP_POR_RES: 5,          // HP extra por ponto de Resistência distribuído
+  HP_POR_RES: 3,          // HP extra por ponto de Resistência distribuído
+  PONTOS_POR_DANO: 3,     // a cada 3 pontos do atributo de dano da classe (FOR, DES ou INT): +1 de dano
   PONTOS_POR_NIVEL: 3,    // pontos de atributo ganhos a cada level
   EXP_BASE: 10,           // exp para sair do level 1; dobra a cada level até o 5
   EXP_CRESCIMENTO: 1.5,   // do level 6 em diante, cada level pede 50% a mais que o anterior
@@ -24,11 +25,11 @@ Tanka.dados = {
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
 
   atributos: {
-    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque, dano crítico' },
-    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Chance de magia crítica, evasão, precisão' },
+    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro e Artesão), dano crítico' },
+    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Ataque (Caçador), chance de crítico, evasão, precisão' },
     res: { nome: 'Resistência', sigla: 'RES', efeito: 'Defesa, defesa mágica, vida' },
-    int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico' },
-    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Chance de crítico, dano crítico mágico, craft, drop e encantamento' },
+    int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico (Mago)' },
+    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Chance de crítico, crítico mágico, dano crítico mágico, craft, drop e encantamento' },
   },
 
   classes: {
@@ -36,25 +37,26 @@ Tanka.dados = {
       nome: 'Cavaleiro', nomeF: 'Cavaleira',
       descricao: 'Força e resistência elevadas. A muralha de aço da linha de frente.',
       atributos: { for: 15, des: 10, res: 20, int: 10, sor: 10 },
-      dano: 'fisico',
+      dano: 'fisico', atributoDano: 'for',
     },
+    // O id continua 'arqueiro' (personagens salvos); o nome na tela é Caçador.
     arqueiro: {
-      nome: 'Arqueiro', nomeF: 'Arqueira',
-      descricao: 'Destreza e sorte elevadas. Flechas rápidas e certeiras.',
+      nome: 'Caçador', nomeF: 'Caçadora',
+      descricao: 'Destreza e sorte elevadas. Arcos, bestas e golpes rápidos e certeiros.',
       atributos: { for: 15, des: 20, res: 10, int: 10, sor: 20 },
-      dano: 'fisico',
+      dano: 'fisico', atributoDano: 'des',
     },
     mago: {
       nome: 'Mago', nomeF: 'Maga',
       descricao: 'Destreza e inteligência elevadas. Domina as artes arcanas.',
       atributos: { for: 10, des: 15, res: 10, int: 20, sor: 10 },
-      dano: 'magico',
+      dano: 'magico', atributoDano: 'int',
     },
     artesao: {
       nome: 'Artesão', nomeF: 'Artesã',
       descricao: 'Força e sorte elevadas. Forja, encanta e esmaga com o martelo.',
       atributos: { for: 15, des: 10, res: 15, int: 10, sor: 20 },
-      dano: 'fisico',
+      dano: 'fisico', atributoDano: 'for',
     },
   },
 
@@ -285,7 +287,8 @@ Tanka.dados = {
         { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
         { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
       ] },
-    cacador: { de: 'arqueiro', nome: 'Caçador', nomeF: 'Caçadora', descricao: 'Controla a luta de longe: prende, dispara e corre.',
+    // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
+    cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',
       habilidades: [
         { id: 'flecha-na-perna', nome: 'Flecha na Perna', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica parado.' },
         { id: 'saraivada', nome: 'Saraivada', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
@@ -349,10 +352,11 @@ Tanka.dados = {
   // pergaminho: { chance, raridade } (sem isso, o 3º monstro tem 5% na raridade da arma equipada).
   // Chances em % (cumulativas, roladas uma vez), multiplicadas pelo bônus de Sorte.
   // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
+  // ajusteVida: multiplica a vida dos monstros da área (compensa o dano maior dos heróis desde que 3 pontos = +1 de dano).
   NIVEL_MAXIMO: 40,
   areas: [
     {
-      id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1,
+      id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1, ajusteVida: 1.65,
       crescimento: { ataque: 2 },
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
       base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
@@ -368,7 +372,7 @@ Tanka.dados = {
         dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
     },
     {
-      id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7,
+      id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
       base: { hp: 70, ataque: 8, exp: 10 }, ouro: [12, 20, 30],
       monstros: [
@@ -383,7 +387,7 @@ Tanka.dados = {
         dropItem: [{ raridade: 'rara', chance: 20 }], pergaminhos: { raridade: 'rara', qtd: [1, 3] } },
     },
     {
-      id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5,
+      id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.3,
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
       base: { hp: 140, ataque: 15, exp: 30 }, ouro: [40, 60, 80],
       monstros: [
@@ -398,7 +402,7 @@ Tanka.dados = {
         dropItem: [{ raridade: 'rara', chance: 25 }], pergaminhos: { raridade: 'rara', qtd: [2, 5] } },
     },
     {
-      id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3,
+      id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3, ajusteVida: 1.35,
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
       base: { hp: 200, ataque: 22, exp: 90 }, ouro: [100, 150, 200],
       monstros: [
@@ -413,7 +417,7 @@ Tanka.dados = {
         drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
     },
     {
-      id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2,
+      id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
       base: { hp: 320, ataque: 32, exp: 270 }, ouro: [800, 1600, 3200],
       monstros: [
@@ -429,7 +433,7 @@ Tanka.dados = {
         drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
     },
     {
-      id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15,
+      id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
       base: { hp: 420, ataque: 40, exp: 800 }, ouro: [2000, 4000, 8000],
       monstros: [
@@ -447,7 +451,7 @@ Tanka.dados = {
         drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
     },
     {
-      id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1,
+      id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 1.35,
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
       base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [5000, 10000, 20000],
       monstros: [
@@ -607,7 +611,7 @@ Tanka.dados = {
       var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i));
       D.monstros[m.id] = {
         nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
-        hp: b.hp * f, ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: Math.round(vel),
+        hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: Math.round(vel),
         defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
         drops: m.drops || [], dropsArmadura: m.dropsArmadura || [], dropsItem: m.dropsItem || [],
         // pergaminho: { chance, raridade } (raridade null = da arma equipada)

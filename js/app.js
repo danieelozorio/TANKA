@@ -325,7 +325,12 @@
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
     R.atualizarTempo(estado.personagem, C.agora());
+    var presente = estado.personagem.recomecoPresente === 1;
+    if (presente) estado.personagem.recomecoPresente = 2;
     salvar();   // também marca o personagem como online para os amigos
+    if (presente) setTimeout(function () {
+      avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
+    }, 800);
     estado.social = null;
     estado.gm = null;
     estado.luta = null;
@@ -553,15 +558,23 @@
     return c;
   }
   // Balão do atributo: o que ele faz, quanto cada ponto vale e quanto falta para o próximo degrau.
-  var REGRAS_ATRIBUTO = {
-    for: { ganhos: ['+1 de Ataque a cada 5 pontos (soma no dano dos golpes físicos)', '+1% de dano crítico por ponto'], degrau: [5, 'Ataque'] },
-    des: { ganhos: ['+1% de precisão por ponto', '+0,5% de evasão por ponto', '+0,5% de chance de magia crítica por ponto'] },
-    res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+1 de defesa e +1 de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
-    int: { ganhos: ['+1 de Ataque mágico a cada 5 pontos (soma no dano das magias)'], degrau: [5, 'Ataque mágico'] },
-    sor: { ganhos: ['+0,5% de chance de crítico por ponto', '+1% de dano crítico mágico por ponto', '+1% de drop, de encantamento e de craft por ponto'] },
-  };
+  // O que cada ponto vale, conforme a classe (o atributo de dano é FOR, DES ou INT).
+  function regrasAtributo(p) {
+    var dano = D.classes[p.classe].atributoDano, n = D.PONTOS_POR_DANO;
+    return {
+      for: { ganhos: (dano === 'for' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : []).concat(['+1% de dano crítico por ponto']),
+        degrau: dano === 'for' ? [n, 'Ataque'] : null },
+      des: { ganhos: (dano === 'des' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : [])
+        .concat(['+0,5% de chance de crítico por ponto', '+1% de precisão por ponto', '+0,5% de evasão por ponto']), degrau: dano === 'des' ? [n, 'Ataque'] : null },
+      res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+1 de defesa e +1 de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
+      int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
+        degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
+      sor: { ganhos: ['+0,5% de chance de crítico por ponto', '+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
+        '+1% de drop, de encantamento e de craft por ponto'] },
+    };
+  }
   function dicaAtributo(p, k, pend) {
-    var r = REGRAS_ATRIBUTO[k], total = p.atributos[k] + R.bonusEquipamentos(p)[k] + (pend[k] || 0);
+    var r = regrasAtributo(p)[k], total = p.atributos[k] + R.bonusEquipamentos(p)[k] + (pend[k] || 0);
     var falta = r.degrau ? r.degrau[0] - (total % r.degrau[0]) : 0;
     return '<span class="dica-balao" role="tooltip"><strong>' + D.atributos[k].nome + '</strong><span>' + DESCRICAO_ATRIBUTO[k] + '</span>'
       + '<em>Cada ponto vale:</em><ul>' + r.ganhos.map(function (g) { return '<li>' + g + '</li>'; }).join('') + '</ul>'
