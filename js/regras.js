@@ -607,6 +607,14 @@ Tanka.regras = (function () {
     return (rng || Math.random)() * 100 < chance ? area.chefe.id : null;
   }
 
+  // Fugiu ou evitou o chefe: a chance dele aparecer na área volta a zero (igual a quando é derrotado).
+  function evitarChefe(p, monstroId) {
+    var m = D.monstros[monstroId], area = m && areaDoMonstro(monstroId);
+    if (!m || !m.chefe || !area) return false;
+    p.presencaChefe[area.id] = 0;
+    return true;
+  }
+
   // Drop do chefe. Com `dropItem`: chance de 1 item de qualquer tipo (pode não vir nada).
   // Sem: sempre 1 arma ou armadura, raridade pela tabela do chefe.
   function dropChefe(p, m, rng) {
@@ -851,6 +859,8 @@ Tanka.regras = (function () {
         res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
         if (res.pergaminho) { p.pergaminhos[res.pergaminho] += 1; res.qtdPergaminhos = 1; }
       }
+    } else if (!b.fim) {
+      evitarChefe(p, b.monstroId);   // fugiu da luta contra o chefe
     } else if (b.fim === 'derrota') {
       p.hpAtual = 0;
       res.expPerdida = Math.min(p.exp, Math.ceil(expNecessaria(p.nivel) * D.PERDA_EXP_DERROTA / 100));
@@ -1502,6 +1512,7 @@ Tanka.regras = (function () {
     resgatarBonusDiario: resgatarBonusDiario,
     missoesProntas: missoesProntas,
     sortearChefe: sortearChefe,
+    evitarChefe: evitarChefe,
     skinsDoPersonagem: skinsDoPersonagem,
     comprarSkin: comprarSkin,
     comprarRecomeco: comprarRecomeco,

@@ -1833,6 +1833,7 @@
     var c = estado.cacada;
     if (!c || c.fase !== 'encontrou') return;
     clearTimeout(c.timer);
+    if (c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // evitou o chefe: a chance zera
     c.historico.unshift({ monstro: c.encontro.monstro, resultado: 'evitou' });
     c.historico = c.historico.slice(0, D.CACADA.historico);
     procurarMonstro();
@@ -1845,6 +1846,7 @@
     c.prazo = null;
     c.motivo = motivo || 'Você parou a caçada.';
     if (estado.batalha) { encerrar(); return; }        // parar no meio da luta = fugir dela
+    if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // parou com o chefe na frente
     c.fase = 'parada';
     clearInterval(c.relogio);
     telaJogo();

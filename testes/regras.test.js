@@ -1020,3 +1020,17 @@ teste('habilidades na masmorra: mesma semente, mesma luta; cura e área aparecem
   assert.ok(nomes.has('Martelo Sagrado') || nomes.has('Nevasca'), 'usa habilidade de área');
   assert.ok(a.eventos.every((e) => Array.isArray(e.hp)));
 });
+
+teste('fugir ou evitar o chefe zera a chance dele aparecer na área', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.presencaChefe.floresta = 37;
+  const b = R.iniciarBatalha(p, 'velgrath', rng);
+  R.concluirBatalha(p, b, T0);           // fugiu (sem fim)
+  assert.strictEqual(p.presencaChefe.floresta, 0);
+  p.presencaChefe.floresta = 12;
+  assert.ok(R.evitarChefe(p, 'velgrath'));
+  assert.strictEqual(p.presencaChefe.floresta, 0);
+  p.presencaChefe.floresta = 12;
+  assert.ok(!R.evitarChefe(p, 'lobo'), 'monstro comum não mexe');
+  assert.strictEqual(p.presencaChefe.floresta, 12);
+});
