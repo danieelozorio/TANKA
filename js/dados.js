@@ -114,12 +114,14 @@ Tanka.dados = {
     anel1: { nome: 'Anel', tipo: 'anel' },
     anel2: { nome: 'Anel', tipo: 'anel' },
     botas: { nome: 'Botas', tipo: 'botas' },
+    secundaria: { nome: 'Mão esquerda', tipo: 'secundaria' },
   },
 
   // Nomes dos bônus de equipamento.
   bonus: {
     defesa: 'Defesa', defesaMagica: 'Defesa Mágica', vida: 'Vida',
     for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte',
+    dano: 'Dano', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
   },
 
   // Armaduras de cada classe. Valores dos bônus na ordem: comum, rara, épica, lendária.
@@ -185,7 +187,7 @@ Tanka.dados = {
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
-    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'sor' },
+    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'sor' },   // mão esquerda: MAO_ESQUERDA[x].encanto
   },
 
   sexos: {
@@ -217,6 +219,75 @@ Tanka.dados = {
       epica: ['Martelo do Trovão Ancestral', 'Martelo Vulcânico', 'Martelo da Tempestade', 'Martelo do Gigante', 'Martelo Gélido', 'Martelo do Terremoto', 'Martelo Sombrio', 'Martelo da Montanha'],
       lendaria: ['Martelo dos Deuses Forjadores', 'Martelo do Primeiro Ferreiro', 'Martelo do Núcleo do Mundo', 'Martelo da Criação', 'Martelo do Trovão Eterno', 'Martelo do Sol Fundido', 'Martelo das Mil Forjas', 'Martelo do Titã'] },
   },
+  // ---------- Tipos de arma (mão direita) e itens da mão esquerda ----------
+  // vel: devagar / normal / rapida (multiplica a velocidade do herói: mais ou menos ataques).
+  // fator: multiplica o dano da arma (as lentas e de duas mãos batem mais forte).
+  // duasMaos: ocupa a mão esquerda também. proibe: itens da mão esquerda que não combinam com ela.
+  // Tipos que não estão na lista de nenhuma classe base são das segundas classes e só existem a partir da raridade rara.
+  // As 4 armas antigas (espada, arco, cajado, martelo) usam os nomes de `armas` acima; as outras usam SUFIXOS_ARMA.
+  VELOCIDADE_ARMA: { devagar: 0.8, normal: 1, rapida: 1.2 },
+  NOME_VELOCIDADE: { devagar: 'Devagar', normal: 'Normal', rapida: 'Rápida' },
+  TIPOS_ARMA: {
+    espada: { nome: 'Espada', classe: 'cavaleiro', vel: 'normal', fator: 1 },
+    espada2m: { nome: 'Espada de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.5, duasMaos: true },
+    machado: { nome: 'Machado', classe: 'cavaleiro', vel: 'normal', fator: 1 },
+    arco: { nome: 'Arco', classe: 'arqueiro', vel: 'normal', fator: 1 },
+    besta: { nome: 'Besta', classe: 'arqueiro', vel: 'devagar', fator: 1.35 },
+    balestra: { nome: 'Balestra', classe: 'arqueiro', vel: 'devagar', fator: 1.5, duasMaos: true },
+    adaga: { nome: 'Adaga', classe: 'arqueiro', vel: 'rapida', fator: 0.85, proibe: ['aljava'] },
+    livro: { nome: 'Livro de Magias', classe: 'mago', vel: 'normal', fator: 1 },
+    cajado: { nome: 'Cajado', classe: 'mago', vel: 'devagar', fator: 1.5, duasMaos: true },
+    varinha: { nome: 'Varinha', classe: 'mago', vel: 'normal', fator: 1 },
+    martelo: { nome: 'Martelo', classe: 'artesao', vel: 'rapida', fator: 0.85 },
+    martelo2m: { nome: 'Martelo de Duas Mãos', classe: 'artesao', vel: 'devagar', fator: 1.5, duasMaos: true },
+    maca: { nome: 'Maça', classe: 'artesao', vel: 'normal', fator: 1 },
+    // segundas classes (a partir de rara)
+    mangual: { nome: 'Mangual', classe: 'cavaleiro', vel: 'normal', fator: 1 },
+    machado2m: { nome: 'Machado de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.5, duasMaos: true },
+    garra: { nome: 'Garra', classe: 'arqueiro', vel: 'rapida', fator: 0.85, proibe: ['aljava'] },
+    cetro: { nome: 'Cetro', classe: 'mago', vel: 'normal', fator: 1 },
+    foice: { nome: 'Foice', classe: 'artesao', vel: 'rapida', fator: 0.85 },
+    picareta: { nome: 'Picareta', classe: 'artesao', vel: 'normal', fator: 1 },
+  },
+  ARMA_PADRAO: { cavaleiro: 'espada', arqueiro: 'arco', mago: 'cajado', artesao: 'martelo' },
+  // Mão esquerda: bônus por raridade (comum, rara, épica, lendária); encanto: o bônus que sobe +1 por nível de encanto.
+  MAO_ESQUERDA: {
+    escudo: { nome: 'Escudo', bonus: { defesa: [3, 6, 12, 24] }, encanto: 'defesa' },
+    aljava: { nome: 'Aljava', bonus: { precisao: [2, 4, 6, 10], critico: [1, 2, 4, 8] }, encanto: 'critico' },
+    orbe: { nome: 'Orbe', bonus: { danoMagico: [5, 10, 15, 25], danoCriticoMagico: [5, 10, 20, 40] }, encanto: 'danoCriticoMagico' },
+    manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], for: [1, 2, 4, 8] }, encanto: 'defesa' },
+    // segundas classes (a partir de rara)
+    livro: { nome: 'Livro de Magias', bonus: { int: [1, 2, 4, 8], danoMagico: [3, 6, 10, 15] }, encanto: 'int' },
+    adaga: { nome: 'Adaga', bonus: { dano: [2, 5, 10, 16], critico: [1, 2, 3, 5] }, encanto: 'dano' },
+    garra: { nome: 'Garra', bonus: { dano: [3, 6, 12, 18] }, encanto: 'dano' },
+    shuriken: { nome: 'Shuriken', bonus: { dano: [1, 3, 6, 10], critico: [2, 4, 6, 10] }, encanto: 'critico' },
+  },
+  // Armas e mão esquerda de cada classe base e de cada segunda classe.
+  ARMAS_CLASSE: {
+    cavaleiro: { armas: ['espada', 'espada2m', 'machado'], mao: ['escudo'] },
+    arqueiro: { armas: ['arco', 'besta', 'balestra', 'adaga'], mao: ['aljava'] },
+    mago: { armas: ['livro', 'cajado', 'varinha'], mao: ['orbe'] },
+    artesao: { armas: ['martelo', 'martelo2m', 'maca'], mao: ['manopla'] },
+    paladino: { armas: ['espada', 'mangual'], mao: ['escudo'] },
+    destruidor: { armas: ['espada2m', 'machado2m'], mao: [] },
+    cacador: { armas: ['arco', 'besta', 'balestra'], mao: ['aljava'] },
+    assassino: { armas: ['adaga', 'garra'], mao: ['adaga', 'garra', 'shuriken'] },
+    bruxo: { armas: ['cajado', 'varinha', 'cetro'], mao: ['livro'] },
+    curandeiro: { armas: ['cetro', 'cajado', 'varinha'], mao: ['orbe'] },
+    ferreiro: { armas: ['martelo', 'martelo2m', 'maca'], mao: ['manopla'] },
+    coletor: { armas: ['foice', 'martelo', 'picareta'], mao: ['escudo'] },
+  },
+  // Nomes das armas e itens novos: "<tipo> <sufixo>" (8 por raridade).
+  SUFIXOS_ARMA: {
+    comum: ['de Ferro', 'de Bronze', 'do Recruta', 'de Guarda', 'do Aprendiz', 'de Treino', 'de Caça', 'do Viajante'],
+    rara: ['de Aço Negro', 'de Prata', 'do Capitão', 'do Vento', 'da Vigília', 'do Falcão', 'da Névoa', 'do Patrulheiro'],
+    epica: ['do Crepúsculo', 'da Tempestade', 'do Abismo', 'do Eclipse', 'da Lua Sangrenta', 'das Sombras', 'do Relâmpago', 'da Serpente'],
+    lendaria: ['do Rei Eterno', 'do Primeiro Sol', 'do Dragão Ancestral', 'da Aurora', 'do Destino', 'da Fênix', 'dos Mil Juramentos', 'do Fim dos Tempos'],
+  },
+  // Extras da arma pela raridade (comum, rara, épica, lendária): atributo de dano da classe, % de dano contra monstros (PvE)
+  // e % de dano na Arena (PvP).
+  RARIDADE_ARMA: { atributo: [0, 2, 4, 6], pve: [0, 0, 10, 10], pvp: [0, 0, 0, 10] },
+
   // Arma com que todo personagem começa (comum, variação 0).
   ARMA_INICIAL_DANO: [1, 5],
 

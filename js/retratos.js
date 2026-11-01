@@ -319,6 +319,9 @@ Tanka.retratos = (function () {
       case 'colar':
         return '<path d="M12 8 Q32 50 52 8" fill="none" stroke="' + c.m + '" stroke-width="3" stroke-dasharray="3 2"/>'
           + '<path d="M32 30 L41 41 L32 56 L23 41 Z" fill="' + c.a + '" stroke="' + c.d + '" stroke-width="2"/>';
+      case 'secundaria':   // mão esquerda: escudo
+        return '<path d="M32 6 L54 14 Q54 42 32 58 Q10 42 10 14 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M32 12 L32 52 M16 22 L48 22" stroke="' + c.a + '" stroke-width="3"/>';
       case 'anel':
         return '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.m + '" stroke-width="6"/>'
           + '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.d + '" stroke-width="1"/>'
@@ -337,8 +340,12 @@ Tanka.retratos = (function () {
   // Primeiro a versão recortada (.webp, sem fundo, gerada por ferramentas/recortar_fundo.py);
   // se não existir, o .jpg original; se nem isso, o desenho SVG.
   var semImagem = {};
+  //   tipos novos de arma: arma-<tipo>-<raridade>   mão esquerda: mao-<tipo>-<raridade>
   function arquivoItem(item) {
-    var base = item.tipo === 'arma' ? 'arma-' + item.classe : item.classe ? item.classe + '-' + item.tipo : item.tipo;
+    var padrao = Tanka.dados.ARMA_PADRAO || {};
+    var base = item.tipo === 'secundaria' ? 'mao-' + item.mao
+      : item.tipo === 'arma' ? (item.arma && item.arma !== padrao[item.classe] ? 'arma-' + item.arma : 'arma-' + item.classe)
+      : item.classe ? item.classe + '-' + item.tipo : item.tipo;
     return 'assets/itens/' + base + '-' + item.raridade;
   }
   function icone(item) {

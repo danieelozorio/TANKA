@@ -113,12 +113,29 @@
   var ITEM_RARIDADE = { comum: 'comum', rara: 'raro', epica: 'épico', lendaria: 'lendário' };
 
   function tipoItem(item) {
-    return item.tipo === 'arma' ? D.armas[item.classe].tipo : R.definicao(item).tipo;
+    if (item.tipo === 'arma') return R.tipoArma(item).nome;
+    if (item.tipo === 'secundaria') return 'Mão esquerda · ' + D.MAO_ESQUERDA[item.mao].nome;
+    return R.definicao(item).tipo;
+  }
+  // Linhas extras da arma: mãos, velocidade e o que a raridade dá (atributo, PvE, PvP).
+  function extrasArma(item) {
+    var t = R.tipoArma(item), i = Object.keys(D.raridades).indexOf(item.raridade), RA = D.RARIDADE_ARMA;
+    var atr = D.classes[item.classe] && D.classes[item.classe].atributoDano;
+    var l = [t.duasMaos ? 'Duas mãos (ocupa a mão esquerda)' : 'Uma mão', 'Velocidade: ' + D.NOME_VELOCIDADE[t.vel]
+      + (t.fator !== 1 ? ' · dano x' + String(t.fator).replace('.', ',') : '')];
+    if (RA.atributo[i]) l.push('+' + RA.atributo[i] + ' de ' + D.atributos[atr].nome);
+    if (RA.pve[i]) l.push('+' + RA.pve[i] + '% de dano contra monstros');
+    if (RA.pvp[i]) l.push('+' + RA.pvp[i] + '% de dano na Arena');
+    if (t.proibe) l.push('Não combina com: ' + t.proibe.map(function (m) { return D.MAO_ESQUERDA[m].nome; }).join(', '));
+    return l;
   }
 
   // Resumo do que o item dá: "Dano 3–5" ou "Defesa +5 · Vida +25".
   function descricaoItem(item) {
-    if (item.tipo === 'arma') return 'Dano ' + dano(R.danoArma(item)) + (item.variacao === undefined ? ' (sorteado)' : '');
+    if (item.tipo === 'arma') {
+      var t = R.tipoArma(item);
+      return 'Dano ' + dano(R.danoArma(item)) + (item.variacao === undefined ? ' (sorteado)' : '') + ' · ' + D.NOME_VELOCIDADE[t.vel] + (t.duasMaos ? ' · duas mãos' : '');
+    }
     var b = R.bonusItem(item);
     return Object.keys(b).map(function (k) { return D.bonus[k] + ' +' + b[k]; }).join(' · ');
   }
@@ -258,7 +275,7 @@
     var classes = classesPermitidas.map(function (k) {
       return '<button class="carta' + (c.classe === k ? ' selecionada' : '') + '" data-acao="escolher-classe" data-valor="' + k + '">'
         + '<div class="moldura">' + F.personagem(c.raca, k, c.sexo) + '</div><div class="nome">' + nomeClasse(k, c.sexo) + '</div>'
-        + '<div class="detalhe">' + D.armas[k].tipo + '</div></button>';
+        + '<div class="detalhe">' + D.ARMAS_CLASSE[k].armas.map(function (a) { return D.TIPOS_ARMA[a].nome; }).join(' · ') + '</div></button>';
     }).join('');
 
     var base = D.classes[c.classe].atributos;
@@ -600,7 +617,7 @@
       + '<div class="arma-topo"><div class="icone-pequeno arma-icone borda-' + arma.raridade + aura(arma) + '">' + F.icone(arma)
       + (arma.encanto ? '<span class="nivel-encanto">+' + arma.encanto + '</span>' : '') + '</div><div class="arma-nome">' + nomeItemHtml(arma)
       + '<div><span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span>'
-      + ' <span class="suave pequeno">' + (magico ? 'Dano mágico' : 'Dano físico') + '</span></div></div></div>'
+      + ' <span class="suave pequeno">' + R.tipoArma(arma).nome + ' · ' + D.NOME_VELOCIDADE[R.tipoArma(arma).vel] + (R.tipoArma(arma).duasMaos ? ' · duas mãos' : '') + '</span></div></div></div>'
       + '<div class="arma-stats">'
       + stat('Dano da arma', dano(dArma), extra ? 'Inclui +' + extra + ' do encanto' : '')
       + stat('Por golpe', dano(s.dano), 'Com os seus atributos')
@@ -727,7 +744,7 @@
         var da = R.danoArma(alvo), diff = media - (da[0] + da[1]) / 2;
         if (diff) comp = ' <span class="' + (diff > 0 ? 'mais' : 'menos') + '">(' + (diff > 0 ? '+' : '') + fmt(diff) + ' de média)</span>';
       }
-      linhas = '<li>Dano ' + dano(d) + comp + '</li>';
+      linhas = '<li>Dano ' + dano(d) + comp + '</li>' + extrasArma(item).map(function (x) { return '<li class="suave">' + x + '</li>'; }).join('');
     } else {
       var b = R.bonusItem(item), ba = alvo ? R.bonusItem(alvo) : {};
       var chaves = Object.keys(D.bonus).filter(function (k) { return b[k] || ba[k]; });
@@ -743,7 +760,7 @@
     } else {
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
-        : '<span class="menos">Não é da sua classe</span>';
+        : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é da sua classe') + '</span>';
       acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
@@ -777,6 +794,7 @@
       var mo = outro ? (R.danoArma(outro)[0] + R.danoArma(outro)[1]) / 2 : null;
       linhas.push('<li><span>Dano</span><strong>' + dano(d) + '</strong></li>');
       linhas.push('<li><span>Dano médio</span><strong>' + fmt(m) + (outro ? diferenca(m, mo) : '') + '</strong></li>');
+      extrasArma(item).forEach(function (x) { linhas.push('<li class="suave"><span>' + x + '</span></li>'); });
     } else {
       var b = R.bonusItem(item), bo = outro ? R.bonusItem(outro) : {};
       Object.keys(D.bonus).filter(function (k) { return b[k] || bo[k]; }).forEach(function (k) {
@@ -802,7 +820,7 @@
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
       acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
-          : '<span class="menos">Não é da sua classe</span>')
+          : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é da sua classe') + '</span>')
         + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
@@ -821,6 +839,10 @@
     var slots = Object.keys(D.slots).map(function (k) {
       var item = R.itemNoSlot(p, k);
       if (item) return '<div class="espaco espaco-' + k + '">' + quadroItem(item, 'slot', ' data-slot="' + k + '"') + '</div>';
+      // Arma de duas mãos: a mão esquerda mostra a mesma arma, apagada (passar o mouse mostra a ficha dela).
+      var arma = k === 'secundaria' && R.itemNoSlot(p, 'arma');
+      if (arma && R.tipoArma(arma).duasMaos) return '<div class="espaco espaco-' + k + '">'
+        + quadroItem(arma, 'slot fantasma', ' data-slot="arma"') + '</div>';
       return '<div class="espaco espaco-' + k + '"><div class="slot vazio" title="' + D.slots[k].nome + '">'
         + F.silhueta(D.slots[k].tipo, p.classe) + '</div></div>';
     }).join('');
@@ -920,7 +942,8 @@
       + '<div class="suave">' + descricaoItem(modelo) + ' · ' + preco.toLocaleString('pt-BR') + ' de ouro'
       + (rep ? ' + ' + rep.toLocaleString('pt-BR') + ' de reputação' : '') + '</div></div>'
       + '<div class="item-acoes">' + (faltas.length ? '<span class="suave">Faltam ' + faltas.join(' e ') + '</span>' : '')
-      + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '"' + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
+      + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-raridade="' + modelo.raridade + '" data-especifico="' + (modelo.arma || modelo.mao || '') + '"'
+      + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
   function linhaRecomecoHab(p) {
@@ -1049,14 +1072,22 @@
   function abaMercado() {
     var p = estado.personagem;
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p><h3 class="subtitulo">Armas de ' + D.classes[p.classe].nome + '</h3><div class="itens">'
-      + R.RARIDADES.map(function (k) {
-        return linhaMercado({ tipo: 'arma', classe: p.classe, raridade: k, encanto: 0 });
-      }).join('') + '</div>'
-      + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p>'
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>'
       + '<div class="opcoes">' + R.RARIDADES.map(function (k) {
         return '<button class="opcao mini-opcao' + (estado.mercadoRaridade === k ? ' selecionada' : '') + '" data-acao="mercado-raridade" data-valor="' + k + '"><span class="raridade-' + k + '">' + D.raridades[k].nome + '</span></button>';
-      }).join('') + '</div><div class="itens">'
+      }).join('') + '</div>'
+      + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3>'
+      + (estado.mercadoRaridade === 'comum' && R.armasPermitidas(p).some(function (a) { return R.soSegundaClasse(a); })
+        ? '<p class="suave pequeno">As armas da segunda classe existem a partir da raridade rara.</p>' : '')
+      + '<div class="itens">' + R.armasPermitidas(p).filter(function (a) { return estado.mercadoRaridade !== 'comum' || !R.soSegundaClasse(a); }).map(function (a) {
+        return linhaMercado({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: estado.mercadoRaridade, encanto: 0 });
+      }).join('') + '</div>'
+      + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).filter(function (m) {
+        return estado.mercadoRaridade !== 'comum' || !R.soSegundaClasse(m, true);
+      }).map(function (m) {
+        return linhaMercado({ tipo: 'secundaria', classe: null, mao: m, raridade: estado.mercadoRaridade, encanto: 0 });
+      }).join('') + '</div>' : '')
+      + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
       + R.TIPOS_ARMADURA.map(function (tipo) {
         return linhaMercado({ tipo: tipo, classe: R.TIPOS_JOIA.indexOf(tipo) >= 0 ? null : p.classe, raridade: estado.mercadoRaridade, encanto: 0 });
       }).join('') + '</div>'
@@ -2428,6 +2459,7 @@
         break;
       case 'equipar':
         if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; salvar(); telaJogo(); }
+        else avisar(R.motivoNaoEquipa(p, p.inventario.find(function (i) { return i.id === el.dataset.id; })) || 'Não foi possível equipar (mochila cheia?).');
         break;
       case 'pedir-venda':
         estado.vendaPendente = el.dataset.id;
@@ -2447,7 +2479,7 @@
         break;
       }
       case 'comprar': {
-        var comprado = R.comprar(p, el.dataset.raridade, el.dataset.tipo);
+        var comprado = R.comprar(p, el.dataset.raridade, el.dataset.tipo, el.dataset.especifico || undefined);
         if (typeof comprado === 'string') { avisar(comprado); break; }
         salvar();
         avisar('Você comprou ' + R.nomeItem(comprado) + '! Está na mochila.');
@@ -2622,7 +2654,7 @@
       if (!R.desequipar(p, slot)) avisar('Mochila cheia! Venda algo antes de desequipar.');
     } else {
       var it = p.inventario.find(function (i) { return i.id === id; });
-      if (!R.equipar(p, id)) avisar(it && !R.podeUsar(p, it) ? 'Esse item não é da sua classe.' : 'Não foi possível equipar.');
+      if (!R.equipar(p, id)) avisar(R.motivoNaoEquipa(p, it) || 'Não foi possível equipar (mochila cheia?).');
     }
     salvar();
     telaJogo();
@@ -2637,7 +2669,7 @@
     var p = estado.personagem;
     if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
     var it = p.inventario.find(function (i) { return i.id === el.dataset.id; });
-    if (!R.equipar(p, el.dataset.id)) { avisar(it && !R.podeUsar(p, it) ? 'Esse item não é da sua classe.' : 'Não foi possível equipar.'); return; }
+    if (!R.equipar(p, el.dataset.id)) { avisar(R.motivoNaoEquipa(p, it) || 'Não foi possível equipar (mochila cheia?).'); return; }
     estado.zoom = null;
     estado.vendaPendente = null;
     salvar();

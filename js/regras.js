@@ -35,28 +35,73 @@ Tanka.regras = (function () {
 
   // Item: { id, tipo, classe, raridade, encanto }. Joias têm classe null (servem para todos).
   // Arma também tem `variacao` (qual dos 8 nomes) e `dano` [mín, máx], sorteados nas faixas da raridade.
-  function novoItem(tipo, classe, raridade, rng) {
-    var joia = TIPOS_JOIA.indexOf(tipo) >= 0;
+  // especifico: o tipo da arma (ex.: 'machado') ou do item da mão esquerda (ex.: 'escudo').
+  function novoItem(tipo, classe, raridade, rng, especifico) {
+    var joia = TIPOS_JOIA.indexOf(tipo) >= 0 || tipo === 'secundaria';
     var item = { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
+    rng = rng || Math.random;
     if (tipo === 'arma') {
-      rng = rng || Math.random;
       var r = D.raridades[raridade];
-      item.variacao = Math.floor(rng() * D.armas[classe][raridade].length);
+      item.arma = especifico || D.ARMA_PADRAO[classe];
+      item.classe = D.TIPOS_ARMA[item.arma].classe;
+      item.variacao = Math.floor(rng() * (item.arma === D.ARMA_PADRAO[item.classe] ? D.armas[item.classe][raridade] : D.SUFIXOS_ARMA[raridade]).length);
       item.dano = [rolar(r.danoMin, rng), rolar(r.danoMax, rng)];
+    }
+    if (tipo === 'secundaria') {
+      item.mao = especifico;
+      item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     }
     return item;
   }
-  function novaArma(classe, raridade, rng) { return novoItem('arma', classe, raridade, rng); }
+  function novaArma(classe, raridade, rng, especifico) { return novoItem('arma', classe, raridade, rng, especifico); }
+
+  // ---------- Tipos de arma e mão esquerda ----------
+  // Armas antigas (sem `arma`) são o tipo padrão da classe (espada, arco, cajado, martelo).
+  function tipoArmaId(item) { return item.arma || D.ARMA_PADRAO[item.classe] || 'espada'; }
+  function tipoArma(item) { return D.TIPOS_ARMA[tipoArmaId(item)]; }
+  var DA_BASE = { armas: {}, mao: {} };
+  Object.keys(D.classes).forEach(function (k) {
+    D.ARMAS_CLASSE[k].armas.forEach(function (a) { DA_BASE.armas[a] = true; });
+    D.ARMAS_CLASSE[k].mao.forEach(function (a) { DA_BASE.mao[a] = true; });
+  });
+  // Tipo só das segundas classes: não existe na raridade comum.
+  function soSegundaClasse(id, mao) { return !DA_BASE[mao ? 'mao' : 'armas'][id]; }
+  function listaArmas(p) { var c2 = p.talentos && p.talentos.classe2; return D.ARMAS_CLASSE[c2 && D.ARMAS_CLASSE[c2] ? c2 : p.classe]; }
+  function armasPermitidas(p) { return listaArmas(p).armas; }
+  function maoPermitida(p) { return listaArmas(p).mao; }
+  function sortearDaLista(lista, raridade, mao, rng) {
+    var l = lista.filter(function (id) { return raridade !== 'comum' || !soSegundaClasse(id, mao); });
+    return l.length ? l[Math.floor((rng || Math.random)() * l.length)] : null;
+  }
+  function sortearTipoArma(p, raridade, rng) { return sortearDaLista(armasPermitidas(p), raridade, false, rng) || D.ARMA_PADRAO[p.classe]; }
+  function sortearMao(p, raridade, rng) { return sortearDaLista(maoPermitida(p), raridade, true, rng); }
+  // Por que não dá para equipar (texto) ou null.
+  function motivoNaoEquipa(p, item) {
+    if (!item) return 'Item não encontrado.';
+    if (item.tipo === 'arma' && !podeUsar(p, item)) return 'Sua classe não usa ' + tipoArma(item).nome + '.';
+    if (item.tipo === 'secundaria') {
+      if (!podeUsar(p, item)) return 'Sua classe não usa ' + D.MAO_ESQUERDA[item.mao].nome + ' na mão esquerda.';
+      var arma = armaEquipada(p), ta = arma && tipoArma(arma);
+      if (ta && ta.duasMaos) return ta.nome + ' ocupa as duas mãos.';
+      if (ta && (ta.proibe || []).indexOf(item.mao) >= 0) return D.MAO_ESQUERDA[item.mao].nome + ' não combina com ' + ta.nome + '.';
+    }
+    if (!podeUsar(p, item)) return 'Esse item não é da sua classe.';
+    return null;
+  }
 
   // Definição de armadura/joia nos dados (null para arma).
   function definicao(item) {
     if (item.tipo === 'arma') return null;
+    if (item.tipo === 'secundaria') return D.MAO_ESQUERDA[item.mao] || null;
     if (TIPOS_JOIA.indexOf(item.tipo) >= 0) return D.joias[item.tipo];
     return D.armaduras[item.classe][item.tipo];
   }
 
   function nomeArma(item) {
-    var base = item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
+    var sufixo = item.variacao === undefined ? D.raridades[item.raridade].nome : D.SUFIXOS_ARMA[item.raridade][item.variacao];
+    var base = item.tipo === 'secundaria' ? D.MAO_ESQUERDA[item.mao].nome + ' ' + sufixo
+      : item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
+      : tipoArmaId(item) !== D.ARMA_PADRAO[item.classe] ? tipoArma(item).nome + ' ' + sufixo
       : item.variacao === undefined ? D.armas[item.classe].tipo + ' ' + D.raridades[item.raridade].nome   // modelo do mercado
       : D.armas[item.classe][item.raridade][item.variacao];
     return (item.encanto ? '+' + item.encanto + ' ' : '') + base;
@@ -65,11 +110,16 @@ Tanka.regras = (function () {
   // Bônus de uma armadura/joia, já com o encantamento ({ defesa: 5, vida: 25, ... }).
   function bonusItem(item) {
     var def = definicao(item), b = {};
-    if (!def) return b;
     var idx = RARIDADES.indexOf(item.raridade);
+    if (item.tipo === 'arma') {   // arma rara ou melhor: + atributo de dano da classe
+      var n = D.RARIDADE_ARMA.atributo[idx], c = D.classes[item.classe];
+      if (n && c) b[c.atributoDano] = n;
+      return b;
+    }
+    if (!def) return b;
     Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });
     if (item.encanto) {
-      var k = D.encantamento.bonusPorNivel[item.tipo];
+      var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = (b[k] || 0) + item.encanto;
     }
     return b;
@@ -81,7 +131,8 @@ Tanka.regras = (function () {
     var r = D.raridades[item.raridade];
     var base = item.dano || [r.danoMin[0], r.danoMax[1]];
     var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade];
-    return [base[0] + extra, base[1] + extra];
+    var f = item.tipo === 'arma' ? tipoArma(item).fator : 1;   // armas lentas e de duas mãos batem mais forte
+    return [Math.round((base[0] + extra) * f), Math.round((base[1] + extra) * f)];
   }
 
   function precoVenda(item) {
@@ -114,7 +165,11 @@ Tanka.regras = (function () {
     return true;
   }
 
-  function podeUsar(p, item) { return item.classe === null || item.classe === p.classe; }
+  function podeUsar(p, item) {
+    if (item.tipo === 'arma') return armasPermitidas(p).indexOf(tipoArmaId(item)) >= 0;
+    if (item.tipo === 'secundaria') return maoPermitida(p).indexOf(item.mao) >= 0;
+    return item.classe === null || item.classe === p.classe;
+  }
 
   // Soma dos bônus de todas as armaduras e joias equipadas.
   function bonusEquipamentos(p) {
@@ -306,7 +361,7 @@ Tanka.regras = (function () {
     var magico = s.tipoDano === 'magico', g = { acerto: false, critico: false, dano: 0 };
     if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, 5, 95)) return g;
     var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
-    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100);
+    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100);
     dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
     var chance = (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0) + somaBuff(L, 'critico');
     var garantido = L && L.critEm === L.turno;
@@ -387,6 +442,7 @@ Tanka.regras = (function () {
       p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
       delete p.armaEquipada;
     }
+    if (!('secundaria' in p.equipados)) p.equipados.secundaria = null;   // espaço novo: mão esquerda
     return p;
   }
 
@@ -401,6 +457,7 @@ Tanka.regras = (function () {
     var arma = armaEquipada(p);
     var magico = D.classes[p.classe].dano === 'magico';
     var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
+    var ta = arma ? tipoArma(arma) : null, idxArma = arma ? RARIDADES.indexOf(arma.raridade) : 0;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
     return comPassiva({
@@ -412,22 +469,27 @@ Tanka.regras = (function () {
       danoArma: danoArma,
       ataque: magico ? 0 : bonus,                    // FOR (Cavaleiro/Artesão) ou DES (Caçador)
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
-      dano: [danoArma[0] + bonus, danoArma[1] + bonus],
+      dano: danoComMao([danoArma[0] + bonus + (eq.dano || 0), danoArma[1] + bonus + (eq.dano || 0)], magico ? eq.danoMagico : 0),
       defesa: Math.floor(a.res / 10) + eq.defesa,              // RES + armaduras
       defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
-      precisao: 75 + a.des,                          // DES (%)
+      precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
-      velocidade: velocidadeDoNivel(p.nivel),        // 15 no level 1, +6% por level (não depende da DES)
-      chanceCritico: (a.sor + a.des) * 0.5,          // SOR e DES (%)
+      // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
+      velocidade: Math.max(1, Math.round(velocidadeDoNivel(p.nivel) * (ta ? D.VELOCIDADE_ARMA[ta.vel] : 1))),
+      chanceCritico: (a.sor + a.des) * 0.5 + (eq.critico || 0),   // SOR e DES (%) + mão esquerda
       danoCritico: 150 + a.for,                      // FOR (% do dano)
-      chanceCriticoMagico: a.sor,                    // SOR (1% por ponto)
-      danoCriticoMagico: 150 + a.sor,                // SOR (% do dano)
+      chanceCriticoMagico: a.sor + (eq.critico || 0),   // SOR (1% por ponto)
+      danoCriticoMagico: 150 + a.sor + (eq.danoCriticoMagico || 0),   // SOR (% do dano) + orbe
       chanceCraft: a.sor,                            // SOR (%)
       bonusDrop: a.sor,                              // SOR (% a mais sobre a chance base)
       chanceEncantamento: a.sor,                     // 1% por ponto de SOR
       bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)
+      danoPvE: arma ? D.RARIDADE_ARMA.pve[idxArma] : 0,   // % a mais contra monstros (arma épica ou lendária)
+      danoPvP: arma ? D.RARIDADE_ARMA.pvp[idxArma] : 0,   // % a mais na Arena (arma lendária; calculado no servidor)
     }, p);
   }
+  // Dano mágico % da mão esquerda (orbe, livro), só para quem bate com magia.
+  function danoComMao(d, pct) { return pct ? [Math.round(d[0] * (1 + pct / 100)), Math.round(d[1] * (1 + pct / 100))] : d; }
   // Passiva da segunda classe: % a mais em vida, defesa, dano, crítico, esquiva e recompensas.
   function comPassiva(s, p) {
     var pas = passiva(p);
@@ -495,13 +557,23 @@ Tanka.regras = (function () {
 
   function rolarDrop(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].drops, rng);
-    return raridade ? novaArma(p.classe, raridade, rng) : null;
+    return raridade ? novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng)) : null;
   }
 
-  // Item de qualquer tipo das caçadas: arma ou uma das 4 armaduras da classe.
-  var TODOS_TIPOS = ['arma'].concat(TIPOS_ARMADURA);
+  // Item de qualquer tipo das caçadas: arma, uma das 4 armaduras da classe ou item da mão esquerda.
+  var TODOS_TIPOS = ['arma'].concat(TIPOS_ARMADURA, ['secundaria']);
+  // Armadura ou mão esquerda (se a classe usar alguma); a arma sai com um tipo que o herói pode usar.
+  function itemDoTipo(p, tipo, raridade, rng) {
+    if (tipo === 'secundaria') {
+      var m = sortearMao(p, raridade, rng);
+      if (m) return novoItem('secundaria', null, raridade, rng, m);
+      tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
+    }
+    if (tipo === 'arma') return novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng));
+    return novoItem(tipo, p.classe, raridade, rng);
+  }
   function itemQualquer(p, raridade, rng) {
-    return novoItem(TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], p.classe, raridade, rng);
+    return itemDoTipo(p, TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], raridade, rng);
   }
   function rolarDropItem(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].dropsItem || [], rng);
@@ -512,7 +584,8 @@ Tanka.regras = (function () {
   function rolarDropArmadura(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].dropsArmadura || [], rng);
     if (!raridade) return null;
-    return novoItem(TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)], p.classe, raridade);
+    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
+    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
   }
 
   // ---------- Áreas e chefes ----------
@@ -630,8 +703,9 @@ Tanka.regras = (function () {
       return r ? itemQualquer(p, r, rng) : null;
     }
     var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
-    if (rng() < 0.5) return novaArma(p.classe, raridade, rng);
-    return novoItem(TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)], p.classe, raridade);
+    if (rng() < 0.5) return novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng));
+    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
+    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
   }
 
   // ---------- Combate ----------
@@ -889,17 +963,22 @@ Tanka.regras = (function () {
 
   // Compra no mercado: arma (tipo 'arma') ou armadura da classe. Colar e anel só nas masmorras.
   // Retorna o item, ou um texto com o motivo da falha.
-  function comprar(p, raridade, tipo) {
+  // especifico: tipo da arma (ex.: 'machado') ou do item da mão esquerda (ex.: 'escudo'); sem ele, o padrão da classe.
+  function comprar(p, raridade, tipo, especifico) {
     var r = D.raridades[raridade];
     tipo = tipo || 'arma';
     if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
-    if (!r || ['arma'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
+    if (!r || ['arma', 'secundaria'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
+    if (tipo === 'arma') especifico = especifico || D.ARMA_PADRAO[p.classe];
+    if (tipo === 'arma' && armasPermitidas(p).indexOf(especifico) < 0) return 'Sua classe não usa essa arma.';
+    if (tipo === 'secundaria' && maoPermitida(p).indexOf(especifico) < 0) return 'Sua classe não usa esse item.';
+    if ((tipo === 'arma' || tipo === 'secundaria') && raridade === 'comum' && soSegundaClasse(especifico, tipo === 'secundaria')) return 'Esse item só existe a partir da raridade rara.';
     if (p.ouro < r.compra) return 'Ouro insuficiente.';
     if ((p.reputacao || 0) < (r.compraReputacao || 0)) return 'Reputação insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= r.compra;
     p.reputacao = (p.reputacao || 0) - (r.compraReputacao || 0);
-    var item = novoItem(tipo, p.classe, raridade);
+    var item = novoItem(tipo, p.classe, raridade, null, especifico);
     p.inventario.push(item);
     return item;
   }
@@ -908,7 +987,7 @@ Tanka.regras = (function () {
   // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
 
   // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
-  var PESO_BONUS = { defesa: 8, defesaMagica: 8, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6 };
+  var PESO_BONUS = { defesa: 8, defesaMagica: 8, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
   function forcaItem(item) {
     if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
     var b = bonusItem(item), total = 0;
@@ -917,7 +996,7 @@ Tanka.regras = (function () {
   }
 
   // Critérios de ordem com desempate em cascata (o primeiro manda, os outros desempatam).
-  var ORDEM_TIPOS = ['arma'].concat(TIPOS_ARMADURA, TIPOS_JOIA);
+  var ORDEM_TIPOS = ['arma', 'secundaria'].concat(TIPOS_ARMADURA, TIPOS_JOIA);
   var CRITERIOS = {
     forca: ['forca', 'raridade', 'encanto'],
     raridade: ['raridade', 'forca', 'encanto'],
@@ -1383,6 +1462,8 @@ Tanka.regras = (function () {
       ['arma'].concat(TIPOS_ARMADURA, ['colar', 'anel', 'anel']).forEach(function (tipo) {
         p.inventario.push(novoItem(tipo, p.classe, raridade));
       });
+      var m = sortearDaLista(maoPermitida(p), raridade, true, function () { return 0; });
+      if (m) p.inventario.push(novoItem('secundaria', null, raridade, null, m));
     },
   };
 
@@ -1393,10 +1474,15 @@ Tanka.regras = (function () {
   // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
   function equipar(p, itemId) {
     var item = itemPorId(p, itemId);
-    if (!item || !podeUsar(p, item) || slotDoItem(p, itemId)) return false;
+    if (!item || motivoNaoEquipa(p, item) || slotDoItem(p, itemId)) return false;
     var slot = item.tipo;
     if (item.tipo === 'anel') slot = !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
+    // Arma de duas mãos (ou que não combina com o item da mão esquerda): a mão esquerda volta para a mochila.
+    var mao = item.tipo === 'arma' && itemNoSlot(p, 'secundaria'), ta = item.tipo === 'arma' && tipoArma(item);
+    var tiraMao = mao && (ta.duasMaos || (ta.proibe || []).indexOf(mao.mao) >= 0);
+    if (tiraMao && mochilaCheia(p)) return false;
     var hpAntes = status(p).hpMax;
+    if (tiraMao) p.equipados.secundaria = null;
     p.equipados[slot] = itemId;
     ajustarVida(p, hpAntes);
     return slot;
@@ -1405,7 +1491,7 @@ Tanka.regras = (function () {
   // O item da mochila deixaria o personagem mais forte (mais poder) se fosse equipado no lugar do atual?
   // Anel: compara com os dois espaços de anel. Item de outra classe nunca é "melhor".
   function itemMelhor(p, item) {
-    if (!item || !podeUsar(p, item) || slotDoItem(p, item.id)) return false;
+    if (!item || motivoNaoEquipa(p, item) || slotDoItem(p, item.id)) return false;
     var slots = item.tipo === 'anel' ? ['anel1', 'anel2'] : [item.tipo];
     if (!(slots[0] in p.equipados)) return false;
     if (slots.some(function (slot) { return !p.equipados[slot]; })) return true;   // espaço vazio: qualquer peça ajuda
@@ -1463,6 +1549,12 @@ Tanka.regras = (function () {
     descansar: descansar,
     equipar: equipar,
     itemMelhor: itemMelhor,
+    tipoArmaId: tipoArmaId,
+    tipoArma: tipoArma,
+    armasPermitidas: armasPermitidas,
+    maoPermitida: maoPermitida,
+    soSegundaClasse: soSegundaClasse,
+    motivoNaoEquipa: motivoNaoEquipa,
     talentos: talentos,
     segundaClasse: segundaClasse,
     opcoesSegundaClasse: opcoesSegundaClasse,

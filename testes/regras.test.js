@@ -153,7 +153,7 @@ teste('chances de drop (sem sorte): lobo 10% arma comum; cobra 15%; urso 15% ite
   const tipos = new Set(), rar = new Set();
   const t = taxa(() => { const d = R.rolarDropItem(p, 'urso', rng); if (d) { tipos.add(d.tipo); rar.add(d.raridade); } return d; });
   assert.ok(Math.abs(t - 15) < 0.5, t);
-  assert.deepStrictEqual([...tipos].sort(), ['arma', 'botas', 'elmo', 'luvas', 'peitoral']); // sem colar/anel
+  assert.deepStrictEqual([...tipos].sort(), ['arma', 'botas', 'elmo', 'luvas', 'peitoral', 'secundaria']); // sem colar/anel; com a mão esquerda
   assert.deepStrictEqual([...rar], ['comum']);
 });
 
@@ -181,7 +181,7 @@ teste('mago causa dano mágico com INT', () => {
   const p = R.criarPersonagem('T', 'masculino', 'elfo', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [1 + Math.floor(23 / 3), 5 + Math.floor(23 / 3)]);   // +1 a cada 3 de INT
+  assert.deepStrictEqual([...s.dano], [2 + Math.floor(23 / 3), 8 + Math.floor(23 / 3)]);   // cajado (x1,5) + 1 a cada 3 de INT
   assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).sor, 'crítico mágico: 1% por ponto de Sorte');
 });
 
@@ -264,7 +264,7 @@ teste('personagem antigo (sem ouro/sexo, arma "basica") é convertido', () => {
   assert.strictEqual(p.ouro, 0);
   assert.strictEqual(p.sexo, 'masculino');
   assert.strictEqual(p.inventario[0].raridade, 'comum');
-  assert.deepStrictEqual([...R.status(p).danoArma], [1, 5]);
+  assert.deepStrictEqual([...R.status(p).danoArma], [2, 8]);   // cajado: duas mãos, dano x1,5
   // arma antiga sem dano sorteado: nome clássico e dano no meio das faixas
   p.inventario.push({ id: 'velha', tipo: 'arma', classe: 'mago', raridade: 'epica', encanto: 0 });
   R.normalizar(p);
@@ -427,8 +427,8 @@ teste('drops de armadura: lobo 10% comum; cobra 15% comum', () => {
   const lobo = conta('lobo'), cobra = conta('cobra');
   assert.ok(Math.abs(lobo.comum / N * 100 - 10) < 0.4, JSON.stringify(lobo));
   assert.ok(Math.abs(cobra.comum / N * 100 - 15) < 0.4 && !cobra.rara, JSON.stringify(cobra));
-  const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
-  assert.deepStrictEqual([...tipos].sort(), ['botas', 'elmo', 'luvas', 'peitoral']);
+  const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo === 'secundaria') assert.strictEqual(d.mao, 'manopla'); else if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
+  assert.deepStrictEqual([...tipos].sort(), ['botas', 'elmo', 'luvas', 'peitoral', 'secundaria']);
 });
 
 teste('encantar armadura equipada que quebra libera o espaço', () => {
@@ -561,7 +561,7 @@ teste('drop do chefe: Velgrath 15% item raro + 1 a 3 pergaminhos comuns; Varnok 
       const b = R.iniciarBatalha(p, chefe, rng); b.fim = 'vitoria';
       const res = R.concluirBatalha(p, b);
       const it = res.drop || res.dropArmadura;
-      if (it) { c[it.raridade]++; if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago'); } else c.nada++;
+      if (it) { c[it.raridade]++; if (it.tipo === 'secundaria') assert.strictEqual(it.mao, 'orbe'); else if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago'); } else c.nada++;
       perg.add(res.pergaminho + res.qtdPergaminhos);
     }
     return { c, perg: [...perg].sort() };
@@ -655,6 +655,7 @@ teste('Martelada Sísmica: quebra a armadura e o monstro passa a levar +25%', ()
   const { b } = batalhaTeste('artesao', 1);
   b.s.precisao = 1000; b.sorte = 1000; b.jogador.poder = 100; b.auto = true;
   b.s.chanceCritico = 0; b.s.dano = [10, 10];
+  b.rng = () => 0.01;   // sempre acerta (a precisão máxima é 95%)
   let ev; do { ev = R.passo(b); } while (ev.ator !== 'jogador');
   assert.ok(ev.quebrouArmadura && b.monstro.armaduraQuebrada);
   assert.strictEqual(ev.dano, 20); // a armadura quebra depois deste golpe
@@ -1051,4 +1052,47 @@ teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa
   const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 8; delete v.recomecoPresente; v.recomecos = 0;
   R.normalizar(v); R.normalizar(v);
   assert.strictEqual(v.recomecos, 1);
+});
+
+teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const s0 = R.status(p);
+  const add = (it) => { p.inventario.push(it); return it; };
+  // espada2m: devagar (0,8) e dano x1,5
+  const e2 = add({ id: 'e2', tipo: 'arma', classe: 'cavaleiro', arma: 'espada2m', raridade: 'comum', variacao: 0, dano: [4, 8], encanto: 0 });
+  const esc = add({ id: 'esc', tipo: 'secundaria', classe: null, mao: 'escudo', raridade: 'rara', variacao: 0, encanto: 1 });
+  assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
+  assert.strictEqual(R.status(p).defesa, s0.defesa + 6 + 1, 'escudo raro +6 de defesa, +1 do encanto');
+  assert.strictEqual(R.equipar(p, 'e2'), 'arma');
+  assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
+  const s1 = R.status(p);
+  assert.deepStrictEqual([...s1.danoArma], [6, 12]);
+  assert.strictEqual(s1.velocidade, Math.round(15 * 0.8));
+  assert.ok(R.motivoNaoEquipa(p, esc).includes('duas mãos'));
+  // nome do tipo novo: "<tipo> <sufixo>"
+  assert.strictEqual(R.nomeItem(e2), 'Espada de Duas Mãos de Ferro');
+  // arma de rara: +2 no atributo de dano da classe (Força)
+  const rara = add({ id: 'r', tipo: 'arma', classe: 'cavaleiro', arma: 'machado', raridade: 'rara', variacao: 0, dano: [12, 18], encanto: 0 });
+  R.equipar(p, 'r');
+  assert.strictEqual(R.atributosTotais(p).for, p.atributos.for + 2);
+  // comum não existe para arma de segunda classe
+  for (let i = 0; i < 200; i++) assert.ok(!R.soSegundaClasse(R.rolarDrop(Object.assign(p, {}), 'lobo', Math.random)?.arma || 'espada'));
+  p.ouro = 1e6;
+  assert.notStrictEqual(typeof R.comprar(p, 'comum', 'arma', 'mangual'), 'object');
+  // segunda classe: Destruidor só usa armas de duas mãos; a espada equipada continua até trocar
+  R.admin.subirNivel(p, 9); p.equipados.arma = 'e2'; R.equipar(p, 'r');
+  assert.strictEqual(R.escolherSegundaClasse(p, 'destruidor'), true);
+  assert.strictEqual(p.equipados.arma, 'r', 'arma incompatível continua equipada');
+  R.desequipar(p, 'arma');
+  assert.ok(!R.equipar(p, 'r'), 'mas não dá para equipar de novo');
+  assert.ok(R.equipar(p, 'e2'));
+  assert.strictEqual(typeof R.comprar(p, 'rara', 'arma', 'machado2m'), 'object');
+  // Caçador: aljava não com balestra nem com adaga
+  const c = R.criarPersonagem('C', 'feminino', 'humano', 'arqueiro');
+  c.inventario.push({ id: 'al', tipo: 'secundaria', classe: null, mao: 'aljava', raridade: 'comum', variacao: 0, encanto: 0 },
+    { id: 'ad', tipo: 'arma', classe: 'arqueiro', arma: 'adaga', raridade: 'comum', variacao: 0, dano: [2, 6], encanto: 0 });
+  assert.strictEqual(R.equipar(c, 'al'), 'secundaria');
+  assert.strictEqual(R.equipar(c, 'ad'), 'arma');
+  assert.strictEqual(c.equipados.secundaria, null, 'adaga tira a aljava');
+  assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });

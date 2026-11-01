@@ -284,14 +284,16 @@ table.atributos th { color: var(--suave); font-weight: 500; }
     ". elmo colar"
     "peitoral retrato luvas"
     "arma retrato anel1"
-    ". retrato anel2"
+    "secundaria retrato anel2"
     ". botas .";
   max-width: 440px; margin: 0 auto; width: 100%;
 }
 .espaco-elmo { grid-area: elmo; } .espaco-colar { grid-area: colar; }
 .espaco-peitoral { grid-area: peitoral; } .espaco-arma { grid-area: arma; }
 .espaco-luvas { grid-area: luvas; } .espaco-anel1 { grid-area: anel1; }
-.espaco-anel2 { grid-area: anel2; } .espaco-botas { grid-area: botas; }
+.espaco-anel2 { grid-area: anel2; } .espaco-botas { grid-area: botas; } .espaco-secundaria { grid-area: secundaria; }
+/* Arma de duas mãos: a mão esquerda mostra a mesma arma, apagada */
+.slot.fantasma { opacity: .38; filter: grayscale(.4); }
 .retrato-central {
   grid-area: retrato; position: relative; width: 100%; max-width: 280px; aspect-ratio: 4 / 5;
   border-radius: 10px; overflow: hidden; border: 1px solid #5a5040; background: #000;

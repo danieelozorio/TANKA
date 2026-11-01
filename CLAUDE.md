@@ -92,7 +92,11 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   Monstros com `ajusteVida` por área (compensa o dano maior). Presente: 1 Pergaminho do Recomeço (`recomecoPresente`).
 - Nomes: classe base `arqueiro` aparece como **Caçador**; segunda classe `cacador` aparece como **Arqueiro** (ids não mudam).
 - Rodapé: Eldrinonline.com.br (o e-mail interno do login continua @jogador.tankaarena.com — NÃO mudar).
-- Parte 2 (armas) aprovada, falta fazer: 3 tipos por classe + mão esquerda (Escudo só defesa; Aljava não com Balestra/Adaga;
-  duas mãos ocupa a esquerda e mostra a mesma arma apagada com a ficha da principal), velocidade Devagar/Normal/Rápida,
-  rara +atributo, épica +10% PvE, lendária +10% PvP; armas de segunda classe só a partir de rara; arma incompatível fica
-  usável até desequipar. Lista completa no arquivo do Daniel (Armas_Secundarias.txt). Parte 3: armaduras com atributos variados.
+- Parte 2 (armas) FEITA: `TIPOS_ARMA` (vel/fator/duasMaos/proibe), `MAO_ESQUERDA`, `ARMAS_CLASSE` (base e segundas classes),
+  `ARMA_PADRAO` (armas antigas sem `arma`), `SUFIXOS_ARMA`, `RARIDADE_ARMA` (rara +atributo, épica +10% PvE, lendária +10% PvP).
+  Item novo: arma com `arma: <tipo>`; mão esquerda = `tipo: 'secundaria'`, `mao: <tipo>`, espaço `equipados.secundaria`.
+  Regras: `podeUsar`/`motivoNaoEquipa` (incompatível fica equipada até tirar), `sortearTipoArma`/`sortearMao` nos drops,
+  tipos de segunda classe só a partir de rara. Servidor (tanka_status) replica fator, velocidade, mão esquerda, atributo e PvP
+  (conferido com 40 personagens). Ícones: `assets/itens/arma-<tipo>-<raridade>` e `mao-<tipo>-<raridade>` (prompts mandados,
+  20 imagens 2x2; enquanto não chegam, desenho SVG).
+- Parte 3 (falta): armaduras com atributos variados.
