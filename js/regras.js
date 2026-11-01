@@ -36,7 +36,8 @@ Tanka.regras = (function () {
   // Item: { id, tipo, classe, raridade, encanto }. Joias têm classe null (servem para todos).
   // Arma também tem `variacao` (qual dos 8 nomes) e `dano` [mín, máx], sorteados nas faixas da raridade.
   // especifico: o tipo da arma (ex.: 'machado') ou do item da mão esquerda (ex.: 'escudo').
-  function novoItem(tipo, classe, raridade, rng, especifico) {
+  // nivel: nível do item (1 a 60); sem ele, item no modelo antigo (valores fixos da raridade).
+  function novoItem(tipo, classe, raridade, rng, especifico, nivel) {
     var joia = TIPOS_JOIA.indexOf(tipo) >= 0 || tipo === 'secundaria';
     var item = { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
     rng = rng || Math.random;
@@ -47,11 +48,54 @@ Tanka.regras = (function () {
       item.variacao = Math.floor(rng() * (item.arma === D.ARMA_PADRAO[item.classe] ? D.armas[item.classe][raridade] : D.SUFIXOS_ARMA[raridade]).length);
       item.dano = [rolar(r.danoMin, rng), rolar(r.danoMax, rng)];
     }
+    if (nivel) {
+      item.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, nivel));
+      item.qualidade = sortearQualidade(raridade, rng);
+      if (tipo === 'arma') item.dano = danoDoNivel(item.nivel, item.qualidade);
+    }
     if (tipo === 'secundaria') {
       item.mao = especifico;
       item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     }
     if (tipo !== 'arma') item.bonus = sortearBonus(item, rng);
+    return item;
+  }
+  // ---------- Nível e qualidade dos itens ----------
+  var N_ = D.ITEM_NIVEL;
+  function limitarNivel(n) { return Math.max(1, Math.min(N_.maximo, n)); }
+  // Nível de um drop: o do herói ±3; do level 35 em diante, entre 35 e 60.
+  function nivelDoDrop(p, rng) {
+    rng = rng || Math.random;
+    if (p.nivel >= N_.altoDesde) return N_.altoMin + Math.floor(rng() * (N_.maximo - N_.altoMin + 1));
+    return limitarNivel(p.nivel - N_.variacao + Math.floor(rng() * (2 * N_.variacao + 1)));
+  }
+  function nivelDoMercado(p, rng) {
+    return limitarNivel(p.nivel - N_.variacao + Math.floor((rng || Math.random)() * (2 * N_.variacao + 1)));
+  }
+  function sortearQualidade(raridade, rng) {
+    var f = N_.faixaQualidade[raridade] || [0, 1];
+    return Math.round((f[0] + (rng || Math.random)() * (f[1] - f[0])) * 1000) / 1000;
+  }
+  function multQualidade(q) { return N_.qualidadeMult[0] + (N_.qualidadeMult[1] - N_.qualidadeMult[0]) * q; }
+  function danoDoNivel(nivel, q) {
+    var media = (N_.danoPorNivel * nivel + N_.danoBase) * multQualidade(q);
+    return [Math.max(1, Math.round(media * (1 - N_.danoFaixa))), Math.max(1, Math.round(media * (1 + N_.danoFaixa)))];
+  }
+  // Bônus de armadura/joia/mão esquerda no nível: o valor "raro" da tabela dobra a cada 10 níveis (referência no 15).
+  function escalaNivel(nivel) {
+    return Math.pow(2, (Math.min(nivel, 40) - N_.bonusReferencia) / N_.bonusDobraA) * (1 + Math.max(0, nivel - 40) * N_.bonusDepois40);
+  }
+  function bonusDoNivel(valorRaro, nivel, q) {
+    return Math.max(1, Math.round(valorRaro * escalaNivel(nivel) * multQualidade(q) / multQualidade(0.55)));
+  }
+  function precoDoNivel(nivel) { return Math.round(N_.precoBase * Math.pow(N_.precoCresce, Math.max(1, nivel) - 1)); }
+  // Joia da masmorra (vem do servidor sem nível): ganha nível de drop e bônus sorteados.
+  function completarItem(p, item, rng) {
+    if (!item || item.nivel) return item;
+    item.nivel = nivelDoDrop(p, rng);
+    item.qualidade = sortearQualidade(item.raridade, rng);
+    if (item.tipo === 'arma') item.dano = danoDoNivel(item.nivel, item.qualidade);
+    else item.bonus = sortearBonus(item, rng || Math.random);
     return item;
   }
   // Faixa de um bônus (mín., máx.) pela variação de 80% a 120%.
@@ -63,7 +107,8 @@ Tanka.regras = (function () {
   function sortearBonus(item, rng) {
     var def = definicao(item), idx = RARIDADES.indexOf(item.raridade), b = {};
     if (!def) return b;
-    Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
+    if (item.nivel) Object.keys(def.bonus).forEach(function (k) { b[k] = bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade); });
+    else Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
     var extra = D.VARIACAO_ITEM.extra[item.raridade];
     if (extra) {
       var k = ATRIBUTOS[Math.floor(rng() * ATRIBUTOS.length)];
@@ -155,7 +200,9 @@ Tanka.regras = (function () {
   }
 
   function precoVenda(item) {
-    return Math.round(D.raridades[item.raridade].venda * (1 + (item.encanto || 0) * D.encantamento.vendaPorNivel));
+    var enc = 1 + (item.encanto || 0) * D.encantamento.vendaPorNivel;
+    if (item.nivel) return Math.max(1, Math.round(precoDoNivel(item.nivel) * N_.vendaPct / 100 * (N_.vendaRaridade[item.raridade] || 1) * enc));
+    return Math.round(D.raridades[item.raridade].venda * enc);
   }
   // ---------- Equipamento e mochila ----------
 
@@ -462,6 +509,8 @@ Tanka.regras = (function () {
       delete p.armaEquipada;
     }
     if (!('secundaria' in p.equipados)) p.equipados.secundaria = null;   // espaço novo: mão esquerda
+    // Itens de antes do nível: viram do nível atual do herói (os status continuam os mesmos).
+    p.inventario.forEach(function (i) { if (!i.nivel) i.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, p.nivel || 1)); });
     return p;
   }
 
@@ -576,7 +625,7 @@ Tanka.regras = (function () {
 
   function rolarDrop(p, monstroId, rng) {
     var raridade = rolarRaridade(p, D.monstros[monstroId].drops, rng);
-    return raridade ? novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng)) : null;
+    return raridade ? novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng)) : null;
   }
 
   // Item de qualquer tipo das caçadas: arma, uma das 4 armaduras da classe ou item da mão esquerda.
@@ -585,11 +634,11 @@ Tanka.regras = (function () {
   function itemDoTipo(p, tipo, raridade, rng) {
     if (tipo === 'secundaria') {
       var m = sortearMao(p, raridade, rng);
-      if (m) return novoItem('secundaria', null, raridade, rng, m);
+      if (m) return novoItem('secundaria', null, raridade, rng, m, nivelDoDrop(p, rng));
       tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
     }
-    if (tipo === 'arma') return novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng));
-    return novoItem(tipo, p.classe, raridade, rng);
+    if (tipo === 'arma') return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
+    return novoItem(tipo, p.classe, raridade, rng, null, nivelDoDrop(p, rng));
   }
   function itemQualquer(p, raridade, rng) {
     return itemDoTipo(p, TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], raridade, rng);
@@ -722,7 +771,7 @@ Tanka.regras = (function () {
       return r ? itemQualquer(p, r, rng) : null;
     }
     var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
-    if (rng() < 0.5) return novaArma(p.classe, raridade, rng, sortearTipoArma(p, raridade, rng));
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
     var pecas = TIPOS_ARMADURA.concat(['secundaria']);
     return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
   }
@@ -983,7 +1032,10 @@ Tanka.regras = (function () {
   // Compra no mercado: arma (tipo 'arma') ou armadura da classe. Colar e anel só nas masmorras.
   // Retorna o item, ou um texto com o motivo da falha.
   // especifico: tipo da arma (ex.: 'machado') ou do item da mão esquerda (ex.: 'escudo'); sem ele, o padrão da classe.
+  // Mercado novo: comprar(p, tipo, especifico) — item do nível do herói ±3, comum ou raro, pelo preço do nível.
+  // O jeito antigo comprar(p, raridade, tipo, especifico) ainda funciona (testes e admin).
   function comprar(p, raridade, tipo, especifico) {
+    if (!D.raridades[raridade]) return comprarNoNivel(p, raridade, tipo);
     var r = D.raridades[raridade];
     tipo = tipo || 'arma';
     if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
@@ -998,6 +1050,27 @@ Tanka.regras = (function () {
     p.ouro -= r.compra;
     p.reputacao = (p.reputacao || 0) - (r.compraReputacao || 0);
     var item = novoItem(tipo, p.classe, raridade, null, especifico);
+    p.inventario.push(item);
+    return item;
+  }
+
+  function precoMercado(p) { return precoDoNivel(p.nivel); }
+  function comprarNoNivel(p, tipo, especifico, rng) {
+    rng = rng || Math.random;
+    tipo = tipo || 'arma';
+    if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
+    if (['arma', 'secundaria'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
+    var raridade = rng() < N_.mercadoRara ? 'rara' : 'comum';
+    if (tipo === 'arma') especifico = especifico || D.ARMA_PADRAO[p.classe];
+    if (tipo === 'arma' && armasPermitidas(p).indexOf(especifico) < 0) return 'Sua classe não usa essa arma.';
+    if (tipo === 'secundaria' && maoPermitida(p).indexOf(especifico) < 0) return 'Sua classe não usa esse item.';
+    // tipos da segunda classe não existem comuns: vem rara
+    if ((tipo === 'arma' || tipo === 'secundaria') && soSegundaClasse(especifico, tipo === 'secundaria')) raridade = 'rara';
+    var preco = precoMercado(p);
+    if (p.ouro < preco) return 'Ouro insuficiente.';
+    if (mochilaCheia(p)) return 'Mochila cheia!';
+    p.ouro -= preco;
+    var item = novoItem(tipo, p.classe, raridade, rng, especifico, nivelDoMercado(p, rng));
     p.inventario.push(item);
     return item;
   }
@@ -1440,7 +1513,7 @@ Tanka.regras = (function () {
     // Uma arma de cada raridade da classe, já com o encantamento escolhido.
     armas: function (p, encanto) {
       Object.keys(D.raridades).forEach(function (k) {
-        var item = novaArma(p.classe, k);
+        var item = novoItem('arma', p.classe, k, null, null, p.nivel);
         item.encanto = encanto || 0;
         p.inventario.push(item);
       });
@@ -1479,10 +1552,10 @@ Tanka.regras = (function () {
     resetDiario: function (p, agora) { p.ultimoReset = null; atualizarTempo(p, agora); },
     conjunto: function (p, raridade) {
       ['arma'].concat(TIPOS_ARMADURA, ['colar', 'anel', 'anel']).forEach(function (tipo) {
-        p.inventario.push(novoItem(tipo, p.classe, raridade));
+        p.inventario.push(novoItem(tipo, p.classe, raridade, null, null, p.nivel));
       });
       var m = sortearDaLista(maoPermitida(p), raridade, true, function () { return 0; });
-      if (m) p.inventario.push(novoItem('secundaria', null, raridade, null, m));
+      if (m) p.inventario.push(novoItem('secundaria', null, raridade, null, m, p.nivel));
     },
   };
 
@@ -1574,6 +1647,14 @@ Tanka.regras = (function () {
     maoPermitida: maoPermitida,
     soSegundaClasse: soSegundaClasse,
     faixaBonus: faixaBonus,
+    nivelDoDrop: nivelDoDrop,
+    nivelDoMercado: nivelDoMercado,
+    danoDoNivel: danoDoNivel,
+    bonusDoNivel: bonusDoNivel,
+    precoDoNivel: precoDoNivel,
+    precoMercado: precoMercado,
+    completarItem: completarItem,
+    novoItem: novoItem,
     motivoNaoEquipa: motivoNaoEquipa,
     talentos: talentos,
     segundaClasse: segundaClasse,

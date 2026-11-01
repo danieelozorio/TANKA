@@ -107,3 +107,12 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   uma imagem mudar sem mudar de nome), ícones em `assets/app/` (recorte do logo; dá para trocar por um ícone próprio).
 - APK: precisa do Android SDK (dl.google.com está bloqueado neste ambiente). Caminhos: liberar dl.google.com na rede do
   ambiente e montar um TWA aqui, ou o Daniel gerar no PWABuilder.com com a URL do jogo.
+
+## Itens por nível (parte 1 FEITA)
+- `ITEM_NIVEL` (dados.js): nível 1–60; drop = level ±3 (35+: 35–60); raridade = qualidade (faixaQualidade); arma
+  `danoDoNivel`, armadura/joia/mão `bonusDoNivel` (valor raro da tabela, dobra a cada 10 níveis desde o 15).
+  Mercado por tipo (`comprar(p, tipo, especifico)` → `comprarNoNivel`): nível ±3, comum/rara, preço `precoDoNivel`.
+  Venda = 10% do preço do nível × raridade. Itens antigos ganham `nivel` = level do herói (status iguais).
+  Joia da masmorra vem do servidor sem nível: `completarItem`. Chefes com a velocidade do 3º monstro.
+- Falta: parte 2 (extras das armas por faixa de nível 11–60: atributos, PvE, PvP, pontos de habilidade além de 10) e
+  parte 3 (conjuntos das segundas classes, 2/3/4 peças com o mesmo nome; Destruidor (2) = +5 de Força).

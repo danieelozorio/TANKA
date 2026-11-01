@@ -287,6 +287,23 @@ Tanka.dados = {
   // Extras da arma pela raridade (comum, rara, épica, lendária): atributo de dano da classe, % de dano contra monstros (PvE)
   // e % de dano na Arena (PvP).
   RARIDADE_ARMA: { atributo: [0, 2, 4, 6], pve: [0, 0, 10, 10], pvp: [0, 0, 0, 10] },
+  // ---------- Nível dos itens (1 a 60) ----------
+  // Drops e Mercado: nível do herói ±3 (drops: do level 35 em diante, do 35 ao 60). A raridade é a QUALIDADE do item no
+  // nível: sorteada com as chances de sempre e convertida numa qualidade de 0 a 1 (faixaQualidade); com a mesma
+  // qualidade, um item de nível maior é mais forte.
+  ITEM_NIVEL: {
+    maximo: 60, variacao: 3, altoDesde: 35, altoMin: 35,
+    faixaQualidade: { comum: [0, 0.4], rara: [0.4, 0.7], epica: [0.7, 0.9], lendaria: [0.9, 1] },
+    qualidadeMult: [0.7, 1.3],              // o mais fraco e o mais forte do mesmo nível
+    // Arma: dano médio = (danoPorNivel x nível + danoBase) x qualidade; o dano vai de -15% a +15% da média.
+    danoPorNivel: 0.8, danoBase: 2, danoFaixa: 0.15,
+    // Armadura, joia e mão esquerda: valor "raro" da tabela, dobrando a cada 10 níveis a partir do 15 (até o 40;
+    // depois do 40, +3% por nível), vezes a qualidade.
+    bonusReferencia: 15, bonusDobraA: 10, bonusDepois40: 0.03,
+    // Mercado: preço pelo nível do herói (100 no 1, x1,12 por nível); vem comum ou rara.
+    // Venda: 10% do preço do nível do item, x raridade.
+    precoBase: 100, precoCresce: 1.12, mercadoRara: 0.5, vendaPct: 10, vendaRaridade: { comum: 1, rara: 1.5, epica: 3, lendaria: 6 },
+  },
   // Armaduras, joias e mão esquerda caem com os bônus sorteados (como o dano das armas): cada bônus entre 80% e 120%
   // do valor da raridade (mínimo 1). Da rara em diante ganham também 1 atributo extra sorteado (FOR, DES, RES, INT ou SOR).
   // Itens antigos (sem `bonus` salvo) continuam com o valor fixo.
@@ -558,7 +575,7 @@ Tanka.dados = {
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
   // e 5x a exp e o ouro (para valer o risco).
-  chefe: { vida: 1.5, ataque: 1.2, velocidade: 1.5, defesa: 2, exp: 5, ouro: 5, pergaminhos: [1, 3] },
+  chefe: { vida: 1.5, ataque: 1.2, velocidade: 1, defesa: 2, exp: 5, ouro: 5, pergaminhos: [1, 3] },
 
   // ---------- Masmorras (grupo de 3) ----------
   // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem

@@ -79,7 +79,7 @@ teste('cobra = 2x lobo, urso = 2x cobra (vida e exp); dano em faixa', () => {
 
 teste('velocidade e defesa dos monstros: 15, +10% por monstro, +10% entre áreas; chefe +50% / defesa x2', () => {
   const v = (id) => D.monstros[id].velocidade, d = (id) => D.monstros[id].defesa;
-  assert.deepStrictEqual(['lobo', 'cobra', 'urso', 'velgrath'].map(v), [15, 17, 18, 27]);
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso', 'velgrath'].map(v), [15, 17, 18, 18]);   // chefe: velocidade do 3º monstro
   assert.strictEqual(v('sapo'), Math.round(15 * 1.1 * 1.1 * 1.1));
   assert.strictEqual(d('lobo'), 1);
   assert.strictEqual(d('velgrath'), d('urso') * 2);
@@ -164,7 +164,9 @@ teste('drop de arma é sempre da classe, com variação e dano sorteados na faix
     while (!d) d = R.rolarDrop(p, 'gargula', rng);
     assert.strictEqual(d.classe, classe);
     assert.strictEqual(d.raridade, 'rara');
-    assert.ok(d.dano[0] >= 11 && d.dano[0] <= 15 && d.dano[1] >= 16 && d.dano[1] <= 20, d.dano);
+    assert.ok(d.nivel >= 1 && d.nivel <= 4, 'nível do herói (1) até +3');
+    assert.ok(d.qualidade >= 0.4 && d.qualidade <= 0.7, 'rara: qualidade de 40% a 70%');
+    assert.strictEqual(JSON.stringify(d.dano), JSON.stringify(R.danoDoNivel(d.nivel, d.qualidade)));
     assert.ok(D.armas[classe].rara[d.variacao]);
   }
   const nomes = new Set();
@@ -476,7 +478,7 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     const c = D.monstros[a.chefe.id];
     assert.ok(c.chefe);
     assert.strictEqual(c.hp, Math.round(m3.hp * 1.5)); assert.ok(c.ataque[0] > m3.ataque[0]);
-    assert.ok(Math.abs(c.velocidade - m3.velocidade * 1.5) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
+    assert.ok(Math.abs(c.velocidade - m3.velocidade) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
     assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
   assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [112, 448, 2970]);   // com o ajusteVida da área
@@ -1115,4 +1117,33 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
   assert.ok(Object.keys(comum.bonus).every((k) => k === 'defesa' || k === 'vida'), 'comum sem atributo extra');
   // item antigo (sem bonus salvo) continua com o valor fixo
   assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, 5);
+});
+
+teste('itens por nível: drop ±3 (35+ vai de 35 a 60), qualidade pela raridade, Mercado comum/rara e venda a 10%', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 19);   // level 20
+  for (let i = 0; i < 300; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 17 && n <= 23, n); }
+  R.admin.subirNivel(p, 20);   // level 40
+  const vistos = new Set(); for (let i = 0; i < 2000; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 35 && n <= 60); vistos.add(n); }
+  assert.strictEqual(vistos.size, 26);
+  // mesmo nível: lendária mais forte que comum; nível maior mais forte
+  const m = (n, q) => { const d = R.danoDoNivel(n, q); return (d[0] + d[1]) / 2; };
+  assert.ok(m(10, 1) > m(10, 0.6) && m(10, 0.1) < m(10, 0.55) && m(30, 0.5) > m(10, 0.5));
+  assert.ok(R.bonusDoNivel(5, 40, 0.5) > R.bonusDoNivel(5, 15, 0.5));
+  // Mercado: nível do herói ±3, comum ou rara, preço do nível
+  const c = R.criarPersonagem('C', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(c, 9); c.ouro = 1e9;
+  const rars = new Set();
+  for (let i = 0; i < 100; i++) {
+    const it = R.comprar(c, 'peitoral'); rars.add(it.raridade);
+    assert.ok(it.nivel >= 7 && it.nivel <= 13); assert.ok(it.bonus.defesa >= 1);
+    c.inventario = c.inventario.filter((x) => x.id !== it.id);
+  }
+  assert.deepStrictEqual([...rars].sort(), ['comum', 'rara']);
+  const ouro = c.ouro; R.comprar(c, 'arma', 'machado'); assert.strictEqual(ouro - c.ouro, R.precoDoNivel(10));
+  // venda: 10% do preço do nível do item (comum)
+  const it = R.novoItem('elmo', 'cavaleiro', 'comum', Math.random, null, 10);
+  assert.strictEqual(R.precoVenda(it), Math.round(R.precoDoNivel(10) * 0.1));
+  // item antigo vira do nível do herói
+  const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 12; delete v.inventario[0].nivel; R.normalizar(v);
+  assert.strictEqual(v.inventario[0].nivel, 12);
 });

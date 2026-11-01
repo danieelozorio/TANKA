@@ -155,6 +155,7 @@
       + (estado.itemFoco === item.id ? ' focado' : '') + '" data-acao="item" data-id="' + item.id + '"'
       + ' title="' + esc(R.nomeItem(item)) + '"' + (atributos || '') + '>'
       + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '')
+      + (item.nivel ? '<span class="nivel-item" title="Nível do item">' + item.nivel + '</span>' : '')
       + (item.travado ? '<span class="cadeado" title="Travado">' + ICONES.cadeado + '</span>' : '') + '</button>';
   }
 
@@ -776,6 +777,7 @@
     return '<div class="ficha-item-topo"><div class="icone-grande borda-' + item.raridade + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
+      + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>'
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + '</p>' : '')
@@ -940,6 +942,24 @@
     botao.classList.toggle('confirmar', !!lote.confirmar);
   }
 
+  // Linha do Mercado por tipo: preço do level do herói; o item vem com nível ±3 e qualidade comum ou rara.
+  function linhaMercadoNivel(modelo, especifico) {
+    var p = estado.personagem, preco = R.precoMercado(p), falta = preco - p.ouro;
+    var n0 = Math.max(1, p.nivel - D.ITEM_NIVEL.variacao), n1 = Math.min(D.ITEM_NIVEL.maximo, p.nivel + D.ITEM_NIVEL.variacao), desc;
+    if (modelo.tipo === 'arma') {
+      var t = R.tipoArma(modelo), a = R.danoDoNivel(n0, 0), b = R.danoDoNivel(n1, 0.7);
+      desc = 'Dano ' + Math.round(a[0] * t.fator) + '–' + Math.round(b[1] * t.fator) + ' · ' + D.NOME_VELOCIDADE[t.vel] + (t.duasMaos ? ' · duas mãos' : '');
+    } else {
+      var def = R.definicao(modelo);
+      desc = Object.keys(def.bonus).map(function (k) { return D.bonus[k] + ' +' + R.bonusDoNivel(def.bonus[k][1], n0, 0) + '–' + R.bonusDoNivel(def.bonus[k][1], n1, 0.7); }).join(' · ');
+    }
+    var nome = modelo.tipo === 'arma' ? R.tipoArma(modelo).nome : modelo.tipo === 'secundaria' ? D.MAO_ESQUERDA[modelo.mao].nome : R.definicao(modelo).tipo;
+    return '<div class="item item-com-icone carta-rara"><div class="icone-pequeno borda-rara">' + F.icone(modelo) + '</div>'
+      + '<div class="item-texto"><div><strong>' + nome + '</strong> <span class="suave pequeno">nível ' + n0 + '–' + n1 + '</span></div>'
+      + '<div class="suave">' + desc + ' · ' + preco.toLocaleString('pt-BR') + ' de ouro</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
+      + '<button class="btn" data-acao="comprar" data-tipo="' + modelo.tipo + '" data-especifico="' + (especifico || '') + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+  }
   function linhaMercado(modelo) {
     var p = estado.personagem, r = D.raridades[modelo.raridade], preco = r.compra, rep = r.compraReputacao || 0;
     var falta = preco - p.ouro, faltaRep = rep - (p.reputacao || 0), faltas = [];
@@ -1081,24 +1101,16 @@
     var p = estado.personagem;
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
       + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>'
-      + '<div class="opcoes">' + R.RARIDADES.map(function (k) {
-        return '<button class="opcao mini-opcao' + (estado.mercadoRaridade === k ? ' selecionada' : '') + '" data-acao="mercado-raridade" data-valor="' + k + '"><span class="raridade-' + k + '">' + D.raridades[k].nome + '</span></button>';
-      }).join('') + '</div>'
-      + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3>'
-      + (estado.mercadoRaridade === 'comum' && R.armasPermitidas(p).some(function (a) { return R.soSegundaClasse(a); })
-        ? '<p class="suave pequeno">As armas da segunda classe existem a partir da raridade rara.</p>' : '')
-      + '<div class="itens">' + R.armasPermitidas(p).filter(function (a) { return estado.mercadoRaridade !== 'comum' || !R.soSegundaClasse(a); }).map(function (a) {
-        return linhaMercado({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: estado.mercadoRaridade, encanto: 0 });
-      }).join('') + '</div>'
-      + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).filter(function (m) {
-        return estado.mercadoRaridade !== 'comum' || !R.soSegundaClasse(m, true);
-      }).map(function (m) {
-        return linhaMercado({ tipo: 'secundaria', classe: null, mao: m, raridade: estado.mercadoRaridade, encanto: 0 });
+      + '<p class="suave pequeno">Cada compra vem com nível sorteado entre <strong>' + Math.max(1, p.nivel - D.ITEM_NIVEL.variacao) + ' e ' + Math.min(D.ITEM_NIVEL.maximo, p.nivel + D.ITEM_NIVEL.variacao)
+      + '</strong> (o seu level ±' + D.ITEM_NIVEL.variacao + ') e qualidade <span class="raridade-comum">Comum</span> ou <span class="raridade-rara">Rara</span>. '
+      + 'Itens Épicos e Lendários só caem dos monstros.</p>'
+      + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3><div class="itens">'
+      + R.armasPermitidas(p).map(function (a) { return linhaMercadoNivel({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: 'rara', encanto: 0 }, a); }).join('') + '</div>'
+      + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).map(function (m) {
+        return linhaMercadoNivel({ tipo: 'secundaria', classe: null, mao: m, raridade: 'rara', encanto: 0 }, m);
       }).join('') + '</div>' : '')
       + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
-      + R.TIPOS_ARMADURA.map(function (tipo) {
-        return linhaMercado({ tipo: tipo, classe: R.TIPOS_JOIA.indexOf(tipo) >= 0 ? null : p.classe, raridade: estado.mercadoRaridade, encanto: 0 });
-      }).join('') + '</div>'
+      + R.TIPOS_ARMADURA.map(function (tipo) { return linhaMercadoNivel({ tipo: tipo, classe: p.classe, raridade: 'rara', encanto: 0 }, ''); }).join('') + '</div>'
       + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>'
       + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
       + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
@@ -2487,10 +2499,11 @@
         break;
       }
       case 'comprar': {
-        var comprado = R.comprar(p, el.dataset.raridade, el.dataset.tipo, el.dataset.especifico || undefined);
+        var comprado = el.dataset.raridade ? R.comprar(p, el.dataset.raridade, el.dataset.tipo, el.dataset.especifico || undefined)
+          : R.comprar(p, el.dataset.tipo, el.dataset.especifico || undefined);
         if (typeof comprado === 'string') { avisar(comprado); break; }
         salvar();
-        avisar('Você comprou ' + R.nomeItem(comprado) + '! Está na mochila.');
+        avisar('Você comprou ' + R.nomeItem(comprado) + ' (nível ' + comprado.nivel + ', ' + D.raridades[comprado.raridade].nome + ')! Está na mochila.');
         telaJogo();
         break;
       }
@@ -2527,7 +2540,7 @@
         var v = op === 'conjunto' || op === 'joia' ? el.dataset.valor : Number(el.dataset.valor);
         if (op === 'joia') {
           if (R.mochilaCheia(p)) { avisar('Mochila cheia!'); break; }
-          var joia = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tipo: Math.random() < 0.5 ? 'colar' : 'anel', classe: null, raridade: v, encanto: 0 };
+          var joia = R.completarItem(p, { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), tipo: Math.random() < 0.5 ? 'colar' : 'anel', classe: null, raridade: v, encanto: 0 });
           p.inventario.push(joia);
           salvar();
           avisar('Você ganhou ' + R.nomeItem(joia) + '.');
@@ -2782,7 +2795,7 @@
     try {
       for (var i = 0; i < g.recompensas.length; i++) {
         if (R.mochilaCheia(p)) { avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.'); break; }
-        var item = await C.grupo.resgatar(p.id, g.recompensas[i].id);
+        var item = R.completarItem(p, await C.grupo.resgatar(p.id, g.recompensas[i].id));
         p.inventario.push(item);
         salvar();
         avisar('Você ganhou ' + R.nomeItem(item) + ' (' + D.raridades[item.raridade].nome + ')!');

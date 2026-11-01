@@ -1284,3 +1284,6 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 @media (prefers-reduced-motion: reduce) { .btn-instalar { animation: none; } }
 .btn-instalar[hidden] { display: none; }
 #config-painel .btn-instalar { width: 100%; margin-top: .5rem; }
+.nivel-item { position: absolute; left: 3px; bottom: 2px; font-size: .68rem; font-weight: 700; line-height: 1; padding: 1px 3px; border-radius: 4px;
+  color: #e9dcb8; background: rgba(0, 0, 0, .65); pointer-events: none; }
+.cadeado ~ .nivel-item, .nivel-item { z-index: 1; }
