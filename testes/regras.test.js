@@ -1200,23 +1200,23 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   assert.strictEqual(R.atributosTotais(p).for, forSem + 5);
 });
 
-teste('conjunto verde: 10% das armaduras da caçada, com força de rara; fora da venda em lote', () => {
+teste('conjunto: 10% das armaduras da caçada, na raridade sorteada; fora da venda em lote', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 24);
-  const monstro = Object.keys(D.monstros).find((m) => (D.monstros[m].dropsArmadura || []).length);
-  const sortear = () => { const r = []; for (let i = 0; i < 4000; i++) { const it = R.rolarDropArmadura(p, monstro, Math.random); if (it && it.tipo !== 'secundaria') r.push(it); } return r; };
+  const monstro = Object.keys(D.monstros).find((m) => (D.monstros[m].dropsArmadura || []).length >= 2);
+  const sortear = () => { const r = []; for (let i = 0; i < 20000; i++) { const it = R.rolarDropArmadura(p, monstro, Math.random); if (it && it.tipo !== 'secundaria') r.push(it); } return r; };
   assert.ok(sortear().every((it) => !it.conjunto), 'sem segunda classe não vem conjunto');
   R.escolherSegundaClasse(p, 'paladino');
   const itens = sortear(), verdes = itens.filter((it) => it.conjunto);
   const pct = verdes.length / itens.length * 100;
   assert.ok(pct > 6 && pct < 14, 'cerca de 10%: ' + pct.toFixed(1));
-  verdes.forEach((it) => {
-    assert.strictEqual(it.raridade, 'rara');
-    assert.strictEqual(it.conjunto, 'paladino-' + Math.ceil(it.nivel / 10));
-  });
-  p.inventario = p.inventario.concat([verdes[0], itens.find((it) => !it.conjunto && it.raridade === 'comum')]);
-  const ids = R.idsAteRaridade(p, 'epica');
-  assert.ok(ids.indexOf(verdes[0].id) < 0, 'peça verde não entra no "vender vários"');
+  verdes.forEach((it) => assert.strictEqual(it.conjunto, 'paladino-' + Math.ceil(it.nivel / 10)));
+  const rars = new Set(verdes.map((it) => it.raridade));
+  assert.ok(rars.size >= 2, 'conjunto vem em mais de uma raridade: ' + [...rars].join(','));
+  assert.deepStrictEqual([...new Set(itens.filter((it) => !it.conjunto).map((it) => it.raridade))].sort(), [...rars].sort(), 'mesmas raridades das peças normais');
+  p.inventario = p.inventario.concat([verdes[0], itens.find((it) => !it.conjunto)]);
+  const ids = R.idsAteRaridade(p, 'lendaria');
+  assert.ok(ids.indexOf(verdes[0].id) < 0, 'peça de conjunto não entra no "vender vários"');
   assert.ok(ids.length >= 1);
 });
 

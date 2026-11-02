@@ -326,8 +326,9 @@ Tanka.dados = {
     coletor: { nomes: ['do Viajante', 'do Garimpeiro', 'do Tesouro', 'da Fortuna', 'do Rei Mercador', 'da Riqueza Perdida'],
       bonus: { 2: { defesa: 5 }, 3: { dano: 5 }, 4: { vida: 30 } } },
   },
-  // Chance (%) de uma armadura que cai na caçada vir de conjunto (verde), para quem tem segunda classe.
-  // A peça verde tem a força de uma rara. O Mercado não vende peças de conjunto.
+  // Chance (%) de uma armadura que cai na caçada vir de conjunto, para quem tem segunda classe.
+  // A peça de conjunto vem na raridade sorteada (comum a lendária). O Mercado não vende peças de conjunto.
+  // Imagem própria: assets/itens/conjunto-<segunda classe>-<elmo|peitoral|luvas|botas>.webp (sem ela, a da armadura normal).
   CONJUNTO_CHANCE: 10,
   NOME_BONUS_CONJUNTO: { defesa: 'de defesa', vida: 'de vida', dano: 'de dano', for: 'de Força', velocidade: 'de velocidade',
     critico: '% de chance de crítico', evasao: '% de esquiva', criticoMagico: '% de chance de crítico mágico' },

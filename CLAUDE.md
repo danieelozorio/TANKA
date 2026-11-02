@@ -143,5 +143,9 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Parte 3 FEITA: `CONJUNTOS` (dados.js): peça de armadura de quem tem 2ª classe ganha `conjunto` '<classe2>-<faixa 1..6>'
   (`marcarConjunto` nos drops/Mercado/admin); `bonusConjuntos` (2/3/4 peças, só da própria 2ª classe) em `comConjunto`/
   `atributosTotais`; servidor soma igual (crítico de conjunto vira dano na Arena).
-  Conjunto VERDE (cor própria, `corItem`/`nomeRaridadeItem` em app.js): só cai na caçada, 10% das armaduras de quem tem
-  2ª classe (`CONJUNTO_CHANCE`), força de rara; Mercado não vende; "Vender vários" não seleciona peça verde.
+  Peça de conjunto: só cai na caçada, 10% das armaduras de quem tem 2ª classe (`CONJUNTO_CHANCE`), na RARIDADE sorteada
+  (comum a lendária; sem cor verde: `corItem` = raridade, `nomeRaridadeItem` = "Rara · Conjunto"). Mercado não vende;
+  "Vender vários" não seleciona peça de conjunto. Arte própria (1 por peça, a raridade fica na borda):
+  `assets/itens/conjunto-<classe2>-<elmo|peitoral|luvas|botas>.webp` (`arquivoConjunto` em retratos.js; sem ela, usa a
+  armadura normal). Prompts do Gemini (8 grades 2x2) mandados; recortar com `recortar_grade.py IMG 2 2 conjunto-<c2>-elmo
+  conjunto-<c2>-peitoral conjunto-<c2>-luvas conjunto-<c2>-botas` e depois `recortar_fundo.py`.

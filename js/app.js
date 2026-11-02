@@ -93,9 +93,9 @@
 
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
   // Classe do brilho da borda do quadro: um tom por nível (+1 a +10).
-  // Cor do item: peça de conjunto é verde; as outras seguem a raridade.
-  function corItem(item) { return item.conjunto ? 'conjunto' : item.raridade; }
-  function nomeRaridadeItem(item) { return item.conjunto ? 'Conjunto' : D.raridades[item.raridade].nome; }
+  // Cor do item: sempre a da raridade (a peça de conjunto também). O nome da raridade ganha "· Conjunto".
+  function corItem(item) { return item.raridade; }
+  function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
   function aura(item) {
     var e = item.encanto || 0;
     return e > 0 ? ' aura-e' + Math.min(10, e) : '';

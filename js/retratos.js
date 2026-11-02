@@ -348,7 +348,18 @@ Tanka.retratos = (function () {
       : item.classe ? item.classe + '-' + item.tipo : item.tipo;
     return 'assets/itens/' + base + '-' + item.raridade;
   }
+  // Peça de conjunto: arte própria da segunda classe (uma por peça, a raridade fica na borda):
+  //   conjunto-<segunda classe>-<tipo>. Sem ela, usa a arte da armadura normal.
+  function arquivoConjunto(item) {
+    var c2 = item.conjunto && String(item.conjunto).split('-')[0];
+    return c2 ? 'assets/itens/conjunto-' + c2 + '-' + item.tipo : null;
+  }
   function icone(item) {
+    var cj = arquivoConjunto(item);
+    if (cj && !semImagem[cj + '.webp']) {
+      return '<img class="icone-img" src="' + cj + '.webp" alt="" data-reserva="' + arquivoItem(item) + '" data-tipo="' + item.tipo
+        + '" data-classe="' + (item.classe || '') + '" data-raridade="' + item.raridade + '">';
+    }
     var base = arquivoItem(item);
     if (semImagem[base + '.jpg']) return iconeSvg(item.tipo, item.classe, item.raridade);
     var url = semImagem[base + '.webp'] ? base + '.jpg' : base + '.webp';
@@ -366,6 +377,11 @@ Tanka.retratos = (function () {
     if (img.classList.contains('icone-img')) {
       var src = img.getAttribute('src');
       semImagem[src] = true;
+      if (d.reserva) {   // conjunto sem arte própria: usa a da armadura normal
+        img.dataset.base = d.reserva; img.removeAttribute('data-reserva');
+        img.src = semImagem[d.base + '.webp'] ? d.base + '.jpg' : d.base + '.webp';
+        return;
+      }
       if (d.base && src === d.base + '.webp') { img.src = d.base + '.jpg'; return; }   // sem recorte: usa o original
       img.outerHTML = iconeSvg(d.tipo, d.classe || null, d.raridade);
       return;

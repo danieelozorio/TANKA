@@ -1287,8 +1287,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 @media (prefers-reduced-motion: reduce) { .btn-instalar { animation: none; } }
 .btn-instalar[hidden] { display: none; }
 #config-painel .btn-instalar { width: 100%; margin-top: .5rem; }
-.conjunto-ficha { margin: .5rem 0; padding: .45rem .6rem; border: 1px solid rgba(90, 200, 120, .35); border-radius: 8px; background: rgba(40, 90, 50, .12); }
-.conjunto-ficha strong { color: #8fe0a0; }
+.conjunto-ficha { margin: .5rem 0; padding: .45rem .6rem; border: 1px solid rgba(201, 169, 107, .35); border-radius: 8px; background: rgba(201, 169, 107, .07); }
+.conjunto-ficha strong { color: var(--ouro-claro); }
 .conjunto-ficha ul { margin: .3rem 0 0; padding-left: 1rem; }
-.conjunto-ficha li.ativo { color: #8fe0a0; font-weight: 600; }
-.conjunto-dt { color: #8fe0a0; }
+.conjunto-ficha li.ativo { color: var(--bom); font-weight: 600; }
+.conjunto-dt { color: var(--ouro-claro); }
