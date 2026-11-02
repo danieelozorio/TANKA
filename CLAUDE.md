@@ -20,8 +20,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
   seguir o que o Henri preferir).
 - Henri trabalha no branch dele (`henri/<assunto>`, ex.: `henri/arena-ranking`), faz commit e push nesse branch.
   Nunca mexer no branch do Daniel.
-- Henri **pode publicar** as próprias mudanças, com as mesmas regras: mostrar prints, lembrar o Henri de **avisar o
-  Daniel antes** (com os prints) e só publicar quando o Henri disser "pode publicar".
+- Henri tem **autonomia total para publicar** o que quiser, sem precisar avisar nem pedir licença ao Daniel.
+  O Claude do Henri mostra prints e publica quando o **Henri** disser "pode publicar".
 - Para publicar (Henri): `git fetch origin && git merge origin/main` no branch dele (trazer o que o Daniel publicou),
   resolver conflitos, rodar os testes, e então `git push origin HEAD:main` (precisa ser avanço normal, nunca `--force`).
   A prévia (Artifact) é da conta do Daniel: o Henri não atualiza; avisar que o Daniel pode atualizá-la depois.
@@ -29,8 +29,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 ## Regras de trabalho (IMPORTANTE)
 1. Claude do Daniel: trabalhar no branch local `trabalho-local`. Fazer commit e
    `git push origin trabalho-local:claude/amazing-volta-b0x1fb`.
-2. **Cada um publica as próprias mudanças, avisando o outro antes (com prints). Nunca publicar sem a pessoa dizer
-   "pode publicar".** Antes, mostrar prints/vídeo e perguntar.
+2. **Daniel e Henri têm autonomia total: cada um publica o que quiser, sem precisar avisar o outro.** O Claude só
+   publica quando a pessoa com quem está falando disser "pode publicar". Antes, mostrar prints/vídeo e perguntar.
 3. Quando o Daniel pedir para juntar o trabalho do Henri: `git fetch origin`, ver os branches `henri/*`, revisar o que
    mudou, `git merge` no `trabalho-local`, rodar os testes, resolver conflitos e mostrar prints antes de publicar.
 4. Ao ouvir "pode publicar" (Daniel):
