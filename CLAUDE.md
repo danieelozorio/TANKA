@@ -165,7 +165,7 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   mudarPergaminho/pergaminhos`). O contador antigo `p.pergaminhos` vira item sozinho em `R.consumiveis` (e é apagado);
   NÃO usar `p.pergaminhos` em código novo. Cristais: item que quebra na Forja vira cristais da raridade dele
   (`CRISTAIS_QUEBRA`: tentando +7/+8/+9/+10 = 100/150/200/500); ainda sem uso. Arte: `assets/itens/pergaminho-<raridade>.webp`
-  e `cristal-<raridade>.webp` (sem fundo); sem arte, desenho SVG em retratos.js.
+  (FEITA, Gemini, 4 imagens; .jpg 512px + recortar_fundo.py) e `cristal-<raridade>.webp` (ainda não; sem arte, desenho SVG em retratos.js).
 - Mercado: troca de pergaminhos de encantamento (`TROCA_PERGAMINHO`, `R.trocarPergaminho`): 10 de uma raridade = 1 da seguinte.
 - Forja: botão +1 depois do sucesso. Listas do servidor (ranking, arena, amigos, aliança, grupo, chat) mandam `classe2`.
 - (SUBSTITUÍDO pelo encanto em %, abaixo) Encanto mais forte em armas 20+. Seção Atividades (tempo logado/caçando) no painel do herói.
