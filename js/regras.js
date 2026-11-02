@@ -1378,11 +1378,21 @@ Tanka.regras = (function () {
 
   // ---------- Encantamento ----------
 
-  // Pergaminho dropado: raridade fixa do monstro ou, sem ela, a da arma equipada. Sorte aumenta a chance.
+  // Raridade pela tabela de qualidade da caçada (70% comum, 22% rara, 7% épica, 1% lendária).
+  function sortearRaridadeDrop(rng) {
+    var tabela = D.DROPS_CACADA.qualidade, total = 0;
+    tabela.forEach(function (q) { total += q.chance; });
+    var r = rng() * total;
+    for (var i = 0; i < tabela.length; i++) { r -= tabela[i].chance; if (r < 0) return tabela[i].raridade; }
+    return tabela[tabela.length - 1].raridade;
+  }
+
+  // Pergaminho dropado: raridade pela qualidade da caçada, fixa do monstro ou a da arma equipada. Sorte aumenta a chance.
   function rolarPergaminho(p, monstroId, rng) {
     var perg = D.monstros[monstroId].pergaminho;
     if (!perg || !perg.chance) return null;
     if (rng() * 100 >= perg.chance * (1 + status(p).bonusDrop / 100)) return null;
+    if (perg.qualidade) return sortearRaridadeDrop(rng);
     if (perg.raridade) return perg.raridade;
     var arma = armaEquipada(p);
     return arma ? arma.raridade : 'comum';
@@ -1794,6 +1804,8 @@ Tanka.regras = (function () {
     podeUsar: podeUsar,
     rolarDropArmadura: rolarDropArmadura,
     rolarDropItem: rolarDropItem,
+    rolarPergaminho: rolarPergaminho,
+    sortearRaridadeDrop: sortearRaridadeDrop,
     novaArma: novaArma,
     velocidadeDoNivel: velocidadeDoNivel,
     nivelHabilidade: nivelHabilidade,

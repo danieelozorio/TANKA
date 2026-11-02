@@ -478,12 +478,27 @@ Tanka.dados = {
   // Dentro da área, cada monstro tem o dobro de vida e exp do anterior; o ataque cresce
   // conforme `crescimento` (a Floresta dobra). Velocidade e defesa: ver MONSTRO abaixo.
   // `base` são os valores do 1º monstro; o chefe é calculado a partir do 3º (ver abaixo).
-  // drops: armas; dropsArmadura: peças (4 da classe + colar + anel, sorteada);
-  // dropsItem: qualquer tipo (arma, 4 armaduras da classe, colar ou anel, sorteado).
-  // pergaminho: { chance, raridade } (sem isso, o 3º monstro tem 5% na raridade da arma equipada).
-  // Chances em % (cumulativas, roladas uma vez), multiplicadas pelo bônus de Sorte.
+  // Drops dos monstros: iguais em todas as áreas, pela posição do monstro (ver DROPS_CACADA abaixo).
+  // Chefes: dropItem/drops próprios (abaixo, em cada área).
   // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
   // ajusteVida: multiplica a vida dos monstros da área (compensa o dano maior dos heróis desde que 3 pontos = +1 de dano).
+  // Drops da caçada, iguais em todas as áreas: chance (%) pela posição do monstro (1º, 2º, 3º).
+  // Arma, armadura e pergaminho são sorteados separados (dá para cair mais de um na mesma luta).
+  // Armadura = uma das 4 peças da classe ou a mão esquerda. O bônus de Sorte aumenta as chances.
+  // `qualidade`: raridade de tudo o que cair (arma, armadura e pergaminho), a Sorte não muda.
+  DROPS_CACADA: {
+    monstros: [
+      { arma: 5, armadura: 5 },
+      { arma: 8, armadura: 8 },
+      { arma: 10, armadura: 10, pergaminho: 5 },
+    ],
+    qualidade: [
+      { raridade: 'lendaria', chance: 1 },
+      { raridade: 'epica', chance: 7 },
+      { raridade: 'rara', chance: 22 },
+      { raridade: 'comum', chance: 70 },
+    ],
+  },
   NIVEL_MAXIMO: 40,
   areas: [
     {
@@ -492,12 +507,9 @@ Tanka.dados = {
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
       base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
       monstros: [
-        { id: 'lobo', dano: [3, 5], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.',
-          drops: [{ raridade: 'comum', chance: 10 }], dropsArmadura: [{ raridade: 'comum', chance: 10 }] },
-        { id: 'cobra', dano: [4, 6], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.',
-          drops: [{ raridade: 'comum', chance: 15 }], dropsArmadura: [{ raridade: 'comum', chance: 15 }] },
-        { id: 'urso', dano: [5, 8], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.',
-          dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 5, raridade: 'comum' } },
+        { id: 'lobo', dano: [3, 5], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.' },
+        { id: 'cobra', dano: [4, 6], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
+        { id: 'urso', dano: [5, 8], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
       ],
       chefe: { id: 'velgrath', dano: [8, 10], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
         dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
@@ -507,12 +519,9 @@ Tanka.dados = {
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
       base: { hp: 70, ataque: 8, exp: 10 }, ouro: [12, 20, 30],
       monstros: [
-        { id: 'sapo', dano: [10, 15], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.',
-          dropsItem: [{ raridade: 'comum', chance: 15 }], pergaminho: { chance: 10, raridade: 'comum' } },
-        { id: 'aranha', dano: [15, 20], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.',
-          dropsItem: [{ raridade: 'comum', chance: 18 }], pergaminho: { chance: 13, raridade: 'comum' } },
-        { id: 'troll', dano: [18, 22], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.',
-          dropsItem: [{ raridade: 'comum', chance: 20 }], pergaminho: { chance: 15, raridade: 'comum' } },
+        { id: 'sapo', dano: [10, 15], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.' },
+        { id: 'aranha', dano: [15, 20], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
+        { id: 'troll', dano: [18, 22], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
       ],
       chefe: { id: 'morgath', dano: [25, 30], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.',
         dropItem: [{ raridade: 'rara', chance: 20 }], pergaminhos: { raridade: 'rara', qtd: [1, 3] } },
@@ -522,12 +531,9 @@ Tanka.dados = {
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
       base: { hp: 140, ataque: 15, exp: 30 }, ouro: [40, 60, 80],
       monstros: [
-        { id: 'esqueleto', dano: [20, 28], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.',
-          drops: [{ raridade: 'rara', chance: 8 }], dropsArmadura: [{ raridade: 'rara', chance: 8 }] },
-        { id: 'goblin', dano: [26, 35], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.',
-          drops: [{ raridade: 'rara', chance: 10 }], dropsArmadura: [{ raridade: 'rara', chance: 10 }] },
-        { id: 'gargula', dano: [31, 42], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.',
-          drops: [{ raridade: 'rara', chance: 15 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
+        { id: 'esqueleto', dano: [20, 28], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
+        { id: 'goblin', dano: [26, 35], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
+        { id: 'gargula', dano: [31, 42], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
       ],
       chefe: { id: 'varnok', dano: [38, 52], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
         dropItem: [{ raridade: 'rara', chance: 25 }], pergaminhos: { raridade: 'rara', qtd: [2, 5] } },
@@ -537,12 +543,9 @@ Tanka.dados = {
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
       base: { hp: 200, ataque: 22, exp: 90 }, ouro: [100, 150, 200],
       monstros: [
-        { id: 'golem', dano: [30, 40], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.',
-          drops: [{ raridade: 'epica', chance: 5 }], dropsArmadura: [{ raridade: 'rara', chance: 15 }] },
-        { id: 'cultista', dano: [38, 52], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.',
-          drops: [{ raridade: 'epica', chance: 8 }], dropsArmadura: [{ raridade: 'epica', chance: 4 }] },
-        { id: 'espectro', dano: [46, 63], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.',
-          drops: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 12 }], dropsArmadura: [{ raridade: 'epica', chance: 6 }] },
+        { id: 'golem', dano: [30, 40], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
+        { id: 'cultista', dano: [38, 52], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
+        { id: 'espectro', dano: [46, 63], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
       chefe: { id: 'guardiao', dano: [56, 75], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.',
         drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
@@ -552,13 +555,9 @@ Tanka.dados = {
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
       base: { hp: 320, ataque: 32, exp: 270 }, ouro: [800, 1600, 3200],
       monstros: [
-        { id: 'escorpiao', dano: [44, 59], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.',
-          drops: [{ raridade: 'epica', chance: 10 }], dropsArmadura: [{ raridade: 'epica', chance: 6 }] },
-        { id: 'lagarto', dano: [54, 74], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.',
-          drops: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 14 }], dropsArmadura: [{ raridade: 'epica', chance: 8 }] },
-        { id: 'mumia', dano: [68, 92], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.',
-          drops: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 18 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 10 }] },
+        { id: 'escorpiao', dano: [44, 59], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
+        { id: 'lagarto', dano: [54, 74], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
+        { id: 'mumia', dano: [68, 92], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
       chefe: { id: 'farao', dano: [82, 110], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.',
         drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
@@ -568,15 +567,9 @@ Tanka.dados = {
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
       base: { hp: 420, ataque: 40, exp: 800 }, ouro: [2000, 4000, 8000],
       monstros: [
-        { id: 'drake', dano: [54, 74], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.',
-          drops: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 15 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 1 }, { raridade: 'epica', chance: 10 }] },
-        { id: 'wyvern', dano: [68, 92], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.',
-          drops: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 18 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 12 }] },
-        { id: 'cavaleiroDraconico', dano: [86, 116], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.',
-          drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 20 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 15 }] },
+        { id: 'drake', dano: [54, 74], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
+        { id: 'wyvern', dano: [68, 92], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
+        { id: 'cavaleiroDraconico', dano: [86, 116], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
       chefe: { id: 'vharkesh', dano: [103, 140], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.',
         drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
@@ -586,15 +579,9 @@ Tanka.dados = {
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
       base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [5000, 10000, 20000],
       monstros: [
-        { id: 'salamandra', dano: [82, 110], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.',
-          drops: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 20 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 3 }, { raridade: 'epica', chance: 15 }] },
-        { id: 'demonio', dano: [102, 138], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.',
-          drops: [{ raridade: 'lendaria', chance: 7 }, { raridade: 'epica', chance: 22 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 5 }, { raridade: 'epica', chance: 18 }] },
-        { id: 'elemental', dano: [128, 173], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.',
-          drops: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 25 }],
-          dropsArmadura: [{ raridade: 'lendaria', chance: 7 }, { raridade: 'epica', chance: 20 }] },
+        { id: 'salamandra', dano: [82, 110], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
+        { id: 'demonio', dano: [102, 138], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
+        { id: 'elemental', dano: [128, 173], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
       chefe: { id: 'ignaroth', dano: [154, 208], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.',
         drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
@@ -733,6 +720,11 @@ Tanka.dados = {
       .toLowerCase().replace(/^o /, '').trim().replace(/\s+/g, '-') + '.jpg';
   }
   var M = D.MONSTRO, vel = M.velocidade, def = M.defesa;
+  // 5% de arma com 70/22/7/1 de qualidade = comum 3,5%, rara 1,1%, épica 0,35%, lendária 0,05%.
+  function tabelaDrop(chance) {
+    if (!chance) return [];
+    return D.DROPS_CACADA.qualidade.map(function (q) { return { raridade: q.raridade, chance: chance * q.chance / 100 }; });
+  }
   D.areas.forEach(function (area, indiceArea) {
     var b = area.base, c0 = area.crescimento || D.crescimento;
     if (indiceArea > 0) { vel *= M.entreAreas; def *= M.entreAreas; }
@@ -740,13 +732,16 @@ Tanka.dados = {
       if (i > 0) { vel *= M.velocidadePorMonstro; def *= M.defesaPorMonstro; }
       var f = Math.pow(2, i);
       var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i));
+      var dc = D.DROPS_CACADA.monstros[i] || {};
       D.monstros[m.id] = {
         nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
         hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: Math.round(vel),
         defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
-        drops: m.drops || [], dropsArmadura: m.dropsArmadura || [], dropsItem: m.dropsItem || [],
-        // pergaminho: { chance, raridade } (raridade null = da arma equipada)
-        pergaminho: m.pergaminho || (i === 2 ? { chance: 5, raridade: null } : null),
+        // Tabelas no formato { raridade, chance } (cumulativas): chance do drop x qualidade (DROPS_CACADA).
+        chanceArma: dc.arma || 0, chanceArmadura: dc.armadura || 0,
+        drops: tabelaDrop(dc.arma), dropsArmadura: tabelaDrop(dc.armadura), dropsItem: [],
+        // pergaminho: { chance, qualidade: true } = raridade sorteada pela tabela de qualidade
+        pergaminho: dc.pergaminho ? { chance: dc.pergaminho, qualidade: true } : null,
         imagem: arquivo(m.nome),
       };
     });

@@ -702,6 +702,16 @@
     }).join(', ');
   }
 
+  // Tabela de qualidade dos drops da caçada (igual em todas as áreas).
+  var DICA_QUALIDADE = 'A raridade do que cair: ' + D.DROPS_CACADA.qualidade.slice().reverse().map(function (q) {
+    return D.raridades[q.raridade].nome + ' ' + q.chance + '%';
+  }).join(', ') + '. A Sorte aumenta a chance de cair.';
+  function textoQualidade() {
+    return D.DROPS_CACADA.qualidade.slice().reverse().map(function (q) {
+      return '<span class="raridade-' + q.raridade + '">' + D.raridades[q.raridade].nome + ' ' + q.chance + '%</span>';
+    }).join(' · ');
+  }
+
   function cartaMonstro(id, selecionado) {
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
@@ -712,10 +722,10 @@
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
-      + (m.drops.length ? '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd>' : '')
-      + (m.dropsArmadura.length ? '<dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>' : '')
-      + (m.dropsItem.length ? '<dt title="Arma, armadura, colar ou anel">Qualquer item</dt><dd>' + textoDrops(m.dropsItem) + '</dd>' : '')
-      + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + (m.pergaminho.raridade ? '<span class="raridade-' + m.pergaminho.raridade + '">' + D.raridades[m.pergaminho.raridade].nome + '</span> ' : 'da arma ') + m.pergaminho.chance + '%</dd>' : '')
+      + (m.chanceArma ? '<dt title="' + DICA_QUALIDADE + '">Armas</dt><dd>' + m.chanceArma + '%</dd>' : '')
+      + (m.chanceArmadura ? '<dt title="' + DICA_QUALIDADE + '">Armaduras</dt><dd>' + m.chanceArmadura + '%</dd>' : '')
+      + (m.pergaminho ? '<dt title="' + DICA_QUALIDADE + '">Pergaminho</dt><dd>' + m.pergaminho.chance + '%</dd>' : '')
+      + '<dt>Qualidade</dt><dd class="qualidade-drop">' + textoQualidade() + '</dd>'
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
       + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
       + (R.monstroLiberado(p, id) ? '<button class="btn largo' + (selecionado ? '' : ' secundario') + '" data-acao="cacada-alvo" data-monstro="' + id + '">'

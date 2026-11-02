@@ -1292,3 +1292,5 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .conjunto-ficha ul { margin: .3rem 0 0; padding-left: 1rem; }
 .conjunto-ficha li.ativo { color: #8fe0a0; font-weight: 600; }
 .conjunto-dt { color: #8fe0a0; }
+.qualidade-drop { line-height: 1.35; }
+.qualidade-drop span { white-space: nowrap; }

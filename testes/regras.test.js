@@ -143,25 +143,57 @@ teste('velocidade 20 vs 10: 2 ataques para 1', () => {
   assert.strictEqual(atores.filter((a) => a === 'monstro').length, 20);
 });
 
-teste('chances de drop (sem sorte): lobo 10% arma comum; cobra 15%; urso 15% item comum de qualquer tipo', () => {
+teste('drops da caçada (sem sorte): 1º monstro 5%, 2º 8%, 3º 10% de arma e de armadura; pergaminho só no 3º (5%)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.atributos.sor = 0;
-  const N = 100000, taxa = (fn) => { let n = 0; for (let i = 0; i < N; i++) if (fn()) n++; return n / N * 100; };
-  assert.ok(Math.abs(taxa(() => R.rolarDrop(p, 'lobo', rng)) - 10) < 0.5);
-  assert.ok(Math.abs(taxa(() => R.rolarDrop(p, 'cobra', rng)) - 15) < 0.5);
-  assert.strictEqual(R.rolarDrop(p, 'urso', rng), null);
-  const tipos = new Set(), rar = new Set();
-  const t = taxa(() => { const d = R.rolarDropItem(p, 'urso', rng); if (d) { tipos.add(d.tipo); rar.add(d.raridade); } return d; });
-  assert.ok(Math.abs(t - 15) < 0.5, t);
-  assert.deepStrictEqual([...tipos].sort(), ['arma', 'botas', 'elmo', 'luvas', 'peitoral', 'secundaria']); // sem colar/anel; com a mão esquerda
-  assert.deepStrictEqual([...rar], ['comum']);
+  assert.strictEqual(R.status(p).bonusDrop, 0);
+  const N = 200000, taxa = (fn) => { let n = 0; for (let i = 0; i < N; i++) if (fn()) n++; return n / N * 100; };
+  const esperado = [[5, 5, 0], [8, 8, 0], [10, 10, 5]];
+  D.areas.forEach((area) => area.monstros.forEach((mm, i) => {
+    const m = D.monstros[mm.id];
+    assert.strictEqual(m.chanceArma, esperado[i][0], mm.id);
+    assert.strictEqual(m.chanceArmadura, esperado[i][1], mm.id);
+    assert.strictEqual(m.pergaminho ? m.pergaminho.chance : 0, esperado[i][2], mm.id);
+    assert.strictEqual(R.rolarDropItem(p, mm.id, rng), null, 'não existe mais "qualquer item"');
+  }));
+  for (const [id, arma, perg] of [['lobo', 5, 0], ['aranha', 8, 0], ['urso', 10, 5], ['elemental', 10, 5]]) {
+    const t = taxa(() => R.rolarDrop(p, id, rng));
+    assert.ok(Math.abs(t - arma) < 0.3, id + ' arma ' + t);
+    const ta = taxa(() => R.rolarDropArmadura(p, id, rng));
+    assert.ok(Math.abs(ta - arma) < 0.3, id + ' armadura ' + ta);
+    const tp = taxa(() => R.rolarPergaminho(p, id, rng));
+    assert.ok(Math.abs(tp - perg) < 0.3, id + ' pergaminho ' + tp);
+  }
+  // A Sorte aumenta a chance de cair (20 de SOR = +20%: 5% vira 6%)
+  p.atributos.sor = 20;
+  const comSorte = taxa(() => R.rolarDrop(p, 'lobo', rng));
+  assert.ok(Math.abs(comSorte - 5 * (1 + R.status(p).bonusDrop / 100)) < 0.3, 'com sorte ' + comSorte);
+});
+
+teste('qualidade dos drops da caçada: 70% comum, 22% rara, 7% épica, 1% lendária (em qualquer área, a Sorte não muda)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const contar = (fn, n) => { const c = { comum: 0, rara: 0, epica: 0, lendaria: 0 }; let t = 0;
+    while (t < n) { const r = fn(); if (r) { c[r.raridade || r] += 1; t++; } } return c; };
+  const pct = (c, n) => Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v / n * 100]));
+  const alvo = { comum: 70, rara: 22, epica: 7, lendaria: 1 };
+  const confere = (c, n, nome) => { const x = pct(c, n); for (const k in alvo) assert.ok(Math.abs(x[k] - alvo[k]) < 0.8, nome + ' ' + JSON.stringify(x)); };
+  const N = 20000;
+  p.atributos.sor = 0;
+  confere(contar(() => R.rolarDrop(p, 'lobo', rng), N), N, 'arma lobo');
+  confere(contar(() => R.rolarDropArmadura(p, 'lobo', rng), N), N, 'armadura lobo');
+  p.atributos.sor = 60;
+  confere(contar(() => R.rolarDrop(p, 'salamandra', rng), N), N, 'arma salamandra com sorte');
+  confere(contar(() => R.rolarPergaminho(p, 'urso', rng), N), N, 'pergaminho urso');
+  // lendária já na primeira área
+  let lend = null; for (let i = 0; i < 400000 && !lend; i++) { const d = R.rolarDrop(p, 'lobo', rng); if (d && d.raridade === 'lendaria') lend = d; }
+  assert.ok(lend && lend.classe === 'cavaleiro', 'arma lendária pode cair do Lobo');
 });
 
 teste('drop de arma é sempre da classe, com variação e dano sorteados na faixa', () => {
   for (const classe of ['cavaleiro', 'arqueiro', 'mago', 'artesao']) {
     const p = R.criarPersonagem('T', 'masculino', 'humano', classe);
     let d = null;
-    while (!d) d = R.rolarDrop(p, 'gargula', rng);
+    while (!d || d.raridade !== 'rara') d = R.rolarDrop(p, 'gargula', rng);
     assert.strictEqual(d.classe, classe);
     assert.strictEqual(d.raridade, 'rara');
     assert.ok(d.nivel >= 1 && d.nivel <= 4, 'nível do herói (1) até +3');
@@ -422,14 +454,9 @@ teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
   assert.strictEqual(R.mochila(p).length, 32);
 });
 
-teste('drops de armadura: lobo 10% comum; cobra 15% comum', () => {
+teste('drops de armadura: peças da classe ou a mão esquerda (sem colar e anel)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao');
-  p.atributos.sor = 0;
-  const N = 200000, conta = (m) => { const c = {}; for (let i = 0; i < N; i++) { const d = R.rolarDropArmadura(p, m, rng); if (d) c[d.raridade] = (c[d.raridade] || 0) + 1; } return c; };
-  const lobo = conta('lobo'), cobra = conta('cobra');
-  assert.ok(Math.abs(lobo.comum / N * 100 - 10) < 0.4, JSON.stringify(lobo));
-  assert.ok(Math.abs(cobra.comum / N * 100 - 15) < 0.4 && !cobra.rara, JSON.stringify(cobra));
-  const tipos = new Set(); for (let i = 0; i < 2000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo === 'secundaria') assert.strictEqual(d.mao, 'manopla'); else if (d.tipo !== 'colar' && d.tipo !== 'anel') assert.strictEqual(d.classe, 'artesao'); } }
+  const tipos = new Set(); for (let i = 0; i < 20000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo === 'secundaria') assert.strictEqual(d.mao, 'manopla'); else assert.strictEqual(d.classe, 'artesao'); } }
   assert.deepStrictEqual([...tipos].sort(), ['botas', 'elmo', 'luvas', 'peitoral', 'secundaria']);
 });
 
