@@ -1422,6 +1422,20 @@ Tanka.regras = (function () {
     return arma ? arma.raridade : 'comum';
   }
 
+  // Troca de pergaminhos: 10 de uma raridade viram 1 da raridade seguinte. Retorna a raridade ganha ou um motivo.
+  function proximaRaridade(raridade) {
+    var i = RARIDADES.indexOf(raridade);
+    return i >= 0 && i < RARIDADES.length - 1 ? RARIDADES[i + 1] : null;
+  }
+  function trocarPergaminho(p, de) {
+    var para = proximaRaridade(de), q = D.TROCA_PERGAMINHO.quantidade;
+    if (!para) return { erro: 'Esse pergaminho não pode ser trocado.' };
+    if ((p.pergaminhos[de] || 0) < q) return { erro: 'São precisos ' + q + ' pergaminhos para trocar.' };
+    p.pergaminhos[de] -= q;
+    p.pergaminhos[para] = (p.pergaminhos[para] || 0) + 1;
+    return { para: para };
+  }
+
   function comprarPergaminho(p, raridade) {
     var preco = D.encantamento.precoPergaminho[raridade];
     if (preco === undefined || p.ouro < preco) return false;
@@ -1765,6 +1779,8 @@ Tanka.regras = (function () {
     valorVenda: valorVenda,
     venderVarios: venderVarios,
     comprarPergaminho: comprarPergaminho,
+    trocarPergaminho: trocarPergaminho,
+    proximaRaridade: proximaRaridade,
     chanceEncantar: chanceEncantar,
     riscoEncantar: riscoEncantar,
     encantar: encantar,

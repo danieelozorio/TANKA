@@ -1373,3 +1373,16 @@ teste('área abaixo do nível: exp e ouro reduzidos juntos e nenhum drop (item, 
   assert.ok(!r.drop && !r.dropArmadura && !r.pergaminho, 'chefe também não dropa');
   assert.deepStrictEqual({ ...p.pergaminhos }, perg);
 });
+
+teste('troca de pergaminhos: 10 comuns = 1 raro, 10 raros = 1 épico, 10 épicos = 1 lendário', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.pergaminhos = { comum: 25, rara: 9, epica: 10, lendaria: 0 };
+  assert.strictEqual(R.trocarPergaminho(p, 'comum').para, 'rara');
+  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 10, epica: 10, lendaria: 0 });
+  assert.strictEqual(R.trocarPergaminho(p, 'rara').para, 'epica');
+  assert.strictEqual(R.trocarPergaminho(p, 'epica').para, 'lendaria');
+  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
+  assert.ok(R.trocarPergaminho(p, 'rara').erro, 'sem 10 não troca');
+  assert.ok(R.trocarPergaminho(p, 'lendaria').erro, 'lendário não sobe');
+  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
+});

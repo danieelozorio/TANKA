@@ -711,6 +711,8 @@ Tanka.dados = {
 
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
+  // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).
+  TROCA_PERGAMINHO: { quantidade: 10 },
 
   SKINS_DADO: [
     { id: 'vermelho', nome: 'Rubi', preco: 0 },

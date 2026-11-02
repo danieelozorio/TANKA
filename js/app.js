@@ -1210,6 +1210,22 @@
           : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
         return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
           + '<span class="suave pequeno">' + (k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
+      }).join('') + '</div>'
+      + trocaPergaminhosHtml(p);
+  }
+
+  // Troca de pergaminhos de encantamento: 10 de uma raridade = 1 da seguinte.
+  function trocaPergaminhosHtml(p) {
+    var q = D.TROCA_PERGAMINHO.quantidade;
+    return '<h3 class="subtitulo">Troca de Pergaminhos de Encantamento</h3>'
+      + '<p class="suave">Junte ' + q + ' pergaminhos de uma raridade e troque por 1 da raridade seguinte.</p><div class="itens">'
+      + R.RARIDADES.filter(function (k) { return R.proximaRaridade(k); }).map(function (k) {
+        var para = R.proximaRaridade(k), tem = p.pergaminhos[k] || 0, falta = q - tem;
+        return '<div class="item"><div>'
+          + '<div>' + q + ' <span class="raridade-' + k + '">' + D.raridades[k].nome + '</span> → 1 <span class="raridade-' + para + '">' + D.raridades[para].nome + '</span></div>'
+          + '<div class="suave">Pergaminhos para item ' + ITEM_RARIDADE[k] + ': você tem ' + tem + ' · para item ' + ITEM_RARIDADE[para] + ': ' + (p.pergaminhos[para] || 0) + '</div></div>'
+          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta + '</span>' : '')
+          + '<button class="btn" data-acao="trocar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Trocar</button></div></div>';
       }).join('') + '</div>';
   }
 
@@ -2288,6 +2304,14 @@
         if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
         break;
+      case 'trocar-pergaminho': {
+        var troca = R.trocarPergaminho(p, el.dataset.raridade);
+        if (troca.erro) { avisar(troca.erro); break; }
+        salvar();
+        avisar('Troca feita! +1 Pergaminho para item ' + ITEM_RARIDADE[troca.para] + '.', 'item');
+        telaJogo();
+        break;
+      }
       case 'skin-comprar': {
         var r = R.comprarSkin(p, el.dataset.valor);
         if (r !== true) { avisar(r); break; }
