@@ -160,6 +160,12 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).
 - Penalidade de área baixa (`EXP_REDUZIDA`, `R.fatorExp`): conta os mapas liberados (pelo level) depois da área; até 1 à
   frente nada, 2 à frente 50%, 3+ 10%. Com penalidade: exp e ouro reduzidos e nenhum drop (itens, pergaminhos, chefe).
+- Consumíveis (Herói > Mochila > aba Consumíveis): `p.consumiveis` = itens empilhados {id: '<tipo>-<raridade>', tipo, raridade, qtd},
+  sem limite, fora dos 32 da mochila (`D.CONSUMIVEIS`, `R.consumiveis/qtdConsumivel/mudarConsumivel`, `R.qtdPergaminho/
+  mudarPergaminho/pergaminhos`). O contador antigo `p.pergaminhos` vira item sozinho em `R.consumiveis` (e é apagado);
+  NÃO usar `p.pergaminhos` em código novo. Cristais: item que quebra na Forja vira cristais da raridade dele
+  (`CRISTAIS_QUEBRA`: tentando +7/+8/+9/+10 = 100/150/200/500); ainda sem uso. Arte: `assets/itens/pergaminho-<raridade>.webp`
+  e `cristal-<raridade>.webp` (sem fundo); sem arte, desenho SVG em retratos.js.
 - Mercado: troca de pergaminhos de encantamento (`TROCA_PERGAMINHO`, `R.trocarPergaminho`): 10 de uma raridade = 1 da seguinte.
 - Forja: botão +1 depois do sucesso. Listas do servidor (ranking, arena, amigos, aliança, grupo, chat) mandam `classe2`.
 - (SUBSTITUÍDO pelo encanto em %, abaixo) Encanto mais forte em armas 20+. Seção Atividades (tempo logado/caçando) no painel do herói.

@@ -1298,3 +1298,10 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .conjunto-dt { color: var(--ouro-claro); }
 .forja-janela .botoes { justify-content: center; flex-wrap: wrap; }
 .forja-mais small { font-size: .78em; opacity: .85; font-family: var(--texto, inherit); letter-spacing: 0; }
+.mochila-abas { display: flex; gap: .4rem; margin: .2rem 0 .7rem; border-bottom: 1px solid var(--borda); }
+.mochila-abas button { padding: .45rem .9rem; border: 1px solid transparent; border-bottom: 0; border-radius: 8px 8px 0 0; background: none;
+  color: var(--suave, #b9ad90); font: inherit; cursor: pointer; margin-bottom: -1px; }
+.mochila-abas button.ativa { color: var(--ouro-claro, #f2d38a); border-color: var(--borda); background: rgba(201, 162, 74, .08); }
+.qtd-consumivel { position: absolute; right: 3px; bottom: 2px; font: 700 .78rem/1 var(--titulo); color: #fff; padding: 1px 4px; border-radius: 4px;
+  background: rgba(0, 0, 0, .7); text-shadow: 0 1px 2px #000; pointer-events: none; z-index: 1; }
+.forja-cristais { display: block; margin-top: .35rem; font-size: .95rem; }

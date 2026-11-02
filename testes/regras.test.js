@@ -313,7 +313,7 @@ function comArma(raridade, encanto) {
   p.atributos.sor = 0;
   const item = { id: 'x', tipo: 'arma', classe: 'arqueiro', raridade, encanto };
   p.inventario.push(item);
-  p.pergaminhos[raridade] = 5;
+  R.mudarPergaminho(p, raridade, 5);
   return { p, item };
 }
 
@@ -321,7 +321,7 @@ teste('encantamento: +1 a +3 é seguro e gasta 1 pergaminho', () => {
   const { p, item } = comArma('rara', 0);
   for (let i = 0; i < 3; i++) assert.ok(R.encantar(p, 'x', fixo(0.999)).sucesso);
   assert.strictEqual(item.encanto, 3);
-  assert.strictEqual(p.pergaminhos.rara, 2);
+  assert.strictEqual(R.qtdPergaminho(p, 'rara'), 2);
 });
 
 teste('encantamento: chances por nível e bônus de Sorte com teto de 95%', () => {
@@ -356,7 +356,7 @@ teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
   let { p } = comArma('comum', 10);
   assert.strictEqual(R.encantar(p, 'x', fixo(0)), null);
   ({ p } = comArma('comum', 0));
-  p.pergaminhos.comum = 0;
+  R.mudarPergaminho(p, 'comum', -1000);
   assert.strictEqual(R.encantar(p, 'x', fixo(0)), null);
 });
 
@@ -385,7 +385,7 @@ teste('admin: ouro, level, armas e pergaminhos', () => {
   assert.strictEqual(p.inventario.length, 5);
   assert.ok(p.inventario.slice(1).every((i) => i.classe === 'cavaleiro' && i.encanto === 7));
   R.admin.pergaminhos(p, 10);
-  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 10, rara: 10, epica: 10, lendaria: 10 });
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 10, rara: 10, epica: 10, lendaria: 10 });
 });
 
 // ---------- Armaduras e equipamento ----------
@@ -465,7 +465,7 @@ teste('encantar armadura equipada que quebra libera o espaço', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.inventario.push({ id: 'e', tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 6 });
   R.equipar(p, 'e');
-  p.pergaminhos.rara = 1;
+  R.mudarPergaminho(p, 'rara', 1);
   assert.ok(R.encantar(p, 'e', () => 0.999).quebrou);
   assert.strictEqual(p.equipados.elmo, null);
   assert.ok(p.hpAtual <= R.status(p).hpMax);
@@ -828,7 +828,7 @@ teste('admin: tirar ouro, baixar level, exp, pergaminhos, vida e mochila', () =>
   R.admin.exp(p, 50); assert.strictEqual(p.exp, 5);
   R.admin.exp(p, -100); assert.strictEqual(p.exp, 0);
   R.admin.pergaminhos(p, 3); R.admin.pergaminhos(p, -10);
-  assert.strictEqual(p.pergaminhos.rara, 0);
+  assert.strictEqual(R.qtdPergaminho(p, 'rara'), 0);
   R.admin.vida(p, 0); assert.strictEqual(p.hpAtual, 0);
   R.admin.conjunto(p, 'rara');
   R.admin.esvaziarMochila(p);
@@ -1368,21 +1368,74 @@ teste('área abaixo do nível: exp e ouro reduzidos juntos e nenhum drop (item, 
   assert.strictEqual(drops, 0);
   assert.strictEqual(r.fatorExp, 10);
   assert.strictEqual(r.ouro, Math.max(1, Math.floor(D.monstros.urso.ouro / 10)));
-  const perg = { ...p.pergaminhos };
+  const perg = { ...R.pergaminhos(p) };
   r = vencer('velgrath');
   assert.ok(!r.drop && !r.dropArmadura && !r.pergaminho, 'chefe também não dropa');
-  assert.deepStrictEqual({ ...p.pergaminhos }, perg);
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, perg);
 });
 
 teste('troca de pergaminhos: 10 comuns = 1 raro, 10 raros = 1 épico, 10 épicos = 1 lendário', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.pergaminhos = { comum: 25, rara: 9, epica: 10, lendaria: 0 };
   assert.strictEqual(R.trocarPergaminho(p, 'comum').para, 'rara');
-  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 10, epica: 10, lendaria: 0 });
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 15, rara: 10, epica: 10, lendaria: 0 });
   assert.strictEqual(R.trocarPergaminho(p, 'rara').para, 'epica');
   assert.strictEqual(R.trocarPergaminho(p, 'epica').para, 'lendaria');
-  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
   assert.ok(R.trocarPergaminho(p, 'rara').erro, 'sem 10 não troca');
   assert.ok(R.trocarPergaminho(p, 'lendaria').erro, 'lendário não sobe');
-  assert.deepStrictEqual({ ...p.pergaminhos }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
+});
+
+teste('consumíveis: pergaminhos viram itens empilhados (contador antigo migra sozinho)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(p.pergaminhos, undefined);
+  assert.deepStrictEqual(Array.from(R.consumiveis(p)), []);
+  // personagem salvo antes: só o contador
+  p.pergaminhos = { comum: 3, rara: 0, epica: 2, lendaria: 0 };
+  R.normalizar(p);
+  assert.strictEqual(p.pergaminhos, undefined, 'o contador some');
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(R.consumiveis(p).map((c) => [c.id, c.tipo, c.raridade, c.qtd]))),
+    [['pergaminho-comum', 'pergaminho', 'comum', 3], ['pergaminho-epica', 'pergaminho', 'epica', 2]]);
+  // ganhar e gastar mantém uma pilha por raridade, em ordem; pilha zerada some
+  R.mudarPergaminho(p, 'rara', 1);
+  assert.deepStrictEqual(Array.from(R.consumiveis(p).map((c) => c.raridade)), ['comum', 'rara', 'epica']);
+  R.mudarPergaminho(p, 'comum', -5);
+  assert.deepStrictEqual(Array.from(R.consumiveis(p).map((c) => c.raridade)), ['rara', 'epica']);
+  assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 0, rara: 1, epica: 2, lendaria: 0 });
+  // um jogo antigo (em cache) que grave o contador de novo: soma na pilha, sem perder nada
+  p.pergaminhos = { comum: 0, rara: 4, epica: 0, lendaria: 0 };
+  assert.strictEqual(R.qtdPergaminho(p, 'rara'), 5);
+  assert.strictEqual(R.nomeConsumivel(R.consumiveis(p)[0]), 'Pergaminho de Encantamento Raro');
+  // drops e prêmios entram como item
+  const q = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
+  let r = null;
+  for (let i = 0; i < 5000 && !(r && r.pergaminho); i++) { q.nivel = 1; const b = R.iniciarBatalha(q, 'urso', rng); b.fim = 'vitoria'; r = R.concluirBatalha(q, b); }
+  assert.strictEqual(R.qtdPergaminho(q, r.pergaminho), 1);
+});
+
+teste('cristais: item que quebra na Forja vira cristais da raridade dele (100/150/200/500)', () => {
+  for (const [antes, esperado] of [[6, 100], [7, 150], [8, 200], [9, 500]]) {
+    for (const rar of ['comum', 'epica']) {
+      const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+      p.inventario.push({ id: 'q', tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade: rar, encanto: antes, nivel: 10, dano: [5, 9] });
+      R.mudarPergaminho(p, rar, 1);
+      const r = R.encantar(p, 'q', () => 0.999);
+      assert.ok(r.quebrou, 'quebrou');
+      assert.strictEqual(r.cristais, esperado, rar + ' +' + (antes + 1));
+      assert.strictEqual(R.qtdConsumivel(p, 'cristal', rar), esperado);
+      assert.ok(!p.inventario.some((i) => i.id === 'q'));
+    }
+  }
+  // falha que só zera (até o +6) não dá cristal
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  p.inventario.push({ id: 'z', tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade: 'rara', encanto: 5, nivel: 10, dano: [5, 9] });
+  R.mudarPergaminho(p, 'rara', 1);
+  const r = R.encantar(p, 'z', () => 0.999);
+  assert.ok(!r.quebrou && !r.cristais);
+  assert.strictEqual(R.qtdConsumivel(p, 'cristal', 'rara'), 0);
+  // cristais e pergaminhos ficam lado a lado na bolsa, pergaminhos primeiro
+  R.mudarConsumivel(p, 'cristal', 'rara', 100); R.mudarPergaminho(p, 'comum', 2);
+  assert.deepStrictEqual(Array.from(R.consumiveis(p).map((c) => c.id)), ['pergaminho-comum', 'cristal-rara']);
+  assert.strictEqual(R.nomeConsumivel(R.consumiveis(p)[1]), 'Cristal Raro');
 });

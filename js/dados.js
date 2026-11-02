@@ -22,6 +22,16 @@ Tanka.dados = {
   EXP_CRESCIMENTO: 1.5,   // do level 6 em diante, cada level pede 50% a mais que o anterior
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
+  // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,
+  // separados dos equipáveis e sem limite de espaço. Arte: assets/itens/<tipo>-<raridade>.webp.
+  CONSUMIVEIS: {
+    pergaminho: { nome: 'Pergaminho de Encantamento',
+      descricao: 'Gasta 1 em cada tentativa de encantar um item da mesma raridade (aba Encantar). 10 trocam por 1 da raridade seguinte no Mercado.' },
+    cristal: { nome: 'Cristal',
+      descricao: 'Sobra de um item que quebrou na Forja, da mesma raridade dele. Guarde: os cristais vão ter uso em breve.' },
+  },
+  // Item que quebra na Forja vira cristais da raridade dele. Quantidade pelo + que se tentava (igual para todas as raridades).
+  CRISTAIS_QUEBRA: { 7: 100, 8: 150, 9: 200, 10: 500 },
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
 
   atributos: {

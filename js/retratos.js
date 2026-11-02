@@ -322,6 +322,19 @@ Tanka.retratos = (function () {
       case 'secundaria':   // mão esquerda: escudo
         return '<path d="M32 6 L54 14 Q54 42 32 58 Q10 42 10 14 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
           + '<path d="M32 12 L32 52 M16 22 L48 22" stroke="' + c.a + '" stroke-width="3"/>';
+      case 'cristal':      // três cristais facetados na cor da raridade
+        return '<path d="M32 6 L42 22 L32 56 L22 22 Z" fill="' + c.a + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M32 6 L32 56 M22 22 L42 22" stroke="' + c.d + '" stroke-width="1.2" opacity=".7"/>'
+          + '<path d="M16 26 L23 36 L17 56 L10 36 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M48 26 L55 36 L48 56 L41 36 Z" fill="' + c.m + '" stroke="' + c.d + '" stroke-width="2"/>'
+          + '<path d="M28 14 L32 8" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity=".7"/>';
+      case 'pergaminho':   // rolo de pergaminho com fita e selo na cor da raridade
+        return '<rect x="14" y="18" width="36" height="30" rx="3" fill="#e9dcb8" stroke="#8a7550" stroke-width="2"/>'
+          + '<path d="M20 26h24M20 32h24M20 38h16" stroke="#a89068" stroke-width="2" stroke-linecap="round"/>'
+          + '<rect x="9" y="12" width="46" height="9" rx="4.5" fill="#d8c79c" stroke="#8a7550" stroke-width="2"/>'
+          + '<rect x="9" y="45" width="46" height="9" rx="4.5" fill="#d8c79c" stroke="#8a7550" stroke-width="2"/>'
+          + '<path d="M30 21v27" stroke="' + c.a + '" stroke-width="4"/>'
+          + '<circle cx="30" cy="50" r="6" fill="' + c.a + '" stroke="' + c.d + '" stroke-width="2"/>';
       case 'anel':
         return '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.m + '" stroke-width="6"/>'
           + '<circle cx="32" cy="40" r="15" fill="none" stroke="' + c.d + '" stroke-width="1"/>'

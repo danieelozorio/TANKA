@@ -941,14 +941,49 @@
     var celulas = R.ordenarItens(mochila, v.ordem, v.crescente).map(celulaMochila);
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');
     var foco = estado.itemFoco ? p.inventario.find(function (i) { return i.id === estado.itemFoco; }) : null;
+    var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis';
+    var cFoco = naConsumiveis && estado.consumivelFoco ? consumiveis.filter(function (c) { return c.id === estado.consumivelFoco; })[0] : null;
+    var abas = '<div class="mochila-abas" role="tablist">'
+      + '<button role="tab" aria-selected="' + !naConsumiveis + '" class="' + (naConsumiveis ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">'
+      + 'Equipamentos <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></button>'
+      + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">'
+      + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button></div>';
+    var baixo = naConsumiveis ? consumiveisHtml(consumiveis)
+      : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-tela"><div class="boneco">' + slots
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
-      + '<div class="lateral"><div class="caixa-interna" id="ficha-item">' + fichaItemHtml(foco) + '</div>'
+      + '<div class="lateral"><div class="caixa-interna" id="ficha-item">' + (cFoco ? fichaConsumivelHtml(cFoco) : fichaItemHtml(foco)) + '</div>'
       + '<div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
-      + '<h3 class="subtitulo">Mochila <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></h3>'
-      + barraMochilaHtml()
-      + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
+      + '<h3 class="subtitulo">Mochila</h3>' + abas + baixo;
+  }
+
+  // ----- Consumíveis: pergaminhos (e, no futuro, cristais e outros), empilhados com a quantidade -----
+  function itemConsumivel(c) { return { tipo: c.tipo, classe: null, raridade: c.raridade, encanto: 0 }; }
+  function consumiveisHtml(lista) {
+    if (!lista.length) return '<p class="suave">Nenhum consumível. Pergaminhos de encantamento caem do 3º monstro de cada área, dos chefes, '
+      + 'das masmorras e vêm das missões. Cristais sobram quando um item quebra na Forja.</p>';
+    var celulas = lista.map(function (c) {
+      return '<button class="celula borda-' + c.raridade + (estado.consumivelFoco === c.id ? ' focado' : '') + '" data-acao="consumivel" data-id="' + c.id + '"'
+        + ' title="' + esc(R.nomeConsumivel(c)) + ' · ' + c.qtd + '">' + F.icone(itemConsumivel(c))
+        + '<span class="qtd-consumivel">' + c.qtd.toLocaleString('pt-BR') + '</span></button>';
+    });
+    for (var n = lista.length; n < 8; n++) celulas.push('<div class="celula vazia"></div>');
+    return '<p class="suave pequeno">Clique num consumível para ver para que serve. Não ocupam espaço na mochila.</p>'
+      + '<div class="mochila consumiveis">' + celulas.join('') + '</div>';
+  }
+  function fichaConsumivelHtml(c) {
+    var def = D.CONSUMIVEIS[c.tipo] || {};
+    var acoes = c.tipo === 'pergaminho'
+      ? '<button class="btn" data-acao="aba" data-aba="encantar">Ir para Encantar</button>'
+        + (R.proximaRaridade(c.raridade) ? '<button class="btn secundario" data-acao="aba" data-aba="mercado">Trocar no Mercado</button>' : '')
+      : '';
+    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + c.raridade + '">' + F.icone(itemConsumivel(c)) + '</div>'
+      + '<div><div class="ficha-item-nome raridade-' + c.raridade + '">' + esc(R.nomeConsumivel(c)) + '</div>'
+      + '<div class="suave">Consumível · <span class="raridade-' + c.raridade + '">' + D.raridades[c.raridade].nome + '</span>'
+      + ' · você tem <strong>' + c.qtd.toLocaleString('pt-BR') + '</strong></div></div></div>'
+      + '<p class="suave">' + (c.tipo === 'pergaminho' ? 'Para encantar itens de raridade ' + D.raridades[c.raridade].nome.toLowerCase() + '. ' : '') + (def.descricao || '') + '</p>'
+      + '<div class="item-acoes">' + acoes + '</div>';
   }
 
   // ----- Mochila: ordem, filtro, trava e venda em lote -----
@@ -1220,10 +1255,10 @@
     return '<h3 class="subtitulo">Troca de Pergaminhos de Encantamento</h3>'
       + '<p class="suave">Junte ' + q + ' pergaminhos de uma raridade e troque por 1 da raridade seguinte.</p><div class="itens">'
       + R.RARIDADES.filter(function (k) { return R.proximaRaridade(k); }).map(function (k) {
-        var para = R.proximaRaridade(k), tem = p.pergaminhos[k] || 0, falta = q - tem;
+        var para = R.proximaRaridade(k), tem = R.qtdPergaminho(p, k), falta = q - tem;
         return '<div class="item"><div>'
           + '<div>' + q + ' <span class="raridade-' + k + '">' + D.raridades[k].nome + '</span> → 1 <span class="raridade-' + para + '">' + D.raridades[para].nome + '</span></div>'
-          + '<div class="suave">Pergaminhos para item ' + ITEM_RARIDADE[k] + ': você tem ' + tem + ' · para item ' + ITEM_RARIDADE[para] + ': ' + (p.pergaminhos[para] || 0) + '</div></div>'
+          + '<div class="suave">Pergaminhos para item ' + ITEM_RARIDADE[k] + ': você tem ' + tem + ' · para item ' + ITEM_RARIDADE[para] + ': ' + R.qtdPergaminho(p, para) + '</div></div>'
           + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta + '</span>' : '')
           + '<button class="btn" data-acao="trocar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Trocar</button></div></div>';
       }).join('') + '</div>';
@@ -1236,12 +1271,12 @@
     if (u) {
       var nome = esc(R.nomeItem(Object.assign({}, u.item, { encanto: 0 })));
       var texto = u.sucesso ? 'SUCESSO! ' + nome + ' agora é +' + u.nivel + '!'
-        : u.quebrou ? 'FALHOU! ' + nome + ' +' + u.nivel + ' se despedaçou...'
+        : u.quebrou ? 'FALHOU! ' + nome + ' +' + u.nivel + ' se despedaçou...' + (u.cristais ? ' Sobraram ' + u.cristais + ' cristais.' : '')
         : 'FALHOU! ' + nome + ' +' + u.nivel + ' voltou para +0.';
       aviso = '<div class="encanto-resultado ' + (u.sucesso ? 'sucesso' : 'falha') + '" role="status">' + texto + '</div>';
     }
     var cont = Object.keys(D.raridades).map(function (k) {
-      return '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + p.pergaminhos[k] + '</span>';
+      return '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + R.qtdPergaminho(p, k) + '</span>';
     }).join(' · ');
     var ordem = Object.keys(D.raridades).reverse();
     var itens = p.inventario.slice().sort(function (a, b) {
@@ -1254,9 +1289,10 @@
         acao = '<span class="suave">+' + E.maximo + '</span>';
       } else {
         var chance = R.chanceEncantar(p, i), risco = R.riscoEncantar(i);
-        var falha = { nada: 'sem risco', zera: 'se falhar, volta para +0', quebra: 'se falhar, o item QUEBRA' }[risco];
+        var falha = { nada: 'sem risco', zera: 'se falhar, volta para +0',
+          quebra: 'se falhar, o item QUEBRA e vira ' + (D.CRISTAIS_QUEBRA[i.encanto + 1] || 0) + ' cristais' }[risco];
         info = '+' + i.encanto + ' → +' + (i.encanto + 1) + ' · chance <strong>' + chance + '%</strong> · <span class="' + (risco === 'quebra' ? 'menos' : '') + '">' + falha + '</span>';
-        var semPergaminho = p.pergaminhos[i.raridade] <= 0;
+        var semPergaminho = R.qtdPergaminho(p, i.raridade) <= 0;
         acao = risco === 'quebra' && estado.encantoPendente === i.id
           ? '<button class="btn perigo" data-acao="encantar" data-id="' + i.id + '">Arriscar mesmo assim</button>'
           : '<button class="btn" data-acao="' + (risco === 'quebra' ? 'pedir-encanto' : 'encantar') + '" data-id="' + i.id + '"' + (semPergaminho ? ' disabled' : '') + '>Encantar</button>';
@@ -1388,19 +1424,22 @@
         sucesso: 'SUCESSO! <span>' + nome + ' agora é +' + res.nivel + '!</span>',
         falha: 'FALHOU! <span>O pergaminho se perdeu, mas o item continua +' + res.nivel + '.</span>',
         zera: 'FALHOU! <span>' + nome + ' voltou para +0.</span>',
-        quebra: 'QUEBROU! <span>' + nome + ' +' + res.nivel + ' se despedaçou…</span>',
+        quebra: 'QUEBROU! <span>' + nome + ' +' + res.nivel + ' se despedaçou…</span>'
+          + (res.cristais ? '<span class="forja-cristais">Sobraram <strong class="raridade-' + item.raridade + '">' + res.cristais + ' '
+            + 'Cristais ' + { comum: 'Comuns', rara: 'Raros', epica: 'Épicos', lendaria: 'Lendários' }[item.raridade]
+            + '</strong> (Mochila › Consumíveis).</span>' : ''),
       }[tipo];
       Sons[tipo]();
       var ok = ov.querySelector('[data-forja="ok"]');
       ok.disabled = false;
       // Depois do sucesso: botão +1 para encantar de novo o mesmo item, se ainda tiver pergaminho.
       var p = estado.personagem, atual = res.sucesso && p.inventario.find(function (i) { return i.id === item.id; });
-      if (atual && atual.encanto < D.encantamento.maximo && p.pergaminhos[atual.raridade] > 0) {
+      if (atual && atual.encanto < D.encantamento.maximo && R.qtdPergaminho(p, atual.raridade) > 0) {
         var mais = document.createElement('button');
         mais.className = 'btn forja-mais';
         mais.dataset.forja = 'mais';
         mais.innerHTML = '+1 <small>(+' + atual.encanto + ' → +' + (atual.encanto + 1) + ' · ' + R.chanceEncantar(p, atual) + '%)</small>';
-        mais.title = 'Encantar de novo · você tem ' + p.pergaminhos[atual.raridade] + ' pergaminho(s) para item ' + ITEM_RARIDADE[atual.raridade];
+        mais.title = 'Encantar de novo · você tem ' + R.qtdPergaminho(p, atual.raridade) + ' pergaminho(s) para item ' + ITEM_RARIDADE[atual.raridade];
         ok.parentNode.insertBefore(mais, ok);
         mais.focus();
       } else ok.focus();
@@ -2362,6 +2401,16 @@
         el.textContent = visaoMochila().crescente ? '↑ Crescente' : '↓ Decrescente';
         aplicarVisaoMochila();
         break;
+      case 'mochila-aba':
+        estado.mochilaAba = el.dataset.valor === 'consumiveis' ? 'consumiveis' : 'equipamentos';
+        estado.vendaLote = null;
+        telaJogo();
+        break;
+      case 'consumivel':
+        estado.consumivelFoco = el.dataset.id;
+        estado.itemFoco = null;
+        telaJogo();
+        break;
       case 'mochila-filtro': {
         var rs = visaoMochila().raridades, k = el.dataset.valor;
         if (rs.indexOf(k) >= 0) rs.splice(rs.indexOf(k), 1); else rs.push(k);
@@ -2914,7 +2963,7 @@
     carregarGrupo();
   }
 
-  // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão direto para o estoque.
+  // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão para os Consumíveis.
   async function resgatarRecompensas() {
     var p = estado.personagem, g = estado.gm;
     if (!p || !g || !g.recompensas || !g.recompensas.length || estado.resgatando) return;
@@ -2926,8 +2975,8 @@
         // Pergaminho de encantamento: não ocupa a mochila.
         if (rec.item && rec.item.tipo === 'pergaminho') {
           var perg = await C.grupo.resgatar(p.id, rec.id);
-          if (p.pergaminhos[perg.raridade] === undefined) continue;
-          p.pergaminhos[perg.raridade] += 1;
+          if (!D.raridades[perg.raridade]) continue;
+          R.mudarPergaminho(p, perg.raridade, 1);
           salvar();
           avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + ' na masmorra!', 'item');
           continue;

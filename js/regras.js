@@ -547,6 +547,56 @@ Tanka.regras = (function () {
     p.hpAtual = Math.max(p.hpAtual > 0 ? 1 : 0, Math.min(hpMax, p.hpAtual + hpMax - hpMaxAntes));
   }
 
+  // ---------- Consumíveis (pergaminhos e, no futuro, cristais e outros) ----------
+  // Ficam em p.consumiveis como itens empilhados: { id, tipo, raridade, qtd }. Personagens antigos tinham só o contador
+  // p.pergaminhos { comum, rara, epica, lendaria }: ele vira item aqui (e some), inclusive se um jogo antigo gravar de novo.
+  function consumiveis(p) {
+    if (!Array.isArray(p.consumiveis)) p.consumiveis = [];
+    if (p.pergaminhos && typeof p.pergaminhos === 'object') {
+      var velho = p.pergaminhos;
+      delete p.pergaminhos;
+      Object.keys(velho).forEach(function (r) { if (velho[r] > 0) mudarConsumivel(p, 'pergaminho', r, velho[r]); });
+    }
+    return p.consumiveis;
+  }
+  function pilhaConsumivel(p, tipo, raridade) {
+    return consumiveis(p).filter(function (c) { return c.tipo === tipo && c.raridade === raridade; })[0] || null;
+  }
+  function qtdConsumivel(p, tipo, raridade) {
+    var c = pilhaConsumivel(p, tipo, raridade);
+    return c ? c.qtd : 0;
+  }
+  // Soma (ou tira, com delta negativo) da pilha. Nunca fica negativo; pilha zerada some. Retorna a quantidade nova.
+  function mudarConsumivel(p, tipo, raridade, delta) {
+    var lista = consumiveis(p), c = pilhaConsumivel(p, tipo, raridade);
+    var novo = Math.max(0, (c ? c.qtd : 0) + Math.round(delta || 0));
+    if (!c && novo > 0) {
+      c = { id: tipo + '-' + raridade, tipo: tipo, raridade: raridade, qtd: 0 };
+      lista.push(c);
+      // ordem fixa: tipo, depois raridade
+      var ordemTipo = Object.keys(D.CONSUMIVEIS);
+      lista.sort(function (a, b) {
+        return (ordemTipo.indexOf(a.tipo) - ordemTipo.indexOf(b.tipo)) || (RARIDADES.indexOf(a.raridade) - RARIDADES.indexOf(b.raridade));
+      });
+    }
+    if (c) c.qtd = novo;
+    if (c && novo === 0) lista.splice(lista.indexOf(c), 1);
+    return novo;
+  }
+  function qtdPergaminho(p, raridade) { return qtdConsumivel(p, 'pergaminho', raridade); }
+  function mudarPergaminho(p, raridade, delta) { return mudarConsumivel(p, 'pergaminho', raridade, delta); }
+  // { comum, rara, epica, lendaria } com a quantidade de pergaminhos (só leitura).
+  function pergaminhos(p) {
+    var r = {};
+    RARIDADES.forEach(function (k) { r[k] = qtdPergaminho(p, k); });
+    return r;
+  }
+  var RARIDADE_M = { comum: 'Comum', rara: 'Raro', epica: 'Épico', lendaria: 'Lendário' };
+  function nomeConsumivel(c) {
+    var def = D.CONSUMIVEIS[c.tipo];
+    return (def ? def.nome : c.tipo) + ' ' + (RARIDADE_M[c.raridade] || '');
+  }
+
   function criarPersonagem(nome, sexo, raca, classe) {
     var atr = atributosIniciais(raca, classe);
     var arma = novaArma(classe, 'comum');
@@ -564,7 +614,7 @@ Tanka.regras = (function () {
       atributosIniciais: Object.assign({}, atr),
       pontosLivres: 0,
       ouro: 0,
-      pergaminhos: { comum: 0, rara: 0, epica: 0, lendaria: 0 },
+      consumiveis: [],
       hpAtual: D.HP_INICIAL,
       inventario: [arma],
       equipados: Object.assign(equipamentosVazios(), { arma: arma.id }),
@@ -588,7 +638,7 @@ Tanka.regras = (function () {
       p.recomecoPresente = p.nivel > 1 ? 1 : 2;
     }
     if (typeof p.ouro !== 'number') p.ouro = 0;
-    if (!p.pergaminhos) p.pergaminhos = { comum: 0, rara: 0, epica: 0, lendaria: 0 };
+    consumiveis(p);   // pergaminhos antigos (contador) viram itens
     p.inventario.forEach(function (i) {
       if (i.raridade === 'basica') i.raridade = 'comum';
       if (typeof i.encanto !== 'number') i.encanto = 0;
@@ -1116,7 +1166,7 @@ Tanka.regras = (function () {
         var faixa = perg ? perg.qtd : D.chefe.pergaminhos;
         res.pergaminho = perg ? perg.raridade : arma ? arma.raridade : 'comum';
         res.qtdPergaminhos = faixa[0] + Math.floor(b.rng() * (faixa[1] - faixa[0] + 1));
-        p.pergaminhos[res.pergaminho] += res.qtdPergaminhos;
+        mudarPergaminho(p, res.pergaminho, res.qtdPergaminhos);
       } else {
         res.drop = rolarDrop(p, b.monstroId, b.rng);
         res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
@@ -1129,7 +1179,7 @@ Tanka.regras = (function () {
       if (res.dropArmadura && !guardar(p, res.dropArmadura)) { res.dropArmadura = null; res.mochilaCheia = true; }
       if (!m.chefe && !res.penalizado) {
         res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
-        if (res.pergaminho) { p.pergaminhos[res.pergaminho] += 1; res.qtdPergaminhos = 1; }
+        if (res.pergaminho) { mudarPergaminho(p, res.pergaminho, 1); res.qtdPergaminhos = 1; }
       }
     } else if (!b.fim) {
       evitarChefe(p, b.monstroId);   // fugiu da luta contra o chefe
@@ -1371,7 +1421,7 @@ Tanka.regras = (function () {
   function darPremio(p, pr) {
     if (pr.ouroPorNivel) p.ouro += pr.ouroPorNivel * p.nivel;
     if (pr.reputacao) p.reputacao = (p.reputacao || 0) + pr.reputacao;
-    if (pr.pergaminhoArma) { var arma = armaEquipada(p); p.pergaminhos[arma ? arma.raridade : 'comum'] += pr.pergaminhoArma; }
+    if (pr.pergaminhoArma) { var arma = armaEquipada(p); mudarPergaminho(p, arma ? arma.raridade : 'comum', pr.pergaminhoArma); }
   }
   // tipo 'diarias' ou 'semanais'. Retorna o texto do prêmio ou null.
   function resgatarMissao(p, tipo, id, agora) {
@@ -1430,9 +1480,9 @@ Tanka.regras = (function () {
   function trocarPergaminho(p, de) {
     var para = proximaRaridade(de), q = D.TROCA_PERGAMINHO.quantidade;
     if (!para) return { erro: 'Esse pergaminho não pode ser trocado.' };
-    if ((p.pergaminhos[de] || 0) < q) return { erro: 'São precisos ' + q + ' pergaminhos para trocar.' };
-    p.pergaminhos[de] -= q;
-    p.pergaminhos[para] = (p.pergaminhos[para] || 0) + 1;
+    if (qtdPergaminho(p, de) < q) return { erro: 'São precisos ' + q + ' pergaminhos para trocar.' };
+    mudarPergaminho(p, de, -q);
+    mudarPergaminho(p, para, 1);
     return { para: para };
   }
 
@@ -1440,7 +1490,7 @@ Tanka.regras = (function () {
     var preco = D.encantamento.precoPergaminho[raridade];
     if (preco === undefined || p.ouro < preco) return false;
     p.ouro -= preco;
-    p.pergaminhos[raridade] += 1;
+    mudarPergaminho(p, raridade, 1);
     return true;
   }
 
@@ -1461,13 +1511,13 @@ Tanka.regras = (function () {
   // Tenta encantar. Retorna { sucesso, quebrou, nivel } ou null se não puder tentar.
   function encantar(p, itemId, rng) {
     var item = p.inventario.find(function (i) { return i.id === itemId; });
-    if (!item || item.encanto >= D.encantamento.maximo || p.pergaminhos[item.raridade] <= 0) return null;
+    if (!item || item.encanto >= D.encantamento.maximo || qtdPergaminho(p, item.raridade) <= 0) return null;
     var chance = chanceEncantar(p, item);
     var risco = riscoEncantar(item);
     var hpAntes = status(p).hpMax;
     var nivelAntes = item.encanto;
     var res;
-    p.pergaminhos[item.raridade] -= 1;
+    mudarPergaminho(p, item.raridade, -1);
     if ((rng || Math.random)() * 100 < chance) {
       item.encanto += 1;
       res = { sucesso: true, quebrou: false, nivel: item.encanto, item: item };
@@ -1476,6 +1526,9 @@ Tanka.regras = (function () {
       if (slot) p.equipados[slot] = null;
       p.inventario.splice(p.inventario.indexOf(item), 1);
       res = { sucesso: false, quebrou: true, nivel: nivelAntes, item: item };
+      // O item quebrado vira cristais da raridade dele (100/150/200/500 tentando o +7/+8/+9/+10).
+      var cristais = D.CRISTAIS_QUEBRA[nivelAntes + 1] || 0;
+      if (cristais) { mudarConsumivel(p, 'cristal', item.raridade, cristais); res.cristais = cristais; }
     } else {
       if (risco === 'zera') item.encanto = 0;
       res = { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
@@ -1692,7 +1745,7 @@ Tanka.regras = (function () {
       if (qtd >= 0) ganharExp(p, qtd); else p.exp = Math.max(0, p.exp + qtd);
     },
     pergaminhos: function (p, quantidade) {
-      Object.keys(p.pergaminhos).forEach(function (k) { p.pergaminhos[k] = Math.max(0, p.pergaminhos[k] + quantidade); });
+      RARIDADES.forEach(function (k) { mudarPergaminho(p, k, quantidade); });
     },
     // Deixa a vida em X% da máxima (0 = sem vida).
     vida: function (p, pct) { p.hpAtual = Math.floor(status(p).hpMax * pct / 100); },
@@ -1780,6 +1833,13 @@ Tanka.regras = (function () {
     venderVarios: venderVarios,
     comprarPergaminho: comprarPergaminho,
     trocarPergaminho: trocarPergaminho,
+    consumiveis: consumiveis,
+    qtdConsumivel: qtdConsumivel,
+    mudarConsumivel: mudarConsumivel,
+    qtdPergaminho: qtdPergaminho,
+    mudarPergaminho: mudarPergaminho,
+    pergaminhos: pergaminhos,
+    nomeConsumivel: nomeConsumivel,
     proximaRaridade: proximaRaridade,
     chanceEncantar: chanceEncantar,
     riscoEncantar: riscoEncantar,
