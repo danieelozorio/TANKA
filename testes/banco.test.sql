@@ -89,8 +89,12 @@ select pg_temp.igual((public.grupo_estado('pa') ->> 'entradas')::int, 1, 'vitór
 select pg_temp.como('c');
 select pg_temp.igual((public.grupo_estado('pc') ->> 'entradas')::int, 1, 'entrada gasta também para o Caio');
 select pg_temp.igual((public.grupo_estado('pc') -> 'recompensas' -> 0 -> 'item' ->> 'tipo') in ('colar', 'anel'), true, 'Caio ganhou colar ou anel');
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas') between 1 and 2, true, 'joia + talvez 1 pergaminho');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.grupo_estado('pc') -> 'recompensas') with ordinality as x(r, i)
+  where i > 1 and not (r -> 'item' ->> 'tipo' = 'pergaminho' and r -> 'item' ->> 'raridade' in ('comum', 'rara', 'epica', 'lendaria')))::int, 0, 'segunda recompensa é pergaminho');
 select pg_temp.igual((public.recompensa_resgatar('pc', (public.grupo_estado('pc') -> 'recompensas' -> 0 ->> 'id')::bigint) ->> 'raridade') in ('comum', 'rara', 'epica'), true, 'resgata joia do Ninho');
-select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas'), 0, 'resgatada sai da lista');
+select public.recompensa_resgatar('pc', (r ->> 'id')::bigint) from jsonb_array_elements(public.grupo_estado('pc') -> 'recompensas') r;
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas'), 0, 'resgatadas saem da lista');
 select pg_temp.como('b');
 select pg_temp.falha($$select public.recompensa_resgatar('pb', (select id from public.recompensas where personagem_id = 'pc' limit 1))$$, 'não encontrada');
 
@@ -119,6 +123,14 @@ select public.grupo_sair('pb');
 select pg_temp.igual(public.grupo_estado('pb') -> 'grupo', 'null'::jsonb, 'grupo vazio some');
 reset role;
 select pg_temp.igual((select count(*) from public.grupos)::int, 0, 'nenhum grupo sobrando');
+
+-- Pergaminho da masmorra: cerca de 50% das vitórias, qualidade 70/22/7/1
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'lendaria') between 120 and 290, true, 'lendária ~1%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'epica') between 1200 and 1600, true, 'épica ~7%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'rara') between 4100 and 4700, true, 'rara ~22%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'comum') between 13700 and 14300, true, 'comum ~70%');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' in ('colar', 'anel'))::int, 6, '2 vitórias x 3 heróis = 6 joias');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho')::int between 0 and 6, true, 'pergaminhos: 0 a 6');
 
 -- Acesso direto às tabelas é bloqueado
 set role authenticated;

@@ -406,6 +406,18 @@ $$;
 
 -- Raridade da joia pela tabela da masmorra (a melhor primeiro); a Sorte aumenta as chances
 -- das raridades melhores (+1% relativo por ponto). Mesmas chances de js/dados.js (masmorras).
+-- Raridade dos pergaminhos da masmorra: a mesma qualidade dos drops da caçada
+-- (DROPS_CACADA.qualidade em dados.js): 70% comum, 22% rara, 7% épica, 1% lendária.
+create or replace function public.sortear_raridade_drop() returns text
+language plpgsql volatile as $$
+declare r numeric := random() * 100;
+begin
+  if r < 1 then return 'lendaria'; end if;
+  if r < 8 then return 'epica'; end if;
+  if r < 30 then return 'rara'; end if;
+  return 'comum';
+end $$;
+
 create or replace function public.sortear_raridade_joia(m text, sorte int) returns text
 language plpgsql volatile as $$
 declare
@@ -590,7 +602,8 @@ begin
 end $$;
 
 -- O líder informa o resultado. Vitória: gasta 1 entrada de cada um e cada um ganha 1 joia
--- (colar ou anel). Derrota: não gasta entrada e ninguém ganha nada.
+-- (colar ou anel) e tem 50% de chance de ganhar 1 pergaminho de encantamento (MASMORRA.pergaminho
+-- em dados.js). Derrota: não gasta entrada e ninguém ganha nada.
 create or replace function public.masmorra_concluir(meu text, run_id bigint, vitoria boolean) returns void
 language plpgsql security definer set search_path = public as $$
 declare run public.masmorra_runs; pid text; sorte int;
@@ -610,6 +623,10 @@ begin
       'id', substr(md5(random()::text || clock_timestamp()::text), 1, 12),
       'tipo', case when random() < 0.5 then 'colar' else 'anel' end,
       'classe', null, 'raridade', public.sortear_raridade_joia(run.masmorra, sorte), 'encanto', 0));
+    if random() < 0.5 then
+      insert into public.recompensas (personagem_id, origem, item) values (pid, run.masmorra, jsonb_build_object(
+        'tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()));
+    end if;
   end loop;
 end $$;
 

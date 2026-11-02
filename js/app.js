@@ -1198,17 +1198,6 @@
           : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
         return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
           + '<span class="suave pequeno">' + (k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
-      }).join('') + '</div>'
-      + '<h3 class="subtitulo">Pergaminhos de Encantamento</h3>'
-      + '<p class="suave">Cada tentativa de encantar gasta 1 pergaminho da mesma raridade do item.</p><div class="itens">'
-      + Object.keys(D.raridades).map(function (k) {
-        var preco = D.encantamento.precoPergaminho[k];
-        var falta = preco - p.ouro;
-        return '<div class="item"><div>'
-          + '<div>Pergaminho para item <span class="raridade-' + k + '">' + ITEM_RARIDADE[k] + '</span></div>'
-          + '<div class="suave">' + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + p.pergaminhos[k] + '</div></div>'
-          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
-          + '<button class="btn" data-acao="comprar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
       }).join('') + '</div>';
   }
 
@@ -1251,7 +1240,7 @@
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
-    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Compre mais no Mercado. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (3º monstro de cada área), nas masmorras e nas missões. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
       + '<div class="itens">' + lista + '</div>';
   }
 
@@ -2586,13 +2575,6 @@
         telaJogo();
         break;
       }
-      case 'comprar-pergaminho':
-        if (R.comprarPergaminho(p, el.dataset.raridade)) {
-          salvar();
-          avisar('Pergaminho comprado! Use na aba Encantar.');
-          telaJogo();
-        }
-        break;
       case 'pedir-encanto':
         estado.encantoPendente = el.dataset.id;
         estado.ultimoEncanto = null;
@@ -2873,15 +2855,30 @@
     carregarGrupo();
   }
 
-  // Joias ganhas: entram na mochila (se couber) e o jogo salva.
+  // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão direto para o estoque.
   async function resgatarRecompensas() {
     var p = estado.personagem, g = estado.gm;
     if (!p || !g || !g.recompensas || !g.recompensas.length || estado.resgatando) return;
     estado.resgatando = true;
     try {
+      var avisouCheia = false;
       for (var i = 0; i < g.recompensas.length; i++) {
-        if (R.mochilaCheia(p)) { avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.'); break; }
-        var item = R.completarItem(p, await C.grupo.resgatar(p.id, g.recompensas[i].id));
+        var rec = g.recompensas[i];
+        // Pergaminho de encantamento: não ocupa a mochila.
+        if (rec.item && rec.item.tipo === 'pergaminho') {
+          var perg = await C.grupo.resgatar(p.id, rec.id);
+          if (p.pergaminhos[perg.raridade] === undefined) continue;
+          p.pergaminhos[perg.raridade] += 1;
+          salvar();
+          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + ' na masmorra!', 'item');
+          continue;
+        }
+        if (R.mochilaCheia(p)) {
+          if (!avisouCheia) avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.');
+          avisouCheia = true;
+          continue;
+        }
+        var item = R.completarItem(p, await C.grupo.resgatar(p.id, rec.id));
         p.inventario.push(item);
         salvar();
         avisar('Você ganhou ' + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
@@ -3010,7 +3007,7 @@
     var fim = '';
     if (L.fim) {
       fim = L.sim.vitoria
-        ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(L.mm.nome) + '. Cada um ganhou um colar ou anel (vai para a mochila).</p>'
+        ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(L.mm.nome) + '. Cada um ganhou um colar ou anel (vai para a mochila) e tem ' + D.MASMORRA.pergaminho + '% de chance de ganhar um pergaminho de encantamento.</p>'
         : '<div class="resultado derrota"><h2>Derrota</h2><p>O grupo caiu na ' + NOMES_SALA[L.sim.sala].toLowerCase() + '. Ninguém perdeu nada e a entrada não foi gasta.</p>';
       fim += '<div class="botoes"><button class="btn" data-acao="luta-fechar">Voltar</button></div></div>';
     }
@@ -3027,7 +3024,8 @@
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
     var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
     var html = '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
-      + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias. Derrota não gasta entrada.</p>'
+      + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias, e tem ' + M.pergaminho
+      + '% de chance de ganhar um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>'
       + '<div class="secao ouro entradas-masmorra"><span>Entradas hoje</span><strong>' + restam + '/' + M.entradasPorDia + '</strong></div>';
     if (g.convites.length) html += '<h3 class="subtitulo">Convites para grupo</h3><div class="itens">' + g.convites.map(function (c) {
       return '<div class="item"><div><strong>' + esc(c.de) + '</strong> convidou você <span class="suave">(' + c.membros + '/3 no grupo)</span></div>'
@@ -3069,7 +3067,7 @@
       return '<div class="mas-card' + (mm.id === escolhida ? ' selecionada' : '') + (bloqueada ? ' bloqueada' : '') + '">'
         + '<div class="mas-card-topo"><strong>' + (bloqueada ? '🔒 ' : '') + esc(mm.nome) + '</strong><span class="suave">Level ' + mm.nivelMin + '+</span></div>'
         + '<div class="suave pequeno">' + area.monstros.map(function (m) { return m.nome; }).join(', ') + ' · Elite: ' + esc(mm.elite) + ' · Chefe: ' + esc(mm.chefe) + '</div>'
-        + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + '</div>'
+        + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + ' · Pergaminho: ' + D.MASMORRA.pergaminho + '%</div>'
         + (souLider ? (mm.id === escolhida ? '<div class="online pequeno">✔ Escolhida</div>'
           : '<button class="btn secundario mini-opcao" data-acao="grupo-escolher" data-valor="' + mm.id + '">Escolher</button>') : '')
         + '</div>';
