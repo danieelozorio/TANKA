@@ -166,7 +166,6 @@
       + (estado.itemFoco === item.id ? ' focado' : '') + '" data-acao="item" data-id="' + item.id + '"'
       + ' title="' + esc(R.nomeItem(item)) + '"' + (atributos || '') + '>'
       + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '')
-      + (item.nivel ? '<span class="nivel-item" title="Nível do item">' + item.nivel + '</span>' : '')
       + (item.travado ? '<span class="cadeado" title="Travado">' + ICONES.cadeado + '</span>' : '') + '</button>';
   }
 
@@ -841,7 +840,8 @@
     return '<div class="zoom-carta"><div class="zoom-rotulo">' + rotulo + '</div>'
       + '<div class="icone-zoom borda-' + item.raridade + aura(item) + '">' + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</div>'
       + '<div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
-      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span></div>'
+      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
+      + (item.nivel ? ' · nível ' + item.nivel : '') + '</div>'
       + '<ul class="zoom-atributos">' + linhas.join('') + '</ul></div>';
   }
 
