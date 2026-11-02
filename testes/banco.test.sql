@@ -89,8 +89,12 @@ select pg_temp.igual((public.grupo_estado('pa') ->> 'entradas')::int, 1, 'vitór
 select pg_temp.como('c');
 select pg_temp.igual((public.grupo_estado('pc') ->> 'entradas')::int, 1, 'entrada gasta também para o Caio');
 select pg_temp.igual((public.grupo_estado('pc') -> 'recompensas' -> 0 -> 'item' ->> 'tipo') in ('colar', 'anel'), true, 'Caio ganhou colar ou anel');
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas') between 1 and 2, true, 'joia + talvez 1 pergaminho');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.grupo_estado('pc') -> 'recompensas') with ordinality as x(r, i)
+  where i > 1 and not (r -> 'item' ->> 'tipo' = 'pergaminho' and r -> 'item' ->> 'raridade' in ('comum', 'rara', 'epica', 'lendaria')))::int, 0, 'segunda recompensa é pergaminho');
 select pg_temp.igual((public.recompensa_resgatar('pc', (public.grupo_estado('pc') -> 'recompensas' -> 0 ->> 'id')::bigint) ->> 'raridade') in ('comum', 'rara', 'epica'), true, 'resgata joia do Ninho');
-select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas'), 0, 'resgatada sai da lista');
+select public.recompensa_resgatar('pc', (r ->> 'id')::bigint) from jsonb_array_elements(public.grupo_estado('pc') -> 'recompensas') r;
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'recompensas'), 0, 'resgatadas saem da lista');
 select pg_temp.como('b');
 select pg_temp.falha($$select public.recompensa_resgatar('pb', (select id from public.recompensas where personagem_id = 'pc' limit 1))$$, 'não encontrada');
 
@@ -119,6 +123,14 @@ select public.grupo_sair('pb');
 select pg_temp.igual(public.grupo_estado('pb') -> 'grupo', 'null'::jsonb, 'grupo vazio some');
 reset role;
 select pg_temp.igual((select count(*) from public.grupos)::int, 0, 'nenhum grupo sobrando');
+
+-- Pergaminho da masmorra: cerca de 50% das vitórias, qualidade 70/22/7/1
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'lendaria') between 120 and 290, true, 'lendária ~1%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'epica') between 1200 and 1600, true, 'épica ~7%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'rara') between 4100 and 4700, true, 'rara ~22%');
+select pg_temp.igual((select count(*) from generate_series(1, 20000) where public.sortear_raridade_drop() = 'comum') between 13700 and 14300, true, 'comum ~70%');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' in ('colar', 'anel'))::int, 6, '2 vitórias x 3 heróis = 6 joias');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho')::int between 0 and 6, true, 'pergaminhos: 0 a 6');
 
 -- Acesso direto às tabelas é bloqueado
 set role authenticated;
@@ -248,5 +260,37 @@ begin
   end loop;
   if i >= 400 then raise exception 'FALHA arena: a luta não acabou'; end if;
   raise notice 'ok   arena: luta com habilidades até o fim (% rodadas)', i;
+end $$;
+-- Double Shot (Arqueiro): 2 flechas com o mesmo dado, cada uma 100% + 3% por ponto
+do $$
+declare a jsonb; d jsonb; r jsonb;
+begin
+  a := jsonb_build_object('hp', 500, 'hpMax', 500, 'dano', '[20,20]'::jsonb, 'magico', false, 'defesa', 0, 'defesaMagica', 0, 'velBase', 20, 'vel', 20,
+    'esquiva', 0, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"cacador","pontos":{"pes-ligeiros":2},"ordem":{"arena":["pes-ligeiros"]}}')),
+    'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
+  if (a -> 'kit' -> 0 ->> 'nome') <> 'Double Shot' or (a -> 'kit' -> 0 ->> 'mult')::numeric <> 106 or (a -> 'kit' -> 0 ->> 'flechas')::int <> 2 then
+    raise exception 'FALHA arena: kit do Double Shot: %', a -> 'kit'; end if;
+  d := a || jsonb_build_object('kit', '[]'::jsonb);
+  r := public.arena_vez(a, d, 10);
+  -- dado 10 = x1,2; cada flecha: round(20 x 1,2 x 1,06) = 25; duas = 50
+  if r -> 'ev' ->> 'hab' <> 'Double Shot' or (r -> 'ev' ->> 'flechas')::int <> 2 or (r -> 'ev' ->> 'dano')::int <> 50
+     or (r -> 'outro' ->> 'hp')::int <> 450 then
+    raise exception 'FALHA arena: Double Shot devia dar 2 x 25 = 50: %', r -> 'ev'; end if;
+  -- ataque normal continua com 1 golpe
+  r := public.arena_vez(r -> 'eu', r -> 'outro', 10);
+  if r -> 'ev' ? 'flechas' or (r -> 'ev' ->> 'dano')::int <> 24 then raise exception 'FALHA arena: ataque normal devia ser 24: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Double Shot = 2 flechas de 106%% com 2 pontos';
+end $$;
+-- Encanto mais forte em arma nível 20+ (igual ao jogo)
+do $$
+declare p jsonb; s20 jsonb; s40 jsonb;
+begin
+  p := pg_temp.heroi('cavaleiro', 30, null) || jsonb_build_object('equipados', '{"arma":"w"}'::jsonb);
+  s20 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":20,"dano":[10,20]}]'::jsonb));
+  s40 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":40,"dano":[10,20]}]'::jsonb));
+  -- +50 de encanto a mais (100 no 40, 50 no 20), x1,1 da lendária na Arena (PvP) = +55
+  if (s40 -> 'dano' ->> 0)::int - (s20 -> 'dano' ->> 0)::int <> 55 then
+    raise exception 'FALHA servidor: lendária +10 nível 40 devia ter +55 de dano a mais que no 20: % x %', s40 -> 'dano', s20 -> 'dano'; end if;
+  raise notice 'ok   servidor: encanto da arma nível 40 vale o dobro do nível 20';
 end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -677,7 +677,7 @@
   function armaFichaHtml(p, arma, s) {
     if (!arma) return '<div class="suave">Nenhuma</div>';
     var dArma = R.danoArma(arma), magico = s.tipoDano === 'magico';
-    var extra = (arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade];
+    var extra = Math.round((arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade] * R.multEncanto(arma));
     var chance = magico ? s.chanceCriticoMagico : s.chanceCritico, mult = magico ? s.danoCriticoMagico : s.danoCritico;
     function stat(rotulo, valor, dica) {
       return '<div class="arma-stat"' + (dica ? ' title="' + dica + '"' : '') + '><small>' + rotulo + '</small><strong>' + valor + '</strong></div>';
@@ -712,10 +712,9 @@
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
-      + (m.drops.length ? '<dt>Armas</dt><dd>' + textoDrops(m.drops) + '</dd>' : '')
-      + (m.dropsArmadura.length ? '<dt>Armaduras</dt><dd>' + textoDrops(m.dropsArmadura) + '</dd>' : '')
-      + (m.dropsItem.length ? '<dt title="Arma, armadura, colar ou anel">Qualquer item</dt><dd>' + textoDrops(m.dropsItem) + '</dd>' : '')
-      + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + (m.pergaminho.raridade ? '<span class="raridade-' + m.pergaminho.raridade + '">' + D.raridades[m.pergaminho.raridade].nome + '</span> ' : 'da arma ') + m.pergaminho.chance + '%</dd>' : '')
+      + (m.chanceArma ? '<dt>Armas</dt><dd>' + m.chanceArma + '%</dd>' : '')
+      + (m.chanceArmadura ? '<dt>Armaduras</dt><dd>' + m.chanceArmadura + '%</dd>' : '')
+      + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + m.pergaminho.chance + '%</dd>' : '')
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
       + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
       + (R.monstroLiberado(p, id) ? '<button class="btn largo' + (selecionado ? '' : ' secundario') + '" data-acao="cacada-alvo" data-monstro="' + id + '">'
@@ -1052,17 +1051,17 @@
   }
 
   function linhaRecomecoHab(p) {
-    var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoReputacao - (p.reputacao || 0);
+    var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoOuro - (p.ouro || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📘</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + R2.nome + '</span></div>'
       + '<div class="suave">Devolve os pontos de habilidade e deixa escolher a segunda classe de novo · '
-      + R2.precoReputacao.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecosHab || 0) + '</div></div>'
-      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + R2.precoOuro.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecosHab || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
       + '<button class="btn" data-acao="hab-pergaminho-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
   // ----- Aba Habilidades: habilidade inicial, segunda classe, pontos e ordem de uso -----
-  var TIPO_HAB = { unico: 'Golpe', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
+  var TIPO_HAB = { unico: 'Golpe', multiplo: 'Golpe duplo', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
   var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
     vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
   var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
@@ -1077,6 +1076,7 @@
     var turnos = function (t) { return t + (t === 1 ? ' turno' : ' turnos'); };
     switch (def.tipo) {
       case 'unico': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> do seu dano em um inimigo.';
+      case 'multiplo': return '<b>' + (def.flechas || 2) + ' flechas</b> no mesmo turno, cada uma com <b>' + R.multHabilidade(def, n) + '%</b> do seu dano.';
       case 'area': return '<b>' + R.multHabilidade(def, n) + '%</b> do seu dano em cada inimigo'
         + (def.atordoa ? ' e ' + (def.congela ? 'congela' : 'atordoa') + ' todos por ' + turnos(def.atordoa) + ' (chefe: 1)' : '') + '.';
       case 'atordoar': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> e o inimigo fica parado por ' + turnos(def.atordoa) + ' (chefe: ' + T.atordoarChefeMax + ').';
@@ -1166,12 +1166,12 @@
   }
 
   function linhaRecomeco(p) {
-    var preco = D.RECOMECO.precoReputacao, falta = preco - (p.reputacao || 0);
+    var preco = D.RECOMECO.precoOuro, falta = preco - (p.ouro || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + D.RECOMECO.nome + '</span></div>'
       + '<div class="suave">Devolve todos os pontos de atributo para você distribuir de novo · '
-      + preco.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecos || 0) + '</div></div>'
-      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecos || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
       + '<button class="btn" data-acao="recomeco-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
@@ -1199,17 +1199,6 @@
           : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
         return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
           + '<span class="suave pequeno">' + (k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
-      }).join('') + '</div>'
-      + '<h3 class="subtitulo">Pergaminhos de Encantamento</h3>'
-      + '<p class="suave">Cada tentativa de encantar gasta 1 pergaminho da mesma raridade do item.</p><div class="itens">'
-      + Object.keys(D.raridades).map(function (k) {
-        var preco = D.encantamento.precoPergaminho[k];
-        var falta = preco - p.ouro;
-        return '<div class="item"><div>'
-          + '<div>Pergaminho para item <span class="raridade-' + k + '">' + ITEM_RARIDADE[k] + '</span></div>'
-          + '<div class="suave">' + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + p.pergaminhos[k] + '</div></div>'
-          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + '</span>' : '')
-          + '<button class="btn" data-acao="comprar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
       }).join('') + '</div>';
   }
 
@@ -1252,7 +1241,7 @@
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
-    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Compre mais no Mercado. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (3º monstro de cada área), nas masmorras e nas missões. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
       + '<div class="itens">' + lista + '</div>';
   }
 
@@ -2587,13 +2576,6 @@
         telaJogo();
         break;
       }
-      case 'comprar-pergaminho':
-        if (R.comprarPergaminho(p, el.dataset.raridade)) {
-          salvar();
-          avisar('Pergaminho comprado! Use na aba Encantar.');
-          telaJogo();
-        }
-        break;
       case 'pedir-encanto':
         estado.encantoPendente = el.dataset.id;
         estado.ultimoEncanto = null;
@@ -2874,15 +2856,30 @@
     carregarGrupo();
   }
 
-  // Joias ganhas: entram na mochila (se couber) e o jogo salva.
+  // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão direto para o estoque.
   async function resgatarRecompensas() {
     var p = estado.personagem, g = estado.gm;
     if (!p || !g || !g.recompensas || !g.recompensas.length || estado.resgatando) return;
     estado.resgatando = true;
     try {
+      var avisouCheia = false;
       for (var i = 0; i < g.recompensas.length; i++) {
-        if (R.mochilaCheia(p)) { avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.'); break; }
-        var item = R.completarItem(p, await C.grupo.resgatar(p.id, g.recompensas[i].id));
+        var rec = g.recompensas[i];
+        // Pergaminho de encantamento: não ocupa a mochila.
+        if (rec.item && rec.item.tipo === 'pergaminho') {
+          var perg = await C.grupo.resgatar(p.id, rec.id);
+          if (p.pergaminhos[perg.raridade] === undefined) continue;
+          p.pergaminhos[perg.raridade] += 1;
+          salvar();
+          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + ' na masmorra!', 'item');
+          continue;
+        }
+        if (R.mochilaCheia(p)) {
+          if (!avisouCheia) avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.');
+          avisouCheia = true;
+          continue;
+        }
+        var item = R.completarItem(p, await C.grupo.resgatar(p.id, rec.id));
         p.inventario.push(item);
         salvar();
         avisar('Você ganhou ' + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
@@ -3011,7 +3008,7 @@
     var fim = '';
     if (L.fim) {
       fim = L.sim.vitoria
-        ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(L.mm.nome) + '. Cada um ganhou um colar ou anel (vai para a mochila).</p>'
+        ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(L.mm.nome) + '. Cada um ganhou um colar ou anel (vai para a mochila) e tem ' + D.MASMORRA.pergaminho + '% de chance de ganhar um pergaminho de encantamento.</p>'
         : '<div class="resultado derrota"><h2>Derrota</h2><p>O grupo caiu na ' + NOMES_SALA[L.sim.sala].toLowerCase() + '. Ninguém perdeu nada e a entrada não foi gasta.</p>';
       fim += '<div class="botoes"><button class="btn" data-acao="luta-fechar">Voltar</button></div></div>';
     }
@@ -3028,7 +3025,8 @@
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
     var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
     var html = '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
-      + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias. Derrota não gasta entrada.</p>'
+      + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias, e tem ' + M.pergaminho
+      + '% de chance de ganhar um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>'
       + '<div class="secao ouro entradas-masmorra"><span>Entradas hoje</span><strong>' + restam + '/' + M.entradasPorDia + '</strong></div>';
     if (g.convites.length) html += '<h3 class="subtitulo">Convites para grupo</h3><div class="itens">' + g.convites.map(function (c) {
       return '<div class="item"><div><strong>' + esc(c.de) + '</strong> convidou você <span class="suave">(' + c.membros + '/3 no grupo)</span></div>'
@@ -3070,7 +3068,7 @@
       return '<div class="mas-card' + (mm.id === escolhida ? ' selecionada' : '') + (bloqueada ? ' bloqueada' : '') + '">'
         + '<div class="mas-card-topo"><strong>' + (bloqueada ? '🔒 ' : '') + esc(mm.nome) + '</strong><span class="suave">Level ' + mm.nivelMin + '+</span></div>'
         + '<div class="suave pequeno">' + area.monstros.map(function (m) { return m.nome; }).join(', ') + ' · Elite: ' + esc(mm.elite) + ' · Chefe: ' + esc(mm.chefe) + '</div>'
-        + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + '</div>'
+        + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + ' · Pergaminho: ' + D.MASMORRA.pergaminho + '%</div>'
         + (souLider ? (mm.id === escolhida ? '<div class="online pequeno">✔ Escolhida</div>'
           : '<button class="btn secundario mini-opcao" data-acao="grupo-escolher" data-valor="' + mm.id + '">Escolher</button>') : '')
         + '</div>';

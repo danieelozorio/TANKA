@@ -106,7 +106,7 @@ A vida com o tempo e o reset diário usam o relógio do servidor. Ainda falta a 
 | Épica (roxo) | 21–24 / 25–30 | 50 | 1.000 |
 | Lendária (amarelo) | 31–34 / 35–40 | 100 | 10.000 |
 
-- **Encantamento** (aba Encantar): de +0 a +10, gastando 1 Pergaminho de Encantamento da raridade da arma por tentativa. O pergaminho é vendido no Mercado (comum 5, rara 50, épica 500, lendária 5.000 de ouro) e alguns monstros e todos os chefes dropam pergaminhos (ver as tabelas de drops).
+- **Encantamento** (aba Encantar): de +0 a +10, gastando 1 Pergaminho de Encantamento da raridade da arma por tentativa. O pergaminho não é vendido no Mercado: cai do 3º monstro de cada área (5%), dos chefes, das masmorras (50% por herói na vitória) e vem das missões. Qualidade dos drops: comum 70%, rara 22%, épica 7%, lendária 1%.
 
 | Nível | +1 a +3 | +4 | +5 | +6 | +7 | +8 | +9 | +10 |
 |---|---|---|---|---|---|---|---|---|

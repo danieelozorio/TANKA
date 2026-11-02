@@ -20,6 +20,7 @@ const dados = {
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, { bonus: v.bonus }])),
   danoPorNivel: D.encantamento.danoPorNivel, bonusPorNivel: D.encantamento.bonusPorNivel,
+  encantoForte: { desde: D.encantamento.forteDesde, porNivel: D.encantamento.fortePorNivel },
   ARENA: D.ARENA,
   ALIANCA: D.ALIANCA,
   CONJUNTOS: Object.fromEntries(Object.entries(D.CONJUNTOS).map(([k, c]) => [k, { bonus: c.bonus }])),
