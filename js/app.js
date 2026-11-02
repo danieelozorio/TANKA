@@ -677,7 +677,7 @@
   function armaFichaHtml(p, arma, s) {
     if (!arma) return '<div class="suave">Nenhuma</div>';
     var dArma = R.danoArma(arma), magico = s.tipoDano === 'magico';
-    var extra = (arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade];
+    var extra = Math.round((arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade] * R.multEncanto(arma));
     var chance = magico ? s.chanceCriticoMagico : s.chanceCritico, mult = magico ? s.danoCriticoMagico : s.danoCritico;
     function stat(rotulo, valor, dica) {
       return '<div class="arma-stat"' + (dica ? ' title="' + dica + '"' : '') + '><small>' + rotulo + '</small><strong>' + valor + '</strong></div>';
@@ -1051,17 +1051,17 @@
   }
 
   function linhaRecomecoHab(p) {
-    var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoReputacao - (p.reputacao || 0);
+    var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoOuro - (p.ouro || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📘</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + R2.nome + '</span></div>'
       + '<div class="suave">Devolve os pontos de habilidade e deixa escolher a segunda classe de novo · '
-      + R2.precoReputacao.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecosHab || 0) + '</div></div>'
-      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + R2.precoOuro.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecosHab || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
       + '<button class="btn" data-acao="hab-pergaminho-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
   // ----- Aba Habilidades: habilidade inicial, segunda classe, pontos e ordem de uso -----
-  var TIPO_HAB = { unico: 'Golpe', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
+  var TIPO_HAB = { unico: 'Golpe', multiplo: 'Golpe duplo', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
   var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
     vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
   var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
@@ -1076,6 +1076,7 @@
     var turnos = function (t) { return t + (t === 1 ? ' turno' : ' turnos'); };
     switch (def.tipo) {
       case 'unico': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> do seu dano em um inimigo.';
+      case 'multiplo': return '<b>' + (def.flechas || 2) + ' flechas</b> no mesmo turno, cada uma com <b>' + R.multHabilidade(def, n) + '%</b> do seu dano.';
       case 'area': return '<b>' + R.multHabilidade(def, n) + '%</b> do seu dano em cada inimigo'
         + (def.atordoa ? ' e ' + (def.congela ? 'congela' : 'atordoa') + ' todos por ' + turnos(def.atordoa) + ' (chefe: 1)' : '') + '.';
       case 'atordoar': return 'Golpe de <b>' + R.multHabilidade(def, n) + '%</b> e o inimigo fica parado por ' + turnos(def.atordoa) + ' (chefe: ' + T.atordoarChefeMax + ').';
@@ -1165,12 +1166,12 @@
   }
 
   function linhaRecomeco(p) {
-    var preco = D.RECOMECO.precoReputacao, falta = preco - (p.reputacao || 0);
+    var preco = D.RECOMECO.precoOuro, falta = preco - (p.ouro || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + D.RECOMECO.nome + '</span></div>'
       + '<div class="suave">Devolve todos os pontos de atributo para você distribuir de novo · '
-      + preco.toLocaleString('pt-BR') + ' de reputação · você tem ' + (p.recomecos || 0) + '</div></div>'
-      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de reputação</span>' : '')
+      + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecos || 0) + '</div></div>'
+      + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
       + '<button class="btn" data-acao="recomeco-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 

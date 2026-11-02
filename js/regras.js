@@ -269,12 +269,19 @@ Tanka.regras = (function () {
     return b;
   }
 
+  // Multiplicador do dano do encanto pelo nível da arma (1 até o 20; +5% por nível acima, 3x no 60).
+  function multEncanto(item) {
+    var E = D.encantamento, n = item && item.nivel;
+    if (!n || n <= E.forteDesde) return 1;
+    return 1 + (n - E.forteDesde) * E.fortePorNivel / 100;
+  }
+
   // Dano da arma já somando o bônus de encantamento.
   // Sem `dano` (modelo do mercado): mostra a faixa possível inteira.
   function danoArmaComEncanto(item) {
     var r = D.raridades[item.raridade];
     var base = item.dano || [r.danoMin[0], r.danoMax[1]];
-    var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade];
+    var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade] * multEncanto(item);
     var f = item.tipo === 'arma' ? tipoArma(item).fator : 1;   // armas lentas e de duas mãos batem mais forte
     return [Math.round((base[0] + extra) * f), Math.round((base[1] + extra) * f)];
   }
@@ -373,7 +380,7 @@ Tanka.regras = (function () {
   function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
   // Multiplicador (%) de dano de uma habilidade de golpe.
   function multHabilidade(def, pts) {
-    var tab = def.tipo === 'atordoar' ? T.atordoar : def.tipo === 'area' ? (def.reduzido ? T.areaReduzida : T.area)
+    var tab = def.tipo === 'atordoar' ? T.atordoar : def.tipo === 'multiplo' ? T.multiplo : def.tipo === 'area' ? (def.reduzido ? T.areaReduzida : T.area)
       : def.tipo === 'unico' ? (def.reduzido ? T.unicoReduzido : T.unico) : null;
     if (!tab) return 0;
     return def.inicial ? tab.base : tab.base + tab.porPonto * pts;
@@ -433,9 +440,9 @@ Tanka.regras = (function () {
   }
   // Pergaminho das Habilidades: devolve os pontos e deixa escolher a segunda classe de novo.
   function comprarRecomecoHabilidades(p) {
-    var preco = D.RECOMECO_HABILIDADES.precoReputacao;
-    if ((p.reputacao || 0) < preco) return 'Reputação insuficiente.';
-    p.reputacao -= preco;
+    var preco = D.RECOMECO_HABILIDADES.precoOuro;
+    if ((p.ouro || 0) < preco) return 'Ouro insuficiente.';
+    p.ouro -= preco;
     p.recomecosHab = (p.recomecosHab || 0) + 1;
     return true;
   }
@@ -1039,6 +1046,9 @@ Tanka.regras = (function () {
       b.monstro.hp = Math.max(0, b.monstro.hp - d);
       if (b.monstro.hp === 0) b.fim = 'vitoria';
       hab.golpes.push({ acerto: true, critico: false, dano: d });
+    } else if (def.tipo === 'multiplo') {
+      // Double Shot: várias flechas no mesmo turno, cada uma pode errar ou ser crítica.
+      for (var f = 0; f < (def.flechas || 2) && !b.fim; f++) hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) / 100 }));
     } else {
       var g = golpeJogador(b, { mult: multHabilidade(def, k.pts) / 100 });
       hab.golpes.push(g);
@@ -1538,7 +1548,14 @@ Tanka.regras = (function () {
           var alvos = !k ? [vivos(ms)[0]] : k.def.tipo === 'area' ? vivos(ms) : [vivos(ms)[0]];
           var mult = k ? multHabilidade(k.def, k.pts) : 100;
           if (k) registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome });
+          // Double Shot: as flechas seguintes vão no primeiro monstro vivo (o mesmo, ou o próximo se ele caiu).
+          if (k && k.def.tipo === 'multiplo') {
+            alvos = [];
+            for (var fl = 0; fl < (k.def.flechas || 2); fl++) alvos.push(null);
+          }
           alvos.forEach(function (alvo, n) {
+            if (!alvo) alvo = vivos(ms)[0];
+            if (!alvo) return;
             var e = n === 0 ? ev : { tipo: 'golpe', sala: si, de: 'h', i: ev.i, acerto: false, critico: false, dano: 0, caiu: false };
             e.alvo = ms.indexOf(alvo);
             var g = calcularGolpe(H.s, L, alvo, { mult: mult }, rng);
@@ -1577,12 +1594,12 @@ Tanka.regras = (function () {
   }
 
   // ---------- Skins do dado ----------
-  // Pergaminho do Recomeço: compra com reputação e usa para redistribuir os atributos.
+  // Pergaminho do Recomeço: compra com ouro e usa para redistribuir os atributos.
   // Retornam true ou um texto com o motivo.
   function comprarRecomeco(p) {
-    var preco = D.RECOMECO.precoReputacao;
-    if ((p.reputacao || 0) < preco) return 'Reputação insuficiente.';
-    p.reputacao -= preco;
+    var preco = D.RECOMECO.precoOuro;
+    if ((p.ouro || 0) < preco) return 'Ouro insuficiente.';
+    p.ouro -= preco;
     p.recomecos = (p.recomecos || 0) + 1;
     return true;
   }
@@ -1722,6 +1739,7 @@ Tanka.regras = (function () {
     vender: vender,
     comprar: comprar,
     danoArma: danoArmaComEncanto,
+    multEncanto: multEncanto,
     precoVenda: precoVenda,
     forcaItem: forcaItem,
     ordenarItens: ordenarItens,

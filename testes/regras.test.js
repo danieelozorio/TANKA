@@ -903,17 +903,17 @@ teste('mochila: trava e venda em lote', () => {
   assert.ok(R.vender(p, 'y'));
 });
 
-teste('Pergaminho do Recomeço: compra com 500 de reputação e devolve os pontos', () => {
+teste('Pergaminho do Recomeço: compra com 2.000 de ouro e devolve os pontos', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 4);
   const livres = p.pontosLivres;
   R.distribuirPonto(p, 'for'); R.distribuirPonto(p, 'for');
   assert.strictEqual(R.usarRecomeco(p), 'Você não tem Pergaminho do Recomeço.');
-  p.reputacao = 499;
-  assert.strictEqual(R.comprarRecomeco(p), 'Reputação insuficiente.');
-  p.reputacao = 600;
+  p.ouro = 1999; p.reputacao = 5000;
+  assert.strictEqual(R.comprarRecomeco(p), 'Ouro insuficiente.');
+  p.ouro = 2500;
   assert.strictEqual(R.comprarRecomeco(p), true);
-  assert.deepStrictEqual([p.reputacao, p.recomecos], [100, 1]);
+  assert.deepStrictEqual([p.ouro, p.reputacao, p.recomecos], [500, 5000, 1]);
   assert.strictEqual(R.usarRecomeco(p), true);
   assert.deepStrictEqual([p.pontosLivres, p.recomecos, p.atributos.for], [livres, 0, p.atributosIniciais.for]);
 });
@@ -1006,8 +1006,11 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   R.moverHabilidade(p, 'cacada', 'martelo-sagrado', 'tirar');
   assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['golpe-justo', 'grito-de-desafio']);
   // recomeço das habilidades
-  p.reputacao = 500;
+  p.ouro = 1999;
+  assert.strictEqual(R.comprarRecomecoHabilidades(p), 'Ouro insuficiente.');
+  p.ouro = 2000;
   assert.strictEqual(R.comprarRecomecoHabilidades(p), true);
+  assert.strictEqual(p.ouro, 0);
   assert.strictEqual(R.usarRecomecoHabilidades(p), true);
   assert.strictEqual(R.segundaClasse(p), null);
   assert.strictEqual(R.status(p).hpMax, antes + 10 * D.HP_POR_NIVEL);
@@ -1256,4 +1259,48 @@ teste('atividades: soma o tempo logado e, só quando caça, o tempo caçando', (
   R.registrarAtividade(p, -5, true);
   R.registrarAtividade(p, NaN, true);
   assert.deepStrictEqual(Object.assign({}, p.atividade), { logado: 120, cacando: 90 });
+});
+
+teste('encanto mais forte em armas do nível 20 em diante (+5% por nível, 3x no 60)', () => {
+  const arma = (nivel, raridade, encanto) => ({ tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade, encanto, nivel, dano: [10, 20] });
+  assert.strictEqual(R.multEncanto(arma(1, 'rara', 5)), 1);
+  assert.strictEqual(R.multEncanto(arma(20, 'rara', 5)), 1);
+  assert.strictEqual(R.multEncanto(arma(30, 'rara', 5)), 1.5);
+  assert.strictEqual(R.multEncanto(arma(40, 'rara', 5)), 2);
+  assert.strictEqual(R.multEncanto(arma(60, 'rara', 5)), 3);
+  assert.strictEqual(R.multEncanto({ tipo: 'arma', raridade: 'rara', encanto: 5 }), 1, 'arma antiga sem nível não muda');
+  // até o 20 igual a antes: lendária +10 = +50
+  assert.deepStrictEqual(Array.from(R.danoArma(arma(20, 'lendaria', 10))), [60, 70]);
+  // nível 40: lendária +10 = +100; nível 60: +150
+  assert.deepStrictEqual(Array.from(R.danoArma(arma(40, 'lendaria', 10))), [110, 120]);
+  assert.deepStrictEqual(Array.from(R.danoArma(arma(60, 'lendaria', 10))), [160, 170]);
+  // sem encanto, o nível não muda nada
+  assert.deepStrictEqual(Array.from(R.danoArma(arma(60, 'lendaria', 0))), [10, 20]);
+});
+
+teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno, na caçada e na masmorra', () => {
+  const def = D.SEGUNDAS_CLASSES.cacador.habilidades.find((h) => h.id === 'pes-ligeiros');
+  assert.strictEqual(def.nome, 'Double Shot');
+  assert.strictEqual(def.tipo, 'multiplo');
+  assert.strictEqual(R.multHabilidade(def, 1), 103);
+  assert.strictEqual(R.multHabilidade(def, 10), 130);
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  R.admin.subirNivel(p, 14); R.escolherSegundaClasse(p, 'cacador');
+  for (let i = 0; i < 4; i++) R.mudarPontoHabilidade(p, 'pes-ligeiros', 1);
+  R.talentos(p).ordem.cacada = ['pes-ligeiros'];
+  const b = R.iniciarBatalha(p, 'lobo', rng);
+  b.monstro.hp = 1e9; b.monstro.hpMax = 1e9; b.jogador.hp = 1e9;
+  let ev = null;
+  for (let i = 0; i < 50 && !ev; i++) { const e = R.passo(b); if (e && e.habilidade === 'Double Shot') ev = e; }
+  assert.ok(ev, 'usou o Double Shot');
+  assert.strictEqual(ev.golpes.length, 2, 'duas flechas');
+  // masmorra: duas flechas aparecem como dois golpes logo depois do nome da habilidade
+  const herois = [p, p, p].map((x) => JSON.parse(JSON.stringify(x)));
+  herois.forEach((h) => { R.talentos(h).ordem.masmorra = ['pes-ligeiros']; });
+  const sim = R.simularMasmorra(herois, 'toca', 123);
+  const lista = sim.eventos || sim.log || sim;
+  const arr = Array.isArray(lista) ? lista : [];
+  const i = arr.findIndex((e) => e.tipo === 'hab' && e.nome === 'Double Shot');
+  assert.ok(i >= 0, 'usou na masmorra');
+  assert.ok(arr[i + 1].tipo === 'golpe' && arr[i + 2].tipo === 'golpe' && arr[i + 1].i === arr[i].i && arr[i + 2].i === arr[i].i, 'duas flechas do mesmo herói');
 });

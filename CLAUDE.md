@@ -76,7 +76,7 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 
 ## Já existe no jogo
 Contas e até 3 personagens; 5 raças, 4 classes; level até 40; atributos com + e − e Confirmar (resetar só com o
-Pergaminho do Recomeço, 500 de reputação); 7 áreas de caça com monstros liberados em sequência (vencer o anterior)
+Pergaminho do Recomeço, 2.000 de ouro); 7 áreas de caça com monstros liberados em sequência (vencer o anterior)
 e chefes surpresa; dano dos monstros em faixa; vida com o tempo, acampar, 2 poções por dia; mochila de 32 com
 ordenar/filtrar/travar/vender vários; mercado (armas, armaduras, pergaminhos, skins de dado, itens especiais);
 encantamento até +10 na Forja (barra enche, sons); masmorras em grupo de 3; Arena PvP com D20 3D (escada por faixa
@@ -96,7 +96,8 @@ chat à esquerda. Raça/classe no feminino (`nomeF` em dados.js, `nomeRaca`/`nom
 Habilidades (Herói > Habilidades): `TALENTOS`, `HABILIDADE_INICIAL`, `SEGUNDAS_CLASSES` em dados.js; regras em regras.js
 (`talentos`, `kitHabilidades`, `novoLutador`, `vezComHabilidades`, masmorra em `simularMasmorra`). Inicial antes do 10;
 segunda classe no 10 (4 pontos +1/level, máx. 10 por habilidade, 1 ponto libera); uma habilidade por vez (1ª pronta da
-ordem); reforços não gastam a vez; atordoar em chefe máx. 1; Pergaminho das Habilidades (500 rep). Retratos das
+ordem); reforços não gastam a vez; atordoar em chefe máx. 1; Pergaminho das Habilidades (2.000 de ouro). Arqueiro: Double Shot (id antigo `pes-ligeiros`, tipo `multiplo`,
+2 flechas de 100% +3%/ponto, `TALENTOS.multiplo`) na caçada, masmorra e Arena (`arena_vez`). Retratos das
 segundas classes em `assets/personagens/<raca>-<classe2>[-f].jpg` (`classeRetrato` em app.js).
 Arena com habilidades no servidor (schema.sql: `arena_kit`, `arena_passiva`, `arena_vez`, passiva em `tanka_status`; sem
 crítico na Arena: bônus de crítico viram dano, Sombra = próximo golpe vale o 20, evasão vira esquiva). Ordem própria `defesa` (Arena · Defesa) usada quando o personagem é desafiado. Falta: Coletor na
@@ -143,3 +144,10 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Parte 3 FEITA: `CONJUNTOS` (dados.js): peça de armadura de quem tem 2ª classe ganha `conjunto` '<classe2>-<faixa 1..6>'
   (`marcarConjunto` nos drops/Mercado/admin); `bonusConjuntos` (2/3/4 peças, só da própria 2ª classe) em `comConjunto`/
   `atributosTotais`; servidor soma igual (crítico de conjunto vira dano na Arena).
+
+## Mudanças do Henri (nov/2026)
+- Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;
+  qualidade 70/22/7/1 (Sorte só aumenta a chance). Chefes não mudaram.
+- Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).
+- Encanto: armas nível 20+ têm o dano do encanto x(1 + 5% por nível acima do 20) (`forteDesde`/`fortePorNivel`,
+  `R.multEncanto`, `encantoForte` no tanka_status). Seção Atividades (tempo logado/caçando) no painel do herói.

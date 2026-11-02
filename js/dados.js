@@ -184,6 +184,9 @@ Tanka.dados = {
     chanceMaxima: 95,          // teto depois do bônus de Sorte (+1% por ponto)
     voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
     danoPorNivel: { comum: 1, rara: 2, epica: 3, lendaria: 5 },
+    // Armas do nível 20 em diante: o dano do encanto cresce +5% por nível da arma acima do 20
+    // (1,5x no 30, 2x no 40, 3x no 60). Abaixo do 20 (e armas antigas sem nível) fica como sempre.
+    forteDesde: 20, fortePorNivel: 5,
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
@@ -389,11 +392,12 @@ Tanka.dados = {
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
     atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
+    multiplo: { base: 100, porPonto: 3 },     // cada flecha do Double Shot (2 x 100%, +3% por ponto em cada)
     bonusPorPonto: 1,                          // % a mais por ponto em reforços, cura e passivas
     atordoarChefeMax: 1,                       // contra chefes o atordoar dura no máximo 1 turno
     curaSoAbaixo: 80,                          // em grupo, só cura se alguém estiver abaixo de 80% da vida
   },
-  RECOMECO_HABILIDADES: { nome: 'Pergaminho das Habilidades', precoReputacao: 500 },
+  RECOMECO_HABILIDADES: { nome: 'Pergaminho das Habilidades', precoOuro: 2000 },
   HABILIDADE_INICIAL: {
     cavaleiro: { id: 'espada-giratoria', nome: 'Espada Giratória', tipo: 'unico', recarga: 3, descricao: 'Gira a espada e acerta um inimigo com força.' },
     arqueiro: { id: 'chuva-de-flechas', nome: 'Chuva de Flechas', tipo: 'unico', recarga: 3, descricao: 'Uma chuva de flechas sobre um inimigo.' },
@@ -423,7 +427,9 @@ Tanka.dados = {
       habilidades: [
         { id: 'flecha-na-perna', nome: 'Flecha na Perna', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica parado.' },
         { id: 'saraivada', nome: 'Saraivada', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
-        { id: 'pes-ligeiros', nome: 'Pés Ligeiros', tipo: 'reforco', turnos: 2, velocidade: 100, recarga: 4, descricao: 'Dobra a sua velocidade.' },
+        // id antigo 'pes-ligeiros' mantido: os pontos e a ordem já salvos passam para o Double Shot.
+        { id: 'pes-ligeiros', nome: 'Double Shot', tipo: 'multiplo', flechas: 2, recarga: 3,
+          descricao: 'Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico.' },
         { id: 'reflexo-rapido', nome: 'Reflexo Rápido', tipo: 'passiva', atributos: { des: 5 }, evasao: 5, descricao: '+5 de Destreza e mais esquiva, sempre.' },
       ] },
     assassino: { de: 'arqueiro', nome: 'Assassino', nomeF: 'Assassina', descricao: 'Some nas sombras e volta com golpes críticos.',
@@ -701,7 +707,7 @@ Tanka.dados = {
   },
 
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
-  RECOMECO: { nome: 'Pergaminho do Recomeço', precoReputacao: 500 },
+  RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
 
   SKINS_DADO: [
     { id: 'vermelho', nome: 'Rubi', preco: 0 },
