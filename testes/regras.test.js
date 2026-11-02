@@ -1249,6 +1249,19 @@ teste('conjunto: 10% das armaduras da caçada, na raridade sorteada; fora da ven
   assert.ok(ids.length >= 1);
 });
 
+teste('armaduras novas sorteiam 1 dos 8 finais das armas; antigas e de conjunto mantêm o nome', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const nomes = new Set();
+  for (let i = 0; i < 400; i++) nomes.add(R.nomeItem(R.novoItem('elmo', 'cavaleiro', 'rara', Math.random, null, 10)));
+  assert.strictEqual(nomes.size, 8, [...nomes].join(', '));
+  D.SUFIXOS_ARMA.rara.forEach((s) => assert.ok(nomes.has('Elmo ' + s), 'Elmo ' + s));
+  const antiga = { id: 'x', tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 };
+  assert.strictEqual(R.nomeItem(antiga), 'Elmo de Aço');
+  R.admin.subirNivel(p, 14); R.escolherSegundaClasse(p, 'paladino');
+  const cj = Object.assign(R.novoItem('elmo', 'cavaleiro', 'epica', Math.random, null, 15), { conjunto: 'paladino-2' });
+  assert.strictEqual(R.nomeItem(cj), 'Elmo do Juramento');
+});
+
 teste('atividades: soma o tempo logado e, só quando caça, o tempo caçando', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   assert.strictEqual(p.atividade, undefined, 'personagem antigo/novo começa sem registro');

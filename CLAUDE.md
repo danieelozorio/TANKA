@@ -150,6 +150,8 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   `assets/itens/conjunto-<classe2>-<elmo|peitoral|luvas|botas>.webp` (`arquivoConjunto` em retratos.js; sem ela, usa a
   armadura normal). Prompts do Gemini (8 grades 2x2) mandados; recortar com `recortar_grade.py IMG 2 2 conjunto-<c2>-elmo
   conjunto-<c2>-peitoral conjunto-<c2>-luvas conjunto-<c2>-botas` e depois `recortar_fundo.py`.
+- Armaduras (elmo/peitoral/luvas/botas) novas têm `variacao` e nome "<tipo da peça> <SUFIXOS_ARMA>" (8 por raridade, iguais
+  aos das armas); antigas sem `variacao` mantêm `nomes[raridade]`; peça de conjunto mantém o nome do conjunto.
 
 ## Mudanças do Henri (nov/2026)
 - Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;

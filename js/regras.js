@@ -34,7 +34,7 @@ Tanka.regras = (function () {
   var TIPOS_JOIA = ['colar', 'anel'];
 
   // Item: { id, tipo, classe, raridade, encanto }. Joias têm classe null (servem para todos).
-  // Arma também tem `variacao` (qual dos 8 nomes) e `dano` [mín, máx], sorteados nas faixas da raridade.
+  // Arma e armadura também têm `variacao` (qual dos 8 nomes) e `dano` [mín, máx], sorteados nas faixas da raridade.
   // especifico: o tipo da arma (ex.: 'machado') ou do item da mão esquerda (ex.: 'escudo').
   // nivel: nível do item (1 a 60); sem ele, item no modelo antigo (valores fixos da raridade).
   function novoItem(tipo, classe, raridade, rng, especifico, nivel) {
@@ -57,6 +57,8 @@ Tanka.regras = (function () {
       item.mao = especifico;
       item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     }
+    // Armaduras novas também sorteiam 1 dos 8 finais das armas (ex.: "Elmo do Capitão"); as antigas mantêm o nome.
+    if (TIPOS_ARMADURA.indexOf(tipo) >= 0) item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     if (tipo !== 'arma') item.bonus = sortearBonus(item, rng);
     return item;
   }
@@ -239,6 +241,7 @@ Tanka.regras = (function () {
     var cj = item.conjunto && infoConjunto(item.conjunto);
     var base = cj ? definicao(item).tipo + ' ' + cj.nome
       : item.tipo === 'secundaria' ? D.MAO_ESQUERDA[item.mao].nome + ' ' + sufixo
+      : TIPOS_ARMADURA.indexOf(item.tipo) >= 0 && item.variacao !== undefined ? definicao(item).tipo + ' ' + sufixo
       : item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
       : tipoArmaId(item) !== D.ARMA_PADRAO[item.classe] ? tipoArma(item).nome + ' ' + sufixo
       : item.variacao === undefined ? D.armas[item.classe].tipo + ' ' + D.raridades[item.raridade].nome   // modelo do mercado
