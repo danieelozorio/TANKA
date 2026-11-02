@@ -158,6 +158,9 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;
   qualidade 70/22/7/1 (Sorte só aumenta a chance). Chefes não mudaram.
 - Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).
+- Penalidade de área baixa (`EXP_REDUZIDA`, `R.fatorExp`): conta os mapas liberados (pelo level) depois da área; até 1 à
+  frente nada, 2 à frente 50%, 3+ 10%. Com penalidade: exp e ouro reduzidos e nenhum drop (itens, pergaminhos, chefe).
+- Forja: botão +1 depois do sucesso. Listas do servidor (ranking, arena, amigos, aliança, grupo, chat) mandam `classe2`.
 - (SUBSTITUÍDO pelo encanto em %, abaixo) Encanto mais forte em armas 20+. Seção Atividades (tempo logado/caçando) no painel do herói.
 
 ## Raridade e encanto (Daniel, nov/2026): "roxo +0 tem que ganhar de azul +4"

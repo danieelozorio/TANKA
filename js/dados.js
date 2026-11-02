@@ -379,9 +379,10 @@ Tanka.dados = {
   // Reset diário à meia-noite de Brasília (UTC-3): vida cheia e as poções do dia voltam.
   VIDA: { regenPorMinuto: 2, acampamento: 3, pocoesPorDia: 2, fusoReset: -3 },
 
-  // Exp reduzida quando o level passa do fim da faixa da área (fim = level da próxima área).
-  // Ex.: 3 a 7 levels acima: 50%; 8 ou mais: 10%. A última área nunca reduz.
-  EXP_REDUZIDA: [{ acima: 8, pct: 10 }, { acima: 3, pct: 50 }],
+  // Penalidade de área baixa (exp e ouro reduzidos e nenhum drop): conta quantos mapas DEPOIS desta área o herói
+  // já liberou pelo level. Até 1 mapa à frente: sem penalidade (sempre 2 mapas para farmar: o mais alto e o anterior).
+  // 2 mapas à frente: 50%; 3 ou mais: 10%. A última área nunca reduz.
+  EXP_REDUZIDA: [{ mapasAFrente: 3, pct: 10 }, { mapasAFrente: 2, pct: 50 }],
   // ---------- Habilidades (aba Herói > Habilidades) e segunda classe ----------
   // Antes do level 10: só a habilidade inicial da classe (sem pontos). No level 10 o jogador escolhe a segunda
   // classe e ganha 4 pontos (+1 por level depois), até 10 pontos por habilidade. Uma habilidade precisa de pelo

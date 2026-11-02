@@ -802,10 +802,9 @@ Tanka.regras = (function () {
   // % da exp (e do ouro) que o personagem ganha na área do monstro (100, 50 ou 10). Abaixo de 100: sem drops.
   function fatorExp(p, monstroId) {
     var area = areaDoMonstro(monstroId);
-    var proxima = D.areas[D.areas.indexOf(area) + 1];
-    if (!proxima) return 100;
-    var acima = p.nivel - proxima.nivelMin;
-    var faixa = D.EXP_REDUZIDA.find(function (f) { return acima >= f.acima; });
+    // mapas depois desta área que o herói já liberou pelo level
+    var aFrente = D.areas.slice(D.areas.indexOf(area) + 1).filter(function (a) { return p.nivel >= a.nivelMin; }).length;
+    var faixa = D.EXP_REDUZIDA.find(function (f) { return aFrente >= f.mapasAFrente; });
     return faixa ? faixa.pct : 100;
   }
 
