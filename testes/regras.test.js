@@ -345,9 +345,9 @@ teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () =>
   assert.strictEqual(p.equipados.arma, null);
 });
 
-teste('encantamento: dano extra por nível e venda +20% por nível', () => {
-  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, dano: [12, 18] })], [22, 28]);
-  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10, dano: [33, 39] })], [83, 89]);
+teste('encantamento: +5% de dano por nível e venda +20% por nível', () => {
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, dano: [12, 18] })], [15, 23]);
+  assert.deepStrictEqual([...R.danoArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'lendaria', encanto: 10, dano: [33, 39] })], [50, 59]);
   assert.strictEqual(R.precoVenda({ tipo: 'arma', classe: 'arqueiro', raridade: 'epica', encanto: 5 }), 2000);
   assert.strictEqual(R.nomeArma({ tipo: 'arma', classe: 'arqueiro', raridade: 'rara', encanto: 5, variacao: 0 }), '+5 Arco Élfico');
 });
@@ -1273,21 +1273,28 @@ teste('atividades: soma o tempo logado e, só quando caça, o tempo caçando', (
   assert.deepStrictEqual(Object.assign({}, p.atividade), { logado: 120, cacando: 90 });
 });
 
-teste('encanto mais forte em armas do nível 20 em diante (+5% por nível, 3x no 60)', () => {
-  const arma = (nivel, raridade, encanto) => ({ tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade, encanto, nivel, dano: [10, 20] });
-  assert.strictEqual(R.multEncanto(arma(1, 'rara', 5)), 1);
-  assert.strictEqual(R.multEncanto(arma(20, 'rara', 5)), 1);
-  assert.strictEqual(R.multEncanto(arma(30, 'rara', 5)), 1.5);
-  assert.strictEqual(R.multEncanto(arma(40, 'rara', 5)), 2);
-  assert.strictEqual(R.multEncanto(arma(60, 'rara', 5)), 3);
-  assert.strictEqual(R.multEncanto({ tipo: 'arma', raridade: 'rara', encanto: 5 }), 1, 'arma antiga sem nível não muda');
-  // até o 20 igual a antes: lendária +10 = +50
-  assert.deepStrictEqual(Array.from(R.danoArma(arma(20, 'lendaria', 10))), [60, 70]);
-  // nível 40: lendária +10 = +100; nível 60: +150
-  assert.deepStrictEqual(Array.from(R.danoArma(arma(40, 'lendaria', 10))), [110, 120]);
-  assert.deepStrictEqual(Array.from(R.danoArma(arma(60, 'lendaria', 10))), [160, 170]);
-  // sem encanto, o nível não muda nada
-  assert.deepStrictEqual(Array.from(R.danoArma(arma(60, 'lendaria', 0))), [10, 20]);
+teste('encanto em %: +5% do item por nível; roxo +0 ganha de azul +4 do mesmo nível', () => {
+  const arma = (raridade, encanto) => ({ tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade, encanto, nivel: 20, dano: [20, 40] });
+  assert.deepStrictEqual(Array.from(R.danoArma(arma('rara', 0))), [20, 40]);
+  assert.deepStrictEqual(Array.from(R.danoArma(arma('rara', 4))), [24, 48]);
+  assert.deepStrictEqual(Array.from(R.danoArma(arma('lendaria', 10))), [30, 60]);
+  assert.strictEqual(R.multEncanto({ encanto: 0 }), 1);
+  // armadura: +5% do bônus principal por nível, mínimo +1 por nível
+  const elmo = (encanto, def) => ({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto, nivel: 20, bonus: { defesa: def, vida: 50 } });
+  assert.strictEqual(R.bonusItem(elmo(4, 100)).defesa, 120);
+  assert.strictEqual(R.bonusItem(elmo(4, 5)).defesa, 9, 'mínimo +1 por nível');
+  assert.strictEqual(R.bonusItem(elmo(4, 100)).vida, 50, 'só o bônus principal');
+  // mesma arma, mesmo nível: a pior épica (+0) ganha da melhor rara +4
+  for (const nivel of [5, 12, 20, 40, 60]) {
+    const ep = R.danoDoNivel(nivel, D.ITEM_NIVEL.faixaQualidade.epica[0]);
+    const ra = R.danoDoNivel(nivel, D.ITEM_NIVEL.faixaQualidade.rara[1] - 0.001);
+    const mRa = R.danoArma({ tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade: 'rara', encanto: 4, dano: ra });
+    const mEp = R.danoArma({ tipo: 'arma', arma: 'espada', classe: 'cavaleiro', raridade: 'epica', encanto: 0, dano: ep });
+    assert.ok(mEp[0] + mEp[1] >= mRa[0] + mRa[1], 'nível ' + nivel + ': épica ' + mEp + ' x rara+4 ' + mRa);
+  }
+  // cada raridade ~25–35% acima da anterior
+  const m = (q) => R.danoDoNivel(40, q).reduce((a, b) => a + b);
+  assert.ok(m(0.8) / m(0.55) > 1.2 && m(0.8) / m(0.55) < 1.4, 'épica/rara ' + (m(0.8) / m(0.55)).toFixed(2));
 });
 
 teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno, na caçada e na masmorra', () => {

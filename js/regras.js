@@ -78,7 +78,13 @@ Tanka.regras = (function () {
     var f = N_.faixaQualidade[raridade] || [0, 1];
     return Math.round((f[0] + (rng || Math.random)() * (f[1] - f[0])) * 1000) / 1000;
   }
-  function multQualidade(q) { return N_.qualidadeMult[0] + (N_.qualidadeMult[1] - N_.qualidadeMult[0]) * q; }
+  // Qualidade (0 a 1) → força: cada raridade tem a sua faixa em multRaridade (comum 0,7–0,8 ... lendária 1,5–1,6).
+  function multQualidade(q) {
+    var ks = Object.keys(N_.faixaQualidade), k = ks[ks.length - 1];
+    for (var i = 0; i < ks.length; i++) if (q < N_.faixaQualidade[ks[i]][1]) { k = ks[i]; break; }
+    var f = N_.faixaQualidade[k], m = N_.multRaridade[k], t = f[1] > f[0] ? Math.min(1, Math.max(0, (q - f[0]) / (f[1] - f[0]))) : 0.5;
+    return m[0] + (m[1] - m[0]) * t;
+  }
   function danoDoNivel(nivel, q) {
     var media = (N_.danoPorNivel * nivel + N_.danoBase) * multQualidade(q);
     return [Math.max(1, Math.round(media * (1 - N_.danoFaixa))), Math.max(1, Math.round(media * (1 + N_.danoFaixa)))];
@@ -267,26 +273,26 @@ Tanka.regras = (function () {
     else Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });          // itens antigos: valor fixo
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
-      b[k] = (b[k] || 0) + item.encanto;
+      b[k] = bonusComEncanto(b[k] || 0, item.encanto);
     }
     return b;
   }
 
-  // Multiplicador do dano do encanto pelo nível da arma (1 até o 20; +5% por nível acima, 3x no 60).
-  function multEncanto(item) {
-    var E = D.encantamento, n = item && item.nivel;
-    if (!n || n <= E.forteDesde) return 1;
-    return 1 + (n - E.forteDesde) * E.fortePorNivel / 100;
+  // Encanto: cada + dá +5% (pctPorNivel) do próprio item.
+  function multEncanto(item) { return 1 + ((item && item.encanto) || 0) * D.encantamento.pctPorNivel / 100; }
+  // Bônus principal de armadura/joia/mão esquerda com o encanto: +5% por nível, no mínimo +1 por nível.
+  function bonusComEncanto(valor, encanto) {
+    return Math.max(valor + encanto, Math.round(valor * (1 + encanto * D.encantamento.pctPorNivel / 100)));
   }
 
-  // Dano da arma já somando o bônus de encantamento.
+  // Dano da arma já com o encanto (+5% por nível) e o fator do tipo da arma.
   // Sem `dano` (modelo do mercado): mostra a faixa possível inteira.
   function danoArmaComEncanto(item) {
     var r = D.raridades[item.raridade];
     var base = item.dano || [r.danoMin[0], r.danoMax[1]];
-    var extra = (item.encanto || 0) * D.encantamento.danoPorNivel[item.raridade] * multEncanto(item);
+    var m = multEncanto(item);
     var f = item.tipo === 'arma' ? tipoArma(item).fator : 1;   // armas lentas e de duas mãos batem mais forte
-    return [Math.round((base[0] + extra) * f), Math.round((base[1] + extra) * f)];
+    return [Math.round(base[0] * m * f), Math.round(base[1] * m * f)];
   }
 
   function precoVenda(item) {

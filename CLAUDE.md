@@ -158,5 +158,12 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;
   qualidade 70/22/7/1 (Sorte só aumenta a chance). Chefes não mudaram.
 - Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).
-- Encanto: armas nível 20+ têm o dano do encanto x(1 + 5% por nível acima do 20) (`forteDesde`/`fortePorNivel`,
-  `R.multEncanto`, `encantoForte` no tanka_status). Seção Atividades (tempo logado/caçando) no painel do herói.
+- (SUBSTITUÍDO pelo encanto em %, abaixo) Encanto mais forte em armas 20+. Seção Atividades (tempo logado/caçando) no painel do herói.
+
+## Raridade e encanto (Daniel, nov/2026): "roxo +0 tem que ganhar de azul +4"
+- Força por raridade no mesmo nível: `ITEM_NIVEL.multRaridade` (comum 0,7–0,8; rara 0,95–1,05; épica 1,27–1,37;
+  lendária 1,6–1,7), `multQualidade` em regras.js mapeia a qualidade dentro da faixa da raridade. Só itens novos (o dano/bônus
+  fica salvo no item).
+- Encanto em %: `encantamento.pctPorNivel` = 5. Arma: dano x(1 + 5% x encanto) (`multEncanto`/`danoArmaComEncanto`);
+  armadura/joia/mão: bônus principal +5% por nível, mínimo +1 por nível (`bonusComEncanto`). Servidor igual
+  (`encantoPct` em tanka_dados, tanka_status). Testes: regras.test.js e banco.test.sql.

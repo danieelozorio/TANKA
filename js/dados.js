@@ -183,10 +183,9 @@ Tanka.dados = {
     chances: { 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 },
     chanceMaxima: 95,          // teto depois do bônus de Sorte (+1% por ponto)
     voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
-    danoPorNivel: { comum: 1, rara: 2, epica: 3, lendaria: 5 },
-    // Armas do nível 20 em diante: o dano do encanto cresce +5% por nível da arma acima do 20
-    // (1,5x no 30, 2x no 40, 3x no 60). Abaixo do 20 (e armas antigas sem nível) fica como sempre.
-    forteDesde: 20, fortePorNivel: 5,
+    // Cada + do encanto dá +5% do próprio item: na arma, do dano; nas outras peças, do bônus principal
+    // (mínimo +1 por nível de encanto). Assim um item roxo +0 ganha de um azul +4 do mesmo nível.
+    pctPorNivel: 5,
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
@@ -297,7 +296,8 @@ Tanka.dados = {
   ITEM_NIVEL: {
     maximo: 60, variacao: 3, altoDesde: 35, altoMin: 35,
     faixaQualidade: { comum: [0, 0.4], rara: [0.4, 0.7], epica: [0.7, 0.9], lendaria: [0.9, 1] },
-    qualidadeMult: [0.7, 1.3],              // o mais fraco e o mais forte do mesmo nível
+    // Força pela raridade (o mais fraco e o mais forte de cada uma): cada raridade ~25% acima da anterior.
+    multRaridade: { comum: [0.7, 0.8], rara: [0.95, 1.05], epica: [1.27, 1.37], lendaria: [1.6, 1.7] },
     // Arma: dano médio = (danoPorNivel x nível + danoBase) x qualidade; o dano vai de -15% a +15% da média.
     danoPorNivel: 0.8, danoBase: 2, danoFaixa: 0.15,
     // Armadura, joia e mão esquerda: valor "raro" da tabela, dobrando a cada 10 níveis a partir do 15 (até o 40;

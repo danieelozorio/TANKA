@@ -677,7 +677,8 @@
   function armaFichaHtml(p, arma, s) {
     if (!arma) return '<div class="suave">Nenhuma</div>';
     var dArma = R.danoArma(arma), magico = s.tipoDano === 'magico';
-    var extra = Math.round((arma.encanto || 0) * D.encantamento.danoPorNivel[arma.raridade] * R.multEncanto(arma));
+    var semEnc = R.danoArma(Object.assign({}, arma, { encanto: 0 }));
+    var extra = Math.round(((dArma[0] + dArma[1]) - (semEnc[0] + semEnc[1])) / 2);
     var chance = magico ? s.chanceCriticoMagico : s.chanceCritico, mult = magico ? s.danoCriticoMagico : s.danoCritico;
     function stat(rotulo, valor, dica) {
       return '<div class="arma-stat"' + (dica ? ' title="' + dica + '"' : '') + '><small>' + rotulo + '</small><strong>' + valor + '</strong></div>';

@@ -281,16 +281,30 @@ begin
   if r -> 'ev' ? 'flechas' or (r -> 'ev' ->> 'dano')::int <> 24 then raise exception 'FALHA arena: ataque normal devia ser 24: %', r -> 'ev'; end if;
   raise notice 'ok   arena: Double Shot = 2 flechas de 106%% com 2 pontos';
 end $$;
--- Encanto mais forte em arma nível 20+ (igual ao jogo)
+-- Encanto em %: +5% do dano da arma por nível (igual ao jogo)
 do $$
-declare p jsonb; s20 jsonb; s40 jsonb;
+declare p jsonb; s0 jsonb; s10 jsonb; d0 int; d10 int;
 begin
   p := pg_temp.heroi('cavaleiro', 30, null) || jsonb_build_object('equipados', '{"arma":"w"}'::jsonb);
-  s20 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":20,"dano":[10,20]}]'::jsonb));
-  s40 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":40,"dano":[10,20]}]'::jsonb));
-  -- +50 de encanto a mais (100 no 40, 50 no 20), x1,1 da lendária na Arena (PvP) = +55
-  if (s40 -> 'dano' ->> 0)::int - (s20 -> 'dano' ->> 0)::int <> 55 then
-    raise exception 'FALHA servidor: lendária +10 nível 40 devia ter +55 de dano a mais que no 20: % x %', s40 -> 'dano', s20 -> 'dano'; end if;
-  raise notice 'ok   servidor: encanto da arma nível 40 vale o dobro do nível 20';
+  s0 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":0,"nivel":40,"dano":[100,200]}]'::jsonb));
+  s10 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":40,"dano":[100,200]}]'::jsonb));
+  d0 := (s0 -> 'dano' ->> 1)::int; d10 := (s10 -> 'dano' ->> 1)::int;
+  raise notice 'encanto: % x %', s0 -> 'dano', s10 -> 'dano';
+  -- +10 = +50% de 200 = +100 antes dos bônus de PvP
+  if d10 - d0 < 100 or d10 - d0 > 115 then
+    raise exception 'FALHA servidor: lendária +10 devia somar ~+100 (+50%% de 200): % x %', s0 -> 'dano', s10 -> 'dano'; end if;
+  raise notice 'ok   servidor: encanto em %% (+5%% do dano por nível)';
+end $$;
+-- Encanto na armadura: +5% do bônus principal por nível, mínimo +1
+do $$
+declare p jsonb; a jsonb; b jsonb;
+begin
+  p := pg_temp.heroi('cavaleiro', 30, null) || jsonb_build_object('equipados', '{"elmo":"e"}'::jsonb);
+  a := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"e","tipo":"elmo","classe":"cavaleiro","raridade":"rara","encanto":0,"nivel":30,"bonus":{"defesa":100,"vida":10}}]'::jsonb));
+  b := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"e","tipo":"elmo","classe":"cavaleiro","raridade":"rara","encanto":4,"nivel":30,"bonus":{"defesa":100,"vida":10}}]'::jsonb));
+  raise notice 'armadura: % x %', a -> 'defesa', b -> 'defesa';
+  if (b ->> 'defesa')::numeric - (a ->> 'defesa')::numeric <> 20 then
+    raise exception 'FALHA servidor: elmo +4 com 100 de defesa devia ter +20: % x %', a ->> 'defesa', b ->> 'defesa'; end if;
+  raise notice 'ok   servidor: encanto da armadura em %%';
 end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM
