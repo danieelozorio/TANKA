@@ -1234,7 +1234,7 @@ teste('conjunto verde: 10% das armaduras da caçada, com força de rara; fora da
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 24);
   const monstro = Object.keys(D.monstros).find((m) => (D.monstros[m].dropsArmadura || []).length);
-  const sortear = () => { const r = []; for (let i = 0; i < 4000; i++) { const it = R.rolarDropArmadura(p, monstro, Math.random); if (it && it.tipo !== 'secundaria') r.push(it); } return r; };
+  const sortear = () => { const r = []; for (let i = 0; i < 40000; i++) { const it = R.rolarDropArmadura(p, monstro, Math.random); if (it && it.tipo !== 'secundaria') r.push(it); } return r; };
   assert.ok(sortear().every((it) => !it.conjunto), 'sem segunda classe não vem conjunto');
   R.escolherSegundaClasse(p, 'paladino');
   const itens = sortear(), verdes = itens.filter((it) => it.conjunto);
