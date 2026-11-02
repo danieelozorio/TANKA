@@ -167,3 +167,6 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Encanto em %: `encantamento.pctPorNivel` = 5. Arma: dano x(1 + 5% x encanto) (`multEncanto`/`danoArmaComEncanto`);
   armadura/joia/mão: bônus principal +5% por nível, mínimo +1 por nível (`bonusComEncanto`). Servidor igual
   (`encantoPct` em tanka_dados, tanka_status). Testes: regras.test.js e banco.test.sql.
+- Tipos de arma equilibrados: o `fator` do tipo vale para o GOLPE INTEIRO (arma + dano do herói + mão esquerda), em
+  `status` e no tanka_status (`fat`). Fatores: rápida 0,83 (x1,2 ataques = normal), lenta de uma mão 1,25 (x0,8 = normal),
+  lenta de duas mãos 1,4 (x0,8 = +12%, paga a mão esquerda). `danoArma` mostrado na ficha continua com o fator só na arma.

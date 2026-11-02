@@ -223,7 +223,8 @@ Tanka.dados = {
   },
   // ---------- Tipos de arma (mão direita) e itens da mão esquerda ----------
   // vel: devagar / normal / rapida (multiplica a velocidade do herói: mais ou menos ataques).
-  // fator: multiplica o dano da arma (as lentas e de duas mãos batem mais forte).
+  // fator: multiplica o golpe inteiro (arma + dano do herói). Equilíbrio: rápida 0,83 x 1,2 ataques = normal;
+  // lenta de uma mão 1,25 x 0,8 = normal (golpes maiores); lenta de duas mãos 1,4 x 0,8 = +12% (paga a mão esquerda).
   // duasMaos: ocupa a mão esquerda também. proibe: itens da mão esquerda que não combinam com ela.
   // Tipos que não estão na lista de nenhuma classe base são das segundas classes e só existem a partir da raridade rara.
   // As 4 armas antigas (espada, arco, cajado, martelo) usam os nomes de `armas` acima; as outras usam SUFIXOS_ARMA.
@@ -231,24 +232,24 @@ Tanka.dados = {
   NOME_VELOCIDADE: { devagar: 'Devagar', normal: 'Normal', rapida: 'Rápida' },
   TIPOS_ARMA: {
     espada: { nome: 'Espada', classe: 'cavaleiro', vel: 'normal', fator: 1 },
-    espada2m: { nome: 'Espada de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.5, duasMaos: true },
+    espada2m: { nome: 'Espada de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.4, duasMaos: true },
     machado: { nome: 'Machado', classe: 'cavaleiro', vel: 'normal', fator: 1 },
     arco: { nome: 'Arco', classe: 'arqueiro', vel: 'normal', fator: 1 },
-    besta: { nome: 'Besta', classe: 'arqueiro', vel: 'devagar', fator: 1.35 },
-    balestra: { nome: 'Balestra', classe: 'arqueiro', vel: 'devagar', fator: 1.5, duasMaos: true },
-    adaga: { nome: 'Adaga', classe: 'arqueiro', vel: 'rapida', fator: 0.85, proibe: ['aljava'] },
+    besta: { nome: 'Besta', classe: 'arqueiro', vel: 'devagar', fator: 1.25 },
+    balestra: { nome: 'Balestra', classe: 'arqueiro', vel: 'devagar', fator: 1.4, duasMaos: true },
+    adaga: { nome: 'Adaga', classe: 'arqueiro', vel: 'rapida', fator: 0.83, proibe: ['aljava'] },
     livro: { nome: 'Livro de Magias', classe: 'mago', vel: 'normal', fator: 1 },
-    cajado: { nome: 'Cajado', classe: 'mago', vel: 'devagar', fator: 1.5, duasMaos: true },
+    cajado: { nome: 'Cajado', classe: 'mago', vel: 'devagar', fator: 1.4, duasMaos: true },
     varinha: { nome: 'Varinha', classe: 'mago', vel: 'normal', fator: 1 },
-    martelo: { nome: 'Martelo', classe: 'artesao', vel: 'rapida', fator: 0.85 },
-    martelo2m: { nome: 'Martelo de Duas Mãos', classe: 'artesao', vel: 'devagar', fator: 1.5, duasMaos: true },
+    martelo: { nome: 'Martelo', classe: 'artesao', vel: 'rapida', fator: 0.83 },
+    martelo2m: { nome: 'Martelo de Duas Mãos', classe: 'artesao', vel: 'devagar', fator: 1.4, duasMaos: true },
     maca: { nome: 'Maça', classe: 'artesao', vel: 'normal', fator: 1 },
     // segundas classes (a partir de rara)
     mangual: { nome: 'Mangual', classe: 'cavaleiro', vel: 'normal', fator: 1 },
-    machado2m: { nome: 'Machado de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.5, duasMaos: true },
-    garra: { nome: 'Garra', classe: 'arqueiro', vel: 'rapida', fator: 0.85, proibe: ['aljava'] },
+    machado2m: { nome: 'Machado de Duas Mãos', classe: 'cavaleiro', vel: 'devagar', fator: 1.4, duasMaos: true },
+    garra: { nome: 'Garra', classe: 'arqueiro', vel: 'rapida', fator: 0.83, proibe: ['aljava'] },
     cetro: { nome: 'Cetro', classe: 'mago', vel: 'normal', fator: 1 },
-    foice: { nome: 'Foice', classe: 'artesao', vel: 'rapida', fator: 0.85 },
+    foice: { nome: 'Foice', classe: 'artesao', vel: 'rapida', fator: 0.83 },
     picareta: { nome: 'Picareta', classe: 'artesao', vel: 'normal', fator: 1 },
   },
   ARMA_PADRAO: { cavaleiro: 'espada', arqueiro: 'arco', mago: 'cajado', artesao: 'martelo' },

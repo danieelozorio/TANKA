@@ -287,12 +287,12 @@ Tanka.regras = (function () {
 
   // Dano da arma já com o encanto (+5% por nível) e o fator do tipo da arma.
   // Sem `dano` (modelo do mercado): mostra a faixa possível inteira.
-  function danoArmaComEncanto(item) {
+  function danoArmaComEncanto(item, semFator) {
     var r = D.raridades[item.raridade];
     var base = item.dano || [r.danoMin[0], r.danoMax[1]];
     var m = multEncanto(item);
-    var f = item.tipo === 'arma' ? tipoArma(item).fator : 1;   // armas lentas e de duas mãos batem mais forte
-    return [Math.round(base[0] * m * f), Math.round(base[1] * m * f)];
+    var f = item.tipo === 'arma' && !semFator ? tipoArma(item).fator : 1;   // armas lentas e de duas mãos batem mais forte
+    return semFator ? [base[0] * m, base[1] * m] : [Math.round(base[0] * m * f), Math.round(base[1] * m * f)];
   }
 
   function precoVenda(item) {
@@ -625,6 +625,7 @@ Tanka.regras = (function () {
     var magico = D.classes[p.classe].dano === 'magico';
     var danoArma = arma ? danoArmaComEncanto(arma) : [0, 0];
     var ta = arma ? tipoArma(arma) : null, idxArma = arma ? RARIDADES.indexOf(arma.raridade) : 0;
+    var danoBase = arma ? danoArmaComEncanto(arma, true) : [0, 0], fat = ta ? ta.fator : 1;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
     return comConjunto(comPassiva({
@@ -636,7 +637,8 @@ Tanka.regras = (function () {
       danoArma: danoArma,
       ataque: magico ? 0 : bonus,                    // FOR (Cavaleiro/Artesão) ou DES (Caçador)
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
-      dano: danoComMao([danoArma[0] + bonus + (eq.dano || 0), danoArma[1] + bonus + (eq.dano || 0)], magico ? eq.danoMagico : 0),
+      // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
+      dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)], magico ? eq.danoMagico : 0),
       defesa: Math.floor(a.res / 10) + eq.defesa,              // RES + armaduras
       defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava

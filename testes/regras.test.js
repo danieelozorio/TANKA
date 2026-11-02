@@ -215,7 +215,7 @@ teste('mago causa dano mágico com INT', () => {
   const p = R.criarPersonagem('T', 'masculino', 'elfo', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [2 + Math.floor(23 / 3), 8 + Math.floor(23 / 3)]);   // cajado (x1,5) + 1 a cada 3 de INT
+  assert.deepStrictEqual([...s.dano], [Math.round((1 + Math.floor(23 / 3)) * 1.4), Math.round((5 + Math.floor(23 / 3)) * 1.4)]);   // (cajado + 1 a cada 3 de INT) x1,4
   assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).sor, 'crítico mágico: 1% por ponto de Sorte');
 });
 
@@ -298,7 +298,7 @@ teste('personagem antigo (sem ouro/sexo, arma "basica") é convertido', () => {
   assert.strictEqual(p.ouro, 0);
   assert.strictEqual(p.sexo, 'masculino');
   assert.strictEqual(p.inventario[0].raridade, 'comum');
-  assert.deepStrictEqual([...R.status(p).danoArma], [2, 8]);   // cajado: duas mãos, dano x1,5
+  assert.deepStrictEqual([...R.status(p).danoArma], [1, 7]);   // cajado: duas mãos, dano x1,4
   // arma antiga sem dano sorteado: nome clássico e dano no meio das faixas
   p.inventario.push({ id: 'velha', tipo: 'arma', classe: 'mago', raridade: 'epica', encanto: 0 });
   R.normalizar(p);
@@ -1091,7 +1091,7 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const s0 = R.status(p);
   const add = (it) => { p.inventario.push(it); return it; };
-  // espada2m: devagar (0,8) e dano x1,5
+  // espada2m: devagar (0,8) e dano x1,4
   const e2 = add({ id: 'e2', tipo: 'arma', classe: 'cavaleiro', arma: 'espada2m', raridade: 'comum', variacao: 0, dano: [4, 8], encanto: 0 });
   const esc = add({ id: 'esc', tipo: 'secundaria', classe: null, mao: 'escudo', raridade: 'rara', variacao: 0, encanto: 1 });
   assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
@@ -1099,7 +1099,7 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.equipar(p, 'e2'), 'arma');
   assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
   const s1 = R.status(p);
-  assert.deepStrictEqual([...s1.danoArma], [6, 12]);
+  assert.deepStrictEqual([...s1.danoArma], [6, 11]);
   assert.strictEqual(s1.velocidade, Math.round(15 * 0.8));
   assert.ok(R.motivoNaoEquipa(p, esc).includes('duas mãos'));
   // nome do tipo novo: "<tipo> <sufixo>"
@@ -1295,6 +1295,21 @@ teste('encanto em %: +5% do item por nível; roxo +0 ganha de azul +4 do mesmo n
   // cada raridade ~25–35% acima da anterior
   const m = (q) => R.danoDoNivel(40, q).reduce((a, b) => a + b);
   assert.ok(m(0.8) / m(0.55) > 1.2 && m(0.8) / m(0.55) < 1.4, 'épica/rara ' + (m(0.8) / m(0.55)).toFixed(2));
+});
+
+teste('tipos de arma equilibrados: o fator vale para o golpe inteiro (arma + herói)', () => {
+  const dpt = (tipo, bonusHeroi) => { const t = D.TIPOS_ARMA[tipo]; return (20 + bonusHeroi) * t.fator * D.VELOCIDADE_ARMA[t.vel]; };
+  for (const b of [0, 10, 40]) {
+    const normal = dpt('arco', b);
+    assert.ok(Math.abs(dpt('adaga', b) / normal - 1) < 0.01, 'rápida = normal');
+    assert.ok(Math.abs(dpt('besta', b) / normal - 1) < 0.01, 'lenta de uma mão = normal');
+    assert.ok(Math.abs(dpt('balestra', b) / normal - 1.12) < 0.01, 'lenta de duas mãos = +12%');
+  }
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  p.inventario.push({ id: 'b', tipo: 'arma', classe: 'arqueiro', arma: 'balestra', raridade: 'comum', variacao: 0, dano: [10, 20], encanto: 0 });
+  p.equipados.arma = 'b';
+  const bonus = R.status(p).ataque;
+  assert.deepStrictEqual([...R.status(p).dano], [Math.round((10 + bonus) * 1.4), Math.round((20 + bonus) * 1.4)]);
 });
 
 teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno, na caçada e na masmorra', () => {
