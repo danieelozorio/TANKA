@@ -143,3 +143,5 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
 - Parte 3 FEITA: `CONJUNTOS` (dados.js): peça de armadura de quem tem 2ª classe ganha `conjunto` '<classe2>-<faixa 1..6>'
   (`marcarConjunto` nos drops/Mercado/admin); `bonusConjuntos` (2/3/4 peças, só da própria 2ª classe) em `comConjunto`/
   `atributosTotais`; servidor soma igual (crítico de conjunto vira dano na Arena).
+  Conjunto VERDE (cor própria, `corItem`/`nomeRaridadeItem` em app.js): só cai na caçada, 10% das armaduras de quem tem
+  2ª classe (`CONJUNTO_CHANCE`), força de rara; Mercado não vende; "Vender vários" não seleciona peça verde.
