@@ -1199,3 +1199,14 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   const forSem = p.atributos.for + R.bonusEquipamentos(p).for;
   assert.strictEqual(R.atributosTotais(p).for, forSem + 5);
 });
+
+teste('atividades: soma o tempo logado e, só quando caça, o tempo caçando', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(p.atividade, undefined, 'personagem antigo/novo começa sem registro');
+  R.registrarAtividade(p, 30, false);
+  R.registrarAtividade(p, 90, true);
+  R.registrarAtividade(p, 0, true);
+  R.registrarAtividade(p, -5, true);
+  R.registrarAtividade(p, NaN, true);
+  assert.deepStrictEqual(Object.assign({}, p.atividade), { logado: 120, cacando: 90 });
+});

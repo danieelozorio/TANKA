@@ -351,6 +351,51 @@
 
   // ---------------- Jogo ----------------
 
+  // ----- Atividades: tempo logado e tempo caçando de cada personagem -----
+  // Conta de segundo em segundo enquanto o personagem está no jogo e salva a cada minuto.
+  // Um intervalo grande demais (computador dormindo) não conta.
+  var atividade = { relogio: null, ultimo: 0, desdeSalvar: 0 };
+  function iniciarAtividade() {
+    clearInterval(atividade.relogio);
+    atividade.ultimo = Date.now();
+    atividade.desdeSalvar = 0;
+    atividade.relogio = setInterval(tiqueAtividade, 1000);
+  }
+  function tiqueAtividade() {
+    var p = estado.personagem;
+    if (!p) { clearInterval(atividade.relogio); atividade.relogio = null; return; }
+    var agora = Date.now(), seg = (agora - atividade.ultimo) / 1000;
+    atividade.ultimo = agora;
+    if (seg > 120) return;
+    var c = estado.cacada;
+    R.registrarAtividade(p, seg, !!(c && c.fase !== 'parada'));
+    atividade.desdeSalvar += seg;
+    if (atividade.desdeSalvar >= 60) { atividade.desdeSalvar = 0; salvar(); }
+    var l = document.getElementById('atividade-logado'), k = document.getElementById('atividade-cacando');
+    if (l) l.textContent = tempoAtividade(p.atividade.logado);
+    if (k) k.textContent = tempoAtividade(p.atividade.cacando);
+  }
+  // Fecha a conta do tempo e salva (ao trocar de personagem ou sair).
+  function encerrarAtividade() {
+    if (!atividade.relogio || !estado.personagem) return;
+    tiqueAtividade();
+    clearInterval(atividade.relogio);
+    atividade.relogio = null;
+    salvar();
+  }
+  function tempoAtividade(segundos) {
+    var s = Math.floor(Number(segundos) || 0), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
+    if (s < 60) return s ? 'menos de 1 min' : '—';
+    return (d ? d + 'd ' : '') + (d || h ? h + 'h ' : '') + m + 'min';
+  }
+  function atividadesHtml(p) {
+    var a = p.atividade || {};
+    return '<div class="secao atividades"><h3>Atividades</h3><dl class="status">'
+      + '<dt title="Tempo total com este personagem dentro do jogo.">⏱ Tempo logado</dt><dd id="atividade-logado">' + tempoAtividade(a.logado) + '</dd>'
+      + '<dt title="Tempo total em Aventura > Caçar com a caçada em andamento.">⚔ Tempo caçando</dt><dd id="atividade-cacando">' + tempoAtividade(a.cacando) + '</dd>'
+      + '</dl></div>';
+  }
+
   function abrirJogo(id) {
     estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
     estado.aba = 'personagem';
@@ -361,6 +406,7 @@
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
     R.atualizarTempo(estado.personagem, C.agora());
+    iniciarAtividade();
     var presente = estado.personagem.recomecoPresente === 1;
     if (presente) estado.personagem.recomecoPresente = 2;
     salvar();   // também marca o personagem como online para os amigos
@@ -567,6 +613,7 @@
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
       + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
       + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
+      + atividadesHtml(p)
       + '</aside>';
   }
 
@@ -2106,11 +2153,13 @@
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'sair':
         clearTimeout(estado.timer);
+        encerrarAtividade();
         C.sair();
         estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
         telaAuth('entrar');
         break;
       case 'voltar-personagens':
+        encerrarAtividade();
         estado.conta = C.contaAtual();
         estado.personagem = null;
         estado.resultado = null;
@@ -2707,6 +2756,13 @@
     }
     salvar();
     telaJogo();
+  });
+  // Ao esconder a aba ou fechar o jogo, guarda o tempo de atividade contado até agora.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'hidden' || !estado.personagem || !atividade.relogio) return;
+    tiqueAtividade();
+    atividade.desdeSalvar = 0;
+    salvar();
   });
   // Dentro do jogo o botão direito não abre o menu do navegador: a única função dele é equipar um item da mochila.
   // (Nos campos de texto, como o chat, o menu continua para copiar e colar.)

@@ -153,6 +153,17 @@ Tanka.regras = (function () {
   }
   function precoDoNivel(nivel) { return Math.round(N_.precoBase * Math.pow(N_.precoCresce, Math.max(1, nivel) - 1)); }
   // Joia da masmorra (vem do servidor sem nível): ganha nível de drop e bônus sorteados.
+  // ---------- Atividades (Herói > painel da esquerda) ----------
+  // Soma o tempo do personagem no jogo e, se estiver caçando, também o tempo de caçada (em segundos).
+  function registrarAtividade(p, segundos, cacando) {
+    var a = p.atividade || (p.atividade = { logado: 0, cacando: 0 });
+    var s = Number(segundos);
+    if (!(s > 0)) return a;
+    a.logado = (Number(a.logado) || 0) + s;
+    if (cacando) a.cacando = (Number(a.cacando) || 0) + s;
+    return a;
+  }
+
   function completarItem(p, item, rng) {
     if (!item || item.nivel) return item;
     item.nivel = nivelDoDrop(p, rng);
@@ -1746,6 +1757,7 @@ Tanka.regras = (function () {
     precoDoNivel: precoDoNivel,
     precoMercado: precoMercado,
     completarItem: completarItem,
+    registrarAtividade: registrarAtividade,
     novoItem: novoItem,
     motivoNaoEquipa: motivoNaoEquipa,
     talentos: talentos,
