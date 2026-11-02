@@ -2,7 +2,7 @@
 
 RPG medieval místico de navegador, em português (PT-BR). Repositório `danieelozorio/TANKA`.
 Jogo publicado: https://danieelozorio.github.io/TANKA/ (GitHub Pages, branch `main`).
-Prévia no Claude (Artifact, modo sem servidor): https://claude.ai/artifact/VuX81TkgHJXZovvQSqQy8r
+Prévia no Claude (Artifact): REMOVIDA a pedido do Daniel (nov/2026) para economizar créditos. Não recriar sem ele pedir.
 
 ## Quem trabalha no projeto
 São duas pessoas, cada uma com o seu Claude: **Daniel** (dono) e **Henri** (amigo, colaborador).
@@ -13,7 +13,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 - **Não** mandar ideias de livro (ele pediu para parar).
 - Ele não é programador: explicar em português simples, com o que mudou "para o jogador".
 - Prompts para ele levar a outras IAs (Gemini, Suno): **em inglês**, num bloco de notas `.txt` sem acentos.
-- Para economizar: só mandar print/vídeo quando a mudança é visual; nada de simulação se ele já deu o número.
+- Para economizar: **não mandar prints nem vídeos** (ele pediu para parar); testar no navegador por conta própria só se
+  precisar, sem mandar a imagem. Nada de simulação se ele já deu o número.
 
 ### Henri (colaborador)
 - Falar em português simples, como com o Daniel (o jeito "Claudia" e o "Bom dia!" são preferências do Daniel;
@@ -24,22 +25,18 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
   O Claude do Henri mostra prints e publica quando o **Henri** disser "pode publicar".
 - Para publicar (Henri): `git fetch origin && git merge origin/main` no branch dele (trazer o que o Daniel publicou),
   resolver conflitos, rodar os testes, e então `git push origin HEAD:main` (precisa ser avanço normal, nunca `--force`).
-  A prévia (Artifact) é da conta do Daniel: o Henri não atualiza; avisar que o Daniel pode atualizá-la depois.
 
 ## Regras de trabalho (IMPORTANTE)
 1. Claude do Daniel: trabalhar no branch local `trabalho-local`. Fazer commit e
    `git push origin trabalho-local:claude/amazing-volta-b0x1fb`.
 2. **Daniel e Henri têm autonomia total: cada um publica o que quiser, sem precisar avisar o outro.** O Claude só
-   publica quando a pessoa com quem está falando disser "pode publicar". Antes, mostrar prints/vídeo e perguntar.
+   publica quando a pessoa com quem está falando disser "pode publicar". Antes, explicar o que muda e perguntar.
 3. Quando o Daniel pedir para juntar o trabalho do Henri: `git fetch origin`, ver os branches `henri/*`, revisar o que
-   mudou, `git merge` no `trabalho-local`, rodar os testes, resolver conflitos e mostrar prints antes de publicar.
+   mudou, `git merge` no `trabalho-local`, rodar os testes, resolver conflitos e explicar o que muda antes de publicar.
 4. Ao ouvir "pode publicar" (Daniel):
    - Antes: `git fetch origin && git merge origin/main` no `trabalho-local` (pode ter coisa que o Henri publicou),
      rodar os testes.
    - `git checkout main && git merge --ff-only origin/main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
-   - Republicar o Artifact: copiar `ferramentas/artifact.html` para o scratchpad (igual ao `index.html`, mas usa
-     `js/contas-local.js` no lugar de `config.js` + `contas.js`) e publicar com o mesmo URL acima, mandando em
-     `files` os arquivos que mudaram (ex.: `js/app.js`, `css/estilo.css`, assets novos). A prévia é da conta do Daniel.
 5. A cada mudança de JS/CSS, subir o `?v=N` em `index.html` e em `ferramentas/artifact.html` (cache do navegador).
    Se os dois mudarem o número ao mesmo tempo, na junção ficar com o maior + 1.
 6. Se mudar `supabase/schema.sql`, avisar que alguém com acesso ao Supabase (Daniel, ou o Henri se for convidado) precisa **rodar o schema de novo** no SQL Editor do Supabase
