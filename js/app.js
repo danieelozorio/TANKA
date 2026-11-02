@@ -93,6 +93,9 @@
 
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
   // Classe do brilho da borda do quadro: um tom por nível (+1 a +10).
+  // Cor do item: peça de conjunto é verde; as outras seguem a raridade.
+  function corItem(item) { return item.conjunto ? 'conjunto' : item.raridade; }
+  function nomeRaridadeItem(item) { return item.conjunto ? 'Conjunto' : D.raridades[item.raridade].nome; }
   function aura(item) {
     var e = item.encanto || 0;
     return e > 0 ? ' aura-e' + Math.min(10, e) : '';
@@ -106,7 +109,7 @@
   // Nome do item com cor da raridade e brilho do encantamento.
   function nomeItemHtml(item) {
     var b = brilho(item);
-    return '<span class="raridade-' + item.raridade + (b ? ' brilho-' + b : '') + '">' + esc(R.nomeItem(item)) + '</span>';
+    return '<span class="raridade-' + corItem(item) + (b ? ' brilho-' + b : '') + '">' + esc(R.nomeItem(item)) + '</span>';
   }
 
   // "Pergaminho para item raro/épico..." (concorda com "item").
@@ -162,7 +165,7 @@
   // Quadradinho com ícone, borda da raridade, brilho do encantamento e "+N".
   function quadroItem(item, classe, atributos) {
     var b = brilho(item);
-    return '<button class="' + classe + ' borda-' + item.raridade + aura(item)
+    return '<button class="' + classe + ' borda-' + corItem(item) + aura(item)
       + (estado.itemFoco === item.id ? ' focado' : '') + '" data-acao="item" data-id="' + item.id + '"'
       + ' title="' + esc(R.nomeItem(item)) + '"' + (atributos || '') + '>'
       + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '')
@@ -831,9 +834,9 @@
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
     }
-    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + item.raridade + aura(item) + '">' + F.icone(item) + '</div>'
+    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
-      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
+      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item)
@@ -885,9 +888,9 @@
     linhas.push('<li><span>Encantamento</span><strong>+' + (item.encanto || 0) + '</strong></li>');
     linhas.push('<li><span>Venda</span><strong class="cor-ouro">' + R.precoVenda(item).toLocaleString('pt-BR') + ' de ouro</strong></li>');
     return '<div class="zoom-carta"><div class="zoom-rotulo">' + rotulo + '</div>'
-      + '<div class="icone-zoom borda-' + item.raridade + aura(item) + '">' + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</div>'
+      + '<div class="icone-zoom borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</div>'
       + '<div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
-      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + item.raridade + '">' + D.raridades[item.raridade].nome + '</span>'
+      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel : '') + '</div>'
       + '<ul class="zoom-atributos">' + linhas.join('') + '</ul></div>';
   }
@@ -1244,7 +1247,7 @@
         if (semPergaminho) acao = '<span class="suave">Sem pergaminho</span>' + acao;
       }
       var equipado = !!R.slotDoItem(p, i.id);
-      return '<div class="item item-com-icone' + (equipado ? ' equipado' : '') + '"><div class="icone-pequeno borda-' + i.raridade + aura(i) + '">' + F.icone(i) + '</div>'
+      return '<div class="item item-com-icone' + (equipado ? ' equipado' : '') + '"><div class="icone-pequeno borda-' + corItem(i) + aura(i) + '">' + F.icone(i) + '</div>'
         + '<div class="item-texto"><div>' + nomeItemHtml(i) + (equipado ? ' <span class="suave">(equipado)</span>' : '') + '</div>'
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
@@ -1323,8 +1326,8 @@
     ov.className = 'zoom-fundo forja-fundo';
     ov.innerHTML = '<div class="zoom-janela forja-janela" role="dialog" aria-label="Encantamento">'
       + '<div class="zoom-rotulo">Forja de encantamento</div>'
-      + '<div class="forja-item"><div class="icone-grande borda-' + item.raridade + aura(item) + '">' + F.icone(item) + '</div>'
-      + '<div><div class="forja-nome raridade-' + item.raridade + '">' + nome + '</div>'
+      + '<div class="forja-item"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
+      + '<div><div class="forja-nome raridade-' + corItem(item) + '">' + nome + '</div>'
       + '<div class="suave">+' + item.encanto + ' → <strong class="cor-ouro">+' + (item.encanto + 1) + '</strong> · chance ' + chance + '%</div></div></div>'
       + '<div class="forja-barra"><i></i><span class="forja-pct">0%</span></div>'
       + '<div class="forja-resultado" aria-live="assertive">Encantando…</div>'
@@ -1657,8 +1660,8 @@
       return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzida: área abaixo do seu nível)</span>' : '') + ' e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
-        + (r.drop ? '<p>Drop: <strong class="raridade-' + r.drop.raridade + '">' + R.nomeItem(r.drop) + ' (' + D.raridades[r.drop.raridade].nome + ')</strong></p>' : '')
-        + (r.dropArmadura ? '<p>Drop: <strong class="raridade-' + r.dropArmadura.raridade + '">' + R.nomeItem(r.dropArmadura) + ' (' + D.raridades[r.dropArmadura.raridade].nome + ')</strong></p>' : '')
+        + (r.drop ? '<p>Drop: <strong class="raridade-' + corItem(r.drop) + '">' + R.nomeItem(r.drop) + ' (' + nomeRaridadeItem(r.drop) + ')</strong></p>' : '')
+        + (r.dropArmadura ? '<p>Drop: <strong class="raridade-' + corItem(r.dropArmadura) + '">' + R.nomeItem(r.dropArmadura) + ' (' + nomeRaridadeItem(r.dropArmadura) + ')</strong></p>' : '')
         + (r.mochilaCheia ? '<p class="menos">Mochila cheia! Um item caiu e se perdeu. Venda itens na aba Personagem.</p>' : '')
         + (r.pergaminho ? '<p>Drop: <strong>' + (r.qtdPergaminhos > 1 ? r.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item <span class="raridade-' + r.pergaminho + '">' + ITEM_RARIDADE[r.pergaminho] + '</span></strong></p>' : '')
         + '<div class="botoes">' + cacarDeNovo
@@ -1857,8 +1860,8 @@
       linha('destaque', 'Vitória! +' + res.exp + ' de exp' + (res.fatorExp < 100 ? ' (reduzida: área abaixo do seu nível)' : '') + '.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.habilidadeEvoluiu) linha('habilidade-usada', '⚡ Sua habilidade evoluiu para o nível ' + res.habilidadeEvoluiu + '!');
-      if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + D.raridades[res.drop.raridade].nome + ')!');
-      if (res.dropArmadura) linha('destaque', 'Drop: ' + R.nomeItem(res.dropArmadura) + ' (' + D.raridades[res.dropArmadura.raridade].nome + ')!');
+      if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + nomeRaridadeItem(res.drop) + ')!');
+      if (res.dropArmadura) linha('destaque', 'Drop: ' + R.nomeItem(res.dropArmadura) + ' (' + nomeRaridadeItem(res.dropArmadura) + ')!');
       if (res.mochilaCheia) linha('dano-recebido', 'Mochila cheia! Um item se perdeu.');
       if (res.pergaminho) linha('destaque', 'Drop: ' + (res.qtdPergaminhos > 1 ? res.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
     } else if (res.resultado === 'derrota') {
@@ -2069,7 +2072,7 @@
         return '<div class="cacada-num"><small>' + x[0] + ' ' + x[1] + '</small><strong>' + x[2] + '</strong></div>';
       }).join('') + '</div>';
     var itens = c.itens.length ? '<div class="cacada-itens">' + c.itens.map(function (it) {
-      return '<div class="icone-pequeno borda-' + it.raridade + '" title="' + esc(R.nomeItem(it)) + '">' + F.icone(it) + '</div>';
+      return '<div class="icone-pequeno borda-' + corItem(it) + '" title="' + esc(R.nomeItem(it)) + '">' + F.icone(it) + '</div>';
     }).join('') + '</div>' : '';
     var historico = '<div class="cacada-historico"><h4>Últimos combates</h4>' + (c.historico.length ? c.historico.map(function (h) {
       var nome = D.monstros[h.monstro].nome;
@@ -2882,7 +2885,7 @@
         var item = R.completarItem(p, await C.grupo.resgatar(p.id, g.recompensas[i].id));
         p.inventario.push(item);
         salvar();
-        avisar('Você ganhou ' + R.nomeItem(item) + ' (' + D.raridades[item.raridade].nome + ')!');
+        avisar('Você ganhou ' + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
     } catch (e) { avisar(e.message); }
     estado.resgatando = false;
@@ -3205,7 +3208,7 @@
         + linhaComp('Velocidade', sx.velocidade, sp.velocidade) + '</table>';
       var equip = Object.keys(D.slots).map(function (k) {
         var it = R.itemNoSlot(x, k);
-        return it ? '<div class="icone-pequeno borda-' + it.raridade + aura(it) + '" title="' + esc(R.nomeItem(it)) + ' (' + D.raridades[it.raridade].nome + ')">'
+        return it ? '<div class="icone-pequeno borda-' + corItem(it) + aura(it) + '" title="' + esc(R.nomeItem(it)) + ' (' + nomeRaridadeItem(it) + ')">'
           + F.icone(it) + (it.encanto ? '<span class="nivel-encanto">+' + it.encanto + '</span>' : '') + '</div>'
           : '<div class="icone-pequeno vazio" title="' + D.slots[k].nome + ' vazio"></div>';
       }).join('');

@@ -734,7 +734,10 @@ Tanka.regras = (function () {
       tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
     }
     if (tipo === 'arma') return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
-    return marcarConjunto(p, novoItem(tipo, p.classe, raridade, rng, null, nivelDoDrop(p, rng)));
+    // 10% das armaduras de quem tem segunda classe vêm de conjunto (verde), com a força de uma rara.
+    var verde = conjuntoPara(p, 1) && rng() < D.CONJUNTO_CHANCE / 100;
+    var item = novoItem(tipo, p.classe, verde ? 'rara' : raridade, rng, null, nivelDoDrop(p, rng));
+    return verde ? marcarConjunto(p, item) : item;
   }
   function itemQualquer(p, raridade, rng) {
     return itemDoTipo(p, TODOS_TIPOS[Math.floor(rng() * TODOS_TIPOS.length)], raridade, rng);
@@ -1166,7 +1169,7 @@ Tanka.regras = (function () {
     if (p.ouro < preco) return 'Ouro insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';
     p.ouro -= preco;
-    var item = marcarConjunto(p, novoItem(tipo, p.classe, raridade, rng, especifico, nivelDoMercado(p, rng)));
+    var item = novoItem(tipo, p.classe, raridade, rng, especifico, nivelDoMercado(p, rng));
     p.inventario.push(item);
     return item;
   }
@@ -1229,10 +1232,10 @@ Tanka.regras = (function () {
     return true;
   }
   function podeVender(p, item) { return !!item && !item.travado && !slotDoItem(p, item.id); }
-  // Ids da mochila até uma raridade (ex.: 'rara' = comuns e raras), sem travados.
+  // Ids da mochila até uma raridade (ex.: 'rara' = comuns e raras), sem travados e sem peças de conjunto (verdes).
   function idsAteRaridade(p, raridade) {
     var limite = RARIDADES.indexOf(raridade);
-    return mochila(p).filter(function (i) { return podeVender(p, i) && RARIDADES.indexOf(i.raridade) <= limite; })
+    return mochila(p).filter(function (i) { return podeVender(p, i) && !i.conjunto && RARIDADES.indexOf(i.raridade) <= limite; })
       .map(function (i) { return i.id; });
   }
   function valorVenda(p, ids) {

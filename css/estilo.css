@@ -14,6 +14,7 @@
   --ruim: #d0645a;
   --basica: #b9b2a5;
   --rara: #5aa0ec;
+  --conjunto: #5fcf6a;
   --epica: #b56ef0;
   --lendaria: #f2c94c;
   --cor-ouro: #e8c25a;
@@ -192,6 +193,7 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 
 .raridade-basica { color: var(--basica); }
 .raridade-rara { color: var(--rara); }
+.raridade-conjunto { color: var(--conjunto); }
 .raridade-epica { color: var(--epica); }
 .raridade-lendaria { color: var(--lendaria); text-shadow: 0 0 10px rgba(242, 201, 76, .35); }
 .cor-ouro { color: var(--cor-ouro); }
@@ -316,12 +318,13 @@ table.atributos th { color: var(--suave); font-weight: 500; }
 button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-claro); outline-offset: 1px; }
 /* Fundo do quadro = luz suave da cor da raridade atrás do item (as artes .webp não têm fundo);
    borda fina = cor do encantamento (sem encanto: escura), sem brilho. */
-.borda-comum, .borda-rara, .borda-epica, .borda-lendaria { border-color: #0a0d12; }
+.borda-comum, .borda-rara, .borda-epica, .borda-lendaria, .borda-conjunto { border-color: #0a0d12; }
 .borda-comum { background: radial-gradient(circle at 50% 45%, #46423c, #15171b 75%); }
 .borda-rara { background: radial-gradient(circle at 50% 45%, #284a75, #10151d 75%); }
+.borda-conjunto { background: radial-gradient(circle at 50% 45%, #25603a, #0f1712 75%); box-shadow: inset 0 0 0 2px rgba(95, 207, 106, .75); }
 .borda-epica { background: radial-gradient(circle at 50% 45%, #4a2e6e, #130f1a 75%); }
 .borda-lendaria { background: radial-gradient(circle at 50% 45%, #75521a, #17110a 75%); }
-.borda-comum img, .borda-rara img, .borda-epica img, .borda-lendaria img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .6)); }
+.borda-comum img, .borda-rara img, .borda-conjunto img, .borda-epica img, .borda-lendaria img { filter: drop-shadow(0 2px 2px rgba(0, 0, 0, .6)); }
 .nivel-encanto {
   position: absolute; top: 1px; right: 3px; font-size: .72rem; font-weight: 700; line-height: 1;
   color: #fff; text-shadow: 0 0 3px #000, 0 0 3px #000;
