@@ -186,6 +186,12 @@ Tanka.contas = (function () {
 
   // ---------- Chat global ----------
   var CAMPOS_CHAT = 'select=id,personagem,classe,classe2,sexo,nivel,texto,criado_em,sigla';
+  var CAMPOS_CHAT_ANTIGOS = 'select=id,personagem,classe,nivel,texto,criado_em,sigla';
+  // Se o banco ainda não tem as colunas novas (schema não rodado), lê só as antigas em vez de quebrar o chat.
+  async function lerMensagens(resto) {
+    try { return await pedir('/rest/v1/mensagens?' + CAMPOS_CHAT + resto); }
+    catch (e) { return pedir('/rest/v1/mensagens?' + CAMPOS_CHAT_ANTIGOS + resto); }
+  }
   async function logado() {
     if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
   }
@@ -193,11 +199,11 @@ Tanka.contas = (function () {
     // Últimas 100 mensagens (da mais antiga para a mais nova).
     recentes: async function () {
       await logado();
-      return (await pedir('/rest/v1/mensagens?' + CAMPOS_CHAT + '&order=id.desc&limit=100')).reverse();
+      return (await lerMensagens('&order=id.desc&limit=100')).reverse();
     },
     novas: async function (desdeId) {
       await logado();
-      return pedir('/rest/v1/mensagens?' + CAMPOS_CHAT + '&id=gt.' + Number(desdeId) + '&order=id.asc&limit=100');
+      return lerMensagens('&id=gt.' + Number(desdeId) + '&order=id.asc&limit=100');
     },
     // O servidor confere flood, silêncio e preenche classe/level a partir do personagem salvo.
     enviar: async function (personagem, texto) {
