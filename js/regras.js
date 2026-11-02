@@ -799,7 +799,7 @@ Tanka.regras = (function () {
     return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId)) && monstroLiberado(p, monstroId);
   }
 
-  // % da exp que o personagem ganha na área do monstro (100, 50 ou 10).
+  // % da exp (e do ouro) que o personagem ganha na área do monstro (100, 50 ou 10). Abaixo de 100: sem drops.
   function fatorExp(p, monstroId) {
     var area = areaDoMonstro(monstroId);
     var proxima = D.areas[D.areas.indexOf(area) + 1];
@@ -1096,7 +1096,9 @@ Tanka.regras = (function () {
       }
       res.fatorExp = fatorExp(p, b.monstroId);
       res.exp = res.fatorExp < 100 ? Math.max(1, Math.floor(m.exp * res.fatorExp / 100)) : m.exp;
-      res.ouro = m.ouro;
+      // Área abaixo do nível do herói: o ouro cai na mesma proporção da exp e não cai nenhum drop.
+      res.penalizado = res.fatorExp < 100;
+      res.ouro = res.penalizado ? Math.max(1, Math.floor(m.ouro * res.fatorExp / 100)) : m.ouro;
       if (bonus && bonus.exp) res.exp = Math.floor(res.exp * (1 + bonus.exp / 100));
       if (bonus && bonus.ouro) res.ouro = Math.floor(res.ouro * (1 + bonus.ouro / 100));
       if (b.s.bonusRecompensa) {   // passiva do Coletor
@@ -1105,7 +1107,9 @@ Tanka.regras = (function () {
       }
       p.ouro += res.ouro;
       res.niveis = ganharExp(p, res.exp);
-      if (m.chefe) {
+      if (res.penalizado) {
+        // sem itens nem pergaminhos
+      } else if (m.chefe) {
         var premio = dropChefe(p, m, b.rng);
         if (premio && premio.tipo === 'arma') res.drop = premio; else if (premio) res.dropArmadura = premio;
         var arma = armaEquipada(p);
@@ -1124,7 +1128,7 @@ Tanka.regras = (function () {
       // Mochila cheia: o item se perde e o jogador é avisado.
       if (res.drop && !guardar(p, res.drop)) { res.drop = null; res.mochilaCheia = true; }
       if (res.dropArmadura && !guardar(p, res.dropArmadura)) { res.dropArmadura = null; res.mochilaCheia = true; }
-      if (!m.chefe) {
+      if (!m.chefe && !res.penalizado) {
         res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
         if (res.pergaminho) { p.pergaminhos[res.pergaminho] += 1; res.qtdPergaminhos = 1; }
       }

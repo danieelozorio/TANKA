@@ -120,7 +120,7 @@ Tanka.contas = (function () {
       var ultima = lista.filter(function (m) { return m.conta === conta.usuario; }).pop();
       if (ultima && Date.now() - Date.parse(ultima.criado_em) < 3000) throw new Error('Calma! Espere 3 segundos entre as mensagens.');
       lista.push({ id: (lista.length ? lista[lista.length - 1].id : 0) + 1, conta: conta.usuario, personagem: p.nome,
-        classe: p.classe, nivel: p.nivel, texto: texto.trim().slice(0, 200), criado_em: new Date().toISOString() });
+        classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, nivel: p.nivel, texto: texto.trim().slice(0, 200), criado_em: new Date().toISOString() });
       gravarChat(lista);
     },
     apagar: async function (id) { gravarChat(lerChat().filter(function (m) { return m.id !== id; })); },
@@ -137,7 +137,7 @@ Tanka.contas = (function () {
     Object.keys(contas).forEach(function (k) {
       if (Tanka.dados.ADMINS.indexOf(k) >= 0) return;
       contas[k].personagens.forEach(function (p) {
-        lista.push({ nome: p.nome, classe: p.classe, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0 });
+        lista.push({ nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0 });
       });
     });
     lista.sort(function (a, b) {

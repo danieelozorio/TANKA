@@ -1296,3 +1296,5 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .conjunto-ficha ul { margin: .3rem 0 0; padding-left: 1rem; }
 .conjunto-ficha li.ativo { color: var(--bom); font-weight: 600; }
 .conjunto-dt { color: var(--ouro-claro); }
+.forja-janela .botoes { justify-content: center; flex-wrap: wrap; }
+.forja-mais small { font-size: .78em; opacity: .85; font-family: var(--texto, inherit); letter-spacing: 0; }

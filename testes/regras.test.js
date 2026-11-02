@@ -368,6 +368,7 @@ teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
   p.atributos.sor = 0;
   let n = 0; const N = 100000;
   for (let i = 0; i < N; i++) {
+    p.nivel = 1; p.exp = 0;   // sem subir de level (acima da área não cai nada)
     const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria';
     if (R.concluirBatalha(p, b).pergaminho) n++;
   }
@@ -573,6 +574,7 @@ teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar',
   for (let i = 0; i < 200; i++) vencer('urso');
   assert.strictEqual(p.presencaChefe.floresta, 100);
   p.inventario = p.inventario.filter((i) => R.slotDoItem(p, i.id)); // esvazia a mochila
+  p.nivel = 5;   // dentro da faixa da Floresta (acima dela o chefe não dropa)
   const res = vencer('velgrath');
   assert.strictEqual(p.presencaChefe.floresta, 0);
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
@@ -587,6 +589,7 @@ teste('drop do chefe: Velgrath 15% item raro + 1 a 3 pergaminhos comuns; Varnok 
     const c = { nada: 0, lendaria: 0, epica: 0, rara: 0, comum: 0 }, perg = new Set();
     for (let i = 0; i < N; i++) {
       p.inventario = p.inventario.slice(0, 1);
+      p.nivel = 1; p.exp = 0;   // sem subir de level (acima da área não cai nada)
       const b = R.iniciarBatalha(p, chefe, rng); b.fim = 'vitoria';
       const res = R.concluirBatalha(p, b);
       const it = res.drop || res.dropArmadura;
@@ -1337,4 +1340,28 @@ teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno,
   const i = arr.findIndex((e) => e.tipo === 'hab' && e.nome === 'Double Shot');
   assert.ok(i >= 0, 'usou na masmorra');
   assert.ok(arr[i + 1].tipo === 'golpe' && arr[i + 2].tipo === 'golpe' && arr[i + 1].i === arr[i].i && arr[i + 2].i === arr[i].i, 'duas flechas do mesmo herói');
+});
+
+teste('área abaixo do nível: exp e ouro reduzidos juntos e nenhum drop (item, pergaminho, chefe)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const vencer = (id) => { const b = R.iniciarBatalha(p, id, rng); b.fim = 'vitoria'; return R.concluirBatalha(p, b); };
+  // Floresta: a próxima área (Pântano) abre no 5. Level 7 = 2 acima: sem penalidade.
+  p.nivel = 7;
+  let r = vencer('urso');
+  assert.deepStrictEqual([r.fatorExp, r.ouro, r.exp, !!r.penalizado], [100, D.monstros.urso.ouro, D.monstros.urso.exp, false]);
+  // 3 a 7 acima: 50%
+  p.nivel = 8; p.exp = 0;
+  r = vencer('urso');
+  assert.deepStrictEqual([r.fatorExp, r.ouro, r.exp, r.penalizado], [50, Math.floor(D.monstros.urso.ouro / 2), Math.floor(D.monstros.urso.exp / 2), true]);
+  // 8 ou mais acima: 10%; nada cai em 3.000 vitórias (itens, pergaminhos) nem do chefe
+  p.atributos.sor = 200;
+  let drops = 0;
+  for (let i = 0; i < 3000; i++) { p.nivel = 13; p.exp = 0; r = vencer('urso'); if (r.drop || r.dropArmadura || r.pergaminho) drops++; }
+  assert.strictEqual(drops, 0);
+  assert.strictEqual(r.fatorExp, 10);
+  assert.strictEqual(r.ouro, Math.max(1, Math.floor(D.monstros.urso.ouro / 10)));
+  const perg = { ...p.pergaminhos };
+  r = vencer('velgrath');
+  assert.ok(!r.drop && !r.dropArmadura && !r.pergaminho, 'chefe também não dropa');
+  assert.deepStrictEqual({ ...p.pergaminhos }, perg);
 });

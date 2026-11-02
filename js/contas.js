@@ -185,7 +185,7 @@ Tanka.contas = (function () {
   }
 
   // ---------- Chat global ----------
-  var CAMPOS_CHAT = 'select=id,personagem,classe,nivel,texto,criado_em,sigla';
+  var CAMPOS_CHAT = 'select=id,personagem,classe,classe2,sexo,nivel,texto,criado_em,sigla';
   async function logado() {
     if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
   }

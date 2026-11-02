@@ -717,7 +717,7 @@
       + (m.chanceArmadura ? '<dt>Armaduras</dt><dd>' + m.chanceArmadura + '%</dd>' : '')
       + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + m.pergaminho.chance + '%</dd>' : '')
       + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
-      + (fator < 100 ? '<p class="menos pequeno">Exp reduzida: esta área está abaixo do seu nível (' + fator + '%).</p>' : '')
+      + (fator < 100 ? '<p class="menos pequeno">Esta área está abaixo do seu nível: exp e ouro a ' + fator + '% e nenhum drop.</p>' : '')
       + (R.monstroLiberado(p, id) ? '<button class="btn largo' + (selecionado ? '' : ' secundario') + '" data-acao="cacada-alvo" data-monstro="' + id + '">'
           + (selecionado ? '✔ Na caçada' : 'Adicionar à caçada') + '</button>'
         : '<button class="btn largo" disabled>🔒 Derrote ' + esc(D.monstros[R.monstroAnterior(id)].nome) + ' primeiro</button>') + '</div></article>';
@@ -1317,6 +1317,23 @@
   }
 
   // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
+  // Uma tentativa de encantar: sorteia, salva e abre a Forja.
+  function tentarEncantar(id) {
+    var p = estado.personagem;
+    var alvoEnc = p.inventario.find(function (i) { return i.id === id; });
+    var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
+    var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
+    // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
+    var tentativa = R.encantar(p, id);
+    estado.encantoPendente = null;
+    if (tentativa) {
+      R.registrarMissao(p, 'encantar', 1, C.agora());
+      if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
+      salvar();
+      abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
+    }
+  }
+
   function abrirForja(item, res, chance, risco) {
     var tipo = res.sucesso ? 'sucesso' : res.quebrou ? 'quebra' : risco === 'zera' ? 'zera' : 'falha';
     var parada = res.sucesso ? 100 : 18 + Math.random() * 74;          // onde a barra para na falha
@@ -1360,12 +1377,35 @@
       Sons[tipo]();
       var ok = ov.querySelector('[data-forja="ok"]');
       ok.disabled = false;
-      ok.focus();
+      // Depois do sucesso: botão +1 para encantar de novo o mesmo item, se ainda tiver pergaminho.
+      var p = estado.personagem, atual = res.sucesso && p.inventario.find(function (i) { return i.id === item.id; });
+      if (atual && atual.encanto < D.encantamento.maximo && p.pergaminhos[atual.raridade] > 0) {
+        var mais = document.createElement('button');
+        mais.className = 'btn forja-mais';
+        mais.dataset.forja = 'mais';
+        mais.innerHTML = '+1 <small>(+' + atual.encanto + ' → +' + (atual.encanto + 1) + ' · ' + R.chanceEncantar(p, atual) + '%)</small>';
+        mais.title = 'Encantar de novo · você tem ' + p.pergaminhos[atual.raridade] + ' pergaminho(s) para item ' + ITEM_RARIDADE[atual.raridade];
+        ok.parentNode.insertBefore(mais, ok);
+        mais.focus();
+      } else ok.focus();
     }
     ov.addEventListener('click', function (e) {
-      if (!e.target.closest('[data-forja="ok"]')) return;
+      var b = e.target.closest('[data-forja]');
+      if (!b || b.disabled) return;
       ov.remove();
       estado.ultimoEncanto = res;
+      if (b.dataset.forja === 'mais') {
+        var atual = estado.personagem.inventario.find(function (i) { return i.id === item.id; });
+        // Se o próximo + pode quebrar o item, pede a confirmação de sempre na aba Encantar.
+        if (atual && R.riscoEncantar(atual) === 'quebra') {
+          estado.encantoPendente = atual.id;
+          estado.ultimoEncanto = null;
+          telaJogo();
+          return;
+        }
+        tentarEncantar(item.id);
+        return;
+      }
       telaJogo();
     });
   }
@@ -1477,7 +1517,7 @@
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
           + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
-          + '<td>' + nomeClasse(x.classe, x.sexo) + '</td>'
+          + '<td>' + nomeClasseX(x) + '</td>'
           + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td></tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
@@ -1530,7 +1570,7 @@
 
   function linhaAmigo(x, botoes) {
     return '<div class="item amigo"><div class="amigo-info"><div>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-      + '<div class="suave">' + nomeRaca(x.raca, x.sexo) + ' · ' + nomeClasse(x.classe, x.sexo)
+      + '<div class="suave">' + nomeRaca(x.raca, x.sexo) + ' · ' + nomeClasseX(x)
       + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + botoes + '</div></div>';
   }
@@ -1657,7 +1697,7 @@
     var m = D.monstros[r.monstroId];
     var cacarDeNovo = r.escolhido ? '<button class="btn" data-acao="cacar" data-monstro="' + r.escolhido + '">Caçar de novo</button>' : '';
     if (r.resultado === 'vitoria') {
-      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzida: área abaixo do seu nível)</span>' : '') + ' e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>.</p>'
+      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzidos e sem drops: área abaixo do seu nível)</span>' : '') + '.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
         + (r.drop ? '<p>Drop: <strong class="raridade-' + corItem(r.drop) + '">' + R.nomeItem(r.drop) + ' (' + nomeRaridadeItem(r.drop) + ')</strong></p>' : '')
@@ -1857,7 +1897,7 @@
     res.monstroId = b.monstroId;
     res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
-      linha('destaque', 'Vitória! +' + res.exp + ' de exp' + (res.fatorExp < 100 ? ' (reduzida: área abaixo do seu nível)' : '') + '.');
+      linha('destaque', 'Vitória! +' + res.exp + ' de exp' + (res.fatorExp < 100 ? ' (exp e ouro reduzidos, sem drops: área abaixo do seu nível)' : '') + '.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.habilidadeEvoluiu) linha('habilidade-usada', '⚡ Sua habilidade evoluiu para o nível ' + res.habilidadeEvoluiu + '!');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + nomeRaridadeItem(res.drop) + ')!');
@@ -2398,11 +2438,6 @@
         estado.luta.rapido = !estado.luta.rapido;
         redesenharLuta();
         break;
-      case 'luta-pular':
-        clearTimeout(estado.luta.timer);
-        while (!estado.luta.fim) passoLuta(true);
-        redesenharLuta();
-        break;
       case 'luta-fechar':
         clearTimeout(estado.luta.timer);
         estado.luta = null;
@@ -2592,21 +2627,9 @@
         estado.ultimoEncanto = null;
         telaJogo();
         break;
-      case 'encantar': {
-        var alvoEnc = p.inventario.find(function (i) { return i.id === el.dataset.id; });
-        var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
-        var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
-        // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
-        var tentativa = R.encantar(p, el.dataset.id);
-        estado.encantoPendente = null;
-        if (tentativa) {
-          R.registrarMissao(p, 'encantar', 1, C.agora());
-          if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
-          salvar();
-          abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
-        }
+      case 'encantar':
+        tentarEncantar(el.dataset.id);
         break;
-      }
       case 'admin': {
         if (!ehAdmin()) break;
         var op = el.dataset.op;
@@ -3026,8 +3049,7 @@
     return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + NOMES_SALA[L.sala] + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
-      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button>'
-        + '<button class="btn secundario" data-acao="luta-pular">Pular para o fim</button></div>');
+      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
   }
 
   function abaMasmorra() {
@@ -3053,7 +3075,7 @@
       if (!m) { vagas.push('<div class="mas-vaga vazia">Vaga livre' + (gr.convidados[i - gr.membros.length] ? '<div class="suave pequeno">Convidado: ' + esc(gr.convidados[i - gr.membros.length]) + '</div>' : '') + '</div>'); continue; }
       vagas.push('<div class="mas-vaga' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
         + '<div><strong>' + (m.id === gr.lider ? '👑 ' : '') + esc(m.nome) + '</strong></div>'
-        + '<div class="suave pequeno">' + nomeClasse(m.classe, m.sexo) + ' · Lv ' + m.nivel + ' · entradas ' + (M.entradasPorDia - m.entradas) + '/' + M.entradasPorDia + '</div>'
+        + '<div class="suave pequeno">' + nomeClasseX(m) + ' · Lv ' + m.nivel + ' · entradas ' + (M.entradasPorDia - m.entradas) + '/' + M.entradasPorDia + '</div>'
         + '<div class="' + (m.pronto ? 'online' : 'suave') + ' pequeno">' + (m.pronto ? '✔ Pronto' : 'Aguardando') + '</div>'
         + (souLider && m.id !== p.id ? '<button class="btn secundario mini-opcao" data-acao="grupo-expulsar" data-id="' + esc(m.id) + '">Expulsar</button>' : '') + '</div>');
     }
@@ -3224,7 +3246,7 @@
       var sq = A.saque, ouro = pf.ouro || 0;
       var saque = Math.floor(ouro * sq.minimo / 100).toLocaleString('pt-BR') + ' a ' + Math.floor(ouro * sq.maximo / 100).toLocaleString('pt-BR');
       corpo = '<div class="desafio-topo"><div class="moldura">' + F.personagem(pf.raca, classeRetrato(pf), pf.sexo) + '</div><div>'
-        + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + nomeRaca(pf.raca, pf.sexo) + ' · ' + nomeClasse(pf.classe, pf.sexo) + ' · Level ' + pf.nivel + '</div>'
+        + '<h2>' + esc(pf.nome) + '</h2><div class="suave">' + nomeRaca(pf.raca, pf.sexo) + ' · ' + nomeClasseX(pf) + ' · Level ' + pf.nivel + '</div>'
         + (pf.alianca ? '<div class="desafio-alianca">' + brasaoSvg(pf.alianca.brasao) + '<span>' + esc(pf.alianca.nome) + ' ' + siglaHtml(pf.alianca.sigla) + '</span></div>' : '')
         + '<div class="desafio-selos">' + (pf.posicao ? '<span class="selo-pos">#' + pf.posicao + ' · ' + esc(nomeArena(pf.arena)) + '</span>' : '')
         + '<span class="selo-pos">' + pf.vitorias + ' V · ' + pf.derrotas + ' D</span></div>'
@@ -3246,7 +3268,7 @@
 
   function linhaRanking(x, botao) {
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
-      + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo)
+      + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x)
       + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + (botao || '') + '</div></div>';
   }
@@ -3781,7 +3803,7 @@
       html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
         + '<button class="btn" data-acao="al-convidar">Convidar</button></div>'
         + (st.pedidos.length ? '<h3 class="subtitulo">Pedidos para entrar</h3><div class="itens">' + st.pedidos.map(function (x) {
-          return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasse(x.classe, x.sexo) + ' · Lv ' + x.nivel
+          return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x) + ' · Lv ' + x.nivel
             + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + '</div></div><div class="item-acoes">'
             + '<button class="btn btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '" data-sim="1">Aceitar</button>'
             + '<button class="btn secundario btn-pequeno" data-acao="al-decidir" data-id="' + x.id + '">Recusar</button></div></div>';
@@ -3799,7 +3821,7 @@
       if (!eu && (chefe || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
       var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'oficial' ? '⭐ ' : '';
       return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '"><div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + nomeClasse(x.classe, x.sexo)
+        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + nomeClasseX(x)
         + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
@@ -3919,7 +3941,7 @@
 
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    var classe = nomeClasse(m.classe, m.sexo);
+    var classe = nomeClasseX(m);
     var acoes = ehAdmin()
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'

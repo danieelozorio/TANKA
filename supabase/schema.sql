@@ -157,6 +157,8 @@ create table if not exists public.mensagens (
 );
 create index if not exists mensagens_conta on public.mensagens (conta_id, criado_em);
 alter table public.mensagens add column if not exists sigla text;   -- sigla da aliança de quem escreveu
+alter table public.mensagens add column if not exists sexo text;     -- para mostrar a classe no feminino
+alter table public.mensagens add column if not exists classe2 text;  -- segunda classe de quem escreveu
 
 create or replace function public.eh_admin() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -192,6 +194,8 @@ begin
   new.sigla := (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = pid);
   new.personagem := d ->> 'nome';
   new.classe := d ->> 'classe';
+  new.classe2 := d -> 'talentos' ->> 'classe2';
+  new.sexo := d ->> 'sexo';
   new.nivel := (d ->> 'nivel')::int;
   new.criado_em := now();
   delete from public.mensagens where criado_em < now() - interval '7 days';  -- faxina
@@ -223,13 +227,13 @@ notify pgrst, 'reload schema';
 
 -- ---------- Ranking ----------
 -- Top 100 por level (empate: exp) ou por poder. Contas de administrador ficam de fora.
-drop function if exists public.ranking(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo)
-create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text)
+drop function if exists public.ranking(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo, segunda classe)
+create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text, classe2 text)
 language sql stable security definer set search_path = public as $$
   select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
          coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0),
          (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = p.id),
-         p.dados ->> 'sexo'
+         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2'
   from public.personagens p join public.contas c on c.id = p.conta_id
   where not c.admin and not c.bot
   order by
@@ -266,7 +270,7 @@ end $$;
 -- Amigos, pedidos recebidos e enviados. visto_em = último salvamento do personagem (online se recente).
 drop function if exists public.amigos_listar(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo)
 create or replace function public.amigos_listar(meu text)
-returns table (pedido bigint, situacao text, id text, nome text, classe text, raca text, nivel int, poder bigint, visto_em timestamptz, sigla text, sexo text)
+returns table (pedido bigint, situacao text, id text, nome text, classe text, raca text, nivel int, poder bigint, visto_em timestamptz, sigla text, sexo text, classe2 text)
 language plpgsql stable security definer set search_path = public as $$
 begin
   perform public.conferir_dono(meu);
@@ -276,7 +280,7 @@ begin
          p.id, p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
          coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'poder')::bigint, 0), p.atualizado_em,
          (select al.sigla from public.alianca_membros m join public.aliancas al on al.id = m.alianca_id where m.personagem_id = p.id),
-         p.dados ->> 'sexo'
+         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2'
   from public.amizades a
   join public.personagens p on p.id = case when a.de = meu then a.para else a.de end
   where a.de = meu or a.para = meu
@@ -457,7 +461,7 @@ begin
         'membros', (select count(*) from public.grupo_membros gm where gm.grupo_id = c.grupo_id)) order by c.criado_em)
       from public.grupo_convites c join public.personagens pd on pd.id = c.de where c.para = meu), '[]'::jsonb),
     'grupo', case when g is null then null else (select jsonb_build_object('id', gr.id, 'lider', gr.lider, 'masmorra', gr.masmorra,
-        'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'raca', p.dados ->> 'raca',
+        'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'raca', p.dados ->> 'raca',
             'sexo', p.dados ->> 'sexo', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'pronto', gm.pronto,
             'entradas', public.entradas_usadas(p.id), 'visto_em', p.atualizado_em) order by gm.entrou_em)
           from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = gr.id),
@@ -1339,12 +1343,12 @@ begin
     'entradas', public.arena_entradas_atual(meu),
     'reputacao_pendente', coalesce((select sum(reputacao) from public.creditos where personagem_id = meu and not aplicado), 0),
     'jackpot', jsonb_build_object('valor', j.valor, 'top1', (select nome from public.personagens where id = j.top1)),
-    'top5', coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo',
+    'top5', coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo',
         'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0), 'sigla', public.sigla_de(p.id)) order by ap.posicao)
       from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id where ap.arena = ver and ap.posicao <= 5), '[]'::jsonb),
     -- Os 5 logo acima (desafiáveis) e você.
     'alvos', case when pos is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome,
-        'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0),
+        'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0),
         'conta_minha', p.conta_id = auth.uid(), 'sigla', public.sigla_de(p.id)) order by ap.posicao)
       from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id
       where ap.arena = ver and ap.posicao >= pos - (cfg ->> 'alcanceDesafio')::int and ap.posicao <= pos), '[]'::jsonb) end,
@@ -1417,7 +1421,7 @@ begin
   perform public.conferir_dono(meu);
   select * into p from public.personagens where id = alvo;
   if p.id is null then raise exception 'Personagem não encontrado.'; end if;
-  return jsonb_build_object('id', p.id, 'nome', p.nome, 'raca', p.dados ->> 'raca', 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo',
+  return jsonb_build_object('id', p.id, 'nome', p.nome, 'raca', p.dados ->> 'raca', 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo',
     'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'atributos', p.dados -> 'atributos',
     'equipados', coalesce(p.dados -> 'equipados', '{}'::jsonb),
     'itens', coalesce((select jsonb_agg(i) from jsonb_array_elements(coalesce(p.dados -> 'inventario', '[]'::jsonb)) i
@@ -1585,13 +1589,13 @@ begin
       'bonus_pct', pct, 'bonus_exp_ate', case when a.bonus_exp_ate > now() then a.bonus_exp_ate end,
       'bonus_ouro_ate', case when a.bonus_ouro_ate > now() then a.bonus_ouro_ate end),
     'meu_cargo', m.cargo,
-    'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cargo', x.cargo, 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo',
+    'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cargo', x.cargo, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo',
         'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0),
         'contribuicao', x.contribuicao, 'visto_em', p.atualizado_em)
         order by case x.cargo when 'lider' then 0 when 'oficial' then 1 else 2 end, x.contribuicao desc, p.nome)
       from public.alianca_membros x join public.personagens p on p.id = x.personagem_id where x.alianca_id = a.id),
     'pedidos', case when m.cargo in ('lider', 'oficial') then coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'nome', p.nome,
-        'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0)) order by c.id)
+        'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0)) order by c.id)
       from public.alianca_convites c join public.personagens p on p.id = c.personagem_id where c.alianca_id = a.id and c.tipo = 'pedido'), '[]'::jsonb) else '[]'::jsonb end);
 end $$;
 
