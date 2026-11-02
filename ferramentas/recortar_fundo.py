@@ -66,7 +66,8 @@ def recortar(origem, destino, passo=7, limite=60, minimo_mancha=120):
     rgba.resize((192, 192), Image.LANCZOS).save(destino, quality=86, method=6)
 
 # Artes com moldura ou fundo texturizado precisam de mais tolerância.
-AJUSTES = {'anel-comum': (9, 95), 'anel-lendaria': (9, 95), 'mago-botas-epica': (10, 110), 'mago-botas-lendaria': (10, 110), 'mago-peitoral-lendaria': (10, 110)}
+AJUSTES = {'anel-comum': (9, 95), 'anel-lendaria': (9, 95), 'mago-botas-epica': (10, 110), 'mago-botas-lendaria': (10, 110), 'mago-peitoral-lendaria': (10, 110),
+           'cristal-comum': (4, 25)}   # pedra cinza escura parecida com o fundo: tolerância menor
 
 if __name__ == '__main__':
     import os
