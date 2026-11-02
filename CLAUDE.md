@@ -152,6 +152,10 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   conjunto-<c2>-peitoral conjunto-<c2>-luvas conjunto-<c2>-botas` e depois `recortar_fundo.py`.
 - Armaduras (elmo/peitoral/luvas/botas) novas têm `variacao` e nome "<tipo da peça> <SUFIXOS_ARMA>" (8 por raridade, iguais
   aos das armas); antigas sem `variacao` mantêm `nomes[raridade]`; peça de conjunto mantém o nome do conjunto.
+- Ícones das habilidades: `assets/habilidades/<id da habilidade>.webp` (quadrado COM fundo, não tirar o fundo), mostrados no
+  cartão (`iconeHab` em app.js; sem a arte, some). Prompts do Gemini mandados: 9 grades 2x2 (iniciais na ordem cavaleiro,
+  arqueiro, mago, artesao; depois cada segunda classe na ordem das habilidades em dados.js). `recortar_grade.py` salva em
+  assets/itens/*.jpg: mover para assets/habilidades e converter para .webp 192x192.
 
 ## Mudanças do Henri (nov/2026)
 - Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;

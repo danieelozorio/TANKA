@@ -1249,6 +1249,10 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .carta-hab.sem-ponto { opacity: .72; }
 .carta-hab p { margin: 0; }
 .hab-topo { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-family: var(--titulo); color: var(--ouro-claro); }
+.hab-titulo { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.hab-ico { width: 44px; height: 44px; flex: none; border-radius: 8px; object-fit: cover; border: 1px solid rgba(201, 162, 74, .55);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .5); }
+.carta-hab.sem-ponto .hab-ico { filter: grayscale(.85) brightness(.7); }
 .hab-tipo { font-size: .7rem; letter-spacing: .05em; text-transform: uppercase; padding: .1em .55em; border-radius: 999px; border: 1px solid rgba(201, 162, 74, .4); color: #cbbd9c; white-space: nowrap; }
 .hab-efeito { font-size: .95rem; }
 .hab-efeito b { color: var(--ouro-claro); }

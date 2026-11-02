@@ -1093,10 +1093,20 @@
   }
   function emGrupo(def) { return def.tipo === 'provocar' || def.tipo === 'cura' || def.grupo || (def.tipo === 'area'); }
   // pts: distribuídos; arma: pontos extras da arma equipada (passam do limite de 10).
+  // Ícone da habilidade: assets/habilidades/<id>.webp (quadrado, com fundo). Sem a arte, não mostra nada.
+  var habSemIcone = {};
+  function iconeHab(def, cls) {
+    if (!def || !def.id || habSemIcone[def.id]) return '';
+    return '<img class="hab-ico' + (cls ? ' ' + cls : '') + '" src="assets/habilidades/' + def.id + '.webp" alt="" data-hab="' + def.id + '">';
+  }
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (img && img.tagName === 'IMG' && img.classList.contains('hab-ico')) { habSemIcone[img.dataset.hab] = true; img.remove(); }
+  }, true);
   function cartaHabilidade(def, pts, pend, editavel, arma) {
     var dist = pts + (pend || 0), total = dist + (arma || 0), max = D.TALENTOS.maxPorHabilidade;
     return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + '">'
-      + '<div class="hab-topo"><strong>' + def.nome + '</strong><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
+      + '<div class="hab-topo"><span class="hab-titulo">' + iconeHab(def) + '<strong>' + def.nome + '</strong></span><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
       + '<p class="hab-efeito">' + efeitoHabilidade(def, total) + '</p>'
       + '<p class="suave pequeno">' + (def.recarga ? 'Recarga: ' + def.recarga + ' turnos' : 'Sempre ligada') + (emGrupo(def) && def.tipo !== 'passiva' ? ' · melhor em grupo' : '')
       + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' ? ' · não gasta a vez' : '') + '</p>'
