@@ -303,9 +303,9 @@ begin
   a := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"e","tipo":"elmo","classe":"cavaleiro","raridade":"rara","encanto":0,"nivel":30,"bonus":{"defesa":100,"vida":10}}]'::jsonb));
   b := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"e","tipo":"elmo","classe":"cavaleiro","raridade":"rara","encanto":4,"nivel":30,"bonus":{"defesa":100,"vida":10}}]'::jsonb));
   raise notice 'armadura: % x %', a -> 'defesa', b -> 'defesa';
-  -- +20 do encanto, x3 da defesa em porcentagem = +60 (igual a R.bonusItem)
-  if (b ->> 'defesa')::numeric - (a ->> 'defesa')::numeric <> 60 then
-    raise exception 'FALHA servidor: elmo +4 com 100 de defesa devia ter +60 (x3): % x %', a ->> 'defesa', b ->> 'defesa'; end if;
+  -- +20 do encanto, x4,5 da defesa em porcentagem = +90 (igual a R.bonusItem)
+  if (b ->> 'defesa')::numeric - (a ->> 'defesa')::numeric <> 90 then
+    raise exception 'FALHA servidor: elmo +4 com 100 de defesa devia ter +90 (x4,5): % x %', a ->> 'defesa', b ->> 'defesa'; end if;
   raise notice 'ok   servidor: encanto da armadura em %%';
 end $$;
 -- Defesa em porcentagem na Arena: 100 de defesa = metade do dano; RES x3
@@ -320,8 +320,8 @@ begin
   d := a || jsonb_build_object('defesa', 100000);
   r := public.arena_vez(a, d, 6);
   if (r -> 'ev' ->> 'dano')::int <> 1 then raise exception 'FALHA arena: nunca imortal (mínimo 1): %', r -> 'ev'; end if;
-  p := pg_temp.heroi('cavaleiro', 10, null);   -- RES 10 = 1 x 3 de defesa, sem itens
-  if (public.tanka_status(p) ->> 'defesa')::int <> 3 then raise exception 'FALHA servidor: RES 10 = 3 de defesa: %', public.tanka_status(p) ->> 'defesa'; end if;
+  p := pg_temp.heroi('cavaleiro', 10, null);   -- RES 10 = 1 x 4,5 = 5 de defesa (arredondado, igual ao Math.round), sem itens
+  if (public.tanka_status(p) ->> 'defesa')::int <> 5 then raise exception 'FALHA servidor: RES 10 = 5 de defesa: %', public.tanka_status(p) ->> 'defesa'; end if;
   raise notice 'ok   arena: defesa em porcentagem (100 = -50%%, mínimo 1) e RES x3';
 end $$;
 -- Arena: Top 5 ataca para baixo, ataque pelo Ranking, repetição na semana e revanche mesmo quando o defensor vence

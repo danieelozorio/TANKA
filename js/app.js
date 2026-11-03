@@ -689,7 +689,7 @@
         degrau: dano === 'for' ? [n, 'Ataque'] : null },
       des: { ganhos: (dano === 'des' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : [])
         .concat(['+0,5% de chance de crítico por ponto', '+1% de precisão por ponto', '+0,5% de evasão por ponto']), degrau: dano === 'des' ? [n, 'Ataque'] : null },
-      res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+' + D.DEFESA.fator + ' de defesa e +' + D.DEFESA.fator + ' de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
+      res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+' + fmtDec(D.DEFESA.fator) + ' de defesa e +' + fmtDec(D.DEFESA.fator) + ' de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
       int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
         degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
       sor: { ganhos: ['+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',

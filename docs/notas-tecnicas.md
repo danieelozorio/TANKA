@@ -156,4 +156,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   o painel mostra a senha uma vez e um botão "Abrir e-mail" (mailto para o e-mail do cadastro). No login com `trocar_senha`,
   `telaTrocarSenha(true)` obriga a criar senha nova (`PUT /auth/v1/user` + `senha_trocada()`). "Trocar senha" também na tela
   de personagens. Tabela `pedidos_senha` (RLS sem regras). Testes no banco (bloco "Esqueci a senha").
+- **Defesa 50% mais eficaz (nov/2026):** `DEFESA.fator` 3 -> 4,5 (itens, RES, também os já salvos); arredonda por item e na RES
+  (`Math.round`; servidor `round`). Bônus de 2 peças de conjunto 15 -> 23. Poder/força dos itens compensam (`PESO_BONUS` = 8/fator).
+  Arena igual (tanka_dados regenerado + tanka_status). A fórmula continua dano x 100 / (100 + defesa).
 

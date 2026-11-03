@@ -296,9 +296,9 @@ Tanka.regras = (function () {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);
     }
-    // Defesa em porcentagem: a defesa dos itens vale x3 (DEFESA.fator), inclusive nos itens já salvos.
-    if (b.defesa) b.defesa *= D.DEFESA.fator;
-    if (b.defesaMagica) b.defesaMagica *= D.DEFESA.fator;
+    // Defesa em porcentagem: a defesa dos itens vale x DEFESA.fator (4,5), inclusive nos itens já salvos.
+    if (b.defesa) b.defesa = Math.round(b.defesa * D.DEFESA.fator);
+    if (b.defesaMagica) b.defesaMagica = Math.round(b.defesaMagica * D.DEFESA.fator);
     return b;
   }
   // Dano que o herói recebe depois da defesa: x 100 / (100 + defesa), nunca menos que 1.
@@ -724,8 +724,8 @@ Tanka.regras = (function () {
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
       dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)], magico ? eq.danoMagico : 0),
-      defesa: Math.floor(a.res / 10) * D.DEFESA.fator + eq.defesa,              // RES (x3) + armaduras (já x3)
-      defesaMagica: Math.floor(a.res / 10) * D.DEFESA.fator + eq.defesaMagica,  // RES (x3) + armaduras (já x3)
+      defesa: Math.round(Math.floor(a.res / 10) * D.DEFESA.fator) + eq.defesa,              // RES (x4,5) + armaduras (já x4,5)
+      defesaMagica: Math.round(Math.floor(a.res / 10) * D.DEFESA.fator) + eq.defesaMagica,  // RES (x4,5) + armaduras (já x4,5)
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
@@ -1287,7 +1287,7 @@ Tanka.regras = (function () {
   // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
 
   // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
-  var PESO_BONUS = { defesa: 8 / 3, defesaMagica: 8 / 3, vida: 1, regen: 20, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
+  var PESO_BONUS = { defesa: 8 / D.DEFESA.fator, defesaMagica: 8 / D.DEFESA.fator, vida: 1, regen: 20, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
   function forcaItem(item) {
     if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
     var b = bonusItem(item), total = 0;

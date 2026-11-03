@@ -333,7 +333,7 @@ Tanka.dados = {
   // Chaves: defesa, vida, dano, for (Força), velocidade, critico (% físico), evasao (%), criticoMagico (%).
   CONJUNTOS: {
     paladino: { nomes: ['da Fé', 'do Juramento', 'da Luz Sagrada', 'do Templo', 'do Santo Guardião', 'da Aurora Divina'],
-      bonus: { 2: { defesa: 15 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+      bonus: { 2: { defesa: 23 }, 3: { dano: 5 }, 4: { vida: 30 } } },
     destruidor: { nomes: ['da Fúria', 'do Sangue', 'da Ruína', 'do Trovão', 'do Massacre', 'do Fim do Mundo'],
       bonus: { 2: { for: 5 }, 3: { dano: 5 }, 4: { velocidade: 2 } } },
     cacador: { nomes: ['do Batedor', 'do Vento', 'do Falcão', 'da Floresta Antiga', 'do Olho de Águia', 'da Estrela Cadente'],
@@ -345,9 +345,9 @@ Tanka.dados = {
     curandeiro: { nomes: ['da Esperança', 'da Graça', 'da Fonte', 'da Luz Serena', 'da Vida Eterna', 'do Milagre'],
       bonus: { 2: { criticoMagico: 5 }, 3: { dano: 5 }, 4: { velocidade: 3 } } },
     ferreiro: { nomes: ['da Bigorna', 'da Forja', 'do Aço Rúnico', 'do Mestre Ferreiro', 'da Forja Ancestral', 'do Coração de Ferro'],
-      bonus: { 2: { defesa: 15 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+      bonus: { 2: { defesa: 23 }, 3: { dano: 5 }, 4: { vida: 30 } } },
     coletor: { nomes: ['do Viajante', 'do Garimpeiro', 'do Tesouro', 'da Fortuna', 'do Rei Mercador', 'da Riqueza Perdida'],
-      bonus: { 2: { defesa: 15 }, 3: { dano: 5 }, 4: { vida: 30 } } },
+      bonus: { 2: { defesa: 23 }, 3: { dano: 5 }, 4: { vida: 30 } } },
   },
   // Chance (%) de uma armadura que cai na caçada vir de conjunto, para quem tem segunda classe.
   // A peça de conjunto vem na raridade sorteada (comum a lendária). O Mercado não vende peças de conjunto.
@@ -404,7 +404,8 @@ Tanka.dados = {
   // Defesa do herói em porcentagem (igual aos monstros): dano recebido x 100 / (100 + defesa).
   // 100 de defesa = -50%, 200 = -67%, 300 = -75%: nunca imortal, sempre útil. Para a defesa valer o mesmo de antes,
   // a defesa das armaduras, joias, mão esquerda e da RES vale x`fator` (3) — vale para itens antigos também.
-  DEFESA: { k: 100, fator: 3 },
+  // Henri (nov/2026): defesa 50% mais eficaz: fator 3 -> 4,5 (itens, RES e conjuntos); arredonda por item.
+  DEFESA: { k: 100, fator: 4.5 },
   EXP_REDUZIDA: [{ mapasAFrente: 3, pct: 10 }, { mapasAFrente: 2, pct: 50 }],
   // ---------- Habilidades (aba Herói > Habilidades) e segunda classe ----------
   // Antes do level 10: só a habilidade inicial da classe (sem pontos). No level 10 o jogador escolhe a segunda
