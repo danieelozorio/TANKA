@@ -131,7 +131,7 @@ Tanka.dados = {
   bonus: {
     defesa: 'Defesa', defesaMagica: 'Defesa Mágica', vida: 'Vida',
     for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte',
-    dano: 'Dano', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
+    dano: 'Dano', regen: 'Regeneração de vida %/min', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
   },
 
   // Armaduras de cada classe. Valores dos bônus na ordem: comum, rara, épica, lendária.
@@ -182,9 +182,17 @@ Tanka.dados = {
   joias: {
     colar: { tipo: 'Colar', bonus: { defesaMagica: [1, 3, 6, 12], vida: [5, 15, 40, 100] },
       nomes: ['Colar de Cobre', 'Colar de Prata', 'Colar de Ametista', 'Colar do Sol Eterno'] },
-    anel: { tipo: 'Anel', bonus: { sor: [1, 2, 4, 8] },
+    // Anel (Henri, nov/2026): comum = dano; rara + defesa mágica; épica + 1 atributo sorteado + regeneração;
+    // lendária + 2 atributos sorteados + vida + regeneração. Valores por nível em ANEL (os de baixo são só de reserva).
+    anel: { tipo: 'Anel', bonus: { dano: [1, 2, 3, 4], defesaMagica: [0, 2, 4, 6], vida: [0, 0, 0, 30], regen: [0, 0, 1, 1] },
       nomes: ['Anel de Cobre', 'Anel de Prata', 'Anel de Ametista', 'Anel do Sol Eterno'] },
   },
+  // Anel por nível: dano = danoPctArma% do dano médio de uma arma do mesmo nível e qualidade (mínimo 1);
+  // defesa mágica e vida crescem com o nível como as armaduras (valor de referência da rara);
+  // atributos: quantos atributos diferentes sorteados (valores de VARIACAO_ITEM.extra); regen: % da vida por minuto
+  // (soma aos VIDA.regenPorMinuto, fora da luta; 2 anéis somam).
+  ANEL: { danoPctArma: 15, defesaMagica: 2, vida: 15, regen: 1,
+    desde: { defesaMagica: 'rara', atributos: 'epica', regen: 'epica', vida: 'lendaria' }, atributos: { epica: 1, lendaria: 2 } },
 
   // Encantamento: +0 a +10, gastando 1 pergaminho da raridade da arma por tentativa.
   encantamento: {
@@ -199,7 +207,7 @@ Tanka.dados = {
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
-    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'sor' },   // mão esquerda: MAO_ESQUERDA[x].encanto
+    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'dano' },   // mão esquerda: MAO_ESQUERDA[x].encanto
   },
 
   sexos: {

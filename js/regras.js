@@ -186,9 +186,30 @@ Tanka.regras = (function () {
     return base > 0 ? [Math.max(1, Math.round(base * V[0])), Math.max(1, Math.round(base * V[1]))] : [base, base];
   }
   // Bônus sorteados de uma armadura, joia ou item da mão esquerda (+ atributo extra da rara em diante).
+  // Anel: dano (fração do dano de uma arma do mesmo nível), defesa mágica, atributos sorteados, regeneração e vida (ANEL).
+  function sortearBonusAnel(item, rng) {
+    var A = D.ANEL, idx = RARIDADES.indexOf(item.raridade), n = item.nivel || 1, b = {};
+    var q = item.qualidade != null ? item.qualidade : sortearQualidade(item.raridade, rng);
+    var tem = function (k) { return idx >= RARIDADES.indexOf(A.desde[k]); };
+    b.dano = Math.max(1, Math.round((N_.danoPorNivel * n + N_.danoBase) * multQualidade(q) * A.danoPctArma / 100));
+    if (tem('defesaMagica')) b.defesaMagica = bonusDoNivel(A.defesaMagica, n, q);
+    if (tem('vida')) b.vida = bonusDoNivel(A.vida, n, q);
+    if (tem('atributos')) {
+      var livres = ATRIBUTOS.slice(), extra = D.VARIACAO_ITEM.extra[item.raridade];
+      for (var i = 0; i < (A.atributos[item.raridade] || 0); i++) {
+        var k = livres.splice(Math.floor(rng() * livres.length), 1)[0];
+        b[k] = rolar(extra, rng);
+      }
+    }
+    if (tem('regen')) b.regen = A.regen;
+    return b;
+  }
+  // Anel antigo (dava Sorte): ganha os bônus novos da raridade e do nível dele.
+  function anelAntigo(item) { return item.tipo === 'anel' && !(item.bonus && item.bonus.dano); }
   function sortearBonus(item, rng) {
     var def = definicao(item), idx = RARIDADES.indexOf(item.raridade), b = {};
     if (!def) return b;
+    if (item.tipo === 'anel') return sortearBonusAnel(item, rng);
     if (item.nivel) Object.keys(def.bonus).forEach(function (k) { b[k] = bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade); });
     else Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
     var extra = D.VARIACAO_ITEM.extra[item.raridade];
@@ -270,7 +291,7 @@ Tanka.regras = (function () {
     }
     if (!def) return b;
     if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
-    else Object.keys(def.bonus).forEach(function (k) { b[k] = def.bonus[k][idx]; });          // itens antigos: valor fixo
+    else Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) b[k] = def.bonus[k][idx]; });   // itens antigos: valor fixo
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);
@@ -668,6 +689,12 @@ Tanka.regras = (function () {
     if (!('secundaria' in p.equipados)) p.equipados.secundaria = null;   // espaço novo: mão esquerda
     // Itens de antes do nível: viram do nível atual do herói (os status continuam os mesmos).
     p.inventario.forEach(function (i) { if (!i.nivel) i.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, p.nivel || 1)); });
+    // Anéis antigos (Sorte) viram anéis novos, com os bônus da raridade e do nível deles.
+    p.inventario.forEach(function (i) {
+      if (!anelAntigo(i)) return;
+      if (i.qualidade == null) i.qualidade = sortearQualidade(i.raridade);
+      i.bonus = sortearBonusAnel(i, Math.random);
+    });
     return p;
   }
 
@@ -875,7 +902,8 @@ Tanka.regras = (function () {
     return 86400000 - (local % 86400000);
   }
   function regenPorMinuto(p) {
-    return status(p).hpMax * D.VIDA.regenPorMinuto * (p.acampado ? D.VIDA.acampamento : 1) / 100;
+    // base + anéis (épico e lendário: +1% cada), tudo multiplicado no acampamento
+    return status(p).hpMax * (D.VIDA.regenPorMinuto + (bonusEquipamentos(p).regen || 0)) * (p.acampado ? D.VIDA.acampamento : 1) / 100;
   }
 
   // Aplica o reset diário e a vida recuperada desde a última conta. Não chamar durante a batalha.
@@ -1259,7 +1287,7 @@ Tanka.regras = (function () {
   // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
 
   // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
-  var PESO_BONUS = { defesa: 8 / 3, defesaMagica: 8 / 3, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
+  var PESO_BONUS = { defesa: 8 / 3, defesaMagica: 8 / 3, vida: 1, regen: 20, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
   function forcaItem(item) {
     if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
     var b = bonusItem(item), total = 0;

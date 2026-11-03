@@ -218,6 +218,33 @@ teste('drop de arma é sempre da classe, com variação e dano sorteados na faix
   assert.strictEqual(nomes.size, 8);
 });
 
+teste('anel: dano ~15% de uma arma do nível, defesa mágica (rara+), atributos e regen (épica+), vida (lendária); antigo vira novo', () => {
+  let x = 1; const rng2 = () => { x = (x * 16807) % 2147483647; return x / 2147483647; };
+  const anel = (rar, n) => R.novoItem('anel', null, rar, rng2, null, n);
+  const c = anel('comum', 20), ra = anel('rara', 20), e = anel('epica', 20), l = anel('lendaria', 20);
+  assert.deepStrictEqual(Object.keys(c.bonus), ['dano']);
+  assert.deepStrictEqual(Object.keys(ra.bonus).sort(), ['dano', 'defesaMagica']);
+  const attrs = (b) => Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
+  assert.strictEqual(attrs(e.bonus).length, 1); assert.strictEqual(e.bonus.regen, 1); assert.ok(!e.bonus.vida);
+  assert.strictEqual(attrs(l.bonus).length, 2); assert.strictEqual(l.bonus.regen, 1); assert.ok(l.bonus.vida > 0);
+  const arma = R.novoItem('arma', 'cavaleiro', 'rara', rng2, null, 20), media = (arma.dano[0] + arma.dano[1]) / 2;
+  assert.ok(ra.bonus.dano >= 2 && ra.bonus.dano <= 4 && ra.bonus.dano < media / 4, ra.bonus.dano + ' vs ' + media);
+  // regen: 2% base + 1% por anel épico/lendário
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'); p.hpAtual = 1;
+  const t0 = R.minutosParaVidaCheia(p);
+  p.inventario.push(e, l); R.equipar(p, e.id); R.equipar(p, l.id); p.hpAtual = 1;
+  const hp = R.status(p).hpMax, t1 = R.minutosParaVidaCheia(p);
+  assert.strictEqual(t1, Math.ceil((hp - 1) / (hp * 4 / 100)));
+  assert.ok(t0 > t1);
+  // anel antigo (Sorte) vira novo ao carregar o personagem
+  const q = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
+  q.inventario.push({ id: 'velho', tipo: 'anel', classe: null, raridade: 'lendaria', encanto: 3, bonus: { sor: 9 } });
+  R.normalizar(q);
+  const v = q.inventario.find((i) => i.id === 'velho');
+  assert.ok(v.bonus.dano > 0 && v.bonus.regen === 1 && !('sor' in v.bonus && Object.keys(v.bonus).length === 1));
+  assert.strictEqual(v.encanto, 3);
+});
+
 teste('sorte: 0,5% de encantamento por ponto; não mexe no drop nem no crítico físico', () => {
   const p = R.criarPersonagem('T', 'masculino', 'anao', 'artesao');
   assert.strictEqual(R.status(p).chanceEncantamento, 11.5);
@@ -415,7 +442,7 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: 8 * 3, vida: 40 });   // defesa dos itens x3
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: 3 * 3, defesaMagica: 5 * 3, vida: 15 });
   assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: 5 * 3, res: 1 });
-  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { sor: 6 });
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 5, defesaMagica: 4 * 3, regen: 1 });   // reserva sem nível; encanto no dano
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: 2 * 3, vida: 5 });
 });
 
@@ -430,7 +457,8 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   const s1 = R.status(p);
   assert.strictEqual(s1.defesa, s0.defesa + (8 + 6) * 3);
   assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
-  assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor + 2);
+  assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor);   // anel não dá mais Sorte
+  assert.deepStrictEqual([...s1.dano], [s0.dano[0] + 2, s0.dano[1] + 2]);   // 2 anéis comuns: +1 de dano cada
   assert.strictEqual(s1.chanceCritico, p.atributos.des * 0.5);   // só a Destreza (a Sorte não conta mais)
 });
 

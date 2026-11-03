@@ -143,3 +143,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Sorte (nov/2026):** a Sorte NÃO aumenta mais o drop (itens, pergaminhos da caçada, joia da masmorra no servidor;
   `bonusDrop` foi removido) nem o crítico físico (`chanceCritico` = DES x 0,5 + itens). Continua: encantamento 0,5% por ponto
   (`SORTE.encanto`, `chanceEncantar`), crítico e dano crítico mágico 1% por ponto, craft 1%, quebrar armadura (Artesão).
+- **Anéis novos (nov/2026):** `D.ANEL` + `R.sortearBonusAnel`: dano = 15% do dano médio de uma arma do mesmo nível/qualidade
+  (mín. 1); rara+ defesa mágica (`bonusDoNivel(2)`); épica 1 atributo e lendária 2 atributos diferentes (valores de
+  VARIACAO_ITEM.extra); épica+ `regen` = +1% da vida por minuto (soma em `regenPorMinuto`, x3 acampado, 2 anéis somam);
+  lendária + vida (`bonusDoNivel(15)`). Encanto do anel vai no dano (`bonusPorNivel.anel`). Anéis antigos (Sorte, sem `bonus.dano`)
+  viram novos em `normalizar` (mantêm raridade, nível e encanto). Servidor soma dano/vida/defesaMagica do `it.bonus` (regen não
+  importa na Arena); tanka_dados regenerado.
+
