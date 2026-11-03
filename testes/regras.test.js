@@ -73,20 +73,33 @@ teste('cobra = 2x lobo, urso = 2x cobra (vida e exp); dano em faixa', () => {
   for (const [a, b] of [[lobo, cobra], [cobra, urso]]) {
     assert.strictEqual(b.hp, a.hp * 2); assert.strictEqual(b.exp, a.exp * 2);
   }
-  assert.deepStrictEqual([...lobo.ataque, ...cobra.ataque, ...urso.ataque, ...D.monstros.velgrath.ataque], [3, 5, 4, 6, 5, 8, 8, 10]);
-  assert.deepStrictEqual(['sapo', 'aranha', 'troll', 'morgath'].map((m) => [...D.monstros[m].ataque]), [[10, 15], [15, 20], [18, 22], [25, 30]]);
+  // dano de dados.js x (velocidade antiga / nova): o dano por segundo continua o mesmo de antes
+  assert.deepStrictEqual([...lobo.ataque, ...cobra.ataque, ...urso.ataque, ...D.monstros.velgrath.ataque], [4, 7, 6, 8, 6, 10, 10, 13]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll', 'morgath'].map((m) => [...D.monstros[m].ataque]), [[15, 23], [22, 29], [26, 31], [36, 43]]);
 });
 
-teste('velocidade e defesa dos monstros: 15, +10% por monstro, +10% entre áreas; chefe +50% / defesa x2', () => {
+teste('velocidade dos monstros: 70/80/90% do herói (arma normal) no level mínimo da área; chefe = 3º; defesa', () => {
   const v = (id) => D.monstros[id].velocidade, d = (id) => D.monstros[id].defesa;
-  assert.deepStrictEqual(['lobo', 'cobra', 'urso', 'velgrath'].map(v), [15, 17, 18, 18]);   // chefe: velocidade do 3º monstro
-  assert.strictEqual(v('sapo'), Math.round(15 * 1.1 * 1.1 * 1.1));
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso', 'velgrath'].map(v), [11, 12, 14, 14]);
+  assert.deepStrictEqual(['escorpiao', 'lagarto', 'mumia', 'farao'].map(v), [32, 36, 41, 41]);   // Areias (level 20: herói 45)
+  // o herói no level mínimo de cada área é sempre mais rápido que qualquer monstro dela (com arma normal)
+  D.areas.forEach((a) => { const h = Math.round(15 * Math.pow(1.06, a.nivelMin - 1)); a.monstros.forEach((m) => assert.ok(v(m.id) < h, m.id)); });
   assert.strictEqual(d('lobo'), 1);
   assert.strictEqual(d('velgrath'), d('urso') * 2);
   assert.ok(d('salamandra') > 20 && d('ignaroth') < 100, d('salamandra') + ' ' + d('ignaroth'));
   const urso = D.monstros.urso, chefe = D.monstros.velgrath;
   assert.strictEqual(chefe.hp, urso.hp * 1.5);
   assert.strictEqual(chefe.exp, urso.exp * 5);
+});
+
+teste('caçada: o herói acerta pelo menos 95% dos golpes, mesmo sem precisão e na última área', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  const b = R.iniciarBatalha(p, 'elemental', rng);
+  b.s = Object.assign({}, b.s, { precisao: 0 });
+  b.monstro.hp = b.monstro.hpMax = 1e12; b.jogador.hp = b.jogador.hpMax = 1e12;
+  let acertos = 0, n = 0;
+  while (n < 20000) { const ev = R.passo(b); if (ev && ev.ator === 'jogador') { n++; if (ev.acerto) acertos++; } }
+  assert.ok(acertos / n > 0.94 && acertos / n < 0.96, String(acertos / n));
 });
 
 teste('velocidade do personagem: 15 no level 1, +6% por level; não depende da DES', () => {
@@ -510,7 +523,7 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
   assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [112, 448, 2970]);   // com o ajusteVida da área
-  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [10, 15, 18]);
+  assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [15, 22, 26]);   // x velocidade antiga/nova
   assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
 });
 
@@ -984,9 +997,9 @@ teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', (
   assert.ok(!R.itemMelhor(p, fraca));
   assert.ok(!R.itemMelhor(p, forte), 'o equipado não ganha seta');
   // Floresta com metade do dano; a masmorra da Floresta continua com o mesmo dano de antes
-  assert.deepStrictEqual([...D.monstros.lobo.ataque], [3, 5]);
+  assert.deepStrictEqual([...D.monstros.lobo.ataque], [4, 7]);   // mais lento e mais forte (mesmo dano por segundo)
   const chefeToca = R.salasMasmorra('toca')[2][0];
-  assert.deepStrictEqual([...chefeToca.ataque], [80, 100], 'masmorra quase igual (era 75–100)');
+  assert.deepStrictEqual([...chefeToca.ataque, chefeToca.velocidade], [100, 130, 14], 'masmorra: mais lenta e mais forte (era 80–100, velocidade 18)');
 });
 
 teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), passiva no status e recomeço', () => {

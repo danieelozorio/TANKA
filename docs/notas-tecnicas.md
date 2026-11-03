@@ -136,3 +136,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Brasília, `arena_inicio_semana`): ouro 100% / 50% / 25% / 0 (a reputação continua). Revanche sempre que o defensor quiser (mesmo
   tendo vencido a defesa), uma por luta. Janela de ataque mostra a recompensa esperada (`recompensaDesafioHtml`); histórico mostra o tipo
   e a reputação ganha. `ranking()` agora devolve `id`. Testes em `testes/banco.test.sql` (bloco "Top 5 ataca para baixo").
+- **Caçada: velocidade dos monstros e acerto (nov/2026).** Velocidade do monstro = velocidade do herói (arma normal) no level
+  mínimo da área x `MONSTRO.velocidadeHeroi` [0,7; 0,8; 0,9] (chefe = 3º). O dano dos monstros (e dos chefes, e da masmorra que
+  usa esses monstros) é multiplicado por velocidade antiga / nova, para o dano por segundo continuar igual. Herói acerta
+  monstros no mínimo `ACERTO_PVE_MINIMO` = 95% (até 100% com precisão), em `calcularGolpe` (caçada e masmorra). Arena não mudou.
+

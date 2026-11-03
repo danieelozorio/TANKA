@@ -531,7 +531,8 @@ Tanka.regras = (function () {
   // Um golpe de herói contra um alvo (monstro). opcoes: mult (%), sempreAcerta, ignoraDefesa.
   function calcularGolpe(s, L, alvo, opcoes, rng) {
     var magico = s.tipoDano === 'magico', g = { acerto: false, critico: false, dano: 0 };
-    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, 5, 95)) return g;
+    // Contra monstros (caçada e masmorra) o herói acerta pelo menos 95% (errar é coisa da Arena, que tem regra própria no servidor).
+    if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, D.ACERTO_PVE_MINIMO, 100)) return g;
     var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
     var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100);
     dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
