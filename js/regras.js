@@ -666,6 +666,12 @@ Tanka.regras = (function () {
       if (p.nivel > 1) p.recomecos = (p.recomecos || 0) + 1;
       p.recomecoPresente = p.nivel > 1 ? 1 : 2;
     }
+    // Caçador passou a usar Força no ataque (nov/2026): quem já tinha level ganha 1 Recomeço para mudar os pontos, uma vez só.
+    if (!p.presenteForcaCacador) {
+      var ganha = p.classe === 'arqueiro' && p.nivel > 1;
+      if (ganha) p.recomecos = (p.recomecos || 0) + 1;
+      p.presenteForcaCacador = ganha ? 1 : 2;
+    }
     if (typeof p.ouro !== 'number') p.ouro = 0;
     consumiveis(p);   // pergaminhos antigos (contador) viram itens
     p.inventario.forEach(function (i) {

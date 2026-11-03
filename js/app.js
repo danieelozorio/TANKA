@@ -448,11 +448,15 @@
     estado.resultado = null;
     R.atualizarTempo(estado.personagem, C.agora());
     iniciarAtividade();
-    var presente = estado.personagem.recomecoPresente === 1;
+    var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
     if (presente) estado.personagem.recomecoPresente = 2;
+    if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     salvar();   // também marca o personagem como online para os amigos
     if (presente) setTimeout(function () {
       avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
+    }, 800);
+    else if (presenteForca) setTimeout(function () {
+      avisar('🎁 O ataque do Caçador agora vem da Força (a Destreza continua dando crítico, precisão e evasão). Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
     }, 800);
     estado.social = null;
     estado.gm = null;
@@ -660,7 +664,7 @@
   // ----- Pontos de atributo: escolher com + e −, conferir a prévia e só então confirmar -----
   var DESCRICAO_ATRIBUTO = {
     for: 'Aumenta o ataque físico e o dano dos golpes críticos.',
-    des: 'Aumenta a precisão, a evasão e a chance de magia crítica.',
+    des: 'Aumenta a precisão, a evasão e a chance de crítico.',
     res: 'Aumenta a vida, a defesa e a defesa mágica.',
     int: 'Aumenta o ataque mágico (dano dos magos).',
     sor: 'Aumenta o crítico mágico, o dano crítico mágico, o encantamento e o craft.',

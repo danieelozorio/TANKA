@@ -35,11 +35,11 @@ Tanka.dados = {
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
 
   atributos: {
-    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro e Artesão), dano crítico' },
-    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Ataque (Caçador), chance de crítico, evasão, precisão' },
+    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro, Caçador e Artesão), dano crítico' },
+    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Chance de crítico, evasão, precisão' },
     res: { nome: 'Resistência', sigla: 'RES', efeito: 'Defesa, defesa mágica, vida' },
     int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico (Mago)' },
-    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Chance de crítico, crítico mágico, dano crítico mágico, craft, drop e encantamento' },
+    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Crítico mágico, dano crítico mágico, craft e encantamento' },
   },
 
   classes: {
@@ -54,7 +54,8 @@ Tanka.dados = {
       nome: 'Caçador', nomeF: 'Caçadora',
       descricao: 'Destreza e sorte elevadas. Arcos, bestas e golpes rápidos e certeiros.',
       atributos: { for: 15, des: 20, res: 10, int: 10, sor: 20 },
-      dano: 'fisico', atributoDano: 'des',
+      // Henri (nov/2026): o ataque do Caçador (e das segundas classes Arqueiro e Assassino) vem da Força, não mais da Destreza.
+      dano: 'fisico', atributoDano: 'for',
     },
     mago: {
       nome: 'Mago', nomeF: 'Maga',

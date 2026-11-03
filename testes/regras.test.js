@@ -1126,13 +1126,20 @@ teste('fugir ou evitar o chefe zera a chance dele aparecer na área', () => {
   assert.strictEqual(p.presencaChefe.floresta, 12);
 });
 
-teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa Destreza)', () => {
+teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa Força desde nov/2026)', () => {
   const c = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   assert.strictEqual(D.classes.arqueiro.nome, 'Caçador');
   assert.strictEqual(D.SEGUNDAS_CLASSES.cacador.nome, 'Arqueiro');
-  const antes = R.status(c).dano[0];
-  c.atributos.for += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Força não dá dano ao Caçador');
-  c.atributos.des += 3; assert.strictEqual(R.status(c).dano[0], antes + 1);
+  const antes = R.status(c).dano[0], crit = R.status(c).chanceCritico;
+  c.atributos.des += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Destreza não dá mais dano ao Caçador');
+  assert.strictEqual(R.status(c).chanceCritico, crit + 4.5, 'Destreza continua dando crítico');
+  c.atributos.for += 3; assert.strictEqual(R.status(c).dano[0], antes + 1);
+  // Caçador com level ganha 1 Recomeço de presente, uma vez só; outras classes não
+  const a = R.criarPersonagem('A', 'masculino', 'humano', 'arqueiro'); a.nivel = 15; a.recomecos = 0; a.recomecoPresente = 2; delete a.presenteForcaCacador;
+  R.normalizar(a); R.normalizar(a);
+  assert.strictEqual(a.recomecos, 1);
+  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); m.nivel = 15; m.recomecos = 0; m.recomecoPresente = 2; delete m.presenteForcaCacador;
+  R.normalizar(m); assert.strictEqual(m.recomecos, 0);
   const k = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'), d0 = R.status(k).dano[0];
   k.atributos.for += 3; assert.strictEqual(R.status(k).dano[0], d0 + 1);
   // presente: 1 Pergaminho do Recomeço para quem já tinha level
