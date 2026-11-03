@@ -1223,7 +1223,7 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .cacada-num small { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
 .cacada-num strong { font: 700 1.05rem var(--titulo); color: var(--ouro-claro); font-variant-numeric: tabular-nums; }
 .cacada-itens { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .7rem; }
-.cacada-itens .icone-pequeno { width: 42px; height: 42px; }
+.cacada-itens .icone-pequeno { width: 42px; height: 42px; position: relative; }
 .cacada-historico { padding: .5rem .7rem; border: 1px solid rgba(201, 162, 74, .2); border-radius: 8px; background: rgba(0, 0, 0, .2); font-size: .9rem; }
 .cacada-historico h4 { margin: 0 0 .3rem; font-family: var(--titulo); color: var(--ouro-claro); font-size: .9rem; }
 .cacada-historico p { margin: .15rem 0; }

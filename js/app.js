@@ -2089,13 +2089,19 @@
     clearInterval(c.relogio);
     telaJogo();
   }
+  // Nome de um drop da caçada: equipável ou consumível (pergaminho, com a quantidade).
+  function nomeDrop(it) {
+    if (!it.consumivel) return R.nomeItem(it);
+    return (it.qtd > 1 ? it.qtd + 'x ' : '') + R.nomeConsumivel(it);
+  }
   // Chamado pelo encerrar(): soma no resumo e segue para o próximo monstro (ou para).
   function fimLutaCacada(res, b, primeiraVez) {
     var c = estado.cacada, p = estado.personagem;
     var itens = [res.drop, res.dropArmadura].filter(Boolean);
+    // Pergaminho também é item: entra na lista de drops junto com os equipáveis (chefe pode dar vários de uma vez).
+    if (res.pergaminho) itens.push({ tipo: 'pergaminho', classe: null, raridade: res.pergaminho, encanto: 0, qtd: res.qtdPergaminhos || 1, consumivel: true });
     if (res.resultado === 'vitoria') { c.mortos++; c.exp += res.exp; c.ouro += res.ouro; c.itens = itens.concat(c.itens).slice(0, 30); }
-    c.historico.unshift({ monstro: b.monstroId, resultado: res.resultado, exp: res.exp, ouro: res.ouro, itens: itens.map(R.nomeItem),
-      pergaminho: res.pergaminho ? ITEM_RARIDADE[res.pergaminho] : null });
+    c.historico.unshift({ monstro: b.monstroId, resultado: res.resultado, exp: res.exp, ouro: res.ouro, itens: itens.map(nomeDrop) });
     c.historico = c.historico.slice(0, D.CACADA.historico);
     estado.ultimaBatalha = b;
     estado.batalha = null;
@@ -2103,7 +2109,7 @@
     if (res.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
     var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
     if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
-    itens.forEach(function (it) { avisar('Item novo: ' + R.nomeItem(it), 'item'); });
+    itens.forEach(function (it) { if (!it.consumivel) avisar('Item novo: ' + R.nomeItem(it), 'item'); });   // pergaminho tem aviso próprio
     if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
     if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
     c.fase = 'pausa';
@@ -2162,17 +2168,18 @@
       + D.CACADA.pocaoAuto.map(function (v) { return '<option value="' + v + '"' + (pref.pocao === v ? ' selected' : '') + '>abaixo de ' + v + '% da vida</option>'; }).join('')
       + '</select></label></div>';
     var resumo = '<div class="cacada-resumo">'
-      + [['⚔', 'Derrotados', c.mortos], ['✦', 'Exp', c.exp.toLocaleString('pt-BR')], ['◎', 'Ouro', c.ouro.toLocaleString('pt-BR')], ['🎒', 'Itens', c.itens.length],
+      + [['⚔', 'Derrotados', c.mortos], ['✦', 'Exp', c.exp.toLocaleString('pt-BR')], ['◎', 'Ouro', c.ouro.toLocaleString('pt-BR')], ['🎒', 'Itens', c.itens.reduce(function (t, it) { return t + (it.qtd || 1); }, 0)],
         ['⏱', 'Tempo', '<span id="cacada-tempo">' + duracaoTexto(Date.now() - c.inicio) + '</span>']].map(function (x) {
         return '<div class="cacada-num"><small>' + x[0] + ' ' + x[1] + '</small><strong>' + x[2] + '</strong></div>';
       }).join('') + '</div>';
     var itens = c.itens.length ? '<div class="cacada-itens">' + c.itens.map(function (it) {
-      return '<div class="icone-pequeno borda-' + corItem(it) + '" title="' + esc(R.nomeItem(it)) + '">' + F.icone(it) + '</div>';
+      return '<div class="icone-pequeno borda-' + (it.consumivel ? it.raridade : corItem(it)) + '" title="' + esc(nomeDrop(it)) + '">' + F.icone(it)
+        + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</div>';
     }).join('') + '</div>' : '';
     var historico = '<div class="cacada-historico"><h4>Últimos combates</h4>' + (c.historico.length ? c.historico.map(function (h) {
       var nome = D.monstros[h.monstro].nome;
       if (h.resultado === 'vitoria') return '<p class="mais">✔ ' + nome + ' <span class="suave">+' + h.exp + ' exp · +' + h.ouro + ' ouro'
-        + (h.itens.length ? ' · ' + esc(h.itens.join(', ')) : '') + (h.pergaminho ? ' · pergaminho ' + h.pergaminho : '') + '</span></p>';
+        + (h.itens.length ? ' · ' + esc(h.itens.join(', ')) : '') + '</span></p>';
       if (h.resultado === 'derrota') return '<p class="menos">✖ ' + nome + ' <span class="suave">derrota</span></p>';
       return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
     }).join('') : '<p class="suave pequeno">Nenhum combate ainda.</p>') + '</div>';
