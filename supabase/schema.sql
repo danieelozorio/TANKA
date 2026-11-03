@@ -668,7 +668,7 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
 create or replace function public.tanka_dados() returns jsonb
-language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"des"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}}},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}}}'::jsonb; $dados$;
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"des"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"sor":[1,2,4,8]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"sor"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":5},"3":{"dano":5},"4":{"vida":30}}}},"LEILAO":{"nivelMin":10,"duracaoMin":240,"incrementoPct":5,"muitoCurto":[1,4],"fases":[{"id":"muitoLongo","nome":"Muito longo","acimaMin":180},{"id":"longo","nome":"Longo","acimaMin":60},{"id":"medio","nome":"Médio","acimaMin":20},{"id":"curto","nome":"Curto","acimaMin":0}],"nomeMuitoCurto":"Muito curto","minimo":{"comum":1000,"rara":5000,"epica":10000,"lendaria":50000},"pacotePergaminho":{"comum":10,"rara":5,"epica":3,"lendaria":1},"faixas":[{"id":"l1","nome":"Leilão do Mercador","nivel":[10,19],"mult":1,"itemNivel":[18,22],"raridades":{"comum":30,"rara":45,"epica":22,"lendaria":3}},{"id":"l2","nome":"Leilão da Coroa","nivel":[20,29],"mult":10,"itemNivel":[28,32],"raridades":{"comum":15,"rara":45,"epica":32,"lendaria":8}},{"id":"l3","nome":"Leilão dos Reis","nivel":[30,999],"mult":40,"itemNivel":[42,50],"raridades":{"comum":0,"rara":35,"epica":45,"lendaria":20}}]},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}}}'::jsonb; $dados$;
 -- <<< DADOS DO JOGO
 
 -- ---------- Arena (PvP) ----------
@@ -1855,5 +1855,190 @@ grant execute on function public.alianca_estado(text, text), public.alianca_cria
   public.alianca_sair(text), public.alianca_expulsar(text, text), public.alianca_cargo(text, text, text), public.alianca_desfazer(text),
   public.alianca_mural(text, text), public.alianca_brasao(text, jsonb), public.alianca_doar(text, int), public.alianca_bonus(text, text),
   public.alianca_chat(text, bigint), public.alianca_chat_enviar(text, text), public.alianca_admin(text, bigint, text, text) to authenticated;
+
+-- ======================================================================
+-- ---------- Leilão do servidor (Mercado > Leilão) ----------
+-- Números em js/dados.js (LEILAO), copiados para tanka_dados(). Uma rodada por faixa (l1 10–19, l2 20–29, l3 30+),
+-- sempre rodando: quando acaba, quem abrir o leilão fecha a rodada (entrega os itens) e abre outra.
+-- Ouro: o lance vira um crédito negativo de quem deu o lance e o lance coberto volta como crédito positivo
+-- (o jogo aplica os créditos, igual ao saque da Arena). O item vencedor vai para recompensas (como a joia da masmorra)
+-- com a semente; o jogo gera o item com R.itemDoLote.
+create table if not exists public.leiloes (
+  id bigint generated always as identity primary key,
+  faixa text not null,
+  inicio timestamptz not null default now(),
+  fim timestamptz not null,
+  muito_curto_em timestamptz not null,   -- quando entra em "Muito curto" (1 a 4 min antes do fim, sorteado)
+  fechado boolean not null default false
+);
+create index if not exists leiloes_abertos on public.leiloes (faixa) where not fechado;
+create table if not exists public.leilao_lotes (
+  id bigint generated always as identity primary key,
+  leilao_id bigint not null references public.leiloes (id) on delete cascade,
+  ordem int not null,
+  tipo text not null,          -- arma | armadura | joia | pergaminho
+  classe text,                 -- classe base (arma e armadura)
+  raridade text not null,
+  nivel int not null,
+  semente bigint not null,
+  qtd int not null default 1,  -- pergaminhos do pacote
+  minimo bigint not null,
+  lance bigint,
+  lider text references public.personagens (id) on delete set null,
+  lances int not null default 0,
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists leilao_lotes_leilao on public.leilao_lotes (leilao_id, ordem);
+alter table public.leiloes enable row level security;
+alter table public.leilao_lotes enable row level security;
+
+-- Raridade sorteada pelos pesos da faixa ({ comum, rara, epica, lendaria }); `minima` corta as mais fracas.
+create or replace function public.leilao_raridade(pesos jsonb, minima text default 'comum') returns text
+language plpgsql volatile as $$
+declare ordem text[] := array['comum', 'rara', 'epica', 'lendaria']; total numeric := 0; r numeric; k text; i int;
+begin
+  for i in array_position(ordem, minima)..4 loop total := total + coalesce((pesos ->> ordem[i])::numeric, 0); end loop;
+  if total <= 0 then return minima; end if;
+  r := random() * total;
+  for i in array_position(ordem, minima)..4 loop
+    k := ordem[i];
+    r := r - coalesce((pesos ->> k)::numeric, 0);
+    if r < 0 then return k; end if;
+  end loop;
+  return 'lendaria';
+end $$;
+
+-- Abre uma rodada nova da faixa com os 12 lotes.
+create or replace function public.leilao_criar(fx text) returns bigint
+language plpgsql volatile security definer set search_path = public as $$
+declare L jsonb := public.tanka_dados() -> 'LEILAO'; cfg jsonb; lid bigint; dur int; mc int; classes text[] := array['cavaleiro', 'arqueiro', 'mago', 'artesao'];
+  epArma int := 1 + floor(random() * 4)::int; epArm int := 1 + floor(random() * 4)::int; joiaBoa int := 1 + floor(random() * 2)::int;
+  i int; rar text; niv int; ordem int := 0;
+begin
+  select x into cfg from jsonb_array_elements(L -> 'faixas') x where x ->> 'id' = fx;
+  if cfg is null then raise exception 'Faixa de leilão inválida.'; end if;
+  dur := (L ->> 'duracaoMin')::int;
+  mc := (L -> 'muitoCurto' ->> 0)::int + floor(random() * ((L -> 'muitoCurto' ->> 1)::int - (L -> 'muitoCurto' ->> 0)::int + 1))::int;
+  insert into public.leiloes (faixa, fim, muito_curto_em)
+    values (fx, now() + make_interval(mins => dur), now() + make_interval(mins => dur) - make_interval(mins => mc)) returning id into lid;
+  -- 4 armas e 4 armaduras (uma de cada classe); uma de cada garantida épica (ou lendária)
+  for i in 1..8 loop
+    rar := case when (i <= 4 and i = epArma) or (i > 4 and i - 4 = epArm) then public.leilao_raridade(cfg -> 'raridades', 'epica')
+                else public.leilao_raridade(cfg -> 'raridades') end;
+    ordem := ordem + 1;
+    insert into public.leilao_lotes (leilao_id, ordem, tipo, classe, raridade, nivel, semente, minimo)
+    values (lid, ordem, case when i <= 4 then 'arma' else 'armadura' end, classes[1 + (i - 1) % 4], rar,
+      (cfg -> 'itemNivel' ->> 0)::int + floor(random() * ((cfg -> 'itemNivel' ->> 1)::int - (cfg -> 'itemNivel' ->> 0)::int + 1))::int,
+      floor(random() * 2147483647)::bigint, (L -> 'minimo' ->> rar)::bigint * (cfg ->> 'mult')::bigint);
+  end loop;
+  -- 2 joias; uma garantida rara (ou melhor)
+  for i in 1..2 loop
+    rar := public.leilao_raridade(cfg -> 'raridades', case when i = joiaBoa then 'rara' else 'comum' end);
+    ordem := ordem + 1;
+    insert into public.leilao_lotes (leilao_id, ordem, tipo, raridade, nivel, semente, minimo)
+    values (lid, ordem, 'joia', rar,
+      (cfg -> 'itemNivel' ->> 0)::int + floor(random() * ((cfg -> 'itemNivel' ->> 1)::int - (cfg -> 'itemNivel' ->> 0)::int + 1))::int,
+      floor(random() * 2147483647)::bigint, (L -> 'minimo' ->> rar)::bigint * (cfg ->> 'mult')::bigint);
+  end loop;
+  -- 2 pacotes de pergaminho (10 comuns, 5 raros, 3 épicos ou 1 lendário)
+  for i in 1..2 loop
+    rar := public.leilao_raridade(cfg -> 'raridades');
+    ordem := ordem + 1;
+    insert into public.leilao_lotes (leilao_id, ordem, tipo, raridade, nivel, semente, qtd, minimo)
+    values (lid, ordem, 'pergaminho', rar, 0, floor(random() * 2147483647)::bigint, (L -> 'pacotePergaminho' ->> rar)::int,
+      (L -> 'minimo' ->> rar)::bigint * (cfg ->> 'mult')::bigint);
+  end loop;
+  return lid;
+end $$;
+
+-- Fecha as rodadas vencidas da faixa (entrega os itens aos vencedores) e garante uma rodada aberta. Retorna o id dela.
+create or replace function public.leilao_garantir(fx text) returns bigint
+language plpgsql volatile security definer set search_path = public as $$
+declare r public.leiloes; lt public.leilao_lotes; aberto bigint;
+begin
+  perform pg_advisory_xact_lock(hashtext('leilao:' || fx));
+  for r in select * from public.leiloes where faixa = fx and not fechado and fim <= now() for update loop
+    for lt in select * from public.leilao_lotes where leilao_id = r.id and lider is not null loop
+      insert into public.recompensas (personagem_id, origem, item) values (lt.lider, 'leilao', jsonb_build_object(
+        'leilao', true, 'tipo', lt.tipo, 'classe', lt.classe, 'raridade', lt.raridade, 'nivel', lt.nivel,
+        'semente', lt.semente, 'qtd', lt.qtd, 'lance', lt.lance));
+    end loop;
+    update public.leiloes set fechado = true where id = r.id;
+  end loop;
+  select id into aberto from public.leiloes where faixa = fx and not fechado order by id desc limit 1;
+  if aberto is null then aberto := public.leilao_criar(fx); end if;
+  return aberto;
+end $$;
+
+-- Fase mostrada (nunca o relógio exato).
+create or replace function public.leilao_fase(r public.leiloes) returns jsonb
+language plpgsql stable as $$
+declare L jsonb := public.tanka_dados() -> 'LEILAO'; resta numeric := extract(epoch from (r.fim - now())) / 60; f jsonb;
+begin
+  if now() >= r.muito_curto_em then return jsonb_build_object('id', 'muitoCurto', 'nome', L ->> 'nomeMuitoCurto'); end if;
+  for f in select x from jsonb_array_elements(L -> 'fases') x loop
+    if resta > (f ->> 'acimaMin')::numeric then return jsonb_build_object('id', f ->> 'id', 'nome', f ->> 'nome'); end if;
+  end loop;
+  return jsonb_build_object('id', 'curto', 'nome', 'Curto');
+end $$;
+
+create or replace function public.leilao_faixa_de(pid text) returns text
+language sql stable as $$
+  select f ->> 'id' from public.personagens p, jsonb_array_elements(public.tanka_dados() -> 'LEILAO' -> 'faixas') f
+  where p.id = pid and coalesce((p.dados ->> 'nivel')::int, 1) >= (public.tanka_dados() -> 'LEILAO' ->> 'nivelMin')::int
+    and coalesce((p.dados ->> 'nivel')::int, 1) between (f -> 'nivel' ->> 0)::int and (f -> 'nivel' ->> 1)::int limit 1;
+$$;
+
+-- O leilão da faixa do personagem: fase, lotes (com o lance atual e o próximo lance mínimo), créditos e prêmios pendentes.
+create or replace function public.leilao_estado(meu text) returns jsonb
+language plpgsql volatile security definer set search_path = public as $$
+declare fx text; lid bigint; r public.leiloes; inc numeric := (public.tanka_dados() -> 'LEILAO' ->> 'incrementoPct')::numeric;
+begin
+  perform public.conferir_dono(meu);
+  fx := public.leilao_faixa_de(meu);
+  if fx is null then
+    return jsonb_build_object('bloqueado', true, 'nivelMin', (public.tanka_dados() -> 'LEILAO' ->> 'nivelMin')::int);
+  end if;
+  lid := public.leilao_garantir(fx);
+  select * into r from public.leiloes where id = lid;
+  return jsonb_build_object('id', r.id, 'faixa', fx, 'fase', public.leilao_fase(r), 'ouro', public.ouro_real(meu),
+    'lotes', coalesce((select jsonb_agg(jsonb_build_object('id', l.id, 'ordem', l.ordem, 'tipo', l.tipo, 'classe', l.classe,
+        'raridade', l.raridade, 'nivel', l.nivel, 'semente', l.semente, 'qtd', l.qtd, 'minimo', l.minimo, 'lance', l.lance,
+        'proximo', case when l.lance is null then l.minimo else ceil(l.lance * (1 + inc / 100))::bigint end,
+        'lances', l.lances, 'lider_nome', p.nome, 'sou_lider', l.lider = meu) order by l.ordem)
+      from public.leilao_lotes l left join public.personagens p on p.id = l.lider where l.leilao_id = r.id), '[]'::jsonb),
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
+      from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+      from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
+end $$;
+
+-- Dá um lance. Confere faixa, rodada aberta, valor mínimo (+5%) e ouro (contando créditos ainda não aplicados).
+-- Cobra com um crédito negativo e devolve o lance coberto ao antigo líder.
+create or replace function public.leilao_lance(meu text, lote bigint, valor bigint) returns jsonb
+language plpgsql volatile security definer set search_path = public as $$
+declare lt public.leilao_lotes; r public.leiloes; minimo bigint; inc numeric := (public.tanka_dados() -> 'LEILAO' ->> 'incrementoPct')::numeric;
+begin
+  perform public.conferir_dono(meu);
+  select * into lt from public.leilao_lotes where id = lote for update;
+  if lt.id is null then raise exception 'Lote não encontrado.'; end if;
+  select * into r from public.leiloes where id = lt.leilao_id;
+  if r.fechado or r.fim <= now() then raise exception 'Este leilão já terminou.'; end if;
+  if r.faixa is distinct from public.leilao_faixa_de(meu) then raise exception 'Este leilão não é da sua faixa de level.'; end if;
+  if lt.lider = meu then raise exception 'Você já tem o maior lance.'; end if;
+  minimo := case when lt.lance is null then lt.minimo else ceil(lt.lance * (1 + inc / 100))::bigint end;
+  if valor is null or valor < minimo then raise exception 'O lance mínimo agora é % de ouro.', minimo; end if;
+  if valor > 2000000000 then raise exception 'Lance alto demais.'; end if;
+  if public.ouro_real(meu) < valor then raise exception 'Ouro insuficiente.'; end if;
+  perform public.creditar(meu, -valor::int, 0, 'Lance no leilão');
+  if lt.lider is not null then perform public.creditar(lt.lider, lt.lance::int, 0, 'Seu lance foi coberto no leilão (ouro devolvido)'); end if;
+  update public.leilao_lotes set lance = valor, lider = meu, lances = lances + 1, atualizado_em = now() where id = lt.id;
+  return public.leilao_estado(meu);
+end $$;
+
+revoke execute on function public.leilao_raridade(jsonb, text), public.leilao_criar(text), public.leilao_garantir(text),
+  public.leilao_fase(public.leiloes), public.leilao_faixa_de(text) from public, anon, authenticated;
+revoke execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) from public, anon;
+grant execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) to authenticated;
 
 notify pgrst, 'reload schema';

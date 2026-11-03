@@ -724,6 +724,31 @@ Tanka.dados = {
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
   // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).
   TROCA_PERGAMINHO: { quantidade: 10 },
+  // ---------- Leilão do servidor (Mercado > Leilão) ----------
+  // Uma rodada por faixa de level, sempre rodando: dura `duracaoMin` e, quando acaba, outra começa com itens novos.
+  // 12 lotes: 1 arma e 1 armadura de cada classe base, 2 joias (colar/anel) e 2 pacotes de pergaminho.
+  // Garantias: pelo menos 1 arma épica, 1 armadura épica e 1 joia rara (ou melhor) por rodada.
+  // Lance mínimo = `minimo[raridade]` x `mult` da faixa; cada lance novo é pelo menos +`incrementoPct`%.
+  // Tempo mostrado por fase (como "Muito longo"), nunca o relógio exato; a fase "Muito curto" começa num ponto
+  // sorteado entre 1 e 4 minutos antes do fim. Tudo é sorteado e cobrado no servidor (supabase/schema.sql, leilao_*);
+  // o item de cada lote é gerado no jogo a partir da `semente` (R.itemDoLote), igual para todo mundo.
+  // Ouro por hora de caçada medido em simulação: 10–19 ~10–25 mil; 20–29 ~100–240 mil; 30+ ~200 mil–1,3 milhão.
+  LEILAO: {
+    nivelMin: 10, duracaoMin: 240, incrementoPct: 5, muitoCurto: [1, 4],
+    fases: [{ id: 'muitoLongo', nome: 'Muito longo', acimaMin: 180 }, { id: 'longo', nome: 'Longo', acimaMin: 60 },
+      { id: 'medio', nome: 'Médio', acimaMin: 20 }, { id: 'curto', nome: 'Curto', acimaMin: 0 }],
+    nomeMuitoCurto: 'Muito curto',
+    minimo: { comum: 1000, rara: 5000, epica: 10000, lendaria: 50000 },
+    pacotePergaminho: { comum: 10, rara: 5, epica: 3, lendaria: 1 },
+    faixas: [
+      { id: 'l1', nome: 'Leilão do Mercador', nivel: [10, 19], mult: 1, itemNivel: [18, 22],
+        raridades: { comum: 30, rara: 45, epica: 22, lendaria: 3 } },
+      { id: 'l2', nome: 'Leilão da Coroa', nivel: [20, 29], mult: 10, itemNivel: [28, 32],
+        raridades: { comum: 15, rara: 45, epica: 32, lendaria: 8 } },
+      { id: 'l3', nome: 'Leilão dos Reis', nivel: [30, 999], mult: 40, itemNivel: [42, 50],
+        raridades: { comum: 0, rara: 35, epica: 45, lendaria: 20 } },
+    ],
+  },
 
   SKINS_DADO: [
     { id: 'vermelho', nome: 'Rubi', preco: 0 },

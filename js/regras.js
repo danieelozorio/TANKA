@@ -1486,6 +1486,39 @@ Tanka.regras = (function () {
     return { para: para };
   }
 
+  // ---------- Leilão ----------
+  // Faixa do leilão do herói (null antes do level 10).
+  function faixaLeilao(nivel) {
+    var L = D.LEILAO;
+    if (nivel < L.nivelMin) return null;
+    return L.faixas.filter(function (f) { return nivel >= f.nivel[0] && nivel <= f.nivel[1]; })[0] || null;
+  }
+  // Gerador de números a partir de uma semente (o mesmo para todos os jogadores).
+  function rngSemente(semente) {
+    var s = (Number(semente) >>> 0) || 1;
+    return function () { s = (Math.imul(s ^ (s >>> 15), 1 | s) + 0x6D2B79F5) >>> 0; var t = s; t = Math.imul(t ^ (t >>> 7), 61 | t) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  // O item de um lote do leilão (sempre o mesmo para a mesma semente). Lote: { tipo, classe, raridade, nivel, semente, qtd }.
+  // tipo 'pergaminho' devolve { tipo: 'pergaminho', raridade, qtd, consumivel: true }.
+  function itemDoLote(l) {
+    if (l.tipo === 'pergaminho') return { tipo: 'pergaminho', classe: null, raridade: l.raridade, encanto: 0, qtd: l.qtd || 1, consumivel: true };
+    var rng = rngSemente(l.semente), item;
+    if (l.tipo === 'arma') {
+      var lista = D.ARMAS_CLASSE[l.classe].armas;
+      item = novoItem('arma', l.classe, l.raridade, rng, lista[Math.floor(rng() * lista.length)], l.nivel);
+    } else if (l.tipo === 'armadura') {
+      item = novoItem(TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)], l.classe, l.raridade, rng, null, l.nivel);
+    } else {
+      item = novoItem(rng() < 0.5 ? 'colar' : 'anel', null, l.raridade, rng, null, l.nivel);
+    }
+    item.id = 'leilao-' + (l.semente >>> 0).toString(36) + '-' + novoId();
+    return item;
+  }
+  // Menor lance aceito agora: o mínimo do lote ou o lance atual + 5%.
+  function proximoLance(l) {
+    return l.lance ? Math.ceil(l.lance * (1 + D.LEILAO.incrementoPct / 100)) : l.minimo;
+  }
+
   function comprarPergaminho(p, raridade) {
     var preco = D.encantamento.precoPergaminho[raridade];
     if (preco === undefined || p.ouro < preco) return false;
@@ -1833,6 +1866,9 @@ Tanka.regras = (function () {
     venderVarios: venderVarios,
     comprarPergaminho: comprarPergaminho,
     trocarPergaminho: trocarPergaminho,
+    faixaLeilao: faixaLeilao,
+    itemDoLote: itemDoLote,
+    proximoLance: proximoLance,
     consumiveis: consumiveis,
     qtdConsumivel: qtdConsumivel,
     mudarConsumivel: mudarConsumivel,

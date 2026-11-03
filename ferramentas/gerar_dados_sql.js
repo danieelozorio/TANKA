@@ -24,6 +24,7 @@ const dados = {
   ARENA: D.ARENA,
   ALIANCA: D.ALIANCA,
   CONJUNTOS: Object.fromEntries(Object.entries(D.CONJUNTOS).map(([k, c]) => [k, { bonus: c.bonus }])),
+  LEILAO: D.LEILAO,
   TALENTOS: D.TALENTOS, HABILIDADE_INICIAL: D.HABILIDADE_INICIAL, SEGUNDAS_CLASSES: D.SEGUNDAS_CLASSES,
 };
 const json = JSON.stringify(dados).replace(/'/g, "''");

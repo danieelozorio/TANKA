@@ -211,6 +211,8 @@ Tanka.contas = (function () {
   };
 
   return {
+    // O leilão é do servidor (todos os jogadores no mesmo leilão).
+    leilao: { estado: function () { return Promise.resolve({ local: true }); }, lance: soServidor },
     arena: arena,
     // Alianças juntam vários jogadores: só com o servidor.
     alianca: {

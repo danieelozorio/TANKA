@@ -166,6 +166,13 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   NÃO usar `p.pergaminhos` em código novo. Cristais: item que quebra na Forja vira cristais da raridade dele
   (`CRISTAIS_QUEBRA`: tentando +7/+8/+9/+10 = 100/150/200/500); ainda sem uso. Arte: `assets/itens/pergaminho-<raridade>.webp`
   (FEITA, Gemini, 4 imagens; .jpg 512px + recortar_fundo.py) e `cristal-<raridade>.webp` (FEITA também; cristal-comum com ajuste (4, 25) no recortar_fundo.py). Sem arte, desenho SVG em retratos.js.
+- Leilão do servidor (Mercado > Leilão, level 10+): `LEILAO` em dados.js (copiado para tanka_dados). Faixas l1 10–19 (mínimos
+  1k/5k/10k/50k), l2 20–29 (x10), l3 30+ (x40, sem comum). 12 lotes por rodada: 1 arma e 1 armadura de cada classe base,
+  2 joias, 2 pacotes de pergaminho (10 comuns/5 raros/3 épicos/1 lendário); garantias: arma épica+, armadura épica+, joia rara+.
+  Rodada de 4 h, sempre rodando (`leilao_garantir` fecha e abre outra quando alguém abre a tela); fase mostrada, nunca o relógio;
+  "Muito curto" começa 1–4 min antes do fim (sorteado). Lance +5% (`R.proximoLance`); cobrança = crédito negativo, lance
+  coberto volta como crédito (aplicarCreditos); vencedor recebe em `recompensas` {leilao:true, semente...} e o jogo gera o
+  item com `R.itemDoLote` (resgatarRecompensas). Tabelas `leiloes`, `leilao_lotes`; funções `leilao_*`; testes no banco.
 - Mercado: troca de pergaminhos de encantamento (`TROCA_PERGAMINHO`, `R.trocarPergaminho`): 10 de uma raridade = 1 da seguinte.
 - Forja: botão +1 depois do sucesso. Listas do servidor (ranking, arena, amigos, aliança, grupo, chat) mandam `classe2`.
 - (SUBSTITUÍDO pelo encanto em %, abaixo) Encanto mais forte em armas 20+. Seção Atividades (tempo logado/caçando) no painel do herói.

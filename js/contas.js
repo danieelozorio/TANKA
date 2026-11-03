@@ -283,7 +283,13 @@ Tanka.contas = (function () {
     adminRecarregar: function (meu) { return chamar('arena_admin_recarregar', { meu: meu }); },
   };
 
+  var leilao = {
+    estado: function (meu) { return chamar('leilao_estado', { meu: meu }); },
+    lance: function (meu, lote, valor) { return chamar('leilao_lance', { meu: meu, lote: lote, valor: valor }); },
+  };
+
   return {
+    leilao: leilao,
     arena: arena,
     alianca: alianca,
     grupo: grupo,

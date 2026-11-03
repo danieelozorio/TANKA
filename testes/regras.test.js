@@ -1442,3 +1442,30 @@ teste('cristais: item que quebra na Forja vira cristais da raridade dele (100/15
   assert.deepStrictEqual(Array.from(R.consumiveis(p).map((c) => c.id)), ['pergaminho-comum', 'cristal-rara']);
   assert.strictEqual(R.nomeConsumivel(R.consumiveis(p)[1]), 'Cristal Raro');
 });
+
+teste('leilão: faixa por level, item do lote igual para todos (semente) e próximo lance +5%', () => {
+  assert.strictEqual(R.faixaLeilao(9), null);
+  assert.deepStrictEqual([10, 19, 20, 29, 30, 40].map((n) => R.faixaLeilao(n).id), ['l1', 'l1', 'l2', 'l2', 'l3', 'l3']);
+  const lotes = [
+    { tipo: 'arma', classe: 'mago', raridade: 'epica', nivel: 20, semente: 123456 },
+    { tipo: 'armadura', classe: 'cavaleiro', raridade: 'lendaria', nivel: 45, semente: 99 },
+    { tipo: 'joia', raridade: 'rara', nivel: 30, semente: 7 },
+  ];
+  for (const l of lotes) {
+    const a = R.itemDoLote(l), b = R.itemDoLote(l);
+    const semId = (x) => JSON.stringify(Object.assign({}, x, { id: '' }));
+    assert.strictEqual(semId(a), semId(b), 'mesmo item para a mesma semente');
+    assert.notStrictEqual(a.id, b.id, 'ids diferentes');
+    assert.strictEqual(a.raridade, l.raridade); assert.strictEqual(a.nivel, l.nivel);
+    if (l.tipo === 'arma') { assert.strictEqual(a.tipo, 'arma'); assert.strictEqual(a.classe, 'mago'); assert.ok(D.ARMAS_CLASSE.mago.armas.includes(a.arma)); }
+    if (l.tipo === 'armadura') { assert.ok(['elmo', 'peitoral', 'luvas', 'botas'].includes(a.tipo)); assert.strictEqual(a.classe, 'cavaleiro'); }
+    if (l.tipo === 'joia') assert.ok(['colar', 'anel'].includes(a.tipo));
+  }
+  assert.notStrictEqual(JSON.stringify(R.itemDoLote({ ...lotes[0], semente: 1 }).dano) + R.itemDoLote({ ...lotes[0], semente: 1 }).arma,
+    'x', 'outra semente gera item');
+  const perg = R.itemDoLote({ tipo: 'pergaminho', raridade: 'epica', qtd: 3, semente: 5 });
+  assert.deepStrictEqual([perg.tipo, perg.raridade, perg.qtd, perg.consumivel], ['pergaminho', 'epica', 3, true]);
+  assert.strictEqual(R.proximoLance({ minimo: 5000, lance: null }), 5000);
+  assert.strictEqual(R.proximoLance({ minimo: 5000, lance: 10000 }), 10500);
+  assert.strictEqual(R.proximoLance({ minimo: 5000, lance: 10001 }), 10502);
+});

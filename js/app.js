@@ -506,10 +506,10 @@
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
-    { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
+    { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
@@ -1264,6 +1264,118 @@
       }).join('') + '</div>';
   }
 
+  // ---------------- Leilão (Mercado > Leilão): servidor leiloa 12 lotes por faixa de level ----------------
+  var NOME_CLASSE_LOTE = { cavaleiro: 'Cavaleiro', arqueiro: 'Caçador', mago: 'Mago', artesao: 'Artesão' };
+  function ouroTxt(v) { return Number(v || 0).toLocaleString('pt-BR'); }
+  function carregarLeilao() {
+    var p = estado.personagem;
+    if (!p || estado.leilaoCarregando) return;
+    estado.leilaoCarregando = true;
+    clearTimeout(estado.leilaoTimer);
+    C.leilao.estado(p.id).then(function (r) {
+      estado.leilaoCarregando = false;
+      if (estado.personagem !== p) return;
+      // itens do lote gerados uma vez (pela semente)
+      (r.lotes || []).forEach(function (l) { l.item = R.itemDoLote(l); });
+      estado.leilao = r;
+      estado.leilaoErro = null;
+      aplicarCreditos(r.creditos || []);
+      if (r.recompensas && r.recompensas.length) resgatarRecompensas(r.recompensas);
+      redesenharLeilao();
+    }, function (e) {
+      estado.leilaoCarregando = false;
+      estado.leilaoErro = e.message;
+      redesenharLeilao();
+    });
+  }
+  // Redesenha só se o jogador está no leilão e não está digitando um lance; atualiza sozinho a cada 20 s.
+  function redesenharLeilao() {
+    clearTimeout(estado.leilaoTimer);
+    if (estado.aba !== 'leilao') return;
+    estado.leilaoTimer = setTimeout(function () { if (estado.aba === 'leilao' && estado.personagem) carregarLeilao(); }, 20000);
+    var ativo = document.activeElement;
+    if (ativo && ativo.classList && ativo.classList.contains('lance-valor')) return;
+    if (!estado.batalha && !estado.resultado && !estado.chefeAviso && !estado.luta && !estado.lutaArena && !estado.cacada) telaJogo();
+  }
+  function nomeLote(l) { return l.item.consumivel ? 'Pacote: ' + nomeDrop(l.item) : R.nomeItem(l.item); }
+  function resumoLote(l) {
+    var it = l.item;
+    if (it.consumivel) return 'Vai para Mochila › Consumíveis';
+    if (it.tipo === 'arma') { var d = R.danoArma(it); return R.tipoArma(it).nome + ' · dano ' + d[0] + '–' + d[1]; }
+    var b = R.bonusItem(it);
+    return Object.keys(b).filter(function (k) { return b[k] && D.bonus[k]; }).slice(0, 2).map(function (k) { return D.bonus[k] + ' +' + b[k]; }).join(' · ');
+  }
+  function abaLeilao() {
+    var p = estado.personagem, L = D.LEILAO, r = estado.leilao;
+    if (p.nivel < L.nivelMin) return '<p class="suave">O Leilão abre no level ' + L.nivelMin + '.</p>';
+    if (!r) { carregarLeilao(); return '<p class="suave">' + (estado.leilaoErro ? esc(estado.leilaoErro) : 'Carregando o leilão…') + '</p>'; }
+    if (r.local) return '<p class="suave">O Leilão é do servidor (todos os jogadores no mesmo leilão): jogue pelo site do ' + D.NOME_JOGO + '.</p>';
+    if (r.bloqueado) return '<p class="suave">O Leilão abre no level ' + r.nivelMin + '.</p>';
+    var FX = L.faixas.filter(function (f) { return f.id === r.faixa; })[0] || {};
+    var faixaTxt = FX.nivel ? (FX.nivel[1] > 100 ? 'level ' + FX.nivel[0] + '+' : 'level ' + FX.nivel[0] + ' a ' + FX.nivel[1]) : '';
+    var topo = '<div class="leilao-topo"><div><h3>⚖ ' + esc(FX.nome || 'Leilão') + ' <span class="suave pequeno">(' + faixaTxt + ')</span></h3>'
+      + '<p class="suave pequeno">O Reino leiloa 12 lotes por vez. Cada lance novo precisa ser pelo menos ' + L.incrementoPct + '% maior. '
+      + 'O ouro do lance sai na hora; se alguém cobrir, ele volta para você. Quem tiver o maior lance no fim leva o item. '
+      + 'Quando acaba, outro leilão começa com itens novos.</p></div>'
+      + '<div class="leilao-tempo fase-' + r.fase.id + '" title="Tempo que falta (o fim exato é secreto: em Muito curto pode acabar a qualquer momento)">'
+      + '<small>Tempo</small><strong>' + esc(r.fase.nome) + '</strong></div></div>'
+      + '<div class="leilao-barra"><span>Seu ouro: <strong class="cor-ouro">' + ouroTxt(p.ouro) + '</strong></span>'
+      + '<button class="btn secundario btn-pequeno" data-acao="leilao-atualizar">Atualizar</button></div>';
+    var lotes = '<div class="leilao-lotes">' + r.lotes.map(function (l) {
+      var it = l.item, prox = l.proximo;
+      var lance = l.lance ? '<div>Lance atual: <strong class="cor-ouro">' + ouroTxt(l.lance) + '</strong>'
+          + (l.sou_lider ? ' <span class="leilao-lider">Você lidera</span>' : ' <span class="suave">· ' + esc(l.lider_nome || '?') + '</span>') + '</div>'
+        : '<div class="suave">Sem lances · mínimo <strong class="cor-ouro">' + ouroTxt(l.minimo) + '</strong></div>';
+      var acao = l.sou_lider ? '<div class="suave pequeno">Espere alguém cobrir para dar outro lance.</div>'
+        : '<div class="leilao-acao"><input class="lance-valor" id="lance-' + l.id + '" type="number" inputmode="numeric" min="' + prox + '" step="1" value="' + prox + '"'
+          + ' aria-label="Valor do lance">'
+          + '<button class="btn" data-acao="leilao-lance" data-id="' + l.id + '"' + (p.ouro < prox ? ' disabled title="Ouro insuficiente"' : '') + '>Dar lance</button></div>';
+      return '<div class="leilao-lote carta-' + l.raridade + (l.sou_lider ? ' liderando' : '') + '">'
+        + '<div class="leilao-cab"><button class="icone-pequeno borda-' + l.raridade + aura(it) + '" data-acao="leilao-ver" data-id="' + l.id + '" title="Ver o item">'
+        + F.icone(it) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
+        + '<div><div class="leilao-nome raridade-' + l.raridade + '">' + esc(nomeLote(l)) + '</div>'
+        + '<div class="suave pequeno">' + D.raridades[l.raridade].nome + (l.classe ? ' · ' + NOME_CLASSE_LOTE[l.classe] : '')
+        + (it.nivel ? ' · nível ' + it.nivel : '') + '</div>'
+        + '<div class="suave pequeno">' + esc(resumoLote(l)) + '</div></div></div>'
+        + lance + '<div class="suave pequeno">Próximo lance: ' + ouroTxt(prox) + (l.lances ? ' · ' + l.lances + ' lance(s)' : '') + '</div>' + acao + '</div>';
+    }).join('') + '</div>';
+    return topo + lotes + leilaoZoomHtml();
+  }
+  function leilaoZoomHtml() {
+    var r = estado.leilao, id = estado.leilaoVer;
+    var l = r && r.lotes && r.lotes.filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!l || l.item.consumivel) return '';
+    var p = estado.personagem, outro = l.classe && l.classe !== p.classe ? null : itemParaComparar(p, l.item);
+    return '<div class="zoom-fundo leilao-zoom" data-acao="leilao-fechar"><div class="zoom-janela" role="dialog" aria-label="Lote do leilão">'
+      + '<div class="zoom-cartas">' + cartaZoom(l.item, outro, 'Lote do leilão') + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
+      + (l.classe && l.classe !== p.classe ? '<p class="menos pequeno">Item de ' + NOME_CLASSE_LOTE[l.classe] + ': só essa classe usa.</p>' : '')
+      + '<div class="botoes"><button class="btn secundario" data-acao="leilao-fechar">Fechar</button></div></div></div>';
+  }
+  async function darLance(id) {
+    var p = estado.personagem, campo = document.getElementById('lance-' + id);
+    var valor = Math.floor(Number(campo && campo.value));
+    if (!(valor > 0)) { avisar('Digite o valor do lance.'); return; }
+    if (valor > p.ouro) { avisar('Ouro insuficiente.'); return; }
+    if (estado.leilaoLance) return;
+    estado.leilaoLance = true;
+    try {
+      p.poder = R.poder(p);
+      await C.salvarPersonagem(p);           // o servidor confere o ouro salvo
+      var r = await C.leilao.lance(p.id, Number(id), valor);
+      (r.lotes || []).forEach(function (l) { l.item = R.itemDoLote(l); });
+      estado.leilao = r;
+      if (campo) campo.blur();
+      await aplicarCreditos(r.creditos || []);
+      avisar('Lance de ' + ouroTxt(valor) + ' de ouro dado! Se alguém cobrir, o ouro volta para você.');
+    } catch (e) {
+      avisar(e.message);
+      estado.leilao = null;
+    }
+    estado.leilaoLance = false;
+    if (campo) campo.blur();
+    redesenharLeilao();
+  }
+
   function abaEncantar() {
     var p = estado.personagem, E = D.encantamento;
     var u = estado.ultimoEncanto;
@@ -1819,7 +1931,7 @@
       painel = resultadoHtml() + batalhaHtml();
     } else {
       painel = navHtml()
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2408,6 +2520,12 @@
         el.textContent = visaoMochila().crescente ? '↑ Crescente' : '↓ Decrescente';
         aplicarVisaoMochila();
         break;
+      case 'leilao-lance': darLance(el.dataset.id); break;
+      case 'leilao-atualizar': estado.leilao = null; carregarLeilao(); telaJogo(); break;
+      case 'leilao-ver': estado.leilaoVer = el.dataset.id; telaJogo(); break;
+      case 'leilao-fechar':
+        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn')) break;
+        estado.leilaoVer = null; telaJogo(); break;
       case 'mochila-aba':
         estado.mochilaAba = el.dataset.valor === 'consumiveis' ? 'consumiveis' : 'equipamentos';
         estado.vendaLote = null;
@@ -2971,14 +3089,36 @@
   }
 
   // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão para os Consumíveis.
-  async function resgatarRecompensas() {
+  async function resgatarRecompensas(lista) {
     var p = estado.personagem, g = estado.gm;
-    if (!p || !g || !g.recompensas || !g.recompensas.length || estado.resgatando) return;
+    lista = lista || (g && g.recompensas);
+    if (!p || !lista || !lista.length || estado.resgatando) return;
     estado.resgatando = true;
     try {
       var avisouCheia = false;
-      for (var i = 0; i < g.recompensas.length; i++) {
-        var rec = g.recompensas[i];
+      for (var i = 0; i < lista.length; i++) {
+        var rec = lista[i];
+        // Lote ganho no leilão: o item é gerado da semente (igual ao que todos viram no leilão).
+        if (rec.item && rec.item.leilao) {
+          var ganho = R.itemDoLote(rec.item);
+          if (ganho.consumivel) {
+            await C.grupo.resgatar(p.id, rec.id);
+            R.mudarPergaminho(p, ganho.raridade, ganho.qtd);
+            salvar();
+            avisar('Você venceu o leilão: ' + nomeDrop(ganho) + '! (Mochila › Consumíveis)', 'item');
+            continue;
+          }
+          if (R.mochilaCheia(p)) {
+            if (!avisouCheia) avisar('Mochila cheia! Seu item do leilão está guardado: libere espaço para recebê-lo.');
+            avisouCheia = true;
+            continue;
+          }
+          await C.grupo.resgatar(p.id, rec.id);
+          p.inventario.push(ganho);
+          salvar();
+          avisar('Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
+          continue;
+        }
         // Pergaminho de encantamento: não ocupa a mochila.
         if (rec.item && rec.item.tipo === 'pergaminho') {
           var perg = await C.grupo.resgatar(p.id, rec.id);
@@ -3000,7 +3140,7 @@
       }
     } catch (e) { avisar(e.message); }
     estado.resgatando = false;
-    g.recompensas = [];
+    if (g && lista === g.recompensas) g.recompensas = [];
     if (!estado.luta && !estado.batalha && !estado.resultado && !estado.chefeAviso) telaJogo();
   }
 

@@ -307,4 +307,110 @@ begin
     raise exception 'FALHA servidor: elmo +4 com 100 de defesa devia ter +20: % x %', a ->> 'defesa', b ->> 'defesa'; end if;
   raise notice 'ok   servidor: encanto da armadura em %%';
 end $$;
+-- Leilão do servidor
+reset role;
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '0') where id in ('pa', 'pb', 'pd');
+delete from public.creditos where personagem_id in ('pa', 'pb', 'pd');
+delete from public.recompensas where personagem_id in ('pa', 'pb', 'pd');
+select pg_temp.como('c');
+select pg_temp.igual((public.leilao_estado('pc') ->> 'bloqueado')::boolean, true, 'leilão: antes do level 10 fica bloqueado');
+select pg_temp.como('a');
+do $$
+declare e jsonb := public.leilao_estado('pa'); cfg jsonb := public.tanka_dados() -> 'LEILAO'; ord text[] := array['comum','rara','epica','lendaria'];
+begin
+  if e ->> 'faixa' <> 'l1' then raise exception 'FALHA leilão: faixa do level 12 devia ser l1: %', e ->> 'faixa'; end if;
+  if jsonb_array_length(e -> 'lotes') <> 12 then raise exception 'FALHA leilão: devia ter 12 lotes'; end if;
+  if e -> 'fase' ->> 'id' <> 'muitoLongo' then raise exception 'FALHA leilão: começa em Muito longo: %', e -> 'fase'; end if;
+  if (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma') <> 4
+     or (select count(distinct l ->> 'classe') from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma') <> 4
+     or (select count(distinct l ->> 'classe') from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'armadura') <> 4
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'joia') <> 2
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'pergaminho') <> 2 then
+    raise exception 'FALHA leilão: 4 armas e 4 armaduras (uma por classe), 2 joias, 2 pergaminhos: %', e -> 'lotes'; end if;
+  if (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma' and array_position(ord, l ->> 'raridade') >= 3) < 1
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'armadura' and array_position(ord, l ->> 'raridade') >= 3) < 1
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'joia' and array_position(ord, l ->> 'raridade') >= 2) < 1 then
+    raise exception 'FALHA leilão: garantias (arma épica, armadura épica, joia rara)'; end if;
+  if exists (select 1 from jsonb_array_elements(e -> 'lotes') l where (l ->> 'minimo')::bigint <> (cfg -> 'minimo' ->> (l ->> 'raridade'))::bigint
+     or (l ->> 'proximo')::bigint <> (l ->> 'minimo')::bigint
+     or (l ->> 'tipo' <> 'pergaminho' and (l ->> 'nivel')::int not between 18 and 22)
+     or (l ->> 'tipo' = 'pergaminho' and (l ->> 'qtd')::int <> (cfg -> 'pacotePergaminho' ->> (l ->> 'raridade'))::int)) then
+    raise exception 'FALHA leilão: mínimo, nível ou pacote errado: %', e -> 'lotes'; end if;
+  raise notice 'ok   leilão: rodada nova com 12 lotes e as garantias';
+end $$;
+-- 300 rodadas: as garantias sempre valem e a faixa 30+ não tem comum
+do $$
+declare i int; lid bigint;
+begin
+  for i in 1..300 loop
+    lid := public.leilao_criar(case when i % 2 = 0 then 'l1' else 'l3' end);
+    if (select count(*) from public.leilao_lotes where leilao_id = lid and tipo = 'arma' and raridade in ('epica', 'lendaria')) < 1
+       or (select count(*) from public.leilao_lotes where leilao_id = lid and tipo = 'armadura' and raridade in ('epica', 'lendaria')) < 1
+       or (select count(*) from public.leilao_lotes where leilao_id = lid and tipo = 'joia' and raridade <> 'comum') < 1 then
+      raise exception 'FALHA leilão: garantia quebrada na rodada %', lid; end if;
+  end loop;
+  if exists (select 1 from public.leilao_lotes l join public.leiloes r on r.id = l.leilao_id where r.faixa = 'l3' and l.raridade = 'comum') then
+    raise exception 'FALHA leilão: l3 não tem comum'; end if;
+  if (select min(minimo) from public.leilao_lotes l join public.leiloes r on r.id = l.leilao_id where r.faixa = 'l3') <> 5000 * 40 then
+    raise exception 'FALHA leilão: mínimo do l3 = rara x40'; end if;
+  delete from public.leiloes where id in (select id from public.leiloes where faixa in ('l1', 'l3') order by id desc limit 300);
+  raise notice 'ok   leilão: garantias em 300 rodadas; 30+ sem comum e mínimo x40';
+end $$;
+reset role;
+do $$
+declare e jsonb; lote bigint; prox bigint; r jsonb;
+begin
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  e := public.leilao_estado('pa');
+  lote := (e -> 'lotes' -> 0 ->> 'id')::bigint; prox := (e -> 'lotes' -> 0 ->> 'proximo')::bigint;
+  begin perform public.leilao_lance('pa', lote, prox); raise exception 'X'; exception when others then
+    if position('Ouro insuficiente' in sqlerrm) = 0 then raise exception 'FALHA leilão: sem ouro devia falhar: %', sqlerrm; end if; end;
+  update public.personagens set dados = jsonb_set(dados, '{ouro}', '1000000') where id in ('pa', 'pb', 'pd');
+  begin perform public.leilao_lance('pa', lote, prox - 1); raise exception 'X'; exception when others then
+    if position('lance mínimo' in sqlerrm) = 0 then raise exception 'FALHA leilão: abaixo do mínimo: %', sqlerrm; end if; end;
+  r := public.leilao_lance('pa', lote, prox);
+  if not (r -> 'lotes' -> 0 ->> 'sou_lider')::boolean or (r -> 'lotes' -> 0 ->> 'lance')::bigint <> prox then raise exception 'FALHA leilão: lance da Ana'; end if;
+  if (r ->> 'ouro')::bigint <> 1000000 - prox then raise exception 'FALHA leilão: ouro real da Ana depois do lance: %', r ->> 'ouro'; end if;
+  begin perform public.leilao_lance('pa', lote, prox * 2); raise exception 'X'; exception when others then
+    if position('já tem o maior lance' in sqlerrm) = 0 then raise exception 'FALHA leilão: lance em cima de si: %', sqlerrm; end if; end;
+  -- Bruna cobre com +5%
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  begin perform public.leilao_lance('pb', lote, prox + 1); raise exception 'X'; exception when others then
+    if position('lance mínimo' in sqlerrm) = 0 then raise exception 'FALHA leilão: precisa de +5%%: %', sqlerrm; end if; end;
+  r := public.leilao_lance('pb', lote, ceil(prox * 1.05)::bigint);
+  if (r -> 'lotes' -> 0 ->> 'lider_nome') <> 'Bruna' or (r -> 'lotes' -> 0 ->> 'lances')::int <> 2 then raise exception 'FALHA leilão: Bruna devia liderar'; end if;
+  if public.ouro_real('pa') <> 1000000 then raise exception 'FALHA leilão: a Ana devia receber o ouro de volta: %', public.ouro_real('pa'); end if;
+  if (select count(*) from public.creditos where personagem_id = 'pa' and ouro = prox and motivo like 'Seu lance foi coberto%') <> 1 then
+    raise exception 'FALHA leilão: crédito de devolução da Ana'; end if;
+  -- Duda (level 20, faixa l2) não pode dar lance no leilão da faixa l1
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+  begin perform public.leilao_lance('pd', lote, prox * 3); raise exception 'X'; exception when others then
+    if position('não é da sua faixa' in sqlerrm) = 0 then raise exception 'FALHA leilão: faixa errada: %', sqlerrm; end if; end;
+  if public.leilao_estado('pd') ->> 'faixa' <> 'l2' then raise exception 'FALHA leilão: level 20 é l2'; end if;
+  -- Fases
+  update public.leiloes set fim = now() + interval '2 hours', muito_curto_em = now() + interval '2 hours' - interval '3 minutes'
+    where id = (e ->> 'id')::bigint;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  if public.leilao_estado('pa') -> 'fase' ->> 'id' <> 'longo' then raise exception 'FALHA leilão: 2 h = Longo'; end if;
+  update public.leiloes set fim = now() + interval '10 minutes', muito_curto_em = now() + interval '7 minutes' where id = (e ->> 'id')::bigint;
+  if public.leilao_estado('pa') -> 'fase' ->> 'id' <> 'curto' then raise exception 'FALHA leilão: 10 min = Curto'; end if;
+  update public.leiloes set fim = now() + interval '2 minutes', muito_curto_em = now() - interval '1 minute' where id = (e ->> 'id')::bigint;
+  if public.leilao_estado('pa') -> 'fase' ->> 'id' <> 'muitoCurto' then raise exception 'FALHA leilão: Muito curto'; end if;
+  -- Fim: a Bruna recebe o item; nova rodada abre sozinha
+  update public.leiloes set fim = now() - interval '1 second' where id = (e ->> 'id')::bigint;
+  r := public.leilao_estado('pa');
+  if (r ->> 'id')::bigint = (e ->> 'id')::bigint or not (select fechado from public.leiloes where id = (e ->> 'id')::bigint) then
+    raise exception 'FALHA leilão: devia fechar e abrir outra rodada'; end if;
+  if (select count(*) from public.recompensas where personagem_id = 'pb' and origem = 'leilao'
+      and (item ->> 'semente')::bigint = (e -> 'lotes' -> 0 ->> 'semente')::bigint and (item ->> 'lance')::bigint = ceil(prox * 1.05)::bigint) <> 1 then
+    raise exception 'FALHA leilão: a Bruna devia receber o item'; end if;
+  if exists (select 1 from public.recompensas where personagem_id = 'pa' and origem = 'leilao') then raise exception 'FALHA leilão: a Ana não ganhou'; end if;
+  begin perform public.leilao_lance('pa', lote, prox * 10); raise exception 'X'; exception when others then
+    if position('já terminou' in sqlerrm) = 0 then raise exception 'FALHA leilão: lance em rodada fechada: %', sqlerrm; end if; end;
+  raise notice 'ok   leilão: lance, +5%%, ouro devolvido a quem foi coberto, faixa, fases e entrega ao vencedor';
+end $$;
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual((select count(*) from public.leilao_lotes)::int, 0, 'leilão: tabela fechada para leitura direta');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

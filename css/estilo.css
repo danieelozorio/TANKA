@@ -1305,3 +1305,28 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .qtd-consumivel { position: absolute; right: 3px; bottom: 2px; font: 700 .78rem/1 var(--titulo); color: #fff; padding: 1px 4px; border-radius: 4px;
   background: rgba(0, 0, 0, .7); text-shadow: 0 1px 2px #000; pointer-events: none; z-index: 1; }
 .forja-cristais { display: block; margin-top: .35rem; font-size: .95rem; }
+/* ----- Leilão ----- */
+.leilao-topo { display: flex; gap: 1rem; align-items: flex-start; justify-content: space-between; }
+.leilao-topo h3 { margin: 0 0 .3rem; }
+.leilao-tempo { flex: none; min-width: 120px; text-align: center; padding: .45rem .8rem; border-radius: 10px; border: 1px solid var(--borda);
+  background: rgba(201, 162, 74, .08); display: grid; gap: .1rem; }
+.leilao-tempo small { font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--suave, #b9ad90); }
+.leilao-tempo strong { font-family: var(--titulo); color: var(--ouro-claro, #f2d38a); }
+.leilao-tempo.fase-curto { border-color: #d98b3a; background: rgba(217, 139, 58, .12); }
+.leilao-tempo.fase-curto strong { color: #ffb062; }
+.leilao-tempo.fase-muitoCurto { border-color: #e05a4f; background: rgba(224, 90, 79, .15); animation: leilao-pulso 1.2s ease-in-out infinite; }
+.leilao-tempo.fase-muitoCurto strong { color: #ff8a80; }
+@keyframes leilao-pulso { 50% { box-shadow: 0 0 14px rgba(224, 90, 79, .55); } }
+@media (prefers-reduced-motion: reduce) { .leilao-tempo.fase-muitoCurto { animation: none; } }
+.leilao-barra { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin: .6rem 0 .8rem; }
+.leilao-lotes { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .6rem; }
+.leilao-lote { display: grid; gap: .35rem; padding: .7rem; border: 1px solid var(--borda); border-radius: 10px; background: rgba(0, 0, 0, .18); }
+.leilao-lote.liderando { border-color: #5bbf72; box-shadow: inset 0 0 0 1px rgba(91, 191, 114, .35); }
+.leilao-cab { display: grid; grid-template-columns: 56px 1fr; gap: .6rem; align-items: center; }
+.leilao-cab .icone-pequeno { width: 56px; height: 56px; position: relative; cursor: zoom-in; padding: 0; }
+.leilao-nome { font-family: var(--titulo); font-size: .98rem; line-height: 1.2; }
+.leilao-lider { color: #7fdc94; font-weight: 700; font-size: .85rem; }
+.leilao-acao { display: flex; gap: .4rem; }
+.leilao-acao .lance-valor { flex: 1; min-width: 0; }
+.leilao-zoom .zoom-cartas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
+@media (max-width: 560px) { .leilao-topo { flex-direction: column; } .leilao-tempo { align-self: stretch; } }
