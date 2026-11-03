@@ -598,7 +598,6 @@
       ['Crítico mágico', mudanca(s.chanceCriticoMagico, sNovo.chanceCriticoMagico, pct), 'Chance de uma magia ser crítica.'],
       ['Dano crítico mágico', mudanca(s.danoCriticoMagico, sNovo.danoCriticoMagico, pct), 'Quanto a magia crítica causa.'],
       ['Sucesso no craft', mudanca(s.chanceCraft, sNovo.chanceCraft, pct), 'Chance de sucesso ao fabricar itens (em breve).'],
-      ['Bônus de drop', mudanca(s.bonusDrop, sNovo.bonusDrop, function (v) { return '+' + fmtDec(v) + '%'; }), 'Aumenta a chance de itens e pergaminhos caírem.'],
       ['Encantamento', mudanca(s.chanceEncantamento, sNovo.chanceEncantamento, pct), 'Bônus na chance de sucesso ao encantar.'],
     ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
@@ -632,7 +631,7 @@
     des: 'Aumenta a precisão, a evasão e a chance de magia crítica.',
     res: 'Aumenta a vida, a defesa e a defesa mágica.',
     int: 'Aumenta o ataque mágico (dano dos magos).',
-    sor: 'Aumenta a chance de crítico, o dano crítico mágico, o drop, o encantamento e o craft.',
+    sor: 'Aumenta o crítico mágico, o dano crítico mágico, o encantamento e o craft.',
   };
   function pontosPendentes() {
     var p = estado.personagem;
@@ -661,8 +660,8 @@
       res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+' + D.DEFESA.fator + ' de defesa e +' + D.DEFESA.fator + ' de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
       int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
         degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
-      sor: { ganhos: ['+0,5% de chance de crítico por ponto', '+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
-        '+0,5% de drop e de encantamento por ponto', '+1% de craft por ponto'] },
+      sor: { ganhos: ['+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
+        '+0,5% de encantamento por ponto', '+1% de craft por ponto'] },
     };
   }
   function dicaAtributo(p, k, pend) {
@@ -782,7 +781,7 @@
     var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
     var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
     return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
-      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + fmtDec(s.bonusDrop) + '% nos drops.'
+      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe.'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
       + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
       + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'

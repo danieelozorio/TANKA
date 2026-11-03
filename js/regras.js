@@ -703,12 +703,11 @@ Tanka.regras = (function () {
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
       velocidade: Math.max(1, Math.round(velocidadeDoNivel(p.nivel) * (ta ? D.VELOCIDADE_ARMA[ta.vel] : 1))),
-      chanceCritico: (a.sor + a.des) * 0.5 + (eq.critico || 0),   // SOR e DES (%) + mão esquerda
+      chanceCritico: a.des * 0.5 + (eq.critico || 0),   // DES (0,5% por ponto) + mão esquerda (a Sorte não conta mais)
       danoCritico: 150 + a.for,                      // FOR (% do dano)
       chanceCriticoMagico: a.sor + (eq.critico || 0),   // SOR (1% por ponto)
       danoCriticoMagico: 150 + a.sor + (eq.danoCriticoMagico || 0),   // SOR (% do dano) + orbe
       chanceCraft: a.sor,                            // SOR (%)
-      bonusDrop: a.sor * D.SORTE.drop,               // SOR (0,5% a mais sobre a chance base por ponto)
       chanceEncantamento: a.sor * D.SORTE.encanto,   // 0,5% por ponto de SOR
       bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)
       // % a mais contra monstros / na Arena: extras da arma por nível; armas antigas pela raridade (épica/lendária)
@@ -785,7 +784,7 @@ Tanka.regras = (function () {
 
   // Uma única rolagem; as chances são cumulativas (ex.: Urso: <10 épica, <40 rara).
   function rolarRaridade(p, tabela, rng) {
-    var mult = 1 + status(p).bonusDrop / 100;
+    var mult = 1;   // a Sorte não aumenta mais o drop (Henri, nov/2026)
     var r = rng() * 100;
     var acumulado = 0;
     for (var i = 0; i < tabela.length; i++) {
@@ -1473,7 +1472,7 @@ Tanka.regras = (function () {
   function rolarPergaminho(p, monstroId, rng) {
     var perg = D.monstros[monstroId].pergaminho;
     if (!perg || !perg.chance) return null;
-    if (rng() * 100 >= perg.chance * (1 + status(p).bonusDrop / 100)) return null;
+    if (rng() * 100 >= perg.chance) return null;
     if (perg.qualidade) return sortearRaridadeDrop(rng);
     if (perg.raridade) return perg.raridade;
     var arma = armaEquipada(p);

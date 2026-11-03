@@ -155,10 +155,9 @@ teste('velocidade 20 vs 10: 2 ataques para 1', () => {
   assert.strictEqual(atores.filter((a) => a === 'monstro').length, 20);
 });
 
-teste('drops da caçada (sem sorte): 1º monstro 5%, 2º 8%, 3º 10% de arma e de armadura; pergaminho só no 3º (5%)', () => {
+teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de arma e de armadura; pergaminho só no 3º (5%)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.atributos.sor = 0;
-  assert.strictEqual(R.status(p).bonusDrop, 0);
   const N = 200000, taxa = (fn) => { let n = 0; for (let i = 0; i < N; i++) if (fn()) n++; return n / N * 100; };
   const esperado = [[5, 5, 0], [8, 8, 0], [10, 10, 5]];
   D.areas.forEach((area) => area.monstros.forEach((mm, i) => {
@@ -176,10 +175,11 @@ teste('drops da caçada (sem sorte): 1º monstro 5%, 2º 8%, 3º 10% de arma e d
     const tp = taxa(() => R.rolarPergaminho(p, id, rng));
     assert.ok(Math.abs(tp - perg) < 0.3, id + ' pergaminho ' + tp);
   }
-  // A Sorte aumenta a chance de cair (20 de SOR = +20%: 5% vira 6%)
-  p.atributos.sor = 20;
+  // A Sorte não aumenta mais a chance de cair (Henri, nov/2026)
+  p.atributos.sor = 200;
   const comSorte = taxa(() => R.rolarDrop(p, 'lobo', rng));
-  assert.ok(Math.abs(comSorte - 5 * (1 + R.status(p).bonusDrop / 100)) < 0.3, 'com sorte ' + comSorte);
+  assert.ok(Math.abs(comSorte - 5) < 0.3, 'com sorte ' + comSorte);
+  assert.ok(Math.abs(taxa(() => R.rolarPergaminho(p, 'urso', rng)) - 5) < 0.3, 'pergaminho com sorte');
 });
 
 teste('qualidade dos drops da caçada: 70% comum, 22% rara, 7% épica, 1% lendária (em qualquer área, a Sorte não muda)', () => {
@@ -218,10 +218,13 @@ teste('drop de arma é sempre da classe, com variação e dano sorteados na faix
   assert.strictEqual(nomes.size, 8);
 });
 
-teste('sorte: 0,5% de encantamento e de drop por ponto', () => {
+teste('sorte: 0,5% de encantamento por ponto; não mexe no drop nem no crítico físico', () => {
   const p = R.criarPersonagem('T', 'masculino', 'anao', 'artesao');
   assert.strictEqual(R.status(p).chanceEncantamento, 11.5);
-  assert.strictEqual(R.status(p).bonusDrop, 11.5);
+  assert.strictEqual(R.status(p).bonusDrop, undefined);
+  const q = R.criarPersonagem('T', 'masculino', 'anao', 'artesao'); q.atributos.sor += 50;
+  assert.strictEqual(R.status(q).chanceCritico, R.status(p).chanceCritico);
+  assert.strictEqual(R.status(q).chanceCriticoMagico, R.status(p).chanceCriticoMagico + 50, 'crítico mágico continua com a Sorte');
 });
 
 teste('mago causa dano mágico com INT', () => {
@@ -428,7 +431,7 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(s1.defesa, s0.defesa + (8 + 6) * 3);
   assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor + 2);
-  assert.strictEqual(s1.chanceCritico, (p.atributos.sor + 2 + p.atributos.des) * 0.5);   // Sorte e Destreza
+  assert.strictEqual(s1.chanceCritico, p.atributos.des * 0.5);   // só a Destreza (a Sorte não conta mais)
 });
 
 teste('equipar: só armadura da própria classe; joia serve para todos', () => {
@@ -461,8 +464,7 @@ teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
   assert.ok(R.mochilaCheia(p));
   assert.strictEqual(R.comprar(p, 'comum', 'elmo'), 'Mochila cheia!');
   assert.ok(!R.desequipar(p, 'arma'));
-  p.atributos.sor = 1000; // garante drop
-  const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria';
+  const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria'; b.rng = () => 0.001; // garante drop
   const res = R.concluirBatalha(p, b);
   assert.ok(res.mochilaCheia);
   assert.strictEqual(R.mochila(p).length, 32);

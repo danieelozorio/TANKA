@@ -621,8 +621,8 @@ Tanka.dados = {
   // velocidade e +25% de defesa; o 1º monstro da área seguinte tem 10% a mais que o 3º da anterior.
   // A defesa do monstro reduz o dano em porcentagem: dano x 100 / (100 + defesa)
   // (40 de defesa = -29% de dano). Nunca deixa o monstro imortal.
-  // Sorte (Henri, nov/2026): % por ponto de SOR na chance de drop (multiplica a chance base) e no encantamento (soma).
-  SORTE: { drop: 0.5, encanto: 0.5 },
+  // Sorte (Henri, nov/2026): % por ponto de SOR no encantamento (soma). A Sorte não mexe mais no drop nem no crítico físico.
+  SORTE: { encanto: 0.5 },
 
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.
   ACERTO_PVE_MINIMO: 95,

@@ -140,7 +140,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mínimo da área x `MONSTRO.velocidadeHeroi` [0,7; 0,8; 0,9] (chefe = 3º). O dano dos monstros NÃO mudou (Henri pediu só a
   velocidade); vale também para a masmorra, que usa esses monstros. Herói acerta
   monstros no mínimo `ACERTO_PVE_MINIMO` = 95% (até 100% com precisão), em `calcularGolpe` (caçada e masmorra). Arena não mudou.
-- **Sorte (nov/2026):** `SORTE` em dados.js: 0,5% por ponto de SOR no drop (`bonusDrop`, multiplica a chance base; vale para itens,
-  pergaminhos da caçada e a joia da masmorra no servidor, `sortear_raridade_joia`) e 0,5% no encantamento (`chanceEncantar`).
-  Craft continua 1% por ponto. Chances podem ter ",5" (mostradas com `fmtDec`).
-
+- **Sorte (nov/2026):** a Sorte NÃO aumenta mais o drop (itens, pergaminhos da caçada, joia da masmorra no servidor;
+  `bonusDrop` foi removido) nem o crítico físico (`chanceCritico` = DES x 0,5 + itens). Continua: encantamento 0,5% por ponto
+  (`SORTE.encanto`, `chanceEncantar`), crítico e dano crítico mágico 1% por ponto, craft 1%, quebrar armadura (Artesão).
