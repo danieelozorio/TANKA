@@ -191,7 +191,7 @@ Tanka.dados = {
     maximo: 10,
     seguroAte: 3,              // +1 a +3 nunca falham
     chances: { 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 },
-    chanceMaxima: 95,          // teto depois do bônus de Sorte (+1% por ponto)
+    chanceMaxima: 95,          // teto depois do bônus de Sorte (SORTE.encanto por ponto)
     voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
     // Cada + do encanto dá +5% do próprio item: na arma, do dano; nas outras peças, do bônus principal
     // (mínimo +1 por nível de encanto). Assim um item roxo +0 ganha de um azul +4 do mesmo nível.
@@ -621,6 +621,9 @@ Tanka.dados = {
   // velocidade e +25% de defesa; o 1º monstro da área seguinte tem 10% a mais que o 3º da anterior.
   // A defesa do monstro reduz o dano em porcentagem: dano x 100 / (100 + defesa)
   // (40 de defesa = -29% de dano). Nunca deixa o monstro imortal.
+  // Sorte (Henri, nov/2026): % por ponto de SOR na chance de drop (multiplica a chance base) e no encantamento (soma).
+  SORTE: { drop: 0.5, encanto: 0.5 },
+
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.
   ACERTO_PVE_MINIMO: 95,
   MONSTRO: { velocidade: 15, defesa: 1, velocidadePorMonstro: 1.1, defesaPorMonstro: 1.25, entreAreas: 1.1,

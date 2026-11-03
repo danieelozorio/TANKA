@@ -437,7 +437,7 @@ begin
     else rar := array['lendaria', 'epica']; chances := array[35, 65];
   end case;
   for i in 1 .. array_length(rar, 1) - 1 loop
-    acum := acum + chances[i] * (1 + greatest(coalesce(sorte, 0), 0) / 100.0);
+    acum := acum + chances[i] * (1 + greatest(coalesce(sorte, 0), 0) * 0.5 / 100.0);   -- 0,5% por ponto de Sorte (SORTE.drop)
     if r < acum then return rar[i]; end if;
   end loop;
   return rar[array_length(rar, 1)];

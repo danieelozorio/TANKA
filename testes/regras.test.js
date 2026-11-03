@@ -218,9 +218,10 @@ teste('drop de arma é sempre da classe, com variação e dano sorteados na faix
   assert.strictEqual(nomes.size, 8);
 });
 
-teste('sorte: 1% de encantamento por ponto', () => {
+teste('sorte: 0,5% de encantamento e de drop por ponto', () => {
   const p = R.criarPersonagem('T', 'masculino', 'anao', 'artesao');
-  assert.strictEqual(R.status(p).chanceEncantamento, 23);
+  assert.strictEqual(R.status(p).chanceEncantamento, 11.5);
+  assert.strictEqual(R.status(p).bonusDrop, 11.5);
 });
 
 teste('mago causa dano mágico com INT', () => {
@@ -340,8 +341,8 @@ teste('encantamento: chances por nível e bônus de Sorte com teto de 95%', () =
   const { p, item } = comArma('rara', 3);
   assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [70, 60, 50, 40, 30, 20, 10]);
   p.atributos.sor = 20; item.encanto = 3;
-  assert.strictEqual(R.chanceEncantar(p, item), 90);
-  p.atributos.sor = 50;
+  assert.strictEqual(R.chanceEncantar(p, item), 80);   // 0,5% por ponto
+  p.atributos.sor = 100;
   assert.strictEqual(R.chanceEncantar(p, item), 95);
 });
 

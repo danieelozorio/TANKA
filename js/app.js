@@ -598,7 +598,7 @@
       ['Crítico mágico', mudanca(s.chanceCriticoMagico, sNovo.chanceCriticoMagico, pct), 'Chance de uma magia ser crítica.'],
       ['Dano crítico mágico', mudanca(s.danoCriticoMagico, sNovo.danoCriticoMagico, pct), 'Quanto a magia crítica causa.'],
       ['Sucesso no craft', mudanca(s.chanceCraft, sNovo.chanceCraft, pct), 'Chance de sucesso ao fabricar itens (em breve).'],
-      ['Bônus de drop', mudanca(s.bonusDrop, sNovo.bonusDrop, function (v) { return '+' + v + '%'; }), 'Aumenta a chance de itens e pergaminhos caírem.'],
+      ['Bônus de drop', mudanca(s.bonusDrop, sNovo.bonusDrop, function (v) { return '+' + fmtDec(v) + '%'; }), 'Aumenta a chance de itens e pergaminhos caírem.'],
       ['Encantamento', mudanca(s.chanceEncantamento, sNovo.chanceEncantamento, pct), 'Bônus na chance de sucesso ao encantar.'],
     ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
@@ -662,7 +662,7 @@
       int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
         degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
       sor: { ganhos: ['+0,5% de chance de crítico por ponto', '+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
-        '+1% de drop, de encantamento e de craft por ponto'] },
+        '+0,5% de drop e de encantamento por ponto', '+1% de craft por ponto'] },
     };
   }
   function dicaAtributo(p, k, pend) {
@@ -782,7 +782,7 @@
     var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
     var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
     return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
-      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + s.bonusDrop + '% nos drops.'
+      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe; sua Sorte soma +' + fmtDec(s.bonusDrop) + '% nos drops.'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
       + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
       + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'
@@ -1409,7 +1409,7 @@
         var chance = R.chanceEncantar(p, i), risco = R.riscoEncantar(i);
         var falha = { nada: 'sem risco', zera: 'se falhar, volta para +0',
           quebra: 'se falhar, o item QUEBRA e vira ' + (D.CRISTAIS_QUEBRA[i.encanto + 1] || 0) + ' cristais' }[risco];
-        info = '+' + i.encanto + ' → +' + (i.encanto + 1) + ' · chance <strong>' + chance + '%</strong> · <span class="' + (risco === 'quebra' ? 'menos' : '') + '">' + falha + '</span>';
+        info = '+' + i.encanto + ' → +' + (i.encanto + 1) + ' · chance <strong>' + fmtDec(chance) + '%</strong> · <span class="' + (risco === 'quebra' ? 'menos' : '') + '">' + falha + '</span>';
         var semPergaminho = R.qtdPergaminho(p, i.raridade) <= 0;
         acao = risco === 'quebra' && estado.encantoPendente === i.id
           ? '<button class="btn perigo" data-acao="encantar" data-id="' + i.id + '">Arriscar mesmo assim</button>'
@@ -1422,7 +1422,7 @@
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
-    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (3º monstro de cada área), nas masmorras e nas missões. Sua Sorte soma +' + R.atributosTotais(p).sor + '% na chance a partir do +4.</p>'
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (3º monstro de cada área), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4.</p>'
       + '<div class="itens">' + lista + '</div>';
   }
 
@@ -1515,7 +1515,7 @@
       + '<div class="zoom-rotulo">Forja de encantamento</div>'
       + '<div class="forja-item"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="forja-nome raridade-' + corItem(item) + '">' + nome + '</div>'
-      + '<div class="suave">+' + item.encanto + ' → <strong class="cor-ouro">+' + (item.encanto + 1) + '</strong> · chance ' + chance + '%</div></div></div>'
+      + '<div class="suave">+' + item.encanto + ' → <strong class="cor-ouro">+' + (item.encanto + 1) + '</strong> · chance ' + fmtDec(chance) + '%</div></div></div>'
       + '<div class="forja-barra"><i></i><span class="forja-pct">0%</span></div>'
       + '<div class="forja-resultado" aria-live="assertive">Encantando…</div>'
       + '<div class="botoes"><button class="btn" data-forja="ok" disabled>Continuar</button></div></div>';
@@ -1556,7 +1556,7 @@
         var mais = document.createElement('button');
         mais.className = 'btn forja-mais';
         mais.dataset.forja = 'mais';
-        mais.innerHTML = '+1 <small>(+' + atual.encanto + ' → +' + (atual.encanto + 1) + ' · ' + R.chanceEncantar(p, atual) + '%)</small>';
+        mais.innerHTML = '+1 <small>(+' + atual.encanto + ' → +' + (atual.encanto + 1) + ' · ' + fmtDec(R.chanceEncantar(p, atual)) + '%)</small>';
         mais.title = 'Encantar de novo · você tem ' + R.qtdPergaminho(p, atual.raridade) + ' pergaminho(s) para item ' + ITEM_RARIDADE[atual.raridade];
         ok.parentNode.insertBefore(mais, ok);
         mais.focus();

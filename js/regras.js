@@ -708,8 +708,8 @@ Tanka.regras = (function () {
       chanceCriticoMagico: a.sor + (eq.critico || 0),   // SOR (1% por ponto)
       danoCriticoMagico: 150 + a.sor + (eq.danoCriticoMagico || 0),   // SOR (% do dano) + orbe
       chanceCraft: a.sor,                            // SOR (%)
-      bonusDrop: a.sor,                              // SOR (% a mais sobre a chance base)
-      chanceEncantamento: a.sor,                     // 1% por ponto de SOR
+      bonusDrop: a.sor * D.SORTE.drop,               // SOR (0,5% a mais sobre a chance base por ponto)
+      chanceEncantamento: a.sor * D.SORTE.encanto,   // 0,5% por ponto de SOR
       bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)
       // % a mais contra monstros / na Arena: extras da arma por nível; armas antigas pela raridade (épica/lendária)
       danoPvE: !arma ? 0 : arma.extras ? arma.extras.pve || 0 : D.RARIDADE_ARMA.pve[idxArma],
@@ -1539,7 +1539,7 @@ Tanka.regras = (function () {
   function chanceEncantar(p, item) {
     var E = D.encantamento, alvo = item.encanto + 1;
     if (alvo <= E.seguroAte) return 100;
-    return Math.min(E.chanceMaxima, E.chances[alvo] + atributosTotais(p).sor);
+    return Math.min(E.chanceMaxima, E.chances[alvo] + atributosTotais(p).sor * D.SORTE.encanto);
   }
 
   // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
