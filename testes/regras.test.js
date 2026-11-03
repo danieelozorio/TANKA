@@ -396,11 +396,11 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.strictEqual(R.nomeItem(it('luvas', 'epica')), 'Manoplas do Crepúsculo');
   assert.strictEqual(R.nomeItem(it('elmo', 'lendaria', 'mago', 3)), '+3 Chapéu da Origem');
   assert.strictEqual(R.nomeItem({ tipo: 'anel', classe: null, raridade: 'rara', encanto: 0 }), 'Anel de Prata');
-  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: 8, vida: 40 });
-  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: 3, defesaMagica: 5, vida: 15 });
-  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: 5, res: 1 });
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: 8 * 3, vida: 40 });   // defesa dos itens x3
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: 3 * 3, defesaMagica: 5 * 3, vida: 15 });
+  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: 5 * 3, res: 1 });
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { sor: 6 });
-  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: 2, vida: 5 });
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: 2 * 3, vida: 5 });
 });
 
 teste('equipar armaduras soma defesa, vida e atributos no status', () => {
@@ -412,7 +412,7 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel1');
   assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel2');
   const s1 = R.status(p);
-  assert.strictEqual(s1.defesa, s0.defesa + 8 + 6);
+  assert.strictEqual(s1.defesa, s0.defesa + (8 + 6) * 3);
   assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor + 2);
   assert.strictEqual(s1.chanceCritico, (p.atributos.sor + 2 + p.atributos.des) * 0.5);   // Sorte e Destreza
@@ -1106,7 +1106,7 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   const e2 = add({ id: 'e2', tipo: 'arma', classe: 'cavaleiro', arma: 'espada2m', raridade: 'comum', variacao: 0, dano: [4, 8], encanto: 0 });
   const esc = add({ id: 'esc', tipo: 'secundaria', classe: null, mao: 'escudo', raridade: 'rara', variacao: 0, encanto: 1 });
   assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
-  assert.strictEqual(R.status(p).defesa, s0.defesa + 6 + 1, 'escudo raro +6 de defesa, +1 do encanto');
+  assert.strictEqual(R.status(p).defesa, s0.defesa + (6 + 1) * 3, 'escudo raro +6 de defesa, +1 do encanto (x3)');
   assert.strictEqual(R.equipar(p, 'e2'), 'arma');
   assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
   const s1 = R.status(p);
@@ -1151,14 +1151,14 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
     const extras = Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
     assert.strictEqual(extras.length, 1); assert.ok(b[extras[0]] >= 2 && b[extras[0]] <= 4);
     vistos.add(b.defesa);
-    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(b));
+    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(Object.assign({}, b, { defesa: b.defesa * 3 })));
     p.inventario = [];
   }
   assert.ok(vistos.size > 3, 'varia');
   const comum = R.comprar(p, 'comum', 'elmo');
   assert.ok(Object.keys(comum.bonus).every((k) => k === 'defesa' || k === 'vida'), 'comum sem atributo extra');
   // item antigo (sem bonus salvo) continua com o valor fixo
-  assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, 5);
+  assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, 5 * 3);
 });
 
 teste('itens por nível: drop ±3 (35+ vai de 35 a 60), qualidade pela raridade, Mercado comum/rara e venda a 10%', () => {
@@ -1227,11 +1227,11 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   R.equipar(p, pecas[0].id); const s1 = R.status(p);
   R.equipar(p, pecas[1].id); const s2 = R.status(p);
   const semSet = (pecas[0].bonus.defesa || 0) + (pecas[1].bonus.defesa || 0);
-  assert.strictEqual(s2.defesa, s0.defesa + semSet + 5, '2 peças: +5 de defesa');
+  assert.strictEqual(s2.defesa, s0.defesa + semSet * 3 + 15, '2 peças: +15 de defesa');
   R.equipar(p, pecas[2].id); const s3 = R.status(p);
   assert.strictEqual(s3.dano[0] - s2.dano[0] - Math.floor((R.atributosTotais(p).for) / 3) + Math.floor((R.atributosTotais(p).for - (pecas[2].bonus.for || 0)) / 3), 5, '3 peças: +5 de dano');
   R.equipar(p, pecas[3].id);
-  assert.deepStrictEqual(Object.assign({}, R.bonusConjuntos(p)), { defesa: 5, dano: 5, vida: 30 });
+  assert.deepStrictEqual(Object.assign({}, R.bonusConjuntos(p)), { defesa: 15, dano: 5, vida: 30 });
   // outra segunda classe não ganha o bônus
   p.talentos.classe2 = 'destruidor';
   assert.deepStrictEqual(Object.assign({}, R.bonusConjuntos(p)), {});
@@ -1292,8 +1292,8 @@ teste('encanto em %: +5% do item por nível; roxo +0 ganha de azul +4 do mesmo n
   assert.strictEqual(R.multEncanto({ encanto: 0 }), 1);
   // armadura: +5% do bônus principal por nível, mínimo +1 por nível
   const elmo = (encanto, def) => ({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto, nivel: 20, bonus: { defesa: def, vida: 50 } });
-  assert.strictEqual(R.bonusItem(elmo(4, 100)).defesa, 120);
-  assert.strictEqual(R.bonusItem(elmo(4, 5)).defesa, 9, 'mínimo +1 por nível');
+  assert.strictEqual(R.bonusItem(elmo(4, 100)).defesa, 120 * 3);
+  assert.strictEqual(R.bonusItem(elmo(4, 5)).defesa, 9 * 3, 'mínimo +1 por nível');
   assert.strictEqual(R.bonusItem(elmo(4, 100)).vida, 50, 'só o bônus principal');
   // mesma arma, mesmo nível: a pior épica (+0) ganha da melhor rara +4
   for (const nivel of [5, 12, 20, 40, 60]) {
@@ -1468,4 +1468,24 @@ teste('leilão: faixa por level, item do lote igual para todos (semente) e próx
   assert.strictEqual(R.proximoLance({ minimo: 5000, lance: null }), 5000);
   assert.strictEqual(R.proximoLance({ minimo: 5000, lance: 10000 }), 10500);
   assert.strictEqual(R.proximoLance({ minimo: 5000, lance: 10001 }), 10502);
+});
+
+teste('defesa do herói em porcentagem: 100 = -50%, nunca imortal, igual na caçada e na masmorra', () => {
+  assert.strictEqual(R.danoComDefesa(100, 0), 100);
+  assert.strictEqual(R.danoComDefesa(100, 100), 50);
+  assert.strictEqual(R.danoComDefesa(100, 300), 25);
+  assert.strictEqual(R.danoComDefesa(3, 5000), 1, 'nunca menos que 1');
+  assert.deepStrictEqual([0, 100, 200, 300].map(R.cortePct), [0, 50, 67, 75]);
+  // RES vale x3 na defesa: 10 de RES = 3 de defesa
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.status(p).defesa, Math.floor(R.atributosTotais(p).res / 10) * 3);
+  // golpe do monstro na caçada usa a %
+  p.inventario.push({ id: 'e', tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0, nivel: 10, bonus: { defesa: 30, vida: 1 } });
+  R.equipar(p, 'e');
+  const def = R.status(p).defesa;
+  const b = R.iniciarBatalha(p, 'urso', () => 0.01);   // acerta sempre e rola o menor dano
+  b.jogador.hp = 1e6; b.jogador.barra = 0; b.monstro.barra = 100;
+  const ev = R.passo(b);
+  assert.strictEqual(ev.ator, 'monstro');
+  assert.strictEqual(ev.dano, R.danoComDefesa(D.monstros.urso.ataque[0], def));
 });

@@ -91,6 +91,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   assets/habilidades em .webp 192x192 (margem de 8 px da linha da grade).
 
 ## Mudanças do Henri (nov/2026)
+- Defesa do herói em PORCENTAGEM, igual à dos monstros (`DEFESA` em dados.js): dano recebido x 100 / (100 + defesa), mínimo 1
+  (`R.danoComDefesa`, `R.cortePct`), na caçada, masmorra e Arena (`arena_vez`). Para valer o mesmo de antes, a defesa e a defesa
+  mágica de todos os itens (inclusive os já salvos, em `R.bonusItem`), a da RES (10 = 3) e o bônus de conjunto (+15) valem x3
+  (`DEFESA.fator`); servidor igual (tanka_status). Poder e força dos itens compensam o x3 (`poder`, `PESO_BONUS`).
 - Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;
   qualidade 70/22/7/1 (Sorte só aumenta a chance). Chefes não mudaram.
 - Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).

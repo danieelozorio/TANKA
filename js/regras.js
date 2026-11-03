@@ -275,8 +275,15 @@ Tanka.regras = (function () {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);
     }
+    // Defesa em porcentagem: a defesa dos itens vale x3 (DEFESA.fator), inclusive nos itens já salvos.
+    if (b.defesa) b.defesa *= D.DEFESA.fator;
+    if (b.defesaMagica) b.defesaMagica *= D.DEFESA.fator;
     return b;
   }
+  // Dano que o herói recebe depois da defesa: x 100 / (100 + defesa), nunca menos que 1.
+  function danoComDefesa(dano, defesa) { return Math.max(1, Math.round(dano * D.DEFESA.k / (D.DEFESA.k + Math.max(0, defesa)))); }
+  // % de dano que a defesa corta (para mostrar).
+  function cortePct(defesa) { return Math.round(100 - D.DEFESA.k * 100 / (D.DEFESA.k + Math.max(0, defesa))); }
 
   // Encanto: cada + dá +5% (pctPorNivel) do próprio item.
   function multEncanto(item) { return 1 + ((item && item.encanto) || 0) * D.encantamento.pctPorNivel / 100; }
@@ -689,8 +696,8 @@ Tanka.regras = (function () {
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
       dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)], magico ? eq.danoMagico : 0),
-      defesa: Math.floor(a.res / 10) + eq.defesa,              // RES + armaduras
-      defesaMagica: Math.floor(a.res / 10) + eq.defesaMagica,  // RES + armaduras
+      defesa: Math.floor(a.res / 10) * D.DEFESA.fator + eq.defesa,              // RES (x3) + armaduras (já x3)
+      defesaMagica: Math.floor(a.res / 10) * D.DEFESA.fator + eq.defesaMagica,  // RES (x3) + armaduras (já x3)
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
@@ -747,7 +754,7 @@ Tanka.regras = (function () {
     var multCrit = (magico ? s.danoCriticoMagico : s.danoCritico) / 100;
     var ataque = (s.dano[0] + s.dano[1]) / 2 * (1 + chanceCrit * (multCrit - 1))
       * Math.min(95, s.precisao) / 100 * s.velocidade / 10;
-    var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / 20) * (1 + Math.min(50, s.evasao) / 100);
+    var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / (20 * D.DEFESA.fator)) * (1 + Math.min(50, s.evasao) / 100);
     return Math.round(ataque * 10 + resistencia / 2);
   }
 
@@ -1054,7 +1061,7 @@ Tanka.regras = (function () {
     if (b.lutador && b.lutador.furtivo) { b.lutador.furtivo = false; ev.sombra = true; return ev; }
     // Acerto do monstro: 80% + 2% por área, menos a evasão do jogador.
     if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
-    var dano = Math.max(1, rolar(m.ataque, rng) - defesaHeroi(s, b.lutador));
+    var dano = danoComDefesa(rolar(m.ataque, rng), defesaHeroi(s, b.lutador));
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
@@ -1252,7 +1259,7 @@ Tanka.regras = (function () {
   // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
 
   // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
-  var PESO_BONUS = { defesa: 8, defesaMagica: 8, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
+  var PESO_BONUS = { defesa: 8 / 3, defesaMagica: 8 / 3, vida: 1, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
   function forcaItem(item) {
     if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
     var b = bonusItem(item), total = 0;
@@ -1694,7 +1701,7 @@ Tanka.regras = (function () {
           ev.alvo = hs.indexOf(heroi);
           if (heroi.L.furtivo) { heroi.L.furtivo = false; ev.sombra = true; }
           else if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - heroi.s.evasao, 5, 95)) {
-            var d = Math.max(1, rolar(ator.ataque, rng) - defesaHeroi(heroi.s, heroi.L));
+            var d = danoComDefesa(rolar(ator.ataque, rng), defesaHeroi(heroi.s, heroi.L));
             ev.acerto = true; ev.dano = d;
             heroi.hp = Math.max(0, heroi.hp - d);
             ev.caiu = heroi.hp === 0;
@@ -1853,6 +1860,8 @@ Tanka.regras = (function () {
     vender: vender,
     comprar: comprar,
     danoArma: danoArmaComEncanto,
+    danoComDefesa: danoComDefesa,
+    cortePct: cortePct,
     multEncanto: multEncanto,
     precoVenda: precoVenda,
     forcaItem: forcaItem,
