@@ -626,8 +626,7 @@ Tanka.dados = {
   MONSTRO: { velocidade: 15, defesa: 1, velocidadePorMonstro: 1.1, defesaPorMonstro: 1.25, entreAreas: 1.1,
     // Henri (nov/2026): a velocidade do monstro vem da velocidade de um herói (arma normal) no level mínimo da área:
     // 1º monstro 70%, 2º 80%, 3º 90% (o chefe igual ao 3º). Assim o herói da área ataca mais vezes que o monstro.
-    // Para a caçada não ficar mais fácil, o dano do monstro sobe na mesma proporção em que a velocidade caiu
-    // (dano por segundo igual ao da escada antiga, que continua aqui só como referência).
+    // O dano dos monstros não mudou. (velocidade/velocidadePorMonstro/entreAreas não são mais usados na velocidade.)
     velocidadeHeroi: [0.7, 0.8, 0.9] },
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
@@ -781,7 +780,6 @@ Tanka.dados = {
   }
   var M = D.MONSTRO, vel = M.velocidade, def = M.defesa;
   // 5% de arma com 70/22/7/1 de qualidade = comum 3,5%, rara 1,1%, épica 0,35%, lendária 0,05%.
-  function escalar(faixa, f) { return [Math.max(1, Math.round(faixa[0] * f)), Math.max(1, Math.round(faixa[1] * f))]; }
   function tabelaDrop(chance) {
     if (!chance) return [];
     return D.DROPS_CACADA.qualidade.map(function (q) { return { raridade: q.raridade, chance: chance * q.chance / 100 }; });
@@ -789,17 +787,16 @@ Tanka.dados = {
   D.areas.forEach(function (area, indiceArea) {
     var b = area.base, c0 = area.crescimento || D.crescimento;
     if (indiceArea > 0) { vel *= M.entreAreas; def *= M.entreAreas; }
-    var velHeroi = D.VELOCIDADE.inicial * Math.pow(D.VELOCIDADE.porNivel, area.nivelMin - 1), velNova, comp;
+    var velHeroi = D.VELOCIDADE.inicial * Math.pow(D.VELOCIDADE.porNivel, area.nivelMin - 1), velNova;
     area.monstros.forEach(function (m, i) {
       if (i > 0) { vel *= M.velocidadePorMonstro; def *= M.defesaPorMonstro; }
       velNova = Math.max(1, Math.round(velHeroi * M.velocidadeHeroi[i]));
-      comp = vel / velNova;   // compensação no dano (velocidade antiga / nova)
       var f = Math.pow(2, i);
-      var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i) * comp);
+      var ataque = Math.round(b.ataque * Math.pow(c0.ataque, i));
       var dc = D.DROPS_CACADA.monstros[i] || {};
       D.monstros[m.id] = {
         nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
-        hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? escalar(m.dano, comp) : [ataque, ataque], velocidade: velNova,
+        hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: velNova,
         defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
         // Tabelas no formato { raridade, chance } (cumulativas): chance do drop x qualidade (DROPS_CACADA).
         chanceArma: dc.arma || 0, chanceArmadura: dc.armadura || 0,
@@ -812,7 +809,7 @@ Tanka.dados = {
     var m3 = D.monstros[area.monstros[2].id], c = area.chefe, C = D.chefe;
     D.monstros[c.id] = {
       nome: c.nome, descricao: c.descricao, area: area.id, indiceArea: indiceArea, chefe: true,
-      hp: Math.round(m3.hp * C.vida), ataque: c.dano ? escalar(c.dano, comp * C.velocidade) : [Math.round(m3.ataque[0] * C.ataque), Math.round(m3.ataque[1] * C.ataque)],
+      hp: Math.round(m3.hp * C.vida), ataque: c.dano ? c.dano.slice() : [Math.round(m3.ataque[0] * C.ataque), Math.round(m3.ataque[1] * C.ataque)],
       velocidade: Math.max(1, Math.round(velNova * C.velocidade)), defesa: Math.round(m3.defesa * C.defesa), defesaMagica: Math.round(m3.defesa * C.defesa),
       // `ouro` e `exp` no chefe da área substituem a conta (5x o 3º monstro).
       exp: c.exp != null ? c.exp : m3.exp * C.exp, ouro: c.ouro != null ? c.ouro : m3.ouro * C.ouro,
