@@ -15,6 +15,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 - Prompts para ele levar a outras IAs (Gemini, Suno): **em inglês**, num bloco de notas `.txt` sem acentos.
 - Para economizar: **não mandar prints nem vídeos** (ele pediu para parar); testar no navegador por conta própria só se
   precisar, sem mandar a imagem. Nada de simulação se ele já deu o número.
+- **Não resumir o que o Henri fez** (gasta créditos à toa). Só dar `git fetch`/`merge` em silêncio quando for trabalhar
+  ou publicar; contar algo do Henri só se mexer no que o Daniel pediu ou se precisar rodar o schema.
 
 ### Henri (colaborador)
 - Falar em português simples, como com o Daniel (o jeito "Claudia" e o "Bom dia!" são preferências do Daniel;
