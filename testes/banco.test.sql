@@ -324,6 +324,97 @@ begin
   if (public.tanka_status(p) ->> 'defesa')::int <> 3 then raise exception 'FALHA servidor: RES 10 = 3 de defesa: %', public.tanka_status(p) ->> 'defesa'; end if;
   raise notice 'ok   arena: defesa em porcentagem (100 = -50%%, mínimo 1) e RES x3';
 end $$;
+-- Arena: Top 5 ataca para baixo, ataque pelo Ranking, repetição na semana e revanche mesmo quando o defensor vence
+reset role;
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '8') where id = 'pc';
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '100000') where id in ('pa', 'pb', 'pc', 'pd');
+delete from public.creditos; delete from public.arena_lutas;
+do $$
+declare l jsonb; r jsonb; c record;
+  function_ok boolean;
+begin
+  perform public.arena_garantir(x) from unnest(array['pa', 'pb', 'pc', 'pd']) x;
+  update public.arena_posicoes set posicao = case personagem_id when 'pa' then 1 when 'pb' then 2 when 'pd' then 3 end where personagem_id in ('pa', 'pb', 'pd');
+  if (select arena from public.arena_posicoes where personagem_id = 'pc') <> 'a1' or (select arena from public.arena_posicoes where personagem_id = 'pa') <> 'a2' then
+    raise exception 'FALHA arena: preparação (pc na a1, pa na a2)'; end if;
+  update public.arena_entradas set valor = 50 where personagem_id in ('pa', 'pb', 'pc', 'pd');
+  insert into public.arena_entradas (personagem_id, valor) select x, 50 from unnest(array['pa', 'pb', 'pc', 'pd']) x on conflict (personagem_id) do update set valor = 50;
+
+  -- 1º lugar ataca o 2º (para baixo): tipo top5, não muda posição, metade da reputação, ouro do saque
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  if not exists (select 1 from jsonb_array_elements(public.arena_estado('pa', null) -> 'alvos') x where x ->> 'id' = 'pd' and (x ->> 'abaixo')::boolean) then
+    raise exception 'FALHA arena: o 1º devia ver o 3º como alvo abaixo'; end if;
+  l := public.arena_desafiar('pa', 'pb');
+  perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.tipo <> 'top5' or c.reputacao <> 5 or c.saque <> floor(100000 * c.saque_pct / 100.0) or c.saque <= 0 then
+    raise exception 'FALHA arena: top5 (tipo %, reputação %, saque % de %%%)', c.tipo, c.reputacao, c.saque, c.saque_pct; end if;
+  if (select posicao from public.arena_posicoes where personagem_id = 'pa') <> 1 or (select posicao from public.arena_posicoes where personagem_id = 'pb') <> 2 then
+    raise exception 'FALHA arena: ataque para baixo não muda posição'; end if;
+  raise notice 'ok   arena: 1º ataca o 2º (para baixo): metade da reputação (5), saque de ouro, posição igual';
+
+  -- mesma pessoa atacando de novo na semana: ouro x1/2, x1/4 e depois zero (reputação continua)
+  for i in 2..4 loop
+    l := public.arena_desafiar('pa', 'pb');
+    perform public.arena_finalizar((l ->> 'id')::bigint, true);
+    select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+    if c.saque <> floor(public.ouro_real('pb') * 0 + c.saque) then null; end if;
+    if (i = 2 and c.saque <> floor((select public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0 * 0.5))
+       or (i = 3 and c.saque <> floor((select public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0 * 0.25))
+       or (i = 4 and c.saque <> 0) or c.reputacao <> 5 then
+      raise exception 'FALHA arena: repetição % (saque %, %%% , reputação %)', i, c.saque, c.saque_pct, c.reputacao; end if;
+  end loop;
+  -- na semana seguinte volta ao ouro cheio
+  update public.arena_lutas set criado_em = criado_em - interval '8 days' where atacante = 'pa' and defensor = 'pb';
+  l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0) then raise exception 'FALHA arena: semana nova devia ter ouro cheio'; end if;
+  raise notice 'ok   arena: mesmo atacante na semana: ouro cheio, metade, um quarto, zero; zera na semana seguinte';
+
+  -- Ranking: arena mais forte (a1 ataca a2) = tudo; arena mais fraca (a2 ataca a1) = nada; mesma arena acima = tudo, abaixo = metade
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000c', false);
+  l := public.arena_atacar('pc', 'pa'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.tipo <> 'livre' or c.reputacao <> 10 or c.saque <= 0 then raise exception 'FALHA arena: a1 atacando a2 devia ganhar tudo (%, %)', c.reputacao, c.saque; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  l := public.arena_atacar('pa', 'pc'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.reputacao <> 0 or c.saque <> 0 then raise exception 'FALHA arena: a2 atacando a1 não ganha nada (%, %)', c.reputacao, c.saque; end if;
+  l := public.arena_atacar('pa', 'pd'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.reputacao <> 5 then raise exception 'FALHA arena: mesma arena, alvo abaixo = metade (%)', c.reputacao; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+  l := public.arena_atacar('pd', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.reputacao <> 10 then raise exception 'FALHA arena: mesma arena, alvo acima = tudo (%)', c.reputacao; end if;
+  if (select posicao from public.arena_posicoes where personagem_id = 'pd') <> 3 then raise exception 'FALHA arena: Ranking não muda posição'; end if;
+  begin perform public.arena_atacar('pd', 'pd'); raise exception 'X'; exception when others then
+    if position('é seu' in sqlerrm) = 0 then raise exception 'FALHA arena: atacar a si mesmo: %', sqlerrm; end if; end;
+  raise notice 'ok   arena: ataque pelo Ranking (arena acima: tudo; abaixo: nada; mesma arena abaixo: metade), sem mudar posição';
+
+  -- Revanche mesmo quando o defensor venceu
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  l := public.arena_atacar('pb', 'pa'); perform public.arena_finalizar((l ->> 'id')::bigint, false);   -- Aldric (defensor) venceu
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  r := public.arena_estado('pa', null);
+  if not exists (select 1 from jsonb_array_elements(r -> 'historico') h where (h ->> 'id')::bigint = (l ->> 'id')::bigint and (h ->> 'pode_revanche')::boolean) then
+    raise exception 'FALHA arena: devia ter revanche mesmo vencendo a defesa'; end if;
+  r := public.arena_revanche('pa', (l ->> 'id')::bigint);
+  if (select tipo from public.arena_lutas where id = (r ->> 'id')::bigint) <> 'revanche' then raise exception 'FALHA arena: tipo da revanche'; end if;
+  perform public.arena_finalizar((r ->> 'id')::bigint, true);
+  raise notice 'ok   arena: revanche também depois de vencer a defesa';
+
+  -- Fora do Top 5 não ataca para baixo
+  update public.arena_posicoes set posicao = 7 where personagem_id = 'pd';
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
+  update public.arena_posicoes set posicao = 8 where personagem_id = 'pb';
+  begin perform public.arena_desafiar('pd', 'pb'); raise exception 'X'; exception when others then
+    if position('5 logo acima' in sqlerrm) = 0 then raise exception 'FALHA arena: 7º não ataca o 8º: %', sqlerrm; end if; end;
+  raise notice 'ok   arena: fora do Top 5 só ataca para cima';
+end $$;
+select pg_temp.igual((select count(*) from public.ranking('nivel') where id is not null)::int > 0, true, 'ranking traz o id para atacar');
+reset role;
+delete from public.arena_lutas; delete from public.creditos;
 -- Leilão do servidor
 reset role;
 update public.personagens set dados = jsonb_set(dados, '{ouro}', '0') where id in ('pa', 'pb', 'pd');

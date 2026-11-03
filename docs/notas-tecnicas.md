@@ -128,3 +128,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `status` e no tanka_status (`fat`). Fatores: rápida 0,83 (x1,2 ataques = normal), lenta de uma mão 1,25 (x0,8 = normal),
   lenta de duas mãos 1,4 (x0,8 = +12%, paga a mão esquerda).
   Henri (nov/2026): Martelo virou NORMAL (fator 1) e Balestra NORMAL de duas mãos (fator 1,12 = os mesmos +12%). `danoArma` mostrado na ficha continua com o fator só na arma.
+- **Arena: Top 5 para baixo, ataque pelo Ranking, repetição e revanche (nov/2026).** `arena_lutas.tipo` = escada | top5 | livre | revanche
+  e `arena_lutas.reputacao`. Do 1º ao 4º lugar dá para atacar para baixo até o 5º (`arena_desafiar` decide: 'top5'); o 5º só para cima.
+  No Ranking (Social) o botão "Atacar" chama `arena_atacar` ('livre', qualquer personagem level 5+, gasta 1 entrada).
+  Só a escada muda posição/jackpot. Fora da escada: alvo em arena abaixo = sem reputação e sem ouro; mesma arena e alvo em posição
+  inferior = metade da reputação; arena acima = tudo. O mesmo atacante contra o mesmo alvo na semana (segunda 00:00, horário de
+  Brasília, `arena_inicio_semana`): ouro 100% / 50% / 25% / 0 (a reputação continua). Revanche sempre que o defensor quiser (mesmo
+  tendo vencido a defesa), uma por luta. Janela de ataque mostra a recompensa esperada (`recompensaDesafioHtml`); histórico mostra o tipo
+  e a reputação ganha. `ranking()` agora devolve `id`. Testes em `testes/banco.test.sql` (bloco "Top 5 ataca para baixo").

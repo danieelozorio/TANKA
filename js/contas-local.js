@@ -207,7 +207,7 @@ Tanka.contas = (function () {
 
   var arena = {
     estado: function () { return Promise.resolve({ local: true }); },
-    perfil: soServidor, desafiar: soServidor, revanche: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
+    perfil: soServidor, desafiar: soServidor, revanche: soServidor, atacar: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
   };
 
   return {

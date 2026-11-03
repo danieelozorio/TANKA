@@ -1680,23 +1680,27 @@
       return '<button class="btn mini-opcao' + (t[0] === tipo ? '' : ' secundario') + '" data-acao="ranking-tipo" data-valor="' + t[0] + '">' + t[1] + '</button>';
     }).join('');
     var meus = (estado.conta.personagens || []).map(function (x) { return x.nome.toLowerCase(); });
-    var corpo;
+    var corpo, eu = estado.personagem, possoAtacar = eu && eu.nivel >= 5;
     if (!r) corpo = '<p class="suave">Carregando…</p>';
     else if (r.erro) corpo = '<p class="menos">' + esc(r.erro) + '</p>';
     else if (!r.lista.length) corpo = '<p class="suave">Ninguém no ranking ainda.</p>';
-    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th></tr></thead><tbody>'
+    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar ? '<th></th>' : '') + '</tr></thead><tbody>'
       + r.lista.map(function (x, i) {
         var pos = i + 1;
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
           + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
           + '<td>' + nomeClasseX(x) + '</td>'
-          + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td></tr>';
+          + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
+          + (possoAtacar ? '<td>' + (x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
+            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + '</td>' : '')
+          + '</tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
       + '<button class="btn secundario mini-opcao" data-acao="ranking-atualizar">Atualizar</button></div>'
       + '<p class="suave pequeno">Os 100 melhores de ' + D.NOME_JOGO + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
-      + ' Seus personagens aparecem destacados. Contas de administrador não entram.</p>' + corpo;
+      + ' Seus personagens aparecem destacados. Contas de administrador não entram.'
+      + (possoAtacar ? ' Em "Atacar" você luta com qualquer um da Arena (level 5+): gasta 1 entrada e não muda a posição.' : '') + '</p>' + corpo;
   }
 
   // ---------------- Social: amigos ----------------
@@ -1947,7 +1951,7 @@
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
-      + (estado.desafio && estado.aba === 'arena' && !estado.lutaArena ? desafioHtml() : '');
+      + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking') && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
@@ -2493,14 +2497,18 @@
         telaJogo();
         break;
       case 'arena-desafiar':
-        abrirDesafio(el.dataset.id);
+        abrirDesafio(el.dataset.id, 'escada');
+        break;
+      case 'ranking-atacar':
+        abrirDesafio(el.dataset.id, 'livre');
         break;
       case 'desafio-confirmar': {
-        var alvoDesafio = estado.desafio && estado.desafio.id;
+        var alvoDesafio = estado.desafio && estado.desafio.id, livre = estado.desafio && estado.desafio.tipo === 'livre';
         if (!alvoDesafio) break;
         estado.desafio = null;
+        if (livre) estado.aba = 'arena';   // a luta e o resultado aparecem na Arena
         telaJogo();
-        comecarLutaArena(function () { return C.arena.desafiar(p.id, alvoDesafio); });
+        comecarLutaArena(function () { return livre ? C.arena.atacar(p.id, alvoDesafio) : C.arena.desafiar(p.id, alvoDesafio); });
         break;
       }
       case 'desafio-cancelar':
@@ -3420,9 +3428,11 @@
   }
 
   // ----- Perfil do adversário antes de desafiar -----
-  function abrirDesafio(id) {
+  // tipo: 'escada' (lista da Arena; o servidor decide se é para cima ou Top 5 para baixo) ou 'livre' (pelo Ranking).
+  function abrirDesafio(id, tipo) {
     var p = estado.personagem;
-    estado.desafio = { id: id, perfil: null, erro: null };
+    estado.desafio = { id: id, perfil: null, erro: null, tipo: tipo || 'escada' };
+    if (!estado.arena) carregarArena();   // entradas e a minha posição (para mostrar a recompensa)
     telaJogo();
     C.arena.perfil(p.id, id).then(function (pf) {
       if (!estado.desafio || estado.desafio.id !== id) return;
@@ -3443,6 +3453,28 @@
     x.equipados = pf.equipados || {};
     return x;
   }
+  // O que o ataque vale (o servidor confere): escada = posição + saque + reputação; Top 5 para baixo e Ranking não mudam posição.
+  // Alvo numa arena abaixo = nada; mesma arena e alvo abaixo de você = metade da reputação; o ouro cai a cada repetição na semana.
+  function recompensaDesafioHtml(pf, tipo, ouro, saque) {
+    var ar = estado.arena, rep = A.reputacaoVitoria, minha = ar && ar.minha_arena, minhaPos = ar && ar.posicao;
+    var ia = A.arenas.map(function (a) { return a.id; }).indexOf(minha), id = A.arenas.map(function (a) { return a.id; }).indexOf(pf.arena);
+    var mesma = minha && pf.arena === minha, abaixo = mesma && minhaPos && pf.posicao > minhaPos;
+    var escada = tipo !== 'livre' && mesma && !abaixo;
+    var nada = !escada && minha && id >= 0 && ia >= 0 && id < ia;
+    var repTxt = nada ? 0 : abaixo ? Math.floor(rep / 2) : rep;
+    var linhas = [];
+    if (nada) linhas.push('<span class="menos">Ele está numa arena abaixo da sua: vencendo, você <strong>não ganha reputação nem ouro</strong>.</span>');
+    else {
+      linhas.push('Ouro dele: <strong class="cor-ouro">' + ouro.toLocaleString('pt-BR') + '</strong> · se vencer, saque de <strong class="cor-ouro">' + saque + ' de ouro</strong>'
+        + ' e <strong>+' + repTxt + ' de reputação</strong>' + (abaixo ? ' (metade: ele está abaixo de você)' : '')
+        + (escada && pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.');
+      linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua).</span>');
+    }
+    linhas.push('<span class="suave pequeno">' + (escada ? 'Vencendo, você toma a posição dele.' : 'Este ataque não muda a sua posição na Arena.')
+      + ' Ele poderá revidar com uma revanche.</span>');
+    return '<p class="desafio-ouro">' + linhas.join('<br>') + '</p>';
+  }
+
   function desafioHtml() {
     var d = estado.desafio, p = estado.personagem, pf = d.perfil, corpo;
     if (d.erro) corpo = '<p class="menos">' + esc(d.erro) + '</p>';
@@ -3479,15 +3511,14 @@
         + '<div class="veredito ' + veredito[0] + '">' + veredito[1] + '</div></div></div>'
         + '<h3 class="subtitulo">Equipamentos</h3><div class="desafio-equip">' + equip + '</div>'
         + tabela
-        + '<p class="desafio-ouro">Ouro: <strong class="cor-ouro">' + ouro.toLocaleString('pt-BR') + '</strong> · se vencer, saque de <strong class="cor-ouro">' + saque + ' de ouro</strong>'
-        + (pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.</p>';
+        + recompensaDesafioHtml(pf, d.tipo, ouro, saque);
     }
     var entradas = estado.arena && estado.arena.entradas;
     var semEntrada = entradas && entradas.valor <= 0;
     return '<div class="zoom-fundo" data-acao="desafio-cancelar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Perfil do adversário">'
       + '<button class="zoom-x" data-acao="desafio-cancelar" title="Fechar">✕</button>'
-      + '<div class="zoom-rotulo">Desafiar na Arena?</div>' + corpo
-      + '<div class="botoes"><button class="btn btn-rolar" data-acao="desafio-confirmar"' + (!pf || semEntrada ? ' disabled' : '') + '>⚔ Desafiar'
+      + '<div class="zoom-rotulo">' + (d.tipo === 'livre' ? 'Atacar pelo Ranking?' : 'Desafiar na Arena?') + '</div>' + corpo
+      + '<div class="botoes"><button class="btn btn-rolar" data-acao="desafio-confirmar"' + (!pf || semEntrada ? ' disabled' : '') + '>' + (d.tipo === 'livre' ? '⚔ Atacar' : '⚔ Desafiar')
       + (entradas ? ' <small>(gasta 1 de ' + entradas.valor + ' entradas)</small>' : '') + '</button>'
       + '<button class="btn secundario" data-acao="desafio-cancelar">Cancelar</button></div></div></div>';
   }
@@ -3519,11 +3550,14 @@
       + (ar.top5.length ? ar.top5.map(function (x) { return linhaRanking(x); }).join('') : '<p class="suave">Ninguém nesta arena ainda.</p>') + '</div>';
     if (ar.arena === ar.minha_arena && ar.posicao) {
       var semEntrada = e.valor <= 0;
-      html += '<h3 class="subtitulo">Sua posição: #' + ar.posicao + ' de ' + ar.total + '</h3><p class="suave pequeno">Você pode desafiar os 5 logo acima de você. Vencendo, toma a posição dele e saqueia parte do ouro.</p><div class="itens">'
+      html += '<h3 class="subtitulo">Sua posição: #' + ar.posicao + ' de ' + ar.total + '</h3><p class="suave pequeno">Você pode desafiar os 5 logo acima de você. Vencendo, toma a posição dele e saqueia parte do ouro.'
+        + (ar.posicao < 5 ? ' No Top 5 você também ataca os de baixo até o 5º lugar: não muda a posição, vale o saque e metade da reputação.' : '')
+        + ' Pelo Ranking (Social) dá para atacar jogadores de qualquer arena.</p><div class="itens">'
         + ar.alvos.map(function (x) {
           if (x.id === p.id) return linhaRanking(x, '<span class="suave pequeno">Você</span>');
           var bloq = semEntrada ? ' disabled title="Sem entradas"' : x.conta_minha ? ' disabled title="Personagem seu"' : '';
-          return linhaRanking(x, '<button class="btn" data-acao="arena-desafiar" data-id="' + esc(x.id) + '"' + bloq + '>Desafiar</button>');
+          return linhaRanking(x, '<button class="btn' + (x.abaixo ? ' secundario' : '') + '" data-acao="arena-desafiar" data-id="' + esc(x.id) + '"' + bloq
+            + (x.abaixo ? ' title="Não muda a posição: saque e metade da reputação"' : '') + '>' + (x.abaixo ? 'Atacar' : 'Desafiar') + '</button>');
         }).join('') + '</div>';
       if (ar.posicao === 1) html += '<p class="destaque">Você é o Top 1! Defenda a posição.</p>';
     } else if (ar.arena !== ar.minha_arena) {
@@ -3535,7 +3569,9 @@
         : (h.venceu_atacante ? '<strong>' + esc(h.oponente) + '</strong> te atacou e venceu' : '<strong>' + esc(h.oponente) + '</strong> te atacou e perdeu');
       var ouro = h.saque ? ' <span class="' + (h.ataquei === h.venceu_atacante ? 'mais' : 'menos') + '">(' + (h.ataquei === h.venceu_atacante ? '+' : '−') + h.saque.toLocaleString('pt-BR') + ' de ouro)</span>' : '';
       var botao = h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '';
-      return '<div class="item"><div>' + (h.revanche ? '<span class="suave pequeno">Revanche · </span>' : '') + texto + ouro
+      var rep = h.ataquei && h.venceu_atacante && h.reputacao ? ' <span class="mais">(+' + h.reputacao + ' de reputação)</span>' : '';
+      var tipo = h.revanche ? 'Revanche · ' : h.tipo === 'livre' ? 'Pelo Ranking · ' : h.tipo === 'top5' ? 'Top 5 · ' : '';
+      return '<div class="item"><div>' + (tipo ? '<span class="suave pequeno">' + tipo + '</span>' : '') + texto + ouro + rep
         + '<div class="suave pequeno">' + (h.quando ? new Date(h.quando).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '') + '</div></div>'
         + '<div class="item-acoes">' + botao + '</div></div>';
     }).join('') + '</div>' : '<p class="suave">Nenhuma luta ainda.</p>');

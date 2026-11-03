@@ -302,6 +302,7 @@ Tanka.contas = (function () {
     perfil: function (meu, alvo) { return chamar('arena_perfil', { meu: meu, alvo: alvo }); },
     desafiar: function (meu, alvo) { return chamar('arena_desafiar', { meu: meu, alvo: alvo }); },
     revanche: function (meu, luta) { return chamar('arena_revanche', { meu: meu, luta: luta }); },
+    atacar: function (meu, alvo) { return chamar('arena_atacar', { meu: meu, alvo: alvo }); },
     rolar: function (meu, luta, rolar) { return chamar('arena_rolar', { meu: meu, luta: luta, rolar: rolar }); },
     aplicarCredito: function (meu, id) { return chamar('credito_aplicar', { meu: meu, credito: id }); },
     adminRecarregar: function (meu) { return chamar('arena_admin_recarregar', { meu: meu }); },

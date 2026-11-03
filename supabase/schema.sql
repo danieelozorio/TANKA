@@ -228,12 +228,12 @@ notify pgrst, 'reload schema';
 -- ---------- Ranking ----------
 -- Top 100 por level (empate: exp) ou por poder. Contas de administrador ficam de fora.
 drop function if exists public.ranking(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo, segunda classe)
-create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text, classe2 text)
+create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text, classe2 text, id text)
 language sql stable security definer set search_path = public as $$
   select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
          coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0),
          (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = p.id),
-         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2'
+         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2', p.id
   from public.personagens p join public.contas c on c.id = p.conta_id
   where not c.admin and not c.bot
   order by
@@ -1016,7 +1016,12 @@ create table if not exists public.arena_lutas (
   criado_em timestamptz not null default now(),
   concluido_em timestamptz
 );
+-- tipo: 'escada' (desafio normal, muda posição), 'top5' (do Top 5 para baixo, até o 5º), 'livre' (pelo Ranking),
+-- 'revanche'. Só 'escada' mexe na posição e no jackpot. reputacao: o que o atacante ganhou.
+alter table public.arena_lutas add column if not exists tipo text not null default 'escada';
+alter table public.arena_lutas add column if not exists reputacao int not null default 0;
 create index if not exists arena_lutas_atacante on public.arena_lutas (atacante, id desc);
+create index if not exists arena_lutas_par on public.arena_lutas (atacante, defensor, criado_em);
 create index if not exists arena_lutas_defensor on public.arena_lutas (defensor, id desc);
 create table if not exists public.arena_jackpot (
   arena text primary key,
@@ -1183,10 +1188,20 @@ begin
 end $$;
 
 -- Termina a luta: saque, reputação, ranking e jackpot.
+-- Ordem da arena (a1 = 1, a2 = 2...) para saber se uma está acima da outra.
+create or replace function public.arena_indice(ar text) returns int
+language sql stable as $$
+  select o::int from jsonb_array_elements(public.tanka_dados() -> 'ARENA' -> 'arenas') with ordinality x(a, o) where a ->> 'id' = ar;
+$$;
+-- Começo da semana do jogo (segunda-feira 00:00 de Brasília): a contagem de ataques repetidos zera aí.
+create or replace function public.arena_inicio_semana() returns timestamptz
+language sql stable as $$ select date_trunc('week', (now() at time zone 'America/Sao_Paulo'))::timestamp at time zone 'America/Sao_Paulo'; $$;
+
 create or replace function public.arena_finalizar(luta_id bigint, vitoria boolean) returns void
 language plpgsql as $$
 declare cfg jsonb := public.tanka_dados() -> 'ARENA'; L public.arena_lutas; a jsonb; perda numeric; pct int := 0; valor_saque int := 0;
   pa int; pd int; ar text; j public.arena_jackpot; premio int := 0; depois int;
+  repetidos int; fat_ouro numeric := 1; fat_rep numeric := 1; rep int := 0; ar_a text; ar_d text; pos_a int; pos_d int;
 begin
   select * into L from public.arena_lutas where id = luta_id for update;
   a := L.estado -> 'a';
@@ -1195,14 +1210,28 @@ begin
     pct := case when perda <= (cfg -> 'saque' ->> 'ate')::numeric then (cfg -> 'saque' ->> 'minimo')::int
                 when perda >= (cfg -> 'saque' ->> 'desde')::numeric then (cfg -> 'saque' ->> 'maximo')::int
                 else (cfg -> 'saque' -> 'meio' ->> 0)::int + floor(random() * ((cfg -> 'saque' -> 'meio' ->> 1)::int - (cfg -> 'saque' -> 'meio' ->> 0)::int + 1))::int end;
-    valor_saque := floor(public.ouro_real(L.defensor) * pct / 100.0);
-    perform public.creditar(L.atacante, valor_saque, (cfg ->> 'reputacaoVitoria')::int, 'Vitória na Arena contra ' || L.nome_defensor);
+    -- Mesmo atacante contra o mesmo personagem na semana: ouro cheio, metade, um quarto e depois nada (só reputação).
+    select count(*) into repetidos from public.arena_lutas
+      where atacante = L.atacante and defensor = L.defensor and id <> L.id and criado_em >= public.arena_inicio_semana();
+    fat_ouro := case when repetidos = 0 then 1 when repetidos = 1 then 0.5 when repetidos = 2 then 0.25 else 0 end;
+    -- Fora da escada (Top 5 para baixo, Ranking, revanche): alvo numa arena abaixo = nada; mesma arena e alvo
+    -- em posição inferior = metade da reputação; mesma arena acima ou arena mais forte = tudo.
+    if L.tipo <> 'escada' then
+      select arena, posicao into ar_a, pos_a from public.arena_posicoes where personagem_id = L.atacante;
+      select arena, posicao into ar_d, pos_d from public.arena_posicoes where personagem_id = L.defensor;
+      if public.arena_indice(ar_d) < public.arena_indice(ar_a) then fat_rep := 0; fat_ouro := 0;
+      elsif ar_d = ar_a and pos_d > pos_a then fat_rep := 0.5;
+      end if;
+    end if;
+    valor_saque := floor(public.ouro_real(L.defensor) * pct / 100.0 * fat_ouro);
+    rep := floor((cfg ->> 'reputacaoVitoria')::int * fat_rep);
+    perform public.creditar(L.atacante, valor_saque, rep, 'Vitória na Arena contra ' || L.nome_defensor);
     perform public.creditar(L.defensor, -valor_saque, 0, 'Saque na Arena por ' || L.nome_atacante);
   end if;
   select posicao, arena into pa, ar from public.arena_posicoes where personagem_id = L.atacante;
   select posicao into pd from public.arena_posicoes where personagem_id = L.defensor and arena = ar;
   depois := pa;
-  if L.revanche_de is null and pd is not null then
+  if L.tipo = 'escada' and L.revanche_de is null and pd is not null then
     j := public.arena_jackpot_atualizar(ar);
     if vitoria and pa > pd then
       -- Toma a posição do oponente; quem estava entre os dois desce uma.
@@ -1219,7 +1248,7 @@ begin
     end if;
   end if;
   update public.arena_lutas set situacao = case when vitoria then 'vitoria' else 'derrota' end, saque = valor_saque,
-    saque_pct = pct, pos_antes = pa, pos_depois = depois, jackpot = premio, concluido_em = now(),
+    saque_pct = pct, pos_antes = pa, pos_depois = depois, jackpot = premio, reputacao = rep, concluido_em = now(),
     estado = jsonb_set(estado, '{pendente}', 'false')
   where id = luta_id;
 end $$;
@@ -1312,20 +1341,22 @@ language sql stable as $$
   from public.arena_lutas where id = luta_id;
 $$;
 
-create or replace function public.arena_comecar(meu text, alvo text, revanche bigint) returns jsonb
+create or replace function public.arena_comecar_tipo(meu text, alvo text, revanche bigint, tipo text) returns jsonb
 language plpgsql as $$
 declare ar text; lid bigint;
 begin
   perform public.arena_encerrar_abandonadas(meu);
   perform public.arena_gastar_entrada(meu);
   select arena into ar from public.arena_posicoes where personagem_id = meu;
-  insert into public.arena_lutas (arena, atacante, defensor, nome_atacante, nome_defensor, revanche_de, estado)
-  values (ar, meu, alvo, (select nome from public.personagens where id = meu), (select nome from public.personagens where id = alvo), revanche,
+  insert into public.arena_lutas (arena, atacante, defensor, nome_atacante, nome_defensor, revanche_de, tipo, estado)
+  values (ar, meu, alvo, (select nome from public.personagens where id = meu), (select nome from public.personagens where id = alvo), revanche, tipo,
     jsonb_build_object('a', public.arena_lutador(meu, 'arena'), 'd', public.arena_lutador(alvo, 'defesa'), 'turnos', 0, 'pendente', false))
   returning id into lid;
   perform public.arena_avancar(lid);
   return public.arena_luta_json(lid);
 end $$;
+create or replace function public.arena_comecar(meu text, alvo text, revanche bigint) returns jsonb
+language sql as $$ select public.arena_comecar_tipo(meu, alvo, revanche, case when revanche is null then 'escada' else 'revanche' end); $$;
 
 -- ===== Funções chamadas pelo jogo =====
 
@@ -1352,13 +1383,15 @@ begin
     -- Os 5 logo acima (desafiáveis) e você.
     'alvos', case when pos is null then '[]'::jsonb else coalesce((select jsonb_agg(jsonb_build_object('posicao', ap.posicao, 'id', p.id, 'nome', p.nome,
         'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca', 'nivel', (p.dados ->> 'nivel')::int, 'poder', coalesce((p.dados ->> 'poder')::int, 0),
-        'conta_minha', p.conta_id = auth.uid(), 'sigla', public.sigla_de(p.id)) order by ap.posicao)
+        'conta_minha', p.conta_id = auth.uid(), 'sigla', public.sigla_de(p.id), 'abaixo', ap.posicao > pos) order by ap.posicao)
       from public.arena_posicoes ap join public.personagens p on p.id = ap.personagem_id
-      where ap.arena = ver and ap.posicao >= pos - (cfg ->> 'alcanceDesafio')::int and ap.posicao <= pos), '[]'::jsonb) end,
+      where ap.arena = ver and ((ap.posicao >= pos - (cfg ->> 'alcanceDesafio')::int and ap.posicao <= pos)
+        or (pos <= 5 and ap.posicao > pos and ap.posicao <= 5))), '[]'::jsonb) end,
     'historico', coalesce((select jsonb_agg(h order by (h ->> 'id')::bigint desc) from (
         select jsonb_build_object('id', l.id, 'ataquei', l.atacante = meu, 'oponente', case when l.atacante = meu then l.nome_defensor else l.nome_atacante end,
           'venceu_atacante', l.situacao = 'vitoria', 'saque', l.saque, 'revanche', l.revanche_de is not null, 'quando', l.concluido_em,
-          'pode_revanche', l.defensor = meu and l.situacao = 'vitoria' and l.revanche_de is null and not l.revanche_usada and l.atacante is not null) as h
+          'tipo', l.tipo, 'reputacao', l.reputacao,
+          'pode_revanche', l.defensor = meu and l.revanche_de is null and not l.revanche_usada and l.atacante is not null) as h
         from public.arena_lutas l where (l.atacante = meu or l.defensor = meu) and l.situacao <> 'andamento' order by l.id desc limit 10) x), '[]'::jsonb),
     'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
       from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb));
@@ -1375,11 +1408,28 @@ begin
   select posicao into pm from public.arena_posicoes where personagem_id = meu;
   select posicao into pa from public.arena_posicoes where personagem_id = alvo and arena = ar;
   if pa is null then raise exception 'Esse oponente não está na sua arena.'; end if;
-  if pa >= pm or pm - pa > (public.tanka_dados() -> 'ARENA' ->> 'alcanceDesafio')::int then
-    raise exception 'Só dá para desafiar os 5 logo acima de você.';
-  end if;
   if (select conta_id from public.personagens where id = alvo) = auth.uid() then raise exception 'Esse personagem é seu.'; end if;
-  return public.arena_comecar(meu, alvo, null);
+  if pa < pm and pm - pa <= (public.tanka_dados() -> 'ARENA' ->> 'alcanceDesafio')::int then
+    return public.arena_comecar_tipo(meu, alvo, null, 'escada');
+  end if;
+  -- Top 5: também ataca para baixo até o 5º (só reputação, metade, e ouro; não muda posição)
+  if pm <= 5 and pa > pm and pa <= 5 then return public.arena_comecar_tipo(meu, alvo, null, 'top5'); end if;
+  raise exception 'Só dá para desafiar os 5 logo acima de você (no Top 5, também os de baixo até o 5º lugar).';
+end $$;
+
+-- Ataque pelo Ranking (fora da escada): qualquer personagem que já entrou na Arena (level 5+), de qualquer arena.
+-- Não muda posição nem jackpot; recompensa em arena_finalizar (arena abaixo = nada; posição inferior = metade da reputação).
+create or replace function public.arena_atacar(meu text, alvo text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if public.arena_garantir(meu) is null then raise exception 'A Arena abre no level 5.'; end if;
+  if alvo = meu or (select conta_id from public.personagens where id = alvo) = auth.uid() then raise exception 'Esse personagem é seu.'; end if;
+  if not exists (select 1 from public.personagens p join public.contas c on c.id = p.conta_id where p.id = alvo and not c.admin) then
+    raise exception 'Personagem não encontrado.'; end if;
+  if public.arena_garantir(alvo) is null then raise exception 'Esse personagem ainda não chegou na Arena (level 5).'; end if;
+  perform public.arena_encerrar_abandonadas(meu);
+  return public.arena_comecar_tipo(meu, alvo, null, 'livre');
 end $$;
 
 create or replace function public.arena_revanche(meu text, luta bigint) returns jsonb
@@ -1388,12 +1438,13 @@ declare L public.arena_lutas;
 begin
   perform public.conferir_dono(meu);
   select * into L from public.arena_lutas where id = luta for update;
-  if L.id is null or L.defensor is distinct from meu or L.situacao <> 'vitoria' or L.revanche_de is not null or L.atacante is null then
+  if L.id is null or L.defensor is distinct from meu or L.situacao = 'andamento' or L.revanche_de is not null or L.atacante is null then
     raise exception 'Revanche indisponível.';
   end if;
   if L.revanche_usada then raise exception 'Você já fez a revanche dessa luta.'; end if;
+  if public.arena_garantir(meu) is null then raise exception 'A Arena abre no level 5.'; end if;
   update public.arena_lutas set revanche_usada = true where id = luta;
-  return public.arena_comecar(meu, L.atacante, luta);
+  return public.arena_comecar_tipo(meu, L.atacante, luta, 'revanche');
 end $$;
 
 create or replace function public.arena_rolar(meu text, luta bigint, rolar boolean) returns jsonb
@@ -1449,9 +1500,13 @@ begin
 end $$;
 
 revoke execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
-  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text) from public, anon;
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text),
+  public.arena_atacar(text, text) from public, anon;
 grant execute on function public.arena_estado(text, text), public.arena_desafiar(text, text), public.arena_revanche(text, bigint),
-  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text) to authenticated;
+  public.arena_rolar(text, bigint, boolean), public.credito_aplicar(text, bigint), public.arena_admin_recarregar(text), public.arena_perfil(text, text),
+  public.arena_atacar(text, text) to authenticated;
+revoke execute on function public.arena_comecar_tipo(text, text, bigint, text), public.arena_indice(text), public.arena_inicio_semana()
+  from public, anon, authenticated;
 revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int), public.arena_compactar(text), public.arena_garantir(text),
   public.arena_entradas_atual(text), public.arena_gastar_entrada(text), public.creditar(text, int, int, text), public.ouro_real(text),
   public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
