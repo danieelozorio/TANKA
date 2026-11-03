@@ -192,9 +192,15 @@
   function salvar() {
     estado.personagem.poder = R.poder(estado.personagem);   // vai junto para o ranking
     try {
-      C.salvarPersonagem(estado.personagem).catch(function (e) { avisar('Não foi possível salvar: ' + e.message); });
+      C.salvarPersonagem(estado.personagem).catch(function (e) { if (!e.conflito) avisar('Não foi possível salvar: ' + e.message); });
     } catch (e) { avisar(e.message); }
   }
+  // Outra aba ou aparelho salvou este personagem depois desta aba: em vez de gravar a cópia velha por cima,
+  // avisa e recarrega a página, que busca o progresso mais novo no servidor.
+  if (C.aoConflito) C.aoConflito(function () {
+    avisar('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
+    setTimeout(function () { location.reload(); }, 2500);
+  });
 
   // ---------------- Login / cadastro ----------------
 

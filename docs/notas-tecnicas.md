@@ -30,6 +30,11 @@ segundas classes em `assets/personagens/<raca>-<classe2>[-f].jpg` (`classeRetrat
 Arena com habilidades no servidor (schema.sql: `arena_kit`, `arena_passiva`, `arena_vez`, passiva em `tanka_status`; sem
 crítico na Arena: bônus de crítico viram dano, Sombra = próximo golpe vale o 20, evasão vira esquiva). Ordem própria `defesa` (Arena · Defesa) usada quando o personagem é desafiado. Falta: Coletor na
 masmorra, segunda classe nas listas do servidor (ranking/amigos).
+Salvamento com trava de versão (nov/2026, caso legolaspreto 14 -> 12): `salvarPersonagem` (contas.js) grava `dados.versao`
++1 e o PATCH filtra `dados->>versao=eq.<anterior>` (ou `is.null`); se nenhuma linha muda, outra aba/aparelho salvou antes:
+`erro.conflito`, as próximas gravações param e o app (`C.aoConflito`) avisa e recarrega a página. O servidor nunca
+escreve em `personagens.dados`, por isso a trava é só no cliente (sem mudar o schema). Se um dia uma função do banco
+gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Pendências e ideias conversadas
 - **Curva de exp**: do 25 ao 40 ficou longa demais (simulação: ~2.700 h até o 40 para Cavaleiro, muito mais para Mago).

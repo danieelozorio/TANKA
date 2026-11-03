@@ -82,6 +82,8 @@ Tanka.contas = (function () {
     var linhas = await pedir('/rest/v1/contas?select=usuario,email,admin');
     if (!linhas || !linhas.length) { guardarSessao(null); conta = null; return null; }
     var pers = await pedir('/rest/v1/personagens?select=dados&order=criado_em');
+    versaoNoServidor = {};   // o que veio do servidor agora é a versão certa
+    emConflito = false;
     conta = Object.assign(linhas[0], { personagens: pers.map(function (x) { return x.dados; }) });
     return conta;
   }
@@ -172,14 +174,36 @@ Tanka.contas = (function () {
   }
 
   // Grava o personagem. As gravações saem em fila, na ordem em que foram pedidas.
+  // Proteção contra cópia velha: cada gravação leva um número de versão (dados.versao) e só é aceita se a versão
+  // no servidor for a mesma que esta aba conhece. Se outra aba/aparelho gravou antes, nada é sobrescrito:
+  // a gravação falha com erro.conflito e o jogo recarrega o personagem do servidor.
+  var versaoNoServidor = {};   // id do personagem -> última versão que esta aba gravou/leu
+  var emConflito = false;
+  var aoConflito = null;       // o jogo avisa o jogador e recarrega
+  function erroConflito() {
+    var e = new Error('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
+    e.conflito = true;
+    return e;
+  }
   function salvarPersonagem(p) {
     var copia = JSON.parse(JSON.stringify(p));
     var i = conta ? conta.personagens.findIndex(function (x) { return x.id === p.id; }) : -1;
     if (i >= 0) conta.personagens[i] = p;
     fila = fila.catch(function () {}).then(async function () {
+      if (emConflito) throw erroConflito();
       if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
-      await pedir('/rest/v1/personagens?id=eq.' + encodeURIComponent(copia.id), {
-        metodo: 'PATCH', cabecalhos: { Prefer: 'return=minimal' }, corpo: { dados: copia } });
+      var antes = versaoNoServidor[copia.id] !== undefined ? versaoNoServidor[copia.id] : (Number(copia.versao) || 0);
+      copia.versao = antes + 1;
+      var filtro = antes ? 'dados->>versao=eq.' + antes : 'dados->>versao=is.null';
+      var linhas = await pedir('/rest/v1/personagens?id=eq.' + encodeURIComponent(copia.id) + '&' + filtro + '&select=id', {
+        metodo: 'PATCH', cabecalhos: { Prefer: 'return=representation' }, corpo: { dados: copia } });
+      if (!linhas || !linhas.length) {
+        emConflito = true;
+        if (aoConflito) aoConflito();
+        throw erroConflito();
+      }
+      versaoNoServidor[copia.id] = copia.versao;
+      p.versao = copia.versao;
     });
     return fila;
   }
@@ -306,5 +330,6 @@ Tanka.contas = (function () {
     criarPersonagem: criarPersonagem,
     excluirPersonagem: excluirPersonagem,
     salvarPersonagem: salvarPersonagem,
+    aoConflito: function (f) { aoConflito = f; },
   };
 })();
