@@ -79,7 +79,7 @@ Tanka.contas = (function () {
 
   async function carregarConta() {
     if (!(await sessaoValida())) { conta = null; return null; }
-    var linhas = await pedir('/rest/v1/contas?select=usuario,email,admin');
+    var linhas = await pedir('/rest/v1/contas?select=usuario,email,admin,trocar_senha');
     if (!linhas || !linhas.length) { guardarSessao(null); conta = null; return null; }
     var pers = await pedir('/rest/v1/personagens?select=dados&order=criado_em');
     versaoNoServidor = {};   // o que veio do servidor agora é a versão certa
@@ -313,7 +313,22 @@ Tanka.contas = (function () {
     lance: function (meu, lote, valor) { return chamar('leilao_lance', { meu: meu, lote: lote, valor: valor }); },
   };
 
+  // Esqueci a senha: o pedido vai para o painel do admin, que manda uma senha temporária para o e-mail do cadastro.
+  var senha = {
+    pedir: function (usuario, email) { return pedir('/rest/v1/rpc/senha_pedir', { metodo: 'POST', logado: false, corpo: { u: usuario, e: email } }); },
+    trocar: async function (nova) {
+      if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre de novo.');
+      await pedir('/auth/v1/user', { metodo: 'PUT', corpo: { password: nova } });
+      await rpc('senha_trocada');
+      if (conta) conta.trocar_senha = false;
+    },
+    adminPedidos: function () { return rpc('admin_pedidos_senha'); },
+    adminGerar: function (id) { return rpc('admin_senha_temporaria', { pedido: id }); },
+    adminRecusar: function (id) { return rpc('admin_recusar_pedido_senha', { pedido: id }); },
+  };
+
   return {
+    senha: senha,
     leilao: leilao,
     arena: arena,
     alianca: alianca,

@@ -206,8 +206,16 @@
 
   function telaAuth(modo, erro) {
     chatVisivel(false);
-    var cadastro = modo === 'cadastro';
-    var form = cadastro
+    var cadastro = modo === 'cadastro', esqueci = modo === 'esqueci';
+    var nomeForm = cadastro ? 'cadastro' : esqueci ? 'esqueci' : 'entrar';
+    var form = esqueci
+      ? '<form data-form="esqueci" novalidate><p class="suave pequeno">Informe o usuário e o e-mail do cadastro. Um administrador vai mandar uma senha temporária para esse e-mail; ao entrar com ela, você cria uma senha nova.</p>'
+        + '<label>Nome de usuário<input name="usuario" autocomplete="username" required></label>'
+        + '<label>E-mail do cadastro<input name="email" type="email" autocomplete="email" required></label>'
+        + '<p class="erro">' + esc(erro || '') + '</p>'
+        + '<button class="btn largo" type="submit">Pedir nova senha</button>'
+        + '<button class="link-senha" type="button" data-acao="auth" data-modo="entrar">Voltar para entrar</button></form>'
+      : cadastro
       ? '<form data-form="cadastro" novalidate>'
         + '<label>Nome de usuário<input name="usuario" autocomplete="username" required maxlength="16"></label>'
         + '<label>Senha<input name="senha" type="password" autocomplete="new-password" required></label>'
@@ -219,13 +227,14 @@
         + '<label>Nome de usuário<input name="usuario" autocomplete="username" required></label>'
         + '<label>Senha<input name="senha" type="password" autocomplete="current-password" required></label>'
         + '<p class="erro">' + esc(erro || '') + '</p>'
-        + '<button class="btn largo" type="submit">Entrar</button></form>';
+        + '<button class="btn largo" type="submit">Entrar</button>'
+        + '<button class="link-senha" type="button" data-acao="auth" data-modo="esqueci">Esqueci a senha</button></form>';
     mostrarCenario(true);
     areaMusica(true);
     // Já está na entrada: troca só o formulário (com fade e a caixa crescendo devagar), sem redesenhar logo e moldura.
     var caixa = app.querySelector('.tela-entrada .moldura-runica'), atual = caixa && caixa.querySelector('form');
     if (atual) {
-      var trocou = atual.dataset.form !== (cadastro ? 'cadastro' : 'entrar');
+      var trocou = atual.dataset.form !== nomeForm;
       app.querySelector('.tela-entrada').classList.toggle('modo-cadastro', cadastro);
       caixa.querySelectorAll('.abas button').forEach(function (b) { b.classList.toggle('ativa', (b.dataset.modo === 'cadastro') === cadastro); });
       var antes = caixa.offsetHeight, tmp = document.createElement('div');
@@ -256,6 +265,29 @@
     if (primeiro) primeiro.focus();
   }
 
+  // Depois de entrar: com senha temporária, primeiro cria a senha nova.
+  function depoisDeEntrar() {
+    if (estado.conta && estado.conta.trocar_senha) telaTrocarSenha(true);
+    else telaPersonagens();
+  }
+  // Trocar a senha (obrigatório depois de entrar com a senha temporária do admin).
+  function telaTrocarSenha(obrigatorio, erro) {
+    chatVisivel(false);
+    mostrarCenario(false);
+    app.innerHTML = topo() + '<div class="conteudo"><section class="auth"><div class="caixa">'
+      + '<h2>' + (obrigatorio ? 'Crie uma senha nova' : 'Trocar senha') + '</h2>'
+      + (obrigatorio ? '<p class="suave">Você entrou com uma senha temporária. Escolha uma senha nova para continuar.</p>' : '')
+      + '<form data-form="trocar-senha" novalidate>'
+      + '<label>Senha nova<input name="senha" type="password" autocomplete="new-password" required></label>'
+      + '<label>Confirmar senha nova<input name="confirmar" type="password" autocomplete="new-password" required></label>'
+      + '<p class="erro">' + esc(erro || '') + '</p>'
+      + '<button class="btn largo" type="submit">Salvar senha</button>'
+      + (obrigatorio ? '' : '<button class="btn secundario largo" type="button" data-acao="voltar-personagens">Cancelar</button>')
+      + '</form></div></section></div>' + rodape();
+    var c = app.querySelector('input');
+    if (c) c.focus();
+  }
+
   // ---------------- Seleção de personagens ----------------
 
   function telaPersonagens() {
@@ -283,7 +315,7 @@
     }
     mostrarCenario(false);
     areaMusica(true);
-    app.innerHTML = topo() + '<div class="conteudo"><h2>Seus personagens</h2>'
+    app.innerHTML = topo('<button class="btn secundario" data-acao="trocar-senha">Trocar senha</button>') + '<div class="conteudo"><h2>Seus personagens</h2>'
       + '<div class="lista-personagens">' + cartas + '</div></div>' + rodape();
   }
 
@@ -1806,6 +1838,29 @@
     });
   }
 
+  // Pedidos de "Esqueci a senha" e a senha temporária recém-gerada (com o e-mail pronto para mandar).
+  function adminSenhasHtml() {
+    var g = estado.adminSenhaGerada, html = '';
+    if (g) {
+      var corpo = 'Olá, ' + g.usuario + '!\n\nSua senha temporária do ' + D.NOME_JOGO + ' é: ' + g.senha
+        + '\n\nEntre com o seu usuário (' + g.usuario + ') e essa senha. O jogo vai pedir para você criar uma senha nova.\n\nSe não foi você que pediu, responda este e-mail.';
+      var link = 'mailto:' + g.email.replace(/[^\w.+@-]/g, '') + '?subject=' + encodeURIComponent(D.NOME_JOGO + ' - sua senha temporária') + '&body=' + encodeURIComponent(corpo);
+      html += '<div class="item destaque-senha"><div><div>Senha temporária de <strong>' + esc(g.usuario) + '</strong>: <strong class="cor-ouro">' + esc(g.senha) + '</strong></div>'
+        + '<div class="suave">Mande só para o e-mail do cadastro: ' + esc(g.email) + '. Ela não aparece de novo depois de fechar.</div></div>'
+        + '<div class="item-acoes"><a class="btn" href="' + link + '">Abrir e-mail</a>'
+        + '<button class="btn secundario" data-acao="senha-gerada-fechar">Fechar</button></div></div>';
+    }
+    if (estado.adminSenhas) {
+      html += estado.adminSenhas.length ? estado.adminSenhas.map(function (x) {
+        return '<div class="item"><div><div><strong>' + esc(x.usuario) + '</strong> · ' + esc(x.email) + '</div>'
+          + '<div class="suave pequeno">Personagens: ' + (x.personagens.length ? x.personagens.map(esc).join(', ') : 'nenhum') + ' · pedido em ' + new Date(x.quando).toLocaleString('pt-BR') + '</div></div>'
+          + '<div class="item-acoes"><button class="btn" data-acao="senha-gerar" data-id="' + x.id + '" data-usuario="' + esc(x.usuario) + '">Gerar senha temporária</button>'
+          + '<button class="btn secundario" data-acao="senha-recusar" data-id="' + x.id + '" data-usuario="' + esc(x.usuario) + '">Recusar</button></div></div>';
+      }).join('') : '<p class="suave">Nenhum pedido de senha.</p>';
+    }
+    return html ? '<div class="itens">' + html + '</div>' : '';
+  }
+
   function abaAdmin() {
     if (!ehAdmin()) return '';
     function botoes(op, valores, rotulo, estilo) {
@@ -1855,6 +1910,9 @@
         + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>'
         + botoes('vida', [50, 10, 0], function (v) { return v ? 'Vida em ' + v + '%' : 'Zerar vida'; }, 'menos')
         + botoes('zerar-pocoes', [0], function () { return 'Zerar poções'; }, 'menos'))
+      + grupo('Pedidos de senha', 'Jogadores que clicaram em "Esqueci a senha" com usuário e e-mail certos. Gere a senha temporária e mande para o e-mail do cadastro.',
+        '<button class="btn" data-acao="senha-pedidos">' + (estado.adminSenhas ? 'Atualizar pedidos' : 'Ver pedidos') + '</button>')
+      + '</div>' + adminSenhasHtml() + '<div class="itens">'
       + grupo('Alianças', 'Todas as alianças do jogo: renomear, dar exp, trocar o líder ou apagar.',
         '<button class="btn" data-acao="al-admin-listar">' + (estado.adminAliancas ? 'Atualizar lista' : 'Ver alianças') + '</button>')
       + '</div>'
@@ -2336,9 +2394,21 @@
         await C.registrar(dados);
         telaAuth('entrar');
         avisar('Conta criada! Agora entre com seu usuário e senha.');
+      } else if (form.dataset.form === 'esqueci') {
+        if (!dados.usuario.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(dados.email.trim())) throw new Error('Preencha o usuário e um e-mail válido.');
+        await C.senha.pedir(dados.usuario.trim(), dados.email.trim());
+        telaAuth('entrar');
+        avisar('Pedido enviado! Se o usuário e o e-mail conferirem, você vai receber uma senha temporária nesse e-mail.');
+      } else if (form.dataset.form === 'trocar-senha') {
+        if (dados.senha.length < 6) throw new Error('A senha precisa ter pelo menos 6 caracteres.');
+        if (dados.senha !== dados.confirmar) throw new Error('As senhas não conferem.');
+        await C.senha.trocar(dados.senha);
+        estado.conta.trocar_senha = false;
+        telaPersonagens();
+        avisar('Senha trocada!');
       } else {
         estado.conta = await C.entrar(dados.usuario, dados.senha);
-        telaPersonagens();
+        depoisDeEntrar();
       }
     } catch (err) {
       form.querySelector('.erro').textContent = err.message;
@@ -2377,6 +2447,25 @@
     if (el.dataset.acao.indexOf('al-') === 0 && cliqueAlianca(el.dataset.acao, el)) return;
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
+      case 'trocar-senha': telaTrocarSenha(false); break;
+      case 'senha-pedidos':
+        C.senha.adminPedidos().then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
+        break;
+      case 'senha-gerar': {
+        var pedidoId = Number(el.dataset.id);
+        if (!window.confirm('Gerar uma senha temporária para ' + el.dataset.usuario + '? A senha atual dele deixa de funcionar.')) break;
+        C.senha.adminGerar(pedidoId).then(function (r) {
+          estado.adminSenhaGerada = r;
+          return C.senha.adminPedidos().then(function (l) { estado.adminSenhas = l; telaJogo(); });
+        }, function (e2) { avisar(e2.message); });
+        break;
+      }
+      case 'senha-recusar':
+        if (!window.confirm('Recusar o pedido de ' + el.dataset.usuario + '?')) break;
+        C.senha.adminRecusar(Number(el.dataset.id)).then(function () { return C.senha.adminPedidos(); })
+          .then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
+        break;
+      case 'senha-gerada-fechar': estado.adminSenhaGerada = null; telaJogo(); break;
       case 'sair':
         clearTimeout(estado.timer);
         encerrarAtividade();
@@ -4505,6 +4594,6 @@
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
   C.iniciar().then(function (conta) {
     estado.conta = conta;
-    if (conta) telaPersonagens(); else telaAuth('entrar');
+    if (conta) depoisDeEntrar(); else telaAuth('entrar');
   });
 })();

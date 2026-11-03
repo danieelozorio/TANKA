@@ -222,6 +222,83 @@ end $$;
 revoke execute on function public.silenciar(text, int) from public, anon;
 grant execute on function public.silenciar(text, int) to authenticated;
 
+-- ---------- Esqueci a senha (Henri, nov/2026) ----------
+-- O login usa um e-mail interno, então o e-mail de recuperação do Supabase não chega no jogador.
+-- Fluxo: o jogador pede com usuário + e-mail do cadastro (senha_pedir); se conferir, o pedido aparece no painel de admin;
+-- o admin gera uma senha temporária (admin_senha_temporaria) e manda para o e-mail cadastrado; no próximo login o jogo
+-- obriga a trocar a senha (contas.trocar_senha; a troca é pelo /auth/v1/user e depois senha_trocada()).
+create extension if not exists pgcrypto with schema extensions;
+alter table public.contas add column if not exists trocar_senha boolean not null default false;
+create table if not exists public.pedidos_senha (
+  id bigint generated always as identity primary key,
+  conta_id uuid not null references public.contas (id) on delete cascade,
+  criado_em timestamptz not null default now(),
+  situacao text not null default 'pendente',   -- pendente | enviada | recusado
+  resolvido_em timestamptz,
+  resolvido_por uuid
+);
+create unique index if not exists pedidos_senha_um_pendente on public.pedidos_senha (conta_id) where situacao = 'pendente';
+alter table public.pedidos_senha enable row level security;   -- sem regras: só pelas funções abaixo
+
+-- Não diz se o usuário existe nem se o e-mail confere (a resposta é sempre a mesma).
+create or replace function public.senha_pedir(u text, e text) returns void
+language plpgsql security definer set search_path = public as $$
+declare c uuid;
+begin
+  select id into c from public.contas
+    where lower(usuario) = lower(trim(coalesce(u, ''))) and lower(email) = lower(trim(coalesce(e, ''))) and not bot;
+  if c is null then return; end if;
+  if (select count(*) from public.pedidos_senha where situacao = 'pendente') >= 500 then return; end if;
+  insert into public.pedidos_senha (conta_id) values (c) on conflict (conta_id) where situacao = 'pendente' do nothing;
+end $$;
+
+create or replace function public.admin_pedidos_senha() returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  return coalesce((select jsonb_agg(jsonb_build_object('id', ps.id, 'usuario', c.usuario, 'email', c.email, 'quando', ps.criado_em,
+      'personagens', coalesce((select jsonb_agg(pe.nome order by pe.criado_em) from public.personagens pe where pe.conta_id = c.id), '[]'::jsonb))
+      order by ps.criado_em)
+    from public.pedidos_senha ps join public.contas c on c.id = ps.conta_id where ps.situacao = 'pendente'), '[]'::jsonb);
+end $$;
+
+-- Gera a senha temporária (10 letras/números, sem os que confundem), grava no login e devolve para o admin mandar por e-mail.
+create or replace function public.admin_senha_temporaria(pedido bigint) returns jsonb
+language plpgsql security definer set search_path = public, extensions as $$
+declare cid uuid; us text; em text; nova text := ''; alfa text := 'abcdefghjkmnpqrstuvwxyz23456789'; b bytea; i int;
+begin
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  select ps.conta_id, c.usuario, c.email into cid, us, em
+    from public.pedidos_senha ps join public.contas c on c.id = ps.conta_id where ps.id = pedido and ps.situacao = 'pendente';
+  if cid is null then raise exception 'Pedido não encontrado (ou já resolvido).'; end if;
+  b := extensions.gen_random_bytes(10);
+  for i in 0 .. 9 loop nova := nova || substr(alfa, 1 + get_byte(b, i) % length(alfa), 1); end loop;
+  update auth.users set encrypted_password = extensions.crypt(nova, extensions.gen_salt('bf')), updated_at = now() where id = cid;
+  update public.contas set trocar_senha = true where id = cid;
+  update public.pedidos_senha set situacao = 'enviada', resolvido_em = now(), resolvido_por = auth.uid() where id = pedido;
+  return jsonb_build_object('usuario', us, 'email', em, 'senha', nova);
+end $$;
+
+create or replace function public.admin_recusar_pedido_senha(pedido bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  update public.pedidos_senha set situacao = 'recusado', resolvido_em = now(), resolvido_por = auth.uid()
+    where id = pedido and situacao = 'pendente';
+end $$;
+
+-- Depois de trocar a senha no /auth/v1/user, o jogo tira o aviso de "senha temporária".
+create or replace function public.senha_trocada() returns void
+language sql security definer set search_path = public as $$
+  update public.contas set trocar_senha = false where id = auth.uid();
+$$;
+
+revoke execute on function public.senha_pedir(text, text), public.admin_pedidos_senha(), public.admin_senha_temporaria(bigint),
+  public.admin_recusar_pedido_senha(bigint), public.senha_trocada() from public;
+grant execute on function public.senha_pedir(text, text) to anon, authenticated;
+grant execute on function public.admin_pedidos_senha(), public.admin_senha_temporaria(bigint),
+  public.admin_recusar_pedido_senha(bigint), public.senha_trocada() to authenticated;
+
 -- Avisa a API do Supabase que as tabelas mudaram (evita o erro "schema cache").
 notify pgrst, 'reload schema';
 

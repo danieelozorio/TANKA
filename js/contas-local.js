@@ -210,7 +210,14 @@ Tanka.contas = (function () {
     perfil: soServidor, desafiar: soServidor, revanche: soServidor, atacar: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
   };
 
+  // Na versão sem servidor não existe admin para mandar senha; trocar a senha funciona (hash local).
+  var senhaLocal = {
+    pedir: function () { return Promise.reject(new Error('Recuperar a senha só funciona no site do Eldrin.')); },
+    trocar: function () { return Promise.reject(new Error('Trocar a senha só funciona no site do Eldrin.')); }, adminPedidos: soServidor, adminGerar: soServidor, adminRecusar: soServidor,
+  };
+
   return {
+    senha: senhaLocal,
     // O leilão é do servidor (todos os jogadores no mesmo leilão).
     leilao: { estado: function () { return Promise.resolve({ local: true }); }, lance: soServidor },
     arena: arena,

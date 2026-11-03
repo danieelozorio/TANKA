@@ -13,7 +13,12 @@ alter default privileges in schema public grant all on tables to anon, authentic
 alter default privileges in schema public grant all on sequences to anon, authenticated;
 create schema auth;
 grant usage on schema auth to anon, authenticated;
-create table auth.users (id uuid primary key default gen_random_uuid(), raw_user_meta_data jsonb);
+create table auth.users (id uuid primary key default gen_random_uuid(), raw_user_meta_data jsonb,
+  encrypted_password text, updated_at timestamptz);
+-- No Supabase o pgcrypto fica no esquema extensions.
+drop schema if exists extensions cascade;
+create schema extensions;
+grant usage on schema extensions to anon, authenticated;
 -- auth.uid(): quem está "logado" vem de uma configuração da sessão.
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid;

@@ -149,4 +149,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   lendária + vida (`bonusDoNivel(15)`). Encanto do anel vai no dano (`bonusPorNivel.anel`). Anéis antigos (Sorte, sem `bonus.dano`)
   viram novos em `normalizar` (mantêm raridade, nível e encanto). Servidor soma dano/vida/defesaMagica do `it.bonus` (regen não
   importa na Arena); tanka_dados regenerado.
+- **Esqueci a senha (nov/2026):** o login do Supabase usa e-mail interno (`usuario@jogador...`), então a recuperação é pelo admin.
+  Entrada > "Esqueci a senha": `senha_pedir(u, e)` (anon; só cria pedido se usuário e e-mail conferem, 1 pendente por conta,
+  resposta sempre igual). Admin > "Pedidos de senha": `admin_pedidos_senha`, `admin_senha_temporaria(pedido)` (10 caracteres,
+  grava `auth.users.encrypted_password` com `extensions.crypt`/bcrypt, marca `contas.trocar_senha`) e `admin_recusar_pedido_senha`;
+  o painel mostra a senha uma vez e um botão "Abrir e-mail" (mailto para o e-mail do cadastro). No login com `trocar_senha`,
+  `telaTrocarSenha(true)` obriga a criar senha nova (`PUT /auth/v1/user` + `senha_trocada()`). "Trocar senha" também na tela
+  de personagens. Tabela `pedidos_senha` (RLS sem regras). Testes no banco (bloco "Esqueci a senha").
 

@@ -521,4 +521,49 @@ set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual((select count(*) from public.leilao_lotes)::int, 0, 'leilão: tabela fechada para leitura direta');
 reset role;
+
+-- Esqueci a senha: pedido com usuário + e-mail, admin gera senha temporária, troca obrigatória.
+update auth.users set encrypted_password = extensions.crypt('antiga1', extensions.gen_salt('bf'));
+set role anon;
+select public.senha_pedir('BIA', ' B@T.com ');
+select public.senha_pedir('bia', 'b@t.com');            -- repetido: continua um pedido só
+select public.senha_pedir('bia', 'errado@t.com');       -- e-mail não confere: nada (e sem erro)
+select public.senha_pedir('ninguem', 'x@t.com');
+reset role;
+select pg_temp.igual((select count(*) from public.pedidos_senha)::int, 1, 'senha: pedido só quando usuário e e-mail conferem, um por conta');
+set role authenticated;
+select pg_temp.como('b');
+select pg_temp.falha($$select public.admin_pedidos_senha()$$, 'Só administradores');
+select pg_temp.falha($$select public.admin_senha_temporaria(1)$$, 'Só administradores');
+select pg_temp.igual((select count(*) from public.pedidos_senha)::int, 0, 'senha: jogador não lê os pedidos direto');
+reset role;
+update public.contas set admin = true where usuario = 'duda';
+set role authenticated;
+select pg_temp.como('d');
+select pg_temp.igual((select public.admin_pedidos_senha() -> 0 ->> 'email'), 'b@t.com', 'senha: admin vê o pedido com o e-mail do cadastro');
+select pg_temp.igual((select public.admin_pedidos_senha() -> 0 -> 'personagens' ->> 0), 'Bruna', 'senha: admin vê os personagens da conta');
+create temp table nova_senha as select public.admin_senha_temporaria((select (public.admin_pedidos_senha() -> 0 ->> 'id')::bigint)) as r;
+select pg_temp.igual(length((select r ->> 'senha' from nova_senha)), 10, 'senha: temporária com 10 caracteres');
+select pg_temp.falha($$select public.admin_senha_temporaria((select min(id) from public.pedidos_senha))$$, 'já resolvido');
+select pg_temp.igual(jsonb_array_length(public.admin_pedidos_senha()), 0, 'senha: pedido resolvido some da lista');
+reset role;
+select pg_temp.igual((select encrypted_password = extensions.crypt((select r ->> 'senha' from nova_senha), encrypted_password)
+  from auth.users where id = '00000000-0000-0000-0000-00000000000b'), true, 'senha: login da Bia passa a aceitar a temporária');
+select pg_temp.igual((select encrypted_password = extensions.crypt('antiga1', encrypted_password)
+  from auth.users where id = '00000000-0000-0000-0000-00000000000a'), true, 'senha: as outras contas não mudam');
+select pg_temp.igual((select trocar_senha from public.contas where usuario = 'bia'), true, 'senha: Bia tem que trocar a senha');
+set role authenticated;
+select pg_temp.como('b');
+select public.senha_trocada();
+reset role;
+select pg_temp.igual((select trocar_senha from public.contas where usuario = 'bia'), false, 'senha: depois de trocar, o aviso some');
+set role anon;
+select public.senha_pedir('caio', 'c@t.com');
+reset role;
+set role authenticated;
+select pg_temp.como('d');
+select public.admin_recusar_pedido_senha((select (public.admin_pedidos_senha() -> 0 ->> 'id')::bigint));
+select pg_temp.igual(jsonb_array_length(public.admin_pedidos_senha()), 0, 'senha: pedido recusado some da lista');
+reset role;
+update public.contas set admin = false where usuario = 'duda';
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -1330,3 +1330,9 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .leilao-acao .lance-valor { flex: 1; min-width: 0; }
 .leilao-zoom .zoom-cartas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }
 @media (max-width: 560px) { .leilao-topo { flex-direction: column; } .leilao-tempo { align-self: stretch; } }
+
+/* Esqueci a senha (link discreto abaixo do botão) e senha temporária no painel do admin */
+.link-senha { display: block; margin: .75rem auto 0; background: none; border: 0; padding: .25rem .5rem;
+  color: var(--ouro, #d4af37); font: inherit; font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; opacity: .85; }
+.link-senha:hover, .link-senha:focus-visible { opacity: 1; }
+.destaque-senha { border-color: var(--ouro, #d4af37); }
