@@ -1314,13 +1314,16 @@ teste('tipos de arma equilibrados: o fator vale para o golpe inteiro (arma + her
     const normal = dpt('arco', b);
     assert.ok(Math.abs(dpt('adaga', b) / normal - 1) < 0.01, 'rápida = normal');
     assert.ok(Math.abs(dpt('besta', b) / normal - 1) < 0.01, 'lenta de uma mão = normal');
-    assert.ok(Math.abs(dpt('balestra', b) / normal - 1.12) < 0.01, 'lenta de duas mãos = +12%');
+    assert.ok(Math.abs(dpt('espada2m', b) / normal - 1.12) < 0.01, 'lenta de duas mãos = +12%');
+    assert.ok(Math.abs(dpt('balestra', b) / normal - 1.12) < 0.01, 'balestra (normal de duas mãos) = +12%');
+    assert.ok(Math.abs(dpt('martelo', b) / normal - 1) < 0.01, 'martelo (normal) = normal');
   }
+  assert.deepStrictEqual([D.TIPOS_ARMA.martelo.vel, D.TIPOS_ARMA.balestra.vel], ['normal', 'normal']);
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   p.inventario.push({ id: 'b', tipo: 'arma', classe: 'arqueiro', arma: 'balestra', raridade: 'comum', variacao: 0, dano: [10, 20], encanto: 0 });
   p.equipados.arma = 'b';
   const bonus = R.status(p).ataque;
-  assert.deepStrictEqual([...R.status(p).dano], [Math.round((10 + bonus) * 1.4), Math.round((20 + bonus) * 1.4)]);
+  assert.deepStrictEqual([...R.status(p).dano], [Math.round((10 + bonus) * 1.12), Math.round((20 + bonus) * 1.12)]);
 });
 
 teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno, na caçada e na masmorra', () => {

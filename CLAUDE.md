@@ -179,4 +179,5 @@ masmorra, segunda classe nas listas do servidor (ranking/amigos).
   (`encantoPct` em tanka_dados, tanka_status). Testes: regras.test.js e banco.test.sql.
 - Tipos de arma equilibrados: o `fator` do tipo vale para o GOLPE INTEIRO (arma + dano do herói + mão esquerda), em
   `status` e no tanka_status (`fat`). Fatores: rápida 0,83 (x1,2 ataques = normal), lenta de uma mão 1,25 (x0,8 = normal),
-  lenta de duas mãos 1,4 (x0,8 = +12%, paga a mão esquerda). `danoArma` mostrado na ficha continua com o fator só na arma.
+  lenta de duas mãos 1,4 (x0,8 = +12%, paga a mão esquerda).
+  Henri (nov/2026): Martelo virou NORMAL (fator 1) e Balestra NORMAL de duas mãos (fator 1,12 = os mesmos +12%). `danoArma` mostrado na ficha continua com o fator só na arma.

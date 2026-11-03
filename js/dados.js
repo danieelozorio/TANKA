@@ -246,12 +246,13 @@ Tanka.dados = {
     machado: { nome: 'Machado', classe: 'cavaleiro', vel: 'normal', fator: 1 },
     arco: { nome: 'Arco', classe: 'arqueiro', vel: 'normal', fator: 1 },
     besta: { nome: 'Besta', classe: 'arqueiro', vel: 'devagar', fator: 1.25 },
-    balestra: { nome: 'Balestra', classe: 'arqueiro', vel: 'devagar', fator: 1.4, duasMaos: true },
+    // normal de duas mãos: 1,12 (= os +12% que as lentas de duas mãos rendem para pagar a mão esquerda)
+    balestra: { nome: 'Balestra', classe: 'arqueiro', vel: 'normal', fator: 1.12, duasMaos: true },
     adaga: { nome: 'Adaga', classe: 'arqueiro', vel: 'rapida', fator: 0.83, proibe: ['aljava'] },
     livro: { nome: 'Livro de Magias', classe: 'mago', vel: 'normal', fator: 1 },
     cajado: { nome: 'Cajado', classe: 'mago', vel: 'devagar', fator: 1.4, duasMaos: true },
     varinha: { nome: 'Varinha', classe: 'mago', vel: 'normal', fator: 1 },
-    martelo: { nome: 'Martelo', classe: 'artesao', vel: 'rapida', fator: 0.83 },
+    martelo: { nome: 'Martelo', classe: 'artesao', vel: 'normal', fator: 1 },
     martelo2m: { nome: 'Martelo de Duas Mãos', classe: 'artesao', vel: 'devagar', fator: 1.4, duasMaos: true },
     maca: { nome: 'Maça', classe: 'artesao', vel: 'normal', fator: 1 },
     // segundas classes (a partir de rara)
