@@ -74,7 +74,7 @@
     return '<header class="topo"><span class="logo">' + D.NOME_JOGO.toUpperCase() + '</span>'
       + (abas || '') + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>'
       + (ehAdmin() ? '<span class="selo selo-admin">ADMIN</span>' : '') + (extra || '')
-      + '<button class="btn secundario" data-acao="sair">Sair</button>' + (menu || '') + '</div></header>';
+      + (menu || '<button class="btn secundario" data-acao="sair">Sair</button>') + '</div></header>';
   }
   // `chave` lembra a largura anterior da barra: quando a vida cai, um rastro claro some devagar até o valor novo.
   var larguras = {};
@@ -514,7 +514,7 @@
   // Ícones (traço dourado) da barra de recursos e das abas.
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
   var ICONES = {
-    ouro: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4.5"/>'),
+    ouro: svg('<circle cx="12" cy="12" r="9" fill="#a86c24" stroke="#f3cf79"/><circle cx="12" cy="12" r="6.2" fill="#d3993c" stroke="#694317"/><path d="M12 8.5 14.5 12 12 15.5 9.5 12Z" fill="#ffe1a0" stroke="#694317" stroke-width="1"/>'),
     reputacao: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
     pocao: svg('<path d="M9.5 3h5M10.5 3v5L6 15.5A3.5 3.5 0 0 0 9 21h6a3.5 3.5 0 0 0 3-5.5L13.5 8V3"/><path d="M7.5 14h9"/>'),
     arena: svg('<path d="M4 4l9 9M4 4v3.5M4 4h3.5M20 4l-9 9M20 4v3.5M20 4h-3.5M7 15l-3 3 2 2 3-3M17 15l3 3-2 2-3-3"/>'),
@@ -546,7 +546,7 @@
       + recurso('r-vida', 'Vida', '♥', 'Vida', p.hpAtual + '/' + s.hpMax)
       + recurso('r-ouro', 'Ouro', ICONES.ouro, 'Ouro', p.ouro.toLocaleString('pt-BR'))
       + recurso('r-reputacao', 'Reputação', ICONES.reputacao, 'Reputação', (p.reputacao || 0).toLocaleString('pt-BR'))
-      + recurso('r-pocao', 'Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)', ICONES.pocao, 'Poções',
+      + recurso('r-pocao', 'Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
         '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</span>',
         '<button class="rec-usar" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + ' title="Beber uma poção">Usar</button>')
       + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)
@@ -2112,7 +2112,8 @@
     if (atual && atual.eldrin === estado.personagem.id && atual.aba !== estado.aba) {
       history.pushState({ eldrin: estado.personagem.id, aba: estado.aba }, '');
     }
-    var painel, menuTopo = '', abasTopo = '';
+    var painel, navegacao = '', abasTopo = '';
+    var zealot = interfaceAtual() === 'zealot';
     if (estado.lutaArena) {
       painel = lutaArenaHtml();
     } else if (estado.luta) {
@@ -2124,24 +2125,27 @@
     } else if (estado.batalha || estado.resultado) {
       painel = resultadoHtml() + batalhaHtml();
     } else {
-      var navegacao = navHtml(), subAbas = subAbasHtml();
-      var zealot = interfaceAtual() === 'zealot';
-      if (zealot) {
-        var menuAnterior = document.getElementById('menu-jogo');
-        menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
-          + '><summary class="btn" aria-label="Menu do jogo">'
-          + svg('<path d="M4 6h16M4 12h16M4 18h16"/>') + '</summary>' + navegacao + '</details>';
-        abasTopo = subAbas;
-      }
+      navegacao = navHtml();
+      var subAbas = subAbasHtml();
+      if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
+    var menuTopo = '';
+    if (zealot) {
+      var menuAnterior = document.getElementById('menu-jogo');
+      menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
+        + '><summary class="btn" aria-label="Menu do jogo">' + svg('<path d="M4 6h16M4 12h16M4 18h16"/>') + '</summary>'
+        + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
+        + '<button class="btn secundario" data-acao="menu-som">Som</button>'
+        + '<button class="btn secundario" data-acao="sair">Sair</button></div></div></details>';
+    }
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
+    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
@@ -2708,6 +2712,11 @@
           .then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
         break;
       case 'senha-gerada-fechar': estado.adminSenhaGerada = null; telaJogo(); break;
+      case 'menu-som':
+        document.getElementById('menu-jogo').open = false;
+        tocarMusica();
+        alternarPainel();
+        break;
       case 'sair':
         clearTimeout(estado.timer);
         encerrarAtividade();
@@ -4853,7 +4862,7 @@
     desenharBotaoMusica();
   }
   document.addEventListener('click', function (e) {
-    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica')) alternarPainel(true);
+    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica, [data-acao="menu-som"]')) alternarPainel(true);
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && musica.painel) alternarPainel(true); });
   // Eventos que o navegador aceita como "o jogador interagiu" (no celular o toque conta no fim: touchend/click).
