@@ -1969,6 +1969,20 @@
   }
 
   function controleHabilidade(b) {
+    if (interfaceAtual() === 'zealot' && b.lutador) {
+      var lutador = b.lutador;
+      var habilidades = lutador.kit.map(function (habilidade) {
+        var def = habilidade.def;
+        var recarga = Math.max(0, (lutador.pronto[def.id] || 0) - lutador.turno - 1);
+        return '<span class="cacada-habilidade"><span>' + esc(def.nome) + '</span><small>'
+          + (recarga ? recarga + (recarga === 1 ? ' turno' : ' turnos') : 'Pronta') + '</small></span>';
+      }).join('');
+      var podeBeber = !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
+      return '<div class="cacada-acoes">' + habilidades
+        + '<button class="btn cacada-pocao" data-acao="beber-pocao" title="Beber poção"'
+        + (podeBeber ? '' : ' disabled') + '>🧪 Poção (' + b.pocoes + ')'
+        + (b.pocaoPendente ? '…' : '') + '</button></div>';
+    }
     var cheia = b.jogador.poder >= D.PODER.maximo;
     var nome = D.habilidades[b.classe].nome;
     var botao = b.habilidadePendente

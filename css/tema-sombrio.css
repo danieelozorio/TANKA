@@ -239,3 +239,22 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
     font-size: .72rem;
   }
 }
+
+/* Habilidades automáticas e poção abaixo do retrato na caçada. */
+.cacada-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: .35rem;
+}
+.cacada-habilidade {
+  display: grid;
+  align-content: center;
+  padding: .25rem .45rem;
+  border: 1px solid #79613f;
+  border-radius: .25rem;
+  font-size: .75rem;
+  text-align: center;
+}
+.cacada-habilidade small { color: #d3ba91; }
+.cacada-pocao { align-self: center; }
