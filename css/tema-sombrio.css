@@ -238,9 +238,10 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
 #app > .barra-recursos .rec-txt small { display: none; }
 #app > .barra-recursos .rec-txt strong { font: 700 .82rem var(--corpo); font-variant-numeric: tabular-nums; }
 #app:has(.menu-jogo) > .topo { position: relative; z-index: 15; }
-.menu-jogo > summary { display: grid; place-items: center; width: 2.25rem; height: 2rem; padding: 0; list-style: none; }
+.menu-jogo > summary { display: grid; place-items: center; width: 2.4rem; height: 2.25rem; padding: 0; list-style: none; color: #e6bf83; border: 1px solid #8a6744; box-shadow: inset 0 0 0 2px #17100a, 0 0 .45rem #bc682e30; }
 .menu-jogo > summary::-webkit-details-marker { display: none; }
-.menu-jogo > summary svg { width: 1.2rem; height: 1.2rem; }
+.menu-jogo > summary svg { width: 1.65rem; height: 1.65rem; }
+.menu-jogo[open] > summary { color: #ffe0a1; background: #472817; }
 .menu-jogo-painel {
   position: absolute;
   inset: 100% .65rem auto auto;
@@ -265,7 +266,20 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 .menu-jogo-acoes { display: flex; flex-wrap: wrap; gap: .35rem; padding: .45rem .15rem .15rem; }
-.menu-jogo-acoes .btn { font-size: .8rem; }
+.menu-jogo-acoes .btn { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; }
+.menu-jogo-acoes .btn svg { width: 1.05rem; height: 1.05rem; flex: none; color: #d7aa70; }
+.menu-jogo .aba-ico {
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  flex: none;
+  border: 1px solid #725435;
+  border-radius: 5px;
+  color: #d7aa70;
+  background: linear-gradient(145deg, #403023, #1b1510);
+}
+.menu-jogo .aba-ico svg { width: 1.15rem; height: 1.15rem; }
 body:has(#menu-jogo) #botao-musica { display: none; }
 body:has(#menu-jogo) #config-painel { top: 3.25rem; bottom: auto; }
 #app > .conteudo:has(> .jogo) { max-width: 100%; }

@@ -514,6 +514,10 @@
   // Ícones (traço dourado) da barra de recursos e das abas.
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
   var ICONES = {
+    menu: svg('<path d="M12 2 21 6v5c0 5-3.5 8.5-9 11-5.5-2.5-9-6-9-11V6Z" fill="#302014"/><path d="M7.5 8h9m-9 4h9m-7 4h5"/><path d="m12 4 1 1-1 1-1-1Z" fill="currentColor" stroke="none"/>'),
+    trocarPersonagem: svg('<circle cx="9" cy="7" r="3"/><path d="M3 19v-2a6 6 0 0 1 9-5m2 3h7m-2-2 2 2-2 2m1 3h-7m2-2-2 2 2 2"/>'),
+    som: svg('<path d="M4 9h4l5-4v14l-5-4H4Zm12 0a4 4 0 0 1 0 6m2-9a8 8 0 0 1 0 12"/>'),
+    sair: svg('<path d="M10 4H5v16h5m2-8h9m-3-3 3 3-3 3"/>'),
     ouro: svg('<circle cx="12" cy="12" r="9" fill="#a86c24" stroke="#f3cf79"/><circle cx="12" cy="12" r="6.2" fill="#d3993c" stroke="#694317"/><path d="M12 8.5 14.5 12 12 15.5 9.5 12Z" fill="#ffe1a0" stroke="#694317" stroke-width="1"/>'),
     reputacao: svg('<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>'),
     pocao: svg('<path d="M9.5 3h5M10.5 3v5L6 15.5A3.5 3.5 0 0 0 9 21h6a3.5 3.5 0 0 0 3-5.5L13.5 8V3"/><path d="M7.5 14h9"/>'),
@@ -2133,15 +2137,15 @@
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
-      + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
+      + '<button class="btn secundario" data-acao="voltar-personagens">' + (zealot ? ICONES.trocarPersonagem : '') + 'Trocar personagem</button>';
     var menuTopo = '';
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
       menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
-        + '><summary class="btn" aria-label="Menu do jogo">' + svg('<path d="M4 6h16M4 12h16M4 18h16"/>') + '</summary>'
+        + '><summary class="btn" aria-label="Menu do jogo">' + ICONES.menu + '</summary>'
         + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
-        + '<button class="btn secundario" data-acao="menu-som">Som</button>'
-        + '<button class="btn secundario" data-acao="sair">Sair</button></div></div></details>';
+        + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
+        + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
     }
     mostrarCenario(false);
     atualizarMusica();

@@ -21,7 +21,7 @@
       var t = 'classica';
       try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
       document.documentElement.setAttribute('data-interface', t);
-      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=121"><link rel="stylesheet" href="css/tema-sombrio.css?v=129">');
+      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=121"><link rel="stylesheet" href="css/tema-sombrio.css?v=130">');
     })();
   </script>
 </head>
@@ -35,7 +35,7 @@
   <script src="js/contas.js?v=124"></script>
   <script src="js/retratos.js?v=120"></script>
   <script src="js/dado3d.js?v=120"></script>
-  <script src="js/app.js?v=129"></script>
+  <script src="js/app.js?v=130"></script>
   <script>
     // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
