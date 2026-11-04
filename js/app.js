@@ -2147,9 +2147,18 @@
         + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
     }
+    var personagemCompacto = zealot && estado.aba === 'personagem' && !!navegacao;
+    var vista = estado.vistaPersonagem || 'equipamento';
+    var vistas = personagemCompacto ? '<div class="personagem-vistas" aria-label="Painéis do personagem">'
+      + [['equipamento', 'Equipado'], ['mochila', 'Mochila'], ['atributos', 'Atributos']].map(function (x) {
+        return '<button class="btn secundario" data-acao="personagem-vista" data-valor="' + x[0]
+          + '" aria-pressed="' + (vista === x[0]) + '">' + x[1] + '</button>';
+      }).join('') + '</div>' : '';
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
+    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo"'
+      + (personagemCompacto ? ' data-personagem-vista="' + vista + '"' : zealot && estado.cacada ? ' data-cacada-compacta' : '')
+      + '>' + vistas + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
@@ -2531,9 +2540,16 @@
       return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
     }).join('') : '<p class="suave pequeno">Nenhum combate ainda.</p>') + '</div>';
     var fundo = ESTILO_AREA[area.id] ? ' style="background-image:radial-gradient(ellipse at center, rgba(8,10,14,.25), rgba(8,10,14,.8)),url(assets/regioes/fundo-' + area.id + '.webp)"' : '';
+    var zealot = interfaceAtual() === 'zealot';
+    var detalhes = opcoes + itens + historico;
+    if (zealot) {
+      var aberto = document.getElementById('cacada-detalhes');
+      detalhes = '<details class="cacada-detalhes" id="cacada-detalhes"' + (aberto && aberto.open ? ' open' : '')
+        + '><summary>Opções, drops e histórico</summary>' + detalhes + '</details>';
+    }
     return topo + '<div class="arena cacada-arena"' + fundo + '>' + jogador + '<div class="vs">' + (emLuta ? 'VS' : '') + '</div>' + direita + '</div>'
       + (emLuta || estado.registro.length ? '<div class="registro" id="registro">' + estado.registro.join('') + '</div>' : '')
-      + opcoes + resumo + itens + historico;
+      + (zealot ? resumo + detalhes : opcoes + resumo + itens + historico);
   }
 
   function iniciarHistoricoJogo() {
@@ -2784,6 +2800,11 @@
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
       case 'aba': abrirAba(el.dataset.aba); break;
+      case 'personagem-vista':
+        estado.vistaPersonagem = el.dataset.valor;
+        telaJogo();
+        app.querySelector('.personagem-vistas [aria-pressed="true"]').focus();
+        break;
       case 'item': {
         // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
         var alvoId = el.dataset.id;

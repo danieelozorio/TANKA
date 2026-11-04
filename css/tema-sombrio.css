@@ -360,3 +360,37 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   touch-action: pan-y pinch-zoom;
   scrollbar-color: #554536 transparent;
 }
+
+/* Vistas compactas mantêm cada painel acessível em telas estreitas. */
+.personagem-vistas { display: none; }
+.cacada-detalhes { padding: .35rem .55rem; border: 1px solid var(--borda); border-radius: 4px; }
+.cacada-detalhes > summary { cursor: pointer; color: var(--ouro-claro); font-size: .85rem; }
+@media (max-width: 860px) {
+  .jogo[data-personagem-vista] { grid-template-rows: auto minmax(0, 1fr); align-items: stretch; }
+  .personagem-vistas { display: flex; gap: .35rem; justify-content: center; }
+  .personagem-vistas .btn { font-size: .82rem; padding: .35rem .6rem; }
+  .personagem-vistas [aria-pressed="true"] { color: var(--ouro-claro); border-color: var(--ouro); }
+  .jogo[data-personagem-vista] > section.caixa { order: 0; padding: .6rem; }
+  .jogo[data-personagem-vista] > .ficha { max-height: 100%; }
+  .jogo[data-personagem-vista]:not([data-personagem-vista="atributos"]) > .ficha,
+  .jogo[data-personagem-vista="atributos"] > section.caixa,
+  [data-personagem-vista="mochila"] .pg-equipamento,
+  [data-personagem-vista="equipamento"] .pg-mochila { display: none; }
+  [data-personagem-vista] .personagem-tela { grid-template-columns: 1fr; gap: .45rem; }
+  [data-personagem-vista] .boneco { --slot: clamp(36px, 7.5dvh, 50px); max-width: 18rem; gap: .25rem; }
+  [data-personagem-vista] .retrato-central { max-height: 24dvh; }
+  [data-personagem-vista] .pg-mochila { max-width: 30rem; margin-inline: auto; }
+  [data-personagem-vista] .mochila { grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
+  .jogo[data-cacada-compacta] { grid-template-rows: minmax(0, 1fr); }
+  [data-cacada-compacta] > .ficha { display: none; }
+  [data-cacada-compacta] > section.caixa { padding: .5rem; }
+  [data-cacada-compacta] .cacada-topo { gap: .3rem; margin-bottom: .35rem; padding: .35rem; }
+  [data-cacada-compacta] .cacada-topo h3 { font-size: .95rem; }
+  [data-cacada-compacta] .cacada-arena { padding: .4rem; gap: .35rem; }
+  [data-cacada-compacta] .lutador .moldura { max-width: min(120px, 18dvh); }
+  [data-cacada-compacta] .cacada-busca { padding: .35rem; gap: .3rem; }
+  [data-cacada-compacta] .registro { max-height: 11dvh; margin-block: .35rem; }
+  [data-cacada-compacta] .cacada-resumo { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .2rem; margin-block: .35rem; }
+  [data-cacada-compacta] .cacada-num { padding: .2rem .1rem; }
+  [data-cacada-compacta] .cacada-num small { font-size: .65rem; }
+}
