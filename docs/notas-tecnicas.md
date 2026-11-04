@@ -162,4 +162,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Caçador ataca com Força (nov/2026):** `classes.arqueiro.atributoDano` 'des' -> 'for' (vale para Arqueiro e Assassino;
   servidor pelo tanka_dados). DES continua: chance de crítico, precisão, evasão. Arma antiga rara+ do Caçador agora dá FOR.
   Presente único: Caçador com level > 1 ganha 1 Pergaminho do Recomeço (`presenteForcaCacador`: 1 = falta avisar, 2 = feito).
+- **Comparar sem encanto (nov/2026):** botão na ficha do item e no zoom (`estado.compararSemEncanto`, `semEncanto(item)`):
+  os dois itens comparados viram +0 só na conta; o zoom mostra nome/ícone/venda do item real (`cartaZoom(..., orig)`).
 

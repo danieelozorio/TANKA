@@ -837,6 +837,14 @@
   }
 
   // Ficha do item em foco, com comparação ao que está equipado no mesmo espaço.
+  // Comparar sem encanto: os dois itens viram +0 só na conta (para ver qual é melhor de base).
+  function semEncanto(item) { return item && estado.compararSemEncanto && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
+  function botaoCompararEncanto(a, b) {
+    if (!(a.encanto || (b && b.encanto))) return '';
+    return '<button class="btn secundario btn-pequeno" data-acao="comparar-encanto">'
+      + (estado.compararSemEncanto ? 'Comparar com encanto' : 'Comparar sem encanto') + '</button>';
+  }
+
   function fichaItemHtml(item) {
     var p = estado.personagem;
     if (!item) {
@@ -846,17 +854,17 @@
     var slot = R.slotDoItem(p, item.id);
     var alvo = null;
     if (!slot) alvo = R.itemNoSlot(p, item.tipo === 'anel' ? 'anel1' : item.tipo);
-    var linhas;
+    var linhas, itemC = alvo ? semEncanto(item) : item, alvoC = semEncanto(alvo);
     if (item.tipo === 'arma') {
-      var d = R.danoArma(item), media = (d[0] + d[1]) / 2;
+      var d = R.danoArma(itemC), media = (d[0] + d[1]) / 2;
       var comp = '';
       if (alvo) {
-        var da = R.danoArma(alvo), diff = media - (da[0] + da[1]) / 2;
+        var da = R.danoArma(alvoC), diff = media - (da[0] + da[1]) / 2;
         if (diff) comp = ' <span class="' + (diff > 0 ? 'mais' : 'menos') + '">(' + (diff > 0 ? '+' : '') + fmt(diff) + ' de média)</span>';
       }
       linhas = '<li>Dano ' + dano(d) + comp + '</li>' + extrasArma(item).map(function (x) { return '<li class="suave">' + x + '</li>'; }).join('');
     } else {
-      var b = R.bonusItem(item), ba = alvo ? R.bonusItem(alvo) : {};
+      var b = R.bonusItem(itemC), ba = alvo ? R.bonusItem(alvoC) : {};
       var chaves = Object.keys(D.bonus).filter(function (k) { return b[k] || ba[k]; });
       linhas = chaves.map(function (k) {
         var v = b[k] || 0, dif = v - (ba[k] || 0);
@@ -881,7 +889,8 @@
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item)
-      + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + '</p>' : '')
+      + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + (estado.compararSemEncanto && (item.encanto || alvo.encanto) ? ' <strong>(os dois sem encanto)</strong>' : '') + '</p>'
+        + '<div class="item-acoes">' + botaoCompararEncanto(item, alvo) + '</div>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
   }
 
@@ -912,8 +921,10 @@
   }
 
   // Carta grande de um item; `outro` (opcional) é o item com que ele é comparado.
-  function cartaZoom(item, outro, rotulo) {
+  // `orig`: o item de verdade (nome, ícone, encanto e venda) quando `item` é a cópia sem encanto da comparação.
+  function cartaZoom(item, outro, rotulo, orig) {
     var linhas = [];
+    orig = orig || item;
     if (item.tipo === 'arma') {
       var d = R.danoArma(item), m = (d[0] + d[1]) / 2;
       var mo = outro ? (R.danoArma(outro)[0] + R.danoArma(outro)[1]) / 2 : null;
@@ -926,11 +937,11 @@
         linhas.push('<li' + (b[k] ? '' : ' class="suave"') + '><span>' + D.bonus[k] + '</span><strong>+' + (b[k] || 0) + (outro ? diferenca(b[k] || 0, bo[k] || 0) : '') + '</strong></li>');
       });
     }
-    linhas.push('<li><span>Encantamento</span><strong>+' + (item.encanto || 0) + '</strong></li>');
-    linhas.push('<li><span>Venda</span><strong class="cor-ouro">' + R.precoVenda(item).toLocaleString('pt-BR') + ' de ouro</strong></li>');
+    linhas.push('<li><span>Encantamento</span><strong>+' + (orig.encanto || 0) + (orig !== item ? ' <span class="suave">(fora da conta)</span>' : '') + '</strong></li>');
+    linhas.push('<li><span>Venda</span><strong class="cor-ouro">' + R.precoVenda(orig).toLocaleString('pt-BR') + ' de ouro</strong></li>');
     return '<div class="zoom-carta"><div class="zoom-rotulo">' + rotulo + '</div>'
-      + '<div class="icone-zoom borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + (item.encanto ? '<span class="nivel-encanto">+' + item.encanto + '</span>' : '') + '</div>'
-      + '<div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
+      + '<div class="icone-zoom borda-' + corItem(orig) + aura(orig) + '">' + F.icone(orig) + (orig.encanto ? '<span class="nivel-encanto">+' + orig.encanto + '</span>' : '') + '</div>'
+      + '<div class="ficha-item-nome">' + nomeItemHtml(orig) + '</div>'
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel : '') + '</div>'
       + '<ul class="zoom-atributos">' + linhas.join('') + '</ul></div>';
@@ -941,6 +952,7 @@
     var item = estado.zoom && p.inventario.find(function (i) { return i.id === estado.zoom; });
     if (!item) return '';
     var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
+    var semEnc = outro && estado.compararSemEncanto && (item.encanto || outro.encanto);
     var acoes = '';
     if (slot) {
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
@@ -955,9 +967,9 @@
     return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
       + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
-      + cartaZoom(item, outro, slot ? 'Equipado' : 'Este item')
-      + (outro ? cartaZoom(outro, null, 'Equipado agora') : '')
-      + '</div><div class="botoes">' + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
+      + cartaZoom(outro ? semEncanto(item) : item, semEncanto(outro), (slot ? 'Equipado' : 'Este item') + (semEnc ? ' · sem encanto' : ''), item)
+      + (outro ? cartaZoom(semEncanto(outro), null, 'Equipado agora' + (semEnc ? ' · sem encanto' : ''), outro) : '')
+      + '</div><div class="botoes">' + (outro ? botaoCompararEncanto(item, outro) : '') + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
   }
 
   function abaPersonagem() {
@@ -2452,6 +2464,7 @@
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
+      case 'comparar-encanto': estado.compararSemEncanto = !estado.compararSemEncanto; telaJogo(); break;
       case 'senha-pedidos':
         C.senha.adminPedidos().then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
         break;
