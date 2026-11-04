@@ -37,8 +37,9 @@ escreve em `personagens.dados`, por isso a trava é só no cliente (sem mudar o 
 gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Pendências e ideias conversadas
-- **Curva de exp**: do 25 ao 40 ficou longa demais (simulação: ~2.700 h até o 40 para Cavaleiro, muito mais para Mago).
-  Sugestão feita: crescimento de +50% para +25–30% por level, e dar exp em missões/masmorras. Esperando ele escolher.
+- **Curva de exp**: FEITO (Henri, nov/2026): `EXP_FAIXAS` em dados.js: +50% por level até o 19 (igual), +30% do 20 ao 29,
+  +12% do 30 em diante (`expNecessaria`). Com o 2º monstro da área do level: 113–420 monstros por level do 20 ao 39
+  (antes chegava a 32 mil no 39).
 - Mago fraco nas áreas altas; dano novo dos monstros deixou o começo bem mais difícil (ele pediu assim).
 - Ranking só atualiza ao abrir a aba ou clicar em Atualizar (ofereci atualizar sozinho).
 - Ideias: arma secundária (mão esquerda), música céltica "Vale Sereno" (prompt feito, ainda não gerada), Fase 2 anti-trapaça

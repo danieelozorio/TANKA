@@ -101,6 +101,15 @@ teste('caçada: o herói acerta pelo menos 95% dos golpes, mesmo sem precisão e
   assert.ok(acertos / n > 0.94 && acertos / n < 0.96, String(acertos / n));
 });
 
+teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do 30 em diante', () => {
+  assert.deepStrictEqual([1, 5, 6, 19].map(R.expNecessaria), [10, 160, 240, 46709]);
+  assert.strictEqual(R.expNecessaria(20), Math.round(46709.4 * 1.3));
+  assert.ok(Math.abs(R.expNecessaria(30) / R.expNecessaria(29) - 1.12) < 0.001);
+  // monstros do meio da área para subir: nunca passa de ~420 por level
+  const area = (n) => D.areas.filter((a) => a.nivelMin <= n).pop();
+  for (let n = 15; n < D.NIVEL_MAXIMO; n++) assert.ok(R.expNecessaria(n) / D.monstros[area(n).monstros[1].id].exp < 420, 'level ' + n);
+});
+
 teste('velocidade do personagem: 15 no level 1, +6% por level; não depende da DES', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   assert.strictEqual(R.status(p).velocidade, 15);

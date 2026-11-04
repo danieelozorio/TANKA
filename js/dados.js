@@ -19,7 +19,10 @@ Tanka.dados = {
   PONTOS_POR_DANO: 3,     // a cada 3 pontos do atributo de dano da classe (FOR, DES ou INT): +1 de dano
   PONTOS_POR_NIVEL: 3,    // pontos de atributo ganhos a cada level
   EXP_BASE: 10,           // exp para sair do level 1; dobra a cada level até o 5
-  EXP_CRESCIMENTO: 1.5,   // do level 6 em diante, cada level pede 50% a mais que o anterior
+  EXP_CRESCIMENTO: 1.5,   // do level 6 ao 19, cada level pede 50% a mais que o anterior
+  // Henri (nov/2026): depois do 19 a curva cresce menos, para cada level pedir mais ou menos os mesmos monstros
+  // (a exp dos monstros triplica a cada área de 5 levels): +30% por level do 20 ao 29 e +12% do 30 em diante.
+  EXP_FAIXAS: [{ ate: 19, crescimento: 1.5 }, { ate: 29, crescimento: 1.3 }, { ate: 99, crescimento: 1.12 }],
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,

@@ -26,7 +26,12 @@ Tanka.regras = (function () {
   // e depois cresce 50% por level (240, 360, 540...).
   function expNecessaria(nivel) {
     if (nivel <= 5) return D.EXP_BASE * Math.pow(2, nivel - 1);
-    return Math.round(D.EXP_BASE * 16 * Math.pow(D.EXP_CRESCIMENTO, nivel - 5));
+    var v = D.EXP_BASE * 16;   // level 5
+    for (var n = 6; n <= nivel; n++) {
+      var f = D.EXP_FAIXAS.filter(function (x) { return n <= x.ate; })[0];
+      v *= f ? f.crescimento : D.EXP_CRESCIMENTO;
+    }
+    return Math.round(v);
   }
 
   var RARIDADES = Object.keys(D.raridades);         // comum, rara, epica, lendaria
