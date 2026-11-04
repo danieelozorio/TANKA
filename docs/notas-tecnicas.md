@@ -176,7 +176,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Visual escuro aprovado pelo Daniel a partir de uma imagem do Gemini. Só aparência; regras e telas iguais.
 - `css/tema-sombrio.css` (escrito à mão) carrega depois de `css/estilo.css`; `css/tema-sombrio-cores.css` (gerado) fica
   entre os dois e troca os azuis-escuros antigos por pedra quente: `python3 ferramentas/gerar_tema_cores.py` de novo se
-  `estilo.css` ganhar painéis azulados. Para voltar ao visual antigo, tirar os dois `<link>` do index.html.
+  `estilo.css` ganhar painéis azulados.
+- Henri (nov/2026): o tema virou opção na engrenagem ⚙ > Interface: **Clássica** (padrão, visual antigo) ou **Zealot** (Pedra
+  Sombria). Guardado em `localStorage['eldrin.interface']`; um script no `<head>` do index.html (e do artifact.html) põe
+  `data-interface` no `<html>` e só escreve os dois `<link>` do tema quando é 'zealot'. Trocar recarrega a página
+  (`interfaceAtual()` em app.js).
 - Letras: IM Fell English (texto) e IM Fell English SC (títulos/abas/botões), "ELDRIN" em Cinzel Decorative (Google Fonts).
   Os algarismos e o % vêm de `assets/fontes/ebgaramond.woff2` (fonte "Numeros Eldrin", `unicode-range`), porque os números
   do IM Fell são tortos.

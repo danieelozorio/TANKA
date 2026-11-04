@@ -4479,6 +4479,8 @@
   }, true);
 
   // ---------------- Música de fundo e configurações ----------------
+  // Interface escolhida (index.html já carregou o tema certo antes de desenhar): 'classica' ou 'zealot'.
+  function interfaceAtual() { return document.documentElement.getAttribute('data-interface') === 'zealot' ? 'zealot' : 'classica'; }
   // Cada cena tem a sua música: entrada (login, personagens, criação), jogo (as duas célticas se revezando),
   // masmorra, arena e chefe. Ao trocar de cena uma música some aos poucos e a outra entra.
   // Os navegadores não deixam tocar som sozinho: a música começa no primeiro clique ou tecla.
@@ -4590,8 +4592,21 @@
       + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
       + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
       + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
+      + '<div class="config-faixa"><span>Interface</span><div class="config-interface" role="radiogroup" aria-label="Interface">'
+      + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
+        var ativa = interfaceAtual() === x[0];
+        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
+      }).join('') + '</div></div>'
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     p.addEventListener('click', function (e) { e.stopPropagation(); });
+    // Trocar a interface: guarda neste aparelho e recarrega a página (o tema entra antes de desenhar).
+    p.querySelectorAll('[data-interface]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        if (b.dataset.interface === interfaceAtual()) return;
+        guardar('eldrin.interface', b.dataset.interface);
+        location.reload();
+      });
+    });
     p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
     p.querySelector('#config-musica').addEventListener('change', function (e) {
       musica.ligada = e.target.checked;

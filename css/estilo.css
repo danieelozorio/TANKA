@@ -1336,3 +1336,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
   color: var(--ouro, #d4af37); font: inherit; font-size: .9rem; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; opacity: .85; }
 .link-senha:hover, .link-senha:focus-visible { opacity: 1; }
 .destaque-senha { border-color: var(--ouro, #d4af37); }
+
+/* Engrenagem: escolha da interface (Clássica / Zealot) */
+.config-interface { display: flex; gap: .4rem; }
+.config-interface .btn { flex: 1; }
+.config-interface [aria-checked="true"] { outline: 2px solid var(--ouro-claro); outline-offset: 1px; }

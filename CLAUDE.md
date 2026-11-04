@@ -58,7 +58,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 - `js/app.js` — toda a interface (um arquivo grande): telas de entrada/personagens/jogo, abas (Herói, Aventura,
   Arena, Mercado, Social), Arena com D20, forja do encanto, alianças, painel de missões, chat, música e sons.
 - `js/dado3d.js` — D20 em 3D (Three.js r128 via cdnjs) com skins; `js/retratos.js` — imagens de personagens/itens/monstros.
-- `css/estilo.css` — estilo base; por cima, `css/tema-sombrio-cores.css` + `css/tema-sombrio.css` (tema escuro "Pedra Sombria").
+- `css/estilo.css` — estilo base (interface Clássica); por cima, só se o jogador escolher a interface Zealot na ⚙,
+  `css/tema-sombrio-cores.css` + `css/tema-sombrio.css` (tema escuro "Pedra Sombria").
 - `supabase/schema.sql` — banco inteiro (tabelas, RLS, funções `arena_*`, `alianca_*`, `grupo_*`, ranking, chat).
   O bloco `tanka_dados()` é gerado: rodar `node ferramentas/gerar_dados_sql.js` depois de mudar ARENA/ALIANCA em dados.js.
 - `supabase/bots.sql` / `remover_bots.sql` — 40 bots de teste da Arena (gerados por `ferramentas/gerar_bots.js`).
