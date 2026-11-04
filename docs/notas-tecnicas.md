@@ -162,6 +162,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Caçador ataca com Força (nov/2026):** `classes.arqueiro.atributoDano` 'des' -> 'for' (vale para Arqueiro e Assassino;
   servidor pelo tanka_dados). DES continua: chance de crítico, precisão, evasão. Arma antiga rara+ do Caçador agora dá FOR.
   Presente único: Caçador com level > 1 ganha 1 Pergaminho do Recomeço (`presenteForcaCacador`: 1 = falta avisar, 2 = feito).
+- **Comparar sem encanto (nov/2026):** botão na ficha do item e no zoom (`estado.compararSemEncanto`, `semEncanto(item)`):
+  os dois itens comparados viram +0 só na conta; o zoom mostra nome/ícone/venda do item real (`cartaZoom(..., orig)`).
+- **Fila da masmorra (nov/2026):** sem grupo, "Entrar na fila" em cada masmorra (`fila_entrar`). Tabela `masmorra_fila`;
+  o jogo chama `fila_ping` a cada 4 s (antes do `grupo_estado`), que chama `fila_casar(m)`: 3 jogadores na mesma masmorra
+  entram juntos; se o mais antigo esperou 30 s, entram os que houver + bots ("Mercenário/a ..."), cópias dos dados de um
+  jogador do grupo (mesmo poder; `bot: true`, id `bot-...`). Run com `grupo_id` null, `lider` = o mais antigo, `membros` só
+  jogadores (bots sem prêmio e sem entrada). Qualquer membro de luta da fila pode chamar `masmorra_concluir` (o 1º vale;
+  `assistirLuta` chama sozinho). Sem ping há 20 s sai da fila; entrar/montar grupo tira da fila. `grupo_estado` traz `fila`
+  e `run.lider`/`run.fila`. Testes no banco (bloco "Fila da masmorra").
 
 ## Tema "Pedra Sombria" (Daniel, nov/2026)
 - Visual escuro aprovado pelo Daniel a partir de uma imagem do Gemini. Só aparência; regras e telas iguais.

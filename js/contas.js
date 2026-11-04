@@ -273,6 +273,10 @@ Tanka.contas = (function () {
     concluir: function (meu, run, vitoria) { return chamar('masmorra_concluir', { meu: meu, run_id: run, vitoria: vitoria }); },
     resgatar: function (meu, id) { return chamar('recompensa_resgatar', { meu: meu, recompensa: id }); },
     adminRecarregar: function (meu) { return chamar('masmorra_admin_recarregar', { meu: meu }); },
+    // Fila sem grupo: 3 jogadores na mesma masmorra entram juntos; em 30 s sem completar, bots completam.
+    filaEntrar: function (meu, masmorra) { return chamar('fila_entrar', { meu: meu, masmorra: masmorra }); },
+    filaPing: function (meu) { return chamar('fila_ping', { meu: meu }); },
+    filaSair: function (meu) { return chamar('fila_sair', { meu: meu }); },
   };
 
   // ---------- Arena (a luta roda no servidor) ----------

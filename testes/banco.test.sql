@@ -566,4 +566,62 @@ select public.admin_recusar_pedido_senha((select (public.admin_pedidos_senha() -
 select pg_temp.igual(jsonb_array_length(public.admin_pedidos_senha()), 0, 'senha: pedido recusado some da lista');
 reset role;
 update public.contas set admin = false where usuario = 'duda';
+
+-- Fila da masmorra: 3 jogadores entram juntos; sozinho por 30 s, completa com bots (cópias); bots sem prêmio.
+reset role;
+delete from public.grupo_membros; delete from public.grupos; delete from public.masmorra_entradas; delete from public.masmorra_runs;
+delete from public.recompensas;
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '12') where id = 'pc';
+set role authenticated;
+select pg_temp.como('a'); select public.fila_entrar('pa', 'toca');
+select pg_temp.como('b'); select public.fila_entrar('pb', 'toca');
+select pg_temp.igual((select (public.grupo_estado('pb') -> 'fila' ->> 'jogadores')::int), 2, 'fila: dois esperando a mesma masmorra');
+select pg_temp.como('c'); select pg_temp.falha($$select public.fila_entrar('pc', 'covil')$$, 'Level mínimo');
+select public.fila_entrar('pc', 'toca');
+reset role;
+select pg_temp.igual((select count(*) from public.masmorra_fila)::int, 0, 'fila: com 3 jogadores a luta começa e a fila esvazia');
+select pg_temp.igual((select array_length(membros, 1) || '/' || jsonb_array_length(herois) || '/' || lider || '/' || (grupo_id is null)
+  from public.masmorra_runs order by id desc limit 1), '3/3/pa/true', 'fila: luta com os 3 jogadores e o mais antigo como líder');
+set role authenticated;
+select pg_temp.como('d'); select public.fila_entrar('pd', 'toca');
+select public.fila_ping('pd');
+reset role;
+select pg_temp.igual((select count(*) from public.masmorra_fila)::int, 1, 'fila: sozinho, espera os 30 segundos');
+update public.masmorra_fila set entrou_em = now() - interval '31 seconds';
+set role authenticated;
+select pg_temp.como('d'); select public.fila_ping('pd');
+reset role;
+select pg_temp.igual((select array_length(membros, 1) || '/' || jsonb_array_length(herois)
+  from public.masmorra_runs order by id desc limit 1), '1/3', 'fila: depois de 30 s, 2 bots completam o grupo');
+select pg_temp.igual((select (herois -> 1 -> 'dados' -> 'atributos') = (herois -> 0 -> 'dados' -> 'atributos') and (herois -> 1 ->> 'bot')::boolean
+    and herois -> 1 -> 'dados' ->> 'nome' <> 'Duda'
+  from public.masmorra_runs order by id desc limit 1), true, 'fila: bot é cópia do jogador (mesmo poder), com outro nome');
+select max(id) as run_fila from public.masmorra_runs \gset
+set role authenticated;
+select pg_temp.como('d');
+select public.masmorra_concluir('pd', :run_fila, true);
+reset role;
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' in ('colar', 'anel'))::int, 1, 'fila: só o jogador ganha a joia (bots não)');
+select pg_temp.igual(public.entradas_usadas('pd'), 1, 'fila: gasta 1 entrada do jogador');
+-- quem fecha o jogo sai da fila; quem entra num grupo também
+set role authenticated;
+select pg_temp.como('a'); select public.fila_entrar('pa', 'toca');
+reset role;
+update public.masmorra_fila set visto_em = now() - interval '25 seconds';
+set role authenticated;
+select pg_temp.como('b'); select public.fila_entrar('pb', 'ninho');
+reset role;
+select pg_temp.igual((select count(*) from public.masmorra_fila where masmorra = 'toca')::int, 1, 'fila: outra masmorra não mexe na fila da toca');
+set role authenticated;
+select pg_temp.como('d'); select public.fila_entrar('pd', 'toca');
+reset role;
+select pg_temp.igual((select string_agg(personagem_id, ',' order by personagem_id) from public.masmorra_fila where masmorra = 'toca'), 'pd', 'fila: sem ping há 20 s, sai da fila');
+set role authenticated;
+select pg_temp.como('d'); select pg_temp.falha('select public.masmorra_concluir(''pd'', ' || :run_fila || ', true)', 'já terminou');
+select pg_temp.como('a'); select pg_temp.falha('select public.masmorra_concluir(''pa'', ' || :run_fila || ', true)', 'Só o líder');
+select public.fila_sair('pa');
+select pg_temp.como('d'); select public.fila_sair('pd');
+reset role;
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '4') where id = 'pc';
+delete from public.masmorra_fila;
 \echo TODOS OS TESTES DO BANCO PASSARAM
