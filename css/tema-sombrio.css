@@ -1,0 +1,161 @@
+/* =====================================================================
+   Tema "Pedra Sombria" — visual escuro aprovado pelo Daniel (nov/2026).
+   Carregado DEPOIS de estilo.css: só muda a aparência (cores, molduras,
+   letras, brilho). Para voltar ao visual antigo, tire este arquivo do index.html.
+   ===================================================================== */
+
+/* Números retos: as letras antigas (IM Fell) têm algarismos "tortos" (o 1 parece i).
+   Esta fonte entra só nos algarismos, sozinha, em qualquer texto do jogo. */
+@font-face {
+  font-family: 'Numeros Eldrin';
+  src: url('../assets/fontes/ebgaramond.woff2') format('woff2');
+  font-weight: 400 800; font-display: swap;
+  unicode-range: U+0025, U+0030-0039;
+}
+
+:root {
+  --fundo: #070605;
+  --painel: rgba(22, 20, 18, .94);
+  --painel-2: #151311;
+  --borda: #3a342d;
+  --ouro: #a88a55;
+  --ouro-claro: #d9c39a;
+  --texto: #d8ccb6;
+  --suave: #958a78;
+  --cor-ouro: #d8b46a;
+  --titulo: 'Numeros Eldrin', 'IM Fell English SC', Georgia, serif;
+  --corpo: 'Numeros Eldrin', 'IM Fell English', Georgia, serif;
+  --enfeite: 'Cinzel Decorative', 'IM Fell English SC', Georgia, serif;
+  --pedra: url('../assets/interface/rocha.webp');
+  --brasa: #c8501f;
+}
+
+/* ---------- Fundo da tela: parede gótica, brasa embaixo e faíscas subindo ---------- */
+body {
+  background:
+    radial-gradient(ellipse 80% 30% at 50% 112%, rgba(200, 60, 15, .38), transparent 70%),
+    radial-gradient(ellipse 30% 45% at -2% 78%, rgba(160, 40, 10, .25), transparent 70%),
+    radial-gradient(ellipse 30% 45% at 102% 78%, rgba(160, 40, 10, .25), transparent 70%),
+    url('../assets/interface/fundo.webp') center / cover fixed,
+    var(--fundo);
+  font-size: 18px;
+}
+body::before { opacity: .05; }
+/* Faíscas: pontinhos de brasa subindo devagar (só CSS, não pesa) */
+body::after {
+  content: ""; position: fixed; inset: -20% 0 0; z-index: 0; pointer-events: none; opacity: .85;
+  background-image:
+    radial-gradient(1.6px 1.6px at 8% 90%, #ffb060, transparent 70%),
+    radial-gradient(1.2px 1.2px at 22% 70%, #ff9040, transparent 70%),
+    radial-gradient(2px 2px at 37% 95%, #ffc070, transparent 70%),
+    radial-gradient(1.3px 1.3px at 51% 80%, #ff8a3a, transparent 70%),
+    radial-gradient(1.8px 1.8px at 66% 92%, #ffb060, transparent 70%),
+    radial-gradient(1.2px 1.2px at 79% 74%, #ff9a4a, transparent 70%),
+    radial-gradient(1.7px 1.7px at 92% 88%, #ffc070, transparent 70%),
+    radial-gradient(1.1px 1.1px at 15% 50%, #ff9040, transparent 70%),
+    radial-gradient(1.4px 1.4px at 58% 45%, #ffb060, transparent 70%),
+    radial-gradient(1.2px 1.2px at 86% 40%, #ff8a3a, transparent 70%);
+  background-size: 100% 100%;
+  filter: drop-shadow(0 0 3px rgba(255, 90, 20, .9));
+  animation: temaFaiscas 16s linear infinite;
+}
+@keyframes temaFaiscas { from { transform: translateY(0); } to { transform: translateY(-20%); opacity: .3; } }
+@media (prefers-reduced-motion: reduce) { body::after { animation: none; } }
+.topo, .conteudo, .rodape { position: relative; z-index: 1; }
+.barra-recursos { z-index: 8; }
+
+h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; letter-spacing: .02em; text-shadow: 0 2px 4px #000; }
+
+/* ---------- Topo ---------- */
+.topo { background: linear-gradient(#0d0b0a, rgba(8, 7, 6, .92)); border-bottom: 1px solid #000; box-shadow: 0 1px 0 #3b3128, 0 4px 14px rgba(0, 0, 0, .8); }
+.topo .logo { font-family: var(--enfeite); font-weight: 700; font-size: 1.9rem; letter-spacing: .04em;
+  background: linear-gradient(#f1e6ce, #9c8a6c); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 2px #000); text-shadow: none; }
+.marca h1 { font-family: var(--enfeite); }
+
+/* ---------- Botões: ferro escuro com fio dourado ---------- */
+.btn { border: 1px solid #000; border-radius: 4px; background: linear-gradient(#211c18, #0f0d0b); color: #d9cbb0;
+  box-shadow: 0 0 0 1px #4a3f33, inset 0 1px 0 rgba(255, 255, 255, .05), 0 3px 8px rgba(0, 0, 0, .6); font-family: var(--titulo); font-size: 1rem; }
+.btn:hover { filter: brightness(1.2); }
+.btn.secundario { background: linear-gradient(#1a1613, #0b0a09); color: #b8ab95; }
+.btn.perigo { background: linear-gradient(#5a160c, #250805); box-shadow: 0 0 0 1px #7a2a18, 0 3px 8px rgba(0, 0, 0, .6); color: #f2d6c8; }
+
+/* ---------- Painéis: pedra rachada, borda fina e cantos dourados ---------- */
+.caixa {
+  background: linear-gradient(rgba(12, 11, 10, .28), rgba(12, 11, 10, .5)), var(--pedra) center / 700px, #161412;
+  border: 1px solid #000; border-radius: 3px;
+  box-shadow: 0 0 0 1px #3d3832, 0 0 0 2px #0a0908, 0 0 0 3px #4a3f33, 0 14px 34px rgba(0, 0, 0, .85), inset 0 0 40px rgba(0, 0, 0, .55);
+}
+.caixa::before {
+  inset: -15px; border-radius: 0; z-index: 2;
+  background:
+    url('../assets/interface/canto-tl.webp') top left / 62px 62px no-repeat,
+    url('../assets/interface/canto-tr.webp') top right / 62px 62px no-repeat,
+    url('../assets/interface/canto-bl.webp') bottom left / 62px 62px no-repeat,
+    url('../assets/interface/canto-br.webp') bottom right / 62px 62px no-repeat;
+  filter: drop-shadow(0 0 2px #000);
+}
+.caixa-interna { background: rgba(14, 13, 12, .72); border: 1px solid rgba(90, 82, 72, .55); border-radius: 6px; box-shadow: inset 0 0 14px rgba(0, 0, 0, .6); }
+.secao { border-top-color: #35302a; }
+.item { border-color: rgba(90, 82, 72, .5); background: rgba(14, 13, 12, .6); }
+
+/* ---------- Barra de recursos ---------- */
+.barra-recursos { background: linear-gradient(180deg, rgba(16, 14, 12, .97), rgba(8, 7, 6, .97)); border-bottom: 1px solid #000; box-shadow: 0 1px 0 #3b3128, 0 6px 20px rgba(0, 0, 0, .7); }
+.barra-recursos::after { background: #a88a55; box-shadow: 0 0 6px rgba(168, 138, 85, .6); }
+.recurso { border: 1px solid #000; background: linear-gradient(180deg, #1c1815, #0d0b0a); box-shadow: 0 0 0 1px #3d3530, inset 0 1px 0 rgba(255, 255, 255, .04); }
+.rec-ico { background: radial-gradient(circle, rgba(0, 0, 0, .2), rgba(0, 0, 0, .6) 75%); box-shadow: none; }
+.rec-txt strong { font-family: var(--titulo); }
+
+/* ---------- Abas grandes (Herói, Aventura, ...) com brasa na escolhida ---------- */
+.abas-jogo { border: 1px solid #000; border-radius: 4px; background: linear-gradient(#17130f, #0a0807); box-shadow: 0 0 0 1px #3d3832, inset 0 0 18px rgba(0, 0, 0, .7); }
+.abas-jogo button { font-family: var(--titulo); font-size: 1.05rem; color: #948875; border-radius: 2px; }
+.abas-jogo button + button::before { background: linear-gradient(transparent, rgba(168, 138, 85, .35), transparent); }
+.abas-jogo button:hover { color: #e0d3b8; background: rgba(168, 138, 85, .06); }
+.abas-jogo button.ativa { color: #f6e6c6; text-shadow: 0 0 10px rgba(255, 130, 50, .65), 0 2px 3px #000;
+  background: radial-gradient(ellipse at 50% 135%, rgba(220, 85, 30, .55), transparent 70%), linear-gradient(180deg, rgba(120, 40, 15, .25), rgba(30, 12, 6, .15)); }
+.abas-jogo button.ativa::after { background: linear-gradient(90deg, transparent, #d8642a, transparent); box-shadow: 0 0 8px rgba(220, 90, 30, .8); }
+.abas-jogo button.ativa .aba-ico { color: #f0a05a; filter: drop-shadow(0 0 4px rgba(240, 120, 50, .6)); }
+
+/* ---------- Sub-abas (Personagem, Encantar, Habilidades): brasa vermelha ---------- */
+.sub-abas { border: 1px solid #000; border-radius: 4px; background: rgba(10, 9, 8, .75); box-shadow: 0 0 0 1px #3d3832; }
+.sub-abas button { font-family: var(--titulo); font-size: 1rem; color: #948875; border-radius: 2px; }
+.sub-abas button.ativa { color: #fff0d4; text-shadow: 0 0 8px rgba(255, 140, 60, .7);
+  background: radial-gradient(ellipse at 50% 130%, #d45a22 0%, #7a2410 45%, #2a120a 100%); box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #8a5a35; }
+.mochila-abas button.ativa { color: #fff0d4; border-color: #7a3a22; }
+
+/* ---------- Itens: fundo bem leve da raridade, cores mais frias ---------- */
+.slot, .celula, .icone-grande, .icone-pequeno { border-color: #3d3934; background: radial-gradient(circle at 50% 40%, #24211e, #0f0e0c); }
+.borda-comum { background: radial-gradient(circle at 50% 45%, #34312d, #141210 75%); }
+.borda-rara { background: radial-gradient(circle at 50% 45%, #2a3a50, #12161c 75%); }
+.borda-epica { background: radial-gradient(circle at 50% 45%, #3c2e4a, #16121b 75%); }
+.borda-lendaria { background: radial-gradient(circle at 50% 45%, #54362a, #1d1410 75%); }
+.borda-conjunto { background: radial-gradient(circle at 50% 45%, #2a4434, #111814 75%); box-shadow: inset 0 0 0 2px rgba(110, 170, 120, .5); }
+.slot img, .celula img { filter: saturate(.82) brightness(.95) drop-shadow(0 2px 3px rgba(0, 0, 0, .8)); }
+.nivel-encanto { font-family: var(--titulo); }
+/* Brilho do encanto: mesma ordem de cores do jogo, tons mais frios e brilho médio */
+@keyframes auraEncanto {
+  0%, 100% { box-shadow: 0 0 calc(var(--forca) * .45) calc(var(--forca) * .1) rgba(var(--cor), .4), inset 0 0 calc(var(--forca) * .4) rgba(var(--cor), .22); }
+  50% { box-shadow: 0 0 calc(var(--forca) * .9) calc(var(--forca) * .25) rgba(var(--cor), .7), inset 0 0 calc(var(--forca) * .65) rgba(var(--cor), .4); }
+}
+[class*="aura-e"] { border-color: rgba(var(--cor), .85); animation-duration: calc(var(--vel, 1.6s) * 1.3); }
+.aura-e1 { --cor: 180, 190, 200; }
+.aura-e2, .aura-e3 { --cor: 90, 190, 140; }
+.aura-e4, .aura-e5 { --cor: 85, 145, 225; }
+.aura-e6 { --cor: 210, 120, 185; }
+.aura-e7 { --cor: 150, 110, 230; }
+.aura-e8 { --cor: 220, 200, 110; }
+.aura-e9 { --cor: 220, 150, 90; }
+.aura-e10 { --cor: 215, 85, 90; }
+
+/* Retrato do herói com moldura fina dourada */
+.retrato-central { border: 3px solid #3a3530; border-radius: 3px; box-shadow: 0 0 0 1px #000, 0 0 0 2px #6a5638, 0 0 30px rgba(0, 0, 0, .9); }
+.retrato-central > img { filter: brightness(.88) contrast(1.05); }
+
+/* ---------- Herói > Personagem em telas grandes: 3 colunas (ficha | equipamento | mochila) ---------- */
+@media (min-width: 1450px) {
+  .conteudo { max-width: 1640px; }
+  .personagem-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.4rem; align-items: start; }
+  .pg-equipamento .personagem-tela { grid-template-columns: 1fr; }
+  .pg-equipamento .lateral { grid-template-columns: 1fr 1fr; }
+  .pg-mochila > .subtitulo:first-child { margin-top: 0; }
+}

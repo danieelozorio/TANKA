@@ -991,12 +991,12 @@
       + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button></div>';
     var baixo = naConsumiveis ? consumiveisHtml(consumiveis)
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
-    return '<div class="personagem-tela"><div class="boneco">' + slots
+    return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
       + '<div class="lateral"><div class="caixa-interna" id="ficha-item">' + (cFoco ? fichaConsumivelHtml(cFoco) : fichaItemHtml(foco)) + '</div>'
       + '<div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
-      + '<h3 class="subtitulo">Mochila</h3>' + abas + baixo;
+      + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas + baixo + '</div></div>';
   }
 
   // ----- Consumíveis: pergaminhos (e, no futuro, cristais e outros), empilhados com a quantidade -----

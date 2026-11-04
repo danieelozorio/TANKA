@@ -163,3 +163,18 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   servidor pelo tanka_dados). DES continua: chance de crítico, precisão, evasão. Arma antiga rara+ do Caçador agora dá FOR.
   Presente único: Caçador com level > 1 ganha 1 Pergaminho do Recomeço (`presenteForcaCacador`: 1 = falta avisar, 2 = feito).
 
+## Tema "Pedra Sombria" (Daniel, nov/2026)
+- Visual escuro aprovado pelo Daniel a partir de uma imagem do Gemini. Só aparência; regras e telas iguais.
+- `css/tema-sombrio.css` (escrito à mão) carrega depois de `css/estilo.css`; `css/tema-sombrio-cores.css` (gerado) fica
+  entre os dois e troca os azuis-escuros antigos por pedra quente: `python3 ferramentas/gerar_tema_cores.py` de novo se
+  `estilo.css` ganhar painéis azulados. Para voltar ao visual antigo, tirar os dois `<link>` do index.html.
+- Letras: IM Fell English (texto) e IM Fell English SC (títulos/abas/botões), "ELDRIN" em Cinzel Decorative (Google Fonts).
+  Os algarismos e o % vêm de `assets/fontes/ebgaramond.woff2` (fonte "Numeros Eldrin", `unicode-range`), porque os números
+  do IM Fell são tortos.
+- Arte em `assets/interface/`: `fundo.webp` (parede gótica, Gemini), `rocha.webp` (pedra rachada dos painéis, gerada por
+  código), `canto-tl/tr/bl/br.webp` (enfeite dourado nos cantos de `.caixa`, Gemini). Faíscas só em CSS (`body::after`).
+- Itens: fundo da raridade bem leve; brilho do encanto (`aura-eN`) com a mesma ordem de cores, tons mais frios e médio.
+- Herói > Personagem: `abaPersonagem` agora embrulha em `.personagem-grade` > `.pg-equipamento` + `.pg-mochila`; a partir
+  de 1450px a mochila vai para uma 3ª coluna (ficha | equipamento | mochila). Abaixo disso fica como antes.
+- Daniel pediu: sem barras coloridas nos atributos (só números, como já era) e sem caveiras.
+
