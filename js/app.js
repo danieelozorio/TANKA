@@ -70,9 +70,9 @@
   function rodape() {
     return '<footer class="rodape">' + D.DOMINIO + '</footer>';
   }
-  function topo(extra) {
+  function topo(extra, abas) {
     return '<header class="topo"><span class="logo">' + D.NOME_JOGO.toUpperCase() + '</span>'
-      + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>'
+      + (abas || '') + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>'
       + (ehAdmin() ? '<span class="selo selo-admin">ADMIN</span>' : '') + (extra || '')
       + '<button class="btn secundario" data-acao="sair">Sair</button></div></header>';
   }
@@ -592,10 +592,13 @@
       return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + '">'
         + '<span class="aba-ico">' + ICONES[g.id] + g.abas.map(seloDaAba).join('') + '</span><span class="aba-nome">' + g.nome + '</span></button>';
     }).join('') + '</nav>';
-    var sub = atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
+    return nav;
+  }
+  function subAbasHtml() {
+    var atual = grupoDaAba(estado.aba);
+    return atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
       return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + '">' + NOME_ABA[a] + seloDaAba(a) + '</button>';
     }).join('') + '</nav>' : '';
-    return nav + sub;
   }
   // Atualiza só os selos das abas (pedidos de amizade, convites, ataques na Arena).
   function atualizarNav() {
@@ -603,7 +606,7 @@
     if (!nav) return;
     var sub = document.getElementById('sub-abas');
     var tmp = document.createElement('div');
-    tmp.innerHTML = navHtml();
+    tmp.innerHTML = navHtml() + subAbasHtml();
     nav.replaceWith(tmp.querySelector('#abas-jogo'));
     if (sub && tmp.querySelector('#sub-abas')) sub.replaceWith(tmp.querySelector('#sub-abas'));
   }
@@ -2045,19 +2048,29 @@
     return '<div class="barra poder' + (b.jogador.poder >= D.PODER.maximo ? ' cheia' : '') + '"><i style="width:' + b.jogador.poder + '%"></i><b>Poder ' + b.jogador.poder + '</b></div>';
   }
 
+  var ICONE_POCAO = '<svg class="icone-pocao" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+    + '<path d="M9 5V9C5.5 10.5 4 13 4 16a8 6 0 0 0 16 0c0-3-1.5-5.5-5-7V5Z" fill="#302026" stroke="#d5aa76" stroke-width="1.3"/>'
+    + '<path d="M5.5 15c4 1.5 8-2 13-.5 1 4-2.5 6-6.5 6s-7-2-6.5-5.5Z" fill="#b83e48"/>'
+    + '<path d="M7.5 14.5a4 4 0 0 1 2-2.7" fill="none" stroke="#f1b2a4" stroke-linecap="round"/>'
+    + '<rect x="8" y="2.5" width="8" height="4" rx="1" fill="#b5814d" stroke="#e2bd83"/>'
+    + '</svg>';
+
   function controleHabilidade(b) {
     if (interfaceAtual() === 'zealot' && b.lutador) {
       var lutador = b.lutador;
       var habilidades = lutador.kit.map(function (habilidade) {
         var def = habilidade.def;
         var recarga = Math.max(0, (lutador.pronto[def.id] || 0) - lutador.turno - 1);
-        return '<span class="cacada-habilidade"><span>' + esc(def.nome) + '</span><small>'
-          + (recarga ? recarga + (recarga === 1 ? ' turno' : ' turnos') : 'Pronta') + '</small></span>';
+        var status = recarga ? recarga + (recarga === 1 ? ' turno' : ' turnos') : 'Pronta';
+        return '<span class="cacada-habilidade" role="img" aria-label="' + esc(def.nome + ': ' + status)
+          + '" title="' + esc(def.nome + ': ' + status) + '">'
+          + '<span class="cacada-habilidade-simbolo" aria-hidden="true">✦</span>' + iconeHab(def)
+          + '<small aria-hidden="true">' + (recarga || '✓') + '</small></span>';
       }).join('');
       var podeBeber = !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
       return '<div class="cacada-acoes">' + habilidades
         + '<button class="btn cacada-pocao" data-acao="beber-pocao" title="Beber poção"'
-        + (podeBeber ? '' : ' disabled') + '>🧪 Poção (' + b.pocoes + ')'
+        + (podeBeber ? '' : ' disabled') + '>' + ICONE_POCAO + ' Poção (' + b.pocoes + ')'
         + (b.pocaoPendente ? '…' : '') + '</button></div>';
     }
     var cheia = b.jogador.poder >= D.PODER.maximo;
@@ -2066,8 +2079,8 @@
       ? '<button class="btn btn-habilidade preparada" disabled>⚡ ' + nome + ': preparada!</button>'
       : '<button class="btn btn-habilidade' + (cheia ? ' pronta' : '') + '" data-acao="habilidade"' + (cheia ? '' : ' disabled') + '>⚡ ' + nome + '</button>';
     var pocao = b.pocaoPendente
-      ? '<button class="btn btn-pocao" disabled>🧪 Bebendo…</button>'
-      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>🧪 Beber poção (' + b.pocoes + ')</button>';
+      ? '<button class="btn btn-pocao" disabled>' + ICONE_POCAO + ' Bebendo…</button>'
+      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>' + ICONE_POCAO + ' Beber poção (' + b.pocoes + ')</button>';
     if (!D.HABILIDADES_ATIVAS) return pocao;
     return botao + pocao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
   }
@@ -2099,7 +2112,7 @@
     if (atual && atual.eldrin === estado.personagem.id && atual.aba !== estado.aba) {
       history.pushState({ eldrin: estado.personagem.id, aba: estado.aba }, '');
     }
-    var painel;
+    var painel, navInferior = '', abasTopo = '';
     if (estado.lutaArena) {
       painel = lutaArenaHtml();
     } else if (estado.luta) {
@@ -2111,7 +2124,10 @@
     } else if (estado.batalha || estado.resultado) {
       painel = resultadoHtml() + batalhaHtml();
     } else {
-      painel = navHtml()
+      var navegacao = navHtml(), subAbas = subAbasHtml();
+      var zealot = interfaceAtual() === 'zealot';
+      if (zealot) { navInferior = navegacao; abasTopo = subAbas; }
+      painel = (zealot ? '' : navegacao + subAbas)
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
@@ -2119,8 +2135,8 @@
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
-      + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
+    app.innerHTML = topo(trocar, abasTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
+      + '<section class="caixa">' + painel + '</section></div></div>' + navInferior + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
@@ -2179,7 +2195,7 @@
     var ev = R.passo(b);
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
     if (ev.pocao) {
-      linha('cura', '🧪 ' + nomeJ + ' bebe uma poção e recupera <strong>' + ev.cura + '</strong> de vida.');
+      linha('cura', ICONE_POCAO + ' ' + nomeJ + ' bebe uma poção e recupera <strong>' + ev.cura + '</strong> de vida.');
     } else if (ev.habilidade) {
       if (!ev.acerto) linha('errou', '⚡ ' + ev.habilidade.toUpperCase() + '! Mas ' + nomeJ + ' erra o golpe.');
       else {
@@ -2434,6 +2450,14 @@
     telaJogo();
   }
 
+  var ICONE_ACAMPAMENTO = '<svg viewBox="0 0 48 48" width="1em" height="1em" style="display:block;margin:auto" aria-hidden="true" focusable="false">'
+    + '<path d="M39 7a7 7 0 0 0 4 11 7 7 0 1 1-4-11Z" fill="#e7c484"/>'
+    + '<path d="M5 38 22 13l20 25Z" fill="#442b20" stroke="#c69b63" stroke-width="2" stroke-linejoin="round"/>'
+    + '<path d="m22 13 5 25H5Z" fill="#a76d44" stroke="#c69b63" stroke-width="1.5" stroke-linejoin="round"/>'
+    + '<path d="m17 38 5-13 5 13Z" fill="#221714"/>'
+    + '<path d="M3 39h42" stroke="#c69b63" stroke-width="2" stroke-linecap="round"/>'
+    + '</svg>';
+
   function cacadaHtml() {
     var c = estado.cacada, p = estado.personagem, b = estado.batalha, s = R.status(p), pref = prefsCacada();
     var area = D.areas.find(function (a) { return a.id === c.area; }), e = estiloArea(area, D.areas.indexOf(area));
@@ -2460,7 +2484,7 @@
       direita = '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
         + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div></div>';
     } else {
-      direita = '<div class="cacada-busca parada"><div class="busca-icone">⛺</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
+      direita = '<div class="cacada-busca parada"><div class="busca-icone">' + ICONE_ACAMPAMENTO + '</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
         + '<div class="botoes"><button class="btn" data-acao="cacada-continuar"' + (R.vidaParaCacar(p) ? '' : ' disabled') + '>Continuar caçada</button>'
         + '<button class="btn secundario" data-acao="cacada-fechar">Voltar à região</button></div>'
         + (R.vidaParaCacar(p) ? '' : '<p class="suave pequeno">Precisa de mais de ' + D.CACADA.vidaMinima + '% da vida. Use uma poção ou acampe.</p>') + '</div>';
