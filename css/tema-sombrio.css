@@ -159,3 +159,83 @@ h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; lette
   .pg-equipamento .lateral { grid-template-columns: 1fr 1fr; }
   .pg-mochila > .subtitulo:first-child { margin-top: 0; }
 }
+/* Zealot: tela fixa e rolagem dentro dos painéis do jogo. */
+html[data-interface="zealot"]:has(#app > .conteudo > .jogo) {
+  overflow: hidden;
+}
+
+html[data-interface="zealot"] body:has(#app > .conteudo > .jogo) {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#app:has(> .conteudo > .jogo) > :is(.topo, .barra-recursos) {
+  flex-shrink: 0;
+}
+
+#app:has(> .conteudo > .jogo) > .rodape {
+  display: none;
+}
+
+#app > .conteudo:has(> .jogo) {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  padding-block: .6rem;
+}
+
+.conteudo > .jogo {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.jogo > :is(.ficha, section.caixa) {
+  max-height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+@media (min-width: 701px) {
+  .jogo > section.caixa > .abas-jogo {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+@media (max-width: 860px) {
+  .conteudo > .jogo {
+    grid-template-rows: minmax(0, 1fr) minmax(0, auto);
+    gap: .5rem;
+  }
+
+  .jogo > section.caixa {
+    order: -1;
+  }
+
+  .jogo > .ficha {
+    max-height: min(24dvh, 9rem);
+  }
+}
+
+@media (max-width: 700px) {
+  #app > .conteudo:has(.abas-jogo) {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+  }
+
+  .abas-jogo button {
+    font-size: .72rem;
+  }
+}
