@@ -70,11 +70,11 @@
   function rodape() {
     return '<footer class="rodape">' + D.DOMINIO + '</footer>';
   }
-  function topo(extra, abas) {
+  function topo(extra, abas, menu) {
     return '<header class="topo"><span class="logo">' + D.NOME_JOGO.toUpperCase() + '</span>'
       + (abas || '') + '<div class="acoes"><span class="suave">' + esc(estado.conta.usuario) + '</span>'
       + (ehAdmin() ? '<span class="selo selo-admin">ADMIN</span>' : '') + (extra || '')
-      + '<button class="btn secundario" data-acao="sair">Sair</button></div></header>';
+      + '<button class="btn secundario" data-acao="sair">Sair</button>' + (menu || '') + '</div></header>';
   }
   // `chave` lembra a largura anterior da barra: quando a vida cai, um rastro claro some devagar até o valor novo.
   var larguras = {};
@@ -2112,7 +2112,7 @@
     if (atual && atual.eldrin === estado.personagem.id && atual.aba !== estado.aba) {
       history.pushState({ eldrin: estado.personagem.id, aba: estado.aba }, '');
     }
-    var painel, navInferior = '', abasTopo = '';
+    var painel, menuTopo = '', abasTopo = '';
     if (estado.lutaArena) {
       painel = lutaArenaHtml();
     } else if (estado.luta) {
@@ -2126,7 +2126,13 @@
     } else {
       var navegacao = navHtml(), subAbas = subAbasHtml();
       var zealot = interfaceAtual() === 'zealot';
-      if (zealot) { navInferior = navegacao; abasTopo = subAbas; }
+      if (zealot) {
+        var menuAnterior = document.getElementById('menu-jogo');
+        menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
+          + '><summary class="btn" aria-label="Menu do jogo">'
+          + svg('<path d="M4 6h16M4 12h16M4 18h16"/>') + '</summary>' + navegacao + '</details>';
+        abasTopo = subAbas;
+      }
       painel = (zealot ? '' : navegacao + subAbas)
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
@@ -2135,8 +2141,8 @@
       + '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>';
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(trocar, abasTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
-      + '<section class="caixa">' + painel + '</section></div></div>' + navInferior + rodape()
+    app.innerHTML = topo(trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
+      + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
@@ -2531,6 +2537,8 @@
   }
 
   function abrirAba(aba) {
+    var menu = document.getElementById('menu-jogo');
+    if (menu) menu.open = false;
     estado.aba = aba;
     estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
     estado.zoom = estado.desafio = null;
@@ -2560,10 +2568,22 @@
     }
   });
 
+  document.addEventListener('click', function (e) {
+    var menu = document.getElementById('menu-jogo');
+    if (menu && menu.open && !menu.contains(e.target)) menu.open = false;
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    var menu = document.getElementById('menu-jogo');
+    if (e.key === 'Escape' && menu && menu.open) {
+      menu.open = false;
+      menu.querySelector('summary').focus();
+    }
+  });
+
   var inicioGesto;
   app.addEventListener('touchstart', function (e) {
     inicioGesto = null;
-    if (!estado.personagem || !podeVoltarAba() || e.touches.length !== 1
+    if (!estado.personagem || interfaceAtual() === 'zealot' || !podeVoltarAba() || e.touches.length !== 1
       || e.target.closest('input, textarea, select, .zoom-fundo')) return;
     inicioGesto = e.touches[0];
   }, { passive: true });
