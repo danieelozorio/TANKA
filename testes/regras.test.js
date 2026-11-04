@@ -103,7 +103,7 @@ teste('caçada: o herói acerta pelo menos 95% dos golpes, mesmo sem precisão e
 
 teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do 30 em diante', () => {
   assert.deepStrictEqual([1, 5, 6, 19].map(R.expNecessaria), [10, 160, 240, 46709]);
-  assert.strictEqual(R.expNecessaria(20), Math.round(46709.4 * 1.3));
+  assert.strictEqual(R.expNecessaria(20), Math.round(160 * Math.pow(1.5, 14) * 1.3));
   assert.ok(Math.abs(R.expNecessaria(30) / R.expNecessaria(29) - 1.12) < 0.001);
   // monstros do meio da área para subir: nunca passa de ~420 por level
   const area = (n) => D.areas.filter((a) => a.nivelMin <= n).pop();
