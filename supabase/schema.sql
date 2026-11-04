@@ -544,9 +544,13 @@ begin
           from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = gr.id),
         'convidados', coalesce((select jsonb_agg(p.nome) from public.grupo_convites c join public.personagens p on p.id = c.para where c.grupo_id = gr.id), '[]'::jsonb))
       from public.grupos gr where gr.id = g) end,
+    -- Fila sem grupo (masmorra, quando entrou, quantos esperam a mesma masmorra).
+    'fila', (select jsonb_build_object('masmorra', f.masmorra, 'entrou_em', f.entrou_em, 'agora', now(),
+        'jogadores', (select count(*) from public.masmorra_fila x where x.masmorra = f.masmorra))
+      from public.masmorra_fila f where f.personagem_id = meu),
     -- Última luta da qual este personagem participou (nos últimos 20 minutos).
     'run', (select jsonb_build_object('id', r.id, 'masmorra', r.masmorra, 'semente', r.semente, 'herois', r.herois,
-        'estado', r.estado, 'criado_em', r.criado_em)
+        'estado', r.estado, 'criado_em', r.criado_em, 'lider', r.lider, 'fila', r.grupo_id is null)
       from public.masmorra_runs r where meu = any (r.membros) and r.criado_em > now() - interval '20 minutes'
       order by r.id desc limit 1),
     'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
@@ -566,6 +570,7 @@ begin
   end if;
   g := public.meu_grupo(meu);
   if g is null then
+    delete from public.masmorra_fila where personagem_id = meu;   -- quem monta grupo sai da fila
     insert into public.grupos (lider) values (meu) returning id into g;
     insert into public.grupo_membros (personagem_id, grupo_id) values (meu, g);
   elsif (select lider from public.grupos where id = g) <> meu then
@@ -592,7 +597,8 @@ begin
   if (select count(*) from public.grupo_membros where grupo_id = g) >= 3 then raise exception 'O grupo já está cheio.'; end if;
   insert into public.grupo_membros (personagem_id, grupo_id) values (meu, g);
   update public.grupo_membros set pronto = false where grupo_id = g;
-  delete from public.grupo_convites where para = meu;   -- os outros convites perdem o sentido
+  delete from public.grupo_convites where para = meu;
+  delete from public.masmorra_fila where personagem_id = meu;   -- entrou num grupo: sai da fila   -- os outros convites perdem o sentido
 end $$;
 
 -- Sai do grupo. Se era o líder, o mais antigo assume; grupo vazio é apagado.
@@ -691,7 +697,9 @@ declare run public.masmorra_runs; pid text; sorte int;
 begin
   perform public.conferir_dono(meu);
   select * into run from public.masmorra_runs where id = run_id;
-  if run.id is null or run.lider <> meu then raise exception 'Só o líder informa o resultado.'; end if;
+  -- Grupo da fila (sem grupo_id): qualquer jogador da luta pode informar (o primeiro vale).
+  if run.id is null or (run.lider <> meu and not (run.grupo_id is null and meu = any (run.membros))) then
+    raise exception 'Só o líder informa o resultado.'; end if;
   if run.estado <> 'andamento' then raise exception 'Essa masmorra já terminou.'; end if;
   update public.masmorra_runs set estado = case when vitoria then 'vitoria' else 'derrota' end, concluido_em = now() where id = run_id;
   if not vitoria then return; end if;
@@ -710,6 +718,87 @@ begin
     end if;
   end loop;
 end $$;
+
+-- ---------- Fila da masmorra (Henri, nov/2026) ----------
+-- Quem está sem grupo entra na fila de uma masmorra. A cada consulta (fila_ping, a cada ~4 s enquanto espera):
+-- com 3 jogadores na mesma masmorra, eles entram juntos; se o mais antigo já esperou 30 s, entram os que houver
+-- e as vagas são completadas por bots: cópias (mesmo poder) dos jogadores do grupo. Bots não ganham prêmio
+-- nem gastam entrada (só os jogadores estão em `membros`). Quem fecha o jogo sai da fila em 20 s sem ping.
+create table if not exists public.masmorra_fila (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  masmorra text not null,
+  entrou_em timestamptz not null default now(),
+  visto_em timestamptz not null default now()
+);
+create index if not exists masmorra_fila_masmorra on public.masmorra_fila (masmorra, entrou_em);
+alter table public.masmorra_fila enable row level security;   -- só pelas funções
+
+-- Monta as lutas que já dá para montar nesta masmorra.
+create or replace function public.fila_casar(m text) returns void
+language plpgsql security definer set search_path = public as $$
+declare ids text[]; n int; i int; k int; herois jsonb; d jsonb; minimo int := public.masmorra_nivel_min(m);
+  nomes text[] := array['Mercenário Aldo', 'Mercenária Brisa', 'Mercenário Corvo', 'Mercenária Dália', 'Mercenário Ermo', 'Mercenária Faísca'];
+begin
+  perform pg_advisory_xact_lock(hashtext('masmorra_fila:' || m));
+  delete from public.masmorra_fila where masmorra = m and visto_em < now() - interval '20 seconds';
+  -- quem não pode mais entrar (subiu outro grupo, sem entradas, level) sai da fila
+  delete from public.masmorra_fila f using public.personagens p where f.personagem_id = p.id and f.masmorra = m
+    and (public.entradas_usadas(p.id) >= 2 or coalesce((p.dados ->> 'nivel')::int, 1) < minimo or public.meu_grupo(p.id) is not null);
+  loop
+    select array_agg(personagem_id order by entrou_em) into ids
+      from (select personagem_id, entrou_em from public.masmorra_fila where masmorra = m order by entrou_em limit 3) x;
+    n := coalesce(array_length(ids, 1), 0);
+    exit when n = 0;
+    exit when n < 3 and (select min(entrou_em) from public.masmorra_fila where masmorra = m) > now() - interval '30 seconds';
+    select jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by array_position(ids, p.id)) into herois
+      from public.personagens p where p.id = any (ids);
+    for i in n + 1 .. 3 loop   -- bots: cópia de um jogador do grupo (mesmo poder), com outro nome
+      d := (herois -> ((i - 1) % n)) -> 'dados';
+      k := 1 + floor(random() * array_length(nomes, 1))::int;
+      d := d || jsonb_build_object('id', 'bot-' || substr(md5(random()::text || clock_timestamp()::text), 1, 10),
+        'nome', nomes[k], 'sexo', case when nomes[k] like 'Mercenária%' then 'feminino' else 'masculino' end, 'bot', true);
+      herois := herois || jsonb_build_array(jsonb_build_object('id', d ->> 'id', 'dados', d, 'bot', true));
+    end loop;
+    insert into public.masmorra_runs (grupo_id, lider, masmorra, semente, herois, membros)
+      values (null, ids[1], m, floor(random() * 2147483647)::bigint, herois, ids);
+    delete from public.masmorra_fila where personagem_id = any (ids);
+  end loop;
+end $$;
+revoke execute on function public.fila_casar(text) from public, anon, authenticated;
+
+create or replace function public.fila_entrar(meu text, masmorra text) returns void
+language plpgsql security definer set search_path = public as $$
+declare nivel int;
+begin
+  perform public.conferir_dono(meu);
+  if public.masmorra_nivel_min(masmorra) is null then raise exception 'Masmorra inválida.'; end if;
+  if public.meu_grupo(meu) is not null then raise exception 'Você já está num grupo: saia dele para usar a fila.'; end if;
+  select coalesce((dados ->> 'nivel')::int, 1) into nivel from public.personagens where id = meu;
+  if nivel < public.masmorra_nivel_min(masmorra) then raise exception 'Level mínimo %.', public.masmorra_nivel_min(masmorra); end if;
+  if public.entradas_usadas(meu) >= 2 then raise exception 'Sem entradas hoje.'; end if;
+  insert into public.masmorra_fila (personagem_id, masmorra) values (meu, fila_entrar.masmorra)
+    on conflict (personagem_id) do update set masmorra = excluded.masmorra, entrou_em = now(), visto_em = now();
+  perform public.fila_casar(fila_entrar.masmorra);
+end $$;
+
+-- Enquanto espera, o jogo chama a cada poucos segundos: marca que está online e tenta montar a luta.
+create or replace function public.fila_ping(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m text;
+begin
+  perform public.conferir_dono(meu);
+  update public.masmorra_fila set visto_em = now() where personagem_id = meu returning masmorra into m;
+  if m is not null then perform public.fila_casar(m); end if;
+end $$;
+
+create or replace function public.fila_sair(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  delete from public.masmorra_fila where personagem_id = meu;
+end $$;
+revoke execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) from public, anon;
+grant execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) to authenticated;
 
 -- Pega uma recompensa (o jogo coloca na mochila e salva).
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb

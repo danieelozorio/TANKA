@@ -2464,6 +2464,12 @@
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
+      case 'fila-entrar':
+        acaoGrupo(function () { return C.grupo.filaEntrar(p.id, el.dataset.valor); }, 'Você entrou na fila de ' + R.masmorra(el.dataset.valor).nome + '.');
+        break;
+      case 'fila-sair':
+        acaoGrupo(function () { return C.grupo.filaSair(p.id); }, 'Você saiu da fila.');
+        break;
       case 'comparar-encanto': estado.compararSemEncanto = !estado.compararSemEncanto; telaJogo(); break;
       case 'senha-pedidos':
         C.senha.adminPedidos().then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
@@ -3175,7 +3181,9 @@
     var p = estado.personagem;
     if (!p || estado.gmCarregando) return;
     estado.gmCarregando = true;
-    C.grupo.estado(p.id).then(function (g) {
+    // Na fila: avisa que está esperando (e o servidor tenta montar a luta) antes de buscar o estado.
+    var ping = estado.gm && estado.gm.fila ? C.grupo.filaPing(p.id).catch(function () {}) : Promise.resolve();
+    ping.then(function () { return C.grupo.estado(p.id); }).then(function (g) {
       estado.gmCarregando = false;
       if (estado.personagem !== p) return;
       estado.gm = g;
@@ -3281,6 +3289,8 @@
   function assistirLuta(run, sim) {
     vistas[run.id] = true;
     sim = sim || R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
+    // Luta da fila: qualquer jogador registra o resultado (o primeiro vale; os outros recebem "já terminou").
+    if (run.fila && run.estado === 'andamento') C.grupo.concluir(estado.personagem.id, run.id, sim.vitoria).catch(function () {});
     // Missão: cada masmorra vencida conta uma vez por personagem.
     var mis = R.garantirMissoes(estado.personagem, C.agora());
     if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
@@ -3406,7 +3416,17 @@
         + '<button class="btn secundario" data-acao="grupo-recusar" data-convite="' + c.id + '">Recusar</button></div></div>';
     }).join('') + '</div>';
     var gr = g.grupo;
-    if (!gr) return html + '<p class="suave">Você não está num grupo. Na aba <strong>Social</strong>, use "Convidar para o grupo" num amigo para montar o seu.</p>' + listaMasmorras(null, false);
+    if (!gr && g.fila) {
+      var fm = R.masmorra(g.fila.masmorra), espera = Math.max(0, Math.round((Date.parse(g.fila.agora) - Date.parse(g.fila.entrou_em)) / 1000));
+      return html + '<div class="secao fila-masmorra"><h3 class="subtitulo">Na fila: ' + esc(fm.nome) + '</h3>'
+        + '<p>Esperando há <strong>' + espera + ' s</strong> · <strong>' + g.fila.jogadores + '/' + M.tamanhoGrupo + '</strong> jogadores nesta masmorra.</p>'
+        + '<p class="suave pequeno">' + (espera < 30 ? 'Se em 30 s não aparecerem 3 jogadores, mercenários (bots com o mesmo poder do grupo) completam as vagas.'
+          : 'Chamando mercenários para completar o grupo…') + ' Os mercenários não ganham prêmio nem gastam entrada.</p>'
+        + '<div class="botoes"><button class="btn perigo" data-acao="fila-sair">Sair da fila</button></div></div>' + listaMasmorras(null, false);
+    }
+    if (!gr) return html + '<p class="suave">Você não está num grupo. Entre na <strong>fila</strong> de uma masmorra abaixo para jogar com outros jogadores sem grupo '
+      + '(em 30 s sem completar, mercenários entram junto), ou na aba <strong>Social</strong> use "Convidar para o grupo" num amigo.</p>'
+      + listaMasmorras(null, false, restam > 0);
     var souLider = gr.lider === p.id, eu = gr.membros.find(function (m) { return m.id === p.id; }) || {};
     var vagas = [];
     for (var i = 0; i < M.tamanhoGrupo; i++) {
@@ -3432,7 +3452,8 @@
     return html + listaMasmorras(gr.masmorra, souLider);
   }
 
-  function listaMasmorras(escolhida, souLider) {
+  // fila: mostra "Entrar na fila" nas masmorras liberadas (quem está sem grupo e com entrada).
+  function listaMasmorras(escolhida, souLider, fila) {
     var p = estado.personagem;
     return '<h3 class="subtitulo">Masmorras</h3><div class="mas-lista">' + D.masmorras.map(function (mm) {
       var area = D.areas.find(function (a) { return a.id === mm.area; });
@@ -3443,6 +3464,7 @@
         + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + ' · Pergaminho: ' + D.MASMORRA.pergaminho + '%</div>'
         + (souLider ? (mm.id === escolhida ? '<div class="online pequeno">✔ Escolhida</div>'
           : '<button class="btn secundario mini-opcao" data-acao="grupo-escolher" data-valor="' + mm.id + '">Escolher</button>') : '')
+        + (fila && !bloqueada ? '<button class="btn mini-opcao" data-acao="fila-entrar" data-valor="' + mm.id + '">Entrar na fila</button>' : '')
         + '</div>';
     }).join('') + '</div>';
   }
@@ -3452,7 +3474,7 @@
   setInterval(function () {
     if (!estado.personagem || estado.batalha || estado.luta || estado.lutaArena || document.hidden) return;
     ciclosGrupo++;
-    var emGrupo = estado.gm && estado.gm.grupo;
+    var emGrupo = estado.gm && (estado.gm.grupo || estado.gm.fila);
     if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);

@@ -203,6 +203,7 @@ Tanka.contas = (function () {
     estado: function () { return Promise.resolve({ local: true, entradas: 0, convites: [], grupo: null, run: null, recompensas: [] }); },
     convidar: soServidor, responder: soServidor, sair: soServidor, expulsar: soServidor, pronto: soServidor,
     escolher: soServidor, iniciar: soServidor, concluir: soServidor, resgatar: soServidor, adminRecarregar: soServidor,
+    filaEntrar: soServidor, filaPing: soServidor, filaSair: soServidor,
   };
 
   var arena = {
