@@ -340,6 +340,10 @@ Tanka.contas = (function () {
     amigos: amigos,
     ranking: ranking,
     chat: chat,
+    privado: {
+      listar: function (meu, alvo) { return chamar('privado_listar', { meu: meu, alvo: alvo }); },
+      enviar: function (meu, alvo, texto) { return chamar('privado_enviar', { meu: meu, alvo: alvo, mensagem: texto }); },
+    },
     iniciar: iniciar,
     agora: agora,
     registrar: registrar,

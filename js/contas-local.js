@@ -108,6 +108,7 @@ Tanka.contas = (function () {
   function lerChat() { try { return JSON.parse(localStorage.getItem(CHAVE_CHAT)) || []; } catch (e) { return []; } }
   function gravarChat(l) { try { localStorage.setItem(CHAVE_CHAT, JSON.stringify(l.slice(-100))); } catch (e) { /* sem armazenamento */ } }
   var silenciados = {};
+  function privadoSoServidor() { return Promise.reject(new Error('O chat privado só funciona no site do Eldrin.')); }
   var chat = {
     recentes: async function () { return lerChat(); },
     novas: async function (desdeId) { return lerChat().filter(function (m) { return m.id > desdeId; }); },
@@ -233,6 +234,7 @@ Tanka.contas = (function () {
     amigos: amigos,
     ranking: ranking,
     chat: chat,
+    privado: { listar: privadoSoServidor, enviar: privadoSoServidor },
     iniciar: async function () { return contaAtual(); },
     agora: function () { return Date.now(); },
     criarPersonagem: async function (p) { salvarPersonagem(p); },

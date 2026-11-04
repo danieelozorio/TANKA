@@ -270,6 +270,23 @@
     if (estado.conta && estado.conta.trocar_senha) telaTrocarSenha(true);
     else telaPersonagens();
   }
+
+  function retomarJogo() {
+    if (estado.conta.trocar_senha) return false;
+    try {
+      var sessao = JSON.parse(sessionStorage.getItem('eldrin.jogo'));
+      if (!sessao || !estado.conta.personagens.some(function (p) { return p.id === sessao.id; })) return false;
+    } catch (e) { return false; }
+    abrirJogo(sessao.id, sessao.aba);
+    return true;
+  }
+
+  function guardarJogo() {
+    try {
+      if (estado.personagem) sessionStorage.setItem('eldrin.jogo', JSON.stringify({ id: estado.personagem.id, aba: estado.aba }));
+      else sessionStorage.removeItem('eldrin.jogo');
+    } catch (e) { /* armazenamento indisponível */ }
+  }
   // Trocar a senha (obrigatório depois de entrar com a senha temporária do admin).
   function telaTrocarSenha(obrigatorio, erro) {
     chatVisivel(false);
@@ -437,9 +454,12 @@
       + '</dl></div>';
   }
 
-  function abrirJogo(id) {
+  function abrirJogo(id, aba) {
     estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
-    estado.aba = 'personagem';
+    estado.aba = (grupoDaAba(aba) || (aba === 'admin' && ehAdmin())) ? aba : 'personagem';
+    estado.subAba = {};
+    estado.amigoAberto = estado.removerAmigo = null;
+    iniciarHistoricoJogo();
     estado.chefeAviso = null;
     estado.area = D.areas.filter(function (a) { return R.areaLiberada(estado.personagem, a); }).pop().id;
     estado.vendaPendente = null;
@@ -500,6 +520,7 @@
     arena: svg('<path d="M4 4l9 9M4 4v3.5M4 4h3.5M20 4l-9 9M20 4v3.5M20 4h-3.5M7 15l-3 3 2 2 3-3M17 15l3 3-2 2-3-3"/>'),
     heroi: svg('<path d="M12 3l7 3v5.5c0 4.3-3 8-7 9.5-4-1.5-7-5.2-7-9.5V6z"/><path d="M12 8v8M9 11h6"/>'),
     aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
+    leilao: svg('<path d="m8 4 8 8m-6-10 8 8m-7-1-7 7m9 3h8m-8 3h8"/>'),
     mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
     cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>',
@@ -548,7 +569,8 @@
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
-    { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'leilao'] },
+    { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
+    { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
   var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
@@ -1784,19 +1806,23 @@
   }
 
   function vistoTexto(visto) {
-    if (!visto) return '';
+    if (!visto || !Number.isFinite(Date.parse(visto))) return '<span class="suave">○ Offline</span>';
     var ms = C.agora() - Date.parse(visto);
     if (ms < ONLINE_MS) return '<span class="online">● Online</span>';
     var min = Math.floor(ms / 60000);
     var quando = min < 60 ? min + ' min' : min < 1440 ? Math.floor(min / 60) + ' h' : Math.floor(min / 1440) + ' dia(s)';
-    return '<span class="suave">Visto há ' + quando + '</span>';
+    return '<span class="suave">○ Offline · visto há ' + quando + '</span>';
   }
 
   function linhaAmigo(x, botoes) {
-    return '<div class="item amigo"><div class="amigo-info"><div>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-      + '<div class="suave">' + nomeRaca(x.raca, x.sexo) + ' · ' + nomeClasseX(x)
-      + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
-      + '<div class="item-acoes">' + botoes + '</div></div>';
+    var aberto = estado.amigoAberto === Number(x.pedido);
+    var info = '<span>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</span>'
+      + '<span class="suave">' + nomeRaca(x.raca, x.sexo) + ' · ' + nomeClasseX(x)
+      + ' · Level ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</span>';
+    return '<div class="item amigo"><div class="amigo-info">'
+      + (x.situacao === 'amigo' ? '<button class="amigo-toggle" data-acao="amigo-abrir" data-pedido="' + x.pedido
+        + '" aria-expanded="' + aberto + '">' + info + '</button>' : info) + '</div>'
+      + (botoes ? '<div class="item-acoes">' + botoes + '</div>' : '') + '</div>';
   }
 
   function abaSocial() {
@@ -1820,14 +1846,65 @@
       + recebidos.map(function (x) { return linhaAmigo(x, bt('amigo-aceitar', x, 'Aceitar') + bt('amigo-recusar', x, 'Recusar', 'secundario')); }).join('') + '</div>';
     html += '<h3 class="subtitulo">Amigos (' + amigos.length + ')' + (online ? ' <span class="online pequeno">' + online + ' online</span>' : '') + '</h3>'
       + (amigos.length ? '<div class="itens">' + amigos.map(function (x) {
-        return linhaAmigo(x, estado.removerAmigo === x.pedido
+        return linhaAmigo(x, estado.amigoAberto !== Number(x.pedido) ? '' : estado.removerAmigo === x.pedido
           ? bt('amigo-remover', x, 'Confirmar', 'perigo') + '<button class="btn secundario" data-acao="amigo-manter">Cancelar</button>'
           : '<button class="btn" data-acao="grupo-convidar" data-id="' + esc(x.id) + '" data-nome="' + esc(x.nome) + '">Convidar para o grupo</button>'
-            + bt('amigo-pedir-remover', x, 'Remover', 'secundario'));
+              + '<button class="btn secundario" data-acao="amigo-alianca" data-nome="' + esc(x.nome) + '">Convidar para a aliança</button>'
+            + '<button class="btn secundario" data-acao="amigo-privado" data-id="' + esc(x.id) + '" data-nome="' + esc(x.nome) + '">Privado</button>'
+            + '<button class="btn secundario" data-acao="amigo-perfil" data-id="' + esc(x.id) + '">Perfil</button>'
+            + bt('amigo-pedir-remover', x, 'Excluir', 'secundario'));
       }).join('') + '</div>' : '<p class="suave">Você ainda não tem amigos. Adicione pelo nome do personagem (dá para ver os nomes no chat e no ranking).</p>');
     if (enviados.length) html += '<h3 class="subtitulo">Pedidos enviados (' + enviados.length + ')</h3><div class="itens">'
       + enviados.map(function (x) { return linhaAmigo(x, '<span class="suave pequeno">Aguardando</span>' + bt('amigo-remover', x, 'Cancelar', 'secundario')); }).join('') + '</div>';
     return html + '<div class="botoes"><button class="btn secundario" data-acao="social-atualizar">Atualizar</button></div>';
+  }
+
+  function abrirPrivado(id, nome) {
+    var meu = estado.personagem.id;
+    var painel = document.createElement('dialog');
+    painel.className = 'caixa conversa-privada';
+    painel.innerHTML = '<h3>Privado · ' + esc(nome) + '</h3><div class="conversa-mensagens" role="log"></div>'
+      + '<p class="erro" role="status"></p><form class="linha-form"><input aria-label="Mensagem" maxlength="300" required>'
+      + '<button class="btn" type="submit">Enviar</button><button class="btn secundario" type="button">Fechar</button></form>';
+    var lista = painel.querySelector('[role="log"]'), erro = painel.querySelector('.erro');
+    var campo = painel.querySelector('input'), enviar = painel.querySelector('[type="submit"]');
+    var ocupado = false;
+    async function atualizar() {
+      if (ocupado || !painel.open) return;
+      if (!estado.personagem || estado.personagem.id !== meu) { painel.close(); return; }
+      ocupado = true;
+      try {
+        var mensagens = await C.privado.listar(meu, id);
+        var ultima = mensagens.length ? mensagens[mensagens.length - 1].id : null;
+        if (!lista.childNodes.length || lista.dataset.ultima !== String(ultima)) {
+          lista.innerHTML = mensagens.length ? mensagens.map(function (m) {
+            return '<p><strong>' + (m.de === meu ? 'Você' : esc(nome)) + ':</strong> ' + esc(m.texto) + '</p>';
+          }).join('') : '<p class="suave">Nenhuma mensagem ainda.</p>';
+          lista.dataset.ultima = ultima;
+          lista.scrollTop = lista.scrollHeight;
+        }
+      } catch (e) { erro.textContent = e.message; }
+      finally { ocupado = false; }
+    }
+    painel.querySelector('form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var texto = campo.value.trim();
+      if (!texto || enviar.disabled) return;
+      enviar.disabled = true;
+      try {
+        await C.privado.enviar(meu, id, texto);
+        campo.value = '';
+        erro.textContent = '';
+        atualizar();
+      } catch (err) { erro.textContent = err.message; }
+      finally { enviar.disabled = false; }
+    });
+    painel.querySelector('[type="button"]').onclick = function () { painel.close(); };
+    painel.addEventListener('close', function () { clearInterval(timer); painel.remove(); });
+    document.body.appendChild(painel);
+    painel.showModal();
+    var timer = setInterval(atualizar, 4000);
+    atualizar();
   }
 
   async function acaoAmigo(fn, msg) {
@@ -1950,10 +2027,10 @@
       return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzidos e sem drops: área abaixo do seu nível)</span>' : '') + '.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
-        + (r.drop ? '<p>Drop: <strong class="raridade-' + corItem(r.drop) + '">' + R.nomeItem(r.drop) + ' (' + nomeRaridadeItem(r.drop) + ')</strong></p>' : '')
-        + (r.dropArmadura ? '<p>Drop: <strong class="raridade-' + corItem(r.dropArmadura) + '">' + R.nomeItem(r.dropArmadura) + ' (' + nomeRaridadeItem(r.dropArmadura) + ')</strong></p>' : '')
+        + (r.drop ? '<p>Drop: ' + dropHtml(r.drop, false) + '</p>' : '')
+        + (r.dropArmadura ? '<p>Drop: ' + dropHtml(r.dropArmadura, false) + '</p>' : '')
         + (r.mochilaCheia ? '<p class="menos">Mochila cheia! Um item caiu e se perdeu. Venda itens na aba Personagem.</p>' : '')
-        + (r.pergaminho ? '<p>Drop: <strong>' + (r.qtdPergaminhos > 1 ? r.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item <span class="raridade-' + r.pergaminho + '">' + ITEM_RARIDADE[r.pergaminho] + '</span></strong></p>' : '')
+        + (r.pergaminho ? '<p>Drop: ' + dropHtml(dropPergaminho(r), false) + '</p>' : '')
         + '<div class="botoes">' + cacarDeNovo
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
@@ -2015,6 +2092,13 @@
   }
 
   function telaJogo() {
+    guardarJogo();
+    var grupo = grupoDaAba(estado.aba);
+    if (grupo) estado.subAba[grupo.id] = estado.aba;
+    var atual = history.state;
+    if (atual && atual.eldrin === estado.personagem.id && atual.aba !== estado.aba) {
+      history.pushState({ eldrin: estado.personagem.id, aba: estado.aba }, '');
+    }
     var painel;
     if (estado.lutaArena) {
       painel = lutaArenaHtml();
@@ -2038,7 +2122,7 @@
     app.innerHTML = topo(trocar) + recursosHtml() + '<div class="conteudo"><div class="jogo">' + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
-      + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking') && !estado.lutaArena ? desafioHtml() : '');
+      + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
@@ -2303,14 +2387,31 @@
     if (!it.consumivel) return R.nomeItem(it);
     return (it.qtd > 1 ? it.qtd + 'x ' : '') + R.nomeConsumivel(it);
   }
+  function dropPergaminho(resultado) {
+    return { tipo: 'pergaminho', classe: null, raridade: resultado.pergaminho, encanto: 0, qtd: resultado.qtdPergaminhos || 1, consumivel: true };
+  }
+
+  function detalhesDrop(it) {
+    if (it.consumivel) return 'Quantidade: ' + (it.qtd || 1) + ' · Usado na Forja para encantar itens.';
+    return [nomeRaridadeItem(it), descricaoItem(it)].concat(it.tipo === 'arma' ? extrasArma(it) : []).join(' · ');
+  }
+
+  function dropHtml(it, icone) {
+    return '<span class="drop-cacada"><button type="button" class="' + (icone ? 'icone-pequeno borda-' : 'drop-nome raridade-')
+      + corItem(it) + '" aria-expanded="false" aria-label="' + esc(nomeDrop(it)) + '">'
+      + (icone ? F.icone(it) : esc(nomeDrop(it)))
+      + (icone && it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
+      + '<span class="drop-ficha"><strong>' + esc(nomeDrop(it)) + '</strong><br>' + esc(detalhesDrop(it)) + '</span></span>';
+  }
+
   // Chamado pelo encerrar(): soma no resumo e segue para o próximo monstro (ou para).
   function fimLutaCacada(res, b, primeiraVez) {
     var c = estado.cacada, p = estado.personagem;
     var itens = [res.drop, res.dropArmadura].filter(Boolean);
     // Pergaminho também é item: entra na lista de drops junto com os equipáveis (chefe pode dar vários de uma vez).
-    if (res.pergaminho) itens.push({ tipo: 'pergaminho', classe: null, raridade: res.pergaminho, encanto: 0, qtd: res.qtdPergaminhos || 1, consumivel: true });
+    if (res.pergaminho) itens.push(dropPergaminho(res));
     if (res.resultado === 'vitoria') { c.mortos++; c.exp += res.exp; c.ouro += res.ouro; c.itens = itens.concat(c.itens).slice(0, 30); }
-    c.historico.unshift({ monstro: b.monstroId, resultado: res.resultado, exp: res.exp, ouro: res.ouro, itens: itens.map(nomeDrop) });
+    c.historico.unshift({ monstro: b.monstroId, resultado: res.resultado, exp: res.exp, ouro: res.ouro, itens: itens });
     c.historico = c.historico.slice(0, D.CACADA.historico);
     estado.ultimaBatalha = b;
     estado.batalha = null;
@@ -2382,13 +2483,12 @@
         return '<div class="cacada-num"><small>' + x[0] + ' ' + x[1] + '</small><strong>' + x[2] + '</strong></div>';
       }).join('') + '</div>';
     var itens = c.itens.length ? '<div class="cacada-itens">' + c.itens.map(function (it) {
-      return '<div class="icone-pequeno borda-' + (it.consumivel ? it.raridade : corItem(it)) + '" title="' + esc(nomeDrop(it)) + '">' + F.icone(it)
-        + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</div>';
+      return dropHtml(it, true);
     }).join('') + '</div>' : '';
     var historico = '<div class="cacada-historico"><h4>Últimos combates</h4>' + (c.historico.length ? c.historico.map(function (h) {
       var nome = D.monstros[h.monstro].nome;
       if (h.resultado === 'vitoria') return '<p class="mais">✔ ' + nome + ' <span class="suave">+' + h.exp + ' exp · +' + h.ouro + ' ouro'
-        + (h.itens.length ? ' · ' + esc(h.itens.join(', ')) : '') + '</span></p>';
+        + (h.itens.length ? ' · ' + h.itens.map(function (it) { return dropHtml(it, false); }).join(', ') : '') + '</span></p>';
       if (h.resultado === 'derrota') return '<p class="menos">✖ ' + nome + ' <span class="suave">derrota</span></p>';
       return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
     }).join('') : '<p class="suave pequeno">Nenhum combate ainda.</p>') + '</div>';
@@ -2397,6 +2497,67 @@
       + (emLuta || estado.registro.length ? '<div class="registro" id="registro">' + estado.registro.join('') + '</div>' : '')
       + opcoes + resumo + itens + historico;
   }
+
+  function iniciarHistoricoJogo() {
+    var id = estado.personagem.id;
+    var atual = history.state;
+    if (atual && atual.eldrin === id && !atual.base) return;
+    history.replaceState({ eldrin: id, base: true }, '');
+    history.pushState({ eldrin: id, aba: estado.aba }, '');
+  }
+
+  function abrirAba(aba) {
+    estado.aba = aba;
+    estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
+    estado.zoom = estado.desafio = null;
+    estado.vendaLote = null;
+    if (aba !== 'social') estado.amigoAberto = estado.removerAmigo = null;
+    telaJogo();
+    if (aba === 'social') carregarSocial();
+    if (aba === 'masmorra') carregarGrupo();
+    if (aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
+    if (aba === 'alianca') carregarAlianca();
+  }
+
+  function podeVoltarAba() {
+    return !estado.batalha && !estado.luta && !estado.lutaArena && !(estado.cacada && estado.cacada.ativa);
+  }
+
+  window.addEventListener('popstate', function (e) {
+    if (!estado.personagem) return;
+    var destino = e.state, id = estado.personagem.id;
+    if (!destino || destino.eldrin !== id || destino.base || !podeVoltarAba()) {
+      history.pushState({ eldrin: id, aba: estado.aba }, '');
+      return;
+    }
+    if (grupoDaAba(destino.aba) || (destino.aba === 'admin' && ehAdmin())) {
+      estado.cacada = estado.resultado = estado.chefeAviso = null;
+      abrirAba(destino.aba);
+    }
+  });
+
+  var inicioGesto;
+  app.addEventListener('touchstart', function (e) {
+    inicioGesto = null;
+    if (!estado.personagem || !podeVoltarAba() || e.touches.length !== 1
+      || e.target.closest('input, textarea, select, .zoom-fundo')) return;
+    inicioGesto = e.touches[0];
+  }, { passive: true });
+  app.addEventListener('touchcancel', function () { inicioGesto = null; });
+  app.addEventListener('touchend', function (e) {
+    if (!inicioGesto || !estado.personagem || !podeVoltarAba()) { inicioGesto = null; return; }
+    var fim = e.changedTouches[0], dx = fim.clientX - inicioGesto.clientX, dy = fim.clientY - inicioGesto.clientY;
+    inicioGesto = null;
+    if (dx > 65 && dx > 2 * Math.abs(dy) && history.state && history.state.eldrin === estado.personagem.id) history.back();
+  }, { passive: true });
+
+  app.addEventListener('click', function (e) {
+    var alvo = e.target.closest('.drop-cacada > button');
+    app.querySelectorAll('.drop-cacada > button[aria-expanded="true"]').forEach(function (botao) {
+      if (botao !== alvo) botao.setAttribute('aria-expanded', 'false');
+    });
+    if (alvo) alvo.setAttribute('aria-expanded', alvo.getAttribute('aria-expanded') !== 'true');
+  });
 
   // ---------------- Eventos ----------------
 
@@ -2508,12 +2669,14 @@
         encerrarAtividade();
         C.sair();
         estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
+        guardarJogo();
         telaAuth('entrar');
         break;
       case 'voltar-personagens':
         encerrarAtividade();
         estado.conta = C.contaAtual();
         estado.personagem = null;
+        guardarJogo();
         estado.resultado = null;
         telaPersonagens();
         break;
@@ -2563,18 +2726,7 @@
         break;
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
-      case 'aba':
-        estado.aba = el.dataset.aba;
-        if (grupoDaAba(estado.aba)) estado.subAba[grupoDaAba(estado.aba).id] = estado.aba;
-        estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
-        estado.vendaLote = null;
-        telaJogo();
-        // Social e Masmorra buscam o estado novo ao abrir (pedidos e convites recentes).
-        if (estado.aba === 'social') carregarSocial();
-        if (estado.aba === 'masmorra') carregarGrupo();
-        if (estado.aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
-        if (estado.aba === 'alianca') carregarAlianca();
-        break;
+      case 'aba': abrirAba(el.dataset.aba); break;
       case 'item': {
         // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
         var alvoId = el.dataset.id;
@@ -2785,6 +2937,16 @@
       case 'admin-masmorra-entradas':
         acaoGrupo(function () { return C.grupo.adminRecarregar(p.id); }, 'Entradas da masmorra recarregadas.');
         break;
+      case 'amigo-abrir':
+        estado.amigoAberto = estado.amigoAberto === Number(el.dataset.pedido) ? null : Number(el.dataset.pedido);
+        estado.removerAmigo = null;
+        telaJogo();
+        break;
+      case 'amigo-perfil': abrirDesafio(el.dataset.id, 'perfil'); break;
+      case 'amigo-alianca':
+        acaoAlianca(C.alianca.convidar(p.id, el.dataset.nome), 'Convite enviado para ' + el.dataset.nome + '.');
+        break;
+      case 'amigo-privado': abrirPrivado(el.dataset.id, el.dataset.nome); break;
       case 'amigo-aceitar':
         acaoAmigo(function () { return C.amigos.responder(p.id, Number(el.dataset.pedido), true); }, 'Pedido aceito!');
         break;
@@ -3573,7 +3735,7 @@
   function abrirDesafio(id, tipo) {
     var p = estado.personagem;
     estado.desafio = { id: id, perfil: null, erro: null, tipo: tipo || 'escada' };
-    if (!estado.arena) carregarArena();   // entradas e a minha posição (para mostrar a recompensa)
+    if (tipo !== 'perfil' && !estado.arena) carregarArena();   // entradas e a minha posição (para mostrar a recompensa)
     telaJogo();
     C.arena.perfil(p.id, id).then(function (pf) {
       if (!estado.desafio || estado.desafio.id !== id) return;
@@ -3652,8 +3814,10 @@
         + '<div class="veredito ' + veredito[0] + '">' + veredito[1] + '</div></div></div>'
         + '<h3 class="subtitulo">Equipamentos</h3><div class="desafio-equip">' + equip + '</div>'
         + tabela
-        + recompensaDesafioHtml(pf, d.tipo, ouro, saque);
+        + (d.tipo === 'perfil' ? '' : recompensaDesafioHtml(pf, d.tipo, ouro, saque));
     }
+    if (d.tipo === 'perfil') return '<div class="zoom-fundo" data-acao="desafio-cancelar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Perfil do amigo">'
+      + '<button class="zoom-x" data-acao="desafio-cancelar" aria-label="Fechar">✕</button><div class="zoom-rotulo">Perfil do amigo</div>' + corpo + '</div></div>';
     var entradas = estado.arena && estado.arena.entradas;
     var semEntrada = entradas && entradas.valor <= 0;
     return '<div class="zoom-fundo" data-acao="desafio-cancelar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Perfil do adversário">'
@@ -4662,6 +4826,6 @@
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
   C.iniciar().then(function (conta) {
     estado.conta = conta;
-    if (conta) depoisDeEntrar(); else telaAuth('entrar');
+    if (conta) { if (!retomarJogo()) depoisDeEntrar(); } else telaAuth('entrar');
   });
 })();

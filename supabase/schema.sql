@@ -2266,3 +2266,55 @@ revoke execute on function public.leilao_estado(text), public.leilao_lance(text,
 grant execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) to authenticated;
 
 notify pgrst, 'reload schema';
+
+-- Conversas privadas entre personagens com amizade aceita.
+create table if not exists public.mensagens_privadas (
+  id bigint generated always as identity primary key,
+  de text not null references public.personagens (id) on delete cascade,
+  para text not null references public.personagens (id) on delete cascade,
+  texto text not null check (char_length(texto) between 1 and 300),
+  criado_em timestamptz not null default now()
+);
+create index if not exists mensagens_privadas_conversa on public.mensagens_privadas (de, para, id desc);
+alter table public.mensagens_privadas enable row level security;
+revoke all on public.mensagens_privadas from public, anon, authenticated;
+
+create or replace function public.conferir_conversa_privada(meu text, alvo text) returns void
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if not exists (
+    select 1 from public.amizades a where a.status = 'aceita'
+    and ((a.de = meu and a.para = alvo) or (a.de = alvo and a.para = meu))
+  ) then raise exception 'A conversa privada está disponível entre amigos.'; end if;
+end $$;
+
+create or replace function public.privado_listar(meu text, alvo text)
+returns table (id bigint, de text, texto text)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.conferir_conversa_privada(meu, alvo);
+  return query select m.id, m.de, m.texto from (
+    select mp.id, mp.de, mp.texto from public.mensagens_privadas mp
+    where (mp.de = meu and mp.para = alvo) or (mp.de = alvo and mp.para = meu)
+    order by mp.id desc limit 100
+  ) m order by m.id;
+end $$;
+
+create or replace function public.privado_enviar(meu text, alvo text, mensagem text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_conversa_privada(meu, alvo);
+  mensagem := btrim(mensagem);
+  if mensagem is null or char_length(mensagem) not between 1 and 300 then
+    raise exception 'Escreva uma mensagem de 1 a 300 caracteres.';
+  end if;
+  perform pg_advisory_xact_lock(hashtextextended('privado:' || meu, 0));
+  if exists (select 1 from public.mensagens_privadas m where m.de = meu and m.criado_em > now() - interval '1 second') then
+    raise exception 'Espere um segundo antes de enviar outra mensagem.';
+  end if;
+  insert into public.mensagens_privadas (de, para, texto) values (meu, alvo, mensagem);
+end $$;
+
+revoke execute on function public.conferir_conversa_privada(text, text), public.privado_listar(text, text), public.privado_enviar(text, text, text) from public, anon;
+grant execute on function public.privado_listar(text, text), public.privado_enviar(text, text, text) to authenticated;

@@ -735,7 +735,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .rec-usar:disabled { opacity: .35; cursor: not-allowed; filter: none; }
 
 /* Abas em 5 grupos */
-.abas-jogo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin: -.2rem -.2rem .9rem; padding: .25rem;
+.abas-jogo { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; margin: -.2rem -.2rem .9rem; padding: .25rem;
   border: 1px solid rgba(201, 162, 74, .28); border-radius: 12px; background: linear-gradient(180deg, rgba(8, 11, 16, .65), rgba(20, 26, 36, .65));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), inset 0 -10px 20px rgba(0, 0, 0, .25); }
 .abas-jogo button { position: relative; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .7em .4em; border: 0; border-radius: 9px;
@@ -1341,3 +1341,20 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .config-interface { display: flex; gap: .4rem; }
 .config-interface .btn { flex: 1; }
 .config-interface [aria-checked="true"] { outline: 2px solid var(--ouro-claro); outline-offset: 1px; }
+
+html { overscroll-behavior-x: none; }
+.amigo-toggle { display: grid; width: 100%; gap: .2rem; text-align: left; cursor: pointer; color: inherit; font: inherit; background: none; border: 0; padding: .35rem 0; }
+.amigo-toggle[aria-expanded="true"] strong { color: var(--ouro-claro); }
+.conversa-privada { color: var(--texto); background: var(--painel-2); width: min(36rem, 94vw); }
+.conversa-privada::backdrop { background: rgba(0, 0, 0, .72); }
+.conversa-mensagens { max-height: min(45dvh, 20rem); overflow: auto; overflow-wrap: anywhere; }
+.conversa-privada input { min-width: 0; }
+.drop-cacada { display: inline-block; max-width: 100%; }
+.drop-cacada button { cursor: pointer; }
+.drop-nome { background: transparent; border: 0; padding: 0; font: inherit; text-decoration: underline; }
+.drop-ficha { display: none; padding: .4rem .6rem; border: 1px solid var(--borda); background: var(--painel-2); color: var(--texto); font-size: .85rem; }
+.drop-cacada > [aria-expanded="true"] + .drop-ficha,
+.drop-cacada > button:focus-visible + .drop-ficha { display: block; }
+@media (hover: hover) {
+  .drop-cacada:hover .drop-ficha { display: block; }
+}

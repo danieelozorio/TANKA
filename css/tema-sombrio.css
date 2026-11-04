@@ -4,15 +4,6 @@
    letras, brilho). Para voltar ao visual antigo, tire este arquivo do index.html.
    ===================================================================== */
 
-/* Números retos: as letras antigas (IM Fell) têm algarismos "tortos" (o 1 parece i).
-   Esta fonte entra só nos algarismos, sozinha, em qualquer texto do jogo. */
-@font-face {
-  font-family: 'Numeros Eldrin';
-  src: url('../assets/fontes/ebgaramond.woff2') format('woff2');
-  font-weight: 400 800; font-display: swap;
-  unicode-range: U+0025, U+0030-0039;
-}
-
 :root {
   --fundo: #070605;
   --painel: rgba(22, 20, 18, .94);
@@ -23,8 +14,8 @@
   --texto: #d8ccb6;
   --suave: #958a78;
   --cor-ouro: #d8b46a;
-  --titulo: 'Numeros Eldrin', 'IM Fell English SC', Georgia, serif;
-  --corpo: 'Numeros Eldrin', 'IM Fell English', Georgia, serif;
+  --titulo: 'Cinzel', Georgia, serif;
+  --corpo: 'Inter', system-ui, sans-serif;
   --enfeite: 'Cinzel Decorative', 'IM Fell English SC', Georgia, serif;
   --pedra: url('../assets/interface/rocha.webp');
   --brasa: #c8501f;
@@ -64,7 +55,7 @@ body::after {
 .topo, .conteudo, .rodape { position: relative; z-index: 1; }
 .barra-recursos { z-index: 8; }
 
-h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; letter-spacing: .02em; text-shadow: 0 2px 4px #000; }
+h1, h2, h3 { font-family: var(--titulo); font-weight: 500; color: #e0d3b8; letter-spacing: .02em; text-shadow: 0 2px 4px #000; }
 
 /* ---------- Topo ---------- */
 .topo { background: linear-gradient(#0d0b0a, rgba(8, 7, 6, .92)); border-bottom: 1px solid #000; box-shadow: 0 1px 0 #3b3128, 0 4px 14px rgba(0, 0, 0, .8); }
@@ -75,7 +66,7 @@ h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; lette
 
 /* ---------- Botões: ferro escuro com fio dourado ---------- */
 .btn { border: 1px solid #000; border-radius: 4px; background: linear-gradient(#211c18, #0f0d0b); color: #d9cbb0;
-  box-shadow: 0 0 0 1px #4a3f33, inset 0 1px 0 rgba(255, 255, 255, .05), 0 3px 8px rgba(0, 0, 0, .6); font-family: var(--titulo); font-size: 1rem; }
+  box-shadow: 0 0 0 1px #4a3f33, inset 0 1px 0 rgba(255, 255, 255, .05), 0 3px 8px rgba(0, 0, 0, .6); font-family: var(--corpo); font-size: 1rem; }
 .btn:hover { filter: brightness(1.2); }
 .btn.secundario { background: linear-gradient(#1a1613, #0b0a09); color: #b8ab95; }
 .btn.perigo { background: linear-gradient(#5a160c, #250805); box-shadow: 0 0 0 1px #7a2a18, 0 3px 8px rgba(0, 0, 0, .6); color: #f2d6c8; }
@@ -108,7 +99,7 @@ h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; lette
 
 /* ---------- Abas grandes (Herói, Aventura, ...) com brasa na escolhida ---------- */
 .abas-jogo { border: 1px solid #000; border-radius: 4px; background: linear-gradient(#17130f, #0a0807); box-shadow: 0 0 0 1px #3d3832, inset 0 0 18px rgba(0, 0, 0, .7); }
-.abas-jogo button { font-family: var(--titulo); font-size: 1.05rem; color: #948875; border-radius: 2px; }
+.abas-jogo button { font-family: var(--corpo); font-size: 1.05rem; color: #948875; border-radius: 2px; }
 .abas-jogo button + button::before { background: linear-gradient(transparent, rgba(168, 138, 85, .35), transparent); }
 .abas-jogo button:hover { color: #e0d3b8; background: rgba(168, 138, 85, .06); }
 .abas-jogo button.ativa { color: #f6e6c6; text-shadow: 0 0 10px rgba(255, 130, 50, .65), 0 2px 3px #000;
@@ -118,7 +109,7 @@ h1, h2, h3 { font-family: var(--titulo); font-weight: 400; color: #e0d3b8; lette
 
 /* ---------- Sub-abas (Personagem, Encantar, Habilidades): brasa vermelha ---------- */
 .sub-abas { border: 1px solid #000; border-radius: 4px; background: rgba(10, 9, 8, .75); box-shadow: 0 0 0 1px #3d3832; }
-.sub-abas button { font-family: var(--titulo); font-size: 1rem; color: #948875; border-radius: 2px; }
+.sub-abas button { font-family: var(--corpo); font-size: 1rem; color: #948875; border-radius: 2px; }
 .sub-abas button.ativa { color: #fff0d4; text-shadow: 0 0 8px rgba(255, 140, 60, .7);
   background: radial-gradient(ellipse at 50% 130%, #d45a22 0%, #7a2410 45%, #2a120a 100%); box-shadow: inset 0 0 0 1px #000, 0 0 0 1px #8a5a35; }
 .mochila-abas button.ativa { color: #fff0d4; border-color: #7a3a22; }
@@ -256,5 +247,5 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   font-size: .75rem;
   text-align: center;
 }
-.cacada-habilidade small { color: #d3ba91; }
+.cacada-habilidade small { color: #d3ba91; font-variant-numeric: tabular-nums; }
 .cacada-pocao { align-self: center; }
