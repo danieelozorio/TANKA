@@ -229,4 +229,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: `guiaHtml()` no topo do painel (cartão com o Aldric, Ir / Pular), `conferirGuia()` no começo de `telaJogo()`
   (aviso a cada passo), a aba do passo pisca (`.guia-alvo`, também o menu do Zealot). Ganchos: `encerrar()`, `abrirAba()`
   e o fim da luta na Arena.
+- Menu (Zealot): botão maior com escudo + "MENU" (`.menu-rotulo`, borda dourada e brilho); abas de cima (sub-abas) com
+  ícones (`ICONES_SUB` em app.js, `.sub-ico`), nas duas interfaces.
 

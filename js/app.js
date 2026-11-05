@@ -513,6 +513,18 @@
 
   // Ícones (traço dourado) da barra de recursos e das abas.
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
+  // Ícones das abas de cima (sub-abas de cada grupo).
+  var ICONES_SUB = {
+    personagem: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    encantar: svg('<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M18 6l-2.5 2.5m-7 7L6 18"/>'),
+    habilidades: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'),
+    cacar: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>'),
+    masmorra: svg('<path d="M4 21V10a8 8 0 0 1 16 0v11Z"/><path d="M8 21v-7m4 7v-8m4 8v-7M4 14h16"/>'),
+    historia: svg('<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3Z"/><path d="M5 17a3 3 0 0 1 3-3h11M9 8h6"/>'),
+    social: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0m1-5a5 5 0 0 1 5 5"/>'),
+    ranking: svg('<path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4M12 13v4m-4 4h8m-6-4h4"/>'),
+    alianca: svg('<path d="M6 3v18M6 4h11l-3 4 3 4H6"/>'),
+  };
   var ICONES = {
     menu: svg('<path d="M12 2 21 6v5c0 5-3.5 8.5-9 11-5.5-2.5-9-6-9-11V6Z" fill="#302014"/><path d="M7.5 8h9m-9 4h9m-7 4h5"/><path d="m12 4 1 1-1 1-1-1Z" fill="currentColor" stroke="none"/>'),
     trocarPersonagem: svg('<circle cx="9" cy="7" r="3"/><path d="M3 19v-2a6 6 0 0 1 9-5m2 3h7m-2-2 2 2-2 2m1 3h-7m2-2-2 2 2 2"/>'),
@@ -602,7 +614,7 @@
   function subAbasHtml() {
     var atual = grupoDaAba(estado.aba);
     return atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
-      return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + (a === abaDoGuia() && estado.aba !== a ? ' guia-alvo' : '') + '">' + NOME_ABA[a] + seloDaAba(a) + '</button>';
+      return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + (a === abaDoGuia() && estado.aba !== a ? ' guia-alvo' : '') + '">' + (ICONES_SUB[a] ? '<span class="sub-ico">' + ICONES_SUB[a] + '</span>' : '') + NOME_ABA[a] + seloDaAba(a) + '</button>';
     }).join('') + '</nav>' : '';
   }
   // Atualiza só os selos das abas (pedidos de amizade, convites, ataques na Arena).
@@ -2146,7 +2158,7 @@
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
       menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
-        + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '</summary>'
+        + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '<span class="menu-rotulo">Menu</span></summary>'
         + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
         + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';

@@ -1413,3 +1413,8 @@ html { overscroll-behavior-x: none; }
 @keyframes guiaPisca { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 180, 80, 0); } 50% { box-shadow: 0 0 0 3px rgba(240, 180, 80, .75), 0 0 14px rgba(240, 160, 60, .6); } }
 @media (max-width: 520px) { .guia-cartao { grid-template-columns: 40px 1fr; } .guia-retrato { width: 40px; height: 40px; } .guia-botoes { grid-column: 1 / -1; } }
 @media (prefers-reduced-motion: reduce) { .guia-alvo { animation: none; outline: 2px solid #f0b450; } }
+
+/* Ícones das abas de cima (sub-abas) */
+.sub-abas button { display: inline-flex; align-items: center; gap: .35em; }
+.sub-ico { display: inline-grid; flex: none; width: 1.05em; height: 1.05em; }
+.sub-ico svg { width: 100%; height: 100%; }

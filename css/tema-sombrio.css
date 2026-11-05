@@ -399,3 +399,16 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   [data-cacada-compacta] .cacada-num { padding: .2rem .1rem; }
   [data-cacada-compacta] .cacada-num small { font-size: .65rem; }
 }
+
+/* Botão do menu (Zealot) maior e mais visível: escudo + "Menu", borda dourada e brilho de brasa. */
+.menu-jogo > summary {
+  display: inline-flex; align-items: center; gap: .45rem; width: auto; height: 2.7rem; padding: 0 1rem 0 .7rem;
+  border: 1px solid #c89a5a; border-radius: 6px; color: #f3d9a6;
+  background: radial-gradient(ellipse at 50% 130%, rgba(210, 90, 35, .55), transparent 70%), linear-gradient(#2c1f15, #140e0a);
+  box-shadow: inset 0 0 0 2px #17100a, 0 0 .8rem rgba(210, 110, 50, .45);
+}
+.menu-jogo > summary svg { width: 1.7rem; height: 1.7rem; flex: none; }
+.menu-rotulo { font-family: var(--titulo); font-size: 1.05rem; letter-spacing: .06em; text-transform: uppercase; }
+.menu-jogo > summary:hover { filter: brightness(1.15); }
+.menu-jogo[open] > summary { color: #ffe0a1; background: linear-gradient(#5a2c16, #2a140b); }
+@media (max-width: 380px) { .menu-jogo > summary { padding: 0 .7rem 0 .5rem; } .menu-rotulo { font-size: .9rem; } }
