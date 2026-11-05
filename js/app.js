@@ -2323,7 +2323,7 @@
     var alvos = area ? selecaoArea(area).slice() : [];
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
     if (R.atualizarTempo(p, C.agora())) salvar();
-    if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); return; }
+    if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
     if (!R.vidaParaCacar(p)) { avisar('Vida baixa demais: é preciso ter mais de ' + D.CACADA.vidaMinima + '% da vida para caçar.'); return; }
     pararTimersCacada();
     estado.resultado = null;
@@ -3266,7 +3266,7 @@
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
         if (R.atualizarTempo(p, C.agora())) salvar();
         if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
-        if (p.acampado) { avisar('Você está acampado. Levante acampamento para caçar.'); break; }
+        if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
           clearTimeout(estado.timer);
