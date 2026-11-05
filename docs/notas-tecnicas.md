@@ -211,7 +211,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `premioHistoriaTexto`, `marcarHistoriaVista`. Progresso em `p.historia = { cap, prog, visto, lidos }`; só conta no capítulo
   atual. Objetivos: abate (criaturas comuns da região), chefe (o da região, na caçada), masmorra (a da região).
 - Ganchos em app.js: `encerrar()` (vitória na caçada) e `assistirLuta()` (masmorra vencida, uma vez por run).
-- Prêmios: ouro, 40% da exp do level, pergaminhos (c3, c5, c6), arma épica do level (c4; espera mochila com espaço),
+- Objetivos (pedido do Daniel): criaturas crescendo 50/60/70/80/85/90/100, chefe 3x, masmorra 2x.
+- Prêmios: ouro, 10% da exp do level, pergaminhos (c3, c5, c6), arma épica do level (c4; espera mochila com espaço),
   título "Guardião/Guardiã dos Selos" (`p.titulo`, aparece na ficha) e skin de dado `selos` (c7; `historia: true` em
   SKINS_DADO, não se compra; cores em dado3d.js e `.d20g.skin-selos`).
 - Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael — 320x320, do Gemini). Sem a imagem, aparece a

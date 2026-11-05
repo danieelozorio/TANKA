@@ -3699,9 +3699,10 @@
   function nomeArea(id) { var a = D.areas.filter(function (x) { return x.id === id; })[0]; return a ? a.nome : id; }
   function textoObjetivo(o) {
     if (o.tipo === 'abate') return 'Vença ' + o.qtd + ' criaturas em ' + nomeArea(o.area);
-    if (o.tipo === 'chefe') return 'Derrote ' + D.monstros[o.monstro].nome + ' <span class="suave pequeno">(chefe da região, aparece na caçada)</span>';
+    var vezes = o.qtd > 1 ? ' ' + o.qtd + ' vezes' : '';
+    if (o.tipo === 'chefe') return 'Derrote ' + D.monstros[o.monstro].nome + vezes + ' <span class="suave pequeno">(chefe da região, aparece na caçada)</span>';
     var m = D.masmorras.filter(function (x) { return x.id === o.masmorra; })[0];
-    return 'Vença a masmorra ' + (m ? m.nome + ' <span class="suave pequeno">(level ' + m.nivelMin + ')</span>' : o.masmorra);
+    return 'Vença a masmorra ' + (m ? m.nome + vezes + ' <span class="suave pequeno">(level ' + m.nivelMin + ')</span>' : o.masmorra + vezes);
   }
   // Uma fala: retrato (personagem da história, monstro ou o livro do narrador), nome e texto.
   function falaHtml(f) {
