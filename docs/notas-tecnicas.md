@@ -214,6 +214,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Prêmios: ouro, 40% da exp do level, pergaminhos (c3, c5, c6), arma épica do level (c4; espera mochila com espaço),
   título "Guardião/Guardiã dos Selos" (`p.titulo`, aparece na ficha) e skin de dado `selos` (c7; `historia: true` em
   SKINS_DADO, não se compra; cores em dado3d.js e `.d20g.skin-selos`).
-- Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael; prompts dados ao Daniel). Sem a imagem, aparece a
+- Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael — 320x320, do Gemini). Sem a imagem, aparece a
   inicial; monstros usam o retrato do monstro; narrador = 📜.
 
