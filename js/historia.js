@@ -4,8 +4,8 @@
 //
 // Falas: { quem, texto }. quem = 'narrador', um personagem de PERSONAGENS (retrato em assets/historia/<id>.webp)
 // ou o id de um monstro (usa o retrato do monstro).
-// Objetivos: { tipo: 'abate', area, qtd } = vencer criaturas comuns da região (chefe não conta; 50 no cap. 1 até 100 no 7);
-//            { tipo: 'chefe', monstro, qtd }   = derrotar o chefe da região na caçada (3 vezes);
+// Objetivos: { tipo: 'abate', area, qtd } = vencer criaturas comuns da região (chefe não conta; 100, 200, 350, 700, 1100, 2000, 3000);
+//            { tipo: 'chefe', monstro, qtd }   = derrotar o chefe da região na caçada (3, 5, 9, 15, 25, 40, 70);
 //            { tipo: 'masmorra', masmorra, qtd } = vencer a masmorra (2 vezes, em grupo ou com mercenários).
 // Prêmio: ouro, expPct (% da exp do level atual), pergaminho {raridade, qtd}, item {tipo, raridade}, titulo, skin.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
@@ -29,7 +29,7 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'Acalme as feras e encontre Velgrath, a árvore mais antiga do reino. Se ela adoeceu, o primeiro selo corre perigo.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'floresta', qtd: 50 },
+        { tipo: 'abate', area: 'floresta', qtd: 100 },
         { tipo: 'chefe', monstro: 'velgrath', qtd: 3 },
         { tipo: 'masmorra', masmorra: 'toca', qtd: 2 },
       ],
@@ -48,8 +48,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'morgath', texto: 'Hihihi… mais um herói de botas limpas. Meu brejo vai gostar de você.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'pantano', qtd: 60 },
-        { tipo: 'chefe', monstro: 'morgath', qtd: 3 },
+        { tipo: 'abate', area: 'pantano', qtd: 200 },
+        { tipo: 'chefe', monstro: 'morgath', qtd: 5 },
         { tipo: 'masmorra', masmorra: 'ninho', qtd: 2 },
       ],
       fechamento: [
@@ -67,8 +67,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'O mago da corte, Varnok, guardava o mapa dos sete selos. Dizem que ele ainda guarda, mesmo depois de morto.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'ruinas', qtd: 70 },
-        { tipo: 'chefe', monstro: 'varnok', qtd: 3 },
+        { tipo: 'abate', area: 'ruinas', qtd: 350 },
+        { tipo: 'chefe', monstro: 'varnok', qtd: 9 },
         { tipo: 'masmorra', masmorra: 'catacumbas', qtd: 2 },
       ],
       fechamento: [
@@ -86,8 +86,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'Essa voz… não pode ser.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'torre', qtd: 80 },
-        { tipo: 'chefe', monstro: 'guardiao', qtd: 3 },
+        { tipo: 'abate', area: 'torre', qtd: 700 },
+        { tipo: 'chefe', monstro: 'guardiao', qtd: 15 },
         { tipo: 'masmorra', masmorra: 'biblioteca', qtd: 2 },
       ],
       fechamento: [
@@ -106,8 +106,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'Se Kael chegou até a tumba, o Faraó pode ter acordado. E um guardião acordado sem memória é a coisa mais perigosa do deserto.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'areias', qtd: 85 },
-        { tipo: 'chefe', monstro: 'farao', qtd: 3 },
+        { tipo: 'abate', area: 'areias', qtd: 1100 },
+        { tipo: 'chefe', monstro: 'farao', qtd: 25 },
         { tipo: 'masmorra', masmorra: 'tumba', qtd: 2 },
       ],
       fechamento: [
@@ -125,8 +125,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'Não lute para matar. Lute para tirar o espinho. Vhar\'kesh fez o pacto com os guardiões, mil anos atrás.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'vale', qtd: 90 },
-        { tipo: 'chefe', monstro: 'vharkesh', qtd: 3 },
+        { tipo: 'abate', area: 'vale', qtd: 2000 },
+        { tipo: 'chefe', monstro: 'vharkesh', qtd: 40 },
         { tipo: 'masmorra', masmorra: 'covil', qtd: 2 },
       ],
       fechamento: [
@@ -145,8 +145,8 @@ Tanka.dados.HISTORIA = {
         { quem: 'aldric', texto: 'Segure Ignaroth o quanto puder. Eu cuido do último selo. Não olhe para trás.' },
       ],
       objetivos: [
-        { tipo: 'abate', area: 'cume', qtd: 100 },
-        { tipo: 'chefe', monstro: 'ignaroth', qtd: 3 },
+        { tipo: 'abate', area: 'cume', qtd: 3000 },
+        { tipo: 'chefe', monstro: 'ignaroth', qtd: 70 },
         { tipo: 'masmorra', masmorra: 'coracao', qtd: 2 },
       ],
       fechamento: [
