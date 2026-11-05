@@ -194,4 +194,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Celular (Zealot, até 860px): a ficha fica limitada a `min(24dvh, 9rem)` com `.conteudo > .jogo > .ficha`; a regra
   `.jogo > :is(.ficha, section.caixa) { max-height: 100% }` é mais forte que `.jogo > .ficha` e fazia a ficha crescer e
   esmagar a tela da aba (Aventura/Mercado/Social ficavam com ~40px, parecia que o menu não funcionava).
+- Celular (Zealot, até 860px): a ficha some em todas as abas; só aparece em Herói > Personagem na vista "Atributos"
+  (`.jogo:not([data-personagem-vista]) > .ficha { display: none }`). Pedido do Daniel.
 

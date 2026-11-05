@@ -301,6 +301,10 @@ body:has(#menu-jogo) #config-painel { top: 3.25rem; bottom: auto; }
   .conteudo > .jogo > .ficha {
     max-height: min(24dvh, 9rem);
   }
+  /* Celular: a ficha do personagem só aparece em Herói > Personagem (vista "Atributos"); nas outras abas some
+     e a tela da aba fica com o espaço todo (a vida continua na barra de cima). */
+  .conteudo > .jogo:not([data-personagem-vista]) { grid-template-rows: minmax(0, 1fr); }
+  .conteudo > .jogo:not([data-personagem-vista]) > .ficha { display: none; }
 }
 
 @media (max-width: 700px) {
