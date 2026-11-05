@@ -191,4 +191,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Herói > Personagem: `abaPersonagem` agora embrulha em `.personagem-grade` > `.pg-equipamento` + `.pg-mochila`; a partir
   de 1450px a mochila vai para uma 3ª coluna (ficha | equipamento | mochila). Abaixo disso fica como antes.
 - Daniel pediu: sem barras coloridas nos atributos (só números, como já era) e sem caveiras.
+- Celular (Zealot, até 860px): a ficha fica limitada a `min(24dvh, 9rem)` com `.conteudo > .jogo > .ficha`; a regra
+  `.jogo > :is(.ficha, section.caixa) { max-height: 100% }` é mais forte que `.jogo > .ficha` e fazia a ficha crescer e
+  esmagar a tela da aba (Aventura/Mercado/Social ficavam com ~40px, parecia que o menu não funcionava).
 

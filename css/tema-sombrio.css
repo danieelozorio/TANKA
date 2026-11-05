@@ -297,7 +297,8 @@ body:has(#menu-jogo) #config-painel { top: 3.25rem; bottom: auto; }
     order: -1;
   }
 
-  .jogo > .ficha {
+  /* mais forte que ".jogo > :is(.ficha, section.caixa)" lá em cima; senão a ficha cresce e esmaga a tela da aba */
+  .conteudo > .jogo > .ficha {
     max-height: min(24dvh, 9rem);
   }
 }
