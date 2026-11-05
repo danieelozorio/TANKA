@@ -96,7 +96,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`R.danoComDefesa`, `R.cortePct`), na caçada, masmorra e Arena (`arena_vez`). Para valer o mesmo de antes, a defesa e a defesa
   mágica de todos os itens (inclusive os já salvos, em `R.bonusItem`), a da RES (10 = 3) e o bônus de conjunto (+15) valem x3
   (`DEFESA.fator`); servidor igual (tanka_status). Poder e força dos itens compensam o x3 (`poder`, `PESO_BONUS`).
-- Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10% + pergaminho 5%;
+- Drops da caçada iguais em todas as áreas (`DROPS_CACADA`): 1º monstro 5%/5%, 2º 8%/8%, 3º 10%/10%; pergaminho
+  2% / 4% / 10% (1º/2º/3º, nov/2026; antes só 5% no 3º);
   qualidade 70/22/7/1 (Sorte só aumenta a chance). Chefes não mudaram.
 - Pergaminho de encantamento fora do Mercado; masmorra: 50% por herói na vitória (servidor: `sortear_raridade_drop`).
 - Penalidade de área baixa (`EXP_REDUZIDA`, `R.fatorExp`): conta os mapas liberados (pelo level) depois da área; até 1 à

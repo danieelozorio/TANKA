@@ -525,9 +525,10 @@ Tanka.dados = {
   // `qualidade`: raridade de tudo o que cair (arma, armadura e pergaminho), a Sorte não muda.
   DROPS_CACADA: {
     monstros: [
-      { arma: 5, armadura: 5 },
-      { arma: 8, armadura: 8 },
-      { arma: 10, armadura: 10, pergaminho: 5 },
+      // pergaminho (Henri, nov/2026): 2% no 1º monstro, 4% no 2º e 10% no 3º de cada área
+      { arma: 5, armadura: 5, pergaminho: 2 },
+      { arma: 8, armadura: 8, pergaminho: 4 },
+      { arma: 10, armadura: 10, pergaminho: 10 },
     ],
     qualidade: [
       { raridade: 'lendaria', chance: 1 },

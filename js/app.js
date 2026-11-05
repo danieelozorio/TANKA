@@ -1043,7 +1043,7 @@
   // ----- Consumíveis: pergaminhos (e, no futuro, cristais e outros), empilhados com a quantidade -----
   function itemConsumivel(c) { return { tipo: c.tipo, classe: null, raridade: c.raridade, encanto: 0 }; }
   function consumiveisHtml(lista) {
-    if (!lista.length) return '<p class="suave">Nenhum consumível. Pergaminhos de encantamento caem do 3º monstro de cada área, dos chefes, '
+    if (!lista.length) return '<p class="suave">Nenhum consumível. Pergaminhos de encantamento caem dos monstros da caçada (mais no 3º de cada área), dos chefes, '
       + 'das masmorras e vêm das missões. Cristais sobram quando um item quebra na Forja.</p>';
     var celulas = lista.map(function (c) {
       return '<button class="celula borda-' + c.raridade + (estado.consumivelFoco === c.id ? ' focado' : '') + '" data-acao="consumivel" data-id="' + c.id + '"'
@@ -1498,7 +1498,7 @@
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
-    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (3º monstro de cada área), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4.</p>'
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (todos os monstros; o 3º de cada área dá mais), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4.</p>'
       + '<div class="itens">' + lista + '</div>';
   }
 

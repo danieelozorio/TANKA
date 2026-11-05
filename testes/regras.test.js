@@ -180,11 +180,11 @@ teste('velocidade 20 vs 10: 2 ataques para 1', () => {
   assert.strictEqual(atores.filter((a) => a === 'monstro').length, 20);
 });
 
-teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de arma e de armadura; pergaminho só no 3º (5%)', () => {
+teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de arma e de armadura; pergaminho 2%, 4% e 10%', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.atributos.sor = 0;
   const N = 200000, taxa = (fn) => { let n = 0; for (let i = 0; i < N; i++) if (fn()) n++; return n / N * 100; };
-  const esperado = [[5, 5, 0], [8, 8, 0], [10, 10, 5]];
+  const esperado = [[5, 5, 2], [8, 8, 4], [10, 10, 10]];
   D.areas.forEach((area) => area.monstros.forEach((mm, i) => {
     const m = D.monstros[mm.id];
     assert.strictEqual(m.chanceArma, esperado[i][0], mm.id);
@@ -192,7 +192,7 @@ teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de 
     assert.strictEqual(m.pergaminho ? m.pergaminho.chance : 0, esperado[i][2], mm.id);
     assert.strictEqual(R.rolarDropItem(p, mm.id, rng), null, 'não existe mais "qualquer item"');
   }));
-  for (const [id, arma, perg] of [['lobo', 5, 0], ['aranha', 8, 0], ['urso', 10, 5], ['elemental', 10, 5]]) {
+  for (const [id, arma, perg] of [['lobo', 5, 2], ['aranha', 8, 4], ['urso', 10, 10], ['elemental', 10, 10]]) {
     const t = taxa(() => R.rolarDrop(p, id, rng));
     assert.ok(Math.abs(t - arma) < 0.3, id + ' arma ' + t);
     const ta = taxa(() => R.rolarDropArmadura(p, id, rng));
@@ -204,7 +204,7 @@ teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de 
   p.atributos.sor = 200;
   const comSorte = taxa(() => R.rolarDrop(p, 'lobo', rng));
   assert.ok(Math.abs(comSorte - 5) < 0.3, 'com sorte ' + comSorte);
-  assert.ok(Math.abs(taxa(() => R.rolarPergaminho(p, 'urso', rng)) - 5) < 0.3, 'pergaminho com sorte');
+  assert.ok(Math.abs(taxa(() => R.rolarPergaminho(p, 'urso', rng)) - 10) < 0.3, 'pergaminho com sorte');
 });
 
 teste('qualidade dos drops da caçada: 70% comum, 22% rara, 7% épica, 1% lendária (em qualquer área, a Sorte não muda)', () => {
@@ -428,7 +428,7 @@ teste('encantamento: sem pergaminho ou no +10 não tenta', () => {
   assert.strictEqual(R.encantar(p, 'x', fixo(0)), null);
 });
 
-teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
+teste('pergaminhos: preço por raridade e drop do urso (10%)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   p.ouro = 1050;
   assert.ok(R.comprarPergaminho(p, 'rara')); assert.strictEqual(p.ouro, 50);
@@ -440,7 +440,7 @@ teste('pergaminhos: preço por raridade e drop do urso (5%)', () => {
     const b = R.iniciarBatalha(p, 'urso', rng); b.fim = 'vitoria';
     if (R.concluirBatalha(p, b).pergaminho) n++;
   }
-  assert.ok(Math.abs(n / N * 100 - 5) < 0.4, 'taxa ' + n / N * 100);
+  assert.ok(Math.abs(n / N * 100 - 10) < 0.5, 'taxa ' + n / N * 100);
 });
 
 teste('admin: ouro, level, armas e pergaminhos', () => {
