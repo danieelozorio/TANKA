@@ -25,6 +25,8 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
   Nunca mexer no branch do Daniel.
 - Henri tem **autonomia total para publicar** o que quiser, sem precisar avisar nem pedir licença ao Daniel.
   O Claude do Henri mostra prints e publica quando o **Henri** disser "pode publicar".
+- Redes sociais (pedido do Henri): toda descrição com CTA tem que ser chamativa, criativa e desafiadora, e vir com
+  pelo menos 5 hashtags para viralizar.
 - Botão de publicar (pedido do Henri): ao terminar uma mudança pronta para publicar, perguntar com as opções clicáveis
   (AskUserQuestion) "Publicar agora" / "Ainda não". Clicar em "Publicar agora" vale como "pode publicar".
 - Para publicar (Henri): `git fetch origin && git merge origin/main` no branch dele (trazer o que o Daniel publicou),
