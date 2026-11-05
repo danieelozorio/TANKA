@@ -779,6 +779,8 @@ Tanka.dados = {
     { id: 'dourada', nome: 'Ouro Real', preco: 1500 },
     { id: 'obsidiana', nome: 'Obsidiana', preco: 3000 },
     { id: 'dragao', nome: 'Dragão Cinzento', preco: 5000 },
+    // Prêmio do último capítulo da História (não se compra).
+    { id: 'selos', nome: 'Sete Selos', preco: 0, historia: true },
   ],
 
   // Preenchido abaixo a partir das áreas.

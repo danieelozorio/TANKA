@@ -1468,6 +1468,83 @@ Tanka.regras = (function () {
     if (pr.pergaminhoArma) { var arma = armaEquipada(p); mudarPergaminho(p, arma ? arma.raridade : 'comum', pr.pergaminhoArma); }
   }
   // tipo 'diarias' ou 'semanais'. Retorna o texto do prêmio ou null.
+  // ---------- História (Aventura > História): "A Crônica de Eldrin" (texto em js/historia.js) ----------
+  // p.historia = { cap: índice do capítulo atual, prog: { índice do objetivo: quantos }, visto: abertura já lida, lidos: [ids] }.
+  // Não trava regiões: o capítulo só pede o level da região dele.
+  function historiaDados(p) {
+    var h = p.historia || (p.historia = { cap: 0, prog: {}, visto: false, lidos: [] });
+    if (!h.prog) h.prog = {};
+    if (!h.lidos) h.lidos = [];
+    return h;
+  }
+  function nivelCapitulo(c) {
+    var a = D.areas.filter(function (x) { return x.id === c.area; })[0];
+    return a ? a.nivelMin : 1;
+  }
+  function metaObjetivo(o) { return o.qtd || 1; }
+  // Situação do capítulo atual (ou { fim: true } quando a crônica acabou).
+  function historiaEstado(p) {
+    var H = D.HISTORIA;
+    if (!H) return null;
+    var h = historiaDados(p), c = H.capitulos[h.cap];
+    if (!c) return { fim: true, total: H.capitulos.length };
+    var nivel = nivelCapitulo(c), liberado = p.nivel >= nivel;
+    var objetivos = c.objetivos.map(function (o, i) {
+      var meta = metaObjetivo(o), feito = Math.min(meta, h.prog[i] || 0);
+      return { objetivo: o, feito: feito, meta: meta, ok: feito >= meta };
+    });
+    return { fim: false, indice: h.cap, total: H.capitulos.length, capitulo: c, nivel: nivel, liberado: liberado,
+      objetivos: objetivos, completo: liberado && objetivos.every(function (x) { return x.ok; }), visto: !!h.visto };
+  }
+  // evento 'abate' (alvo = id do monstro vencido na caçada) ou 'masmorra' (alvo = id da masmorra vencida).
+  // Só conta no capítulo atual e com o level da região. Retorna true se algum objetivo andou.
+  function registrarHistoria(p, evento, alvo) {
+    var e = historiaEstado(p);
+    if (!e || e.fim || !e.liberado) return false;
+    var h = historiaDados(p), mudou = false;
+    e.capitulo.objetivos.forEach(function (o, i) {
+      var conta = false, m = D.monstros[alvo];
+      if (evento === 'abate' && m) conta = o.tipo === 'abate' ? m.area === o.area && !m.chefe : o.tipo === 'chefe' && o.monstro === alvo;
+      if (evento === 'masmorra') conta = o.tipo === 'masmorra' && o.masmorra === alvo;
+      if (conta && (h.prog[i] || 0) < metaObjetivo(o)) { h.prog[i] = (h.prog[i] || 0) + 1; mudou = true; }
+    });
+    return mudou;
+  }
+  function premioHistoriaTexto(p, pr) {
+    var partes = [];
+    if (pr.ouro) partes.push(pr.ouro.toLocaleString('pt-BR') + ' de ouro');
+    if (pr.expPct) partes.push(pr.expPct + '% da exp do level');
+    if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's' : '') + ' ' + D.raridades[pr.pergaminho.raridade].nome.toLowerCase());
+    if (pr.item) partes.push('1 ' + (pr.item.tipo === 'arma' ? 'arma' : pr.item.tipo) + ' ' + D.raridades[pr.item.raridade].nome.toLowerCase() + ' do seu level');
+    if (pr.titulo) partes.push('o título "' + ((p.sexo === 'feminino' && pr.tituloF) || pr.titulo) + '"');
+    if (pr.skin) { var sk = D.SKINS_DADO.filter(function (x) { return x.id === pr.skin; })[0]; partes.push('a skin de dado "' + (sk ? sk.nome : pr.skin) + '"'); }
+    return partes.join(' + ');
+  }
+  // Recebe o prêmio do capítulo completo e passa para o próximo.
+  // Retorna { capitulo, premio (texto), item } ou { erro } (mochila cheia quando o prêmio tem item) ou null.
+  function concluirCapitulo(p, rng) {
+    var e = historiaEstado(p);
+    if (!e || !e.completo) return null;
+    var pr = e.capitulo.premio || {}, item = null;
+    if (pr.item && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do capítulo.' };
+    var texto = premioHistoriaTexto(p, pr);
+    if (pr.ouro) p.ouro += pr.ouro;
+    if (pr.expPct && p.nivel < D.NIVEL_MAXIMO) ganharExp(p, Math.max(1, Math.round(expNecessaria(p.nivel) * pr.expPct / 100)));
+    if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
+    if (pr.item) {
+      var atual = armaEquipada(p), esp = pr.item.tipo === 'arma' && atual && atual.arma && podeUsar(p, atual) ? atual.arma : null;
+      item = novoItem(pr.item.tipo, p.classe, pr.item.raridade, rng, esp, p.nivel);
+      p.inventario.push(item);
+    }
+    if (pr.titulo) p.titulo = (p.sexo === 'feminino' && pr.tituloF) || pr.titulo;
+    if (pr.skin && skinsDoPersonagem(p).indexOf(pr.skin) < 0) p.skinsDado = skinsDoPersonagem(p).concat(pr.skin);
+    var h = historiaDados(p);
+    h.lidos = h.lidos.concat(e.capitulo.id);
+    h.cap += 1; h.prog = {}; h.visto = false;
+    return { capitulo: e.capitulo, premio: texto, item: item };
+  }
+  function marcarHistoriaVista(p) { historiaDados(p).visto = true; }
+
   function resgatarMissao(p, tipo, id, agora) {
     var m = garantirMissoes(p, agora), chave = tipo === 'diarias' ? 'd' : 's', ok = chave + 'Ok';
     var x = D.MISSOES[tipo].find(function (y) { return y.id === id; });
@@ -1773,6 +1850,7 @@ Tanka.regras = (function () {
   function comprarSkin(p, id) {
     var skin = D.SKINS_DADO.find(function (s) { return s.id === id; });
     if (!skin) return 'Skin inválida.';
+    if (skin.historia) return 'Esta skin é prêmio da História (Aventura > História).';
     if (skinsDoPersonagem(p).indexOf(id) >= 0) return 'Você já tem essa skin.';
     if (p.ouro < skin.preco) return 'Ouro insuficiente.';
     p.ouro -= skin.preco;
@@ -2016,6 +2094,8 @@ Tanka.regras = (function () {
     msAteSemana: msAteSemana,
     garantirMissoes: garantirMissoes,
     registrarMissao: registrarMissao,
+    historiaEstado: historiaEstado, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
+    premioHistoriaTexto: premioHistoriaTexto, marcarHistoriaVista: marcarHistoriaVista,
     premioTexto: premioTexto,
     resgatarMissao: resgatarMissao,
     resgatarBonusDiario: resgatarBonusDiario,

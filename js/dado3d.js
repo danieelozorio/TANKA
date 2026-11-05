@@ -15,6 +15,8 @@ Tanka.dado3d = (function () {
     dourada: { meio: '#ffd76a', borda: '#7a4c05', veio: 'rgba(255,250,210,.16)', numero: ['#6a3c00', '#3d2100', '#1c0e00'], brilhoNumero: 0, metal: 0.55 },
     obsidiana: { meio: '#3d3550', borda: '#050408', veio: 'rgba(170,130,255,.10)', numero: ['#f3e2ff', '#b98cff', '#6236c8'], brilhoNumero: 0.55, metal: 0.1 },
     // Dragão Cinzento: pedra com escamas, rachaduras com brasa, moldura de metal nas arestas e fumaça.
+    // Sete Selos (prêmio da História): pedra vulcânica com veios de brasa e números de fogo.
+    selos: { meio: '#2a1410', borda: '#0a0302', veio: 'rgba(255,120,40,.16)', numero: ['#ffe9b8', '#ff9a3a', '#a8360c'], brilhoNumero: 0.8, metal: 0.25 },
     dragao: { meio: '#62656b', borda: '#2a2c30', numero: ['#faf7f0', '#d2cdc1', '#77736a'], brilhoNumero: 1, metal: 0.35, estilo: 'dragao', fumaca: true },
   };
 

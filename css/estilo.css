@@ -602,6 +602,10 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .d20g.skin-dragao .f { stroke: #a9abae; stroke-width: 1.6; }
 .d20g.skin-dragao .n { font-family: Georgia, 'Times New Roman', serif; stroke: rgba(0, 0, 0, .5); }
 .d20g.skin-dourada .n { stroke: rgba(255, 240, 200, .5); }
+.d20g.skin-selos { --face-c: rgba(62, 30, 20, .98); --face-t: rgba(96, 46, 26, .97); --face-l: rgba(48, 22, 14, .98);
+  --face-b: rgba(30, 12, 8, .99); --face-s: rgba(38, 16, 10, .99); --face-e: rgba(18, 6, 4, .99); --numero: #ffb35a; }
+.d20g.skin-selos .f { stroke: rgba(255, 110, 40, .55); stroke-width: 1.2; }
+.d20g.skin-selos .n { stroke: rgba(120, 30, 0, .6); }
 .d20g .f-c { fill: var(--face-c); }
 .d20g .f-t { fill: var(--face-t); }
 .d20g .f-l { fill: var(--face-l); }
@@ -1359,3 +1363,40 @@ html { overscroll-behavior-x: none; }
 @media (hover: hover) {
   .drop-cacada:hover .drop-ficha { display: block; }
 }
+
+/* ---------- História: A Crônica de Eldrin (Aventura > História) ---------- */
+.titulo-heroi { color: #e8b86a; font-family: var(--titulo); font-size: .85rem; letter-spacing: .04em; text-shadow: 0 0 8px rgba(232, 160, 70, .35); }
+.hist-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+.hist-topo h2 { margin: 0; }
+.hist-topo p { margin: 0; font-style: italic; }
+.hist-marcas { display: flex; gap: .35rem; }
+.hist-marca { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%; border: 1px solid var(--borda);
+  color: var(--suave); font-family: var(--titulo); font-size: .85rem; background: rgba(0, 0, 0, .35); }
+.hist-marca.feito { border-color: #8a6a3a; color: #f0d9a0; background: radial-gradient(circle, rgba(200, 140, 60, .35), rgba(0, 0, 0, .4)); }
+.hist-marca.atual { border-color: #d8642a; color: #fff0d4; box-shadow: 0 0 10px rgba(220, 90, 30, .6); }
+.hist-capitulo { padding: 1rem; border: 1px solid var(--borda); border-radius: 8px; background: rgba(0, 0, 0, .28); }
+.hist-capitulo h3 { margin: .1rem 0 .7rem; font-size: 1.35rem; }
+.hist-capitulo h4 { margin: .9rem 0 .4rem; font-family: var(--titulo); color: var(--ouro-claro); font-weight: 400; }
+.hist-objetivos { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+.hist-objetivos li { display: grid; grid-template-columns: 1.4rem 1fr auto; align-items: center; gap: .1rem .5rem; }
+.hist-objetivos li.ok > span:nth-child(2) { color: var(--suave); text-decoration: line-through; }
+.hist-check { display: grid; place-items: center; width: 1.2rem; height: 1.2rem; border: 1px solid var(--borda); border-radius: 3px; color: var(--bom); font-size: .8rem; }
+.hist-num { font-variant-numeric: tabular-nums; color: var(--ouro-claro); }
+.hist-barra { grid-column: 2 / -1; height: 5px; border-radius: 3px; background: rgba(0, 0, 0, .5); overflow: hidden; }
+.hist-barra i { display: block; height: 100%; background: linear-gradient(90deg, #8a4a1a, #e09a4a); }
+.aviso-nivel { color: var(--suave); margin: .6rem 0 0; }
+.hist-concluir { animation: pulsar 1.8s ease-in-out infinite; }
+.hist-lidos { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .8rem; }
+.fala { display: grid; grid-template-columns: 64px 1fr; gap: .75rem; align-items: start; margin: .6rem 0; }
+.fala-retrato { width: 64px; height: 64px; border-radius: 50%; overflow: hidden; border: 2px solid #6a5638; background: #0e0c0a;
+  display: grid; place-items: center; box-shadow: 0 0 0 2px #000, 0 4px 10px rgba(0, 0, 0, .6); }
+.fala-retrato img, .fala-retrato svg { width: 100%; height: 100%; object-fit: cover; object-position: 50% 20%; }
+.fala-livro { font-size: 1.8rem; }
+.fala-inicial { font-family: var(--titulo); font-size: 1.8rem; color: var(--ouro-claro); }
+.fala-texto strong { font-family: var(--titulo); color: var(--ouro-claro); font-weight: 400; letter-spacing: .03em; }
+.fala-texto p { margin: .15rem 0 0; line-height: 1.5; }
+.fala-narrador .fala-texto p { font-style: italic; color: #cbbfa8; }
+.hist-janela { max-width: 640px; max-height: 88vh; overflow-y: auto; text-align: left; }
+.hist-janela h2 { margin: .1rem 0 .6rem; }
+.hist-premio { margin: .8rem 0 0; padding: .6rem .8rem; border: 1px solid #8a6a3a; border-radius: 6px; background: rgba(200, 140, 60, .1); color: #f0d9a0; }
+@media (max-width: 520px) { .fala { grid-template-columns: 48px 1fr; } .fala-retrato { width: 48px; height: 48px; } }

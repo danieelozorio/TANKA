@@ -203,3 +203,17 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ou mão esquerda da classe; senão nada) e 80% de chance de 1 pergaminho com a qualidade da caçada (70/22/7/1), sem depender da
   arma (`dropChefe`, `concluirBatalha`). Os campos por chefe (dropItem/drops/dropPadrao/pergaminhos) saíram.
 
+## História: "A Crônica de Eldrin — Os Sete Selos" (Daniel, nov/2026)
+- Aventura > História (sub-aba `historia`). Texto em `js/historia.js` (`D.HISTORIA`: PERSONAGENS e 7 capítulos, um por
+  região, com abertura, 3 objetivos, fechamento e prêmio). Carregado depois de dados.js (index, artifact e testes).
+- NÃO trava regiões (pedido do Daniel): o capítulo só pede o level da região dele (`areas[].nivelMin`).
+- Regras (regras.js): `historiaEstado`, `registrarHistoria(p, 'abate'|'masmorra', id)`, `concluirCapitulo`,
+  `premioHistoriaTexto`, `marcarHistoriaVista`. Progresso em `p.historia = { cap, prog, visto, lidos }`; só conta no capítulo
+  atual. Objetivos: abate (criaturas comuns da região), chefe (o da região, na caçada), masmorra (a da região).
+- Ganchos em app.js: `encerrar()` (vitória na caçada) e `assistirLuta()` (masmorra vencida, uma vez por run).
+- Prêmios: ouro, 40% da exp do level, pergaminhos (c3, c5, c6), arma épica do level (c4; espera mochila com espaço),
+  título "Guardião/Guardiã dos Selos" (`p.titulo`, aparece na ficha) e skin de dado `selos` (c7; `historia: true` em
+  SKINS_DADO, não se compra; cores em dado3d.js e `.d20g.skin-selos`).
+- Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael; prompts dados ao Daniel). Sem a imagem, aparece a
+  inicial; monstros usam o retrato do monstro; narrador = 📜.
+

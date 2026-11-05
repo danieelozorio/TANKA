@@ -571,13 +571,13 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
@@ -588,7 +588,7 @@
   function nomeClasseX(x) { var c = x.classe2 && D.SEGUNDAS_CLASSES[x.classe2]; return c ? (x.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(x.classe, x.sexo); }
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
   function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
-  function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -668,7 +668,8 @@
 
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
-      + '<h2>' + esc(p.nome) + '</h2><div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
+      + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
+      + '<div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
@@ -1324,9 +1325,10 @@
         var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
         var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
           : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
+          : k.historia ? '<span class="suave pequeno">Prêmio da História</span>'
           : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
         return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
-          + '<span class="suave pequeno">' + (k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
+          + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
       }).join('') + '</div>'
       + trocaPergaminhosHtml(p);
   }
@@ -2133,7 +2135,7 @@
       var subAbas = subAbasHtml();
       if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2161,6 +2163,7 @@
       + '>' + vistas + fichaHtml()
       + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
+      + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
@@ -2271,6 +2274,7 @@
     if (res.resultado === 'vitoria') {
       R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
       if (D.monstros[b.monstroId].chefe) R.registrarMissao(estado.personagem, 'chefe', 1, C.agora());
+      if (R.registrarHistoria(estado.personagem, 'abate', b.monstroId)) avisoHistoria();
     }
     if (estado.cacada) {
       if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.');
@@ -2895,6 +2899,29 @@
       case 'leilao-fechar':
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn')) break;
         estado.leilaoVer = null; telaJogo(); break;
+      case 'historia-ver': {
+        var eh = R.historiaEstado(estado.personagem);
+        if (!eh || eh.fim) break;
+        estado.historiaCena = { rotulo: 'Capítulo ' + (eh.indice + 1) + ' · ' + nomeArea(eh.capitulo.area), titulo: eh.capitulo.titulo,
+          falas: eh.capitulo.abertura, botao: eh.visto ? 'Fechar' : 'Aceitar a missão' };
+        if (!eh.visto) { R.marcarHistoriaVista(estado.personagem); salvar(); }
+        telaJogo(); break;
+      }
+      case 'historia-concluir': {
+        var fim = R.concluirCapitulo(estado.personagem);
+        if (!fim) break;
+        if (fim.erro) { avisar(fim.erro); break; }
+        estado.historiaCena = { rotulo: 'Fim do capítulo', titulo: fim.capitulo.titulo, falas: fim.capitulo.fechamento, premio: fim.premio };
+        salvar(); telaJogo(); break;
+      }
+      case 'historia-reler': {
+        var cr = D.HISTORIA.capitulos[Number(el.dataset.valor)];
+        if (!cr) break;
+        estado.historiaCena = { rotulo: 'Relendo', titulo: cr.titulo, falas: cr.abertura.concat(cr.fechamento), botao: 'Fechar' };
+        telaJogo(); break;
+      }
+      case 'historia-fechar':
+        estado.historiaCena = null; telaJogo(); break;
       case 'mochila-aba':
         estado.mochilaAba = el.dataset.valor === 'consumiveis' ? 'consumiveis' : 'equipamentos';
         estado.vendaLote = null;
@@ -3550,6 +3577,7 @@
     if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
       mis.runs = mis.runs.concat(run.id).slice(-20);
       R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
+      if (R.registrarHistoria(estado.personagem, 'masmorra', run.masmorra)) avisoHistoria();
       salvar();
     }
     estado.luta = {
@@ -3653,6 +3681,84 @@
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
       + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
+  }
+
+  // ---------------- História: "A Crônica de Eldrin" (texto em js/historia.js, regras em regras.js) ----------------
+  function seloHistoria() {
+    var e = estado.personagem && R.historiaEstado(estado.personagem);
+    return e && !e.fim && e.liberado && (e.completo || !e.visto) ? ' <span class="selo-pedidos">!</span>' : '';
+  }
+  var avisouHistoria = null;
+  function avisoHistoria() {
+    var e = R.historiaEstado(estado.personagem);
+    if (e && e.completo && avisouHistoria !== e.capitulo.id) {
+      avisouHistoria = e.capitulo.id;
+      avisar('📜 História: "' + e.capitulo.titulo + '" completo! Receba o prêmio em Aventura > História.');
+    }
+  }
+  function nomeArea(id) { var a = D.areas.filter(function (x) { return x.id === id; })[0]; return a ? a.nome : id; }
+  function textoObjetivo(o) {
+    if (o.tipo === 'abate') return 'Vença ' + o.qtd + ' criaturas em ' + nomeArea(o.area);
+    if (o.tipo === 'chefe') return 'Derrote ' + D.monstros[o.monstro].nome + ' <span class="suave pequeno">(chefe da região, aparece na caçada)</span>';
+    var m = D.masmorras.filter(function (x) { return x.id === o.masmorra; })[0];
+    return 'Vença a masmorra ' + (m ? m.nome + ' <span class="suave pequeno">(level ' + m.nivelMin + ')</span>' : o.masmorra);
+  }
+  // Uma fala: retrato (personagem da história, monstro ou o livro do narrador), nome e texto.
+  function falaHtml(f) {
+    var H = D.HISTORIA, pers = H.PERSONAGENS[f.quem], monstro = D.monstros[f.quem], nome, retrato;
+    if (f.quem === 'narrador') { nome = 'Narrador'; retrato = '<span class="fala-livro">📜</span>'; }
+    else if (pers) {
+      nome = pers.nome;
+      retrato = '<img src="assets/historia/' + f.quem + '.webp" alt="" onerror="this.replaceWith(Object.assign(document.createElement(\'span\'),{className:\'fala-inicial\',textContent:\'' + pers.nome.replace(/^(Mestre |O Homem de )/, '').charAt(0) + '\'}))">';
+    } else if (monstro) { nome = monstro.nome; retrato = F.imagemMonstro(f.quem); }
+    else { nome = f.quem; retrato = ''; }
+    return '<div class="fala' + (f.quem === 'narrador' ? ' fala-narrador' : '') + '"><div class="fala-retrato">' + retrato + '</div>'
+      + '<div class="fala-texto"><strong>' + esc(nome) + '</strong><p>' + esc(f.texto) + '</p></div></div>';
+  }
+  function abaHistoria() {
+    var p = estado.personagem, H = D.HISTORIA, e = R.historiaEstado(p), h = p.historia || {};
+    var marcas = H.capitulos.map(function (c, i) {
+      var cl = i < (e.fim ? H.capitulos.length : e.indice) ? 'feito' : !e.fim && i === e.indice ? 'atual' : '';
+      return '<span class="hist-marca ' + cl + '" title="' + (i + 1) + '. ' + c.titulo + '">' + (i + 1) + '</span>';
+    }).join('');
+    var topo = '<div class="hist-topo"><div><h2>' + H.nome + '</h2><p class="suave">' + H.subtitulo + '</p></div>'
+      + '<div class="hist-marcas">' + marcas + '</div></div>';
+    var corpo;
+    if (e.fim) {
+      corpo = '<div class="hist-capitulo"><h3>A Crônica terminou</h3><p>Os sete selos estão fechados e Eldrin descansa… por enquanto.'
+        + ' Uma oitava marca brilha no mapa, além do mar.</p>' + (p.titulo ? '<p>Seu título: <span class="titulo-heroi">' + esc(p.titulo) + '</span></p>' : '') + '</div>';
+    } else {
+      var c = e.capitulo;
+      var objetivos = e.objetivos.map(function (x) {
+        return '<li class="' + (x.ok ? 'ok' : '') + '"><span class="hist-check">' + (x.ok ? '✔' : '') + '</span><span>' + textoObjetivo(x.objetivo) + '</span>'
+          + '<span class="hist-num">' + x.feito + '/' + x.meta + '</span>'
+          + '<span class="hist-barra"><i style="width:' + Math.round(100 * x.feito / x.meta) + '%"></i></span></li>';
+      }).join('');
+      var acao = !e.liberado ? '<p class="aviso-nivel">🔒 Este capítulo começa no level ' + e.nivel + ' (quando ' + nomeArea(c.area) + ' liberar). Continue caçando!</p>'
+        : !e.visto ? '<button class="btn" data-acao="historia-ver">📜 Ler a abertura do capítulo</button>'
+        : e.completo ? '<button class="btn hist-concluir" data-acao="historia-concluir">Concluir capítulo e receber o prêmio</button>'
+        : '<button class="btn secundario" data-acao="historia-ver">Reler a abertura</button>';
+      corpo = '<div class="hist-capitulo"><div class="suave pequeno">Capítulo ' + (e.indice + 1) + ' de ' + e.total + ' · ' + nomeArea(c.area) + '</div>'
+        + '<h3>' + c.titulo + '</h3>'
+        + (e.visto ? falaHtml(c.abertura[c.abertura.length - 1]) : '<p class="suave">Um novo capítulo espera por você.</p>')
+        + (e.liberado && e.visto ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
+        + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}) + '</p>'
+        + '<div class="botoes">' + acao + '</div></div>';
+    }
+    var lidos = (h.lidos || []).map(function (id) {
+      var i = H.capitulos.map(function (c) { return c.id; }).indexOf(id), c = H.capitulos[i];
+      return c ? '<button class="btn secundario btn-mini" data-acao="historia-reler" data-valor="' + i + '">' + (i + 1) + '. ' + c.titulo + '</button>' : '';
+    }).join('');
+    return topo + corpo + (lidos ? '<h3 class="subtitulo">Capítulos concluídos</h3><div class="hist-lidos">' + lidos + '</div>' : '')
+      + '<p class="suave pequeno">A História não trava nada: as regiões continuam liberando pelo level. Os objetivos só contam no capítulo atual.</p>';
+  }
+  function historiaCenaHtml() {
+    var c = estado.historiaCena;
+    return '<div class="zoom-fundo hist-fundo"><div class="zoom-janela hist-janela" role="dialog" aria-label="' + esc(c.titulo) + '">'
+      + '<div class="suave pequeno">' + esc(c.rotulo || '') + '</div><h2>' + esc(c.titulo) + '</h2>'
+      + '<div class="hist-falas">' + c.falas.map(falaHtml).join('') + '</div>'
+      + (c.premio ? '<p class="hist-premio">🎁 Você recebeu: ' + esc(c.premio) + '</p>' : '')
+      + '<div class="botoes"><button class="btn" data-acao="historia-fechar">' + (c.botao || 'Continuar') + '</button></div></div></div>';
   }
 
   function abaMasmorra() {
