@@ -641,10 +641,10 @@ Tanka.dados = {
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
   // e 5x a exp e o ouro (para valer o risco).
-  // Drop de todos os chefes (Henri, nov/2026): 2% lendário, 10% épico (1 arma, armadura ou mão esquerda; senão nada);
-  // 20% de chance de 1 pergaminho, raridade pela qualidade da caçada (70/22/7/1), sem depender da arma.
+  // Drop de todos os chefes (Henri, nov/2026): 4% lendário, 20% épico (1 arma, armadura ou mão esquerda; senão nada);
+  // 80% de chance de 1 pergaminho, raridade pela qualidade da caçada (70/22/7/1), sem depender da arma.
   chefe: { vida: 1.5, ataque: 1.2, velocidade: 1, defesa: 2, exp: 5, ouro: 5,
-    drop: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 10 }], pergaminho: 20 },
+    drop: [{ raridade: 'lendaria', chance: 4 }, { raridade: 'epica', chance: 20 }], pergaminho: 80 },
 
   // ---------- Masmorras (grupo de 3) ----------
   // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem

@@ -646,10 +646,10 @@ teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar',
   const res = vencer('velgrath');
   assert.strictEqual(p.presencaChefe.floresta, 0);
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
-  assert.ok(!res.pergaminho || res.qtdPergaminhos === 1);   // pergaminho do chefe: 20% de chance de 1
+  assert.ok(!res.pergaminho || res.qtdPergaminhos === 1);   // pergaminho do chefe: 80% de chance de 1
 });
 
-teste('drop do chefe (todos iguais): 2% lendário, 10% épico; 20% de 1 pergaminho com a qualidade da caçada, sem depender da arma', () => {
+teste('drop do chefe (todos iguais): 4% lendário, 20% épico; 80% de 1 pergaminho com a qualidade da caçada, sem depender da arma', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   p.atributos.sor = 0;
   const N = 20000, rodar = (chefe) => {
@@ -667,9 +667,9 @@ teste('drop do chefe (todos iguais): 2% lendário, 10% épico; 20% de 1 pergamin
   };
   for (const chefe of ['velgrath', 'guardiao', 'ignaroth']) {
     const { c, perg } = rodar(chefe);
-    assert.ok(Math.abs(c.lendaria / N * 100 - 2) < 0.5 && Math.abs(c.epica / N * 100 - 10) < 1 && c.rara + c.comum === 0, chefe + ' ' + JSON.stringify(c));
+    assert.ok(Math.abs(c.lendaria / N * 100 - 4) < 0.6 && Math.abs(c.epica / N * 100 - 20) < 1.2 && c.rara + c.comum === 0, chefe + ' ' + JSON.stringify(c));
     const tem = N - perg.nada;
-    assert.ok(Math.abs(tem / N * 100 - 20) < 1, chefe + ' pergaminho ' + tem);
+    assert.ok(Math.abs(tem / N * 100 - 80) < 1, chefe + ' pergaminho ' + tem);
     assert.ok(Math.abs(perg.comum / tem * 100 - 70) < 3, chefe + ' qualidade ' + JSON.stringify(perg));
   }
 });

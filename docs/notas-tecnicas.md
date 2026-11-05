@@ -199,7 +199,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`.jogo:not([data-personagem-vista]) > .ficha { display: none }`). Pedido do Daniel.
 - **Correção (nov/2026):** Bênção (Curandeiro, reforço `grupo: true`) travava a caçada: `aplicarReforco` recebia `alvos` null
   na caçada. Agora reforço de grupo sem grupo vale só para o próprio herói. Teste em regras.test.js.
-- **Drop dos chefes (nov/2026):** todos iguais (`D.chefe.drop`, `D.chefe.pergaminho`): 2% lendário, 10% épico (1 arma, armadura
-  ou mão esquerda da classe; senão nada) e 20% de chance de 1 pergaminho com a qualidade da caçada (70/22/7/1), sem depender da
+- **Drop dos chefes (nov/2026):** todos iguais (`D.chefe.drop`, `D.chefe.pergaminho`): 4% lendário, 20% épico (1 arma, armadura
+  ou mão esquerda da classe; senão nada) e 80% de chance de 1 pergaminho com a qualidade da caçada (70/22/7/1), sem depender da
   arma (`dropChefe`, `concluirBatalha`). Os campos por chefe (dropItem/drops/dropPadrao/pergaminhos) saíram.
 
