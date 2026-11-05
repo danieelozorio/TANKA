@@ -1596,8 +1596,8 @@ teste('história: só conta no capítulo atual, chefe e criatura comum separados
   assert.strictEqual(R.concluirCapitulo(p), null, 'falta a masmorra');
   R.registrarHistoria(p, 'masmorra', 'ninho');
   assert.ok(!R.historiaEstado(p).completo, 'masmorra errada não conta');
-  R.registrarHistoria(p, 'masmorra', 'toca');
-  assert.ok(!R.historiaEstado(p).completo, 'masmorra precisa de 2');
+  R.registrarHistoria(p, 'masmorra', 'toca'); R.registrarHistoria(p, 'masmorra', 'toca');
+  assert.ok(!R.historiaEstado(p).completo, 'masmorra precisa de 3');
   R.registrarHistoria(p, 'masmorra', 'toca');
   assert.ok(R.historiaEstado(p).completo);
   const ouro = p.ouro, exp = p.exp, nivel = p.nivel;
@@ -1615,13 +1615,13 @@ teste('história: só conta no capítulo atual, chefe e criatura comum separados
 teste('história: item no capítulo 4 (mochila cheia espera), título e skin no fim; skin não se compra', () => {
   const p = R.criarPersonagem('T', 'feminino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 35);
-  p.historia = { cap: 3, prog: { 0: 9999, 1: 99, 2: 9 }, visto: true, lidos: ['c1', 'c2', 'c3'] };
+  p.historia = { cap: 3, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: ['c1', 'c2', 'c3'] };
   for (let i = p.inventario.length; R.mochila(p).length < D.MOCHILA_MAX; i++) p.inventario.push({ id: 'x' + i, tipo: 'anel', classe: null, raridade: 'comum', encanto: 0 });
   assert.ok(R.concluirCapitulo(p).erro, 'mochila cheia');
   p.inventario.pop();
   const fim = R.concluirCapitulo(p);
   assert.ok(fim.item && fim.item.tipo === 'arma' && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel);
-  p.historia = { cap: 6, prog: { 0: 9999, 1: 99, 2: 9 }, visto: true, lidos: [] };
+  p.historia = { cap: 6, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: [] };
   R.concluirCapitulo(p);
   assert.strictEqual(p.titulo, 'Guardiã dos Selos');
   assert.ok(R.skinsDoPersonagem(p).includes('selos'));

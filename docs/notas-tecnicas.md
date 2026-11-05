@@ -211,7 +211,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `premioHistoriaTexto`, `marcarHistoriaVista`. Progresso em `p.historia = { cap, prog, visto, lidos }`; só conta no capítulo
   atual. Objetivos: abate (criaturas comuns da região), chefe (o da região, na caçada), masmorra (a da região).
 - Ganchos em app.js: `encerrar()` (vitória na caçada) e `assistirLuta()` (masmorra vencida, uma vez por run).
-- Objetivos (pedido do Daniel): criaturas 100/200/350/700/1100/2000/3000, chefe 3/5/9/15/25/40/70, masmorra 2x.
+- Objetivos (pedido do Daniel): criaturas 100/200/350/700/1100/2000/3000, chefe 3/5/9/15/25/40/70, masmorra 3/4/6/8/10/12/15.
   Os chefes cabem nas criaturas (média de abates por chefe pela `chanceChefe`: 13, 16, 19, 24, 29, 33, 40).
 - Prêmios: ouro, 10% da exp do level, pergaminhos (c3, c5, c6), arma épica do level (c4; espera mochila com espaço),
   título "Guardião/Guardiã dos Selos" (`p.titulo`, aparece na ficha) e skin de dado `selos` (c7; `historia: true` em

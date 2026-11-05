@@ -6,7 +6,7 @@
 // ou o id de um monstro (usa o retrato do monstro).
 // Objetivos: { tipo: 'abate', area, qtd } = vencer criaturas comuns da região (chefe não conta; 100, 200, 350, 700, 1100, 2000, 3000);
 //            { tipo: 'chefe', monstro, qtd }   = derrotar o chefe da região na caçada (3, 5, 9, 15, 25, 40, 70);
-//            { tipo: 'masmorra', masmorra, qtd } = vencer a masmorra (2 vezes, em grupo ou com mercenários).
+//            { tipo: 'masmorra', masmorra, qtd } = vencer a masmorra (3, 4, 6, 8, 10, 12, 15; em grupo ou com mercenários).
 // Prêmio: ouro, expPct (% da exp do level atual), pergaminho {raridade, qtd}, item {tipo, raridade}, titulo, skin.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 Tanka.dados = Tanka.dados || {};
@@ -31,7 +31,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'floresta', qtd: 100 },
         { tipo: 'chefe', monstro: 'velgrath', qtd: 3 },
-        { tipo: 'masmorra', masmorra: 'toca', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'toca', qtd: 3 },
       ],
       fechamento: [
         { quem: 'velgrath', texto: 'Ahhh… o espinho… tirem… o espinho…' },
@@ -50,7 +50,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'pantano', qtd: 200 },
         { tipo: 'chefe', monstro: 'morgath', qtd: 5 },
-        { tipo: 'masmorra', masmorra: 'ninho', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'ninho', qtd: 4 },
       ],
       fechamento: [
         { quem: 'morgath', texto: 'Está bem, está bem! Eu só plantava os espinhos… ele me pagava em ouro vermelho. Um homem de capuz carmesim. Nunca vi o rosto dele.' },
@@ -69,7 +69,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'ruinas', qtd: 350 },
         { tipo: 'chefe', monstro: 'varnok', qtd: 9 },
-        { tipo: 'masmorra', masmorra: 'catacumbas', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'catacumbas', qtd: 6 },
       ],
       fechamento: [
         { quem: 'varnok', texto: 'Tolo… o homem de capuz já esteve aqui. Copiou o mapa com sangue. Eu não pude impedir. Ninguém pode.' },
@@ -88,7 +88,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'torre', qtd: 700 },
         { tipo: 'chefe', monstro: 'guardiao', qtd: 15 },
-        { tipo: 'masmorra', masmorra: 'biblioteca', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'biblioteca', qtd: 8 },
       ],
       fechamento: [
         { quem: 'narrador', texto: 'No alto da torre, o homem de capuz carmesim vira para você e, enfim, mostra o rosto.' },
@@ -108,7 +108,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'areias', qtd: 1100 },
         { tipo: 'chefe', monstro: 'farao', qtd: 25 },
-        { tipo: 'masmorra', masmorra: 'tumba', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'tumba', qtd: 10 },
       ],
       fechamento: [
         { quem: 'farao', texto: 'Eu… lembro agora. Meu nome era Amenreth. Eu jurei guardar este selo até o fim das areias.' },
@@ -127,7 +127,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'vale', qtd: 2000 },
         { tipo: 'chefe', monstro: 'vharkesh', qtd: 40 },
-        { tipo: 'masmorra', masmorra: 'covil', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'covil', qtd: 12 },
       ],
       fechamento: [
         { quem: 'vharkesh', texto: 'Pequeno guerreiro… você me tirou da escuridão. Eu me lembro do pacto. Os dragões voarão com você até o fim.' },
@@ -147,7 +147,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'cume', qtd: 3000 },
         { tipo: 'chefe', monstro: 'ignaroth', qtd: 70 },
-        { tipo: 'masmorra', masmorra: 'coracao', qtd: 2 },
+        { tipo: 'masmorra', masmorra: 'coracao', qtd: 15 },
       ],
       fechamento: [
         { quem: 'narrador', texto: 'Ignaroth cai de joelhos. Kael é arrancado das chamas, desmaiado mas vivo. Aldric caminha até o centro da lava com o último selo nas mãos.' },
