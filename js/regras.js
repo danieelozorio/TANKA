@@ -543,7 +543,8 @@ Tanka.regras = (function () {
       dono.L.buffs.push({ ate: dono.L.turno + def.turnos - 1, defesaPct: valorBonus(def, 'defesaPct', pts) });
       return;
     }
-    (def.grupo ? alvos : [dono]).forEach(function (a) {
+    // Reforço de grupo sozinho (caçada: sem `alvos`) vale só para o próprio herói.
+    (def.grupo && alvos ? alvos : [dono]).forEach(function (a) {
       var b = { ate: a.L.turno + def.turnos - (a === dono ? 1 : 0) };
       ['dano', 'danoCritico', 'critico', 'velocidade', 'precisao'].forEach(function (c) { if (def[c]) b[c] = valorBonus(def, c, pts); });
       if (def.vidaPct && a.h.hp > 0) {

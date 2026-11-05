@@ -196,4 +196,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   esmagar a tela da aba (Aventura/Mercado/Social ficavam com ~40px, parecia que o menu não funcionava).
 - Celular (Zealot, até 860px): a ficha some em todas as abas; só aparece em Herói > Personagem na vista "Atributos"
   (`.jogo:not([data-personagem-vista]) > .ficha { display: none }`). Pedido do Daniel.
+- **Correção (nov/2026):** Bênção (Curandeiro, reforço `grupo: true`) travava a caçada: `aplicarReforco` recebia `alvos` null
+  na caçada. Agora reforço de grupo sem grupo vale só para o próprio herói. Teste em regras.test.js.
 
