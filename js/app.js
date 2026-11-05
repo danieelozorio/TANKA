@@ -592,8 +592,9 @@
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
-      var destino = estado.subAba[g.id] || g.abas[0];
-      return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + '">'
+      var alvo = abaDoGuia(), guiaAqui = alvo && g.abas.indexOf(alvo) >= 0 && estado.aba !== alvo;
+      var destino = guiaAqui ? alvo : estado.subAba[g.id] || g.abas[0];
+      return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + (guiaAqui ? ' guia-alvo' : '') + '">'
         + '<span class="aba-ico">' + ICONES[g.id] + g.abas.map(seloDaAba).join('') + '</span><span class="aba-nome">' + g.nome + '</span></button>';
     }).join('') + '</nav>';
     return nav;
@@ -601,7 +602,7 @@
   function subAbasHtml() {
     var atual = grupoDaAba(estado.aba);
     return atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
-      return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + '">' + NOME_ABA[a] + seloDaAba(a) + '</button>';
+      return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + (a === abaDoGuia() && estado.aba !== a ? ' guia-alvo' : '') + '">' + NOME_ABA[a] + seloDaAba(a) + '</button>';
     }).join('') + '</nav>' : '';
   }
   // Atualiza só os selos das abas (pedidos de amizade, convites, ataques na Arena).
@@ -2112,6 +2113,7 @@
 
   function telaJogo() {
     guardarJogo();
+    conferirGuia();
     var grupo = grupoDaAba(estado.aba);
     if (grupo) estado.subAba[grupo.id] = estado.aba;
     var atual = history.state;
@@ -2144,7 +2146,7 @@
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
       menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
-        + '><summary class="btn" aria-label="Menu do jogo">' + ICONES.menu + '</summary>'
+        + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '</summary>'
         + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
         + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
@@ -2161,7 +2163,7 @@
     app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo"'
       + (personagemCompacto ? ' data-personagem-vista="' + vista + '"' : zealot && estado.cacada ? ' data-cacada-compacta' : '')
       + '>' + vistas + fichaHtml()
-      + '<section class="caixa">' + painel + '</section></div></div>' + rodape()
+      + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
@@ -2275,6 +2277,7 @@
       R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
       if (D.monstros[b.monstroId].chefe) R.registrarMissao(estado.personagem, 'chefe', 1, C.agora());
       if (R.registrarHistoria(estado.personagem, 'abate', b.monstroId)) avisoHistoria();
+      R.registrarGuia(estado.personagem, 'abate');
     }
     if (estado.cacada) {
       if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.');
@@ -2565,6 +2568,7 @@
   }
 
   function abrirAba(aba) {
+    if (estado.personagem) R.registrarGuia(estado.personagem, 'aba', aba);
     var menu = document.getElementById('menu-jogo');
     if (menu) menu.open = false;
     estado.aba = aba;
@@ -2899,6 +2903,11 @@
       case 'leilao-fechar':
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn')) break;
         estado.leilaoVer = null; telaJogo(); break;
+      case 'guia-comecar': R.comecarGuia(estado.personagem); salvar(); telaJogo(); break;
+      case 'guia-pular':
+        if (estado.guiaPularConfirma) { R.pularGuia(estado.personagem); estado.guiaPularConfirma = false; salvar(); telaJogo(); }
+        else { estado.guiaPularConfirma = true; avisar('Clique de novo para fechar o guia. Sem o guia, você não ganha o presente do final.'); setTimeout(function () { estado.guiaPularConfirma = false; }, 6000); }
+        break;
       case 'historia-ver': {
         var eh = R.historiaEstado(estado.personagem);
         if (!eh || eh.fim) break;
@@ -3683,6 +3692,34 @@
       + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
   }
 
+  // ---------------- Guia do Aventureiro (tutorial dos personagens novos; regras em regras.js, texto em historia.js) ----------------
+  function abaDoGuia() {
+    var g = estado.personagem && R.guiaEstado(estado.personagem);
+    return g && g.passo.aba && !(g.passo.id === 'arena' && estado.personagem.nivel < D.ARENA.nivelMin) ? g.passo.aba : null;
+  }
+  function conferirGuia() {
+    var p = estado.personagem, r = p && R.verificarGuia(p);
+    if (!r) return;
+    if (r.fim) avisar('🎁 Guia concluído! Mestre Aldric te deu: ' + r.premio + '. Boa jornada, aventureiro!');
+    else { var g = R.guiaEstado(p); if (g) avisar('🧭 Guia: ' + g.passo.titulo + '. ' + g.passo.texto); }
+    salvar();
+  }
+  function guiaHtml() {
+    var p = estado.personagem, g = p && R.guiaEstado(p);
+    if (!g || estado.batalha || estado.luta || estado.lutaArena) return '';
+    var passo = g.passo, extra = '';
+    if (passo.id === 'cacar') extra = ' <span class="guia-num">' + Math.min(g.abates, passo.meta) + '/' + passo.meta + '</span>';
+    if (passo.id === 'arena' && p.nivel < D.ARENA.nivelMin) extra = ' <span class="guia-num">level ' + p.nivel + '/' + D.ARENA.nivelMin + '</span>';
+    var ir = passo.aba && passo.aba !== estado.aba && !(passo.id === 'arena' && p.nivel < D.ARENA.nivelMin)
+      ? '<button class="btn btn-mini" data-acao="aba" data-aba="' + passo.aba + '">Ir</button>' : '';
+    var botoes = g.indice === 0
+      ? '<button class="btn btn-mini" data-acao="guia-comecar">Começar</button><button class="btn secundario btn-mini" data-acao="guia-pular">Pular guia</button>'
+      : ir + '<button class="btn secundario btn-mini" data-acao="guia-pular" title="Fechar o guia (sem o presente)">✕</button>';
+    return '<div class="guia-cartao" role="status"><div class="guia-retrato"><img src="assets/historia/aldric.webp" alt=""></div>'
+      + '<div class="guia-texto"><div class="guia-titulo">🧭 Guia ' + (g.indice ? g.indice + '/' + (g.total - 1) + ' · ' : '') + passo.titulo + extra + '</div>'
+      + '<div>' + passo.texto + '</div></div><div class="guia-botoes">' + botoes + '</div></div>';
+  }
+
   // ---------------- História: "A Crônica de Eldrin" (texto em js/historia.js, regras em regras.js) ----------------
   function seloHistoria() {
     var e = estado.personagem && R.historiaEstado(estado.personagem);
@@ -4290,6 +4327,7 @@
     if (L.luta.situacao !== 'andamento') {
       L.fase = 'fim'; L.modal = null;
       R.registrarMissao(estado.personagem, 'arena', 1, C.agora());
+      R.registrarGuia(estado.personagem, 'arena');
       if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
       salvar();
       fecharDado3d(); redesenharArena(); carregarArena(); return;

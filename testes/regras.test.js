@@ -1630,3 +1630,35 @@ teste('história: item no capítulo 4 (mochila cheia espera), título e skin no 
   q.ouro = 1e6;
   assert.strictEqual(typeof R.comprarSkin(q, 'selos'), 'string');
 });
+
+teste('guia: só personagem novo; caçar, equipar o presente, loja, história, arena e prêmio final', () => {
+  const velho = R.criarPersonagem('V', 'masculino', 'humano', 'mago'); delete velho.guia;
+  assert.strictEqual(R.guiaEstado(velho), null, 'personagem antigo não tem guia');
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.guiaEstado(p).passo.id, 'boas-vindas');
+  R.comecarGuia(p);
+  assert.strictEqual(R.guiaEstado(p).passo.id, 'cacar');
+  R.registrarGuia(p, 'abate'); R.registrarGuia(p, 'abate');
+  assert.strictEqual(R.verificarGuia(p), null);
+  R.registrarGuia(p, 'abate');
+  assert.ok(R.verificarGuia(p).avancou);
+  assert.strictEqual(R.guiaEstado(p).passo.id, 'equipar');
+  const presente = p.inventario.find((i) => i.id === p.guia.item);
+  assert.ok(presente && presente.tipo === 'elmo' && R.nomeItem(presente) === 'Elmo do Aprendiz');
+  R.registrarGuia(p, 'aba', 'mercado');   // fora de ordem: fica guardado
+  R.equipar(p, presente.id);
+  R.verificarGuia(p);
+  assert.strictEqual(R.guiaEstado(p).passo.id, 'historia', 'equipou e a loja já tinha sido vista');
+  R.marcarHistoriaVista(p);
+  R.verificarGuia(p);
+  assert.strictEqual(R.guiaEstado(p).passo.id, 'arena');
+  const ouro = p.ouro;
+  R.registrarGuia(p, 'arena');
+  const fim = R.verificarGuia(p);
+  assert.ok(fim.fim && /1\.000 de ouro/.test(fim.premio));
+  assert.strictEqual(p.ouro, ouro + 1000);
+  assert.strictEqual(R.guiaEstado(p), null);
+  const q = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
+  R.pularGuia(q);
+  assert.strictEqual(R.guiaEstado(q), null);
+});

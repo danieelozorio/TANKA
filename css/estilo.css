@@ -1400,3 +1400,16 @@ html { overscroll-behavior-x: none; }
 .hist-janela h2 { margin: .1rem 0 .6rem; }
 .hist-premio { margin: .8rem 0 0; padding: .6rem .8rem; border: 1px solid #8a6a3a; border-radius: 6px; background: rgba(200, 140, 60, .1); color: #f0d9a0; }
 @media (max-width: 520px) { .fala { grid-template-columns: 48px 1fr; } .fala-retrato { width: 48px; height: 48px; } }
+
+/* ---------- Guia do Aventureiro (tutorial dos personagens novos) ---------- */
+.guia-cartao { display: grid; grid-template-columns: 52px 1fr auto; gap: .7rem; align-items: center; margin: 0 0 .9rem; padding: .6rem .8rem;
+  border: 1px solid #8a6a3a; border-radius: 8px; background: linear-gradient(90deg, rgba(200, 140, 60, .16), rgba(0, 0, 0, .25)); }
+.guia-retrato { width: 52px; height: 52px; border-radius: 50%; overflow: hidden; border: 2px solid #8a6a3a; background: #0e0c0a; }
+.guia-retrato img { width: 100%; height: 100%; object-fit: cover; }
+.guia-titulo { font-family: var(--titulo); color: var(--ouro-claro); }
+.guia-num { margin-left: .3rem; padding: 0 .4rem; border-radius: 999px; background: rgba(0, 0, 0, .4); color: #f0d9a0; font-size: .85em; font-variant-numeric: tabular-nums; }
+.guia-botoes { display: flex; gap: .35rem; flex-wrap: wrap; justify-content: flex-end; }
+.guia-alvo { animation: guiaPisca 1.4s ease-in-out infinite; }
+@keyframes guiaPisca { 0%, 100% { box-shadow: 0 0 0 0 rgba(240, 180, 80, 0); } 50% { box-shadow: 0 0 0 3px rgba(240, 180, 80, .75), 0 0 14px rgba(240, 160, 60, .6); } }
+@media (max-width: 520px) { .guia-cartao { grid-template-columns: 40px 1fr; } .guia-retrato { width: 40px; height: 40px; } .guia-botoes { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { .guia-alvo { animation: none; outline: 2px solid #f0b450; } }

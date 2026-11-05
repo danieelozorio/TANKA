@@ -271,7 +271,8 @@ Tanka.regras = (function () {
   function nomeArma(item) {
     var sufixo = item.variacao === undefined ? D.raridades[item.raridade].nome : D.SUFIXOS_ARMA[item.raridade][item.variacao];
     var cj = item.conjunto && infoConjunto(item.conjunto);
-    var base = cj ? definicao(item).tipo + ' ' + cj.nome
+    var base = item.nome ? item.nome   // nome próprio (ex.: presente do Guia)
+      : cj ? definicao(item).tipo + ' ' + cj.nome
       : item.tipo === 'secundaria' ? D.MAO_ESQUERDA[item.mao].nome + ' ' + sufixo
       : TIPOS_ARMADURA.indexOf(item.tipo) >= 0 && item.variacao !== undefined ? definicao(item).tipo + ' ' + sufixo
       : item.tipo !== 'arma' ? definicao(item).nomes[RARIDADES.indexOf(item.raridade)]
@@ -659,6 +660,7 @@ Tanka.regras = (function () {
       ultimoReset: null,   // dia (AAAA-MM-DD, Brasília) do último reset diário
       vidaEm: null,        // momento (ms) até onde a vida com o tempo já foi contada
       acampado: false,
+      guia: { passo: 0, abates: 0 },   // Guia do Aventureiro (só personagens novos)
       criadoEm: new Date().toISOString(),
     };
   }
@@ -1468,6 +1470,62 @@ Tanka.regras = (function () {
     if (pr.pergaminhoArma) { var arma = armaEquipada(p); mudarPergaminho(p, arma ? arma.raridade : 'comum', pr.pergaminhoArma); }
   }
   // tipo 'diarias' ou 'semanais'. Retorna o texto do prêmio ou null.
+  // ---------- Guia do Aventureiro (tutorial dos personagens novos; texto em js/historia.js) ----------
+  // p.guia = { passo, abates, loja, arena, item: id do presente, fim, pulou }. Sem p.guia (personagens antigos): sem guia.
+  function guiaEstado(p) {
+    var G = D.GUIA, g = p.guia;
+    if (!G || !g || g.fim) return null;
+    var passo = G.passos[g.passo];
+    return passo ? { indice: g.passo, total: G.passos.length, passo: passo, abates: g.abates || 0 } : null;
+  }
+  // Eventos: 'abate' (venceu na caçada), 'aba' (alvo = aba aberta), 'arena' (lutou na Arena).
+  function registrarGuia(p, evento, alvo) {
+    var g = p.guia;
+    if (!g || g.fim) return;
+    if (evento === 'abate') g.abates = (g.abates || 0) + 1;
+    if (evento === 'aba' && alvo === 'mercado') g.loja = true;
+    if (evento === 'arena') g.arena = true;
+  }
+  function passoGuiaFeito(p, id) {
+    var g = p.guia, G = D.GUIA;
+    if (id === 'cacar') return (g.abates || 0) >= (G.passos[1].meta || 1);
+    if (id === 'equipar') return !g.item || !!slotDoItem(p, g.item) || !itemPorId(p, g.item);
+    if (id === 'loja') return !!g.loja;
+    if (id === 'historia') return !!(p.historia && (p.historia.visto || (p.historia.lidos || []).length));
+    if (id === 'arena') return !!g.arena;
+    return false;
+  }
+  // Ao entrar num passo: o de equipar põe o presente na mochila (se couber).
+  function entrarPassoGuia(p) {
+    var g = p.guia, passo = D.GUIA.passos[g.passo];
+    if (passo && passo.id === 'equipar' && !g.item && !mochilaCheia(p)) {
+      var pr = D.GUIA.presenteItem, item = novoItem(pr.tipo, p.classe, pr.raridade, null, null, p.nivel);
+      item.nome = pr.nome;
+      p.inventario.push(item);
+      g.item = item.id;
+    }
+  }
+  // Confere o passo atual e avança quantos estiverem feitos. Retorna { avancou, fim, premio (texto) } ou null.
+  function verificarGuia(p) {
+    var g = p.guia;
+    if (!g || g.fim || !D.GUIA) return null;
+    var avancou = false;
+    while (!g.fim && g.passo > 0 && passoGuiaFeito(p, D.GUIA.passos[g.passo].id)) {
+      g.passo += 1; avancou = true;
+      if (g.passo >= D.GUIA.passos.length) {
+        g.fim = true;
+        var pr = D.GUIA.premioFinal;
+        if (pr.ouro) p.ouro += pr.ouro;
+        if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
+        return { avancou: true, fim: true, premio: premioHistoriaTexto(p, pr) };
+      }
+      entrarPassoGuia(p);
+    }
+    return avancou ? { avancou: true, fim: false } : null;
+  }
+  function comecarGuia(p) { if (p.guia && !p.guia.fim && p.guia.passo === 0) { p.guia.passo = 1; entrarPassoGuia(p); verificarGuia(p); } }
+  function pularGuia(p) { if (p.guia) { p.guia.fim = true; p.guia.pulou = true; } }
+
   // ---------- História (Aventura > História): "A Crônica de Eldrin" (texto em js/historia.js) ----------
   // p.historia = { cap: índice do capítulo atual, prog: { índice do objetivo: quantos }, visto: abertura já lida, lidos: [ids] }.
   // Não trava regiões: o capítulo só pede o level da região dele.
@@ -2096,6 +2154,7 @@ Tanka.regras = (function () {
     registrarMissao: registrarMissao,
     historiaEstado: historiaEstado, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
     premioHistoriaTexto: premioHistoriaTexto, marcarHistoriaVista: marcarHistoriaVista,
+    guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
     resgatarMissao: resgatarMissao,
     resgatarBonusDiario: resgatarBonusDiario,

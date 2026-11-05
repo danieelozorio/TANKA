@@ -160,3 +160,24 @@ Tanka.dados.HISTORIA = {
     },
   ],
 };
+
+// Guia do Aventureiro: tutorial curto para personagens novos (criados depois desta versão; os antigos não têm p.guia).
+// Cada passo: o que fazer, onde (aba) e a dica. O passo avança sozinho quando o jogador faz a coisa.
+Tanka.dados.GUIA = {
+  passos: [
+    { id: 'boas-vindas', titulo: 'Bem-vindo a Eldrin', aba: null,
+      texto: 'Eu sou o Mestre Aldric. Vou te mostrar o caminho nos primeiros passos. Termine o guia e ganhe um presente!' },
+    { id: 'cacar', titulo: 'A primeira caçada', aba: 'cacar', meta: 3,
+      texto: 'Vá em Aventura > Caçar, escolha a Floresta Sombria e vença 3 criaturas.' },
+    { id: 'equipar', titulo: 'Equipe o presente', aba: 'personagem',
+      texto: 'Deixei um Elmo do Aprendiz na sua mochila. Em Herói > Personagem, dê dois cliques nele para equipar.' },
+    { id: 'loja', titulo: 'Conheça o Mercado', aba: 'mercado',
+      texto: 'Abra o Mercado: lá você compra armas, armaduras e skins de dado com o ouro das caçadas.' },
+    { id: 'historia', titulo: 'A Crônica de Eldrin', aba: 'historia',
+      texto: 'Em Aventura > História, leia a abertura do capítulo 1 e aceite a missão.' },
+    { id: 'arena', titulo: 'A primeira Arena', aba: 'arena',
+      texto: 'Cace até o level 5 e lute 1 vez na Arena contra outro jogador. Coragem!' },
+  ],
+  presenteItem: { tipo: 'elmo', raridade: 'rara', nome: 'Elmo do Aprendiz' },
+  premioFinal: { ouro: 1000, pergaminho: { raridade: 'rara', qtd: 2 } },
+};

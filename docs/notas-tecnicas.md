@@ -219,3 +219,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael — 320x320, do Gemini). Sem a imagem, aparece a
   inicial; monstros usam o retrato do monstro; narrador = 📜.
 
+## Guia do Aventureiro (tutorial; Daniel, nov/2026)
+- Só personagens criados depois desta versão (`criarPersonagem` grava `guia: { passo: 0, abates: 0 }`); os antigos não têm.
+- Texto em `js/historia.js` (`D.GUIA`): boas-vindas, caçar 3 criaturas, equipar o presente (Elmo do Aprendiz raro do
+  level, `item.nome` próprio), abrir o Mercado, aceitar o capítulo 1 da História, lutar 1 vez na Arena (level 5).
+  Prêmio final: 1.000 de ouro + 2 pergaminhos raros. Pular = sem prêmio (pede 2 cliques).
+- Regras: `guiaEstado`, `registrarGuia(p, 'abate'|'aba'|'arena', alvo)`, `verificarGuia` (avança quantos passos estiverem
+  feitos; eventos fora de ordem ficam guardados), `comecarGuia`, `pularGuia`.
+- Tela: `guiaHtml()` no topo do painel (cartão com o Aldric, Ir / Pular), `conferirGuia()` no começo de `telaJogo()`
+  (aviso a cada passo), a aba do passo pisca (`.guia-alvo`, também o menu do Zealot). Ganchos: `encerrar()`, `abrirAba()`
+  e o fim da luta na Arena.
+
