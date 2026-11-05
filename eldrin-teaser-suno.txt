@@ -1,0 +1,69 @@
+ELDRIN TEASER - SUNO NARRATION PROMPT
+==================================================
+
+HOW TO USE IN SUNO
+- Use "Custom" mode.
+- Paste the STYLE text in "Style of Music".
+- Paste the EXCLUDE text in "Exclude styles" (if your Suno has this field).
+- Paste the LYRICS text in "Lyrics".
+- Title: Eldrin - Teaser
+- Generate a few versions and keep the one where the voice SPEAKS (does not sing) and the
+  ending is close to 1 minute. If it goes longer, no problem: I cut it in the video.
+- The lyrics are in Portuguese WITH accents on purpose: without them the voice reads the words wrong.
+
+
+STYLE (paste in "Style of Music"):
+cinematic epic trailer, spoken word narration, deep dramatic male narrator voice, Brazilian Portuguese,
+no singing, dark medieval fantasy, slow build, low war drums, deep strings, dark choir, big orchestral hit
+at the end, 60 seconds
+
+
+EXCLUDE (paste in "Exclude styles"):
+singing, melody vocals, pop, rap, autotune, female vocals, happy
+
+
+LYRICS (paste in "Lyrics"):
+
+[Intro]
+[Spoken Word]
+[Deep male narrator, slow and calm, soft dark strings]
+Há mil anos...
+um demônio de fogo quase reduziu Eldrin a cinzas.
+
+Sete selos o prenderam...
+e foram escondidos pelo reino.
+
+[Spoken Word]
+[Drums start, tension rising]
+Agora...
+os lobos uivam ao meio-dia.
+
+Espinhos negros envenenam a terra.
+
+E um homem de capuz carmesim...
+está quebrando os selos.
+Um por um.
+
+[Spoken Word]
+[Whisper]
+Três já caíram.
+
+[Instrumental Break]
+[Dragon roar, choir rising, big drums]
+
+[Spoken Word]
+[Monstrous demon voice, very deep, slow, echo]
+Mil anos no escuro...
+Dê-me o seu corpo...
+e eu darei o mundo.
+
+[Spoken Word]
+[Narrator, strong and epic, full orchestra]
+Os selos precisam de um guardião.
+
+[Outro]
+[Big orchestral hit, then silence]
+Eldrin.
+A aventura começa agora.
+
+[End]
