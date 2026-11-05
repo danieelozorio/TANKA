@@ -516,7 +516,7 @@ Tanka.dados = {
   // conforme `crescimento` (a Floresta dobra). Velocidade e defesa: ver MONSTRO abaixo.
   // `base` são os valores do 1º monstro; o chefe é calculado a partir do 3º (ver abaixo).
   // Drops dos monstros: iguais em todas as áreas, pela posição do monstro (ver DROPS_CACADA abaixo).
-  // Chefes: dropItem/drops próprios (abaixo, em cada área).
+  // Chefes: drop e pergaminho iguais para todos (D.chefe.drop e D.chefe.pergaminho, abaixo).
   // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
   // ajusteVida: multiplica a vida dos monstros da área (compensa o dano maior dos heróis desde que 3 pontos = +1 de dano).
   // Drops da caçada, iguais em todas as áreas: chance (%) pela posição do monstro (1º, 2º, 3º).
@@ -549,8 +549,7 @@ Tanka.dados = {
         { id: 'cobra', dano: [4, 6], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
         { id: 'urso', dano: [5, 8], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
       ],
-      chefe: { id: 'velgrath', dano: [8, 10], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.',
-        dropItem: [{ raridade: 'rara', chance: 15 }], pergaminhos: { raridade: 'comum', qtd: [1, 3] } },
+      chefe: { id: 'velgrath', dano: [8, 10], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
@@ -561,8 +560,7 @@ Tanka.dados = {
         { id: 'aranha', dano: [15, 20], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
         { id: 'troll', dano: [18, 22], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
       ],
-      chefe: { id: 'morgath', dano: [25, 30], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.',
-        dropItem: [{ raridade: 'rara', chance: 20 }], pergaminhos: { raridade: 'rara', qtd: [1, 3] } },
+      chefe: { id: 'morgath', dano: [25, 30], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
     },
     {
       id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.3,
@@ -573,8 +571,7 @@ Tanka.dados = {
         { id: 'goblin', dano: [26, 35], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
         { id: 'gargula', dano: [31, 42], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
       ],
-      chefe: { id: 'varnok', dano: [38, 52], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.',
-        dropItem: [{ raridade: 'rara', chance: 25 }], pergaminhos: { raridade: 'rara', qtd: [2, 5] } },
+      chefe: { id: 'varnok', dano: [38, 52], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
     },
     {
       id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3, ajusteVida: 1.35,
@@ -585,8 +582,7 @@ Tanka.dados = {
         { id: 'cultista', dano: [38, 52], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
         { id: 'espectro', dano: [46, 63], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
-      chefe: { id: 'guardiao', dano: [56, 75], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.',
-        drops: [{ raridade: 'lendaria', chance: 20 }], dropPadrao: 'epica' },
+      chefe: { id: 'guardiao', dano: [56, 75], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
     },
     {
       id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
@@ -597,8 +593,7 @@ Tanka.dados = {
         { id: 'lagarto', dano: [54, 74], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
         { id: 'mumia', dano: [68, 92], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
-      chefe: { id: 'farao', dano: [82, 110], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.',
-        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+      chefe: { id: 'farao', dano: [82, 110], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
     },
     {
       id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
@@ -609,8 +604,7 @@ Tanka.dados = {
         { id: 'wyvern', dano: [68, 92], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
         { id: 'cavaleiroDraconico', dano: [86, 116], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
-      chefe: { id: 'vharkesh', dano: [103, 140], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.',
-        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+      chefe: { id: 'vharkesh', dano: [103, 140], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
     },
     {
       id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 1.35,
@@ -621,8 +615,7 @@ Tanka.dados = {
         { id: 'demonio', dano: [102, 138], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
         { id: 'elemental', dano: [128, 173], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
-      chefe: { id: 'ignaroth', dano: [154, 208], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.',
-        drops: [{ raridade: 'lendaria', chance: 40 }], dropPadrao: 'epica' },
+      chefe: { id: 'ignaroth', dano: [154, 208], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
     },
   ],
 
@@ -648,7 +641,10 @@ Tanka.dados = {
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
   // e 5x a exp e o ouro (para valer o risco).
-  chefe: { vida: 1.5, ataque: 1.2, velocidade: 1, defesa: 2, exp: 5, ouro: 5, pergaminhos: [1, 3] },
+  // Drop de todos os chefes (Henri, nov/2026): 2% lendário, 10% épico (1 arma, armadura ou mão esquerda; senão nada);
+  // 20% de chance de 1 pergaminho, raridade pela qualidade da caçada (70/22/7/1), sem depender da arma.
+  chefe: { vida: 1.5, ataque: 1.2, velocidade: 1, defesa: 2, exp: 5, ouro: 5,
+    drop: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 10 }], pergaminho: 20 },
 
   // ---------- Masmorras (grupo de 3) ----------
   // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem
@@ -831,10 +827,7 @@ Tanka.dados = {
       // `ouro` e `exp` no chefe da área substituem a conta (5x o 3º monstro).
       exp: c.exp != null ? c.exp : m3.exp * C.exp, ouro: c.ouro != null ? c.ouro : m3.ouro * C.ouro,
       drops: [], dropsArmadura: [], dropsItem: [],
-      // Chefe com `dropItem`: chance de 1 item de qualquer tipo + pergaminhos fixos.
-      // Sem `dropItem`: sempre dropa 1 arma ou armadura pela tabela `drops`.
-      dropItem: c.dropItem || null, pergaminhosChefe: c.pergaminhos || null,
-      dropsChefe: c.drops || [], dropPadrao: c.dropPadrao,
+      // Drop e pergaminho: iguais para todos os chefes (D.chefe.drop / D.chefe.pergaminho).
       imagem: arquivo(c.nome),
     };
   });

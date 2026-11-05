@@ -646,33 +646,32 @@ teste('presença do chefe: soma por abate na área, sorteio e zera ao derrotar',
   const res = vencer('velgrath');
   assert.strictEqual(p.presencaChefe.floresta, 0);
   assert.strictEqual(p.presencaChefe.pantano, 2.1);
-  assert.strictEqual(res.pergaminho, 'comum');
-  assert.ok(res.qtdPergaminhos >= 1 && res.qtdPergaminhos <= 3);
+  assert.ok(!res.pergaminho || res.qtdPergaminhos === 1);   // pergaminho do chefe: 20% de chance de 1
 });
 
-teste('drop do chefe: Velgrath 15% item raro + 1 a 3 pergaminhos comuns; Varnok 2 a 5 raros; Guardião sempre dropa', () => {
+teste('drop do chefe (todos iguais): 2% lendário, 10% épico; 20% de 1 pergaminho com a qualidade da caçada, sem depender da arma', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   p.atributos.sor = 0;
   const N = 20000, rodar = (chefe) => {
-    const c = { nada: 0, lendaria: 0, epica: 0, rara: 0, comum: 0 }, perg = new Set();
+    const c = { nada: 0, lendaria: 0, epica: 0, rara: 0, comum: 0 }, perg = { nada: 0, comum: 0, rara: 0, epica: 0, lendaria: 0 };
     for (let i = 0; i < N; i++) {
       p.inventario = p.inventario.slice(0, 1);
       p.nivel = 1; p.exp = 0;   // sem subir de level (acima da área não cai nada)
       const b = R.iniciarBatalha(p, chefe, rng); b.fim = 'vitoria';
       const res = R.concluirBatalha(p, b);
       const it = res.drop || res.dropArmadura;
-      if (it) { c[it.raridade]++; if (it.tipo === 'secundaria') assert.strictEqual(it.mao, 'orbe'); else if (it.tipo !== 'colar' && it.tipo !== 'anel') assert.strictEqual(it.classe, 'mago'); } else c.nada++;
-      perg.add(res.pergaminho + res.qtdPergaminhos);
+      if (it) { c[it.raridade]++; if (it.tipo === 'secundaria') assert.strictEqual(it.mao, 'orbe'); else assert.strictEqual(it.classe, 'mago'); } else c.nada++;
+      if (res.pergaminho) { assert.strictEqual(res.qtdPergaminhos, 1); perg[res.pergaminho]++; } else perg.nada++;
     }
-    return { c, perg: [...perg].sort() };
+    return { c, perg };
   };
-  const v = rodar('velgrath');
-  assert.ok(Math.abs(v.c.rara / N * 100 - 15) < 1 && v.c.rara + v.c.nada === N, JSON.stringify(v.c));
-  assert.deepStrictEqual(v.perg, ['comum1', 'comum2', 'comum3']);
-  assert.deepStrictEqual(rodar('varnok').perg, ['rara2', 'rara3', 'rara4', 'rara5']);
-  const g = rodar('guardiao');
-  assert.strictEqual(g.c.nada, 0);
-  assert.ok(Math.abs(g.c.lendaria / N * 100 - 20) < 1.2, JSON.stringify(g.c));
+  for (const chefe of ['velgrath', 'guardiao', 'ignaroth']) {
+    const { c, perg } = rodar(chefe);
+    assert.ok(Math.abs(c.lendaria / N * 100 - 2) < 0.5 && Math.abs(c.epica / N * 100 - 10) < 1 && c.rara + c.comum === 0, chefe + ' ' + JSON.stringify(c));
+    const tem = N - perg.nada;
+    assert.ok(Math.abs(tem / N * 100 - 20) < 1, chefe + ' pergaminho ' + tem);
+    assert.ok(Math.abs(perg.comum / tem * 100 - 70) < 3, chefe + ' qualidade ' + JSON.stringify(perg));
+  }
 });
 
 // ---------- Habilidades especiais ----------

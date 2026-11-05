@@ -976,14 +976,11 @@ Tanka.regras = (function () {
     return true;
   }
 
-  // Drop do chefe. Com `dropItem`: chance de 1 item de qualquer tipo (pode não vir nada).
-  // Sem: sempre 1 arma ou armadura, raridade pela tabela do chefe.
+  // Drop do chefe (todos iguais, D.chefe.drop): 2% lendário, 10% épico; senão nada.
+  // O item é 1 arma ou 1 armadura/mão esquerda da classe.
   function dropChefe(p, m, rng) {
-    if (m.dropItem) {
-      var r = rolarRaridade(p, m.dropItem, rng);
-      return r ? itemQualquer(p, r, rng) : null;
-    }
-    var raridade = rolarRaridade(p, m.dropsChefe, rng) || m.dropPadrao;
+    var raridade = rolarRaridade(p, D.chefe.drop, rng);
+    if (!raridade) return null;
     if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
     var pecas = TIPOS_ARMADURA.concat(['secundaria']);
     return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
@@ -1208,12 +1205,12 @@ Tanka.regras = (function () {
       } else if (m.chefe) {
         var premio = dropChefe(p, m, b.rng);
         if (premio && premio.tipo === 'arma') res.drop = premio; else if (premio) res.dropArmadura = premio;
-        var arma = armaEquipada(p);
-        var perg = m.pergaminhosChefe;
-        var faixa = perg ? perg.qtd : D.chefe.pergaminhos;
-        res.pergaminho = perg ? perg.raridade : arma ? arma.raridade : 'comum';
-        res.qtdPergaminhos = faixa[0] + Math.floor(b.rng() * (faixa[1] - faixa[0] + 1));
-        mudarPergaminho(p, res.pergaminho, res.qtdPergaminhos);
+        // 20% de chance de 1 pergaminho, raridade pela qualidade da caçada (não depende da arma)
+        if (b.rng() * 100 < D.chefe.pergaminho) {
+          res.pergaminho = sortearRaridadeDrop(b.rng);
+          res.qtdPergaminhos = 1;
+          mudarPergaminho(p, res.pergaminho, 1);
+        }
       } else {
         res.drop = rolarDrop(p, b.monstroId, b.rng);
         res.dropArmadura = rolarDropArmadura(p, b.monstroId, b.rng);
