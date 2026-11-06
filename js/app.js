@@ -3926,6 +3926,8 @@
       L.hpM = L.sim.inicio.salas[L.sala].map(function (m) { return m.hp != null ? m.hp : m.hpMax; });
       L.registro.push('<p class="destaque">— ' + NOMES_SALA[L.sala] + ' —</p>');
       atualizarMusica();
+    } else if (ev.tipo === 'habM') {
+      L.registro.push('<p class="dano-recebido">💥 ' + esc(monstros[ev.i].nome) + ' usa <strong>' + esc(ev.nome) + '</strong> em todo o grupo!</p>');
     } else if (ev.tipo === 'hab') {
       L.registro.push('<p class="habilidade-usada">' + (ev.cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + esc(herois[ev.i].nome) + ' usa <strong>' + esc(ev.nome) + '</strong>'
         + (ev.cura ? ' e cura o grupo' : '') + '!</p>');
@@ -5266,6 +5268,8 @@
     var html = '<div class="caixa-interna boss-al"><div class="boss-al-topo"><div class="moldura">' + F.imagemMonstro(info.id) + '</div><div class="boss-al-info">'
       + '<div class="suave pequeno">Boss da aliança · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
       + (info.descricao ? '<p class="suave pequeno boss-al-desc">' + esc(info.descricao) + '</p>' : '')
+      + (info.area ? '<p class="menos pequeno">⚠️ <strong>' + esc(info.area.nome) + '</strong>: a cada ' + info.area.cada + ' ataques, tira '
+        + info.area.vidaPct + '% da vida de todo o grupo. Leve um Curandeiro!</p>' : '')
       + barra('hp', hp, hpMax, hp.toLocaleString('pt-BR') + ' / ' + hpMax.toLocaleString('pt-BR'), 'boss-al') + situacao + '</div></div>';
     // Prêmio
     var infoPr = R.bossAlianca(b.nivel), pr = R.premioBossAlianca(p, b.nivel);

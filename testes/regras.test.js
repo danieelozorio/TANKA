@@ -1757,3 +1757,18 @@ teste('poder dos itens: +6 de uma raridade ≈ +0 da raridade seguinte (arma e a
     assert.ok(Math.abs(p6 / p0 - 1) <= 0.12, 'peitoral nível ' + n + ' ' + rs[i] + '+6=' + p6 + ' x ' + rs[i + 1] + '+0=' + p0);
   }
 });
+
+teste('boss da aliança: do 2º boss em diante, golpe em área tira % da vida de todo o grupo', () => {
+  const B = D.BOSS_ALIANCA;
+  assert.ok(!R.bossAlianca(1).area, 'o 1º boss não tem golpe em área');
+  const n = B.niveisPorChefe + 1, area = R.bossAlianca(n).area;
+  assert.ok(area && area.cada > 0 && area.vidaPct > 0);
+  const herois = ['cavaleiro', 'arqueiro'].map((c) => { const p = R.criarPersonagem('A' + c, 'masculino', 'humano', c); R.admin.subirNivel(p, 16); return p; });
+  const r = R.simularBossAlianca(herois, n, 1e9, 5);
+  const hab = r.eventos.findIndex((e) => e.tipo === 'habM');
+  assert.ok(hab >= 0, 'o boss usa o golpe em área');
+  const golpes = r.eventos.slice(hab + 1, hab + 3);
+  assert.ok(golpes.every((e) => e.tipo === 'golpe' && e.de === 'm' && e.area), 'acerta cada herói vivo');
+  const hpMax = r.inicio.herois.map((h) => h.hpMax);
+  golpes.filter((e) => e.acerto).forEach((e) => assert.strictEqual(e.dano, Math.max(1, Math.round(hpMax[e.alvo] * area.vidaPct / 100))));
+});

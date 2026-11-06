@@ -766,17 +766,25 @@ Tanka.dados = {
     duracaoMin: 60, grupoMax: 4, limiteAtaques: 15,
     // chefes: de quem vêm os números (vida, ataque, defesa, prêmio) de cada fase; bosses: quem aparece no jogo
     // (nome, descrição e imagem próprios, "Os Libertos"), na mesma ordem.
+    // area (Daniel, nov/2026: a partir do 2º boss, para valorizar o Curandeiro): a cada `cada` ataques do boss, um golpe
+    // que acerta TODOS os heróis vivos e tira `vidaPct`% da vida máxima de cada um (no lugar do ataque normal; a defesa
+    // não reduz, a esquiva evita). Calibrado: sem Curandeiro ~3 dos 4 caem e o dano cai; com Curandeiro ~0–1 cai e o
+    // grupo faz ~10–25% mais dano.
     chefes: ['varnok', 'guardiao', 'farao', 'vharkesh', 'ignaroth'], niveisPorChefe: 3,
     bosses: [
       { id: 'boss-thalgor', nome: 'Thalgor, o Carcereiro de Ferro',
         descricao: 'O gigante de ferro que vigiava as prisões dos selos. Enlouqueceu quando o primeiro selo rachou.' },
-      { id: 'boss-nyxara', feminino: true, nome: 'Nyxara, a Rainha das Aranhas Sombrias',
+      { id: 'boss-nyxara', area: { nome: 'Chuva de Teias Venenosas', cada: 2, vidaPct: 50 },
+        feminino: true, nome: 'Nyxara, a Rainha das Aranhas Sombrias',
         descricao: 'Metade elfa sombria, metade aranha gigante. Tece suas teias nas ruínas embaixo de Dravenhold.' },
-      { id: 'boss-sylvaris', feminino: true, nome: 'Sylvaris, a Hidra das Brumas',
+      { id: 'boss-sylvaris', area: { nome: 'Sopro Congelante', cada: 2, vidaPct: 50 },
+        feminino: true, nome: 'Sylvaris, a Hidra das Brumas',
         descricao: 'Hidra de três cabeças que dormia no fundo do pântano. Uma das cabeças sopra névoa congelante.' },
-      { id: 'boss-korvath', nome: 'Korvath, o Ceifador de Cinzas',
+      { id: 'boss-korvath', area: { nome: 'Ceifada de Cinzas', cada: 2, vidaPct: 55 },
+        nome: 'Korvath, o Ceifador de Cinzas',
         descricao: 'Morto-vivo gigante com uma foice em brasa. Colhe as almas dos campos de batalha queimados.' },
-      { id: 'boss-azhgar', nome: 'Azhgar, o Titã do Abismo',
+      { id: 'boss-azhgar', area: { nome: 'Maré do Abismo', cada: 2, vidaPct: 60 },
+        nome: 'Azhgar, o Titã do Abismo',
         descricao: 'Colosso de obsidiana e vazio, preso por correntes de luz. Veio do outro lado do mar, onde dorme o oitavo selo.' },
     ],
     vida: 30, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,

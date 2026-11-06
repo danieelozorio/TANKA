@@ -1940,6 +1940,25 @@ Tanka.regras = (function () {
             return { vitoria: false, tempo: true, sala: si, inicio: inicio, eventos: eventos };
           }
           if (ator.atordoado > 0) { ator.atordoado -= 1; ev.atordoado = true; registrar(ev); continue; }
+          // Dano em área (bosses da aliança): a cada `area.cada` ataques, acerta todos os heróis vivos e tira `area.vidaPct`%
+          // da vida máxima de cada um (a defesa não reduz; a esquiva e a Sombra evitam).
+          ator.nAtaques = (ator.nAtaques || 0) + 1;
+          if (ator.area && ator.nAtaques % ator.area.cada === 0) {
+            var mi = ms.indexOf(ator);
+            registrar({ tipo: 'habM', i: mi, nome: ator.area.nome });
+            vivos(hs).forEach(function (h) {
+              var e = { tipo: 'golpe', sala: si, de: 'm', i: mi, alvo: hs.indexOf(h), acerto: false, critico: false, dano: 0, caiu: false, area: true };
+              if (h.L.furtivo) { h.L.furtivo = false; e.sombra = true; }
+              else if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - h.s.evasao, 5, 95)) {
+                var da = Math.max(1, Math.round(h.hpMax * ator.area.vidaPct / 100));
+                e.acerto = true; e.dano = da;
+                h.hp = Math.max(0, h.hp - da);
+                e.caiu = h.hp === 0;
+              }
+              registrar(e);
+            });
+            continue;
+          }
           // Grito de Desafio: os monstros atacam quem provocou.
           var lista = vivos(hs), provocador = lista.filter(function (x) { return x.L.provocaAte >= x.L.turno; })[0];
           var heroi = provocador || lista[Math.floor(rng() * lista.length)];
@@ -1974,7 +1993,7 @@ Tanka.regras = (function () {
     var P = B.premio, fp = 1 + P.porNivel * k, ouro = Math.round(m.ouro * P.ouro * fp);
     return { id: B.bosses && B.bosses[ic] ? B.bosses[ic].id : B.chefes[ic], indiceChefe: ic, nivel: n,
       nome: nomeBase + (titulo ? ' ' + (B.bosses && B.bosses[ic] && B.bosses[ic].feminino ? titulo.replace(/o$/, 'a') : titulo) : ''),
-      nomeCompleto: quem.nome, descricao: quem.descricao,
+      nomeCompleto: quem.nome, descricao: quem.descricao, area: B.bosses && B.bosses[ic] && B.bosses[ic].area || null,
       premio: { ouro: ouro, exp: Math.round(m.exp * P.exp * fp), alianca: ouro * P.alianca,
         pergaminho: P.pergaminho.qtd, raridadePergaminho: P.pergaminho.raridade[ic] },
       hp: Math.round(m.hp * B.vida * Math.pow(B.vidaPorNivel, k)),
