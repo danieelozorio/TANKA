@@ -232,6 +232,7 @@ Tanka.contas = (function () {
       criar: soServidor, convidar: soServidor, responder: soServidor, pedir: soServidor, decidir: soServidor, sair: soServidor,
       expulsar: soServidor, cargo: soServidor, desfazer: soServidor, mural: soServidor, brasao: soServidor, doar: soServidor,
       bonus: soServidor, chat: function () { return Promise.resolve([]); }, chatEnviar: soServidor, admin: soServidor,
+      skillComprar: soServidor, missaoRegistrar: function () { return Promise.resolve(); },
       boss: { estado: soServidor, hora: soServidor, salaCriar: soServidor, salaEntrar: soServidor, salaSair: soServidor,
         atacar: soServidor, concluir: soServidor },
     },

@@ -743,7 +743,47 @@ Tanka.dados = {
     vagasIniciais: 15, vagasPorNivel: 3, maxOficiais: 3, nivelMax: 10,
     expProximo: [50000, 100000, 200000, 400000, 700000, 1000000, 1500000, 2000000, 3000000],   // Lv1->2 ... Lv9->10
     doacaoMinima: 100, esperaHoras: 24, liderSumidoDias: 14, ativoDias: 3, muralMax: 300,
-    bonus: { custo: 20000, dias: 7, minimo: 5, maximo: 15 },   // % = 5 no Lv1 até 15 no Lv10
+    bonus: { custo: 20000, dias: 7, minimo: 5, maximo: 15 },   // (antigo: bônus de 7 dias; trocado pelas skills do clã)
+    // Doação (Daniel, nov/2026): cada jogador doa no máximo `doacaoMaxDia` de ouro por dia (zera à meia-noite de Brasília).
+    doacaoMaxDia: 3000,
+    // Skills do clã (Daniel, nov/2026): compradas pelo líder com o ouro do tesouro e PERMANENTES para todos os membros.
+    // O nível da skill nunca passa do nível do clã (clã nível 2 libera as skills nível 2). Preço do nível n = precos[n-1].
+    // porNivel: quanto cada nível soma. Combate (dano, crítico, resistência, vida, velocidade, esquiva) vale só contra
+    // monstros (caçada, masmorra e bosses), nunca na Arena. Ícones: assets/cla/skill-<id>.webp (sem a arte, um símbolo).
+    skillPrecos: [25000, 40000, 65000, 100000, 150000, 225000, 325000, 475000, 700000, 1000000],
+    skills: [
+      { id: 'exp', nome: 'Sabedoria', simbolo: '📖', porNivel: 2, unidade: '% de exp', descricao: 'Mais exp na caçada.' },
+      { id: 'ouro', nome: 'Cofre Cheio', simbolo: '💰', porNivel: 2, unidade: '% de ouro', descricao: 'Mais ouro na caçada.' },
+      { id: 'dano', nome: 'Fúria do Clã', simbolo: '⚔', porNivel: 1.5, unidade: '% de dano', descricao: 'Mais dano contra monstros.' },
+      { id: 'critico', nome: 'Olho de Águia', simbolo: '🎯', porNivel: 0.5, unidade: '% de chance de crítico', descricao: 'Mais chance de acerto crítico.' },
+      { id: 'danoCritico', nome: 'Golpe Brutal', simbolo: '💥', porNivel: 3, unidade: '% de dano crítico', descricao: 'Críticos mais fortes.' },
+      { id: 'resistencia', nome: 'Muralha', simbolo: '🛡', porNivel: 2, unidade: '% de defesa', descricao: 'Mais defesa e defesa mágica.' },
+      { id: 'vida', nome: 'Vigor', simbolo: '❤', porNivel: 2, unidade: '% de vida', descricao: 'Mais vida máxima contra monstros.' },
+      { id: 'velocidade', nome: 'Passo Ligeiro', simbolo: '💨', porNivel: 1, unidade: '% de velocidade', descricao: 'Ataca mais vezes.' },
+      { id: 'esquiva', nome: 'Sombra Ágil', simbolo: '🌀', porNivel: 0.5, unidade: '% de esquiva', descricao: 'Desvia de mais golpes.' },
+      { id: 'fortuna', nome: 'Fortuna', simbolo: '🍀', porNivel: 2, unidade: '% de chance de drop', descricao: 'Mais chance de itens caírem.' },
+    ],
+    // Missões do clã (Daniel, nov/2026): o progresso é a soma de todos os membros. Cumpriu: `ouro` vai para o tesouro,
+    // x (1 + ouroPorNivel x (nível do clã - 1)). Semanais: além do ouro, `buff`% de dano contra o boss do clã até o fim
+    // da semana (segunda 00:00, Brasília; somam). tipo: monstros (caçada), encantar (tentativas na Forja), arena (lutas
+    // atacando), masmorra (vitórias), bossCla (boss do clã derrotado; contado pelo servidor).
+    missoesOuroPorNivel: 0.2,
+    missoes: {
+      diarias: [
+        { tipo: 'monstros', meta: 1000, ouro: 6000, nome: 'Caçar 1.000 monstros' },
+        { tipo: 'encantar', meta: 50, ouro: 4000, nome: 'Encantar 50 vezes' },
+        { tipo: 'arena', meta: 50, ouro: 4000, nome: 'Lutar 50 vezes na Arena' },
+        { tipo: 'masmorra', meta: 10, ouro: 5000, nome: 'Vencer 10 masmorras' },
+      ],
+      semanais: [
+        { tipo: 'monstros', meta: 15000, ouro: 40000, buff: 5, nome: 'Caçar 15.000 monstros' },
+        { tipo: 'encantar', meta: 500, ouro: 30000, buff: 5, nome: 'Encantar 500 vezes' },
+        { tipo: 'arena', meta: 400, ouro: 30000, buff: 5, nome: 'Lutar 400 vezes na Arena' },
+        { tipo: 'bossCla', meta: 4, ouro: 50000, buff: 5, nome: 'Derrotar o boss do clã 4 vezes' },
+      ],
+    },
+    // O jogo manda o progresso em lotes; o servidor aceita no máximo isto por envio (contra exageros).
+    missoesMaxEnvio: { monstros: 300, encantar: 40, arena: 10, masmorra: 5 },
     brasao: {
       formas: ['classico', 'redondo', 'pontudo', 'estandarte'],
       cores: ['#8e1b1b', '#1f4f8e', '#2d6b34', '#5b2a86', '#b8860b', '#2b2b2b', '#7a3e12', '#1f6b6b'],

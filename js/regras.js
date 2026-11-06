@@ -733,7 +733,12 @@ Tanka.regras = (function () {
   }
 
   // Status vêm dos atributos (básicos + equipamentos) e dos bônus diretos das armaduras.
-  function status(p) {
+  // pve = true: soma as skills de combate do clã (só contra monstros: caçada, masmorra e bosses; nunca na Arena).
+  function status(p, pve) {
+    var s = statusBase(p);
+    return pve ? comCla(s, p) : s;
+  }
+  function statusBase(p) {
     var a = atributosTotais(p);
     var eq = bonusEquipamentos(p);
     var arma = armaEquipada(p);
@@ -773,6 +778,26 @@ Tanka.regras = (function () {
       danoPvP: !arma ? 0 : arma.extras ? arma.extras.pvp || 0 : D.RARIDADE_ARMA.pvp[idxArma],
     }, p), p), p);
   }
+  // ---------- Skills do clã (Daniel, nov/2026) ----------
+  // p.cla = { id, skills: { exp: 2, dano: 1, ... } }: cópia que o jogo guarda ao abrir o clã (vai junto nos dados do
+  // personagem, então a masmorra e o boss calculam igual em todos os aparelhos).
+  function skillCla(p, id) { return Math.max(0, Math.floor((p.cla && p.cla.skills && p.cla.skills[id]) || 0)); }
+  function defSkillCla(id) { return D.ALIANCA.skills.filter(function (k) { return k.id === id; })[0] || null; }
+  function bonusCla(p, id) { var d = defSkillCla(id); return d ? skillCla(p, id) * d.porNivel : 0; }
+  function precoSkillCla(nivel) { return D.ALIANCA.skillPrecos[nivel - 1] || null; }
+  function comCla(s, p) {
+    if (!p.cla) return s;
+    var pct = function (v, x) { return Math.round(v * (1 + x / 100)); }, b = function (id) { return bonusCla(p, id); };
+    if (b('vida')) s.hpMax = pct(s.hpMax, b('vida'));
+    if (b('dano')) s.dano = [pct(s.dano[0], b('dano')), pct(s.dano[1], b('dano'))];
+    if (b('critico')) { s.chanceCritico += b('critico'); s.chanceCriticoMagico += b('critico'); }
+    if (b('danoCritico')) { s.danoCritico += b('danoCritico'); s.danoCriticoMagico += b('danoCritico'); }
+    if (b('resistencia')) { s.defesa = pct(s.defesa, b('resistencia')); s.defesaMagica = pct(s.defesaMagica, b('resistencia')); }
+    if (b('velocidade')) s.velocidade = Math.max(1, pct(s.velocidade, b('velocidade')));
+    if (b('esquiva')) s.evasao += b('esquiva');
+    return s;
+  }
+
   // Bônus de conjunto (2/3/4 peças): somados depois da passiva.
   function comConjunto(s, p) {
     var b = bonusConjuntos(p);
@@ -854,7 +879,8 @@ Tanka.regras = (function () {
 
   // Uma única rolagem; as chances são cumulativas (ex.: Urso: <10 épica, <40 rara).
   function rolarRaridade(p, tabela, rng) {
-    var mult = 1 + atributosTotais(p).sor * D.SORTE.drop / 100;   // Sorte: +0,2% sobre a chance base por ponto (nov/2026)
+    var mult = (1 + atributosTotais(p).sor * D.SORTE.drop / 100)   // Sorte: +0,2% sobre a chance base por ponto (nov/2026)
+      * (1 + bonusCla(p, 'fortuna') / 100);                         // skill Fortuna do clã
     var r = rng() * 100;
     var acumulado = 0;
     for (var i = 0; i < tabela.length; i++) {
@@ -1061,7 +1087,7 @@ Tanka.regras = (function () {
 
   function iniciarBatalha(p, monstroId, rng) {
     var m = D.monstros[monstroId];
-    var s = status(p);
+    var s = status(p, true);   // contra monstro: com as skills do clã
     return {
       monstroId: monstroId,
       rng: rng || Math.random,
@@ -1861,7 +1887,7 @@ Tanka.regras = (function () {
     var rng = rngSemente(semente);
     var hs = herois.map(function (dados) {
       var p = normalizar(JSON.parse(JSON.stringify(dados)));
-      var s = status(p);
+      var s = status(p, true);   // com as skills do clã
       return { nome: p.nome, classe: p.classe, classe2: p.talentos && p.talentos.classe2 || null, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
@@ -1921,7 +1947,7 @@ Tanka.regras = (function () {
             if (!alvo) return;
             var e = n === 0 ? ev : { tipo: 'golpe', sala: si, de: 'h', i: ev.i, acerto: false, critico: false, dano: 0, caiu: false };
             e.alvo = ms.indexOf(alvo);
-            var g = calcularGolpe(H.s, L, alvo, { mult: mult }, rng);
+            var g = calcularGolpe(H.s, L, alvo, { mult: mult * (1 + (opc.buffDano || 0) / 100) }, rng);
             if (g.acerto) {
               e.acerto = true; e.critico = g.critico; e.dano = g.dano;
               alvo.hp = Math.max(0, alvo.hp - g.dano);
@@ -2003,10 +2029,11 @@ Tanka.regras = (function () {
 
   // Uma investida contra o boss. hpAtual: vida que o boss ainda tem. Retorna o resultado do motor
   // (vitoria = o boss morreu) com `danos` (dano de cada herói, na ordem) e `dano` (total).
-  function simularBossAlianca(herois, nivel, hpAtual, semente) {
+  // buff: % a mais de dano (missões semanais do clã; vem do servidor junto com a investida).
+  function simularBossAlianca(herois, nivel, hpAtual, semente, buff) {
     var b = bossAlianca(nivel);
     var boss = Object.assign({}, b, { hpMax: b.hp, hp: Math.max(1, Math.min(b.hp, Math.round(hpAtual))) });
-    var r = simularSalas(herois, [[boss]], semente, { limiteAtaques: D.BOSS_ALIANCA.limiteAtaques });
+    var r = simularSalas(herois, [[boss]], semente, { limiteAtaques: D.BOSS_ALIANCA.limiteAtaques, buffDano: buff || 0 });
     r.danos = herois.map(function () { return 0; });
     r.eventos.forEach(function (e) { if (e.tipo === 'golpe' && e.de === 'h' && e.acerto) r.danos[e.i] += e.dano; });
     var total = r.danos.reduce(function (a, x) { return a + x; }, 0);
@@ -2329,6 +2356,7 @@ Tanka.regras = (function () {
     bossAlianca: bossAlianca,
     simularBossAlianca: simularBossAlianca,
     premioBossAlianca: premioBossAlianca,
+    skillCla: skillCla, defSkillCla: defSkillCla, bonusCla: bonusCla, precoSkillCla: precoSkillCla,
     tabelaBossAlianca: tabelaBossAlianca,
     itemBossAlianca: itemBossAlianca,
     fatorExp: fatorExp,

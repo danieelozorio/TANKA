@@ -317,3 +317,26 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   golpes com `area: true`. Para caber 2–3 golpes em área por investida: `limiteAtaques` 15 -> 25 e `vida` 30 -> 45
   (mesmo nº de investidas: ~11–18 por boss com grupo de 4). Simulação: sem Curandeiro ~2 dos 4 caem; com Curandeiro
   ninguém cai (dano parecido: o Curandeiro cura em vez de bater).
+
+## Clã (antiga Aliança) — skills, doação e missões (Daniel, nov/2026)
+- **Nome:** na tela tudo virou "Clã" (textos de app.js e mensagens do servidor). Por dentro continua `alianca` (tabelas,
+  funções, `estado.alianca`, ids de botão `al-*`), para não quebrar nada.
+- **Doação:** no máximo `ALIANCA.doacaoMaxDia` (3.000) de ouro por jogador por dia (`alianca_doacoes`, conferido em
+  `alianca_doar`; `alianca_estado` manda `doado_hoje`). Continua virando exp do clã + tesouro.
+- **Skills (substituem os bônus de 7 dias, que só aparecem se ainda estiverem ativos):** `ALIANCA.skills` (10: exp, ouro,
+  dano, critico, danoCritico, resistencia, vida, velocidade, esquiva, fortuna; `porNivel`) e `ALIANCA.skillPrecos`
+  (25k, 40k, 65k, 100k, 150k, 225k, 325k, 475k, 700k, 1M). Só o líder compra (`alianca_skill_comprar`, tesouro), nível da
+  skill <= nível do clã, permanentes (`alianca_skills`). O jogo copia as skills para `p.cla = { id, skills }`
+  (`sincronizarCla` em app.js, ao carregar o clã; sai do clã = apaga), então masmorra e boss calculam igual em todos.
+  Regras: `status(p, true)` (pve) soma `comCla` — usado em `iniciarBatalha` (caçada e Chefe Mundial) e `simularSalas`
+  (masmorra e boss do clã). `status(p)` normal (ficha, poder, ranking, Arena) NÃO muda. exp/ouro em `bonusAlianca()`
+  (app.js); Fortuna multiplica a chance em `rolarRaridade`. Ícones redondos: `assets/cla/skill-<id>.webp` (prompts com o
+  Daniel; sem a arte aparece o símbolo do `simbolo`).
+- **Missões do clã:** `ALIANCA.missoes.diarias/semanais` ({tipo, meta, ouro, buff}); progresso somado em
+  `alianca_missoes` (periodo dia|semana, chave = dia_jogo() ou `alianca_semana()` = segunda 00:00). O jogo junta e manda a
+  cada 30 s (`missaoCla`/`enviarMissoesCla`; tipos monstros, encantar, arena, masmorra; teto por envio
+  `missoesMaxEnvio`); `bossCla` é contado pelo servidor quando o boss do clã morre. Cumpriu = ouro no tesouro x (1 + 0,2 x
+  (nível-1)). Semanais cumpridas somam `buff`% de dano contra o boss do clã (`alianca_boss_buff`, vai em
+  `alianca_boss_runs.buff` e no `simularBossAlianca(..., buff)` via `opc.buffDano`).
+- Telas: Clã | ✦ Skills | 📜 Missões | ⚔ Boss do clã (`estado.aliancaVista`). Testes: regras.test.js ("skills do clã") e
+  banco.test.sql (doação por dia, skills, missões, buff, boss conta na semanal).

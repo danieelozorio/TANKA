@@ -590,7 +590,7 @@
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -1786,6 +1786,7 @@
     estado.encantoPendente = null;
     if (tentativa) {
       R.registrarMissao(p, 'encantar', 1, C.agora());
+      missaoCla('encantar', 1);
       if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
       salvar();
       abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
@@ -2068,7 +2069,7 @@
         return linhaAmigo(x, estado.amigoAberto !== Number(x.pedido) ? '' : estado.removerAmigo === x.pedido
           ? bt('amigo-remover', x, 'Confirmar', 'perigo') + '<button class="btn secundario" data-acao="amigo-manter">Cancelar</button>'
           : '<button class="btn" data-acao="grupo-convidar" data-id="' + esc(x.id) + '" data-nome="' + esc(x.nome) + '">Convidar para o grupo</button>'
-              + '<button class="btn secundario" data-acao="amigo-alianca" data-nome="' + esc(x.nome) + '">Convidar para a aliança</button>'
+              + '<button class="btn secundario" data-acao="amigo-alianca" data-nome="' + esc(x.nome) + '">Convidar para o clã</button>'
             + '<button class="btn secundario" data-acao="amigo-privado" data-id="' + esc(x.id) + '" data-nome="' + esc(x.nome) + '">Privado</button>'
             + '<button class="btn secundario" data-acao="amigo-perfil" data-id="' + esc(x.id) + '">Perfil</button>'
             + bt('amigo-pedir-remover', x, 'Excluir', 'secundario'));
@@ -2193,7 +2194,7 @@
       + grupo('Ouro', 'Soma ou tira ouro do personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('ouro', [-1000, -10000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('zerar-ouro', [0], function () { return 'Zerar'; }, 'menos'))
-      + grupo('Reputação', 'Soma ou tira reputação do personagem (Arena, alianças e itens especiais).',
+      + grupo('Reputação', 'Soma ou tira reputação do personagem (Arena, clãs e itens especiais).',
         botoes('reputacao', [100, 1000, 10000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('reputacao', [-100, -1000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('reputacao', [-1000000], function () { return 'Zerar'; }, 'menos'))
@@ -2229,8 +2230,8 @@
       + grupo('Pedidos de senha', 'Jogadores que clicaram em "Esqueci a senha" com usuário e e-mail certos. Gere a senha temporária e mande para o e-mail do cadastro.',
         '<button class="btn" data-acao="senha-pedidos">' + (estado.adminSenhas ? 'Atualizar pedidos' : 'Ver pedidos') + '</button>')
       + '</div>' + adminSenhasHtml() + '<div class="itens">'
-      + grupo('Alianças', 'Todas as alianças do jogo: renomear, dar exp, trocar o líder ou apagar.',
-        '<button class="btn" data-acao="al-admin-listar">' + (estado.adminAliancas ? 'Atualizar lista' : 'Ver alianças') + '</button>')
+      + grupo('Clãs', 'Todos os clãs do jogo: renomear, dar exp, trocar o líder ou apagar.',
+        '<button class="btn" data-acao="al-admin-listar">' + (estado.adminAliancas ? 'Atualizar lista' : 'Ver clãs') + '</button>')
       + '</div>'
       + (estado.adminAliancas ? '<div class="itens">' + (estado.adminAliancas.length ? estado.adminAliancas.map(function (a) {
         return cartaAlianca(a, '<span class="suave pequeno">Líder: ' + esc(a.lider || '—') + '</span>'
@@ -2238,7 +2239,7 @@
             var x = o.split(':');
             return '<button class="btn btn-pequeno' + (x[0] === 'apagar' ? ' perigo' : ' secundario') + '" data-acao="al-admin" data-op="' + x[0] + '" data-id="' + a.id + '">' + x[1] + '</button>';
           }).join(''));
-      }).join('') : '<p class="suave">Nenhuma aliança.</p>') + '</div>' : '');
+      }).join('') : '<p class="suave">Nenhum clã.</p>') + '</div>' : '');
   }
 
   function resultadoHtml() {
@@ -2494,6 +2495,7 @@
     var res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
     if (res.resultado === 'vitoria') {
       R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
+      missaoCla('monstros', 1);
       if (D.monstros[b.monstroId].chefe) R.registrarMissao(estado.personagem, 'chefe', 1, C.agora());
       if (R.registrarHistoria(estado.personagem, 'abate', b.monstroId)) avisoHistoria();
       R.registrarGuia(estado.personagem, 'abate');
@@ -3809,7 +3811,7 @@
           R.mudarPergaminho(p, perg.raridade, nPerg);
           salvar();
           avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
-            + (perg.boss ? ' do boss da aliança!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
+            + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
         // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.
@@ -3818,12 +3820,12 @@
           var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
           var subiu = R.ganharExp(p, xp);
           salvar();
-          avisar('Boss da aliança derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
+          avisar('Boss do clã derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
           continue;
         }
         if (rec.item && rec.item.tipo === 'bossItem') {
           if (R.mochilaCheia(p)) {
-            if (!avisouCheia) avisar('Mochila cheia! Seu item do boss da aliança está guardado: libere espaço para recebê-lo.');
+            if (!avisouCheia) avisar('Mochila cheia! Seu item do boss do clã está guardado: libere espaço para recebê-lo.');
             avisouCheia = true;
             continue;
           }
@@ -3831,7 +3833,7 @@
           var ib = R.itemBossAlianca(p, rb.raridade);
           p.inventario.push(ib);
           salvar();
-          avisar('Maior dano no boss da aliança! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
+          avisar('Maior dano no boss do clã! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
           continue;
         }
         if (R.mochilaCheia(p)) {
@@ -3876,6 +3878,7 @@
     if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
       mis.runs = mis.runs.concat(run.id).slice(-20);
       R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
+      missaoCla('masmorra', 1);
       if (R.registrarHistoria(estado.personagem, 'masmorra', run.masmorra)) avisoHistoria();
       salvar();
     }
@@ -3982,7 +3985,7 @@
       var aindaAberto = !caiu && !(sv && sv.estado && sv.estado !== 'aberto');
       var podeAtacar = aindaAberto && L.run.lider === estado.personagem.id;
       fim = '<div class="resultado ' + (caiu ? 'vitoria-chefe' : 'vitoria') + '"><h2>' + (caiu ? 'O BOSS CAIU!' : 'Investida concluída') + '</h2>'
-        + '<p>' + (caiu ? 'A aliança derrotou ' + esc(L.boss.nome) + '! Todos que deram dano hoje recebem o prêmio (chega sozinho). Amanhã ele volta mais forte.'
+        + '<p>' + (caiu ? 'O clã derrotou ' + esc(L.boss.nome) + '! Todos que deram dano hoje recebem o prêmio (chega sozinho). Amanhã ele volta mais forte.'
           : 'Dano desta investida: <strong>' + danoTotal.toLocaleString('pt-BR') + '</strong>.' + (sv && Number(sv.dano) < L.sim.dano ? ' (Outro grupo bateu ao mesmo tempo: contou só a vida que faltava.)' : '')
             + (sv && sv.estado && sv.estado !== 'aberto' && !caiu ? ' O boss já tinha fechado: este dano não contou.' : ''))
         + '</p><p class="suave pequeno">' + L.sim.inicio.herois.map(function (h, i) { return esc(h.nome) + ': ' + L.sim.danos[i].toLocaleString('pt-BR'); }).join(' · ') + '</p>'
@@ -3994,7 +3997,7 @@
         : '<div class="resultado derrota"><h2>Derrota</h2><p>O grupo caiu na ' + NOMES_SALA[L.sim.sala].toLowerCase() + '. Ninguém perdeu nada e a entrada não foi gasta.</p>';
       fim += '<div class="botoes"><button class="btn" data-acao="luta-fechar">Voltar</button></div></div>';
     }
-    return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss da aliança · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
+    return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss do clã · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
       + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
@@ -4253,7 +4256,7 @@
         + (estado.cacada ? '<p class="menos">Pare a caçada para atacar.</p>' : !podeAtacar ? '<p class="menos">Vida muito baixa: espere recuperar ou beba uma poção.</p>' : '');
     } else if (b && b.estado === 'derrotado') {
       h += '<div class="resultado vitoria-chefe"><h3>Ignaroth caiu!</h3><p>Golpe final: <strong>' + esc(b.golpe_final || '?') + '</strong> (título "' + esc(cfg.titulo) + '").'
-        + (b.alianca_vencedora ? ' A aliança <strong>' + esc(b.alianca_vencedora) + '</strong> ganhou ' + Number(b.bonus_alianca || 0).toLocaleString('pt-BR') + ' de ouro no tesouro.' : '')
+        + (b.alianca_vencedora ? ' O clã <strong>' + esc(b.alianca_vencedora) + '</strong> ganhou ' + Number(b.bonus_alianca || 0).toLocaleString('pt-BR') + ' de ouro no tesouro.' : '')
         + '</p></div>';
     } else if (b && b.estado === 'dormindo') {
       h += '<div class="resultado derrota"><h3>Ignaroth voltou a dormir</h3><p>O reino não conseguiu derrubá-lo a tempo. Quem atacou ganhou o prêmio de consolação.</p></div>';
@@ -4274,12 +4277,12 @@
     var al = (e.aliancas || []).map(function (a, i) {
       return '<tr><td>' + (i + 1) + 'º</td><td>' + siglaHtml(a.sigla) + esc(a.nome) + '</td><td>' + Number(a.dano).toLocaleString('pt-BR') + '</td></tr>';
     }).join('');
-    if (al) h += '<h3>Alianças</h3><table class="boss-rank"><tr><th></th><th>Aliança</th><th>Dano</th></tr>' + al + '</table>';
+    if (al) h += '<h3>Clãs</h3><table class="boss-rank"><tr><th></th><th>Clã</th><th>Dano</th></tr>' + al + '</table>';
     h += '<h3>Prêmios</h3><ul class="boss-premios">'
       + '<li>Se cair a tempo: todos que atacaram ganham o ouro e a exp de ' + esc(chefe.nome) + ' × número de ataques.</li>'
       + '<li>Top 10 de dano: ' + cfg.epica + '% de chance de item épico ou ' + cfg.lendaria + '% de lendário, e 1 pergaminho.</li>'
       + '<li>Golpe final: o título "' + esc(cfg.titulo) + '".</li>'
-      + '<li>Aliança com mais dano: ' + cfg.aliancaPct + '% do dano dela em ouro no tesouro.</li>'
+      + '<li>Clã com mais dano: ' + cfg.aliancaPct + '% do dano dele em ouro no tesouro.</li>'
       + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>';
     return h;
   }
@@ -4796,6 +4799,7 @@
     if (L.luta.situacao !== 'andamento') {
       L.fase = 'fim'; L.modal = null;
       R.registrarMissao(estado.personagem, 'arena', 1, C.agora());
+      missaoCla('arena', 1);
       R.registrarGuia(estado.personagem, 'arena');
       if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
       salvar();
@@ -4897,13 +4901,86 @@
   function bonusFichaHtml() {
     var st = aliancaAtual(), a = st && st.alianca;
     if (!a) return '';
-    var b = bonusAlianca(), partes = [];
-    if (b.exp) partes.push('+' + b.exp + '% exp');
-    if (b.ouro) partes.push('+' + b.ouro + '% ouro');
+    var sk = st.skills || {}, n = Object.keys(sk).filter(function (k) { return sk[k] > 0; }).length;
     return '<div class="ficha-alianca">' + brasaoSvg(a.brasao) + '<div><strong>' + esc(a.nome) + '</strong> ' + siglaHtml(a.sigla)
-      + '<div class="suave pequeno">' + (partes.length ? 'Bônus ativos: <span class="mais">' + partes.join(' · ') + '</span>' : 'Nenhum bônus ativo') + '</div></div></div>';
+      + '<div class="suave pequeno">' + (n ? '<span class="mais">' + n + (n === 1 ? ' skill do clã ativa' : ' skills do clã ativas') + '</span>' : 'Nenhuma skill do clã ainda') + '</div></div></div>';
   }
   function siglaHtml(sigla) { return sigla ? '<span class="sigla">[' + esc(sigla) + ']</span> ' : ''; }
+
+  // ---------------- Skills e missões do clã (Daniel, nov/2026) ----------------
+  // As skills ficam salvas no personagem (p.cla) para valerem na caçada, na masmorra e nos bosses (regras.js, comCla).
+  function sincronizarCla(p, st) {
+    if (st.local || st.erro) return;
+    var novo = st.alianca ? { id: st.alianca.id, skills: st.skills || {} } : null;
+    if (JSON.stringify(novo) === JSON.stringify(p.cla || null)) return;
+    if (novo) p.cla = novo; else delete p.cla;
+    salvar();
+    atualizarFicha();
+  }
+  function iconeSkillCla(k) {
+    return '<span class="skill-cla-ico"><img src="assets/cla/skill-' + k.id + '.webp" alt="" onerror="this.remove()"><span>' + k.simbolo + '</span></span>';
+  }
+  function skillsClaHtml(st) {
+    var a = st.alianca, chefe = st.meu_cargo === 'lider', sk = st.skills || {}, max = AL.skillPrecos.length;
+    var html = '<div class="caixa-interna"><h3>Skills do clã</h3><p class="suave pequeno">Compradas pelo líder com o ouro do tesouro (<span class="cor-ouro">'
+      + Number(a.tesouro).toLocaleString('pt-BR') + '</span>). Valem para todos os membros, para sempre, contra monstros, masmorras e bosses '
+      + '(não valem na Arena). O nível de cada skill vai até o nível do clã (agora ' + a.nivel + ').</p></div><div class="skills-cla">';
+    html += AL.skills.map(function (k) {
+      var n = sk[k.id] || 0, prox = n + 1, preco = AL.skillPrecos[n], fmt = function (v) { return (Math.round(v * 10) / 10).toLocaleString('pt-BR'); };
+      var botao = '';
+      if (n >= max) botao = '<span class="cor-ouro pequeno">Nível máximo</span>';
+      else if (prox > a.nivel) botao = '<span class="suave pequeno">Nível ' + prox + ' libera com o clã nível ' + prox + '</span>';
+      else if (chefe) botao = '<button class="btn btn-pequeno" data-acao="al-skill" data-id="' + k.id + '"' + (a.tesouro < preco ? ' disabled' : '') + '>Nível ' + prox + ' · '
+        + preco.toLocaleString('pt-BR') + '</button>';
+      else botao = '<span class="suave pequeno">Nível ' + prox + ': ' + preco.toLocaleString('pt-BR') + ' de ouro</span>';
+      return '<div class="skill-cla' + (n ? ' ativa' : '') + '">' + iconeSkillCla(k) + '<div class="skill-cla-texto"><strong>' + esc(k.nome) + '</strong> <span class="suave pequeno">nível ' + n + '/' + max + '</span>'
+        + '<div class="pequeno">' + (n ? '<span class="mais">+' + fmt(n * k.porNivel) + k.unidade + '</span>' : '<span class="suave">' + esc(k.descricao) + '</span>')
+        + (n < max ? ' <span class="suave">(próximo: +' + fmt(prox * k.porNivel) + k.unidade + ')</span>' : '') + '</div>' + botao + '</div></div>';
+    }).join('') + '</div>';
+    return html;
+  }
+  function ouroMissaoCla(def, nivel) { return Math.round(def.ouro * (1 + AL.missoesOuroPorNivel * (nivel - 1))); }
+  function seloMissoesCla(st) {
+    var m = st && st.missoes;
+    if (!m) return '';
+    var feitas = AL.missoes.diarias.filter(function (d) { return m.diarias[d.tipo] && m.diarias[d.tipo].concluida; }).length;
+    return feitas ? ' <span class="pequeno">' + feitas + '/' + AL.missoes.diarias.length + '</span>' : '';
+  }
+  function missoesClaHtml(st) {
+    var a = st.alianca, m = st.missoes || { diarias: {}, semanais: {} };
+    function lista(defs, prog, semanal) {
+      return '<div class="itens">' + defs.map(function (d) {
+        var x = prog[d.tipo] || { progresso: 0, concluida: false }, v = Math.min(Number(x.progresso), d.meta);
+        return '<div class="item missao-cla' + (x.concluida ? ' feita' : '') + '"><div class="item-texto"><div><strong>' + (x.concluida ? '✅ ' : '') + esc(d.nome) + '</strong></div>'
+          + barra('exp', v, d.meta, v.toLocaleString('pt-BR') + ' / ' + d.meta.toLocaleString('pt-BR'))
+          + '<div class="suave pequeno">Prêmio: <span class="cor-ouro">' + ouroMissaoCla(d, a.nivel).toLocaleString('pt-BR') + ' de ouro</span> no tesouro'
+          + (semanal && d.buff ? ' + <span class="mais">' + d.buff + '% de dano contra o boss do clã</span> até o fim da semana' : '') + '</div></div></div>';
+      }).join('') + '</div>';
+    }
+    return '<div class="caixa-interna"><h3>Missões do clã</h3><p class="suave pequeno">O progresso é a soma de todos os membros. Cada missão cumprida põe ouro no tesouro '
+      + '(mais ouro quanto maior o nível do clã). As diárias recomeçam à meia-noite; as semanais, na segunda-feira (Brasília).</p>'
+      + (st.buff_boss ? '<p class="mais"><strong>Buff da semana: +' + st.buff_boss + '% de dano contra o boss do clã!</strong></p>' : '') + '</div>'
+      + '<h3 class="subtitulo">Diárias</h3>' + lista(AL.missoes.diarias, m.diarias || {}, false)
+      + '<h3 class="subtitulo">Semanais</h3>' + lista(AL.missoes.semanais, m.semanais || {}, true);
+  }
+  // Progresso das missões: junta aqui e manda a cada 30 s (no máximo `missoesMaxEnvio` por envio; o resto fica para o próximo).
+  var filaMissaoCla = {};
+  function missaoCla(tipo, qtd) {
+    var st = aliancaAtual();
+    if (!st || !st.alianca || !AL.missoesMaxEnvio[tipo]) return;
+    filaMissaoCla[tipo] = (filaMissaoCla[tipo] || 0) + (qtd || 1);
+  }
+  function enviarMissoesCla() {
+    var p = estado.personagem;
+    if (!p) return;
+    Object.keys(filaMissaoCla).forEach(function (tipo) {
+      var q = Math.min(filaMissaoCla[tipo], AL.missoesMaxEnvio[tipo]);
+      if (q <= 0) return;
+      filaMissaoCla[tipo] -= q;
+      C.alianca.missaoRegistrar(p.id, tipo, q).catch(function () { filaMissaoCla[tipo] = (filaMissaoCla[tipo] || 0) + q; });
+    });
+  }
+  setInterval(enviarMissoesCla, 30000);
 
   function aliancaAtual() {
     var st = estado.alianca;
@@ -4913,8 +4990,9 @@
   function bonusAlianca() {
     var st = aliancaAtual(), a = st && st.alianca, agora = C.agora();
     if (!a) return { exp: 0, ouro: 0 };
-    return { exp: a.bonus_exp_ate && Date.parse(a.bonus_exp_ate) > agora ? a.bonus_pct : 0,
-      ouro: a.bonus_ouro_ate && Date.parse(a.bonus_ouro_ate) > agora ? a.bonus_pct : 0 };
+    var p = estado.personagem;   // skills do clã (permanentes) + bônus antigo de 7 dias, se ainda estiver ativo
+    return { exp: R.bonusCla(p, 'exp') + (a.bonus_exp_ate && Date.parse(a.bonus_exp_ate) > agora ? a.bonus_pct : 0),
+      ouro: R.bonusCla(p, 'ouro') + (a.bonus_ouro_ate && Date.parse(a.bonus_ouro_ate) > agora ? a.bonus_pct : 0) };
   }
   function seloAlianca() {
     var st = aliancaAtual();
@@ -4931,6 +5009,7 @@
       if (estado.personagem !== p) return;
       st.pid = p.id;
       estado.alianca = st;
+      sincronizarCla(p, st);
       if (estado.batalha || estado.resultado || estado.chefeAviso || estado.luta || estado.lutaArena) return;
       if (estado.aba === 'alianca') telaJogo();
       else { atualizarNav(); atualizarFicha(); }
@@ -4983,14 +5062,14 @@
   function abaAlianca() {
     var st = aliancaAtual();
     if (!st) { carregarAlianca(); return '<p class="suave">Carregando…</p>'; }
-    if (st.local) return '<p class="suave">As alianças juntam vários jogadores e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
+    if (st.local) return '<p class="suave">Os clãs juntam vários jogadores e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
     if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
     return st.alianca ? telaMinhaAlianca(st) : telaSemAlianca(st);
   }
 
   function telaSemAlianca(st) {
     var p = estado.personagem, html = '';
-    if (st.espera_ate) html += '<p class="menos">Você saiu de uma aliança: só pode entrar em outra depois de ' + dataCurta(st.espera_ate) + '.</p>';
+    if (st.espera_ate) html += '<p class="menos">Você saiu de um clã: só pode entrar em outro depois de ' + dataCurta(st.espera_ate) + '.</p>';
     if (st.convites.length) {
       html += '<h3 class="subtitulo">Convites recebidos</h3><div class="itens">' + st.convites.map(function (a) {
         return cartaAlianca(a, '<button class="btn btn-pequeno" data-acao="al-responder" data-id="' + a.convite + '" data-sim="1">Aceitar</button>'
@@ -4999,13 +5078,13 @@
     }
     var cria = estado.aliancaCriar;
     if (p.nivel < AL.nivelMin) {
-      html += '<div class="caixa-interna"><h3>Criar uma aliança</h3><p class="suave">Abre no level ' + AL.nivelMin + '. Até lá, você pode entrar numa aliança que já existe.</p></div>';
+      html += '<div class="caixa-interna"><h3>Criar um clã</h3><p class="suave">Abre no level ' + AL.nivelMin + '. Até lá, você pode entrar num clã que já existe.</p></div>';
     } else if (!cria) {
-      html += '<div class="caixa-interna alianca-chamada"><div><h3>Funde a sua aliança</h3><p class="suave">' + AL.custoOuro.toLocaleString('pt-BR') + ' de ouro + '
-        + AL.custoReputacao + ' de reputação. Você vira o líder.</p></div><button class="btn" data-acao="al-criar-abrir">Criar aliança</button></div>';
+      html += '<div class="caixa-interna alianca-chamada"><div><h3>Funde o seu clã</h3><p class="suave">' + AL.custoOuro.toLocaleString('pt-BR') + ' de ouro + '
+        + AL.custoReputacao + ' de reputação. Você vira o líder.</p></div><button class="btn" data-acao="al-criar-abrir">Criar clã</button></div>';
     } else {
       var faltaOuro = AL.custoOuro - p.ouro, faltaRep = AL.custoReputacao - (p.reputacao || 0);
-      html += '<div class="caixa-interna"><h3>Nova aliança</h3>'
+      html += '<div class="caixa-interna"><h3>Novo clã</h3>'
         + '<div class="alianca-form"><label>Nome (3 a 20 letras)<input id="al-nome" maxlength="20" value="' + esc(cria.nome) + '" autocomplete="off"></label>'
         + '<label>Sigla (3 ou 4 letras)<input id="al-sigla" maxlength="4" value="' + esc(cria.sigla) + '" autocomplete="off" style="text-transform:uppercase"></label></div>'
         + editorBrasao(cria.brasao)
@@ -5015,13 +5094,13 @@
         + (faltaOuro > 0 || faltaRep > 0 ? '<p class="menos pequeno centro">Faltam ' + [faltaOuro > 0 ? faltaOuro.toLocaleString('pt-BR') + ' de ouro' : '', faltaRep > 0 ? faltaRep + ' de reputação' : ''].filter(Boolean).join(' e ') + '.</p>' : '')
         + '</div>';
     }
-    html += '<h3 class="subtitulo">Alianças</h3><div class="linha-form"><input id="al-busca" placeholder="Buscar por nome ou sigla" value="' + esc(estado.aliancaBusca || '') + '" autocomplete="off">'
+    html += '<h3 class="subtitulo">Clãs</h3><div class="linha-form"><input id="al-busca" placeholder="Buscar por nome ou sigla" value="' + esc(estado.aliancaBusca || '') + '" autocomplete="off">'
       + '<button class="btn secundario" data-acao="al-buscar">Buscar</button></div><div class="itens">'
       + (st.lista.length ? st.lista.map(function (a) {
         var pedido = st.pedidos_feitos.indexOf(a.id) >= 0, cheia = a.membros >= a.vagas;
         return cartaAlianca(a, pedido ? '<span class="suave pequeno">Pedido enviado</span>'
           : '<button class="btn btn-pequeno" data-acao="al-pedir" data-id="' + a.id + '"' + (cheia || st.espera_ate ? ' disabled' : '') + '>' + (cheia ? 'Cheia' : 'Pedir para entrar') + '</button>');
-      }).join('') : '<p class="suave">Nenhuma aliança encontrada.</p>') + '</div>';
+      }).join('') : '<p class="suave">Nenhum clã encontrado.</p>') + '</div>';
     return html;
   }
 
@@ -5038,11 +5117,14 @@
       html += '<div class="caixa-interna">' + editorBrasao(estado.aliancaBrasao, 'Novo brasão')
         + '<div class="botoes"><button class="btn" data-acao="al-brasao-salvar">Salvar brasão</button><button class="btn secundario" data-acao="al-brasao-fechar">Cancelar</button></div></div>';
     }
-    var vBoss = estado.aliancaVista === 'boss';
-    html += '<div class="botoes alianca-vistas">'
-      + '<button class="btn btn-pequeno' + (vBoss ? ' secundario' : '') + '" data-acao="al-vista" data-valor="geral">Aliança</button>'
-      + '<button class="btn btn-pequeno' + (vBoss ? '' : ' secundario') + '" data-acao="al-vista" data-valor="boss">⚔ Boss da aliança' + seloBossAl() + '</button></div>';
-    if (vBoss) return html + bossAliancaHtml();
+    var vista = estado.aliancaVista || 'geral', botaoVista = function (id, rotulo) {
+      return '<button class="btn btn-pequeno' + (vista === id ? '' : ' secundario') + '" data-acao="al-vista" data-valor="' + id + '">' + rotulo + '</button>';
+    };
+    html += '<div class="botoes alianca-vistas">' + botaoVista('geral', 'Clã') + botaoVista('skills', '✦ Skills')
+      + botaoVista('missoes', '📜 Missões' + seloMissoesCla(st)) + botaoVista('boss', '⚔ Boss do clã' + seloBossAl()) + '</div>';
+    if (vista === 'boss') return html + bossAliancaHtml();
+    if (vista === 'skills') return html + skillsClaHtml(st);
+    if (vista === 'missoes') return html + missoesClaHtml(st);
     // Mural
     html += '<div class="caixa-interna"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
       + (manda ? '<div class="linha-form"><input id="al-mural" maxlength="' + AL.muralMax + '" placeholder="Escreva um aviso para todos" value="' + esc(a.mural) + '">'
@@ -5053,15 +5135,18 @@
       var ativo = ate && Date.parse(ate) > agora;
       return '<div class="bonus-carta' + (ativo ? ' ativo' : '') + '"><strong>+' + a.bonus_pct + '% ' + nome + '</strong>'
         + '<span class="suave pequeno">' + (ativo ? 'Ativo até ' + dataCurta(ate) : 'Desligado') + '</span>'
-        + (chefe ? '<button class="btn btn-pequeno" data-acao="al-bonus" data-valor="' + tipo + '"' + (a.tesouro < AL.bonus.custo ? ' disabled' : '') + '>'
-          + (ativo ? 'Renovar' : 'Ativar') + ' · ' + AL.bonus.custo.toLocaleString('pt-BR') + '</button>' : '') + '</div>';
+        + '</div>';
     }
+    var doado = Number(st.doado_hoje || 0), resta = Math.max(0, AL.doacaoMaxDia - doado);
     html += '<div class="caixa-interna"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
-      + '<p class="suave pequeno">Cada ouro doado vira exp da aliança e conta como sua contribuição. Os bônus valem para todos os membros por '
-      + AL.bonus.dias + ' dias e crescem com o level da aliança.</p>'
-      + '<div class="linha-form"><input id="al-doar" type="number" min="' + AL.doacaoMinima + '" step="100" inputmode="numeric" placeholder="Quanto doar (mín. ' + AL.doacaoMinima + ')">'
-      + '<button class="btn" data-acao="al-doar">Doar ouro</button></div>'
-      + '<div class="bonus-lista">' + cartaBonus('exp', 'de exp nas caçadas', a.bonus_exp_ate) + cartaBonus('ouro', 'de ouro dos monstros', a.bonus_ouro_ate) + '</div></div>';
+      + '<p class="suave pequeno">Cada ouro doado vira exp do clã e conta como sua contribuição. O líder usa o tesouro para comprar as '
+      + '<strong>skills do clã</strong>, que valem para todos os membros para sempre.</p>'
+      + '<p class="pequeno">Você doou hoje: <strong>' + doado.toLocaleString('pt-BR') + ' / ' + AL.doacaoMaxDia.toLocaleString('pt-BR') + '</strong> de ouro</p>'
+      + (resta ? '<div class="linha-form"><input id="al-doar" type="number" min="' + AL.doacaoMinima + '" max="' + resta + '" step="100" inputmode="numeric" placeholder="Quanto doar (mín. ' + AL.doacaoMinima + ', até ' + resta.toLocaleString('pt-BR') + ')">'
+        + '<button class="btn" data-acao="al-doar">Doar ouro</button></div>' : '<p class="suave pequeno">Limite de hoje atingido. Volte amanhã!</p>')
+      + ((a.bonus_exp_ate && Date.parse(a.bonus_exp_ate) > agora) || (a.bonus_ouro_ate && Date.parse(a.bonus_ouro_ate) > agora)
+        ? '<div class="bonus-lista">' + cartaBonus('exp', 'de exp nas caçadas', a.bonus_exp_ate) + cartaBonus('ouro', 'de ouro dos monstros', a.bonus_ouro_ate) + '</div>' : '')
+      + '</div>';
     // Convidar e pedidos
     if (manda) {
       html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
@@ -5089,8 +5174,8 @@
         + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
-    html += '<div class="botoes alianca-sair">' + (chefe ? confirmar('desfazer', 'Desfazer a aliança', 'Confirmar: desfazer para sempre')
-      : confirmar('sair', 'Sair da aliança', 'Confirmar: sair (' + AL.esperaHoras + ' h sem poder entrar em outra)')) + '</div>';
+    html += '<div class="botoes alianca-sair">' + (chefe ? confirmar('desfazer', 'Desfazer o clã', 'Confirmar: desfazer para sempre')
+      : confirmar('sair', 'Sair do clã', 'Confirmar: sair (' + AL.esperaHoras + ' h sem poder entrar em outro)')) + '</div>';
     return html;
   }
 
@@ -5114,15 +5199,15 @@
         var b = estado.aliancaCriar.brasao;
         A2.criar(p.id, valor('al-nome'), valor('al-sigla').toUpperCase(), b).then(function () {
           estado.aliancaCriar = null;
-          avisar('Aliança fundada! Você é o líder.', 'nivel');
+          avisar('Clã fundado! Você é o líder.', 'nivel');
           carregarAlianca(); carregarArena();
         }, function (e) { avisar(e.message); });
         return true;
       }
       case 'al-buscar': estado.aliancaBusca = valor('al-busca'); carregarAlianca(); return true;
       case 'al-pedir': acaoAlianca(A2.pedir(p.id, Number(el.dataset.id)), 'Pedido enviado. Espere o líder ou um oficial aceitar.'); return true;
-      case 'al-responder': acaoAlianca(A2.responder(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Bem-vindo à aliança!' : 'Convite recusado.', el.dataset.sim ? 'nivel' : ''); return true;
-      case 'al-decidir': acaoAlianca(A2.decidir(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Novo membro na aliança!' : 'Pedido recusado.'); return true;
+      case 'al-responder': acaoAlianca(A2.responder(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Bem-vindo ao clã!' : 'Convite recusado.', el.dataset.sim ? 'nivel' : ''); return true;
+      case 'al-decidir': acaoAlianca(A2.decidir(p.id, Number(el.dataset.id), !!el.dataset.sim), el.dataset.sim ? 'Novo membro no clã!' : 'Pedido recusado.'); return true;
       case 'al-convidar': {
         var nome = valor('al-convidar');
         if (nome) acaoAlianca(A2.convidar(p.id, nome), 'Convite enviado para ' + nome + '.');
@@ -5133,6 +5218,8 @@
         var qtd = parseInt(valor('al-doar'), 10);
         if (!(qtd >= AL.doacaoMinima)) { avisar('Doação mínima: ' + AL.doacaoMinima + ' de ouro.'); return true; }
         if (qtd > p.ouro) { avisar('Você não tem esse ouro.'); return true; }
+        var restaHoje = AL.doacaoMaxDia - Number((aliancaAtual() || {}).doado_hoje || 0);
+        if (qtd > restaHoje) { avisar('Limite de doação: ' + AL.doacaoMaxDia.toLocaleString('pt-BR') + ' de ouro por dia (hoje você ainda pode doar ' + Math.max(0, restaHoje).toLocaleString('pt-BR') + ').'); return true; }
         acaoAlianca(A2.doar(p.id, qtd), 'Você doou ' + qtd.toLocaleString('pt-BR') + ' de ouro ao tesouro!', 'item');
         return true;
       }
@@ -5151,10 +5238,11 @@
         return true;
       }
       case 'al-vista':
-        estado.aliancaVista = el.dataset.valor === 'boss' ? 'boss' : null;
+        estado.aliancaVista = ['boss', 'skills', 'missoes'].indexOf(el.dataset.valor) >= 0 ? el.dataset.valor : null;
         telaJogo();
-        if (estado.aliancaVista) carregarBossAl();
+        if (estado.aliancaVista === 'boss') carregarBossAl(); else { enviarMissoesCla(); carregarAlianca(); }
         return true;
+      case 'al-skill': acaoAlianca(A2.skillComprar(p.id, el.dataset.id), 'Skill do clã comprada! Já vale para todos os membros.', 'nivel'); return true;
       case 'al-boss-hora': {
         var h = parseInt(valor('al-boss-hora'), 10);
         acaoBossAl(A2.boss.hora(p.id, h), 'Boss marcado para as ' + h + 'h (horário de Brasília), todos os dias.');
@@ -5170,8 +5258,8 @@
         var partes = el.dataset.chave.split(':');
         if (partes[0] === 'lider') acaoAlianca(A2.cargo(p.id, partes[1], 'lider'), 'Liderança passada. Agora você é oficial.');
         else if (partes[0] === 'expulsar') acaoAlianca(A2.expulsar(p.id, partes[1]), 'Membro expulso.');
-        else if (partes[0] === 'sair') acaoAlianca(A2.sair(p.id), 'Você saiu da aliança.');
-        else if (partes[0] === 'desfazer') acaoAlianca(A2.desfazer(p.id), 'A aliança foi desfeita.');
+        else if (partes[0] === 'sair') acaoAlianca(A2.sair(p.id), 'Você saiu do clã.');
+        else if (partes[0] === 'desfazer') acaoAlianca(A2.desfazer(p.id), 'O clã foi desfeito.');
         return true;
       }
       case 'al-admin-listar':
@@ -5179,10 +5267,10 @@
         return true;
       case 'al-admin': {
         var op = el.dataset.op, id = Number(el.dataset.id), v = null;
-        if (op === 'renomear') { v = window.prompt('Novo nome da aliança:'); if (!v) return true; }
+        if (op === 'renomear') { v = window.prompt('Novo nome do clã:'); if (!v) return true; }
         if (op === 'lider') { v = window.prompt('Nome do personagem que vira líder:'); if (!v) return true; }
         if (op === 'exp') v = 50000;
-        if (op === 'apagar' && !window.confirm('Apagar a aliança para sempre?')) return true;
+        if (op === 'apagar' && !window.confirm('Apagar o clã para sempre?')) return true;
         A2.admin(p.id, id, op, v).then(function (l) { estado.adminAliancas = l; avisar('Feito.'); telaJogo(); carregarAlianca(); }, function (e) { avisar(e.message); });
         return true;
       }
@@ -5266,14 +5354,14 @@
       + BA.duracaoMin + ' minutos aberto.</p>';
     var hpMax = Number(b.hp_max), hp = aberto || (b.dia === st.dia && b.estado !== 'fechado') ? Math.max(0, Number(b.hp)) : hpMax;
     var html = '<div class="caixa-interna boss-al"><div class="boss-al-topo"><div class="moldura">' + F.imagemMonstro(info.id) + '</div><div class="boss-al-info">'
-      + '<div class="suave pequeno">Boss da aliança · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
+      + '<div class="suave pequeno">Boss do clã · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
       + (info.descricao ? '<p class="suave pequeno boss-al-desc">' + esc(info.descricao) + '</p>' : '')
       + barra('hp', hp, hpMax, hp.toLocaleString('pt-BR') + ' / ' + hpMax.toLocaleString('pt-BR'), 'boss-al') + situacao + '</div></div>';
     // Prêmio
     var infoPr = R.bossAlianca(b.nivel), pr = R.premioBossAlianca(p, b.nivel);
     html += '<p class="suave pequeno">Prêmio do nível ' + b.nivel + ': quem deu dano ganha <span class="cor-ouro">' + pr.ouro.toLocaleString('pt-BR') + ' de ouro</span>, '
       + pr.exp.toLocaleString('pt-BR') + ' de exp e ' + infoPr.premio.pergaminho + ' pergaminhos para item ' + ITEM_RARIDADE[infoPr.premio.raridadePergaminho]
-      + '; o maior dano ganha 1 item épico ou lendário; a aliança ganha ' + infoPr.premio.alianca.toLocaleString('pt-BR') + ' de exp. '
+      + '; o maior dano ganha 1 item épico ou lendário; o clã ganha ' + infoPr.premio.alianca.toLocaleString('pt-BR') + ' de exp. '
       + 'A cada vitória ele volta mais forte no dia seguinte.</p>';
     // Ataque
     var minha = st.salas.filter(function (x) { return x.id === st.minha_sala; })[0];
@@ -5339,7 +5427,7 @@
   function assistirBoss(run, sim) {
     vistas['b' + run.id] = true;
     var p = estado.personagem;
-    sim = sim || R.simularBossAlianca(run.herois.map(function (h) { return h.dados; }), run.nivel, Number(run.hp_inicio), run.semente);
+    sim = sim || R.simularBossAlianca(run.herois.map(function (h) { return h.dados; }), run.nivel, Number(run.hp_inicio), run.semente, Number(run.buff) || 0);
     var L = {
       run: run, sim: sim, boss: R.bossAlianca(run.nivel), idx: 0, sala: 0, fim: false, rapido: false, registro: [], servidor: null,
       hpH: sim.inicio.herois.map(function (h) { return h.hpMax; }),
@@ -5425,7 +5513,7 @@
     var daAlianca = chat.canal === 'alianca', lista = daAlianca ? chat.al.mensagens : chat.mensagens;
     var titulo = chatDaAlianca()
       ? '<span class="chat-canais"><button data-chat="canal" data-canal="global" class="' + (daAlianca ? '' : 'ativo') + '">Global</button>'
-        + '<button data-chat="canal" data-canal="alianca" class="' + (daAlianca ? 'ativo' : '') + '">Aliança</button></span>'
+        + '<button data-chat="canal" data-canal="alianca" class="' + (daAlianca ? 'ativo' : '') + '">Clã</button></span>'
       : '<strong>Chat Global</strong>';
     chat.el.innerHTML = '<div class="chat-janela"><div class="chat-topo">' + titulo
       + '<button data-chat="fechar" title="Fechar">✕</button></div>'

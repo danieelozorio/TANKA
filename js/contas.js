@@ -306,6 +306,8 @@ Tanka.contas = (function () {
     chat: function (meu, depois) { return chamar('alianca_chat', { meu: meu, depois: depois || 0 }); },
     chatEnviar: function (meu, texto) { return chamar('alianca_chat_enviar', { meu: meu, texto: texto }); },
     admin: function (meu, id, acao, valor) { return chamar('alianca_admin', { meu: meu, aid: id, acao: acao, valor: valor == null ? null : String(valor) }); },
+    skillComprar: function (meu, skill) { return chamar('alianca_skill_comprar', { meu: meu, skill: skill }); },
+    missaoRegistrar: function (meu, tipo, qtd) { return chamar('alianca_missao_registrar', { meu: meu, tipo: tipo, qtd: qtd }); },
     // Boss da aliança
     boss: {
       estado: function (meu) { return chamar('alianca_boss_estado', { meu: meu }); },

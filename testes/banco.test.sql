@@ -159,7 +159,7 @@ select pg_temp.igual(public.ouro_real('pa'), 40000, 'criar cobra 10.000 de ouro'
 select pg_temp.igual(public.reputacao_real('pa'), 700, 'criar cobra 300 de reputação');
 set role authenticated;
 select pg_temp.como('d');
-select pg_temp.falha($$select public.alianca_criar('pd', 'lobos da neve', 'XYZ', '{}')$$, 'Já existe uma aliança com esse nome');
+select pg_temp.falha($$select public.alianca_criar('pd', 'lobos da neve', 'XYZ', '{}')$$, 'Já existe um clã com esse nome');
 select pg_temp.falha($$select public.alianca_criar('pd', 'Outra', 'LOB', '{}')$$, 'Essa sigla já está em uso');
 select public.alianca_pedir('pd', (public.alianca_estado('pd', 'neve') -> 'lista' -> 0 ->> 'id')::bigint);
 select pg_temp.como('a');
@@ -178,14 +178,40 @@ select pg_temp.como('b');
 select public.alianca_mural('pb', 'Caçada às 20h!');
 select pg_temp.como('d');
 select pg_temp.falha($$select public.alianca_doar('pd', 50)$$, 'Doação mínima');
-select public.alianca_doar('pd', 30000);
+select public.alianca_doar('pd', 3000);
+select pg_temp.falha($$select public.alianca_doar('pd', 100)$$, 'Limite de doação: 3000 de ouro por dia');
+select pg_temp.igual((public.alianca_estado('pd', null) ->> 'doado_hoje')::int, 3000, 'clã: doação de hoje (limite 3.000 por dia)');
 select pg_temp.como('a');
-select public.alianca_doar('pa', 25000);
-select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'nivel')::int, 2, '55.000 de exp sobe a aliança para o level 2');
+select public.alianca_doar('pa', 2000);
+reset role;
+update public.aliancas set exp = exp + 50000, tesouro = tesouro + 50000;   -- como se outros dias de doação
+set role authenticated; select pg_temp.como('a');
+select public.alianca_doar('pa', 1000);
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'nivel')::int, 2, '56.000 de exp sobe o clã para o level 2');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'vagas')::int, 18, 'level 2 tem 18 vagas');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'bonus_pct')::int, 6, 'bônus de 6% no level 2');
 select public.alianca_bonus('pa', 'exp');
-select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 35000, 'bônus gasta 20.000 do tesouro');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 36000, 'bônus gasta 20.000 do tesouro');
+-- Skills do clã: só o líder, com o tesouro, nível <= nível do clã
+select pg_temp.falha($$select public.alianca_skill_comprar('pa', 'voar')$$, 'Skill inválida');
+select public.alianca_skill_comprar('pa', 'dano');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 11000, 'skill nível 1 custa 25.000 do tesouro');
+select pg_temp.falha($$select public.alianca_skill_comprar('pa', 'dano')$$, 'O tesouro não tem ouro suficiente');
+reset role; update public.aliancas set tesouro = tesouro + 100000; set role authenticated; select pg_temp.como('a');
+select public.alianca_skill_comprar('pa', 'dano');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'skills' ->> 'dano')::int, 2, 'clã nível 2 libera a skill nível 2');
+select pg_temp.falha($$select public.alianca_skill_comprar('pa', 'dano')$$, 'Suba o clã para o nível 3');
+-- Missões do clã: progresso somado; cumpriu = ouro no tesouro (x1,2 no nível 2)
+select public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_missao_registrar('pa', 'monstros', 300),
+  public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_missao_registrar('pa', 'monstros', 999);
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'progresso')::int, 1200, 'missão: no máximo 300 monstros por envio');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'concluida')::boolean, true, 'missão diária cumprida');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 11000 + 100000 - 40000 + 7200, 'missão diária: 6.000 x 1,2 no tesouro');
+select pg_temp.falha($$select public.alianca_missao_registrar('pa', 'trapaca', 1)$$, 'Missão inválida');
+reset role;
+update public.alianca_missoes set progresso = 15000, concluida = true where periodo = 'semana' and tipo = 'monstros';
+set role authenticated; select pg_temp.como('a');
+select pg_temp.igual((public.alianca_estado('pa', null) ->> 'buff_boss')::int, 5, 'missão semanal: +5% de dano contra o boss do clã');
 select pg_temp.igual(public.alianca_estado('pa', null) -> 'alianca' ->> 'bonus_exp_ate' is not null, true, 'bônus de exp ativo');
 select pg_temp.como('b');
 select pg_temp.falha($$select public.alianca_bonus('pb', 'ouro')$$, 'Só o líder ativa os bônus');
@@ -199,7 +225,7 @@ select pg_temp.como('a');
 select pg_temp.falha($$select public.alianca_sair('pa')$$, 'Passe a liderança');
 select public.alianca_expulsar('pa', 'pd');
 select pg_temp.como('d');
-select pg_temp.falha($$select public.alianca_criar('pd', 'Outra', 'OUT', '{}')$$, 'Só dá para entrar em outra aliança depois');
+select pg_temp.falha($$select public.alianca_criar('pd', 'Outra', 'OUT', '{}')$$, 'Só dá para entrar em outro clã depois');
 select pg_temp.como('a');
 select public.alianca_cargo('pa', 'pb', 'lider');
 select pg_temp.igual(public.alianca_estado('pa', null) ->> 'meu_cargo', 'oficial', 'antigo líder vira oficial');
@@ -684,8 +710,10 @@ select pg_temp.igual((select count(*) from jsonb_array_elements(public.alianca_b
 select pg_temp.como('d');
 select pg_temp.igual((select count(*) from jsonb_array_elements(public.alianca_boss_estado('pd') -> 'recompensas') r where r -> 'item' ->> 'tipo' in ('exp', 'pergaminho'))::int, 3, 'boss: exp e 2 pergaminhos para quem deu dano');
 reset role;
-select pg_temp.igual((select count(*) from public.creditos where motivo like 'Boss da aliança%')::int, 3, 'boss: ouro para os 3 que deram dano');
+select pg_temp.igual((select count(*) from public.creditos where motivo like 'Boss do clã%')::int, 3, 'boss: ouro para os 3 que deram dano');
 select pg_temp.igual((select exp from public.aliancas where sigla = 'GUA'), (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 0 ->> 'alianca')::bigint, 'boss: exp para a aliança');
+select pg_temp.igual((select progresso from public.alianca_missoes x join public.aliancas a on a.id = x.alianca_id
+  where a.sigla = 'GUA' and x.periodo = 'semana' and x.tipo = 'bossCla')::int, 1, 'boss: conta na missão semanal do clã');
 -- não matou a tempo: no outro dia, o mesmo boss com a vida cheia
 update public.alianca_boss set estado = 'aberto', hp = 10, aberto_em = now() - interval '61 minutes'
   where alianca_id = (select id from public.aliancas where sigla = 'GUA');

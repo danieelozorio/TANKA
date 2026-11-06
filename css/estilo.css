@@ -1477,3 +1477,16 @@ html { overscroll-behavior-x: none; }
 .tracos-raca { margin-top: .6em; line-height: 1.5; }
 .tracos-raca .mais { color: #7fd17f; }
 .tracos-raca .menos { color: #e07a6f; }
+
+/* Skills e missões do clã */
+.skills-cla { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .6rem; margin-top: .6rem; }
+.skill-cla { display: flex; gap: .7rem; align-items: flex-start; padding: .6rem .7rem; border: 1px solid rgba(255, 255, 255, .1); border-radius: 10px; background: rgba(0, 0, 0, .18); }
+.skill-cla.ativa { border-color: rgba(201, 162, 74, .55); }
+.skill-cla-ico { position: relative; flex: none; width: 52px; height: 52px; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
+  font-size: 1.5rem; background: radial-gradient(circle at 35% 30%, #4a3a22, #1a140c); border: 2px solid #8a6a3a; }
+.skill-cla:not(.ativa) .skill-cla-ico { filter: grayscale(.7) brightness(.8); }
+.skill-cla-ico img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.skill-cla-texto { flex: 1; min-width: 0; }
+.skill-cla-texto .btn, .skill-cla-texto > span:last-child { margin-top: .35rem; display: inline-block; }
+.missao-cla .barra { margin: .3rem 0; }
+.missao-cla.feita { border-color: rgba(120, 200, 120, .5); }

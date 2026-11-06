@@ -1772,3 +1772,22 @@ teste('boss da aliança: do 2º boss em diante, golpe em área tira % da vida de
   const hpMax = r.inicio.herois.map((h) => h.hpMax);
   golpes.filter((e) => e.acerto).forEach((e) => assert.strictEqual(e.dano, Math.max(1, Math.round(hpMax[e.alvo] * area.vidaPct / 100))));
 });
+
+teste('skills do clã: valem contra monstros (status pve), não no status normal', () => {
+  const p = R.criarPersonagem('C', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 14);
+  const antes = R.status(p), semCla = R.status(p, true);
+  assert.deepStrictEqual(semCla.dano, antes.dano, 'sem clã, igual');
+  p.cla = { id: 1, skills: { dano: 2, vida: 3, critico: 4, resistencia: 1, velocidade: 2, esquiva: 2, danoCritico: 1, fortuna: 5 } };
+  const s = R.status(p, true), n = R.status(p);
+  assert.deepStrictEqual(n.dano, antes.dano, 'fora do combate contra monstros (Arena, poder) não muda');
+  assert.strictEqual(R.poder(p), R.poder(Object.assign({}, p, { cla: undefined })));
+  assert.strictEqual(s.hpMax, Math.round(antes.hpMax * (1 + 3 * 2 / 100)));
+  assert.strictEqual(s.dano[1], Math.round(antes.dano[1] * (1 + 2 * 1.5 / 100)));
+  assert.strictEqual(s.chanceCritico, antes.chanceCritico + 4 * 0.5);
+  assert.strictEqual(s.evasao, antes.evasao + 2 * 0.5);
+  assert.strictEqual(R.bonusCla(p, 'exp'), 0);
+  assert.strictEqual(R.precoSkillCla(1), D.ALIANCA.skillPrecos[0]);
+  const b = R.iniciarBatalha(p, 'lobo');
+  assert.strictEqual(b.jogador.hpMax, s.hpMax, 'a caçada usa as skills do clã');
+});
