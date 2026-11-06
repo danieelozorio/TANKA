@@ -655,7 +655,8 @@ Tanka.dados = {
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
   // pergaminho: % de chance de cada herói ganhar 1 pergaminho de encantamento na vitória (qualidade de
   // DROPS_CACADA). O sorteio é do servidor: mudar também em supabase/schema.sql (masmorra_concluir).
-  MASMORRA: { entradasPorDia: 2, tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 50 },
+  MASMORRA: { entradasPorDia: 5,   // igual a masmorra_entradas_dia() no schema.sql
+     tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 50 },
   masmorras: [
     { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
       forca: { vida: 4, ataque: 8 },   // ataque 8 (era 4): o dano da Floresta caiu pela metade e a masmorra continua igual

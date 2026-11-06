@@ -624,4 +624,18 @@ select pg_temp.como('d'); select public.fila_sair('pd');
 reset role;
 update public.personagens set dados = jsonb_set(dados, '{nivel}', '4') where id = 'pc';
 delete from public.masmorra_fila;
+
+-- Masmorra: 5 entradas por dia (antes 2).
+reset role;
+select pg_temp.igual(public.masmorra_entradas_dia(), 5, 'masmorra: 5 entradas por dia');
+insert into public.masmorra_entradas (personagem_id, dia, usadas) values ('pa', public.dia_jogo(), 4)
+  on conflict (personagem_id, dia) do update set usadas = 4;
+set role authenticated;
+select pg_temp.como('a'); select public.fila_entrar('pa', 'toca'); select public.fila_sair('pa');
+reset role;
+update public.masmorra_entradas set usadas = 5 where personagem_id = 'pa' and dia = public.dia_jogo();
+set role authenticated;
+select pg_temp.como('a'); select pg_temp.falha($$select public.fila_entrar('pa', 'toca')$$, 'Sem entradas');
+reset role;
+delete from public.masmorra_entradas; delete from public.masmorra_fila;
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -231,4 +231,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   e o fim da luta na Arena.
 - Menu (Zealot): botão maior com escudo + "MENU" (`.menu-rotulo`, borda dourada e brilho); abas de cima (sub-abas) com
   ícones (`ICONES_SUB` em app.js, `.sub-ico`), nas duas interfaces.
+- **Masmorra: 5 entradas por dia (nov/2026):** `MASMORRA.entradasPorDia` 5 e `masmorra_entradas_dia()` no schema (substitui o
+  `>= 2` fixo em `grupo_iniciar`/`fila_casar`/`fila_entrar`). Para devolver as entradas do dia a todos:
+  `delete from public.masmorra_entradas where dia = public.dia_jogo();`
 

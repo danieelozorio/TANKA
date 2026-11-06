@@ -480,6 +480,10 @@ language sql immutable as $$
     when 'tumba' then 25 when 'covil' then 30 when 'coracao' then 35 end;
 $$;
 
+-- Entradas de masmorra por dia (igual a MASMORRA.entradasPorDia em js/dados.js). Henri, nov/2026: 2 -> 5.
+create or replace function public.masmorra_entradas_dia() returns int
+language sql immutable as $$ select 5 $$;
+
 create or replace function public.entradas_usadas(pid text) returns int
 language sql stable security definer set search_path = public as $$
   select coalesce((select usadas from public.masmorra_entradas where personagem_id = pid and dia = public.dia_jogo()), 0);
@@ -670,7 +674,7 @@ begin
     where gm.grupo_id = g and coalesce((p.dados ->> 'nivel')::int, 1) < minimo;
   if problema is not null then raise exception 'Level mínimo % (abaixo: %).', minimo, problema; end if;
   select string_agg(p.nome, ', ') into problema from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id
-    where gm.grupo_id = g and public.entradas_usadas(p.id) >= 2;
+    where gm.grupo_id = g and public.entradas_usadas(p.id) >= public.masmorra_entradas_dia();
   if problema is not null then raise exception 'Sem entradas hoje: %.', problema; end if;
   update public.masmorra_runs set estado = 'abandonada', concluido_em = now()
     where grupo_id = g and estado = 'andamento' and criado_em < now() - interval '10 minutes';
@@ -743,7 +747,7 @@ begin
   delete from public.masmorra_fila where masmorra = m and visto_em < now() - interval '20 seconds';
   -- quem não pode mais entrar (subiu outro grupo, sem entradas, level) sai da fila
   delete from public.masmorra_fila f using public.personagens p where f.personagem_id = p.id and f.masmorra = m
-    and (public.entradas_usadas(p.id) >= 2 or coalesce((p.dados ->> 'nivel')::int, 1) < minimo or public.meu_grupo(p.id) is not null);
+    and (public.entradas_usadas(p.id) >= public.masmorra_entradas_dia() or coalesce((p.dados ->> 'nivel')::int, 1) < minimo or public.meu_grupo(p.id) is not null);
   loop
     select array_agg(personagem_id order by entrou_em) into ids
       from (select personagem_id, entrou_em from public.masmorra_fila where masmorra = m order by entrou_em limit 3) x;
@@ -775,7 +779,7 @@ begin
   if public.meu_grupo(meu) is not null then raise exception 'Você já está num grupo: saia dele para usar a fila.'; end if;
   select coalesce((dados ->> 'nivel')::int, 1) into nivel from public.personagens where id = meu;
   if nivel < public.masmorra_nivel_min(masmorra) then raise exception 'Level mínimo %.', public.masmorra_nivel_min(masmorra); end if;
-  if public.entradas_usadas(meu) >= 2 then raise exception 'Sem entradas hoje.'; end if;
+  if public.entradas_usadas(meu) >= public.masmorra_entradas_dia() then raise exception 'Sem entradas hoje.'; end if;
   insert into public.masmorra_fila (personagem_id, masmorra) values (meu, fila_entrar.masmorra)
     on conflict (personagem_id) do update set masmorra = excluded.masmorra, entrou_em = now(), visto_em = now();
   perform public.fila_casar(fila_entrar.masmorra);
