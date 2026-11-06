@@ -955,7 +955,8 @@
   // Relíquia Rúnica (runa, só contra monstros) e assinatura de quem forjou.
   function craftItemHtml(item) {
     var ru = item.runa && R.runa(item.runa), h = '';
-    if (ru) h += '<p class="cor-ouro">✨ Relíquia Rúnica · <strong>' + esc(ru.nome) + '</strong>: ' + esc(ru.texto) + ' <span class="suave pequeno">(só contra monstros)</span></p>';
+    if (ru) h += '<p class="cor-ouro">✨ Relíquia Rúnica · <strong>' + esc(ru.nome) + '</strong>: ' + esc(R.textoRuna(item)) + ' <span class="suave pequeno">(só contra monstros; +'
+      + (item.encanto || 0) + ' = ' + Math.round(R.forcaRuna(item) * 100) + '% da runa; o encanto não muda mais)</span></p>';
     if (item.forjadoPor) h += '<p class="suave pequeno">' + (item.obraPrima ? '✨ Obra-prima · ' : '') + 'Forjad' + (item.tipo === 'luvas' || item.tipo === 'botas' ? 'as' : 'o') + ' por <strong>' + esc(item.forjadoPor) + '</strong></p>';
     return h;
   }
@@ -1727,7 +1728,10 @@
     });
     var lista = itens.map(function (i) {
       var acao, info;
-      if (i.encanto >= E.maximo) {
+      if (i.runa) {
+        info = 'Relíquia Rúnica: o encanto não muda mais';
+        acao = '<span class="suave">✨ +' + i.encanto + '</span>';
+      } else if (i.encanto >= E.maximo) {
         info = 'Nível máximo';
         acao = '<span class="suave">+' + E.maximo + '</span>';
       } else {
@@ -1945,7 +1949,7 @@
     };
     var h = '<div class="contratar">', aviso = '', pode = true;
     if (tipo === 'encantar') {
-      var itens = livres.filter(function (i) { return i.encanto < E.maximo; });
+      var itens = livres.filter(function (i) { return i.encanto < E.maximo && !i.runa; });
       if (!itens.length) return h + '<p class="suave">Nenhum item na mochila para encantar (tire do corpo e destrave antes).</p></div>';
       var it = itens.filter(function (i) { return i.id === f.item; })[0] || itens[0];
       var chance = R.chanceEncantarCom(Number(x.bonus_encanto), it), risco = R.riscoEncantar(it);
@@ -1995,7 +1999,8 @@
         + (x.reliquia_semana ? '<p class="menos pequeno">Este Ferreiro já forjou a relíquia da semana.</p>' : '');
       pode = !R.faltando(p, cm).length && !x.reliquia_semana;
       aviso = 'Chance deste anão: <strong>' + fmtDec(Math.round(chR * 10) / 10) + '%</strong>. Se der certo, o item vira uma relíquia ÚNICA com o nome escolhido e uma runa sorteada '
-        + '(' + Q.runas.map(function (r) { return r.texto; }).join(', ') + '; só contra monstros). Se falhar, os materiais se perdem e o item volta igual.';
+        + '(' + Q.runas.map(function (r) { return r.texto; }).join(', ') + ' no +' + Q.encantoMin + '; o seu item +' + il.encanto + ' deixa a runa com <strong>'
+        + Math.round(R.forcaRuna(il) * 100) + '%</strong> da força; só contra monstros). Depois disso o item <strong>não pode mais ser encantado</strong>. Se falhar, os materiais se perdem e o item volta igual.';
     }
     h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
       + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
@@ -2007,7 +2012,7 @@
     var x = st && (st.lista || []).filter(function (o) { return o.id === f.artesao; })[0];
     if (!x || estado.oficinaOcupado) return;
     var tipo = f.tipo, itemId = null, op = {}, livres = R.mochila(p).filter(function (i) { return !i.travado; });
-    if (tipo === 'encantar') { var ie = livres.filter(function (i) { return i.encanto < D.encantamento.maximo; }); itemId = (ie.filter(function (i) { return i.id === f.item; })[0] || ie[0]).id;
+    if (tipo === 'encantar') { var ie = livres.filter(function (i) { return i.encanto < D.encantamento.maximo && !i.runa; }); itemId = (ie.filter(function (i) { return i.id === f.item; })[0] || ie[0]).id;
       var itE = p.inventario.filter(function (i) { return i.id === itemId; })[0]; op.protecao = !!f.protecao && R.qtdConsumivel(p, 'protecao', itE.raridade) > 0; }
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
       op.classe = f.classe || p.classe; op.tipo = f.tipo || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }

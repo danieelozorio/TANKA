@@ -82,7 +82,9 @@ Tanka.dados = {
     // Relíquia Rúnica (etapa 5): só Anão Ferreiro level 30+, 1 tentativa por semana. Item lendário +7 ou mais vira uma
     // relíquia ÚNICA no jogo (nome escolhido pelo cliente, assinatura do anão) com uma runa sorteada (bônus só contra
     // monstros). Chance = base + Sorte x porSorte, até `maxima`. Falhou: os materiais se perdem, o item volta igual.
-    reliquia: { nivelMin: 30, encantoMin: 7, base: 10, porSorte: 0.05, maxima: 20,
+    // porEncanto: a runa fica mais forte com o encanto do item (+7 = 100%, +8 = 125%, +9 = 150%, +10 = 175%).
+    // Depois de virar relíquia, o item não pode mais ser encantado nem forjado de novo (o encanto fica travado).
+    reliquia: { nivelMin: 30, encantoMin: 7, base: 10, porSorte: 0.05, maxima: 20, porEncanto: 0.25,
       materiais: { escama: 3, brasaIgnaroth: 2, fragmento: 1 },
       runas: [
         { id: 'furia', nome: 'Runa da Fúria', dano: 6, texto: '+6% de dano' },

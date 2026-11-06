@@ -384,5 +384,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mais dano no boss do clã). Só Anão Ferreiro level 30+, 1 por semana (`oficina_semana_reliquias`). Sucesso: `item.nome`
   (escolhido), `item.runa` (sorteada de `CRAFT.reliquia.runas`), `reliquia: true`, `forjadoPor`. Runas valem só contra
   monstros (`comRunas` dentro de `status(p, true)`). Ficha do item mostra runa e "Forjado por" (`craftItemHtml`).
+  A força da runa sobe com o encanto do item (`reliquia.porEncanto` 0,25: +7 = 100%, +8 = 125%, +9 = 150%, +10 = 175%;
+  `R.forcaRuna`, `bonusRuna`, `textoRuna`). Relíquia não pode mais ser encantada (`R.encantar` devolve null; `oficina_pedir` recusa).
 - Testes: regras.test.js ("oficinas: ...") e banco.test.sql (bloco "Oficinas e Relíquia Rúnica").
 

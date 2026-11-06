@@ -897,7 +897,7 @@ Tanka.regras = (function () {
   // Runas das Relíquias equipadas (só contra monstros).
   function comRunas(s, p) {
     Object.keys(p.equipados || {}).forEach(function (slot) {
-      var it = p.equipados[slot] && p.inventario.filter(function (i) { return i.id === p.equipados[slot]; })[0], r = it && it.runa && runa(it.runa);
+      var it = p.equipados[slot] && p.inventario.filter(function (i) { return i.id === p.equipados[slot]; })[0], r = bonusRuna(it);
       if (!r) return;
       var pct = function (v, x) { return Math.round(v * (1 + x / 100)); };
       if (r.dano) s.dano = [pct(s.dano[0], r.dano), pct(s.dano[1], r.dano)];
@@ -1987,6 +1987,20 @@ Tanka.regras = (function () {
     return true;
   }
   function runa(id) { return D.CRAFT.reliquia.runas.filter(function (r) { return r.id === id; })[0] || null; }
+  // Força da runa pelo encanto do item: +7 = 1; cada + a mais soma porEncanto.
+  function forcaRuna(item) { var Q = D.CRAFT.reliquia; return 1 + Q.porEncanto * Math.max(0, (item.encanto || 0) - Q.encantoMin); }
+  // Bônus da runa deste item: { dano, vida, critico, velocidade, defesa } já com a força.
+  function bonusRuna(item) {
+    var r = item && item.runa && runa(item.runa), f = r ? forcaRuna(item) : 0, b = {};
+    if (!r) return null;
+    ['dano', 'vida', 'critico', 'velocidade', 'defesa'].forEach(function (k) { if (r[k]) b[k] = Math.round(r[k] * f * 10) / 10; });
+    return b;
+  }
+  var NOME_BONUS_RUNA = { dano: '% de dano', vida: '% de vida', critico: '% de chance de crítico', velocidade: '% de velocidade', defesa: '% de defesa' };
+  function textoRuna(item) {
+    var b = bonusRuna(item);
+    return b ? Object.keys(b).map(function (k) { return '+' + String(b[k]).replace('.', ',') + NOME_BONUS_RUNA[k]; }).join(', ') : '';
+  }
 
   // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
   function riscoEncantar(item) {
@@ -1999,7 +2013,7 @@ Tanka.regras = (function () {
   // protecao = true: gasta 1 Pergaminho de Proteção da raridade do item; se falhar, o item fica como estava.
   function encantar(p, itemId, rng, protecao) {
     var item = p.inventario.find(function (i) { return i.id === itemId; });
-    if (!item || item.encanto >= D.encantamento.maximo || qtdPergaminho(p, item.raridade) <= 0) return null;
+    if (!item || item.runa || item.encanto >= D.encantamento.maximo || qtdPergaminho(p, item.raridade) <= 0) return null;   // relíquia: encanto travado
     var chance = chanceEncantar(p, item);
     var risco = riscoEncantar(item);
     var protegido = !!protecao && risco !== 'nada' && qtdConsumivel(p, 'protecao', item.raridade) > 0;
@@ -2553,7 +2567,7 @@ Tanka.regras = (function () {
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
     fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
     bonusEncanto: bonusEncanto, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
-    runa: runa, itemForjado: itemForjado,
+    runa: runa, itemForjado: itemForjado, forcaRuna: forcaRuna, bonusRuna: bonusRuna, textoRuna: textoRuna,
     tabelaBossAlianca: tabelaBossAlianca,
     itemBossAlianca: itemBossAlianca,
     fatorExp: fatorExp,

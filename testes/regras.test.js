@@ -1867,5 +1867,12 @@ teste('oficinas: chance com o bônus do artesão, item forjado pela semente e ru
   if (!R.slotDoItem(p, arma.id)) R.equipar(p, arma.id);
   assert.ok(R.status(p, true).dano[1] > antes, 'runa da fúria: mais dano contra monstros');
   assert.strictEqual(R.status(p).dano[1], fora, 'fora disso (Arena, poder) não muda');
+  const q = { runa: 'furia', encanto: 7 };
+  assert.strictEqual(R.forcaRuna(q), 1);
+  assert.strictEqual(R.bonusRuna({ runa: 'furia', encanto: 10 }).dano, 10.5, '+10 = 175% da runa');
+  assert.ok(R.bonusRuna({ runa: 'furia', encanto: 9 }).dano > R.bonusRuna({ runa: 'furia', encanto: 8 }).dano);
+  arma.encanto = 8; R.mudarPergaminho(p, arma.raridade, 1);
+  assert.strictEqual(R.encantar(p, arma.id, () => 0), null, 'relíquia não pode mais ser encantada');
+  assert.strictEqual(arma.encanto, 8);
 });
 

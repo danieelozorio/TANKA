@@ -962,6 +962,11 @@ select pg_temp.como('d'); select public.oficina_fazer('pd', :ped4) is not null;
 select pg_temp.igual((public.oficina_estado('pd') -> 'lista' -> 0 ->> 'reliquia_semana')::int, 1, 'relíquia: 1 por semana por Ferreiro');
 reset role;
 select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and item ->> 'id' = 'len9')::int, 1, 'relíquia: o item volta (relíquia ou igual)');
+update public.personagens set dados = jsonb_set(dados, '{inventario}', '[{"id":"rel1","tipo":"arma","raridade":"lendaria","encanto":8,"runa":"furia"}]')
+  || '{"consumiveis": [{"id":"pergaminho-lendaria","tipo":"pergaminho","raridade":"lendaria","qtd":1}]}'::jsonb where id = 'pa';
+set role authenticated; select pg_temp.como('a');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pd', 'encantar', 'rel1', '{}')$$, 'Relíquias não podem mais ser encantadas');
+reset role;
 select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and item ->> 'id' = 'len9' and item ? 'runa')::int,
   (select count(*) from public.reliquias where nome_chave = 'fúria de thorin')::int, 'relíquia: nome único guardado quando dá certo');
 -- prazo de 24 h
