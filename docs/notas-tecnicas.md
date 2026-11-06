@@ -268,3 +268,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   +1 por nível", que nos níveis baixos/médios deixava comum +6 acima de épica +0. Agora é só +5%/nível
   (`bonusComEncanto` sem arredondar; defesa arredonda depois do x4,5). Vale para todos os itens já existentes.
 - `tanka_status` (Arena) arredonda igual ao cliente (defesa: `round(b0*m*fator)/fator`). Teste novo em regras.test.js.
+
+## Raças e classes rebalanceadas (Henri + Daniel, nov/2026)
+- Classes com 70 pontos (Cavaleiro +5 SOR, Caçador −5 SOR, Mago +5 SOR, Artesão igual). Raças não mudam mais os
+  atributos (elevados/reduzidos vazios): cada uma tem `tracos` em dados.js, aplicados em `R.comRaca` (depois da passiva,
+  antes do conjunto) e no `tanka_status` (Arena; crítico e dano crítico da raça viram dano, como a passiva).
+  Humano {} · Elfo crit +5, vel +10%, vida −10%, dano −10% · Elfo Negro dano crít +10, dano +5%, vida −10% ·
+  Orc vida +20%, dano +10%, crit −5, vel −10%, esquiva −50% · Anão vida +10%, dano +5%, crit −3, vel −5%.
+- RES: vida = +3 por ponto acima de `RES_SEM_VIDA` (10), inclusive os da classe; defesa = RES x 0,45 (cada ponto conta).
+- SOR: +0,2% sobre a chance base de cada drop por ponto (`SORTE.drop`, em `rolarRaridade`).
+- Personagens antigos: `R.normalizar` (flag `atributosV2`) e um `do $$` no schema convertem uma vez: atributos += novo
+  inicial − antigo inicial (pontos distribuídos mantidos). O trigger `validar_personagem` não mexe em `atualizado_em`
+  quando `tanka.migracao = '1'` (para o Chefe Mundial não contar todo mundo como ativo).

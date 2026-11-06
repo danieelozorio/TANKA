@@ -1459,3 +1459,8 @@ html { overscroll-behavior-x: none; }
 .venda-recebe { min-width: 0; }
 .mercado-vendas { margin: 4px 0 0 18px; padding: 0; }
 @media (max-width: 600px) { .mercado-filtros [data-acao="mercado-vender-abrir"] { margin-left: 0; } }
+
+/* Traços da raça (criação e ficha) */
+.tracos-raca { margin-top: .6em; line-height: 1.5; }
+.tracos-raca .mais { color: #7fd17f; }
+.tracos-raca .menos { color: #e07a6f; }

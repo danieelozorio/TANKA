@@ -10,7 +10,9 @@ vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(raiz, 'js', 'dados.js'), 'utf8'), ctx);
 const D = vm.runInContext('Tanka.dados', ctx);
 const dados = {
-  HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, VELOCIDADE: D.VELOCIDADE,
+  HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, RES_SEM_VIDA: D.RES_SEM_VIDA, VELOCIDADE: D.VELOCIDADE,
+  racas: Object.fromEntries(Object.entries(D.racas).map(([k, r]) => [k, { tracos: r.tracos || {} }])),
+  classesAtributos: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, c.atributos])),
   raridades: Object.fromEntries(Object.entries(D.raridades).map(([k, r]) => [k, { danoMin: r.danoMin, danoMax: r.danoMax }])),
   classes: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, { dano: c.dano, atributoDano: c.atributoDano }])),
   PONTOS_POR_DANO: D.PONTOS_POR_DANO,
