@@ -235,3 +235,19 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `>= 2` fixo em `grupo_iniciar`/`fila_casar`/`fila_entrar`). Para devolver as entradas do dia a todos:
   `delete from public.masmorra_entradas where dia = public.dia_jogo();`
 
+
+## Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026)
+- Servidor (`supabase/schema.sql`): tabelas `boss_mundial` e `boss_mundial_dano` (RLS sem políticas, só via funções).
+  Números em `boss_cfg()` (hora 20, 60 min, 50 mil de vida por conta ativa nos últimos 3 dias sem bots/admins,
+  15 s entre ataques, dano máx. 200 mil por ataque, 5% lendário / 30% épico no top 10, consolação 70%, aliança 1%).
+- Tudo é preguiçoso: `boss_garantir()` (chamado por `boss_estado`/`boss_atacar`) cria o despertar do dia a partir das 20h
+  (anuncia no chat com `classe = 'sistema'`; o trigger `validar_mensagem` deixa passar quando `tanka.aviso_sistema = '1'`)
+  e encerra os que passaram da hora (`dormindo` + `boss_premiar(id, false)`).
+- `boss_atacar(meu, dano, chefe)`: o cliente luta e informa o dano (confiança no cliente, igual à caçada); quem zera dá
+  o golpe final → `boss_premiar(id, true)`. Prêmios vão para `recompensas` com `origem = 'boss'`:
+  `boss_premio {ataques, fator, chefe}`, `boss_item {raridade}`, `pergaminho`, `titulo {nome}`. Tesouro da aliança é direto.
+- `admin_boss_invocar(meu, vida, minutos)`: botão no painel de admin (dia null, começa agora).
+- Cliente: aba `mundial` (Aventura › Chefe Mundial), barra `#boss-barra` no topo quando ativo, consulta a cada 5 s
+  (ativo/na aba) ou 60 s. Ataque = `R.iniciarBatalha(p, R.chefeDoNivel(p))` com a vida do reino e no máx.
+  `D.CHEFE_MUNDIAL.acoesPorAtaque` (30) ações; `encerrarMundial` usa a vida/poções reais e não tira exp ao cair.
+  Prêmios aplicados em `resgatarRecompensas` (`R.premioChefeMundial`, `R.itemDoChefeMundial`, `p.titulo`/`p.titulos`).

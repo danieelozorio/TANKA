@@ -988,6 +988,30 @@ Tanka.regras = (function () {
     return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
   }
 
+  // ---------- Chefe Mundial (Ignaroth) ----------
+  // Cada herói luta contra o chefe da área mais alta liberada pelo level (mesmo dano e defesa); a vida é a do reino.
+  function chefeDoNivel(p) {
+    var area = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0];
+    return area.chefe.id;
+  }
+  // Prêmio do Chefe Mundial: ouro e exp do chefe da área do herói x ataques (fator 100 = caiu; 70 = consolação).
+  function premioChefeMundial(p, rec) {
+    var m = D.monstros[rec.chefe] || D.monstros[chefeDoNivel(p)];
+    var vezes = Math.max(0, Math.floor(rec.ataques || 0)), fator = Math.max(0, Math.min(100, rec.fator || 0)) / 100;
+    var res = { ouro: Math.floor(m.ouro * vezes * fator), exp: Math.floor(m.exp * vezes * fator) };
+    p.ouro += res.ouro;
+    res.niveis = ganharExp(p, res.exp);
+    return res;
+  }
+  // Item do top 10: épico ou lendário, arma (50%) ou peça de armadura/secundária, como o drop de chefe.
+  function itemDoChefeMundial(p, raridade, rng) {
+    rng = rng || Math.random;
+    if (!D.raridades[raridade]) raridade = 'epica';
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
+    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
+    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
+  }
+
   // ---------- Combate ----------
   // Barra de ação: cada lutador soma sua velocidade por tique e age ao chegar a 100.
   // Velocidade 20 contra 10 = duas ações para cada uma do adversário.
@@ -2067,6 +2091,9 @@ Tanka.regras = (function () {
     poder: poder,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,
+    chefeDoNivel: chefeDoNivel,
+    premioChefeMundial: premioChefeMundial,
+    itemDoChefeMundial: itemDoChefeMundial,
     rolarDrop: rolarDrop,
     nomeArma: nomeArma,
     armaEquipada: armaEquipada,

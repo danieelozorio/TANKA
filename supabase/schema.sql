@@ -178,6 +178,10 @@ create or replace function public.validar_mensagem() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare d jsonb; pid text; ate timestamptz;
 begin
+  -- aviso do sistema (ex.: o Chefe Mundial despertou), gravado só por funções do servidor
+  if current_setting('tanka.aviso_sistema', true) = '1' then
+    new.conta_id := coalesce(auth.uid(), new.conta_id); new.criado_em := now(); return new;
+  end if;
   new.conta_id := auth.uid();
   new.texto := btrim(new.texto);
   if new.texto = '' then raise exception 'Mensagem vazia.'; end if;
@@ -803,6 +807,197 @@ begin
 end $$;
 revoke execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) from public, anon;
 grant execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) to authenticated;
+
+-- ---------- Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026) ----------
+-- Todo dia às 20h (Brasília) Ignaroth desperta por 1 hora, com uma vida só para o reino inteiro.
+-- Vida = 50 mil por jogador que jogou nos últimos 3 dias. Cada ataque é uma luta no jogo (contra o chefe da área do
+-- herói) e o jogo informa o dano (boss_atacar). Ao cair: cada atacante ganha ouro e exp do chefe da área dele x ataques;
+-- top 10 de dano: 5% lendário / 30% épico + 1 pergaminho; golpe final: título "Matador de Dragões"; aliança com mais dano:
+-- 1% do dano dela em ouro no tesouro. Se não cair: 70% do ouro e exp + 1 pergaminho garantido para quem atacou.
+-- Tudo é calculado na hora em que alguém consulta (boss_estado) ou ataca: não precisa de agendador.
+create table if not exists public.boss_mundial (
+  id bigint generated always as identity primary key,
+  dia date unique,                          -- o despertar diário (null = invocado pelo admin)
+  inicio timestamptz not null,
+  fim timestamptz not null,
+  vida_max bigint not null,
+  vida bigint not null,
+  estado text not null default 'ativo',     -- ativo | derrotado | dormindo
+  golpe_final text,
+  derrotado_em timestamptz,
+  alianca_vencedora bigint,
+  bonus_alianca bigint,
+  premiado boolean not null default false
+);
+create table if not exists public.boss_mundial_dano (
+  boss_id bigint not null references public.boss_mundial (id) on delete cascade,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  alianca_id bigint,
+  dano bigint not null default 0,
+  ataques int not null default 0,
+  chefe text,                               -- chefe da área do herói no último ataque (base do prêmio)
+  ultimo_em timestamptz,
+  primary key (boss_id, personagem_id)
+);
+create index if not exists boss_mundial_dano_rank on public.boss_mundial_dano (boss_id, dano desc);
+alter table public.boss_mundial enable row level security;        -- só pelas funções
+alter table public.boss_mundial_dano enable row level security;
+
+create or replace function public.boss_cfg() returns jsonb
+language sql immutable as $$
+  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 50000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximo": 200000,
+    "lendaria": 5, "epica": 30, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões"}'::jsonb
+$$;
+
+-- Vida do despertar: 50 mil por jogador (conta) que jogou nos últimos 3 dias, sem bots nem admins.
+create or replace function public.boss_vida_inicial() returns bigint
+language sql stable security definer set search_path = public as $$
+  select greatest(1, (select count(distinct p.conta_id) from public.personagens p join public.contas c on c.id = p.conta_id
+    where p.atualizado_em > now() - make_interval(days => (public.boss_cfg() ->> 'diasAtivos')::int) and not c.bot and not c.admin))
+    * (public.boss_cfg() ->> 'vidaPorJogador')::bigint
+$$;
+
+-- Entrega os prêmios uma vez só (venceu = derrubaram a tempo).
+create or replace function public.boss_premiar(bid bigint, venceu boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; r record; cfg jsonb := public.boss_cfg(); sorte numeric; posicao int := 0; al record;
+begin
+  select * into b from public.boss_mundial where id = bid for update;
+  if b.id is null or b.premiado then return; end if;
+  update public.boss_mundial set premiado = true where id = bid;
+  for r in select * from public.boss_mundial_dano where boss_id = bid and ataques > 0 order by dano desc, ultimo_em loop
+    posicao := posicao + 1;
+    insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+      jsonb_build_object('tipo', 'boss_premio', 'ataques', r.ataques, 'chefe', r.chefe, 'boss', bid,
+        'fator', case when venceu then 100 else (cfg ->> 'consolacao')::int end, 'venceu', venceu), 'boss');
+    if not venceu then
+      insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+        jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
+    elsif posicao <= 10 then
+      sorte := random() * 100;
+      if sorte < (cfg ->> 'lendaria')::numeric + (cfg ->> 'epica')::numeric then
+        insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+          jsonb_build_object('tipo', 'boss_item', 'raridade', case when sorte < (cfg ->> 'lendaria')::numeric then 'lendaria' else 'epica' end), 'boss');
+      end if;
+      insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+        jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
+    end if;
+  end loop;
+  if venceu then
+    if b.golpe_final is not null then
+      insert into public.recompensas (personagem_id, item, origem)
+        values (b.golpe_final, jsonb_build_object('tipo', 'titulo', 'nome', cfg ->> 'titulo'), 'boss');
+    end if;
+    select alianca_id, sum(dano) as total into al from public.boss_mundial_dano
+      where boss_id = bid and alianca_id is not null group by alianca_id order by sum(dano) desc limit 1;
+    if al.alianca_id is not null then
+      update public.aliancas set tesouro = tesouro + floor(al.total * (cfg ->> 'aliancaPct')::numeric / 100)
+        where id = al.alianca_id;
+      update public.boss_mundial set alianca_vencedora = al.alianca_id,
+        bonus_alianca = floor(al.total * (cfg ->> 'aliancaPct')::numeric / 100) where id = bid;
+    end if;
+  end if;
+end $$;
+
+-- Cria o despertar de hoje (a partir das 20h) e encerra o que passou da hora.
+create or replace function public.boss_garantir() returns void
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.boss_cfg(); ini timestamptz; v bigint; r record;
+begin
+  ini := (public.dia_jogo()::timestamp + make_interval(hours => (cfg ->> 'hora')::int)) at time zone 'America/Sao_Paulo';
+  if now() >= ini and now() < ini + make_interval(mins => (cfg ->> 'minutos')::int)
+     and not exists (select 1 from public.boss_mundial where dia = public.dia_jogo()) then
+    v := public.boss_vida_inicial();
+    insert into public.boss_mundial (dia, inicio, fim, vida_max, vida)
+      values (public.dia_jogo(), ini, ini + make_interval(mins => (cfg ->> 'minutos')::int), v, v)
+      on conflict (dia) do nothing;
+    if found and auth.uid() is not null then
+      perform set_config('tanka.aviso_sistema', '1', true);
+      insert into public.mensagens (personagem, classe, nivel, texto)
+        values ('Eldrin', 'sistema', 0, 'A terra treme… Ignaroth despertou! Todos à Aventura › Chefe Mundial!');
+      perform set_config('tanka.aviso_sistema', '', true);
+    end if;
+  end if;
+  for r in select id from public.boss_mundial where estado = 'ativo' and now() >= fim for update skip locked loop
+    update public.boss_mundial set estado = 'dormindo' where id = r.id;
+    perform public.boss_premiar(r.id, false);
+  end loop;
+end $$;
+
+-- O que a tela precisa: o chefe mais recente (ativo ou o último), ranking, o meu dano e os meus prêmios.
+create or replace function public.boss_estado(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; cfg jsonb := public.boss_cfg(); prox timestamptz;
+begin
+  perform public.conferir_dono(meu);
+  perform public.boss_garantir();
+  select * into b from public.boss_mundial where inicio <= now() order by inicio desc limit 1;
+  prox := (public.dia_jogo()::timestamp + make_interval(hours => (cfg ->> 'hora')::int)) at time zone 'America/Sao_Paulo';
+  if prox <= now() then prox := prox + interval '1 day'; end if;
+  return jsonb_build_object('agora', now(), 'proximo', prox, 'cfg', cfg,
+    'boss', case when b.id is null then null else jsonb_build_object('id', b.id, 'vida', b.vida, 'vida_max', b.vida_max,
+      'inicio', b.inicio, 'fim', b.fim, 'estado', b.estado, 'derrotado_em', b.derrotado_em,
+      'golpe_final', (select nome from public.personagens where id = b.golpe_final),
+      'alianca_vencedora', (select nome from public.aliancas where id = b.alianca_vencedora), 'bonus_alianca', b.bonus_alianca) end,
+    'top', coalesce((select jsonb_agg(jsonb_build_object('nome', p.nome, 'dano', d.dano, 'ataques', d.ataques,
+        'sigla', (select a.sigla from public.aliancas a where a.id = d.alianca_id), 'eu', d.personagem_id = meu) order by d.dano desc, d.ultimo_em)
+      from (select * from public.boss_mundial_dano where boss_id = b.id order by dano desc, ultimo_em limit 10) d
+      join public.personagens p on p.id = d.personagem_id), '[]'::jsonb),
+    'eu', (select jsonb_build_object('dano', d.dano, 'ataques', d.ataques,
+        'posicao', 1 + (select count(*) from public.boss_mundial_dano x where x.boss_id = d.boss_id and x.dano > d.dano))
+      from public.boss_mundial_dano d where d.boss_id = b.id and d.personagem_id = meu),
+    'aliancas', coalesce((select jsonb_agg(jsonb_build_object('nome', a.nome, 'sigla', a.sigla, 'dano', t.total) order by t.total desc)
+      from (select alianca_id, sum(dano) as total from public.boss_mundial_dano where boss_id = b.id and alianca_id is not null
+            group by alianca_id order by sum(dano) desc limit 5) t join public.aliancas a on a.id = t.alianca_id), '[]'::jsonb),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'item', r.item, 'origem', r.origem) order by r.id)
+      from public.recompensas r where r.personagem_id = meu and not r.resgatada and r.origem = 'boss'), '[]'::jsonb));
+end $$;
+
+-- Um ataque: o jogo lutou contra o chefe da área do herói e informa o dano. O primeiro a zerar a vida dá o golpe final.
+create or replace function public.boss_atacar(meu text, dano int, chefe text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; cfg jsonb := public.boss_cfg(); d int; ult timestamptz; ali bigint; caiu boolean := false;
+begin
+  perform public.conferir_dono(meu);
+  perform public.boss_garantir();
+  select * into b from public.boss_mundial where estado = 'ativo' and now() >= inicio and now() < fim order by inicio desc limit 1 for update;
+  if b.id is null then raise exception 'Ignaroth não está acordado agora.'; end if;
+  select ultimo_em into ult from public.boss_mundial_dano where boss_id = b.id and personagem_id = meu;
+  if ult is not null and ult > now() - make_interval(secs => (cfg ->> 'intervaloSeg')::int) then
+    raise exception 'Calma! Espere alguns segundos entre um ataque e outro.'; end if;
+  d := least(greatest(coalesce(dano, 0), 0), (cfg ->> 'danoMaximo')::int);
+  select alianca_id into ali from public.alianca_membros where personagem_id = meu;
+  insert into public.boss_mundial_dano (boss_id, personagem_id, alianca_id, dano, ataques, chefe, ultimo_em)
+    values (b.id, meu, ali, d, 1, chefe, now())
+    on conflict (boss_id, personagem_id) do update set dano = boss_mundial_dano.dano + d, ataques = boss_mundial_dano.ataques + 1,
+      alianca_id = excluded.alianca_id, chefe = excluded.chefe, ultimo_em = now();
+  update public.boss_mundial set vida = greatest(0, vida - d) where id = b.id returning * into b;
+  if b.vida = 0 then
+    update public.boss_mundial set estado = 'derrotado', golpe_final = meu, derrotado_em = now() where id = b.id;
+    perform public.boss_premiar(b.id, true);
+    caiu := true;
+  end if;
+  return jsonb_build_object('dano', d, 'vida', b.vida, 'vida_max', b.vida_max, 'caiu', caiu, 'golpe_final', caiu);
+end $$;
+
+-- Admin: invoca Ignaroth agora (para testar) com a vida pedida (null = a do despertar), por `minutos`.
+create or replace function public.admin_boss_invocar(meu text, vida bigint, minutos int) returns void
+language plpgsql security definer set search_path = public as $$
+declare v bigint := coalesce(vida, public.boss_vida_inicial());
+begin
+  perform public.conferir_dono(meu);
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  update public.boss_mundial set estado = 'dormindo' where estado = 'ativo';
+  insert into public.boss_mundial (dia, inicio, fim, vida_max, vida)
+    values (null, now(), now() + make_interval(mins => greatest(1, coalesce(minutos, 60))), v, v);
+end $$;
+
+revoke execute on function public.boss_cfg(), public.boss_vida_inicial(), public.boss_premiar(bigint, boolean),
+  public.boss_garantir() from public, anon, authenticated;
+revoke execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
+  public.admin_boss_invocar(text, bigint, int) from public, anon;
+grant execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
+  public.admin_boss_invocar(text, bigint, int) to authenticated;
 
 -- Pega uma recompensa (o jogo coloca na mochila e salva).
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb

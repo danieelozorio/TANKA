@@ -583,13 +583,13 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'historia'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
+  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
@@ -1989,6 +1989,10 @@
     }
     return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
       + '<div class="itens">'
+      + grupo('Chefe Mundial', 'Invoca Ignaroth agora por 1 hora (para testar). Vida: a do despertar (50 mil por jogador ativo) ou um valor.',
+        '<button class="btn" data-acao="boss-invocar" data-valor="0">Invocar</button>'
+        + '<button class="btn" data-acao="boss-invocar" data-valor="5000">Vida 5 mil</button>'
+        + '<button class="btn" data-acao="boss-invocar" data-valor="1000000">Vida 1 milhão</button>')
       + grupo('Ouro', 'Soma ou tira ouro do personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('ouro', [-1000, -10000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('zerar-ouro', [0], function () { return 'Zerar'; }, 'menos'))
@@ -2115,7 +2119,7 @@
       + '<div class="suave">Velocidade ' + b.jogador.vel + '</div>'
       + (em ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>'
       + '<div class="vs">VS</div>'
-      + '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
+      + '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.imagemId || b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
       + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div>'
       + '<div class="suave">Velocidade ' + b.monstro.vel + '</div></div></div>'
       + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'
@@ -2149,7 +2153,7 @@
       var subAbas = subAbasHtml();
       if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2172,7 +2176,7 @@
       }).join('') + '</div>' : '';
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div class="conteudo"><div class="jogo"'
+    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div id="boss-barra">' + bossBarraHtml() + '</div><div class="conteudo"><div class="jogo"'
       + (personagemCompacto ? ' data-personagem-vista="' + vista + '"' : zealot && estado.cacada ? ' data-cacada-compacta' : '')
       + '>' + vistas + fichaHtml()
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
@@ -2275,6 +2279,11 @@
     reg.insertAdjacentHTML('beforeend', estado.registro.slice(linhasAntes).join(''));
     reg.scrollTop = reg.scrollHeight;
 
+    if (b.mundial && (ev.ator === 'jogador' || ev.habilidade) && ++b.mundial.acoes >= D.CHEFE_MUNDIAL.acoesPorAtaque && !b.fim) {
+      b.fim = 'tempo';
+      linha('destaque', 'Ignaroth ruge e afasta ' + nomeJ + ' com uma onda de chamas! Fim do ataque.');
+      reg.insertAdjacentHTML('beforeend', estado.registro.slice(-1).join(''));
+    }
     if (b.fim) setTimeout(function () { encerrar(); }, 500);
     else agendar();
   }
@@ -2283,6 +2292,7 @@
     var b = estado.batalha;
     if (!b) return;
     clearTimeout(estado.timer);
+    if (b.mundial) { encerrarMundial(b); return; }
     var primeiraVez = !(estado.personagem.abates[b.monstroId] || 0);
     var res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
     if (res.resultado === 'vitoria') {
@@ -2523,7 +2533,7 @@
         + (c.encontro.chefe ? '<p class="destaque pequeno">Um chefe! Você decide.</p>'
           : '<p class="suave pequeno">Luta sozinho em <strong id="cacada-contagem">' + D.CACADA.contagem + '</strong> s</p>') + '</div>';
     } else if (emLuta) {
-      direita = '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
+      direita = '<div class="lutador" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(b.imagemId || b.monstroId) + '</div><h3>' + b.monstro.nome + '</h3>'
         + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div></div>';
     } else {
       direita = '<div class="cacada-busca parada"><div class="busca-icone">' + ICONE_ACAMPAMENTO + '</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
@@ -2593,6 +2603,7 @@
     if (aba === 'masmorra') carregarGrupo();
     if (aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
     if (aba === 'alianca') carregarAlianca();
+    if (aba === 'mundial') carregarBoss();
   }
 
   function podeVoltarAba() {
@@ -3342,6 +3353,11 @@
         mostrarPainel();
         break;
       case 'fugir': encerrar(); break;
+      case 'boss-atacar': atacarMundial(); break;
+      case 'boss-invocar':
+        C.boss.adminInvocar(estado.personagem.id, Number(el.dataset.valor) || null, 60)
+          .then(function () { avisar('Ignaroth foi invocado (1 hora).'); carregarBoss(); }, function (e) { avisar(e.message); });
+        break;
       case 'velocidade':
         estado.rapido = !estado.rapido;
         el.textContent = estado.cacada ? (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') : (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x');
@@ -3548,21 +3564,41 @@
           avisar('Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
           continue;
         }
+        // Chefe Mundial: ouro e exp (x ataques) e o título do golpe final.
+        if (rec.item && rec.item.tipo === 'boss_premio') {
+          var bp = await C.grupo.resgatar(p.id, rec.id);
+          var ganhoBoss = R.premioChefeMundial(p, bp);
+          salvar();
+          avisar('🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + ganhoBoss.ouro.toLocaleString('pt-BR') + ' de ouro e +'
+            + ganhoBoss.exp.toLocaleString('pt-BR') + ' de exp!', 'vitoria');
+          if (ganhoBoss.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
+          continue;
+        }
+        if (rec.item && rec.item.tipo === 'titulo') {
+          var tit = await C.grupo.resgatar(p.id, rec.id);
+          p.titulos = p.titulos || [];
+          if (p.titulos.indexOf(tit.nome) < 0) p.titulos.push(tit.nome);
+          p.titulo = tit.nome;
+          salvar();
+          avisar('🐉 Novo título: "' + tit.nome + '"!', 'nivel');
+          continue;
+        }
         // Pergaminho de encantamento: não ocupa a mochila.
         if (rec.item && rec.item.tipo === 'pergaminho') {
           var perg = await C.grupo.resgatar(p.id, rec.id);
           if (!D.raridades[perg.raridade]) continue;
           R.mudarPergaminho(p, perg.raridade, 1);
           salvar();
-          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + ' na masmorra!', 'item');
+          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + (rec.origem === 'boss' ? ' do Chefe Mundial!' : ' na masmorra!'), 'item');
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisar('Mochila cheia! Sua joia da masmorra está guardada: libere espaço para recebê-la.');
+          if (!avisouCheia) avisar('Mochila cheia! Seu prêmio (' + (rec.origem === 'boss' ? 'Chefe Mundial' : 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
-        var item = R.completarItem(p, await C.grupo.resgatar(p.id, rec.id));
+        var bruto = await C.grupo.resgatar(p.id, rec.id);
+        var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
         avisar('Você ganhou ' + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
@@ -3888,6 +3924,164 @@
     if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);
+
+  // ---------------- Chefe Mundial: "O Despertar de Ignaroth" ----------------
+  // Todo dia às 20h por 1 hora. A vida é uma só para o reino (servidor). Cada ataque é uma luta normal contra o chefe
+  // da área do herói (mesmo dano e defesa), com no máximo D.CHEFE_MUNDIAL.acoesPorAtaque ações; o dano vai ao servidor.
+  function bossAgora() { return Date.now() + (estado.bossDif || 0); }
+  function bossAtivo() {
+    var e = estado.boss, b = e && e.boss;
+    return !!(b && b.estado === 'ativo' && bossAgora() < Date.parse(b.fim) && bossAgora() >= Date.parse(b.inicio));
+  }
+  function relogioBoss(ms) {
+    var t = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(t / 3600), m = Math.floor(t % 3600 / 60), sg = t % 60;
+    return (h ? h + 'h ' : '') + (h || m ? m + 'min ' : '') + (h ? '' : sg + 's');
+  }
+  function carregarBoss() {
+    var p = estado.personagem;
+    if (!p || estado.bossCarregando) return;
+    estado.bossCarregando = true;
+    C.boss.estado(p.id).then(function (r) {
+      estado.bossCarregando = false;
+      if (estado.personagem !== p) return;
+      if (!r || r.local) { estado.boss = r; atualizarBoss(); return; }
+      var antes = estado.boss && estado.boss.boss;
+      if (r.agora) estado.bossDif = Date.parse(r.agora) - Date.now();
+      estado.boss = r;
+      if (antes !== undefined && r.boss && (!antes || antes.id !== r.boss.id) && bossAtivo()) avisar('🐉 A terra treme… Ignaroth despertou!', 'nivel');
+      if (r.recompensas && r.recompensas.length && !estado.batalha) resgatarRecompensas(r.recompensas);
+      atualizarBoss();
+    }, function (e) { estado.bossCarregando = false; estado.bossErro = e.message; });
+  }
+  // Atualiza só a barra do topo e o painel (sem redesenhar a tela, para não atrapalhar uma luta).
+  function atualizarBoss() {
+    var topoEl = document.getElementById('boss-barra');
+    if (topoEl) topoEl.innerHTML = bossBarraHtml();
+    var painel = document.getElementById('boss-painel');
+    if (painel && estado.aba === 'mundial' && !estado.batalha) painel.innerHTML = bossPainelHtml();
+  }
+  function vidaBossTexto(b) { return Number(b.vida).toLocaleString('pt-BR') + ' / ' + Number(b.vida_max).toLocaleString('pt-BR'); }
+  function bossBarraHtml() {
+    if (!bossAtivo() || (estado.aba === 'mundial' && !estado.batalha)) return '';
+    var b = estado.boss.boss;
+    return '<button class="boss-topo" data-acao="aba" data-aba="mundial" title="Abrir Chefe Mundial">'
+      + '<span class="boss-topo-nome">🐉 Ignaroth despertou!</span>'
+      + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
+      + '<span class="boss-topo-tempo">' + relogioBoss(Date.parse(b.fim) - bossAgora()) + '</span></button>';
+  }
+  function abaMundial() {
+    if (!estado.boss) carregarBoss();
+    return '<div id="boss-painel">' + bossPainelHtml() + '</div>';
+  }
+  function bossPainelHtml() {
+    var e = estado.boss, p = estado.personagem, CM = D.CHEFE_MUNDIAL;
+    if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
+    if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
+    var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
+    var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth') + '</div><div>'
+      + '<h2>O Despertar de Ignaroth</h2><p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
+      + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
+      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Sua vida é a da caçada: se acabar, espere voltar ou beba uma poção.</p></div></div>';
+    if (ativo) {
+      var podeAtacar = !estado.cacada && p.hpAtual > R.status(p).hpMax * 0.05;
+      h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
+        + '<div class="suave">Volta a dormir em <strong>' + relogioBoss(Date.parse(b.fim) - bossAgora()) + '</strong></div></div>'
+        + '<div class="botoes"><button class="btn perigo" data-acao="boss-atacar"' + (podeAtacar ? '' : ' disabled') + '>⚔ Atacar Ignaroth</button></div>'
+        + (estado.cacada ? '<p class="menos">Pare a caçada para atacar.</p>' : !podeAtacar ? '<p class="menos">Vida muito baixa: espere recuperar ou beba uma poção.</p>' : '');
+    } else if (b && b.estado === 'derrotado') {
+      h += '<div class="resultado vitoria-chefe"><h3>Ignaroth caiu!</h3><p>Golpe final: <strong>' + esc(b.golpe_final || '?') + '</strong> (título "' + esc(cfg.titulo) + '").'
+        + (b.alianca_vencedora ? ' A aliança <strong>' + esc(b.alianca_vencedora) + '</strong> ganhou ' + Number(b.bonus_alianca || 0).toLocaleString('pt-BR') + ' de ouro no tesouro.' : '')
+        + '</p></div>';
+    } else if (b && b.estado === 'dormindo') {
+      h += '<div class="resultado derrota"><h3>Ignaroth voltou a dormir</h3><p>O reino não conseguiu derrubá-lo a tempo. Quem atacou ganhou o prêmio de consolação.</p></div>';
+    }
+    if (!ativo && e.proximo) h += '<p class="destaque">Próximo despertar em <strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong>.</p>';
+    if (estado.bossUltimo) {
+      var u = estado.bossUltimo;
+      h += '<p class="' + (u.erro ? 'menos' : 'destaque') + '">' + (u.erro ? esc(u.erro) : 'Seu último ataque: <strong>' + Number(u.dano).toLocaleString('pt-BR') + '</strong> de dano'
+        + (u.golpeFinal ? ' — <strong>GOLPE FINAL!</strong> Você é o novo "' + esc(cfg.titulo) + '"!' : '.')) + '</p>';
+    }
+    if (e.eu) h += '<p>Seu dano: <strong>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</strong> em ' + e.eu.ataques + ' ataque(s) · ' + e.eu.posicao + 'º lugar</p>';
+    var linhas = (e.top || []).map(function (t, i) {
+      return '<tr' + (t.eu ? ' class="eu"' : '') + '><td>' + (i + 1) + 'º</td><td>' + siglaHtml(t.sigla) + esc(t.nome) + '</td><td>'
+        + Number(t.dano).toLocaleString('pt-BR') + '</td><td>' + t.ataques + '</td></tr>';
+    }).join('');
+    h += '<h3>Ranking de dano (top 10)</h3>' + (linhas ? '<table class="boss-rank"><tr><th></th><th>Herói</th><th>Dano</th><th>Ataques</th></tr>' + linhas + '</table>'
+      : '<p class="suave">Ninguém atacou ainda.</p>');
+    var al = (e.aliancas || []).map(function (a, i) {
+      return '<tr><td>' + (i + 1) + 'º</td><td>' + siglaHtml(a.sigla) + esc(a.nome) + '</td><td>' + Number(a.dano).toLocaleString('pt-BR') + '</td></tr>';
+    }).join('');
+    if (al) h += '<h3>Alianças</h3><table class="boss-rank"><tr><th></th><th>Aliança</th><th>Dano</th></tr>' + al + '</table>';
+    h += '<h3>Prêmios</h3><ul class="boss-premios">'
+      + '<li>Se cair a tempo: todos que atacaram ganham o ouro e a exp de ' + esc(chefe.nome) + ' × número de ataques.</li>'
+      + '<li>Top 10 de dano: ' + cfg.epica + '% de chance de item épico ou ' + cfg.lendaria + '% de lendário, e 1 pergaminho.</li>'
+      + '<li>Golpe final: o título "' + esc(cfg.titulo) + '".</li>'
+      + '<li>Aliança com mais dano: ' + cfg.aliancaPct + '% do dano dela em ouro no tesouro.</li>'
+      + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>';
+    return h;
+  }
+  function atacarMundial() {
+    var p = estado.personagem;
+    if (!bossAtivo() || estado.batalha || estado.cacada) return;
+    if (R.atualizarTempo(p, C.agora())) salvar();
+    if (p.hpAtual <= R.status(p).hpMax * 0.05) { avisar('Vida muito baixa: espere recuperar ou beba uma poção.'); return; }
+    var espera = (estado.bossEnvio || 0) + ((estado.boss.cfg || {}).intervaloSeg || 15) * 1000 - Date.now();
+    if (espera > 0) { avisar('Recupere o fôlego: ataque de novo em ' + Math.ceil(espera / 1000) + 's.'); return; }
+    var bs = estado.boss.boss, chefeId = R.chefeDoNivel(p);
+    var b = R.iniciarBatalha(p, chefeId);
+    b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
+    b.imagemId = 'ignaroth';
+    b.monstro.nome = 'Ignaroth (Chefe Mundial)';
+    b.monstro.hp = bs.vida;
+    b.monstro.hpMax = bs.vida_max;
+    estado.resultado = null;
+    estado.bossUltimo = null;
+    estado.batalha = b;
+    estado.registro = [];
+    linha('destaque', esc(p.nome) + ' avança contra Ignaroth!');
+    telaJogo();
+    mostrarPainel();
+    agendar();
+  }
+  function encerrarMundial(b) {
+    var p = estado.personagem;
+    var dano = Math.max(0, b.mundial.vidaInicial - Math.max(0, b.monstro.hp));
+    // a vida e as poções são as da caçada; cair aqui não tira exp
+    p.hpAtual = Math.max(0, Math.min(b.jogador.hp, R.status(p).hpMax));
+    p.pocoes = b.pocoes;
+    p.vidaEm = C.agora();
+    estado.ultimaBatalha = b;
+    estado.batalha = null;
+    estado.aba = 'mundial';
+    estado.bossUltimo = { dano: dano, enviando: true };
+    estado.bossEnvio = Date.now();
+    salvar();
+    telaJogo();
+    C.boss.atacar(p.id, dano, b.mundial.chefe).then(function (r) {
+      estado.bossUltimo = { dano: r.dano, golpeFinal: r.golpe_final };
+      if (r.golpe_final) avisar('🐉 GOLPE FINAL! Ignaroth caiu pelas suas mãos!', 'nivel');
+      else avisar('Você causou ' + Number(r.dano).toLocaleString('pt-BR') + ' de dano em Ignaroth.', 'vitoria');
+      carregarBoss();
+      if (estado.aba === 'mundial' && !estado.batalha) telaJogo();
+    }, function (e) {
+      estado.bossUltimo = { erro: e.message };
+      carregarBoss();
+      if (estado.aba === 'mundial' && !estado.batalha) telaJogo();
+    });
+  }
+  // A cada 5 s com Ignaroth acordado (ou na aba); senão a cada minuto. O relógio da barra anda a cada segundo.
+  var ciclosBoss = 0;
+  setInterval(function () {
+    if (!estado.personagem || document.hidden || !document.querySelector('.ficha')) return;
+    ciclosBoss++;
+    var acordado = bossAtivo();
+    if ((ciclosBoss % 5 === 0 && (acordado || estado.aba === 'mundial')) || ciclosBoss % 60 === 1) { carregarBoss(); return; }
+    var bs = estado.boss && estado.boss.boss;
+    if (!bs) return;
+    if (bs.estado === 'ativo' && bossAgora() >= Date.parse(bs.fim)) { atualizarBoss(); return; }
+    var t = document.querySelector('.boss-topo-tempo');
+    if (t) t.textContent = relogioBoss(Date.parse(bs.fim) - bossAgora());
+  }, 1000);
 
   // ---------------- Arena (PvP com D20) ----------------
   // O servidor calcula tudo (dados, dano, saque, ranking). Aqui só mostramos e animamos o D20.
@@ -4743,6 +4937,9 @@
 
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou)
+      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> 🐉 <strong>' + esc(m.texto) + '</strong></p>';
+    }
     var classe = nomeClasseX(m);
     var acoes = ehAdmin()
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'

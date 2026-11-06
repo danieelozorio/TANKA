@@ -538,6 +538,9 @@ Tanka.dados = {
     ],
   },
   NIVEL_MAXIMO: 40,
+  // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30 },
+
   areas: [
     {
       id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1, ajusteVida: 1.65,

@@ -207,6 +207,8 @@ Tanka.contas = (function () {
     filaEntrar: soServidor, filaPing: soServidor, filaSair: soServidor,
   };
 
+  var boss = { estado: function () { return Promise.resolve({ local: true }); }, atacar: soServidor, adminInvocar: soServidor };
+
   var arena = {
     estado: function () { return Promise.resolve({ local: true }); },
     perfil: soServidor, desafiar: soServidor, revanche: soServidor, atacar: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
@@ -231,6 +233,7 @@ Tanka.contas = (function () {
       bonus: soServidor, chat: function () { return Promise.resolve([]); }, chatEnviar: soServidor, admin: soServidor,
     },
     grupo: grupo,
+    boss: boss,
     amigos: amigos,
     ranking: ranking,
     chat: chat,

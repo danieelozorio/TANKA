@@ -1418,3 +1418,28 @@ html { overscroll-behavior-x: none; }
 .sub-abas button { display: inline-flex; align-items: center; gap: .35em; }
 .sub-ico { display: inline-grid; flex: none; width: 1.05em; height: 1.05em; }
 .sub-ico svg { width: 100%; height: 100%; }
+
+/* ---------- Chefe Mundial (Ignaroth) ---------- */
+#boss-barra:empty { display: none; }
+.boss-topo { display: flex; align-items: center; gap: 12px; width: min(1100px, calc(100% - 16px)); margin: 6px auto; padding: 6px 12px;
+  border: 1px solid #c2441c; border-radius: 10px; background: linear-gradient(90deg, rgba(90, 16, 6, .9), rgba(40, 8, 4, .9));
+  color: #ffd9a0; cursor: pointer; font: inherit; box-shadow: 0 0 18px rgba(255, 90, 30, .35); animation: boss-pulso 2.4s ease-in-out infinite; }
+.boss-topo .barra { flex: 1; margin: 0; }
+.boss-topo-nome { font-family: var(--titulo); white-space: nowrap; }
+.boss-topo-tempo { white-space: nowrap; font-variant-numeric: tabular-nums; }
+@keyframes boss-pulso { 50% { box-shadow: 0 0 28px rgba(255, 110, 30, .6); } }
+.barra.hp.boss > i { background: linear-gradient(90deg, #5c0a04, #c2321a 55%, #ff9a2e); }
+.boss-cabeca { display: flex; gap: 14px; align-items: center; }
+.boss-arte { width: 120px; flex: none; }
+.boss-vida { margin: 10px 0; }
+.boss-vida .barra { height: 26px; }
+.boss-rank { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
+.boss-rank th, .boss-rank td { padding: 4px 6px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, .08); }
+.boss-rank tr.eu td { color: var(--lendaria); font-weight: bold; }
+.boss-premios { margin: 4px 0 0 18px; padding: 0; }
+.chat-sistema { color: #ff9a5a; }
+@media (max-width: 600px) {
+  .boss-topo { flex-wrap: wrap; gap: 4px 10px; }
+  .boss-topo .barra { flex-basis: 100%; order: 3; }
+  .boss-cabeca { flex-direction: column; text-align: center; }
+}

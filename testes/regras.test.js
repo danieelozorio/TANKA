@@ -1662,3 +1662,25 @@ teste('guia: só personagem novo; caçar, equipar o presente, loja, história, a
   R.pularGuia(q);
   assert.strictEqual(R.guiaEstado(q), null);
 });
+
+teste('chefe mundial: luta contra o chefe da área do level e prêmio x ataques', () => {
+  const p = R.criarPersonagem('W', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.chefeDoNivel(p), 'velgrath');
+  p.nivel = 12;
+  const esperado = D.areas.filter(a => a.nivelMin <= 12).pop().chefe.id;
+  assert.strictEqual(R.chefeDoNivel(p), esperado);
+  assert.ok(D.monstros[esperado].chefe);
+  p.nivel = 1; p.exp = 0; p.ouro = 0;
+  const m = D.monstros.velgrath;
+  const r = R.premioChefeMundial(p, { chefe: 'velgrath', ataques: 3, fator: 100 });
+  assert.strictEqual(r.ouro, m.ouro * 3);
+  assert.strictEqual(r.exp, m.exp * 3);
+  assert.strictEqual(p.ouro, m.ouro * 3);
+  const q = R.criarPersonagem('X', 'masculino', 'humano', 'cavaleiro'); q.ouro = 0;
+  const c = R.premioChefeMundial(q, { chefe: 'velgrath', ataques: 3, fator: 70 });
+  assert.strictEqual(c.ouro, Math.floor(m.ouro * 3 * 0.7));
+  for (let i = 0; i < 20; i++) {
+    const it = R.itemDoChefeMundial(p, i % 2 ? 'lendaria' : 'epica');
+    assert.strictEqual(it.raridade, i % 2 ? 'lendaria' : 'epica');
+  }
+});

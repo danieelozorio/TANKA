@@ -279,6 +279,13 @@ Tanka.contas = (function () {
     filaSair: function (meu) { return chamar('fila_sair', { meu: meu }); },
   };
 
+  // ---------- Chefe Mundial (Ignaroth): todo dia às 20h, vida de todos ----------
+  var boss = {
+    estado: function (meu) { return chamar('boss_estado', { meu: meu }); },
+    atacar: function (meu, dano, chefe) { return chamar('boss_atacar', { meu: meu, dano: dano, chefe: chefe }); },
+    adminInvocar: function (meu, vida, minutos) { return chamar('admin_boss_invocar', { meu: meu, vida: vida || null, minutos: minutos || 60 }); },
+  };
+
   // ---------- Arena (a luta roda no servidor) ----------
   // ---------- Alianças ----------
   var alianca = {
@@ -337,6 +344,7 @@ Tanka.contas = (function () {
     arena: arena,
     alianca: alianca,
     grupo: grupo,
+    boss: boss,
     amigos: amigos,
     ranking: ranking,
     chat: chat,
