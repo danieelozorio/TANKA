@@ -2530,7 +2530,7 @@ create table if not exists public.mercado_anuncios (
   id bigint generated always as identity primary key,
   vendedor text not null references public.personagens (id) on delete cascade,
   item jsonb not null,
-  categoria text not null,                  -- arma | armadura | joia | pergaminho
+  categoria text not null,                  -- arma | armadura | joia | pergaminho | craft (material, receita, proteção)
   raridade text not null,
   nivel int not null default 1,
   qtd int not null default 1,
@@ -2574,7 +2574,7 @@ end $$;
 -- Anunciar: item_id (da mochila) ou raridade + qtd de pergaminhos.
 create or replace function public.mercado_anunciar(meu text, item_id text, pergaminho text, qtd int, preco bigint) returns jsonb
 language plpgsql security definer set search_path = public as $$
-declare cfg jsonb := public.mercado_cfg(); d jsonb; it jsonb; cat text; tem int; n int := greatest(1, coalesce(qtd, 1));
+declare cfg jsonb := public.mercado_cfg(); d jsonb; it jsonb; cat text; tem int; n int := greatest(1, coalesce(qtd, 1)); ctipo text; crar text;
 begin
   perform public.conferir_dono(meu);
   if preco is null or preco < 1 or preco > 2000000000 then raise exception 'Preço inválido (de 1 a 2 bilhões de ouro).'; end if;
@@ -2592,20 +2592,27 @@ begin
       where e ->> 'id' <> item_id), '[]'::jsonb));
     n := 1;
   else
-    if pergaminho not in ('comum', 'rara', 'epica', 'lendaria') then raise exception 'Escolha um item para vender.'; end if;
+    -- Pergaminho ('comum'..'lendaria') ou craft dos Anões ('material:<id>', 'receita:<região>', 'protecao:<raridade>').
+    if position(':' in pergaminho) > 0 then
+      ctipo := split_part(pergaminho, ':', 1); crar := split_part(pergaminho, ':', 2);
+      if ctipo not in ('material', 'receita', 'protecao') or crar = '' then raise exception 'Escolha um item para vender.'; end if;
+      cat := 'craft';
+    else
+      if pergaminho not in ('comum', 'rara', 'epica', 'lendaria') then raise exception 'Escolha um item para vender.'; end if;
+      ctipo := 'pergaminho'; crar := pergaminho; cat := 'pergaminho';
+    end if;
     select coalesce(sum((e ->> 'qtd')::int), 0) into tem from jsonb_array_elements(coalesce(d -> 'consumiveis', '[]'::jsonb)) e
-      where e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho;
-    if tem < n then raise exception 'Você só tem % desses pergaminhos.', tem; end if;
-    cat := 'pergaminho';
-    it := jsonb_build_object('tipo', 'pergaminho', 'raridade', pergaminho, 'qtd', n);
-    d := jsonb_set(d, '{consumiveis}', coalesce((select jsonb_agg(case when e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho
+      where e ->> 'tipo' = ctipo and e ->> 'raridade' = crar;
+    if tem < n then raise exception 'Você só tem % desses.', tem; end if;
+    it := jsonb_build_object('tipo', ctipo, 'raridade', crar, 'qtd', n);
+    d := jsonb_set(d, '{consumiveis}', coalesce((select jsonb_agg(case when e ->> 'tipo' = ctipo and e ->> 'raridade' = crar
         then jsonb_set(e, '{qtd}', to_jsonb((e ->> 'qtd')::int - n)) else e end)
       from jsonb_array_elements(d -> 'consumiveis') e
-      where not (e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho and (e ->> 'qtd')::int - n <= 0)), '[]'::jsonb));
+      where not (e ->> 'tipo' = ctipo and e ->> 'raridade' = crar and (e ->> 'qtd')::int - n <= 0)), '[]'::jsonb));
   end if;
   update public.personagens set dados = d where id = meu;
   insert into public.mercado_anuncios (vendedor, item, categoria, raridade, nivel, qtd, preco, expira_em)
-    values (meu, it, cat, coalesce(it ->> 'raridade', 'comum'), coalesce((it ->> 'nivel')::int, 1), n, preco,
+    values (meu, it, cat, case when cat = 'craft' then 'comum' else coalesce(it ->> 'raridade', 'comum') end, coalesce((it ->> 'nivel')::int, 1), n, preco,
       now() + make_interval(days => (cfg ->> 'dias')::int));
   return public.mercado_estado(meu, null, null, 0);
 end $$;

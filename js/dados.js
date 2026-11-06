@@ -32,7 +32,50 @@ Tanka.dados = {
     pergaminho: { nome: 'Pergaminho de Encantamento',
       descricao: 'Gasta 1 em cada tentativa de encantar um item da mesma raridade (aba Encantar). 10 trocam por 1 da raridade seguinte no Mercado.' },
     cristal: { nome: 'Cristal',
-      descricao: 'Sobra de um item que quebrou na Forja, da mesma raridade dele. Guarde: os cristais vão ter uso em breve.' },
+      descricao: 'Sobra de um item que quebrou na Forja, da mesma raridade dele. Ingrediente do Pergaminho de Proteção (Oficina).' },
+    protecao: { nome: 'Pergaminho de Proteção',
+      descricao: 'Usado junto com o encanto de um item da mesma raridade: se falhar, o item não quebra nem volta a +0. Só o Coletor fabrica.' },
+    // (raridade = id do material em CRAFT.materiais / id da região em D.areas)
+    material: { nome: 'Material', descricao: 'Material de craft. Usado pelo Coletor nas receitas e proteções e pelo Ferreiro na forja.' },
+    receita: { nome: 'Receita', descricao: 'Fabricada pelo Coletor. Com ela e os materiais da região, o Ferreiro forja uma arma ou armadura.' },
+  },
+  // ---------- Craft dos Anões (Daniel, nov/2026; etapas 1 a 3 do PDF "Os Anões: Mestres da Forja") ----------
+  // Materiais: cada região tem o seu (caem dos monstros: % pela posição do monstro) e cada chefe um raro (sempre cai).
+  // Coletor (segunda classe) acha `coletorBonus`% a mais. Minas: qualquer herói manda minerar; volta com o material da
+  // região mais alta liberada pelo level e às vezes Pedra Preciosa. Coletor fabrica Receitas (uma por região) e
+  // Pergaminhos de Proteção; o Ferreiro forja arma/armadura de qualquer classe com uma Receita + materiais.
+  CRAFT: {
+    materiais: {
+      ferro: { nome: 'Minério de Ferro', area: 'floresta' }, nevoa: { nome: 'Essência de Névoa', area: 'pantano' },
+      osso: { nome: 'Osso Rúnico', area: 'ruinas' }, carmesim: { nome: 'Cristal Carmesim', area: 'torre' },
+      areia: { nome: 'Areia Rubra', area: 'areias' }, couro: { nome: 'Couro de Drake', area: 'vale' },
+      brasa: { nome: 'Brasa Vulcânica', area: 'cume' },
+      seiva: { nome: 'Seiva Ancestral', chefe: 'velgrath' }, lagrima: { nome: 'Lágrima da Bruxa', chefe: 'morgath' },
+      po: { nome: 'Pó de Lich', chefe: 'varnok' }, nucleo: { nome: 'Núcleo Arcano', chefe: 'guardiao' },
+      ouroMaldito: { nome: 'Ouro Amaldiçoado', chefe: 'farao' }, escama: { nome: 'Escama de Dragão', chefe: 'vharkesh' },
+      brasaIgnaroth: { nome: 'Brasa do Ignaroth', chefe: 'ignaroth' },
+      gema: { nome: 'Pedra Preciosa', minas: true },
+    },
+    dropMaterial: [6, 8, 10],      // % de cair 1 material da região (1º, 2º e 3º monstro)
+    coletorBonus: 50,              // Coletor: +50% nessa chance e +50% nas Minas
+    minas: {
+      opcoes: [{ minutos: 60, qtd: [3, 5] }, { minutos: 240, qtd: [12, 18] }],
+      gemaPct: 8,                  // % de cada unidade minerada virar Pedra Preciosa
+    },
+    // Receita da região (Coletor): materiais da região + ouro. Forja (Ferreiro): 1 receita + materiais + ouro.
+    receita: { material: 10, ouro: [500, 1500, 3000, 6000, 12000, 25000, 50000] },   // ouro por região (índice da área)
+    forja: { material: 5, ouro: [1000, 3000, 6000, 12000, 25000, 50000, 100000],
+      raridade: [{ raridade: 'comum', chance: 60 }, { raridade: 'rara', chance: 35 }, { raridade: 'epica', chance: 5 }],
+      // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa
+      extraChefe: { epica: 3, lendaria: 0.5 }, extraGema: { epica: 2, lendaria: 0.5 }, maxExtra: 3,
+      obraPrima: 2, obraPrimaAnao: 1 },   // % de sair uma raridade acima (Anão +1%)
+    // Pergaminho de Proteção (Coletor): cristais da raridade + materiais.
+    protecao: {
+      comum: { cristal: 50, materiais: { ferro: 10 } },
+      rara: { cristal: 80, materiais: { nevoa: 10, osso: 5 } },
+      epica: { cristal: 120, materiais: { areia: 10, ouroMaldito: 3 } },
+      lendaria: { cristal: 200, materiais: { escama: 2, brasaIgnaroth: 1 } },
+    },
   },
   // Item que quebra na Forja vira cristais da raridade dele. Quantidade pelo + que se tentava (igual para todas as raridades).
   CRISTAIS_QUEBRA: { 7: 100, 8: 150, 9: 200, 10: 500 },
@@ -204,6 +247,8 @@ Tanka.dados = {
 
   // Encantamento: +0 a +10, gastando 1 pergaminho da raridade da arma por tentativa.
   encantamento: {
+    // Teto da chance por nível (Daniel, nov/2026): nem com muita Sorte nem Anão passa disso. Anão: +anao% em cada tentativa.
+    teto: { 4: 85, 5: 75, 6: 65, 7: 55, 8: 42, 9: 30, 10: 20 }, anao: 3,
     maximo: 10,
     seguroAte: 3,              // +1 a +3 nunca falham
     chances: { 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 },

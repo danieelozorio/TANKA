@@ -633,7 +633,149 @@ Tanka.regras = (function () {
   var RARIDADE_M = { comum: 'Comum', rara: 'Raro', epica: 'Épico', lendaria: 'Lendário' };
   function nomeConsumivel(c) {
     var def = D.CONSUMIVEIS[c.tipo];
-    return (def ? def.nome : c.tipo) + ' ' + (RARIDADE_M[c.raridade] || '');
+    if (c.tipo === 'material') return (D.CRAFT.materiais[c.raridade] || {}).nome || c.raridade;
+    if (c.tipo === 'receita') { var ar = D.areas.filter(function (a) { return a.id === c.raridade; })[0]; return 'Receita: ' + (ar ? ar.nome : c.raridade); }
+    var MF = { comum: 'Comum', rara: 'Rara', epica: 'Épica', lendaria: 'Lendária' };   // nomes femininos (Proteção)
+    return (def ? def.nome : c.tipo) + ' ' + ((c.tipo === 'protecao' ? MF : RARIDADE_M)[c.raridade] || '');
+  }
+
+  // ---------- Craft dos Anões (D.CRAFT; Daniel, nov/2026) ----------
+  function classe2(p) { return p.talentos && p.talentos.classe2 || null; }
+  function ehColetor(p) { return classe2(p) === 'coletor'; }
+  function ehFerreiro(p) { return classe2(p) === 'ferreiro'; }
+  function materialDaArea(areaId) {
+    return Object.keys(D.CRAFT.materiais).filter(function (k) { return D.CRAFT.materiais[k].area === areaId; })[0] || null;
+  }
+  function materialDoChefe(chefeId) {
+    return Object.keys(D.CRAFT.materiais).filter(function (k) { return D.CRAFT.materiais[k].chefe === chefeId; })[0] || null;
+  }
+  function qtdMaterial(p, id) { return qtdConsumivel(p, 'material', id); }
+  // Material que cai do monstro (ou null): o chefe sempre deixa 1 do material dele; os outros, a chance pela posição.
+  function rolarMaterial(p, monstroId, rng) {
+    var m = D.monstros[monstroId], area = areaDoMonstro(monstroId), C = D.CRAFT;
+    if (!m || !area) return null;
+    var extra = ehColetor(p) ? 1 + C.coletorBonus / 100 : 1;
+    if (m.chefe) { var mc = materialDoChefe(monstroId); return mc ? { id: mc, qtd: ehColetor(p) && rng() < C.coletorBonus / 100 ? 2 : 1 } : null; }
+    var pos = area.monstros.map(function (x) { return x.id; }).indexOf(monstroId);
+    var id = materialDaArea(area.id);
+    return id && rng() * 100 < (C.dropMaterial[pos] || 0) * extra ? { id: id, qtd: 1 } : null;
+  }
+  // Região mais alta liberada pelo level (as Minas mineram o material dela).
+  function areaDasMinas(p) { return D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0]; }
+  // Começa a mineração (opção = índice em CRAFT.minas.opcoes). p.minas = { inicio, fim, opcao, area }.
+  function iniciarMinas(p, opcao, agora) {
+    var o = D.CRAFT.minas.opcoes[opcao];
+    if (!o) return 'Opção inválida.';
+    if (p.minas) return 'Você já está minerando.';
+    p.minas = { inicio: agora, fim: agora + o.minutos * 60000, opcao: opcao, area: areaDasMinas(p).id };
+    return true;
+  }
+  // Recolhe o que foi minerado (quando o tempo acabou). Retorna { material, qtd, gemas } ou o motivo.
+  function recolherMinas(p, agora, rng) {
+    rng = rng || Math.random;
+    var mi = p.minas, C = D.CRAFT;
+    if (!mi) return 'Você não está minerando.';
+    if (agora < mi.fim) return 'Ainda minerando.';
+    var o = C.minas.opcoes[mi.opcao], q = o.qtd[0] + Math.floor(rng() * (o.qtd[1] - o.qtd[0] + 1));
+    if (ehColetor(p)) q = Math.round(q * (1 + C.coletorBonus / 100));
+    var gemas = 0;
+    for (var i = 0; i < q; i++) if (rng() * 100 < C.minas.gemaPct) gemas++;
+    var id = materialDaArea(mi.area);
+    mudarConsumivel(p, 'material', id, q - gemas);
+    if (gemas) mudarConsumivel(p, 'material', 'gema', gemas);
+    delete p.minas;
+    return { material: id, qtd: q - gemas, gemas: gemas };
+  }
+  function indiceArea(areaId) { return D.areas.map(function (a) { return a.id; }).indexOf(areaId); }
+  // O que falta para fabricar/forjar: lista de { nome, tem, precisa } (vazia = pode).
+  function faltando(p, custos) {
+    return custos.filter(function (c) { return c.tem < c.precisa; });
+  }
+  function custoReceita(p, areaId) {
+    var i = indiceArea(areaId), mat = materialDaArea(areaId), C = D.CRAFT.receita;
+    return [{ tipo: 'material', id: mat, nome: D.CRAFT.materiais[mat].nome, tem: qtdMaterial(p, mat), precisa: C.material },
+      { tipo: 'ouro', nome: 'ouro', tem: p.ouro, precisa: C.ouro[i] }];
+  }
+  function custoProtecao(p, raridade) {
+    var r = D.CRAFT.protecao[raridade], lista = [{ tipo: 'cristal', id: raridade, nome: 'Cristal ' + RARIDADE_M[raridade], tem: qtdConsumivel(p, 'cristal', raridade), precisa: r.cristal }];
+    Object.keys(r.materiais).forEach(function (k) { lista.push({ tipo: 'material', id: k, nome: D.CRAFT.materiais[k].nome, tem: qtdMaterial(p, k), precisa: r.materiais[k] }); });
+    return lista;
+  }
+  function custoForja(p, areaId) {
+    var i = indiceArea(areaId), mat = materialDaArea(areaId), C = D.CRAFT.forja;
+    return [{ tipo: 'receita', id: areaId, nome: 'Receita', tem: qtdConsumivel(p, 'receita', areaId), precisa: 1 },
+      { tipo: 'material', id: mat, nome: D.CRAFT.materiais[mat].nome, tem: qtdMaterial(p, mat), precisa: C.material },
+      { tipo: 'ouro', nome: 'ouro', tem: p.ouro, precisa: C.ouro[i] }];
+  }
+  function pagar(p, custos) {
+    custos.forEach(function (c) {
+      if (c.tipo === 'ouro') p.ouro -= c.precisa;
+      else if (c.tipo === 'material') mudarConsumivel(p, 'material', c.id, -c.precisa);
+      else if (c.tipo === 'cristal') mudarConsumivel(p, 'cristal', c.id, -c.precisa);
+      else if (c.tipo === 'receita') mudarConsumivel(p, 'receita', c.id, -c.precisa);
+    });
+  }
+  // Coletor fabrica 1 Receita da região (só regiões já liberadas pelo level).
+  function fabricarReceita(p, areaId) {
+    var a = D.areas[indiceArea(areaId)];
+    if (!ehColetor(p)) return 'Só o Coletor fabrica receitas.';
+    if (!a || p.nivel < a.nivelMin) return 'Região ainda não liberada.';
+    var c = custoReceita(p, areaId);
+    if (faltando(p, c).length) return 'Faltam materiais ou ouro.';
+    pagar(p, c);
+    mudarConsumivel(p, 'receita', areaId, 1);
+    return true;
+  }
+  function fabricarProtecao(p, raridade) {
+    if (!ehColetor(p)) return 'Só o Coletor fabrica o Pergaminho de Proteção.';
+    if (!D.CRAFT.protecao[raridade]) return 'Raridade inválida.';
+    var c = custoProtecao(p, raridade);
+    if (faltando(p, c).length) return 'Faltam cristais ou materiais.';
+    pagar(p, c);
+    mudarConsumivel(p, 'protecao', raridade, 1);
+    return true;
+  }
+  // Chances de raridade da forja com os ingredientes extras (chefe e gema: quantidades de 0 a maxExtra).
+  function chancesForja(p, areaId, chefe, gemas) {
+    var F = D.CRAFT.forja, ch = Math.min(F.maxExtra, chefe || 0), ge = Math.min(F.maxExtra, gemas || 0);
+    var t = {}; F.raridade.forEach(function (x) { t[x.raridade] = x.chance; });
+    t.lendaria = (t.lendaria || 0) + ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria;
+    t.epica = (t.epica || 0) + ch * F.extraChefe.epica + ge * F.extraGema.epica;
+    var resto = 100 - t.lendaria - t.epica - (t.rara || 0);
+    t.comum = Math.max(0, resto);
+    return { comum: t.comum, rara: t.rara, epica: t.epica, lendaria: t.lendaria,
+      obraPrima: F.obraPrima + (p.raca === 'anao' ? F.obraPrimaAnao : 0) };
+  }
+  // Ferreiro forja 1 item (arma ou peça: tipo = 'arma' | elmo | peitoral | luvas | botas | 'secundaria') para a classe escolhida.
+  function forjar(p, areaId, classe, tipo, chefe, gemas, rng) {
+    rng = rng || Math.random;
+    var a = D.areas[indiceArea(areaId)], F = D.CRAFT.forja;
+    if (!ehFerreiro(p)) return 'Só o Ferreiro forja.';
+    if (!a || p.nivel < a.nivelMin) return 'Região ainda não liberada.';
+    if (!D.classes[classe]) return 'Classe inválida.';
+    chefe = Math.min(F.maxExtra, chefe || 0); gemas = Math.min(F.maxExtra, gemas || 0);
+    var mc = materialDoChefe(a.chefe.id);
+    var c = custoForja(p, areaId);
+    if (chefe) c.push({ tipo: 'material', id: mc, nome: D.CRAFT.materiais[mc].nome, tem: qtdMaterial(p, mc), precisa: chefe });
+    if (gemas) c.push({ tipo: 'material', id: 'gema', nome: D.CRAFT.materiais.gema.nome, tem: qtdMaterial(p, 'gema'), precisa: gemas });
+    if (faltando(p, c).length) return 'Faltam materiais ou ouro.';
+    if (mochilaCheia(p)) return 'Mochila cheia.';
+    var ch = chancesForja(p, areaId, chefe, gemas), r = rng() * 100, rar = 'comum';
+    if (r < ch.lendaria) rar = 'lendaria'; else if (r < ch.lendaria + ch.epica) rar = 'epica'; else if (r < ch.lendaria + ch.epica + ch.rara) rar = 'rara';
+    var obra = rng() * 100 < ch.obraPrima && rar !== 'lendaria';
+    if (obra) rar = RARIDADES[RARIDADES.indexOf(rar) + 1];
+    pagar(p, c);
+    var nivel = a.nivelMin + 2, item;
+    // o item é da classe base escolhida (sem a segunda classe do Ferreiro), para vender ou dar
+    var falso = Object.assign({}, p, { classe: classe, talentos: null });
+    if (tipo === 'arma') item = novoItem('arma', classe, rar, rng, sortearTipoArma(falso, rar, rng), nivel);
+    else item = itemDoTipo(falso, tipo, rar, rng);
+    if (!item) return 'Esse tipo de item não existe para essa classe.';
+    item.nivel = item.nivel || nivel;
+    item.forjadoPor = p.nome;
+    if (obra) item.obraPrima = true;
+    p.inventario.push(item);
+    return { item: item, obraPrima: obra };
   }
 
   function criarPersonagem(nome, sexo, raca, classe) {
@@ -1315,6 +1457,10 @@ Tanka.regras = (function () {
         res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
         if (res.pergaminho) { mudarPergaminho(p, res.pergaminho, 1); res.qtdPergaminhos = 1; }
       }
+      if (!res.penalizado) {
+        res.material = rolarMaterial(p, b.monstroId, b.rng);
+        if (res.material) mudarConsumivel(p, 'material', res.material.id, res.material.qtd);
+      }
     } else if (!b.fim) {
       evitarChefe(p, b.monstroId);   // fugiu da luta contra o chefe
     } else if (b.fim === 'derrota') {
@@ -1795,10 +1941,12 @@ Tanka.regras = (function () {
   }
 
   // Chance (%) de levar a arma ao próximo nível.
+  // Chance de encantar: chance do nível + Sorte de quem encanta + bônus do Anão, nunca acima do teto do nível.
   function chanceEncantar(p, item) {
     var E = D.encantamento, alvo = item.encanto + 1;
     if (alvo <= E.seguroAte) return 100;
-    return Math.min(E.chanceMaxima, E.chances[alvo] + atributosTotais(p).sor * D.SORTE.encanto);
+    var c = E.chances[alvo] + atributosTotais(p).sor * D.SORTE.encanto + (p.raca === 'anao' ? (E.anao || 0) : 0);
+    return Math.min(E.chanceMaxima, (E.teto && E.teto[alvo]) || 100, c);
   }
 
   // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
@@ -1809,11 +1957,14 @@ Tanka.regras = (function () {
   }
 
   // Tenta encantar. Retorna { sucesso, quebrou, nivel } ou null se não puder tentar.
-  function encantar(p, itemId, rng) {
+  // protecao = true: gasta 1 Pergaminho de Proteção da raridade do item; se falhar, o item fica como estava.
+  function encantar(p, itemId, rng, protecao) {
     var item = p.inventario.find(function (i) { return i.id === itemId; });
     if (!item || item.encanto >= D.encantamento.maximo || qtdPergaminho(p, item.raridade) <= 0) return null;
     var chance = chanceEncantar(p, item);
     var risco = riscoEncantar(item);
+    var protegido = !!protecao && risco !== 'nada' && qtdConsumivel(p, 'protecao', item.raridade) > 0;
+    if (protegido) { mudarConsumivel(p, 'protecao', item.raridade, -1); risco = 'nada'; }
     var hpAntes = status(p).hpMax;
     var nivelAntes = item.encanto;
     var res;
@@ -1831,8 +1982,9 @@ Tanka.regras = (function () {
       if (cristais) { mudarConsumivel(p, 'cristal', item.raridade, cristais); res.cristais = cristais; }
     } else {
       if (risco === 'zera') item.encanto = 0;
-      res = { sucesso: false, quebrou: false, nivel: nivelAntes, item: item };
+      res = { sucesso: false, quebrou: false, nivel: item.encanto, item: item };
     }
+    if (protegido) res.protegido = true;
     ajustarVida(p, hpAntes);
     return res;
   }
@@ -2357,6 +2509,10 @@ Tanka.regras = (function () {
     simularBossAlianca: simularBossAlianca,
     premioBossAlianca: premioBossAlianca,
     skillCla: skillCla, defSkillCla: defSkillCla, bonusCla: bonusCla, precoSkillCla: precoSkillCla,
+    ehColetor: ehColetor, ehFerreiro: ehFerreiro, materialDaArea: materialDaArea, materialDoChefe: materialDoChefe, qtdMaterial: qtdMaterial,
+    rolarMaterial: rolarMaterial, areaDasMinas: areaDasMinas, iniciarMinas: iniciarMinas, recolherMinas: recolherMinas,
+    custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
+    fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
     tabelaBossAlianca: tabelaBossAlianca,
     itemBossAlianca: itemBossAlianca,
     fatorExp: fatorExp,

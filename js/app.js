@@ -525,6 +525,7 @@
     social: svg('<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3 20a6 6 0 0 1 12 0m1-5a5 5 0 0 1 5 5"/>'),
     ranking: svg('<path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4M12 13v4m-4 4h8m-6-4h4"/>'),
     alianca: svg('<path d="M6 3v18M6 4h11l-3 4 3 4H6"/>'),
+    oficina: svg('<path d="M3 21h18M6 21v-4h12v4M9 17V9l-4-4 3-2 5 5h2v9"/><path d="m14 8 5-5 2 2-5 5"/>'),
   };
   var ICONES = {
     menu: svg('<path d="M12 2 21 6v5c0 5-3.5 8.5-9 11-5.5-2.5-9-6-9-11V6Z" fill="#302014"/><path d="M7.5 8h9m-9 4h9m-7 4h5"/><path d="m12 4 1 1-1 1-1-1Z" fill="currentColor" stroke="none"/>'),
@@ -583,14 +584,14 @@
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
-    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'habilidades'] },
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -1069,12 +1070,24 @@
 
   // ----- Consumíveis: pergaminhos (e, no futuro, cristais e outros), empilhados com a quantidade -----
   function itemConsumivel(c) { return { tipo: c.tipo, classe: null, raridade: c.raridade, encanto: 0 }; }
+  // Craft (materiais, receitas, proteções): cor pela importância e ícone simples (sem arte ainda).
+  function corConsumivel(c) {
+    if (c.tipo === 'material') { var m = D.CRAFT.materiais[c.raridade] || {}; return m.chefe ? 'epica' : m.minas ? 'rara' : 'comum'; }
+    if (c.tipo === 'receita') return 'rara';
+    return D.raridades[c.raridade] ? c.raridade : 'comum';
+  }
+  var ICONE_CRAFT = { material: '⛏', receita: '📜', protecao: '🛡' };
+  function iconeConsumivel(c) {
+    if (c.tipo === 'material' && c.raridade === 'gema') return '<span class="icone-craft">💎</span>';
+    if (c.tipo === 'material' && (D.CRAFT.materiais[c.raridade] || {}).chefe) return '<span class="icone-craft">🔥</span>';
+    return ICONE_CRAFT[c.tipo] ? '<span class="icone-craft">' + ICONE_CRAFT[c.tipo] + '</span>' : F.icone(itemConsumivel(c));
+  }
   function consumiveisHtml(lista) {
     if (!lista.length) return '<p class="suave">Nenhum consumível. Pergaminhos de encantamento caem dos monstros da caçada (mais no 3º de cada área), dos chefes, '
       + 'das masmorras e vêm das missões. Cristais sobram quando um item quebra na Forja.</p>';
     var celulas = lista.map(function (c) {
-      return '<button class="celula borda-' + c.raridade + (estado.consumivelFoco === c.id ? ' focado' : '') + '" data-acao="consumivel" data-id="' + c.id + '"'
-        + ' title="' + esc(R.nomeConsumivel(c)) + ' · ' + c.qtd + '">' + F.icone(itemConsumivel(c))
+      return '<button class="celula borda-' + corConsumivel(c) + (estado.consumivelFoco === c.id ? ' focado' : '') + '" data-acao="consumivel" data-id="' + c.id + '"'
+        + ' title="' + esc(R.nomeConsumivel(c)) + ' · ' + c.qtd + '">' + iconeConsumivel(c)
         + '<span class="qtd-consumivel">' + c.qtd.toLocaleString('pt-BR') + '</span></button>';
     });
     for (var n = lista.length; n < 8; n++) celulas.push('<div class="celula vazia"></div>');
@@ -1083,13 +1096,14 @@
   }
   function fichaConsumivelHtml(c) {
     var def = D.CONSUMIVEIS[c.tipo] || {};
+    var cor = corConsumivel(c), craft = !!ICONE_CRAFT[c.tipo];
     var acoes = c.tipo === 'pergaminho'
       ? '<button class="btn" data-acao="aba" data-aba="encantar">Ir para Encantar</button>'
         + (R.proximaRaridade(c.raridade) ? '<button class="btn secundario" data-acao="aba" data-aba="mercado">Trocar no Mercado</button>' : '')
-      : '';
-    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + c.raridade + '">' + F.icone(itemConsumivel(c)) + '</div>'
-      + '<div><div class="ficha-item-nome raridade-' + c.raridade + '">' + esc(R.nomeConsumivel(c)) + '</div>'
-      + '<div class="suave">Consumível · <span class="raridade-' + c.raridade + '">' + D.raridades[c.raridade].nome + '</span>'
+      : craft ? '<button class="btn" data-acao="aba" data-aba="oficina">Ir para a Oficina</button>' : '';
+    return '<div class="ficha-item-topo"><div class="icone-grande borda-' + cor + '">' + iconeConsumivel(c) + '</div>'
+      + '<div><div class="ficha-item-nome raridade-' + cor + '">' + esc(R.nomeConsumivel(c)) + '</div>'
+      + '<div class="suave">' + (craft ? 'Craft' : 'Consumível') + ' · <span class="raridade-' + cor + '">' + D.raridades[cor].nome + '</span>'
       + ' · você tem <strong>' + c.qtd.toLocaleString('pt-BR') + '</strong></div></div></div>'
       + '<p class="suave">' + (c.tipo === 'pergaminho' ? 'Para encantar itens de raridade ' + D.raridades[c.raridade].nome.toLowerCase() + '. ' : '') + (def.descricao || '') + '</p>'
       + '<div class="item-acoes">' + acoes + '</div>';
@@ -1362,11 +1376,17 @@
 
   // ---------------- Mercado dos jogadores (Mercado > Loja) ----------------
   // O vendedor escolhe o preço; quem compra paga e o vendedor recebe o preço menos a taxa (10%). Tudo no servidor.
-  var CATEGORIAS_MERCADO = [['todos', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['joia', 'Joias'], ['pergaminho', 'Pergaminhos']];
+  var CATEGORIAS_MERCADO = [['todos', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['joia', 'Joias'], ['pergaminho', 'Pergaminhos'], ['craft', 'Craft']];
+  var TIPOS_CRAFT = ['material', 'receita', 'protecao'];
   var ORDENS_MERCADO = [['recentes', 'Mais novos'], ['nivel', 'Nível'], ['raridade', 'Raridade'], ['preco', 'Menor preço'], ['preco_desc', 'Maior preço']];
   function filtroMercado() { return estado.mercadoFiltro || (estado.mercadoFiltro = { categoria: 'todos', ordem: 'recentes', pagina: 0 }); }
   function itemAnuncio(a) {
     var it = a.item;
+    if (TIPOS_CRAFT.indexOf(it.tipo) >= 0) {
+      var cc = { tipo: it.tipo, classe: null, raridade: it.raridade, encanto: 0, qtd: a.qtd || it.qtd || 1, consumivel: true, craft: true };
+      cc.cor = corConsumivel(cc);
+      return cc;
+    }
     return it.tipo === 'pergaminho' ? { tipo: 'pergaminho', classe: null, raridade: it.raridade, encanto: 0, qtd: a.qtd || it.qtd || 1, consumivel: true } : it;
   }
   function carregarMercado() {
@@ -1394,7 +1414,7 @@
     if (el && estado.aba === 'mercado') el.innerHTML = mercadoJogadoresHtml();
   }
   function cartaAnuncio(a, meu) {
-    var p = estado.personagem, it = itemAnuncio(a), r = it.raridade;
+    var p = estado.personagem, it = itemAnuncio(a), r = it.cor || it.raridade;
     var usa = it.consumivel || R.podeUsar(p, it);
     var nome = it.consumivel ? nomeDrop(it) : R.nomeItem(it);
     var resumo = it.consumivel ? 'Vai para Mochila › Consumíveis' : resumoLote({ item: it });
@@ -1403,7 +1423,7 @@
       : '<button class="btn" data-acao="mercado-comprar" data-id="' + a.id + '"' + (p.ouro < a.preco ? ' disabled title="Ouro insuficiente"' : '') + '>Comprar</button>';
     return '<div class="leilao-lote carta-' + r + '">'
       + '<div class="leilao-cab"><button class="icone-pequeno borda-' + r + aura(it) + '" data-acao="mercado-ver" data-id="' + a.id + '" title="Ver o item">'
-      + F.icone(it) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
+      + (it.craft ? iconeConsumivel(it) : F.icone(it)) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
       + '<div><div class="leilao-nome raridade-' + r + '">' + esc(nome) + '</div>'
       + '<div class="suave pequeno">' + D.raridades[r].nome + (it.nivel ? ' · nível ' + it.nivel : '') + (it.encanto ? ' · +' + it.encanto : '') + '</div>'
       + '<div class="suave pequeno">' + esc(resumo || '') + '</div>'
@@ -1462,6 +1482,7 @@
     var p = estado.personagem, taxa = r.cfg.taxa;
     var itens = R.mochila(p).filter(function (i) { return !i.travado; });
     var perg = R.RARIDADES.filter(function (k) { return R.qtdPergaminho(p, k) > 0; });
+    var craft = R.consumiveis(p).filter(function (c) { return TIPOS_CRAFT.indexOf(c.tipo) >= 0; });
     function campoPreco(chave) {
       return '<input class="lance-valor venda-preco" id="venda-preco-' + chave + '" type="number" inputmode="numeric" min="1" step="1" placeholder="Preço" aria-label="Preço em ouro">'
         + '<span class="suave pequeno venda-recebe" id="venda-recebe-' + chave + '"></span>';
@@ -1470,7 +1491,7 @@
       + '<button class="btn secundario btn-pequeno" data-acao="mercado-vender-fechar">Fechar</button></div>'
       + '<p class="suave pequeno">Escolha o preço em ouro. Quando alguém comprar, você recebe o valor menos ' + taxa + '% de taxa. '
       + 'Itens equipados ou travados não aparecem aqui. Você pode ter até ' + r.cfg.maxAnuncios + ' itens à venda.</p>';
-    if (!itens.length && !perg.length) return h + '<p class="suave">Nada para vender na mochila.</p></div>';
+    if (!itens.length && !perg.length && !craft.length) return h + '<p class="suave">Nada para vender na mochila.</p></div>';
     h += '<div class="itens">' + itens.map(function (i) {
       return '<div class="item item-com-icone carta-' + i.raridade + '"><div class="icone-pequeno borda-' + i.raridade + aura(i) + '">' + F.icone(i) + '</div>'
         + '<div class="item-texto"><div>' + nomeItemHtml(i) + ' <span class="suave pequeno">' + D.raridades[i.raridade].nome + (i.nivel ? ' · nível ' + i.nivel : '') + '</span></div>'
@@ -1482,13 +1503,19 @@
         + '<div class="item-texto"><div class="raridade-' + k + '">' + esc(R.nomeConsumivel(it)) + '</div><div class="suave">Você tem ' + it.qtd + '</div></div>'
         + '<div class="item-acoes"><input class="lance-valor" id="venda-qtd-' + k + '" type="number" inputmode="numeric" min="1" max="' + it.qtd + '" step="1" value="1" aria-label="Quantidade">'
         + campoPreco('perg-' + k) + '<button class="btn" data-acao="mercado-anunciar" data-pergaminho="' + k + '">Anunciar</button></div></div>';
+    }).join('') + craft.map(function (c) {
+      var k = c.tipo + ':' + c.raridade, cor = corConsumivel(c);
+      return '<div class="item item-com-icone carta-' + cor + '"><div class="icone-pequeno borda-' + cor + '">' + iconeConsumivel(c) + '</div>'
+        + '<div class="item-texto"><div class="raridade-' + cor + '">' + esc(R.nomeConsumivel(c)) + '</div><div class="suave">Você tem ' + c.qtd + '</div></div>'
+        + '<div class="item-acoes"><input class="lance-valor" id="venda-qtd-' + k + '" type="number" inputmode="numeric" min="1" max="' + c.qtd + '" step="1" value="1" aria-label="Quantidade">'
+        + campoPreco('perg-' + k) + '<button class="btn" data-acao="mercado-anunciar" data-pergaminho="' + k + '">Anunciar</button></div></div>';
     }).join('') + '</div></div>';
     return h;
   }
   function mercadoZoomHtml() {
     var r = estado.mercado, id = estado.mercadoVer;
     var a = r && [].concat(r.anuncios || [], r.meus || []).filter(function (x) { return String(x.id) === String(id); })[0];
-    if (!a || a.item.tipo === 'pergaminho') return '';
+    if (!a || a.item.tipo === 'pergaminho' || TIPOS_CRAFT.indexOf(a.item.tipo) >= 0) return '';
     var p = estado.personagem, it = a.item, outro = R.podeUsar(p, it) ? itemParaComparar(p, it) : null;
     return '<div class="zoom-fundo leilao-zoom" data-acao="mercado-fechar"><div class="zoom-janela" role="dialog" aria-label="Item à venda">'
       + '<div class="zoom-cartas">' + cartaZoom(it, outro, 'À venda por ' + (a.vendedor || 'você')) + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
@@ -1500,7 +1527,8 @@
     var preco = Math.floor(Number((document.getElementById('venda-preco-' + chave) || {}).value));
     var qtd = perg ? Math.floor(Number((document.getElementById('venda-qtd-' + perg) || {}).value)) : 1;
     if (!(preco >= 1)) { avisar('Digite o preço em ouro.'); return; }
-    if (perg && !(qtd >= 1 && qtd <= R.qtdPergaminho(p, perg))) { avisar('Quantidade inválida.'); return; }
+    var ctipo = perg && perg.indexOf(':') > 0 ? perg.split(':')[0] : 'pergaminho', crar = perg && perg.indexOf(':') > 0 ? perg.split(':')[1] : perg;
+    if (perg && !(qtd >= 1 && qtd <= R.qtdConsumivel(p, ctipo, crar))) { avisar('Quantidade inválida.'); return; }
     if (estado.mercadoOcupado) return;
     estado.mercadoOcupado = true;
     try {
@@ -1508,7 +1536,7 @@
       await C.salvarPersonagem(p);              // o servidor tira o item do personagem salvo
       var r = await C.mercado.anunciar(p.id, id, perg, qtd, preco);
       if (id) p.inventario = p.inventario.filter(function (i) { return i.id !== id; });
-      else R.mudarPergaminho(p, perg, -qtd);
+      else R.mudarConsumivel(p, ctipo, crar, -qtd);
       salvar();
       avisar('Anunciado no mercado por ' + ouroTxt(preco) + ' de ouro.', 'item');
       receberMercado(r);
@@ -1520,7 +1548,7 @@
     var p = estado.personagem, a = estado.mercado && (estado.mercado.anuncios || []).filter(function (x) { return String(x.id) === String(id); })[0];
     if (!a || estado.mercadoOcupado) return;
     if (p.ouro < a.preco) { avisar('Ouro insuficiente.'); return; }
-    if (a.item.tipo !== 'pergaminho' && R.mochilaCheia(p)) { avisar('Mochila cheia! Libere espaço antes de comprar.'); return; }
+    if (a.item.tipo !== 'pergaminho' && TIPOS_CRAFT.indexOf(a.item.tipo) < 0 && R.mochilaCheia(p)) { avisar('Mochila cheia! Libere espaço antes de comprar.'); return; }
     estado.mercadoOcupado = true;
     try {
       p.poder = R.poder(p);
@@ -1678,6 +1706,7 @@
       var nome = esc(R.nomeItem(Object.assign({}, u.item, { encanto: 0 })));
       var texto = u.sucesso ? 'SUCESSO! ' + nome + ' agora é +' + u.nivel + '!'
         : u.quebrou ? 'FALHOU! ' + nome + ' +' + u.nivel + ' se despedaçou...' + (u.cristais ? ' Sobraram ' + u.cristais + ' cristais.' : '')
+        : u.protegido ? 'FALHOU, mas a Proteção segurou: ' + nome + ' continua +' + u.nivel + '.'
         : 'FALHOU! ' + nome + ' +' + u.nivel + ' voltou para +0.';
       aviso = '<div class="encanto-resultado ' + (u.sucesso ? 'sucesso' : 'falha') + '" role="status">' + texto + '</div>';
     }
@@ -1695,7 +1724,9 @@
         acao = '<span class="suave">+' + E.maximo + '</span>';
       } else {
         var chance = R.chanceEncantar(p, i), risco = R.riscoEncantar(i);
-        var falha = { nada: 'sem risco', zera: 'se falhar, volta para +0',
+        // Pergaminho de Proteção ligado e na mochila: se falhar, o item só não sobe
+        if (risco !== 'nada' && estado.usarProtecao && R.qtdConsumivel(p, 'protecao', i.raridade) > 0) risco = 'protegido';
+        var falha = { nada: 'sem risco', protegido: '🛡 protegido: se falhar, fica como está', zera: 'se falhar, volta para +0',
           quebra: 'se falhar, o item QUEBRA e vira ' + (D.CRISTAIS_QUEBRA[i.encanto + 1] || 0) + ' cristais' }[risco];
         info = '+' + i.encanto + ' → +' + (i.encanto + 1) + ' · chance <strong>' + fmtDec(chance) + '%</strong> · <span class="' + (risco === 'quebra' ? 'menos' : '') + '">' + falha + '</span>';
         var semPergaminho = R.qtdPergaminho(p, i.raridade) <= 0;
@@ -1710,9 +1741,86 @@
         + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
-    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (todos os monstros; o 3º de cada área dá mais), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4.</p>'
+    var prot = Object.keys(D.raridades).map(function (k) { return R.qtdConsumivel(p, 'protecao', k) ? '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + R.qtdConsumivel(p, 'protecao', k) + '</span>' : ''; }).filter(Boolean);
+    return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (todos os monstros; o 3º de cada área dá mais), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4'
+      + (p.raca === 'anao' ? ' e, por ser ' + (p.sexo === 'feminino' ? 'Anã' : 'Anão') + ', +' + E.anao + '%' : '') + ' (cada nível tem um limite: o +10 vai no máximo a ' + E.teto[10] + '%).</p>'
+      + '<label class="linha-check"><input type="checkbox" data-acao="usar-protecao"' + (estado.usarProtecao ? ' checked' : '') + '> 🛡 Usar Pergaminho de Proteção '
+      + '<span class="suave pequeno">(' + (prot.length ? 'você tem ' + prot.join(' · ') : 'você não tem nenhum: o Coletor fabrica na Oficina') + ')</span></label>'
       + '<div class="itens">' + lista + '</div>';
   }
+
+  // ----- Oficina (craft dos Anões; regras em regras.js, números em D.CRAFT) -----
+  function custoHtml(lista) {
+    return lista.map(function (c) {
+      var ok = c.tem >= c.precisa, fmt = function (v) { return Number(v).toLocaleString('pt-BR'); };
+      return '<span class="' + (ok ? 'mais' : 'menos') + '">' + (c.tipo === 'ouro' ? fmt(c.precisa) + ' de ouro' : fmt(Math.min(c.tem, c.precisa)) + '/' + fmt(c.precisa) + ' ' + esc(c.nome)) + '</span>';
+    }).join(' · ');
+  }
+  function abaOficina() {
+    var p = estado.personagem, C = D.CRAFT, html = '';   // (C aqui = D.CRAFT; o relógio vem de C_agora)
+    var liberadas = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; });
+    // Minas
+    html += '<div class="caixa-interna"><h3>⛏ Minas</h3>';
+    if (p.minas) {
+      var falta = p.minas.fim - C_agora(), mat = C.materiais[R.materialDaArea(p.minas.area)].nome;
+      html += falta > 0 ? '<p>Minerando <strong>' + esc(mat) + '</strong>… pronto em <strong>' + relogioTexto(falta) + '</strong>.</p>'
+        : '<p class="mais">A mineração terminou!</p><div class="botoes"><button class="btn" data-acao="minas-recolher">Recolher</button></div>';
+    } else {
+      var area = R.areaDasMinas(p), matA = C.materiais[R.materialDaArea(area.id)].nome;
+      html += '<p class="suave pequeno">Mande seu herói minerar e volte depois: ele traz <strong>' + esc(matA) + '</strong> (' + esc(area.nome) + ') e às vezes '
+        + '<strong>Pedra Preciosa</strong> (' + C.minas.gemaPct + '% por unidade).' + (R.ehColetor(p) ? ' Como Coletor, você minera <strong>+' + C.coletorBonus + '%</strong>.' : '') + '</p><div class="botoes">'
+        + C.minas.opcoes.map(function (o, i) {
+          return '<button class="btn' + (i ? ' secundario' : '') + '" data-acao="minas-iniciar" data-valor="' + i + '">Minerar ' + (o.minutos >= 60 ? o.minutos / 60 + ' h' : o.minutos + ' min')
+            + ' (' + o.qtd[0] + '–' + o.qtd[1] + ')</button>';
+        }).join('') + '</div>';
+    }
+    html += '</div>';
+    // Materiais
+    var meus = R.consumiveis(p).filter(function (c) { return ['material', 'receita', 'protecao', 'cristal'].indexOf(c.tipo) >= 0; });
+    html += '<div class="caixa-interna"><h3>Seus materiais</h3>' + (meus.length ? '<div class="materiais-lista">' + meus.map(function (c) {
+      return '<span class="material-chip borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + ' ' + esc(R.nomeConsumivel(c)) + ' <strong>' + c.qtd.toLocaleString('pt-BR') + '</strong></span>';
+    }).join('') + '</div>' : '<p class="suave">Nenhum ainda. Materiais caem dos monstros da caçada (cada região tem o seu; o chefe deixa um raro) e vêm das Minas.</p>')
+      + '<p class="suave pequeno">Também dá para comprar e vender materiais, receitas e proteções no Mercado.</p></div>';
+    // Coletor
+    var col = R.ehColetor(p);
+    html += '<div class="caixa-interna"><h3>💰 Coletor: receitas e proteções</h3>'
+      + (col ? '' : '<p class="suave pequeno">Só o <strong>Coletor</strong> (segunda classe do Artesão) fabrica. Os outros compram dele no Mercado.</p>')
+      + '<h4>Receitas</h4><div class="itens">' + liberadas.map(function (a) {
+        var c = R.custoReceita(p, a.id), pode = col && !R.faltando(p, c).length;
+        return '<div class="item"><div class="item-texto"><strong>📜 Receita: ' + esc(a.nome) + '</strong><div class="pequeno">' + custoHtml(c) + '</div></div>'
+          + (col ? '<div class="item-acoes"><button class="btn btn-pequeno" data-acao="craft-receita" data-id="' + a.id + '"' + (pode ? '' : ' disabled') + '>Fabricar</button></div>' : '') + '</div>';
+      }).join('') + '</div><h4>Pergaminho de Proteção</h4><div class="itens">' + Object.keys(C.protecao).map(function (r) {
+        var c = R.custoProtecao(p, r), pode = col && !R.faltando(p, c).length;
+        return '<div class="item"><div class="item-texto"><strong class="raridade-' + r + '">🛡 Proteção ' + D.raridades[r].nome + '</strong><div class="pequeno">' + custoHtml(c) + '</div></div>'
+          + (col ? '<div class="item-acoes"><button class="btn btn-pequeno" data-acao="craft-protecao" data-id="' + r + '"' + (pode ? '' : ' disabled') + '>Fabricar</button></div>' : '') + '</div>';
+      }).join('') + '</div></div>';
+    // Ferreiro
+    var fer = R.ehFerreiro(p), fj = estado.forja || {}, arF = fj.area && liberadas.some(function (a) { return a.id === fj.area; }) ? fj.area : liberadas[liberadas.length - 1].id;
+    var cls = fj.classe || p.classe, tipo = fj.tipo || 'arma', ch = Number(fj.chefe) || 0, ge = Number(fj.gemas) || 0;
+    var areaF = D.areas.filter(function (a) { return a.id === arF; })[0], mcF = R.materialDoChefe(areaF.chefe.id);
+    var opc = function (lista, atual) { return lista.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); };
+    var custoF = R.custoForja(p, arF);
+    if (ch) custoF.push({ tipo: 'material', nome: C.materiais[mcF].nome, tem: R.qtdMaterial(p, mcF), precisa: ch });
+    if (ge) custoF.push({ tipo: 'material', nome: C.materiais.gema.nome, tem: R.qtdMaterial(p, 'gema'), precisa: ge });
+    var chances = R.chancesForja(p, arF, ch, ge), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+    var nums = [0, 1, 2, 3].map(function (n) { return [n, String(n)]; });
+    html += '<div class="caixa-interna"><h3>🔨 Ferreiro: forja</h3>'
+      + (fer ? '' : '<p class="suave pequeno">Só o <strong>Ferreiro</strong> (segunda classe do Artesão) forja armas e armaduras com as receitas do Coletor.</p>')
+      + '<div class="forja-opcoes">'
+      + '<label>Região <select data-forja="area">' + opc(liberadas.map(function (a) { return [a.id, a.nome + ' (item level ' + (a.nivelMin + 2) + ')']; }), arF) + '</select></label>'
+      + '<label>Para a classe <select data-forja="classe">' + opc(Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</select></label>'
+      + '<label>Item <select data-forja="tipo">' + opc([['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']], tipo) + '</select></label>'
+      + '<label>+ ' + esc(C.materiais[mcF].nome) + ' <select data-forja="chefe">' + opc(nums, ch) + '</select></label>'
+      + '<label>+ Pedra Preciosa <select data-forja="gemas">' + opc(nums, ge) + '</select></label></div>'
+      + '<p class="pequeno">Precisa: ' + custoHtml(custoF) + '</p>'
+      + '<p class="pequeno">Chance: <span class="raridade-comum">Comum ' + pct(chances.comum) + '</span> · <span class="raridade-rara">Rara ' + pct(chances.rara) + '</span> · '
+      + '<span class="raridade-epica">Épica ' + pct(chances.epica) + '</span> · <span class="raridade-lendaria">Lendária ' + pct(chances.lendaria) + '</span>'
+      + ' · ✨ obra-prima (uma raridade acima) ' + pct(chances.obraPrima) + (p.raca === 'anao' ? ' <span class="mais">(+1% por ser anão)</span>' : '') + '</p>'
+      + (fer ? '<div class="botoes"><button class="btn" data-acao="forjar"' + (R.faltando(p, custoF).length || R.mochilaCheia(p) ? ' disabled' : '') + '>Forjar</button></div>' : '')
+      + '</div>';
+    return html;
+  }
+  function C_agora() { return C.agora(); }
 
   // ----- Missões diárias e semanais -----
   // Painel de missões: aba fixa na direita da tela que abre um painel com as Diárias e as Semanais
@@ -1782,7 +1890,8 @@
     var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
     var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
     // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
-    var tentativa = R.encantar(p, id);
+    var tentativa = R.encantar(p, id, null, !!estado.usarProtecao);
+    if (tentativa && tentativa.protegido) riscoEnc = 'protegido';
     estado.encantoPendente = null;
     if (tentativa) {
       R.registrarMissao(p, 'encantar', 1, C.agora());
@@ -2351,7 +2460,7 @@
       var subAbas = subAbasHtml();
       if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2501,7 +2610,9 @@
       R.registrarGuia(estado.personagem, 'abate');
     }
     if (estado.cacada) {
-      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.');
+      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.'
+        + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
+      if (res.material && estado.cacada) estado.cacada.materiais = (estado.cacada.materiais || 0) + res.material.qtd;
       else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
       else linha('errou', esc(estado.personagem.nome) + ' fugiu.');
       fimLutaCacada(res, b, primeiraVez);
@@ -2519,6 +2630,7 @@
       if (res.dropArmadura) linha('destaque', 'Drop: ' + R.nomeItem(res.dropArmadura) + ' (' + nomeRaridadeItem(res.dropArmadura) + ')!');
       if (res.mochilaCheia) linha('dano-recebido', 'Mochila cheia! Um item se perdeu.');
       if (res.pergaminho) linha('destaque', 'Drop: ' + (res.qtdPergaminhos > 1 ? res.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
+      if (res.material) linha('destaque', '⛏ Material: ' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + ' (Oficina).');
     } else if (res.resultado === 'derrota') {
       linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '.');
     } else {
@@ -2914,6 +3026,7 @@
       var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
       if (cc && cc.fase === 'encontrou' && cc.encontro.chefe) { if (e.target.value === 'lutar') lutarCacada(); else if (e.target.value === 'fugir') fugirEncontro(); }
     }
+    if (e.target.dataset && e.target.dataset.forja) { estado.forja = estado.forja || {}; estado.forja[e.target.dataset.forja] = e.target.value; telaJogo(); }
     if (e.target.id === 'ordem-mochila') {
       visaoMochila().ordem = e.target.value;
       var dir = document.querySelector('[data-acao="mochila-direcao"]');
@@ -3483,6 +3596,43 @@
         estado.ultimoEncanto = null;
         telaJogo();
         break;
+      case 'minas-iniciar': {
+        var rm = R.iniciarMinas(p, Number(el.dataset.valor), C.agora());
+        if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
+        telaJogo();
+        break;
+      }
+      case 'minas-recolher': {
+        var rc = R.recolherMinas(p, C.agora());
+        if (typeof rc === 'string') avisar(rc);
+        else { salvar(); avisar('⛏ Você minerou ' + rc.qtd + ' ' + D.CRAFT.materiais[rc.material].nome + (rc.gemas ? ' e ' + rc.gemas + ' Pedra(s) Preciosa(s)!' : '!'), 'item'); }
+        telaJogo();
+        break;
+      }
+      case 'craft-receita': {
+        var rr = R.fabricarReceita(p, el.dataset.id);
+        if (rr !== true) avisar(rr); else { salvar(); avisar('📜 Receita fabricada!', 'item'); }
+        telaJogo();
+        break;
+      }
+      case 'craft-protecao': {
+        var rp = R.fabricarProtecao(p, el.dataset.id);
+        if (rp !== true) avisar(rp); else { salvar(); avisar('🛡 Pergaminho de Proteção fabricado!', 'item'); }
+        telaJogo();
+        break;
+      }
+      case 'forjar': {
+        var fj = estado.forja || {}, arF = fj.area || (R.areaDasMinas(p) || {}).id;
+        var rf = R.forjar(p, arF, fj.classe || p.classe, fj.tipo || 'arma', Number(fj.chefe) || 0, Number(fj.gemas) || 0);
+        if (typeof rf === 'string') avisar(rf);
+        else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item'); }
+        telaJogo();
+        break;
+      }
+      case 'usar-protecao':
+        estado.usarProtecao = !!el.checked;
+        telaJogo();
+        break;
       case 'encantar':
         tentarEncantar(el.dataset.id);
         break;
@@ -3812,6 +3962,15 @@
           salvar();
           avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
             + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
+          continue;
+        }
+        // Craft (material, receita, proteção) comprado no mercado ou devolvido: vai para os Consumíveis.
+        if (rec.item && TIPOS_CRAFT.indexOf(rec.item.tipo) >= 0) {
+          var rcf = await C.grupo.resgatar(p.id, rec.id);
+          var ncf = Math.max(1, Math.floor(rcf.qtd || 1));
+          R.mudarConsumivel(p, rcf.tipo, rcf.raridade, ncf);
+          salvar();
+          avisar(ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : '!'), 'item');
           continue;
         }
         // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.

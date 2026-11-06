@@ -350,3 +350,23 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (prompt no scratchpad); cortar em `assets/cla/skill-<id>.webp` na ordem de `ALIANCA.skills`.
 
 - Ícones das skills do clã: cortados da folha 5x2 do Daniel (Gemini) em `assets/cla/skill-<id>.webp` (160 px, redondos com transparência).
+
+## Craft dos Anões — etapas 1 a 3 (Daniel, nov/2026; PDF "Os Anões: Mestres da Forja", versão 4)
+- **Encanto:** `encantamento.teto` por nível (+4 85 · +5 75 · +6 65 · +7 55 · +8 42 · +9 30 · +10 20%) vale para TODOS;
+  Anão +`encantamento.anao` (3%) em `chanceEncantar`. **Pergaminho de Proteção** (consumível `protecao`, por raridade):
+  `R.encantar(p, id, rng, true)` gasta 1 da raridade do item e, se falhar, o item fica como estava (`res.protegido`).
+  Tela Encantar: caixa "🛡 Usar Pergaminho de Proteção" (`estado.usarProtecao`).
+- **Materiais** (`D.CRAFT.materiais`, consumível `material` com `raridade` = id): 1 por região (cai do 1º/2º/3º monstro com
+  6/8/10%) e 1 por chefe (sempre 1); `gema` (Pedra Preciosa) só nas Minas. Coletor: +50% (`coletorBonus`).
+  `R.rolarMaterial` em `concluirBatalha` (`res.material`; não cai com penalidade de área).
+- **Minas** (qualquer herói): `p.minas = { inicio, fim, opcao, area }`; 1 h (3–5) ou 4 h (12–18) do material da região mais alta
+  liberada; 8% de cada unidade vira Pedra Preciosa; Coletor +50%. `R.iniciarMinas`/`recolherMinas`.
+- **Coletor** fabrica Receita da região (`receita`, raridade = id da área; 10 materiais + ouro) e Proteção (cristais + materiais,
+  `CRAFT.protecao`). **Ferreiro** forja (`R.forjar`): 1 receita + 5 materiais + ouro, para QUALQUER classe base e tipo (arma,
+  4 armaduras, mão esquerda), item level = nível da região + 2; chances 60/35/5/0 + extras (até 3 do material do chefe da
+  região: +3% épica/+0,5% lendária cada; até 3 gemas: +2%/+0,5%); obra-prima 2% (+1% Anão) = uma raridade acima;
+  `item.forjadoPor`, `item.obraPrima`. Tela Herói › Oficina (`abaOficina`, selects `data-forja`).
+- **Mercado:** categoria nova `craft`; `mercado_anunciar(..., pergaminho = 'material:<id>' | 'receita:<área>' | 'protecao:<rar>')`
+  tira da pilha do consumível e entrega por recompensa (`resgatarRecompensas`, `TIPOS_CRAFT`).
+- Falta (etapas 4 e 5 do PDF): Oficinas (serviços entre jogadores, com o item guardado no servidor e taxa de acerto) e a
+  Relíquia Rúnica. Ícones dos materiais ainda são emojis (⛏ 🔥 💎 📜 🛡).

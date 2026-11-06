@@ -1491,3 +1491,14 @@ html { overscroll-behavior-x: none; }
 .missao-cla .barra { margin: .3rem 0; }
 .missao-cla.feita { border-color: rgba(120, 200, 120, .5); }
 .skill-cla-ico:has(img) { border-color: transparent; background: none; }
+
+/* Oficina (craft) */
+.icone-craft { display: grid; place-items: center; width: 100%; height: 100%; font-size: 1.6rem; line-height: 1; }
+.materiais-lista { display: flex; flex-wrap: wrap; gap: .4rem; }
+.material-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .55rem; border-radius: 999px; border: 1px solid rgba(255, 255, 255, .15); font-size: .9rem; }
+.material-chip .icone-craft { width: auto; height: auto; font-size: 1rem; }
+.forja-opcoes { display: flex; flex-wrap: wrap; gap: .5rem .9rem; margin: .4rem 0; }
+.forja-opcoes label { display: flex; flex-direction: column; gap: .2rem; font-size: .9rem; }
+.linha-check { display: flex; align-items: center; gap: .45rem; margin: .4rem 0 .8rem; cursor: pointer; }
+.material-chip > :first-child { width: 1.4em; height: 1.4em; flex: none; display: inline-grid; place-items: center; overflow: hidden; }
+.material-chip > :first-child img, .material-chip > :first-child svg { width: 100%; height: 100%; object-fit: contain; }

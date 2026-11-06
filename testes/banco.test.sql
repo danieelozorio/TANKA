@@ -883,4 +883,23 @@ reset role;
 select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'pergaminho'), 2, 'mercado: vencido devolve os pergaminhos');
 select pg_temp.igual((select count(*) from public.mercado_anuncios where estado = 'ativo')::int, 0, 'mercado: nada mais à venda');
 delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
+-- Mercado: craft dos Anões (materiais, receitas, proteções)
+reset role;
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
+update public.personagens set dados = dados || '{"consumiveis": [{"id":"material-nevoa","tipo":"material","raridade":"nevoa","qtd":5}]}'::jsonb where id = 'pa';
+update public.personagens set dados = dados || '{"ouro": 500}'::jsonb where id = 'pb';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha($$select public.mercado_anunciar('pa', null, 'ouro:muito', 1, 10)$$, 'Escolha um item');
+select pg_temp.falha($$select public.mercado_anunciar('pa', null, 'material:nevoa', 9, 10)$$, 'só tem 5');
+select public.mercado_anunciar('pa', null, 'material:nevoa', 3, 30) is not null;
+reset role;
+select pg_temp.igual((select categoria from public.mercado_anuncios where item ->> 'tipo' = 'material'), 'craft', 'mercado: material é da categoria craft');
+select pg_temp.igual((select (dados -> 'consumiveis' -> 0 ->> 'qtd')::int from public.personagens where id = 'pa'), 2, 'mercado: material sai da pilha');
+select id as an_mat from public.mercado_anuncios where item ->> 'tipo' = 'material' \gset
+set role authenticated;
+select pg_temp.como('b'); select public.mercado_comprar('pb', :an_mat) is not null;
+reset role;
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pb' and item ->> 'tipo' = 'material'), 3, 'mercado: comprador recebe os materiais');
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
 \echo TODOS OS TESTES DO BANCO PASSARAM

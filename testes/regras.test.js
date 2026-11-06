@@ -409,13 +409,28 @@ teste('encantamento: +1 a +3 é seguro e gasta 1 pergaminho', () => {
   assert.strictEqual(R.qtdPergaminho(p, 'rara'), 2);
 });
 
-teste('encantamento: chances por nível e bônus de Sorte com teto de 95%', () => {
+teste('encantamento: chances por nível, bônus de Sorte e teto por nível (+10 no máximo 20%)', () => {
   const { p, item } = comArma('rara', 3);
   assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [70, 60, 50, 40, 30, 20, 10]);
   p.atributos.sor = 20; item.encanto = 3;
   assert.strictEqual(R.chanceEncantar(p, item), 80);   // 0,5% por ponto
-  p.atributos.sor = 100;
-  assert.strictEqual(R.chanceEncantar(p, item), 95);
+  p.atributos.sor = 200;
+  assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [85, 75, 65, 55, 42, 30, 20], 'teto de cada nível');
+  p.atributos.sor = 0; p.raca = 'anao'; item.encanto = 9;
+  assert.strictEqual(R.chanceEncantar(p, item), 10 + D.encantamento.anao, 'Anão: +3%');
+});
+
+teste('Pergaminho de Proteção: se falhar, o item não quebra nem volta a +0', () => {
+  let { p, item } = comArma('epica', 8);
+  p.equipados.arma = 'x';
+  R.mudarConsumivel(p, 'protecao', 'epica', 1);
+  const r = R.encantar(p, 'x', fixo(0.999), true);
+  assert.ok(!r.sucesso && !r.quebrou && r.protegido);
+  assert.strictEqual(item.encanto, 8);
+  assert.ok(p.inventario.indexOf(item) >= 0, 'continua na mochila');
+  assert.strictEqual(R.qtdConsumivel(p, 'protecao', 'epica'), 0, 'gasta a proteção');
+  const r2 = R.encantar(p, 'x', fixo(0.999), true);
+  assert.ok(r2.quebrou, 'sem proteção na mochila, quebra');
 });
 
 teste('encantamento: falha até +6 volta para +0; do +7 em diante quebra', () => {
@@ -1790,4 +1805,47 @@ teste('skills do clã: valem contra monstros (status pve), não no status normal
   assert.strictEqual(R.precoSkillCla(1), D.ALIANCA.skillPrecos[0]);
   const b = R.iniciarBatalha(p, 'lobo');
   assert.strictEqual(b.jogador.hpMax, s.hpMax, 'a caçada usa as skills do clã');
+});
+
+teste('craft: materiais caem dos monstros (Coletor acha mais), chefe sempre deixa o dele', () => {
+  const p = R.criarPersonagem('M', 'masculino', 'humano', 'artesao');
+  R.admin.subirNivel(p, 12);
+  assert.deepStrictEqual({ ...R.rolarMaterial(p, 'lobo', fixo(0)) }, { id: 'ferro', qtd: 1 });
+  assert.strictEqual(R.rolarMaterial(p, 'lobo', fixo(0.07)), null, '6% no 1º monstro');
+  assert.deepStrictEqual({ ...R.rolarMaterial(p, 'velgrath', fixo(0.99)) }, { id: 'seiva', qtd: 1 });
+  R.escolherSegundaClasse(p, 'coletor');
+  assert.deepStrictEqual({ ...R.rolarMaterial(p, 'lobo', fixo(0.08)) }, { id: 'ferro', qtd: 1 }, 'Coletor: 9%');
+});
+
+teste('craft: Minas, receita do Coletor, proteção e forja do Ferreiro', () => {
+  const col = R.criarPersonagem('Col', 'masculino', 'anao', 'artesao');
+  R.admin.subirNivel(col, 12); R.escolherSegundaClasse(col, 'coletor');
+  assert.strictEqual(R.iniciarMinas(col, 0, 1000), true);
+  assert.notStrictEqual(R.iniciarMinas(col, 0, 1000), true, 'uma mineração por vez');
+  assert.ok(typeof R.recolherMinas(col, 2000) === 'string', 'ainda minerando');
+  const m = R.recolherMinas(col, 1000 + 61 * 60000, fixo(0.5));
+  assert.strictEqual(m.material, R.materialDaArea(R.areaDasMinas(col).id));
+  assert.ok(m.qtd + m.gemas >= 4, 'Coletor minera +50%');
+  col.ouro = 100000;
+  R.mudarConsumivel(col, 'material', 'nevoa', 10);
+  assert.strictEqual(R.fabricarReceita(col, 'pantano'), true);
+  assert.strictEqual(R.qtdConsumivel(col, 'receita', 'pantano'), 1);
+  assert.notStrictEqual(R.fabricarReceita(col, 'cume'), true, 'região não liberada');
+  R.mudarConsumivel(col, 'cristal', 'comum', 50); R.mudarConsumivel(col, 'material', 'ferro', 10);
+  assert.strictEqual(R.fabricarProtecao(col, 'comum'), true);
+  assert.strictEqual(R.qtdConsumivel(col, 'protecao', 'comum'), 1);
+  const fer = R.criarPersonagem('Fer', 'masculino', 'humano', 'artesao');
+  R.admin.subirNivel(fer, 12); R.escolherSegundaClasse(fer, 'ferreiro');
+  assert.notStrictEqual(R.fabricarReceita(fer, 'pantano'), true, 'só o Coletor faz receita');
+  fer.ouro = 100000; fer.inventario = [];
+  R.mudarConsumivel(fer, 'receita', 'pantano', 1); R.mudarConsumivel(fer, 'material', 'nevoa', 5); R.mudarConsumivel(fer, 'material', 'lagrima', 3);
+  const ch = R.chancesForja(fer, 'pantano', 3, 0);
+  assert.ok(ch.epica > R.chancesForja(fer, 'pantano', 0, 0).epica && ch.lendaria > 0, 'material do chefe melhora a raridade');
+  const f = R.forjar(fer, 'pantano', 'mago', 'arma', 3, 0, fixo(0.001));
+  assert.ok(f.item && f.item.raridade === 'lendaria' && f.item.forjadoPor === 'Fer');
+  assert.strictEqual(f.item.classe, 'mago', 'item da classe escolhida');
+  assert.ok(D.ARMAS_CLASSE.mago.armas.indexOf(f.item.arma) >= 0, 'arma de mago');
+  assert.strictEqual(R.qtdConsumivel(fer, 'receita', 'pantano'), 0);
+  assert.strictEqual(R.qtdMaterial(fer, 'lagrima'), 0);
+  assert.notStrictEqual(R.forjar(fer, 'pantano', 'mago', 'arma', 0, 0), true, 'sem receita');
 });
