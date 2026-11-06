@@ -244,7 +244,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Números em `BOSS_ALIANCA` (dados.js). Nível n: a cada 3 níveis troca de chefe (Varnok → Guardião → Faraó → Vhar'kesh
   → Ignaroth; títulos "Desperto"/"Furioso"); vida = vida do chefe da caçada × `vida` (30) × 1,3^(nível dentro do chefe);
   depois do Ignaroth a vida e o ataque continuam crescendo. Calibrado por simulação: grupo de 4 no level do chefe com
-  itens raros/épicos +3/+4 vence o 1º nível de cada chefe em ~10–18 investidas (≈3.000 de dano por investida no nível 1).
+  itens raros/épicos +3/+4 vence o 1º nível de cada boss em ~13–20 investidas (depois das raças do Henri) (≈3.000 de dano por investida no nível 1).
 - Investida = luta da masmorra (`simularSalas`, motor separado de `simularMasmorra`) com 1 sala só (o boss com a vida
   que falta); acaba quando o grupo cai ou o boss ataca `limiteAtaques` (15) vezes. `R.simularBossAlianca` devolve
   `danos` por herói. Quem começa (sozinho ou o líder do grupo) já informa o dano no início (`alianca_boss_concluir`);
@@ -292,3 +292,20 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   +1 por nível", que nos níveis baixos/médios deixava comum +6 acima de épica +0. Agora é só +5%/nível
   (`bonusComEncanto` sem arredondar; defesa arredonda depois do x4,5). Vale para todos os itens já existentes.
 - `tanka_status` (Arena) arredonda igual ao cliente (defesa: `round(b0*m*fator)/fator`). Teste novo em regras.test.js.
+
+## Raças e classes rebalanceadas (Henri + Daniel, nov/2026)
+- Classes com 70 pontos (Cavaleiro +5 SOR, Caçador −5 SOR, Mago +5 SOR, Artesão igual). Raças não mudam mais os
+  atributos (elevados/reduzidos vazios): cada uma tem `tracos` em dados.js, aplicados em `R.comRaca` (depois da passiva,
+  antes do conjunto) e no `tanka_status` (Arena; crítico e dano crítico da raça viram dano, como a passiva).
+  Humano {} · Elfo crit +5, vel +10%, vida −10%, dano −10% · Elfo Negro dano crít +10, dano +5%, vida −10% ·
+  Orc vida +20%, dano +10%, crit −5, vel −10%, esquiva −50% · Anão vida +10%, dano +5%, crit −3, vel −5%.
+- RES: vida = +3 por ponto acima de `RES_SEM_VIDA` (10), inclusive os da classe; defesa = RES x 0,45 (cada ponto conta).
+- SOR: +0,2% sobre a chance base de cada drop por ponto (`SORTE.drop`, em `rolarRaridade`).
+- Personagens antigos: `R.normalizar` (flag `atributosV2`) e um `do $$` no schema convertem uma vez: atributos += novo
+  inicial − antigo inicial (pontos distribuídos mantidos). O trigger `validar_personagem` não mexe em `atualizado_em`
+  quando `tanka.migracao = '1'` (para o Chefe Mundial não contar todo mundo como ativo).
+- **Bosses próprios da aliança ("Os Libertos", nov/2026):** `BOSS_ALIANCA.bosses` (Thalgor, Nyxara, Sylvaris, Korvath,
+  Azhgar; `feminino` troca Desperto/Furioso por Desperta/Furiosa) dão nome, descrição e imagem (`assets/monstros/boss-*.jpg`);
+  os números continuam vindo de `BOSS_ALIANCA.chefes` (chefe da caçada da mesma fase). Entram em `D.monstros` no fim de
+  dados.js (sem área). Chefe Mundial usa `D.monstros['ignaroth-mundial']` (imagem `boss-mundial.jpg`); o Ignaroth da caçada
+  continua com a imagem dele. Imagens de 500x621, do Gemini (Daniel).

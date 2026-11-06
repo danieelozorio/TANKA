@@ -15,7 +15,8 @@ Tanka.dados = {
   // Progressão
   HP_INICIAL: 100,        // HP no level 1
   HP_POR_NIVEL: 10,       // HP extra a cada level
-  HP_POR_RES: 3,          // HP extra por ponto de Resistência distribuído
+  HP_POR_RES: 3,          // HP extra por ponto de Resistência acima de RES_SEM_VIDA (inclusive os da classe, nov/2026)
+  RES_SEM_VIDA: 10,       // a vida da RES conta a partir daqui (RES 20 = +30 de vida)
   PONTOS_POR_DANO: 3,     // a cada 3 pontos do atributo de dano da classe (FOR, DES ou INT): +1 de dano
   PONTOS_POR_NIVEL: 3,    // pontos de atributo ganhos a cada level
   EXP_BASE: 10,           // exp para sair do level 1; dobra a cada level até o 5
@@ -49,21 +50,21 @@ Tanka.dados = {
     cavaleiro: {
       nome: 'Cavaleiro', nomeF: 'Cavaleira',
       descricao: 'Força e resistência elevadas. A muralha de aço da linha de frente.',
-      atributos: { for: 15, des: 10, res: 20, int: 10, sor: 10 },
+      atributos: { for: 15, des: 10, res: 20, int: 10, sor: 15 },   // todas as classes com 70 pontos (nov/2026)
       dano: 'fisico', atributoDano: 'for',
     },
     // O id continua 'arqueiro' (personagens salvos); o nome na tela é Caçador.
     arqueiro: {
       nome: 'Caçador', nomeF: 'Caçadora',
       descricao: 'Destreza e sorte elevadas. Arcos, bestas e golpes rápidos e certeiros.',
-      atributos: { for: 15, des: 20, res: 10, int: 10, sor: 20 },
+      atributos: { for: 15, des: 20, res: 10, int: 10, sor: 15 },
       // Henri (nov/2026): o ataque do Caçador (e das segundas classes Arqueiro e Assassino) vem da Força, não mais da Destreza.
       dano: 'fisico', atributoDano: 'for',
     },
     mago: {
       nome: 'Mago', nomeF: 'Maga',
       descricao: 'Destreza e inteligência elevadas. Domina as artes arcanas.',
-      atributos: { for: 10, des: 15, res: 10, int: 20, sor: 10 },
+      atributos: { for: 10, des: 15, res: 10, int: 20, sor: 15 },
       dano: 'magico', atributoDano: 'int',
     },
     artesao: {
@@ -74,36 +75,39 @@ Tanka.dados = {
     },
   },
 
-  // elevado: +3 | reduzido: -3
+  // Raças (nov/2026): não mudam mais os atributos; cada uma tem traços em % (tracos), aplicados no status e na Arena.
+  //   vidaPct / danoPct / velocidadePct: % da vida, do dano e da velocidade · critico: pontos de % de chance de crítico
+  //   danoCritico: pontos de % de dano crítico · evasaoPct: % da esquiva (−50 = metade).
+  // elevados/reduzidos (+3/−3) ficaram vazios: os atributos vêm só da classe.
   racas: {
     humano: {
       nome: 'Humano', nomeF: 'Humana',
       descricao: 'Versáteis e equilibrados. Podem seguir qualquer caminho.',
-      elevados: [], reduzidos: [],
+      elevados: [], reduzidos: [], tracos: {},
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     elfo: {
       nome: 'Elfo', nomeF: 'Elfa',
-      descricao: 'Ágeis e sábios, porém de corpo frágil.',
-      elevados: ['des', 'int'], reduzidos: ['res', 'for'],
+      descricao: 'Ágeis e certeiros: mais críticos e mais ataques, mas corpo frágil e golpes mais leves.',
+      elevados: [], reduzidos: [], tracos: { critico: 5, velocidadePct: 10, vidaPct: -10, danoPct: -10 },
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     elfoNegro: {
       nome: 'Elfo Negro', nomeF: 'Elfa Negra',
-      descricao: 'Fortes e astutos, mas pouco resistentes e de sorte amaldiçoada.',
-      elevados: ['for', 'int'], reduzidos: ['res', 'sor'],
+      descricao: 'Letais: críticos mais fortes e mais dano, mas pouca vida.',
+      elevados: [], reduzidos: [], tracos: { danoCritico: 10, danoPct: 5, vidaPct: -10 },
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     orc: {
       nome: 'Orc', nomeF: 'Orc',
-      descricao: 'Brutos e duros como rocha, mas lentos de corpo e mente.',
-      elevados: ['for', 'res'], reduzidos: ['des', 'int'],
+      descricao: 'Brutos: muita vida e mais dano, mas lentos, com menos críticos e quase sem esquiva.',
+      elevados: [], reduzidos: [], tracos: { vidaPct: 20, danoPct: 10, critico: -5, velocidadePct: -10, evasaoPct: -50 },
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     anao: {
       nome: 'Anão', nomeF: 'Anã',
-      descricao: 'Robustos e sortudos, mestres das minas, pouco ágeis.',
-      elevados: ['res', 'sor'], reduzidos: ['des', 'int'],
+      descricao: 'Robustos: mais vida e força (menos que o Orc), mas menos críticos e mais lentos.',
+      elevados: [], reduzidos: [], tracos: { vidaPct: 10, danoPct: 5, critico: -3, velocidadePct: -5 },
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
   },
@@ -632,7 +636,7 @@ Tanka.dados = {
   // A defesa do monstro reduz o dano em porcentagem: dano x 100 / (100 + defesa)
   // (40 de defesa = -29% de dano). Nunca deixa o monstro imortal.
   // Sorte (Henri, nov/2026): % por ponto de SOR no encantamento (soma). A Sorte não mexe mais no drop nem no crítico físico.
-  SORTE: { encanto: 0.5 },
+  SORTE: { encanto: 0.5, drop: 0.2 },   // drop: +0,2% sobre a chance base de cada drop por ponto (nov/2026)
 
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.
   ACERTO_PVE_MINIMO: 95,
@@ -760,7 +764,21 @@ Tanka.dados = {
   // Estes números também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
   BOSS_ALIANCA: {
     duracaoMin: 60, grupoMax: 4, limiteAtaques: 15,
+    // chefes: de quem vêm os números (vida, ataque, defesa, prêmio) de cada fase; bosses: quem aparece no jogo
+    // (nome, descrição e imagem próprios, "Os Libertos"), na mesma ordem.
     chefes: ['varnok', 'guardiao', 'farao', 'vharkesh', 'ignaroth'], niveisPorChefe: 3,
+    bosses: [
+      { id: 'boss-thalgor', nome: 'Thalgor, o Carcereiro de Ferro',
+        descricao: 'O gigante de ferro que vigiava as prisões dos selos. Enlouqueceu quando o primeiro selo rachou.' },
+      { id: 'boss-nyxara', feminino: true, nome: 'Nyxara, a Rainha das Aranhas Sombrias',
+        descricao: 'Metade elfa sombria, metade aranha gigante. Tece suas teias nas ruínas embaixo de Dravenhold.' },
+      { id: 'boss-sylvaris', feminino: true, nome: 'Sylvaris, a Hidra das Brumas',
+        descricao: 'Hidra de três cabeças que dormia no fundo do pântano. Uma das cabeças sopra névoa congelante.' },
+      { id: 'boss-korvath', nome: 'Korvath, o Ceifador de Cinzas',
+        descricao: 'Morto-vivo gigante com uma foice em brasa. Colhe as almas dos campos de batalha queimados.' },
+      { id: 'boss-azhgar', nome: 'Azhgar, o Titã do Abismo',
+        descricao: 'Colosso de obsidiana e vazio, preso por correntes de luz. Veio do outro lado do mar, onde dorme o oitavo selo.' },
+    ],
     vida: 30, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,
     titulos: ['', 'Desperto', 'Furioso'],
     // Prêmios quando o boss morre (para quem deu dano naquele dia). ouro e exp: o ouro e a exp do chefe na caçada
@@ -866,4 +884,12 @@ Tanka.dados = {
       imagem: arquivo(c.nome),
     };
   });
+  // Bosses da aliança ("Os Libertos"): números do chefe da caçada de cada fase, com nome, descrição e imagem próprios.
+  D.BOSS_ALIANCA.bosses.forEach(function (b, i) {
+    var base = D.monstros[D.BOSS_ALIANCA.chefes[i]];
+    D.monstros[b.id] = Object.assign({}, base, { nome: b.nome, descricao: b.descricao, area: null, bossAlianca: true,
+      imagem: 'assets/monstros/' + b.id + '.jpg' });
+  });
+  // Chefe Mundial: o Ignaroth com a imagem do evento (o da caçada continua com a dele).
+  D.monstros['ignaroth-mundial'] = Object.assign({}, D.monstros.ignaroth, { area: null, imagem: 'assets/monstros/boss-mundial.jpg' });
 })(Tanka.dados);

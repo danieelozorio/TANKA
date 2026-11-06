@@ -19,25 +19,42 @@ function teste(nome, fn) {
   try { fn(); console.log('ok   ' + nome); } catch (e) { console.log('FALHA ' + nome + '\n     ' + e.message); process.exitCode = 1; }
 }
 
-teste('atributos iniciais das classes humanas', () => {
-  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'cavaleiro') }, { for: 15, des: 10, res: 20, int: 10, sor: 10 });
-  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'arqueiro') }, { for: 15, des: 20, res: 10, int: 10, sor: 20 });
-  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'mago') }, { for: 10, des: 15, res: 10, int: 20, sor: 10 });
+teste('atributos iniciais das classes: todas com 70 pontos (nov/2026)', () => {
+  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'cavaleiro') }, { for: 15, des: 10, res: 20, int: 10, sor: 15 });
+  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'arqueiro') }, { for: 15, des: 20, res: 10, int: 10, sor: 15 });
+  assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'mago') }, { for: 10, des: 15, res: 10, int: 20, sor: 15 });
+  for (const c of Object.keys(D.classes)) assert.strictEqual(Object.values(D.classes[c].atributos).reduce((a, b) => a + b), 70, c);
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'artesao') }, { for: 15, des: 10, res: 15, int: 10, sor: 20 });
 });
 
-teste('modificadores de raça (+3 / -3)', () => {
-  assert.deepStrictEqual({ ...R.atributosIniciais('elfo', 'mago') }, { for: 7, des: 18, res: 7, int: 23, sor: 10 });
-  assert.deepStrictEqual({ ...R.atributosIniciais('elfoNegro', 'cavaleiro') }, { for: 18, des: 10, res: 17, int: 13, sor: 7 });
-  assert.deepStrictEqual({ ...R.atributosIniciais('orc', 'cavaleiro') }, { for: 18, des: 7, res: 23, int: 7, sor: 10 });
-  assert.deepStrictEqual({ ...R.atributosIniciais('anao', 'artesao') }, { for: 15, des: 7, res: 18, int: 7, sor: 23 });
+teste('raças: não mudam os atributos; traços em % (Humano equilibrado)', () => {
+  assert.deepStrictEqual({ ...R.atributosIniciais('elfo', 'mago') }, { ...D.classes.mago.atributos });
+  const s = (raca) => { const p = R.criarPersonagem('T', 'masculino', raca, 'cavaleiro'); p.nivel = 20; p.atributos.des = 30; return R.status(p); };
+  const h = s('humano'), el = s('elfo'), en = s('elfoNegro'), o = s('orc'), an = s('anao');
+  assert.ok(el.chanceCritico > h.chanceCritico && el.velocidade > h.velocidade && el.hpMax < h.hpMax && el.dano[1] < h.dano[1], 'elfo');
+  assert.ok(en.danoCritico > h.danoCritico && en.dano[1] > h.dano[1] && en.hpMax < h.hpMax, 'elfo negro');
+  assert.ok(o.hpMax > h.hpMax && o.dano[1] > h.dano[1] && o.chanceCritico < h.chanceCritico && o.velocidade < h.velocidade && o.evasao < h.evasao, 'orc');
+  assert.ok(an.hpMax > h.hpMax && an.hpMax < o.hpMax && an.dano[1] >= h.dano[1] && an.dano[1] <= o.dano[1]
+    && an.chanceCritico < h.chanceCritico && an.velocidade < h.velocidade, 'anão');
 });
 
-teste('personagem novo: level 1, 100 HP, 0 de ouro, arma comum 1-5', () => {
+teste('personagem antigo: atributos convertidos para os da classe, pontos distribuídos mantidos (uma vez)', () => {
+  const p = R.criarPersonagem('T', 'masculino', 'orc', 'cavaleiro');
+  delete p.atributosV2;
+  p.atributosIniciais = { for: 18, des: 7, res: 23, int: 7, sor: 10 };
+  p.atributos = { for: 38, des: 7, res: 30, int: 7, sor: 10 };   // +20 FOR e +7 RES distribuídos
+  R.normalizar(p);
+  assert.deepStrictEqual({ ...p.atributos }, { for: 35, des: 10, res: 27, int: 10, sor: 15 });
+  R.normalizar(p);
+  assert.strictEqual(p.atributos.for, 35, 'só uma vez');
+});
+
+teste('personagem novo: level 1, vida 100 + 3 por RES acima de 10, 0 de ouro, arma comum 1-5', () => {
   const p = R.criarPersonagem('Teste', 'masculino', 'humano', 'cavaleiro');
   assert.strictEqual(p.nivel, 1);
-  assert.strictEqual(R.status(p).hpMax, 100);
-  assert.strictEqual(p.hpAtual, 100);
+  assert.strictEqual(R.status(p).hpMax, 130);   // RES 20 da classe = +30 de vida
+  assert.strictEqual(p.hpAtual, 130);
+  assert.strictEqual(R.status(R.criarPersonagem('M', 'masculino', 'humano', 'mago')).hpMax, 100);
   assert.strictEqual(p.ouro, 0);
   assert.strictEqual(p.sexo, 'masculino');
   const arma = R.armaEquipada(p);
@@ -158,8 +175,8 @@ teste('distribuir ponto em RES aumenta o HP máximo e atual', () => {
   p.pontosLivres = 1;
   assert.ok(R.distribuirPonto(p, 'res'));
   assert.strictEqual(p.atributos.res, 21);
-  assert.strictEqual(R.status(p).hpMax, 103);   // +3 de vida por ponto de RES
-  assert.strictEqual(p.hpAtual, 103);
+  assert.strictEqual(R.status(p).hpMax, 133);   // +3 de vida por ponto de RES
+  assert.strictEqual(p.hpAtual, 133);
   assert.ok(!R.distribuirPonto(p, 'res'));
 });
 
@@ -200,10 +217,10 @@ teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de 
     const tp = taxa(() => R.rolarPergaminho(p, id, rng));
     assert.ok(Math.abs(tp - perg) < 0.3, id + ' pergaminho ' + tp);
   }
-  // A Sorte não aumenta mais a chance de cair (Henri, nov/2026)
+  // A Sorte voltou a aumentar o drop: +0,2% sobre a chance base por ponto (200 de SOR = 5% x 1,4 = 7%)
   p.atributos.sor = 200;
   const comSorte = taxa(() => R.rolarDrop(p, 'lobo', rng));
-  assert.ok(Math.abs(comSorte - 5) < 0.3, 'com sorte ' + comSorte);
+  assert.ok(Math.abs(comSorte - 7) < 0.3, 'com sorte ' + comSorte);
   assert.ok(Math.abs(taxa(() => R.rolarPergaminho(p, 'urso', rng)) - 10) < 0.3, 'pergaminho com sorte');
 });
 
@@ -270,9 +287,9 @@ teste('anel: dano ~15% de uma arma do nível, defesa mágica (rara+), atributos 
   assert.strictEqual(v.encanto, 3);
 });
 
-teste('sorte: 0,5% de encantamento por ponto; não mexe no drop nem no crítico físico', () => {
+teste('sorte: 0,5% de encantamento por ponto; não mexe no crítico físico', () => {
   const p = R.criarPersonagem('T', 'masculino', 'anao', 'artesao');
-  assert.strictEqual(R.status(p).chanceEncantamento, 11.5);
+  assert.strictEqual(R.status(p).chanceEncantamento, 10);
   assert.strictEqual(R.status(p).bonusDrop, undefined);
   const q = R.criarPersonagem('T', 'masculino', 'anao', 'artesao'); q.atributos.sor += 50;
   assert.strictEqual(R.status(q).chanceCritico, R.status(p).chanceCritico);
@@ -280,10 +297,10 @@ teste('sorte: 0,5% de encantamento por ponto; não mexe no drop nem no crítico 
 });
 
 teste('mago causa dano mágico com INT', () => {
-  const p = R.criarPersonagem('T', 'masculino', 'elfo', 'mago');
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [Math.round((1 + Math.floor(23 / 3)) * 1.4), Math.round((5 + Math.floor(23 / 3)) * 1.4)]);   // (cajado + 1 a cada 3 de INT) x1,4
+  assert.deepStrictEqual([...s.dano], [Math.round((1 + Math.floor(20 / 3)) * 1.4), Math.round((5 + Math.floor(20 / 3)) * 1.4)]);   // (cajado + 1 a cada 3 de INT) x1,4
   assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).sor, 'crítico mágico: 1% por ponto de Sorte');
 });
 
@@ -480,7 +497,8 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel1');
   assert.strictEqual(R.equipar(p, add('anel', 'comum', null).id), 'anel2');
   const s1 = R.status(p);
-  assert.strictEqual(s1.defesa, s0.defesa + Math.round(8 * D.DEFESA.fator) + Math.round(6 * D.DEFESA.fator));
+  assert.strictEqual(s1.defesa, s0.defesa + Math.round(8 * D.DEFESA.fator) + Math.round(6 * D.DEFESA.fator)
+    + Math.round(24 * D.DEFESA.fator / 10) - Math.round(20 * D.DEFESA.fator / 10));   // +4 RES: cada ponto conta
   assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor);   // anel não dá mais Sorte
   assert.deepStrictEqual([...s1.dano], [s0.dano[0] + 2, s0.dano[1] + 2]);   // 2 anéis comuns: +1 de dano cada
@@ -503,10 +521,10 @@ teste('trocar e desequipar: item volta para a mochila; vida se ajusta', () => {
   R.equipar(p, 'p2');
   assert.strictEqual(p.equipados.peitoral, 'p2');
   assert.ok(R.mochila(p).some((i) => i.id === 'p1'));
-  assert.strictEqual(p.hpAtual, 100 + 250);
+  assert.strictEqual(p.hpAtual, 130 + 250);
   assert.ok(R.desequipar(p, 'peitoral'));
   assert.strictEqual(p.equipados.peitoral, null);
-  assert.strictEqual(p.hpAtual, 100);
+  assert.strictEqual(p.hpAtual, 130);
   assert.ok(!R.vender(p, p.equipados.arma));
 });
 
@@ -780,7 +798,7 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
 });
 
 teste('vida volta 2% por minuto (6% acampado) e não passa do máximo', () => {
-  const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'cavaleiro');
+  const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');   // RES 10: 100 de vida
   R.atualizarTempo(p, T0);
   p.hpAtual = 10; p.vidaEm = T0;
   R.atualizarTempo(p, T0 + 10 * 60000);
@@ -794,7 +812,7 @@ teste('vida volta 2% por minuto (6% acampado) e não passa do máximo', () => {
 });
 
 teste('poção: cura 100%, gasta 1, não usa com a vida cheia nem sem poção', () => {
-  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'cavaleiro');
+  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'arqueiro');   // RES 10: 100 de vida
   R.atualizarTempo(p, T0);
   assert.strictEqual(R.usarPocao(p, T0), false);
   p.hpAtual = 5;
@@ -1666,12 +1684,15 @@ teste('guia: só personagem novo; caçar, equipar o presente, loja, história, a
 teste('boss da aliança: começa fraco, cresce por nível e troca de chefe', () => {
   const B = D.BOSS_ALIANCA;
   const b1 = R.bossAlianca(1), b2 = R.bossAlianca(2), b4 = R.bossAlianca(B.niveisPorChefe + 1);
-  assert.strictEqual(b1.id, B.chefes[0]);
-  assert.strictEqual(b4.id, B.chefes[1], 'depois de niveisPorChefe níveis vira o próximo chefe');
+  assert.strictEqual(b1.id, B.bosses[0].id);
+  assert.strictEqual(b4.id, B.bosses[1].id, 'depois de niveisPorChefe níveis vira o próximo boss');
+  assert.strictEqual(b1.hp, Math.round(D.monstros[B.chefes[0]].hp * B.vida), 'números do chefe da caçada da fase');
+  assert.ok(D.monstros[b1.id].imagem.indexOf(b1.id) >= 0, 'imagem própria');
+  assert.strictEqual(R.bossAlianca(5).nome, 'Nyxara Desperta');
   assert.ok(b2.hp > b1.hp && b4.hp > b1.hp);
   const ultimo = (B.chefes.length - 1) * B.niveisPorChefe + 1;
   const u1 = R.bossAlianca(ultimo + 5), u2 = R.bossAlianca(ultimo + 6);
-  assert.strictEqual(u1.id, B.chefes[B.chefes.length - 1]);
+  assert.strictEqual(u1.id, B.bosses[B.bosses.length - 1].id);
   assert.ok(u2.hp > u1.hp && u2.ataque[1] >= u1.ataque[1], 'depois do último chefe continua crescendo');
   assert.ok(R.bossAlianca(4).premio.ouro > b1.premio.ouro);
   const t = R.tabelaBossAlianca(5);

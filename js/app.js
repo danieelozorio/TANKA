@@ -355,13 +355,12 @@
         + '<div class="detalhe">' + D.ARMAS_CLASSE[k].armas.map(function (a) { return D.TIPOS_ARMA[a].nome; }).join(' · ') + '</div></button>';
     }).join('');
 
-    var base = D.classes[c.classe].atributos;
     var final = R.atributosIniciais(c.raca, c.classe);
     var linhas = R.ATRIBUTOS.map(function (k) {
-      var mod = final[k] - base[k];
-      var modTxt = mod > 0 ? '<span class="mais">+' + mod + '</span>' : mod < 0 ? '<span class="menos">' + mod + '</span>' : '—';
-      return '<tr><td>' + D.atributos[k].nome + '</td><td>' + base[k] + '</td><td>' + modTxt + '</td><td><strong>' + final[k] + '</strong></td></tr>';
+      return '<tr><td>' + D.atributos[k].nome + '</td><td><strong>' + final[k] + '</strong></td></tr>';
     }).join('');
+    var tracos = tracosRacaHtml(c.raca);
+    var previa = R.status(R.criarPersonagem('x', c.sexo, c.raca, c.classe));
 
     mostrarCenario(false);
     areaMusica(true);
@@ -374,8 +373,9 @@
       + '<section class="etapa"><h2>4. Classe <small>— ' + esc(D.classes[c.classe].descricao) + '</small></h2><div class="grade">' + classes + '</div></section>'
       + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe, c.sexo) + '</div>'
       + '<h3 class="centro">' + nomeRaca(c.raca, c.sexo) + ' ' + nomeClasse(c.classe, c.sexo) + ' · ' + D.sexos[c.sexo].nome + '</h3>'
-      + '<table class="atributos"><thead><tr><th>Atributo</th><th>Classe</th><th>Raça</th><th>Total</th></tr></thead><tbody>' + linhas + '</tbody></table>'
-      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + D.HP_INICIAL + ' HP e ' + D.armas[c.classe].comum[0] + ' (dano ' + D.ARMA_INICIAL_DANO.join('–') + ').</p>'
+      + '<table class="atributos"><thead><tr><th>Atributo</th><th>Classe</th></tr></thead><tbody>' + linhas + '</tbody></table>'
+      + '<div class="tracos-raca"><strong>' + nomeRaca(c.raca, c.sexo) + ':</strong> ' + tracos + '</div>'
+      + '<p class="suave" style="margin-top:.8em">Começa no level 1 com ' + previa.hpMax + ' HP e ' + D.armas[c.classe].comum[0] + ' (dano ' + D.ARMA_INICIAL_DANO.join('–') + ').</p>'
       + '<p class="erro" id="erro-criacao"></p>'
       + '<button class="btn largo" data-acao="criar-personagem">Criar personagem</button></aside></div></div>' + rodape();
   }
@@ -593,6 +593,17 @@
   var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Aliança' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
+  // Traços da raça em texto: "+10% de velocidade · −10% de vida".
+  var NOME_TRACO = { vidaPct: ['%', 'de vida'], danoPct: ['%', 'de dano'], velocidadePct: ['%', 'de velocidade'],
+    critico: ['%', 'de chance de crítico'], danoCritico: ['%', 'de dano crítico'], evasaoPct: ['%', 'de esquiva'] };
+  function tracosRacaHtml(raca) {
+    var t = R.tracosRaca({ raca: raca }), ks = Object.keys(t);
+    if (!ks.length) return '<span class="suave">equilibrado, sem pontos fortes nem fracos.</span>';
+    return ks.map(function (k) {
+      var n = NOME_TRACO[k] || ['', k];
+      return '<span class="' + (t[k] > 0 ? 'mais' : 'menos') + '">' + (t[k] > 0 ? '+' : '−') + Math.abs(t[k]) + n[0] + ' ' + n[1] + '</span>';
+    }).join(' · ');
+  }
   function nomeRaca(r, sexo) { var x = D.racas[r]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   function nomeClasse(k, sexo) { var x = D.classes[k]; return x ? (sexo === 'feminino' && x.nomeF || x.nome) : ''; }
   // Retrato: o da segunda classe quando já escolheu (assets/personagens/<raca>-<segunda classe>[-f].jpg).
@@ -700,6 +711,7 @@
       + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
       + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
       + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
+      + '<div class="secao"><h3>Raça: ' + nomeRaca(p.raca, p.sexo) + '</h3><p class="pequeno tracos-raca">' + tracosRacaHtml(p.raca) + '</p></div>'
       + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
       + atividadesHtml(p)
       + '</aside>';
@@ -709,9 +721,9 @@
   var DESCRICAO_ATRIBUTO = {
     for: 'Aumenta o ataque físico e o dano dos golpes críticos.',
     des: 'Aumenta a precisão, a evasão e a chance de crítico.',
-    res: 'Aumenta a vida, a defesa e a defesa mágica.',
+    res: 'Aumenta a vida (acima de 10), a defesa e a defesa mágica.',
     int: 'Aumenta o ataque mágico (dano dos magos).',
-    sor: 'Aumenta o crítico mágico, o dano crítico mágico, o encantamento e o craft.',
+    sor: 'Aumenta a chance de drop, o crítico mágico, o dano crítico mágico, o encantamento e o craft.',
   };
   function pontosPendentes() {
     var p = estado.personagem;
@@ -737,10 +749,10 @@
         degrau: dano === 'for' ? [n, 'Ataque'] : null },
       des: { ganhos: (dano === 'des' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : [])
         .concat(['+0,5% de chance de crítico por ponto', '+1% de precisão por ponto', '+0,5% de evasão por ponto']), degrau: dano === 'des' ? [n, 'Ataque'] : null },
-      res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto', '+' + fmtDec(D.DEFESA.fator) + ' de defesa e +' + fmtDec(D.DEFESA.fator) + ' de defesa mágica a cada 10 pontos'], degrau: [10, 'Defesa'] },
+      res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto acima de ' + D.RES_SEM_VIDA, '+' + fmtDec(D.DEFESA.fator / 10) + ' de defesa e +' + fmtDec(D.DEFESA.fator / 10) + ' de defesa mágica por ponto'] },
       int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
         degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
-      sor: { ganhos: ['+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
+      sor: { ganhos: ['+' + fmtDec(D.SORTE.drop) + '% na chance de drop por ponto (sobre a chance de cada drop)', '+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
         '+0,5% de encantamento por ponto', '+1% de craft por ponto'] },
     };
   }
@@ -4227,7 +4239,7 @@
     if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
     if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
     var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
-    var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth') + '</div><div>'
+    var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
       + '<h2>O Despertar de Ignaroth</h2><p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
       + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
       + 'com até ' + CM.acoesPorAtaque + ' ações suas. Sua vida é a da caçada: se acabar, espere voltar ou beba uma poção.</p></div></div>';
@@ -4279,7 +4291,7 @@
     var bs = estado.boss.boss, chefeId = R.chefeDoNivel(p);
     var b = R.iniciarBatalha(p, chefeId);
     b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
-    b.imagemId = 'ignaroth';
+    b.imagemId = 'ignaroth-mundial';
     b.monstro.nome = 'Ignaroth (Chefe Mundial)';
     b.monstro.hp = bs.vida;
     b.monstro.hpMax = bs.vida_max;
@@ -5253,6 +5265,7 @@
     var hpMax = Number(b.hp_max), hp = aberto || (b.dia === st.dia && b.estado !== 'fechado') ? Math.max(0, Number(b.hp)) : hpMax;
     var html = '<div class="caixa-interna boss-al"><div class="boss-al-topo"><div class="moldura">' + F.imagemMonstro(info.id) + '</div><div class="boss-al-info">'
       + '<div class="suave pequeno">Boss da aliança · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
+      + (info.descricao ? '<p class="suave pequeno boss-al-desc">' + esc(info.descricao) + '</p>' : '')
       + barra('hp', hp, hpMax, hp.toLocaleString('pt-BR') + ' / ' + hpMax.toLocaleString('pt-BR'), 'boss-al') + situacao + '</div></div>';
     // Prêmio
     var infoPr = R.bossAlianca(b.nivel), pr = R.premioBossAlianca(p, b.nivel);

@@ -641,7 +641,7 @@ Tanka.regras = (function () {
     var arma = novaArma(classe, 'comum');
     arma.variacao = 0;                                  // arma clássica da classe
     arma.dano = D.ARMA_INICIAL_DANO.slice();
-    return {
+    var p = {
       id: novoId(),
       nome: nome,
       sexo: sexo,
@@ -665,7 +665,10 @@ Tanka.regras = (function () {
       acampado: false,
       guia: { passo: 0, abates: 0 },   // Guia do Aventureiro (só personagens novos)
       criadoEm: new Date().toISOString(),
+      atributosV2: true,   // já nasce com os atributos de nov/2026
     };
+    p.hpAtual = status(p).hpMax;   // a RES da classe e a raça já mudam a vida inicial
+    return p;
   }
 
   // Atualiza personagens salvos em versões antigas do jogo.
@@ -682,6 +685,16 @@ Tanka.regras = (function () {
       var ganha = p.classe === 'arqueiro' && p.nivel > 1;
       if (ganha) p.recomecos = (p.recomecos || 0) + 1;
       p.presenteForcaCacador = ganha ? 1 : 2;
+    }
+    // Raças e classes rebalanceadas (nov/2026): os atributos iniciais passam a ser só os da classe (70 pontos);
+    // os pontos que o jogador distribuiu continuam os mesmos.
+    if (!p.atributosV2 && p.atributos && p.atributosIniciais && D.classes[p.classe]) {
+      var novos = atributosIniciais(p.raca, p.classe);
+      ATRIBUTOS.forEach(function (k) {
+        p.atributos[k] = Math.max(1, (p.atributos[k] || 0) + novos[k] - (p.atributosIniciais[k] || 0));
+      });
+      p.atributosIniciais = novos;
+      p.atributosV2 = true;
     }
     if (typeof p.ouro !== 'number') p.ouro = 0;
     consumiveis(p);   // pergaminhos antigos (contador) viram itens
@@ -730,9 +743,9 @@ Tanka.regras = (function () {
     var danoBase = arma ? danoArmaComEncanto(arma, true) : [0, 0], fat = ta ? ta.fator : 1;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
-    return comConjunto(comPassiva({
+    return comConjunto(comRaca(comPassiva({
       hpMax: D.HP_INICIAL
-        + Math.max(0, a.res - p.atributosIniciais.res) * D.HP_POR_RES
+        + Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES   // toda RES acima de 10 dá vida (nov/2026)
         + (p.nivel - 1) * D.HP_POR_NIVEL
         + eq.vida,
       tipoDano: magico ? 'magico' : 'fisico',
@@ -741,8 +754,9 @@ Tanka.regras = (function () {
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
       dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)], magico ? eq.danoMagico : 0),
-      defesa: Math.round(Math.floor(a.res / 10) * D.DEFESA.fator) + eq.defesa,              // RES (x4,5) + armaduras (já x4,5)
-      defesaMagica: Math.round(Math.floor(a.res / 10) * D.DEFESA.fator) + eq.defesaMagica,  // RES (x4,5) + armaduras (já x4,5)
+      // cada ponto de RES conta: 0,45 de defesa por ponto (antes só a cada 10) + armaduras (já x4,5)
+      defesa: Math.round(a.res * D.DEFESA.fator / 10) + eq.defesa,
+      defesaMagica: Math.round(a.res * D.DEFESA.fator / 10) + eq.defesaMagica,
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
@@ -757,7 +771,7 @@ Tanka.regras = (function () {
       // % a mais contra monstros / na Arena: extras da arma por nível; armas antigas pela raridade (épica/lendária)
       danoPvE: !arma ? 0 : arma.extras ? arma.extras.pve || 0 : D.RARIDADE_ARMA.pve[idxArma],
       danoPvP: !arma ? 0 : arma.extras ? arma.extras.pvp || 0 : D.RARIDADE_ARMA.pvp[idxArma],
-    }, p), p);
+    }, p), p), p);
   }
   // Bônus de conjunto (2/3/4 peças): somados depois da passiva.
   function comConjunto(s, p) {
@@ -773,6 +787,18 @@ Tanka.regras = (function () {
   }
   // Dano mágico % da mão esquerda (orbe, livro), só para quem bate com magia.
   function danoComMao(d, pct) { return pct ? [Math.round(d[0] * (1 + pct / 100)), Math.round(d[1] * (1 + pct / 100))] : d; }
+  // Traços da raça (D.racas[x].tracos): % de vida, dano e velocidade, pontos de crítico e dano crítico, % da esquiva.
+  function tracosRaca(p) { return (D.racas[p.raca] && D.racas[p.raca].tracos) || {}; }
+  function comRaca(s, p) {
+    var t = tracosRaca(p), pct = function (v, x) { return Math.round(v * (1 + x / 100)); };
+    if (t.vidaPct) s.hpMax = pct(s.hpMax, t.vidaPct);
+    if (t.danoPct) s.dano = [Math.max(1, pct(s.dano[0], t.danoPct)), Math.max(1, pct(s.dano[1], t.danoPct))];
+    if (t.velocidadePct) s.velocidade = Math.max(1, pct(s.velocidade, t.velocidadePct));
+    if (t.critico) { s.chanceCritico = Math.max(0, s.chanceCritico + t.critico); s.chanceCriticoMagico = Math.max(0, s.chanceCriticoMagico + t.critico); }
+    if (t.danoCritico) { s.danoCritico += t.danoCritico; s.danoCriticoMagico += t.danoCritico; }
+    if (t.evasaoPct) s.evasao = Math.max(0, s.evasao * (1 + t.evasaoPct / 100));
+    return s;
+  }
   // Passiva da segunda classe: % a mais em vida, defesa, dano, crítico, esquiva e recompensas.
   function comPassiva(s, p) {
     var pas = passiva(p);
@@ -828,7 +854,7 @@ Tanka.regras = (function () {
 
   // Uma única rolagem; as chances são cumulativas (ex.: Urso: <10 épica, <40 rara).
   function rolarRaridade(p, tabela, rng) {
-    var mult = 1;   // a Sorte não aumenta mais o drop (Henri, nov/2026)
+    var mult = 1 + atributosTotais(p).sor * D.SORTE.drop / 100;   // Sorte: +0,2% sobre a chance base por ponto (nov/2026)
     var r = rng() * 100;
     var acumulado = 0;
     for (var i = 0; i < tabela.length; i++) {
@@ -1939,13 +1965,16 @@ Tanka.regras = (function () {
     var B = D.BOSS_ALIANCA, n = Math.max(1, Math.floor(nivel || 1));
     var ultimo = B.chefes.length - 1, ic = Math.min(Math.floor((n - 1) / B.niveisPorChefe), ultimo);
     var k = n - 1 - ic * B.niveisPorChefe;   // nível dentro do chefe (no último chefe não para de crescer)
-    var m = D.monstros[B.chefes[ic]];
+    var m = D.monstros[B.chefes[ic]];   // números
+    var quem = B.bosses && B.bosses[ic] ? D.monstros[B.bosses[ic].id] : m;   // nome, imagem e descrição
     var extra = Math.max(0, k - (B.niveisPorChefe - 1));
     var fa = B.ataque * (1 + B.ataquePorNivelExtra * extra);
     var titulo = B.titulos[Math.min(k, B.titulos.length - 1)] || '';
-    var nomeBase = m.nome.split(',')[0];
+    var nomeBase = quem.nome.split(',')[0];
     var P = B.premio, fp = 1 + P.porNivel * k, ouro = Math.round(m.ouro * P.ouro * fp);
-    return { id: B.chefes[ic], indiceChefe: ic, nivel: n, nome: nomeBase + (titulo ? ' ' + titulo : ''), nomeCompleto: m.nome,
+    return { id: B.bosses && B.bosses[ic] ? B.bosses[ic].id : B.chefes[ic], indiceChefe: ic, nivel: n,
+      nome: nomeBase + (titulo ? ' ' + (B.bosses && B.bosses[ic] && B.bosses[ic].feminino ? titulo.replace(/o$/, 'a') : titulo) : ''),
+      nomeCompleto: quem.nome, descricao: quem.descricao,
       premio: { ouro: ouro, exp: Math.round(m.exp * P.exp * fp), alianca: ouro * P.alianca,
         pergaminho: P.pergaminho.qtd, raridadePergaminho: P.pergaminho.raridade[ic] },
       hp: Math.round(m.hp * B.vida * Math.pow(B.vidaPorNivel, k)),
@@ -2169,6 +2198,7 @@ Tanka.regras = (function () {
     admin: admin,
     status: status,
     poder: poder,
+    tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,
     chefeDoNivel: chefeDoNivel,
