@@ -349,3 +349,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   constraint alianca_membros_cargo_check`. Ícone 🛡️ (lista, chat). Ícones das skills: Daniel vai mandar uma folha 5x2
   (prompt no scratchpad); cortar em `assets/cla/skill-<id>.webp` na ordem de `ALIANCA.skills`.
 
+- Ícones das skills do clã: cortados da folha 5x2 do Daniel (Gemini) em `assets/cla/skill-<id>.webp` (160 px, redondos com transparência).
