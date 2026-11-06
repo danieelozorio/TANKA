@@ -1087,6 +1087,10 @@
   }
   var ICONE_CRAFT = { material: '⛏', receita: '📜', protecao: '🛡' };
   function iconeConsumivel(c) {
+    // Arte (folha do Daniel): assets/itens/material-<id>.webp, receita.webp e protecao.webp. O Fragmento de Selo ainda não tem.
+    var arte = c.tipo === 'material' && c.raridade !== 'fragmento' ? 'material-' + c.raridade : c.tipo === 'receita' || c.tipo === 'protecao' ? c.tipo : null;
+    if (arte) return '<img class="icone-craft-img" src="assets/itens/' + arte + '.webp" alt="">';
+    if (c.tipo === 'material' && c.raridade === 'fragmento') return '<span class="icone-craft">🔷</span>';
     if (c.tipo === 'material' && c.raridade === 'gema') return '<span class="icone-craft">💎</span>';
     if (c.tipo === 'material' && (D.CRAFT.materiais[c.raridade] || {}).chefe) return '<span class="icone-craft">🔥</span>';
     return ICONE_CRAFT[c.tipo] ? '<span class="icone-craft">' + ICONE_CRAFT[c.tipo] + '</span>' : F.icone(itemConsumivel(c));

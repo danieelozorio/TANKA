@@ -1510,3 +1510,4 @@ html { overscroll-behavior-x: none; }
 .contratar > label { display: flex; flex-direction: column; gap: .2rem; margin: .3rem 0; font-size: .9rem; }
 .aviso-contratar { margin: .5rem 0; padding: .45rem .6rem; border-left: 3px solid #c9a24a; background: rgba(0, 0, 0, .25); }
 .contratar > label.linha-check { flex-direction: row; align-items: center; }
+.icone-craft-img { width: 100%; height: 100%; object-fit: contain; display: block; }

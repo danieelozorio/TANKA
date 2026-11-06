@@ -388,3 +388,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `R.forcaRuna`, `bonusRuna`, `textoRuna`). Relíquia não pode mais ser encantada (`R.encantar` devolve null; `oficina_pedir` recusa).
 - Testes: regras.test.js ("oficinas: ...") e banco.test.sql (bloco "Oficinas e Relíquia Rúnica").
 
+- Ícones de craft: cortados da folha 6x3 do Daniel em `assets/itens/material-<id>.webp`, `receita.webp`, `protecao.webp` (128 px, fundo transparente); o Fragmento de Selo ainda usa 🔷 (`iconeConsumivel`).
