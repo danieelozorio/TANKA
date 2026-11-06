@@ -310,8 +310,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   dados.js (sem área). Chefe Mundial usa `D.monstros['ignaroth-mundial']` (imagem `boss-mundial.jpg`); o Ignaroth da caçada
   continua com a imagem dele. Imagens de 500x621, do Gemini (Daniel).
 - **Golpe em área dos bosses da aliança (Daniel, nov/2026, "para valorizar os healers"):** do 2º boss (Nyxara) em diante,
-  `BOSS_ALIANCA.bosses[i].area = { nome, cada, vidaPct }`: a cada `cada` (2) ataques de verdade do boss (atordoado não
-  conta), ele acerta todos os heróis vivos e tira `vidaPct`% da vida máxima de cada um (Nyxara 50, Sylvaris 50,
-  Korvath 55, Azhgar 60; defesa não reduz, esquiva/Sombra evitam). No motor (`simularSalas`): evento `{tipo:'habM'}` e
-  golpes com `area: true`. Simulação (grupo de 4 do level da fase): sem Curandeiro ~3 caem e o dano cai; com Curandeiro
-  ~0–1,5 caem e o dano sobe 10–25%. Sozinho, o herói cai no 2º golpe em área (incentiva o grupo).
+  `BOSS_ALIANCA.bosses[i].area = { nome, cada, vidaPct }`: a cada `cada` (5, pedido do Daniel) ataques de verdade do boss
+  (atordoado não conta), ele acerta todos os heróis vivos e tira `vidaPct`% da vida máxima de cada um (Nyxara 60,
+  Sylvaris 60, Korvath 65, Azhgar 70; defesa não reduz, esquiva/Sombra evitam). Sem aviso na tela (Daniel pediu para
+  tirar); aparece só no registro da luta ("💥 ... em todo o grupo!"). No motor (`simularSalas`): evento `{tipo:'habM'}` e
+  golpes com `area: true`. Para caber 2–3 golpes em área por investida: `limiteAtaques` 15 -> 25 e `vida` 30 -> 45
+  (mesmo nº de investidas: ~11–18 por boss com grupo de 4). Simulação: sem Curandeiro ~2 dos 4 caem; com Curandeiro
+  ninguém cai (dano parecido: o Curandeiro cura em vez de bater).

@@ -5268,8 +5268,6 @@
     var html = '<div class="caixa-interna boss-al"><div class="boss-al-topo"><div class="moldura">' + F.imagemMonstro(info.id) + '</div><div class="boss-al-info">'
       + '<div class="suave pequeno">Boss da aliança · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
       + (info.descricao ? '<p class="suave pequeno boss-al-desc">' + esc(info.descricao) + '</p>' : '')
-      + (info.area ? '<p class="menos pequeno">⚠️ <strong>' + esc(info.area.nome) + '</strong>: a cada ' + info.area.cada + ' ataques, tira '
-        + info.area.vidaPct + '% da vida de todo o grupo. Leve um Curandeiro!</p>' : '')
       + barra('hp', hp, hpMax, hp.toLocaleString('pt-BR') + ' / ' + hpMax.toLocaleString('pt-BR'), 'boss-al') + situacao + '</div></div>';
     // Prêmio
     var infoPr = R.bossAlianca(b.nivel), pr = R.premioBossAlianca(p, b.nivel);

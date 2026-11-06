@@ -640,7 +640,7 @@ reset role;
 delete from public.masmorra_entradas; delete from public.masmorra_fila;
 -- Boss da aliança (Daniel, nov/2026)
 reset role;
-delete from public.alianca_espera;
+delete from public.alianca_espera; delete from public.recompensas;   -- prêmios que sobraram de outros testes
 insert into public.aliancas (nome, sigla) values ('Guardiões', 'GUA');
 insert into public.alianca_membros (personagem_id, alianca_id, cargo)
   select x.pid, a.id, x.cargo from public.aliancas a, (values ('pa', 'lider'), ('pb', 'membro'), ('pd', 'membro')) x(pid, cargo) where a.sigla = 'GUA';

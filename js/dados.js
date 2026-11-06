@@ -763,7 +763,7 @@ Tanka.dados = {
   // Vida = vida do chefe da caçada x `vida` x vidaPorNivel^(nível dentro do chefe).
   // Estes números também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
   BOSS_ALIANCA: {
-    duracaoMin: 60, grupoMax: 4, limiteAtaques: 15,
+    duracaoMin: 60, grupoMax: 4, limiteAtaques: 25,
     // chefes: de quem vêm os números (vida, ataque, defesa, prêmio) de cada fase; bosses: quem aparece no jogo
     // (nome, descrição e imagem próprios, "Os Libertos"), na mesma ordem.
     // area (Daniel, nov/2026: a partir do 2º boss, para valorizar o Curandeiro): a cada `cada` ataques do boss, um golpe
@@ -774,20 +774,20 @@ Tanka.dados = {
     bosses: [
       { id: 'boss-thalgor', nome: 'Thalgor, o Carcereiro de Ferro',
         descricao: 'O gigante de ferro que vigiava as prisões dos selos. Enlouqueceu quando o primeiro selo rachou.' },
-      { id: 'boss-nyxara', area: { nome: 'Chuva de Teias Venenosas', cada: 2, vidaPct: 50 },
+      { id: 'boss-nyxara', area: { nome: 'Chuva de Teias Venenosas', cada: 5, vidaPct: 60 },
         feminino: true, nome: 'Nyxara, a Rainha das Aranhas Sombrias',
         descricao: 'Metade elfa sombria, metade aranha gigante. Tece suas teias nas ruínas embaixo de Dravenhold.' },
-      { id: 'boss-sylvaris', area: { nome: 'Sopro Congelante', cada: 2, vidaPct: 50 },
+      { id: 'boss-sylvaris', area: { nome: 'Sopro Congelante', cada: 5, vidaPct: 60 },
         feminino: true, nome: 'Sylvaris, a Hidra das Brumas',
         descricao: 'Hidra de três cabeças que dormia no fundo do pântano. Uma das cabeças sopra névoa congelante.' },
-      { id: 'boss-korvath', area: { nome: 'Ceifada de Cinzas', cada: 2, vidaPct: 55 },
+      { id: 'boss-korvath', area: { nome: 'Ceifada de Cinzas', cada: 5, vidaPct: 65 },
         nome: 'Korvath, o Ceifador de Cinzas',
         descricao: 'Morto-vivo gigante com uma foice em brasa. Colhe as almas dos campos de batalha queimados.' },
-      { id: 'boss-azhgar', area: { nome: 'Maré do Abismo', cada: 2, vidaPct: 60 },
+      { id: 'boss-azhgar', area: { nome: 'Maré do Abismo', cada: 5, vidaPct: 70 },
         nome: 'Azhgar, o Titã do Abismo',
         descricao: 'Colosso de obsidiana e vazio, preso por correntes de luz. Veio do outro lado do mar, onde dorme o oitavo selo.' },
     ],
-    vida: 30, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,
+    vida: 45, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,
     titulos: ['', 'Desperto', 'Furioso'],
     // Prêmios quando o boss morre (para quem deu dano naquele dia). ouro e exp: o ouro e a exp do chefe na caçada
     // vezes estes números, +`porNivel` (25%) a cada nível dentro do chefe; a exp do herói fica limitada a `expMaxPct`%
