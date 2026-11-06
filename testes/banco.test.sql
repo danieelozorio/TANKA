@@ -704,4 +704,147 @@ select pg_temp.como('b'); select public.alianca_boss_sala_sair('pb');
 select pg_temp.igual(public.alianca_boss_estado('pb') -> 'salas', '[]'::jsonb, 'boss: grupo vazio some');
 reset role;
 delete from public.aliancas where sigla = 'GUA'; delete from public.alianca_espera; delete from public.recompensas; delete from public.creditos where motivo like 'Boss%';
+
+-- Chefe Mundial (Ignaroth)
+reset role;
+delete from public.alianca_membros; delete from public.recompensas; delete from public.mensagens;
+update public.personagens set atualizado_em = now();
+update public.contas set admin = false, bot = false;
+select pg_temp.igual(public.boss_vida_inicial(), 200000::bigint, 'boss: 50 mil por jogador ativo (4 contas)');
+update public.contas set bot = true where usuario = 'caio';
+select pg_temp.igual(public.boss_vida_inicial(), 150000::bigint, 'boss: bots não contam');
+update public.contas set bot = false where usuario = 'caio';
+insert into public.aliancas (nome, sigla, tesouro) values ('Boss Teste A', 'BTA', 0), ('Boss Teste B', 'BTB', 0);
+insert into public.alianca_membros (personagem_id, alianca_id) values
+  ('pa', (select id from public.aliancas where sigla = 'BTA')), ('pb', (select id from public.aliancas where sigla = 'BTB')),
+  ('pc', (select id from public.aliancas where sigla = 'BTB'));
+-- despertar diário às 20h: cria (se já passou das 20h) e anuncia no chat
+delete from public.boss_mundial;
+set role authenticated;
+select pg_temp.como('a'); select public.boss_estado('pa') is not null;
+reset role;
+select pg_temp.igual((select count(*) from public.boss_mundial)::int,
+  case when now() >= (public.dia_jogo()::timestamp + interval '20 hours') at time zone 'America/Sao_Paulo'
+        and now() < (public.dia_jogo()::timestamp + interval '21 hours') at time zone 'America/Sao_Paulo' then 1 else 0 end,
+  'boss: só desperta entre 20h e 21h');
+select pg_temp.igual((select count(*) from public.mensagens where classe = 'sistema')::int,
+  (select count(*) from public.boss_mundial)::int, 'boss: anúncio no chat quando desperta');
+delete from public.boss_mundial; delete from public.mensagens;
+-- fora do horário não dá para atacar
+set role authenticated;
+select pg_temp.como('a'); select pg_temp.falha($$select public.boss_atacar('pa', 100, 'rei_goblin')$$, 'não está acordado');
+select pg_temp.falha($$select public.admin_boss_invocar('pa', 1000, 60)$$, 'Só administradores');
+reset role;
+update public.contas set admin = true where usuario = 'duda';
+set role authenticated;
+select pg_temp.como('d'); select public.admin_boss_invocar('pd', 1000, 60);
+select pg_temp.como('a'); select public.boss_atacar('pa', 300, 'rei_goblin');
+select pg_temp.falha($$select public.boss_atacar('pa', 300, 'rei_goblin')$$, 'Espere alguns segundos');
+select pg_temp.falha($$select public.boss_atacar('pb', 300, 'x')$$, 'Personagem inválido');
+select pg_temp.como('b'); select public.boss_atacar('pb', 250, 'rainha_aranha');
+select pg_temp.como('c'); select public.boss_atacar('pc', 200, 'rei_goblin');
+reset role;
+update public.boss_mundial_dano set ultimo_em = now() - interval '20 seconds';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual((public.boss_estado('pa') -> 'boss' ->> 'vida')::int, 250, 'boss: a vida é de todos (1000 - 750)');
+select pg_temp.igual((public.boss_estado('pa') -> 'eu' ->> 'posicao')::int, 1, 'boss: posição no ranking');
+select pg_temp.igual((public.boss_estado('pa') -> 'aliancas' -> 0 ->> 'sigla'), 'BTB', 'boss: ranking de alianças (BTB 450)');
+select pg_temp.igual((public.boss_atacar('pa', 999999, 'rei_goblin') ->> 'caiu')::boolean, true, 'boss: o golpe que zera derruba');
+reset role;
+select pg_temp.igual((select estado from public.boss_mundial order by id desc limit 1), 'derrotado', 'boss: derrotado');
+select pg_temp.igual((select golpe_final from public.boss_mundial order by id desc limit 1), 'pa', 'boss: golpe final de quem zerou');
+select pg_temp.igual((select dano from public.boss_mundial_dano where personagem_id = 'pa'), 200300::bigint, 'boss: dano por ataque limitado a 200 mil');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_premio' and (item ->> 'fator')::int = 100)::int, 3, 'boss: prêmio cheio para os 3 atacantes');
+select pg_temp.igual((select (item ->> 'ataques')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'boss_premio'), 2, 'boss: prêmio conta os ataques');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho' and origem = 'boss')::int, 3, 'boss: top 10 ganha 1 pergaminho');
+select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'), 'Matador de Dragões', 'boss: título do golpe final');
+select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
+select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 2003::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
+select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('epica', 'lendaria'))::int, 0, 'boss: item só épico ou lendário');
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');
+select pg_temp.falha($$select public.boss_atacar('pa', 10, 'rei_goblin')$$, 'não está acordado');
+-- não caiu a tempo: 70% + 1 pergaminho para quem atacou
+select pg_temp.como('d'); select public.admin_boss_invocar('pd', 5000, 60);
+select pg_temp.como('b'); select public.boss_atacar('pb', 100, 'rainha_aranha');
+reset role;
+delete from public.recompensas;
+update public.boss_mundial set fim = now() - interval '1 second' where estado = 'ativo';
+set role authenticated;
+select pg_temp.como('a'); select public.boss_estado('pa') is not null;
+reset role;
+select pg_temp.igual((select estado from public.boss_mundial order by id desc limit 1), 'dormindo', 'boss: passou da hora, volta a dormir');
+select pg_temp.igual((select (item ->> 'fator')::int from public.recompensas where item ->> 'tipo' = 'boss_premio'), 70, 'boss: consolação de 70%');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho')::int, 1, 'boss: consolação com 1 pergaminho');
+select pg_temp.igual((select count(*) from public.recompensas)::int, 2, 'boss: só quem atacou ganha a consolação');
+select public.boss_premiar((select id from public.boss_mundial order by id desc limit 1), false);
+select pg_temp.igual((select count(*) from public.recompensas)::int, 2, 'boss: prêmio é entregue uma vez só');
+update public.contas set admin = false where usuario = 'duda';
+delete from public.recompensas; delete from public.boss_mundial; delete from public.alianca_membros;
+delete from public.aliancas where sigla in ('BTA', 'BTB');
+
+-- Mercado entre jogadores
+reset role;
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
+update public.personagens set dados = dados || '{"ouro": 1000, "inventario": [{"id":"esp1","tipo":"arma","raridade":"epica","nivel":12},
+  {"id":"elmo1","tipo":"elmo","raridade":"rara","nivel":10},{"id":"anel1","tipo":"anel","raridade":"lendaria","nivel":15},
+  {"id":"trav1","tipo":"botas","raridade":"comum","travado":true}], "equipados": {"elmo":"elmo1"},
+  "consumiveis": [{"id":"pergaminho-rara","tipo":"pergaminho","raridade":"rara","qtd":5}]}'::jsonb where id = 'pa';
+update public.personagens set dados = dados || '{"ouro": 500}'::jsonb where id = 'pb';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'elmo1', null, 1, 100)$$, 'Tire o item do corpo');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'trav1', null, 1, 100)$$, 'Destrave o item');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'naoexiste', null, 1, 100)$$, 'não encontrado');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'esp1', null, 1, 0)$$, 'Preço inválido');
+select pg_temp.falha($$select public.mercado_anunciar('pa', null, 'rara', 9, 100)$$, 'só tem 5');
+select public.mercado_anunciar('pa', 'esp1', null, 1, 300) is not null;
+select public.mercado_anunciar('pa', 'anel1', null, 1, 50) is not null;
+select public.mercado_anunciar('pa', null, 'rara', 2, 40) is not null;
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'esp1', null, 1, 300)$$, 'não encontrado');
+reset role;
+select pg_temp.igual((select jsonb_array_length(dados -> 'inventario') from public.personagens where id = 'pa'), 2, 'mercado: item sai da mochila salva');
+select pg_temp.igual((select (dados -> 'consumiveis' -> 0 ->> 'qtd')::int from public.personagens where id = 'pa'), 3, 'mercado: pergaminhos saem da pilha');
+select pg_temp.igual((select categoria from public.mercado_anuncios where item ->> 'id' = 'anel1'), 'joia', 'mercado: anel é joia');
+set role authenticated;
+select pg_temp.como('b');
+select pg_temp.igual(jsonb_array_length(public.mercado_estado('pb', null, null, 0) -> 'anuncios'), 3, 'mercado: todos veem os anúncios');
+select pg_temp.igual(jsonb_array_length(public.mercado_estado('pb', 'arma', null, 0) -> 'anuncios'), 1, 'mercado: filtro de categoria');
+select pg_temp.igual(public.mercado_estado('pb', null, 'raridade', 0) -> 'anuncios' -> 0 -> 'item' ->> 'raridade', 'lendaria', 'mercado: ordenar por raridade');
+select pg_temp.igual(public.mercado_estado('pb', null, 'nivel', 0) -> 'anuncios' -> 0 -> 'item' ->> 'id', 'anel1', 'mercado: ordenar por nível');
+select pg_temp.igual(public.mercado_estado('pb', null, null, 0) -> 'anuncios' -> 0 ->> 'vendedor', 'Aldric', 'mercado: mostra o nome do vendedor');
+select pg_temp.falha(format('select public.mercado_comprar(%L, %s)', 'pb', (select id from public.mercado_anuncios where item ->> 'id' = 'esp1')), 'já foi vendido') where false;
+reset role;
+select id as an_esp from public.mercado_anuncios where item ->> 'id' = 'esp1' \gset
+select id as an_perg from public.mercado_anuncios where categoria = 'pergaminho' \gset
+select id as an_anel from public.mercado_anuncios where item ->> 'id' = 'anel1' \gset
+set role authenticated;
+select pg_temp.como('a'); select pg_temp.falha('select public.mercado_comprar(''pa'', ' || :an_esp || ')', 'é seu');
+select pg_temp.como('b');
+select public.mercado_comprar('pb', :an_esp) is not null;
+select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_esp || ')', 'já foi vendido');
+select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_perg || ') from (select 1) x where public.mercado_comprar(''pb'', ' || :an_anel || ') is not null and false', 'xx') where false;
+reset role;
+update public.mercado_anuncios set preco = 300 where id = :an_perg;
+set role authenticated;
+select pg_temp.como('b'); select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_perg || ')', 'Ouro insuficiente');
+reset role;
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pb'), -300, 'mercado: comprador paga o preço');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pa'), 270, 'mercado: vendedor recebe com 10% de taxa');
+select pg_temp.igual((select item ->> 'id' from public.recompensas where personagem_id = 'pb'), 'esp1', 'mercado: item vai para o comprador');
+set role authenticated;
+select pg_temp.como('a'); select public.mercado_cancelar('pa', :an_anel) is not null;
+select pg_temp.falha('select public.mercado_cancelar(''pa'', ' || :an_anel || ')', 'não está mais');
+reset role;
+select pg_temp.igual((select item ->> 'id' from public.recompensas where personagem_id = 'pa'), 'anel1', 'mercado: cancelar devolve o item');
+update public.mercado_anuncios set expira_em = now() - interval '1 second' where id = :an_perg;
+set role authenticated;
+select pg_temp.como('b'); select public.mercado_estado('pb', null, null, 0) is not null;
+reset role;
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'pergaminho'), 2, 'mercado: vencido devolve os pergaminhos');
+select pg_temp.igual((select count(*) from public.mercado_anuncios where estado = 'ativo')::int, 0, 'mercado: nada mais à venda');
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
 \echo TODOS OS TESTES DO BANCO PASSARAM

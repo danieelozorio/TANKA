@@ -301,6 +301,7 @@ Tanka.regras = (function () {
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);
+      if (k !== 'defesa' && k !== 'defesaMagica') b[k] = Math.round(b[k]);   // a defesa arredonda depois do fator
     }
     // Defesa em porcentagem: a defesa dos itens vale x DEFESA.fator (4,5), inclusive nos itens já salvos.
     if (b.defesa) b.defesa = Math.round(b.defesa * D.DEFESA.fator);
@@ -314,9 +315,11 @@ Tanka.regras = (function () {
 
   // Encanto: cada + dá +5% (pctPorNivel) do próprio item.
   function multEncanto(item) { return 1 + ((item && item.encanto) || 0) * D.encantamento.pctPorNivel / 100; }
-  // Bônus principal de armadura/joia/mão esquerda com o encanto: +5% por nível, no mínimo +1 por nível.
+  // Bônus principal de armadura/joia/mão esquerda com o encanto: +5% por nível (sem arredondar aqui), igual à arma.
+  // Assim comum +6 ≈ rara +0, rara +6 ≈ épica +0 e épica +6 ≈ lendária +0 (o "mínimo +1 por nível" antigo
+  // deixava um item +6 de raridade baixa muito acima do +0 da raridade seguinte).
   function bonusComEncanto(valor, encanto) {
-    return Math.max(valor + encanto, Math.round(valor * (1 + encanto * D.encantamento.pctPorNivel / 100)));
+    return valor * (1 + encanto * D.encantamento.pctPorNivel / 100);
   }
 
   // Dano da arma já com o encanto (+5% por nível) e o fator do tipo da arma.
@@ -990,6 +993,30 @@ Tanka.regras = (function () {
 
   // Item do boss da aliança (quem deu mais dano): 1 arma ou 1 armadura/mão esquerda da classe, na raridade sorteada no servidor.
   function itemBossAlianca(p, raridade, rng) {
+    rng = rng || Math.random;
+    if (!D.raridades[raridade]) raridade = 'epica';
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
+    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
+    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
+  }
+
+  // ---------- Chefe Mundial (Ignaroth) ----------
+  // Cada herói luta contra o chefe da área mais alta liberada pelo level (mesmo dano e defesa); a vida é a do reino.
+  function chefeDoNivel(p) {
+    var area = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0];
+    return area.chefe.id;
+  }
+  // Prêmio do Chefe Mundial: ouro e exp do chefe da área do herói x ataques (fator 100 = caiu; 70 = consolação).
+  function premioChefeMundial(p, rec) {
+    var m = D.monstros[rec.chefe] || D.monstros[chefeDoNivel(p)];
+    var vezes = Math.max(0, Math.floor(rec.ataques || 0)), fator = Math.max(0, Math.min(100, rec.fator || 0)) / 100;
+    var res = { ouro: Math.floor(m.ouro * vezes * fator), exp: Math.floor(m.exp * vezes * fator) };
+    p.ouro += res.ouro;
+    res.niveis = ganharExp(p, res.exp);
+    return res;
+  }
+  // Item do top 10: épico ou lendário, arma (50%) ou peça de armadura/secundária, como o drop de chefe.
+  function itemDoChefeMundial(p, raridade, rng) {
     rng = rng || Math.random;
     if (!D.raridades[raridade]) raridade = 'epica';
     if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
@@ -2144,6 +2171,9 @@ Tanka.regras = (function () {
     poder: poder,
     distribuirPonto: distribuirPonto,
     ganharExp: ganharExp,
+    chefeDoNivel: chefeDoNivel,
+    premioChefeMundial: premioChefeMundial,
+    itemDoChefeMundial: itemDoChefeMundial,
     rolarDrop: rolarDrop,
     nomeArma: nomeArma,
     armaEquipada: armaEquipada,

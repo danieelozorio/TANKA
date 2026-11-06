@@ -178,6 +178,10 @@ create or replace function public.validar_mensagem() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare d jsonb; pid text; ate timestamptz;
 begin
+  -- aviso do sistema (ex.: o Chefe Mundial despertou), gravado só por funções do servidor
+  if current_setting('tanka.aviso_sistema', true) = '1' then
+    new.conta_id := coalesce(auth.uid(), new.conta_id); new.criado_em := now(); return new;
+  end if;
   new.conta_id := auth.uid();
   new.texto := btrim(new.texto);
   if new.texto = '' then raise exception 'Mensagem vazia.'; end if;
@@ -557,7 +561,7 @@ begin
         'estado', r.estado, 'criado_em', r.criado_em, 'lider', r.lider, 'fila', r.grupo_id is null)
       from public.masmorra_runs r where meu = any (r.membros) and r.criado_em > now() - interval '20 minutes'
       order by r.id desc limit 1),
-    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
       from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb)
   ) into resultado;
   return resultado;
@@ -804,6 +808,197 @@ end $$;
 revoke execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) from public, anon;
 grant execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) to authenticated;
 
+-- ---------- Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026) ----------
+-- Todo dia às 20h (Brasília) Ignaroth desperta por 1 hora, com uma vida só para o reino inteiro.
+-- Vida = 50 mil por jogador que jogou nos últimos 3 dias. Cada ataque é uma luta no jogo (contra o chefe da área do
+-- herói) e o jogo informa o dano (boss_atacar). Ao cair: cada atacante ganha ouro e exp do chefe da área dele x ataques;
+-- top 10 de dano: 5% lendário / 30% épico + 1 pergaminho; golpe final: título "Matador de Dragões"; aliança com mais dano:
+-- 1% do dano dela em ouro no tesouro. Se não cair: 70% do ouro e exp + 1 pergaminho garantido para quem atacou.
+-- Tudo é calculado na hora em que alguém consulta (boss_estado) ou ataca: não precisa de agendador.
+create table if not exists public.boss_mundial (
+  id bigint generated always as identity primary key,
+  dia date unique,                          -- o despertar diário (null = invocado pelo admin)
+  inicio timestamptz not null,
+  fim timestamptz not null,
+  vida_max bigint not null,
+  vida bigint not null,
+  estado text not null default 'ativo',     -- ativo | derrotado | dormindo
+  golpe_final text,
+  derrotado_em timestamptz,
+  alianca_vencedora bigint,
+  bonus_alianca bigint,
+  premiado boolean not null default false
+);
+create table if not exists public.boss_mundial_dano (
+  boss_id bigint not null references public.boss_mundial (id) on delete cascade,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  alianca_id bigint,
+  dano bigint not null default 0,
+  ataques int not null default 0,
+  chefe text,                               -- chefe da área do herói no último ataque (base do prêmio)
+  ultimo_em timestamptz,
+  primary key (boss_id, personagem_id)
+);
+create index if not exists boss_mundial_dano_rank on public.boss_mundial_dano (boss_id, dano desc);
+alter table public.boss_mundial enable row level security;        -- só pelas funções
+alter table public.boss_mundial_dano enable row level security;
+
+create or replace function public.boss_cfg() returns jsonb
+language sql immutable as $$
+  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 50000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximo": 200000,
+    "lendaria": 5, "epica": 30, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões"}'::jsonb
+$$;
+
+-- Vida do despertar: 50 mil por jogador (conta) que jogou nos últimos 3 dias, sem bots nem admins.
+create or replace function public.boss_vida_inicial() returns bigint
+language sql stable security definer set search_path = public as $$
+  select greatest(1, (select count(distinct p.conta_id) from public.personagens p join public.contas c on c.id = p.conta_id
+    where p.atualizado_em > now() - make_interval(days => (public.boss_cfg() ->> 'diasAtivos')::int) and not c.bot and not c.admin))
+    * (public.boss_cfg() ->> 'vidaPorJogador')::bigint
+$$;
+
+-- Entrega os prêmios uma vez só (venceu = derrubaram a tempo).
+create or replace function public.boss_premiar(bid bigint, venceu boolean) returns void
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; r record; cfg jsonb := public.boss_cfg(); sorte numeric; posicao int := 0; al record;
+begin
+  select * into b from public.boss_mundial where id = bid for update;
+  if b.id is null or b.premiado then return; end if;
+  update public.boss_mundial set premiado = true where id = bid;
+  for r in select * from public.boss_mundial_dano where boss_id = bid and ataques > 0 order by dano desc, ultimo_em loop
+    posicao := posicao + 1;
+    insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+      jsonb_build_object('tipo', 'boss_premio', 'ataques', r.ataques, 'chefe', r.chefe, 'boss', bid,
+        'fator', case when venceu then 100 else (cfg ->> 'consolacao')::int end, 'venceu', venceu), 'boss');
+    if not venceu then
+      insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+        jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
+    elsif posicao <= 10 then
+      sorte := random() * 100;
+      if sorte < (cfg ->> 'lendaria')::numeric + (cfg ->> 'epica')::numeric then
+        insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+          jsonb_build_object('tipo', 'boss_item', 'raridade', case when sorte < (cfg ->> 'lendaria')::numeric then 'lendaria' else 'epica' end), 'boss');
+      end if;
+      insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+        jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
+    end if;
+  end loop;
+  if venceu then
+    if b.golpe_final is not null then
+      insert into public.recompensas (personagem_id, item, origem)
+        values (b.golpe_final, jsonb_build_object('tipo', 'titulo', 'nome', cfg ->> 'titulo'), 'boss');
+    end if;
+    select alianca_id, sum(dano) as total into al from public.boss_mundial_dano
+      where boss_id = bid and alianca_id is not null group by alianca_id order by sum(dano) desc limit 1;
+    if al.alianca_id is not null then
+      update public.aliancas set tesouro = tesouro + floor(al.total * (cfg ->> 'aliancaPct')::numeric / 100)
+        where id = al.alianca_id;
+      update public.boss_mundial set alianca_vencedora = al.alianca_id,
+        bonus_alianca = floor(al.total * (cfg ->> 'aliancaPct')::numeric / 100) where id = bid;
+    end if;
+  end if;
+end $$;
+
+-- Cria o despertar de hoje (a partir das 20h) e encerra o que passou da hora.
+create or replace function public.boss_garantir() returns void
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.boss_cfg(); ini timestamptz; v bigint; r record;
+begin
+  ini := (public.dia_jogo()::timestamp + make_interval(hours => (cfg ->> 'hora')::int)) at time zone 'America/Sao_Paulo';
+  if now() >= ini and now() < ini + make_interval(mins => (cfg ->> 'minutos')::int)
+     and not exists (select 1 from public.boss_mundial where dia = public.dia_jogo()) then
+    v := public.boss_vida_inicial();
+    insert into public.boss_mundial (dia, inicio, fim, vida_max, vida)
+      values (public.dia_jogo(), ini, ini + make_interval(mins => (cfg ->> 'minutos')::int), v, v)
+      on conflict (dia) do nothing;
+    if found and auth.uid() is not null then
+      perform set_config('tanka.aviso_sistema', '1', true);
+      insert into public.mensagens (personagem, classe, nivel, texto)
+        values ('Eldrin', 'sistema', 0, 'A terra treme… Ignaroth despertou! Todos à Aventura › Chefe Mundial!');
+      perform set_config('tanka.aviso_sistema', '', true);
+    end if;
+  end if;
+  for r in select id from public.boss_mundial where estado = 'ativo' and now() >= fim for update skip locked loop
+    update public.boss_mundial set estado = 'dormindo' where id = r.id;
+    perform public.boss_premiar(r.id, false);
+  end loop;
+end $$;
+
+-- O que a tela precisa: o chefe mais recente (ativo ou o último), ranking, o meu dano e os meus prêmios.
+create or replace function public.boss_estado(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; cfg jsonb := public.boss_cfg(); prox timestamptz;
+begin
+  perform public.conferir_dono(meu);
+  perform public.boss_garantir();
+  select * into b from public.boss_mundial where inicio <= now() order by inicio desc limit 1;
+  prox := (public.dia_jogo()::timestamp + make_interval(hours => (cfg ->> 'hora')::int)) at time zone 'America/Sao_Paulo';
+  if prox <= now() then prox := prox + interval '1 day'; end if;
+  return jsonb_build_object('agora', now(), 'proximo', prox, 'cfg', cfg,
+    'boss', case when b.id is null then null else jsonb_build_object('id', b.id, 'vida', b.vida, 'vida_max', b.vida_max,
+      'inicio', b.inicio, 'fim', b.fim, 'estado', b.estado, 'derrotado_em', b.derrotado_em,
+      'golpe_final', (select nome from public.personagens where id = b.golpe_final),
+      'alianca_vencedora', (select nome from public.aliancas where id = b.alianca_vencedora), 'bonus_alianca', b.bonus_alianca) end,
+    'top', coalesce((select jsonb_agg(jsonb_build_object('nome', p.nome, 'dano', d.dano, 'ataques', d.ataques,
+        'sigla', (select a.sigla from public.aliancas a where a.id = d.alianca_id), 'eu', d.personagem_id = meu) order by d.dano desc, d.ultimo_em)
+      from (select * from public.boss_mundial_dano where boss_id = b.id order by dano desc, ultimo_em limit 10) d
+      join public.personagens p on p.id = d.personagem_id), '[]'::jsonb),
+    'eu', (select jsonb_build_object('dano', d.dano, 'ataques', d.ataques,
+        'posicao', 1 + (select count(*) from public.boss_mundial_dano x where x.boss_id = d.boss_id and x.dano > d.dano))
+      from public.boss_mundial_dano d where d.boss_id = b.id and d.personagem_id = meu),
+    'aliancas', coalesce((select jsonb_agg(jsonb_build_object('nome', a.nome, 'sigla', a.sigla, 'dano', t.total) order by t.total desc)
+      from (select alianca_id, sum(dano) as total from public.boss_mundial_dano where boss_id = b.id and alianca_id is not null
+            group by alianca_id order by sum(dano) desc limit 5) t join public.aliancas a on a.id = t.alianca_id), '[]'::jsonb),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'item', r.item, 'origem', r.origem) order by r.id)
+      from public.recompensas r where r.personagem_id = meu and not r.resgatada and r.origem = 'boss'), '[]'::jsonb));
+end $$;
+
+-- Um ataque: o jogo lutou contra o chefe da área do herói e informa o dano. O primeiro a zerar a vida dá o golpe final.
+create or replace function public.boss_atacar(meu text, dano int, chefe text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare b public.boss_mundial; cfg jsonb := public.boss_cfg(); d int; ult timestamptz; ali bigint; caiu boolean := false;
+begin
+  perform public.conferir_dono(meu);
+  perform public.boss_garantir();
+  select * into b from public.boss_mundial where estado = 'ativo' and now() >= inicio and now() < fim order by inicio desc limit 1 for update;
+  if b.id is null then raise exception 'Ignaroth não está acordado agora.'; end if;
+  select ultimo_em into ult from public.boss_mundial_dano where boss_id = b.id and personagem_id = meu;
+  if ult is not null and ult > now() - make_interval(secs => (cfg ->> 'intervaloSeg')::int) then
+    raise exception 'Calma! Espere alguns segundos entre um ataque e outro.'; end if;
+  d := least(greatest(coalesce(dano, 0), 0), (cfg ->> 'danoMaximo')::int);
+  select alianca_id into ali from public.alianca_membros where personagem_id = meu;
+  insert into public.boss_mundial_dano (boss_id, personagem_id, alianca_id, dano, ataques, chefe, ultimo_em)
+    values (b.id, meu, ali, d, 1, chefe, now())
+    on conflict (boss_id, personagem_id) do update set dano = boss_mundial_dano.dano + d, ataques = boss_mundial_dano.ataques + 1,
+      alianca_id = excluded.alianca_id, chefe = excluded.chefe, ultimo_em = now();
+  update public.boss_mundial set vida = greatest(0, vida - d) where id = b.id returning * into b;
+  if b.vida = 0 then
+    update public.boss_mundial set estado = 'derrotado', golpe_final = meu, derrotado_em = now() where id = b.id;
+    perform public.boss_premiar(b.id, true);
+    caiu := true;
+  end if;
+  return jsonb_build_object('dano', d, 'vida', b.vida, 'vida_max', b.vida_max, 'caiu', caiu, 'golpe_final', caiu);
+end $$;
+
+-- Admin: invoca Ignaroth agora (para testar) com a vida pedida (null = a do despertar), por `minutos`.
+create or replace function public.admin_boss_invocar(meu text, vida bigint, minutos int) returns void
+language plpgsql security definer set search_path = public as $$
+declare v bigint := coalesce(vida, public.boss_vida_inicial());
+begin
+  perform public.conferir_dono(meu);
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  update public.boss_mundial set estado = 'dormindo' where estado = 'ativo';
+  insert into public.boss_mundial (dia, inicio, fim, vida_max, vida)
+    values (null, now(), now() + make_interval(mins => greatest(1, coalesce(minutos, 60))), v, v);
+end $$;
+
+revoke execute on function public.boss_cfg(), public.boss_vida_inicial(), public.boss_premiar(bigint, boolean),
+  public.boss_garantir() from public, anon, authenticated;
+revoke execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
+  public.admin_boss_invocar(text, bigint, int) from public, anon;
+grant execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
+  public.admin_boss_invocar(text, bigint, int) to authenticated;
+
 -- Pega uma recompensa (o jogo coloca na mochila e salva).
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb
 language plpgsql security definer set search_path = public as $$
@@ -1027,7 +1222,7 @@ language plpgsql stable as $$
 declare
   T jsonb := public.tanka_dados();
   raridades text[] := array['comum', 'rara', 'epica', 'lendaria'];
-  eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int; b0 numeric;
+  eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int; b0 numeric; m numeric; fd numeric;
   fo numeric; de numeric; re numeric; inte numeric; nivel int := coalesce((p ->> 'nivel')::int, 1);
   magico boolean; dmin numeric := 0; dmax numeric := 0; extra numeric; bonus numeric;
   pas jsonb; npas int := 0; pv jsonb := '{}'::jsonb; hp numeric; dfs numeric; dfm numeric; pct numeric;
@@ -1084,9 +1279,12 @@ begin
     if enc > 0 then
       k := case when tipo = 'secundaria' then def ->> 'encanto' else T -> 'bonusPorNivel' ->> tipo end;
       b0 := case when jsonb_typeof(it -> 'bonus') = 'object' then (it -> 'bonus' ->> k)::numeric else (def -> 'bonus' -> k ->> idx)::numeric end;
-      -- encanto: +encantoPct% por nível do bônus principal, no mínimo +1 por nível (igual a R.bonusComEncanto)
-      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + greatest(enc::numeric,
-        round(coalesce(b0, 0) * (1 + enc * coalesce((T ->> 'encantoPct')::numeric, 5) / 100)) - coalesce(b0, 0))));
+      -- encanto: +encantoPct% por nível do bônus principal, arredondado como R.bonusItem
+      -- (defesa: arredonda o item já x DEFESA.fator; outros bônus: arredonda o valor)
+      m := 1 + enc * coalesce((T ->> 'encantoPct')::numeric, 5) / 100;
+      fd := coalesce((T -> 'DEFESA' ->> 'fator')::numeric, 1);
+      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) - coalesce(b0, 0)
+        + case when k in ('defesa', 'defesaMagica') then round(coalesce(b0, 0) * m * fd) / fd else round(coalesce(b0, 0) * m) end));
     end if;
   end loop;
   -- bônus dos conjuntos (2, 3 e 4 peças com o mesmo nome; somam)
@@ -2240,7 +2438,7 @@ begin
       from public.leilao_lotes l left join public.personagens p on p.id = l.lider where l.leilao_id = r.id), '[]'::jsonb),
     'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
       from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb),
-    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
       from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
 end $$;
 
@@ -2271,6 +2469,167 @@ revoke execute on function public.leilao_raridade(jsonb, text), public.leilao_cr
   public.leilao_fase(public.leiloes), public.leilao_faixa_de(text) from public, anon, authenticated;
 revoke execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) from public, anon;
 grant execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) to authenticated;
+
+-- ---------- Mercado entre jogadores (Henri, nov/2026) ----------
+-- O vendedor anuncia um item da mochila (não equipado, não travado) ou pergaminhos por um preço em ouro que ele escolhe.
+-- O servidor tira o item do personagem salvo (para não duplicar) e guarda a cópia no anúncio. Na compra: o comprador
+-- paga (crédito negativo), o vendedor recebe o preço menos 10% de taxa (crédito) e o item vai para o comprador (recompensa).
+-- Cancelar ou passar de 7 dias devolve o item ao vendedor (recompensa).
+create table if not exists public.mercado_anuncios (
+  id bigint generated always as identity primary key,
+  vendedor text not null references public.personagens (id) on delete cascade,
+  item jsonb not null,
+  categoria text not null,                  -- arma | armadura | joia | pergaminho
+  raridade text not null,
+  nivel int not null default 1,
+  qtd int not null default 1,
+  preco bigint not null check (preco between 1 and 2000000000),
+  estado text not null default 'ativo',     -- ativo | vendido | cancelado | expirado
+  comprador text,
+  criado_em timestamptz not null default now(),
+  expira_em timestamptz not null default now() + interval '7 days',
+  fechado_em timestamptz
+);
+create index if not exists mercado_anuncios_ativos on public.mercado_anuncios (estado, categoria, criado_em desc);
+create index if not exists mercado_anuncios_vendedor on public.mercado_anuncios (vendedor, estado);
+alter table public.mercado_anuncios enable row level security;   -- só pelas funções
+
+create or replace function public.mercado_cfg() returns jsonb
+language sql immutable as $$ select '{"taxa": 10, "dias": 7, "maxAnuncios": 10, "porPagina": 30}'::jsonb $$;
+
+create or replace function public.mercado_raridade_ordem(r text) returns int
+language sql immutable as $$ select case r when 'comum' then 1 when 'rara' then 2 when 'epica' then 3 when 'lendaria' then 4 else 0 end $$;
+
+-- Devolve ao vendedor (recompensa) o que estava anunciado.
+create or replace function public.mercado_devolver(a public.mercado_anuncios, motivo text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.mercado_anuncios set estado = motivo, fechado_em = now() where id = a.id;
+  insert into public.recompensas (personagem_id, item, origem) values (a.vendedor,
+    case when a.categoria = 'pergaminho' then jsonb_build_object('tipo', 'pergaminho', 'raridade', a.raridade, 'qtd', a.qtd)
+         else a.item end, 'mercado');
+end $$;
+
+create or replace function public.mercado_expirar() returns void
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios;
+begin
+  for a in select * from public.mercado_anuncios where estado = 'ativo' and expira_em <= now() order by id limit 200
+    for update skip locked loop
+    perform public.mercado_devolver(a, 'expirado');
+  end loop;
+end $$;
+
+-- Anunciar: item_id (da mochila) ou raridade + qtd de pergaminhos.
+create or replace function public.mercado_anunciar(meu text, item_id text, pergaminho text, qtd int, preco bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.mercado_cfg(); d jsonb; it jsonb; cat text; tem int; n int := greatest(1, coalesce(qtd, 1));
+begin
+  perform public.conferir_dono(meu);
+  if preco is null or preco < 1 or preco > 2000000000 then raise exception 'Preço inválido (de 1 a 2 bilhões de ouro).'; end if;
+  if (select count(*) from public.mercado_anuncios where vendedor = meu and estado = 'ativo') >= (cfg ->> 'maxAnuncios')::int then
+    raise exception 'Você já tem % itens à venda. Espere vender ou cancele um.', cfg ->> 'maxAnuncios'; end if;
+  select dados into d from public.personagens where id = meu for update;
+  if item_id is not null then
+    select e into it from jsonb_array_elements(coalesce(d -> 'inventario', '[]'::jsonb)) e where e ->> 'id' = item_id limit 1;
+    if it is null then raise exception 'Item não encontrado na mochila (salve o jogo e tente de novo).'; end if;
+    if exists (select 1 from jsonb_each_text(coalesce(d -> 'equipados', '{}'::jsonb)) x where x.value = item_id) then
+      raise exception 'Tire o item do corpo antes de vender.'; end if;
+    if (it ->> 'travado') = 'true' then raise exception 'Destrave o item antes de vender.'; end if;
+    cat := case when it ->> 'tipo' = 'arma' then 'arma' when it ->> 'tipo' in ('colar', 'anel') then 'joia' else 'armadura' end;
+    d := jsonb_set(d, '{inventario}', coalesce((select jsonb_agg(e) from jsonb_array_elements(d -> 'inventario') e
+      where e ->> 'id' <> item_id), '[]'::jsonb));
+    n := 1;
+  else
+    if pergaminho not in ('comum', 'rara', 'epica', 'lendaria') then raise exception 'Escolha um item para vender.'; end if;
+    select coalesce(sum((e ->> 'qtd')::int), 0) into tem from jsonb_array_elements(coalesce(d -> 'consumiveis', '[]'::jsonb)) e
+      where e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho;
+    if tem < n then raise exception 'Você só tem % desses pergaminhos.', tem; end if;
+    cat := 'pergaminho';
+    it := jsonb_build_object('tipo', 'pergaminho', 'raridade', pergaminho, 'qtd', n);
+    d := jsonb_set(d, '{consumiveis}', coalesce((select jsonb_agg(case when e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho
+        then jsonb_set(e, '{qtd}', to_jsonb((e ->> 'qtd')::int - n)) else e end)
+      from jsonb_array_elements(d -> 'consumiveis') e
+      where not (e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho and (e ->> 'qtd')::int - n <= 0)), '[]'::jsonb));
+  end if;
+  update public.personagens set dados = d where id = meu;
+  insert into public.mercado_anuncios (vendedor, item, categoria, raridade, nivel, qtd, preco, expira_em)
+    values (meu, it, cat, coalesce(it ->> 'raridade', 'comum'), coalesce((it ->> 'nivel')::int, 1), n, preco,
+      now() + make_interval(days => (cfg ->> 'dias')::int));
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+create or replace function public.mercado_cancelar(meu text, anuncio bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios;
+begin
+  perform public.conferir_dono(meu);
+  select * into a from public.mercado_anuncios where id = anuncio and vendedor = meu for update;
+  if a.id is null or a.estado <> 'ativo' then raise exception 'Este anúncio não está mais à venda.'; end if;
+  perform public.mercado_devolver(a, 'cancelado');
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+create or replace function public.mercado_comprar(meu text, anuncio bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios; cfg jsonb := public.mercado_cfg(); nome text; recebe bigint;
+begin
+  perform public.conferir_dono(meu);
+  select * into a from public.mercado_anuncios where id = anuncio for update;
+  if a.id is null or a.estado <> 'ativo' or a.expira_em <= now() then raise exception 'Este item já foi vendido ou saiu do mercado.'; end if;
+  if a.vendedor = meu then raise exception 'Este anúncio é seu.'; end if;
+  if public.ouro_real(meu) < a.preco then raise exception 'Ouro insuficiente.'; end if;
+  select p.nome into nome from public.personagens p where p.id = meu;
+  recebe := floor(a.preco * (100 - (cfg ->> 'taxa')::numeric) / 100);
+  perform public.creditar(meu, -a.preco::int, 0, 'Compra no mercado');
+  perform public.creditar(a.vendedor, recebe::int, 0, 'Mercado: ' || nome || ' comprou seu item (−' || (cfg ->> 'taxa') || '% de taxa)');
+  update public.mercado_anuncios set estado = 'vendido', comprador = meu, fechado_em = now() where id = a.id;
+  insert into public.recompensas (personagem_id, item, origem) values (meu,
+    case when a.categoria = 'pergaminho' then jsonb_build_object('tipo', 'pergaminho', 'raridade', a.raridade, 'qtd', a.qtd)
+         else a.item end, 'mercado');
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+-- Lista: categoria (null = todas) e ordem (recentes | nivel | raridade | preco | preco_desc), 30 por página.
+create or replace function public.mercado_estado(meu text, categoria text, ordem text, pagina int) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.mercado_cfg(); pp int := (cfg ->> 'porPagina')::int; cat text := nullif(categoria, 'todos');
+begin
+  perform public.conferir_dono(meu);
+  perform public.mercado_expirar();
+  return jsonb_build_object('cfg', cfg,
+    'total', (select count(*) from public.mercado_anuncios a where a.estado = 'ativo' and (cat is null or a.categoria = cat)),
+    'anuncios', coalesce((select jsonb_agg(x.j order by x.n) from (
+      select row_number() over (order by
+          case when ordem = 'nivel' then a.nivel end desc nulls last,
+          case when ordem = 'raridade' then public.mercado_raridade_ordem(a.raridade) end desc nulls last,
+          case when ordem = 'preco' then a.preco end asc nulls last,
+          case when ordem = 'preco_desc' then a.preco end desc nulls last,
+          a.criado_em desc) as n,
+        jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd, 'preco', a.preco,
+          'vendedor', p.nome, 'meu', a.vendedor = meu, 'expira_em', a.expira_em) as j
+      from public.mercado_anuncios a join public.personagens p on p.id = a.vendedor
+      where a.estado = 'ativo' and (cat is null or a.categoria = cat)
+      order by n limit pp offset greatest(0, coalesce(pagina, 0)) * pp) x), '[]'::jsonb),
+    'meus', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd,
+        'preco', a.preco, 'expira_em', a.expira_em) order by a.criado_em desc)
+      from public.mercado_anuncios a where a.vendedor = meu and a.estado = 'ativo'), '[]'::jsonb),
+    'vendas', coalesce((select jsonb_agg(jsonb_build_object('item', a.item, 'qtd', a.qtd, 'preco', a.preco, 'comprador', p.nome,
+        'quando', a.fechado_em) order by a.fechado_em desc)
+      from (select * from public.mercado_anuncios where vendedor = meu and estado = 'vendido' order by fechado_em desc limit 10) a
+      left join public.personagens p on p.id = a.comprador), '[]'::jsonb),
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
+      from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
+      from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
+end $$;
+
+revoke execute on function public.mercado_cfg(), public.mercado_raridade_ordem(text), public.mercado_devolver(public.mercado_anuncios, text),
+  public.mercado_expirar() from public, anon, authenticated;
+revoke execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) from public, anon;
+grant execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) to authenticated;
 
 notify pgrst, 'reload schema';
 
