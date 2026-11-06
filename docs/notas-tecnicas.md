@@ -389,3 +389,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Testes: regras.test.js ("oficinas: ...") e banco.test.sql (bloco "Oficinas e Relíquia Rúnica").
 
 - Ícones de craft: cortados da folha 6x3 do Daniel em `assets/itens/material-<id>.webp`, `receita.webp`, `protecao.webp` (128 px, fundo transparente) e `material-fragmento.webp` (Fragmento de Selo, imagem à parte).
+- **Ajuste (Daniel, nov/2026):** material do chefe agora cai com `CRAFT.dropChefe` (15%, Coletor x1,5), não sempre; material
+  da região cai mesmo com penalidade de área (para farmar Ferro etc. depois); Minas: o jogador escolhe a região
+  (`R.iniciarMinas(p, opcao, agora, areaId)`, qualquer uma liberada; select `data-forja="minas"`).

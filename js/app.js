@@ -1781,8 +1781,11 @@
       html += falta > 0 ? '<p>Minerando <strong>' + esc(mat) + '</strong>… pronto em <strong>' + relogioTexto(falta) + '</strong>.</p>'
         : '<p class="mais">A mineração terminou!</p><div class="botoes"><button class="btn" data-acao="minas-recolher">Recolher</button></div>';
     } else {
-      var area = R.areaDasMinas(p), matA = C.materiais[R.materialDaArea(area.id)].nome;
-      html += '<p class="suave pequeno">Mande seu herói minerar e volte depois: ele traz <strong>' + esc(matA) + '</strong> (' + esc(area.nome) + ') e às vezes '
+      var minasId = (estado.forja || {}).minas, area = liberadas.filter(function (a) { return a.id === minasId; })[0] || R.areaDasMinas(p), matA = C.materiais[R.materialDaArea(area.id)].nome;
+      html += '<label class="linha-form">Minerar em <select data-forja="minas">' + liberadas.map(function (a) {
+          return '<option value="' + a.id + '"' + (a.id === area.id ? ' selected' : '') + '>' + esc(a.nome) + ' (' + esc(C.materiais[R.materialDaArea(a.id)].nome) + ')</option>';
+        }).join('') + '</select></label>'
+        + '<p class="suave pequeno">Mande seu herói minerar e volte depois: ele traz <strong>' + esc(matA) + '</strong> (' + esc(area.nome) + ') e às vezes '
         + '<strong>Pedra Preciosa</strong> (' + C.minas.gemaPct + '% por unidade).' + (R.ehColetor(p) ? ' Como Coletor, você minera <strong>+' + C.coletorBonus + '%</strong>.' : '') + '</p><div class="botoes">'
         + C.minas.opcoes.map(function (o, i) {
           return '<button class="btn' + (i ? ' secundario' : '') + '" data-acao="minas-iniciar" data-valor="' + i + '">Minerar ' + (o.minutos >= 60 ? o.minutos / 60 + ' h' : o.minutos + ' min')
@@ -3847,7 +3850,7 @@
         telaJogo();
         break;
       case 'minas-iniciar': {
-        var rm = R.iniciarMinas(p, Number(el.dataset.valor), C.agora());
+        var rm = R.iniciarMinas(p, Number(el.dataset.valor), C.agora(), (estado.forja || {}).minas);
         if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
         telaJogo();
         break;

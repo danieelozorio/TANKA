@@ -655,19 +655,21 @@ Tanka.regras = (function () {
     var m = D.monstros[monstroId], area = areaDoMonstro(monstroId), C = D.CRAFT;
     if (!m || !area) return null;
     var extra = ehColetor(p) ? 1 + C.coletorBonus / 100 : 1;
-    if (m.chefe) { var mc = materialDoChefe(monstroId); return mc ? { id: mc, qtd: ehColetor(p) && rng() < C.coletorBonus / 100 ? 2 : 1 } : null; }
+    if (m.chefe) { var mc = materialDoChefe(monstroId); return mc && rng() * 100 < C.dropChefe * extra ? { id: mc, qtd: 1 } : null; }
     var pos = area.monstros.map(function (x) { return x.id; }).indexOf(monstroId);
     var id = materialDaArea(area.id);
     return id && rng() * 100 < (C.dropMaterial[pos] || 0) * extra ? { id: id, qtd: 1 } : null;
   }
   // Região mais alta liberada pelo level (as Minas mineram o material dela).
   function areaDasMinas(p) { return D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0]; }
-  // Começa a mineração (opção = índice em CRAFT.minas.opcoes). p.minas = { inicio, fim, opcao, area }.
-  function iniciarMinas(p, opcao, agora) {
-    var o = D.CRAFT.minas.opcoes[opcao];
+  // Começa a mineração (opção = índice em CRAFT.minas.opcoes; areaId = região escolhida, já liberada pelo level;
+  // sem região, a mais alta). p.minas = { inicio, fim, opcao, area }.
+  function iniciarMinas(p, opcao, agora, areaId) {
+    var o = D.CRAFT.minas.opcoes[opcao], a = areaId ? D.areas[indiceArea(areaId)] : areaDasMinas(p);
     if (!o) return 'Opção inválida.';
+    if (!a || p.nivel < a.nivelMin) return 'Região ainda não liberada.';
     if (p.minas) return 'Você já está minerando.';
-    p.minas = { inicio: agora, fim: agora + o.minutos * 60000, opcao: opcao, area: areaDasMinas(p).id };
+    p.minas = { inicio: agora, fim: agora + o.minutos * 60000, opcao: opcao, area: a.id };
     return true;
   }
   // Recolhe o que foi minerado (quando o tempo acabou). Retorna { material, qtd, gemas } ou o motivo.
@@ -1485,7 +1487,7 @@ Tanka.regras = (function () {
         res.pergaminho = rolarPergaminho(p, b.monstroId, b.rng);
         if (res.pergaminho) { mudarPergaminho(p, res.pergaminho, 1); res.qtdPergaminhos = 1; }
       }
-      if (!res.penalizado) {
+      {   // material cai mesmo em região abaixo do level (para farmar os materiais das primeiras regiões)
         res.material = rolarMaterial(p, b.monstroId, b.rng);
         if (res.material) mudarConsumivel(p, 'material', res.material.id, res.material.qtd);
       }

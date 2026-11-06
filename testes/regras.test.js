@@ -1812,7 +1812,8 @@ teste('craft: materiais caem dos monstros (Coletor acha mais), chefe sempre deix
   R.admin.subirNivel(p, 12);
   assert.deepStrictEqual({ ...R.rolarMaterial(p, 'lobo', fixo(0)) }, { id: 'ferro', qtd: 1 });
   assert.strictEqual(R.rolarMaterial(p, 'lobo', fixo(0.07)), null, '6% no 1º monstro');
-  assert.deepStrictEqual({ ...R.rolarMaterial(p, 'velgrath', fixo(0.99)) }, { id: 'seiva', qtd: 1 });
+  assert.deepStrictEqual({ ...R.rolarMaterial(p, 'velgrath', fixo(0.1)) }, { id: 'seiva', qtd: 1 });
+  assert.strictEqual(R.rolarMaterial(p, 'velgrath', fixo(0.2)), null, 'chefe: 15%');
   R.escolherSegundaClasse(p, 'coletor');
   assert.deepStrictEqual({ ...R.rolarMaterial(p, 'lobo', fixo(0.08)) }, { id: 'ferro', qtd: 1 }, 'Coletor: 9%');
 });
@@ -1820,6 +1821,10 @@ teste('craft: materiais caem dos monstros (Coletor acha mais), chefe sempre deix
 teste('craft: Minas, receita do Coletor, proteção e forja do Ferreiro', () => {
   const col = R.criarPersonagem('Col', 'masculino', 'anao', 'artesao');
   R.admin.subirNivel(col, 12); R.escolherSegundaClasse(col, 'coletor');
+  assert.notStrictEqual(R.iniciarMinas(col, 0, 1000, 'cume'), true, 'região não liberada');
+  assert.strictEqual(R.iniciarMinas(col, 0, 1000, 'floresta'), true, 'pode minerar numa região baixa');
+  assert.strictEqual(col.minas.area, 'floresta');
+  delete col.minas;
   assert.strictEqual(R.iniciarMinas(col, 0, 1000), true);
   assert.notStrictEqual(R.iniciarMinas(col, 0, 1000), true, 'uma mineração por vez');
   assert.ok(typeof R.recolherMinas(col, 2000) === 'string', 'ainda minerando');

@@ -40,9 +40,9 @@ Tanka.dados = {
     receita: { nome: 'Receita', descricao: 'Fabricada pelo Coletor. Com ela e os materiais da região, o Ferreiro forja uma arma ou armadura.' },
   },
   // ---------- Craft dos Anões (Daniel, nov/2026; etapas 1 a 3 do PDF "Os Anões: Mestres da Forja") ----------
-  // Materiais: cada região tem o seu (caem dos monstros: % pela posição do monstro) e cada chefe um raro (sempre cai).
-  // Coletor (segunda classe) acha `coletorBonus`% a mais. Minas: qualquer herói manda minerar; volta com o material da
-  // região mais alta liberada pelo level e às vezes Pedra Preciosa. Coletor fabrica Receitas (uma por região) e
+  // Materiais: cada região tem o seu (caem dos monstros: % pela posição do monstro) e cada chefe um raro (dropChefe %).
+  // Coletor (segunda classe) acha `coletorBonus`% a mais. Minas: qualquer herói manda minerar na região que escolher
+  // (qualquer uma já liberada pelo level) e volta com o material dela e às vezes Pedra Preciosa. Coletor fabrica Receitas (uma por região) e
   // Pergaminhos de Proteção; o Ferreiro forja arma/armadura de qualquer classe com uma Receita + materiais.
   CRAFT: {
     materiais: {
@@ -57,7 +57,8 @@ Tanka.dados = {
       gema: { nome: 'Pedra Preciosa', minas: true },
       fragmento: { nome: 'Fragmento de Selo', boss: true },   // quem dá mais dano no boss do clã ganha 1 (Relíquia Rúnica)
     },
-    dropMaterial: [6, 8, 10],      // % de cair 1 material da região (1º, 2º e 3º monstro)
+    dropMaterial: [6, 8, 10],      // % de cair 1 material da região (1º, 2º e 3º monstro); cai mesmo em região abaixo do level
+    dropChefe: 15,                 // % de o chefe deixar 1 do material dele (Daniel: antes era sempre)
     coletorBonus: 50,              // Coletor: +50% nessa chance e +50% nas Minas
     minas: {
       opcoes: [{ minutos: 60, qtd: [3, 5] }, { minutos: 240, qtd: [12, 18] }],
