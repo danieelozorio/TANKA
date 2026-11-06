@@ -288,6 +288,14 @@ Tanka.contas = (function () {
 
   // ---------- Arena (a luta roda no servidor) ----------
   // ---------- Alianças ----------
+  // Oficinas dos Anões (serviços entre jogadores; a sorte é jogada no servidor)
+  var oficina = {
+    estado: function (meu) { return chamar('oficina_estado', { meu: meu }); },
+    configurar: function (meu, servicos, bonus, sorte) { return chamar('oficina_configurar', { meu: meu, servicos: servicos, bonus: bonus, sorte: sorte }); },
+    pedir: function (meu, artesao, tipo, itemId, opcoes) { return chamar('oficina_pedir', { meu: meu, artesao: artesao, tipo: tipo, item_id: itemId || null, opcoes: opcoes || {} }); },
+    cancelar: function (meu, pedido) { return chamar('oficina_cancelar', { meu: meu, pedido: pedido }); },
+    fazer: function (meu, pedido) { return chamar('oficina_fazer', { meu: meu, pedido: pedido }); },
+  };
   var alianca = {
     estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
     criar: function (meu, nome, sigla, brasao) { return chamar('alianca_criar', { meu: meu, nome: nome, sigla: sigla, brasao: brasao }); },
@@ -363,6 +371,7 @@ Tanka.contas = (function () {
     leilao: leilao,
     arena: arena,
     alianca: alianca,
+    oficina: oficina,
     grupo: grupo,
     boss: boss,
     mercado: mercado,

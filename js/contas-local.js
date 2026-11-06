@@ -227,6 +227,7 @@ Tanka.contas = (function () {
     leilao: { estado: function () { return Promise.resolve({ local: true }); }, lance: soServidor },
     arena: arena,
     // Alianças juntam vários jogadores: só com o servidor.
+    oficina: { estado: function () { return Promise.resolve({ local: true }); }, configurar: soServidor, pedir: soServidor, cancelar: soServidor, fazer: soServidor },
     alianca: {
       estado: function () { return Promise.resolve({ local: true }); },
       criar: soServidor, convidar: soServidor, responder: soServidor, pedir: soServidor, decidir: soServidor, sair: soServidor,

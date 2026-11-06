@@ -1849,3 +1849,23 @@ teste('craft: Minas, receita do Coletor, proteção e forja do Ferreiro', () => 
   assert.strictEqual(R.qtdMaterial(fer, 'lagrima'), 0);
   assert.notStrictEqual(R.forjar(fer, 'pantano', 'mago', 'arma', 0, 0), true, 'sem receita');
 });
+
+teste('oficinas: chance com o bônus do artesão, item forjado pela semente e runas só contra monstros', () => {
+  assert.strictEqual(R.chanceEncantarCom(50, { encanto: 9 }), D.encantamento.teto[10], 'teto do +10');
+  assert.strictEqual(R.chanceEncantarCom(0, { encanto: 9 }), 10);
+  const spec = { classe: 'arqueiro', tipo: 'arma', raridade: 'epica', area: 'ruinas', semente: 1234, forjadoPor: 'Grimbold', obraPrima: true };
+  const a = R.itemForjado(spec), b = R.itemForjado(spec);
+  assert.strictEqual(JSON.stringify(Object.assign({}, a, { id: 0 })), JSON.stringify(Object.assign({}, b, { id: 0 })), 'mesma semente, mesmo item');
+  assert.ok(a.classe === 'arqueiro' && a.raridade === 'epica' && a.forjadoPor === 'Grimbold' && a.obraPrima);
+  const p = R.criarPersonagem('R', 'masculino', 'anao', 'artesao');
+  R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, 'ferreiro');
+  assert.strictEqual(R.podeReliquia(p), true);
+  assert.ok(R.chanceReliquia(p) >= D.CRAFT.reliquia.base && R.chanceReliquia(p) <= D.CRAFT.reliquia.maxima);
+  const arma = R.mochila(p).concat(Object.values(p.equipados).map((id) => p.inventario.find((i) => i.id === id)).filter(Boolean))[0];
+  const antes = R.status(p, true).dano[1], fora = R.status(p).dano[1];
+  arma.runa = 'furia';
+  if (!R.slotDoItem(p, arma.id)) R.equipar(p, arma.id);
+  assert.ok(R.status(p, true).dano[1] > antes, 'runa da fúria: mais dano contra monstros');
+  assert.strictEqual(R.status(p).dano[1], fora, 'fora disso (Arena, poder) não muda');
+});
+

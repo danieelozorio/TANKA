@@ -1038,7 +1038,7 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
 create or replace function public.tanka_dados() returns jsonb
-language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"RES_SEM_VIDA":10,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"racas":{"humano":{"tracos":{}},"elfo":{"tracos":{"critico":5,"velocidadePct":10,"vidaPct":-10,"danoPct":-10}},"elfoNegro":{"tracos":{"danoCritico":10,"danoPct":5,"vidaPct":-10}},"orc":{"tracos":{"vidaPct":20,"danoPct":10,"critico":-5,"velocidadePct":-10,"evasaoPct":-50}},"anao":{"tracos":{"vidaPct":10,"danoPct":5,"critico":-3,"velocidadePct":-5}}},"classesAtributos":{"cavaleiro":{"for":15,"des":10,"res":20,"int":10,"sor":15},"arqueiro":{"for":15,"des":20,"res":10,"int":10,"sor":15},"mago":{"for":10,"des":15,"res":10,"int":20,"sor":15},"artesao":{"for":15,"des":10,"res":15,"int":10,"sor":20}},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"for"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"dano":[1,2,3,4],"defesaMagica":[0,2,4,6],"vida":[0,0,0,30],"regen":[0,0,1,1]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"dano"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"doacaoMaxDia":3000,"skillPrecos":[25000,40000,65000,100000,150000,225000,325000,475000,700000,1000000],"skills":[{"id":"exp","nome":"Sabedoria","simbolo":"📖","porNivel":2,"unidade":"% de exp","descricao":"Mais exp na caçada."},{"id":"ouro","nome":"Cofre Cheio","simbolo":"💰","porNivel":2,"unidade":"% de ouro","descricao":"Mais ouro na caçada."},{"id":"dano","nome":"Fúria do Clã","simbolo":"⚔","porNivel":1.5,"unidade":"% de dano","descricao":"Mais dano contra monstros."},{"id":"critico","nome":"Olho de Águia","simbolo":"🎯","porNivel":0.5,"unidade":"% de chance de crítico","descricao":"Mais chance de acerto crítico."},{"id":"danoCritico","nome":"Golpe Brutal","simbolo":"💥","porNivel":3,"unidade":"% de dano crítico","descricao":"Críticos mais fortes."},{"id":"resistencia","nome":"Muralha","simbolo":"🛡","porNivel":2,"unidade":"% de defesa","descricao":"Mais defesa e defesa mágica."},{"id":"vida","nome":"Vigor","simbolo":"❤","porNivel":2,"unidade":"% de vida","descricao":"Mais vida máxima contra monstros."},{"id":"velocidade","nome":"Passo Ligeiro","simbolo":"💨","porNivel":1,"unidade":"% de velocidade","descricao":"Ataca mais vezes."},{"id":"esquiva","nome":"Sombra Ágil","simbolo":"🌀","porNivel":0.5,"unidade":"% de esquiva","descricao":"Desvia de mais golpes."},{"id":"fortuna","nome":"Fortuna","simbolo":"🍀","porNivel":2,"unidade":"% de chance de drop","descricao":"Mais chance de itens caírem."}],"missoesOuroPorNivel":0.2,"missoes":{"diarias":[{"tipo":"monstros","meta":1000,"ouro":3000,"nome":"Caçar 1.000 monstros"},{"tipo":"encantar","meta":50,"ouro":2000,"nome":"Encantar 50 vezes"},{"tipo":"arena","meta":50,"ouro":2000,"nome":"Lutar 50 vezes na Arena"},{"tipo":"masmorra","meta":10,"ouro":2500,"nome":"Vencer 10 masmorras"}],"semanais":[{"tipo":"monstros","meta":15000,"ouro":20000,"buff":2.5,"nome":"Caçar 15.000 monstros"},{"tipo":"encantar","meta":500,"ouro":15000,"buff":2.5,"nome":"Encantar 500 vezes"},{"tipo":"arena","meta":400,"ouro":15000,"buff":2.5,"nome":"Lutar 400 vezes na Arena"},{"tipo":"bossCla","meta":4,"ouro":25000,"buff":2.5,"nome":"Derrotar o boss do clã 4 vezes"}]},"missoesMaxEnvio":{"monstros":300,"encantar":40,"arena":10,"masmorra":5},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}}},"LEILAO":{"nivelMin":10,"duracaoMin":240,"incrementoPct":5,"muitoCurto":[1,4],"fases":[{"id":"muitoLongo","nome":"Muito longo","acimaMin":180},{"id":"longo","nome":"Longo","acimaMin":60},{"id":"medio","nome":"Médio","acimaMin":20},{"id":"curto","nome":"Curto","acimaMin":0}],"nomeMuitoCurto":"Muito curto","minimo":{"comum":1000,"rara":5000,"epica":10000,"lendaria":50000},"pacotePergaminho":{"comum":10,"rara":5,"epica":3,"lendaria":1},"faixas":[{"id":"l1","nome":"Leilão do Mercador","nivel":[10,19],"mult":1,"itemNivel":[18,22],"raridades":{"comum":30,"rara":45,"epica":22,"lendaria":3}},{"id":"l2","nome":"Leilão da Coroa","nivel":[20,29],"mult":10,"itemNivel":[28,32],"raridades":{"comum":15,"rara":45,"epica":32,"lendaria":8}},{"id":"l3","nome":"Leilão dos Reis","nivel":[30,999],"mult":40,"itemNivel":[42,50],"raridades":{"comum":0,"rara":35,"epica":45,"lendaria":20}}]},"DEFESA":{"k":100,"fator":4.5},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}},"BOSS_ALIANCA":{"duracaoMin":60,"grupoMax":4,"vidaPorNivel":1.3,"item":[{"raridade":"lendaria","chance":10},{"raridade":"epica","chance":90}],"niveis":[{"hp":49140,"ouro":2000,"exp":3000,"alianca":4000,"pergaminho":2,"raridade":"comum"},{"hp":63882,"ouro":2500,"exp":3750,"alianca":5000,"pergaminho":2,"raridade":"comum"},{"hp":83047,"ouro":3000,"exp":4500,"alianca":6000,"pergaminho":2,"raridade":"comum"},{"hp":72900,"ouro":10000,"exp":9000,"alianca":20000,"pergaminho":2,"raridade":"rara"},{"hp":94770,"ouro":12500,"exp":11250,"alianca":25000,"pergaminho":2,"raridade":"rara"},{"hp":123201,"ouro":15000,"exp":13500,"alianca":30000,"pergaminho":2,"raridade":"rara"},{"hp":112320,"ouro":160000,"exp":27000,"alianca":320000,"pergaminho":2,"raridade":"rara"},{"hp":146016,"ouro":200000,"exp":33750,"alianca":400000,"pergaminho":2,"raridade":"rara"},{"hp":189821,"ouro":240000,"exp":40500,"alianca":480000,"pergaminho":2,"raridade":"rara"},{"hp":158760,"ouro":400000,"exp":80000,"alianca":800000,"pergaminho":2,"raridade":"epica"},{"hp":206388,"ouro":500000,"exp":100000,"alianca":1000000,"pergaminho":2,"raridade":"epica"},{"hp":268304,"ouro":600000,"exp":120000,"alianca":1200000,"pergaminho":2,"raridade":"epica"},{"hp":200475,"ouro":1000000,"exp":240000,"alianca":2000000,"pergaminho":2,"raridade":"epica"},{"hp":260618,"ouro":1250000,"exp":300000,"alianca":2500000,"pergaminho":2,"raridade":"epica"},{"hp":338803,"ouro":1500000,"exp":360000,"alianca":3000000,"pergaminho":2,"raridade":"epica"},{"hp":440444,"ouro":1750000,"exp":420000,"alianca":3500000,"pergaminho":2,"raridade":"epica"},{"hp":572577,"ouro":2000000,"exp":480000,"alianca":4000000,"pergaminho":2,"raridade":"epica"},{"hp":744350,"ouro":2250000,"exp":540000,"alianca":4500000,"pergaminho":2,"raridade":"epica"},{"hp":967655,"ouro":2500000,"exp":600000,"alianca":5000000,"pergaminho":2,"raridade":"epica"},{"hp":1257951,"ouro":2750000,"exp":660000,"alianca":5500000,"pergaminho":2,"raridade":"epica"},{"hp":1635336,"ouro":3000000,"exp":720000,"alianca":6000000,"pergaminho":2,"raridade":"epica"},{"hp":2125937,"ouro":3250000,"exp":780000,"alianca":6500000,"pergaminho":2,"raridade":"epica"},{"hp":2763718,"ouro":3500000,"exp":840000,"alianca":7000000,"pergaminho":2,"raridade":"epica"},{"hp":3592834,"ouro":3750000,"exp":900000,"alianca":7500000,"pergaminho":2,"raridade":"epica"},{"hp":4670684,"ouro":4000000,"exp":960000,"alianca":8000000,"pergaminho":2,"raridade":"epica"},{"hp":6071889,"ouro":4250000,"exp":1020000,"alianca":8500000,"pergaminho":2,"raridade":"epica"},{"hp":7893455,"ouro":4500000,"exp":1080000,"alianca":9000000,"pergaminho":2,"raridade":"epica"},{"hp":10261492,"ouro":4750000,"exp":1140000,"alianca":9500000,"pergaminho":2,"raridade":"epica"},{"hp":13339939,"ouro":5000000,"exp":1200000,"alianca":10000000,"pergaminho":2,"raridade":"epica"},{"hp":17341921,"ouro":5250000,"exp":1260000,"alianca":10500000,"pergaminho":2,"raridade":"epica"},{"hp":22544498,"ouro":5500000,"exp":1320000,"alianca":11000000,"pergaminho":2,"raridade":"epica"},{"hp":29307847,"ouro":5750000,"exp":1380000,"alianca":11500000,"pergaminho":2,"raridade":"epica"},{"hp":38100201,"ouro":6000000,"exp":1440000,"alianca":12000000,"pergaminho":2,"raridade":"epica"},{"hp":49530261,"ouro":6250000,"exp":1500000,"alianca":12500000,"pergaminho":2,"raridade":"epica"},{"hp":64389340,"ouro":6500000,"exp":1560000,"alianca":13000000,"pergaminho":2,"raridade":"epica"},{"hp":83706142,"ouro":6750000,"exp":1620000,"alianca":13500000,"pergaminho":2,"raridade":"epica"},{"hp":108817984,"ouro":7000000,"exp":1680000,"alianca":14000000,"pergaminho":2,"raridade":"epica"},{"hp":141463380,"ouro":7250000,"exp":1740000,"alianca":14500000,"pergaminho":2,"raridade":"epica"},{"hp":183902394,"ouro":7500000,"exp":1800000,"alianca":15000000,"pergaminho":2,"raridade":"epica"},{"hp":239073112,"ouro":7750000,"exp":1860000,"alianca":15500000,"pergaminho":2,"raridade":"epica"},{"hp":310795045,"ouro":8000000,"exp":1920000,"alianca":16000000,"pergaminho":2,"raridade":"epica"},{"hp":404033559,"ouro":8250000,"exp":1980000,"alianca":16500000,"pergaminho":2,"raridade":"epica"},{"hp":525243627,"ouro":8500000,"exp":2040000,"alianca":17000000,"pergaminho":2,"raridade":"epica"},{"hp":682816715,"ouro":8750000,"exp":2100000,"alianca":17500000,"pergaminho":2,"raridade":"epica"},{"hp":887661729,"ouro":9000000,"exp":2160000,"alianca":18000000,"pergaminho":2,"raridade":"epica"},{"hp":1153960248,"ouro":9250000,"exp":2220000,"alianca":18500000,"pergaminho":2,"raridade":"epica"},{"hp":1500148322,"ouro":9500000,"exp":2280000,"alianca":19000000,"pergaminho":2,"raridade":"epica"},{"hp":1950192819,"ouro":9750000,"exp":2340000,"alianca":19500000,"pergaminho":2,"raridade":"epica"},{"hp":2535250664,"ouro":10000000,"exp":2400000,"alianca":20000000,"pergaminho":2,"raridade":"epica"},{"hp":3295825864,"ouro":10250000,"exp":2460000,"alianca":20500000,"pergaminho":2,"raridade":"epica"},{"hp":4284573623,"ouro":10500000,"exp":2520000,"alianca":21000000,"pergaminho":2,"raridade":"epica"},{"hp":5569945710,"ouro":10750000,"exp":2580000,"alianca":21500000,"pergaminho":2,"raridade":"epica"},{"hp":7240929422,"ouro":11000000,"exp":2640000,"alianca":22000000,"pergaminho":2,"raridade":"epica"},{"hp":9413208249,"ouro":11250000,"exp":2700000,"alianca":22500000,"pergaminho":2,"raridade":"epica"},{"hp":12237170724,"ouro":11500000,"exp":2760000,"alianca":23000000,"pergaminho":2,"raridade":"epica"},{"hp":15908321941,"ouro":11750000,"exp":2820000,"alianca":23500000,"pergaminho":2,"raridade":"epica"},{"hp":20680818524,"ouro":12000000,"exp":2880000,"alianca":24000000,"pergaminho":2,"raridade":"epica"},{"hp":26885064081,"ouro":12250000,"exp":2940000,"alianca":24500000,"pergaminho":2,"raridade":"epica"},{"hp":34950583305,"ouro":12500000,"exp":3000000,"alianca":25000000,"pergaminho":2,"raridade":"epica"},{"hp":45435758296,"ouro":12750000,"exp":3060000,"alianca":25500000,"pergaminho":2,"raridade":"epica"}]}}'::jsonb; $dados$;
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"RES_SEM_VIDA":10,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"racas":{"humano":{"tracos":{}},"elfo":{"tracos":{"critico":5,"velocidadePct":10,"vidaPct":-10,"danoPct":-10}},"elfoNegro":{"tracos":{"danoCritico":10,"danoPct":5,"vidaPct":-10}},"orc":{"tracos":{"vidaPct":20,"danoPct":10,"critico":-5,"velocidadePct":-10,"evasaoPct":-50}},"anao":{"tracos":{"vidaPct":10,"danoPct":5,"critico":-3,"velocidadePct":-5}}},"classesAtributos":{"cavaleiro":{"for":15,"des":10,"res":20,"int":10,"sor":15},"arqueiro":{"for":15,"des":20,"res":10,"int":10,"sor":15},"mago":{"for":10,"des":15,"res":10,"int":20,"sor":15},"artesao":{"for":15,"des":10,"res":15,"int":10,"sor":20}},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"for"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"dano":[1,2,3,4],"defesaMagica":[0,2,4,6],"vida":[0,0,0,30],"regen":[0,0,1,1]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"dano"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"doacaoMaxDia":3000,"skillPrecos":[25000,40000,65000,100000,150000,225000,325000,475000,700000,1000000],"skills":[{"id":"exp","nome":"Sabedoria","simbolo":"📖","porNivel":2,"unidade":"% de exp","descricao":"Mais exp na caçada."},{"id":"ouro","nome":"Cofre Cheio","simbolo":"💰","porNivel":2,"unidade":"% de ouro","descricao":"Mais ouro na caçada."},{"id":"dano","nome":"Fúria do Clã","simbolo":"⚔","porNivel":1.5,"unidade":"% de dano","descricao":"Mais dano contra monstros."},{"id":"critico","nome":"Olho de Águia","simbolo":"🎯","porNivel":0.5,"unidade":"% de chance de crítico","descricao":"Mais chance de acerto crítico."},{"id":"danoCritico","nome":"Golpe Brutal","simbolo":"💥","porNivel":3,"unidade":"% de dano crítico","descricao":"Críticos mais fortes."},{"id":"resistencia","nome":"Muralha","simbolo":"🛡","porNivel":2,"unidade":"% de defesa","descricao":"Mais defesa e defesa mágica."},{"id":"vida","nome":"Vigor","simbolo":"❤","porNivel":2,"unidade":"% de vida","descricao":"Mais vida máxima contra monstros."},{"id":"velocidade","nome":"Passo Ligeiro","simbolo":"💨","porNivel":1,"unidade":"% de velocidade","descricao":"Ataca mais vezes."},{"id":"esquiva","nome":"Sombra Ágil","simbolo":"🌀","porNivel":0.5,"unidade":"% de esquiva","descricao":"Desvia de mais golpes."},{"id":"fortuna","nome":"Fortuna","simbolo":"🍀","porNivel":2,"unidade":"% de chance de drop","descricao":"Mais chance de itens caírem."}],"missoesOuroPorNivel":0.2,"missoes":{"diarias":[{"tipo":"monstros","meta":1000,"ouro":3000,"nome":"Caçar 1.000 monstros"},{"tipo":"encantar","meta":50,"ouro":2000,"nome":"Encantar 50 vezes"},{"tipo":"arena","meta":50,"ouro":2000,"nome":"Lutar 50 vezes na Arena"},{"tipo":"masmorra","meta":10,"ouro":2500,"nome":"Vencer 10 masmorras"}],"semanais":[{"tipo":"monstros","meta":15000,"ouro":20000,"buff":2.5,"nome":"Caçar 15.000 monstros"},{"tipo":"encantar","meta":500,"ouro":15000,"buff":2.5,"nome":"Encantar 500 vezes"},{"tipo":"arena","meta":400,"ouro":15000,"buff":2.5,"nome":"Lutar 400 vezes na Arena"},{"tipo":"bossCla","meta":4,"ouro":25000,"buff":2.5,"nome":"Derrotar o boss do clã 4 vezes"}]},"missoesMaxEnvio":{"monstros":300,"encantar":40,"arena":10,"masmorra":5},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}}},"LEILAO":{"nivelMin":10,"duracaoMin":240,"incrementoPct":5,"muitoCurto":[1,4],"fases":[{"id":"muitoLongo","nome":"Muito longo","acimaMin":180},{"id":"longo","nome":"Longo","acimaMin":60},{"id":"medio","nome":"Médio","acimaMin":20},{"id":"curto","nome":"Curto","acimaMin":0}],"nomeMuitoCurto":"Muito curto","minimo":{"comum":1000,"rara":5000,"epica":10000,"lendaria":50000},"pacotePergaminho":{"comum":10,"rara":5,"epica":3,"lendaria":1},"faixas":[{"id":"l1","nome":"Leilão do Mercador","nivel":[10,19],"mult":1,"itemNivel":[18,22],"raridades":{"comum":30,"rara":45,"epica":22,"lendaria":3}},{"id":"l2","nome":"Leilão da Coroa","nivel":[20,29],"mult":10,"itemNivel":[28,32],"raridades":{"comum":15,"rara":45,"epica":32,"lendaria":8}},{"id":"l3","nome":"Leilão dos Reis","nivel":[30,999],"mult":40,"itemNivel":[42,50],"raridades":{"comum":0,"rara":35,"epica":45,"lendaria":20}}]},"DEFESA":{"k":100,"fator":4.5},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}},"CRAFT":{"materiais":{"ferro":{"nome":"Minério de Ferro","area":"floresta"},"nevoa":{"nome":"Essência de Névoa","area":"pantano"},"osso":{"nome":"Osso Rúnico","area":"ruinas"},"carmesim":{"nome":"Cristal Carmesim","area":"torre"},"areia":{"nome":"Areia Rubra","area":"areias"},"couro":{"nome":"Couro de Drake","area":"vale"},"brasa":{"nome":"Brasa Vulcânica","area":"cume"},"seiva":{"nome":"Seiva Ancestral","chefe":"velgrath"},"lagrima":{"nome":"Lágrima da Bruxa","chefe":"morgath"},"po":{"nome":"Pó de Lich","chefe":"varnok"},"nucleo":{"nome":"Núcleo Arcano","chefe":"guardiao"},"ouroMaldito":{"nome":"Ouro Amaldiçoado","chefe":"farao"},"escama":{"nome":"Escama de Dragão","chefe":"vharkesh"},"brasaIgnaroth":{"nome":"Brasa do Ignaroth","chefe":"ignaroth"},"gema":{"nome":"Pedra Preciosa","minas":true},"fragmento":{"nome":"Fragmento de Selo","boss":true}},"dropMaterial":[6,8,10],"coletorBonus":50,"minas":{"opcoes":[{"minutos":60,"qtd":[3,5]},{"minutos":240,"qtd":[12,18]}],"gemaPct":8},"receita":{"material":10,"ouro":[500,1500,3000,6000,12000,25000,50000]},"forja":{"material":5,"ouro":[1000,3000,6000,12000,25000,50000,100000],"raridade":[{"raridade":"comum","chance":60},{"raridade":"rara","chance":35},{"raridade":"epica","chance":5}],"extraChefe":{"epica":3,"lendaria":0.5},"extraGema":{"epica":2,"lendaria":0.5},"maxExtra":3,"obraPrima":2,"obraPrimaAnao":1},"oficina":{"taxa":10,"prazoHoras":24,"maxPedidos":5,"servicos":{"encantar":{"nome":"Encantar item","de":"ferreiro"},"forjar":{"nome":"Forjar arma ou armadura","de":"ferreiro"},"reliquia":{"nome":"Relíquia Rúnica","de":"ferreiro"},"receita":{"nome":"Fabricar Receita","de":"coletor"},"protecao":{"nome":"Fabricar Pergaminho de Proteção","de":"coletor"}}},"reliquia":{"nivelMin":30,"encantoMin":7,"base":10,"porSorte":0.05,"maxima":20,"materiais":{"escama":3,"brasaIgnaroth":2,"fragmento":1},"runas":[{"id":"furia","nome":"Runa da Fúria","dano":6,"texto":"+6% de dano"},{"id":"colosso","nome":"Runa do Colosso","vida":8,"texto":"+8% de vida"},{"id":"falcao","nome":"Runa do Falcão","critico":4,"texto":"+4% de chance de crítico"},{"id":"tempestade","nome":"Runa da Tempestade","velocidade":6,"texto":"+6% de velocidade"},{"id":"muralha","nome":"Runa da Muralha","defesa":10,"texto":"+10% de defesa"}]},"protecao":{"comum":{"cristal":50,"materiais":{"ferro":10}},"rara":{"cristal":80,"materiais":{"nevoa":10,"osso":5}},"epica":{"cristal":120,"materiais":{"areia":10,"ouroMaldito":3}},"lendaria":{"cristal":200,"materiais":{"escama":2,"brasaIgnaroth":1}}},"areas":[{"id":"floresta","nivelMin":1,"chefe":"velgrath"},{"id":"pantano","nivelMin":5,"chefe":"morgath"},{"id":"ruinas","nivelMin":10,"chefe":"varnok"},{"id":"torre","nivelMin":15,"chefe":"guardiao"},{"id":"areias","nivelMin":20,"chefe":"farao"},{"id":"vale","nivelMin":25,"chefe":"vharkesh"},{"id":"cume","nivelMin":30,"chefe":"ignaroth"}]},"ENCANTO":{"maximo":10,"seguroAte":3,"voltaZeroAte":6,"chances":{"4":70,"5":60,"6":50,"7":40,"8":30,"9":20,"10":10},"teto":{"4":85,"5":75,"6":65,"7":55,"8":42,"9":30,"10":20},"chanceMaxima":95,"cristais":{"7":100,"8":150,"9":200,"10":500}},"BOSS_ALIANCA":{"duracaoMin":60,"grupoMax":4,"vidaPorNivel":1.3,"item":[{"raridade":"lendaria","chance":10},{"raridade":"epica","chance":90}],"niveis":[{"hp":49140,"ouro":2000,"exp":3000,"alianca":4000,"pergaminho":2,"raridade":"comum"},{"hp":63882,"ouro":2500,"exp":3750,"alianca":5000,"pergaminho":2,"raridade":"comum"},{"hp":83047,"ouro":3000,"exp":4500,"alianca":6000,"pergaminho":2,"raridade":"comum"},{"hp":72900,"ouro":10000,"exp":9000,"alianca":20000,"pergaminho":2,"raridade":"rara"},{"hp":94770,"ouro":12500,"exp":11250,"alianca":25000,"pergaminho":2,"raridade":"rara"},{"hp":123201,"ouro":15000,"exp":13500,"alianca":30000,"pergaminho":2,"raridade":"rara"},{"hp":112320,"ouro":160000,"exp":27000,"alianca":320000,"pergaminho":2,"raridade":"rara"},{"hp":146016,"ouro":200000,"exp":33750,"alianca":400000,"pergaminho":2,"raridade":"rara"},{"hp":189821,"ouro":240000,"exp":40500,"alianca":480000,"pergaminho":2,"raridade":"rara"},{"hp":158760,"ouro":400000,"exp":80000,"alianca":800000,"pergaminho":2,"raridade":"epica"},{"hp":206388,"ouro":500000,"exp":100000,"alianca":1000000,"pergaminho":2,"raridade":"epica"},{"hp":268304,"ouro":600000,"exp":120000,"alianca":1200000,"pergaminho":2,"raridade":"epica"},{"hp":200475,"ouro":1000000,"exp":240000,"alianca":2000000,"pergaminho":2,"raridade":"epica"},{"hp":260618,"ouro":1250000,"exp":300000,"alianca":2500000,"pergaminho":2,"raridade":"epica"},{"hp":338803,"ouro":1500000,"exp":360000,"alianca":3000000,"pergaminho":2,"raridade":"epica"},{"hp":440444,"ouro":1750000,"exp":420000,"alianca":3500000,"pergaminho":2,"raridade":"epica"},{"hp":572577,"ouro":2000000,"exp":480000,"alianca":4000000,"pergaminho":2,"raridade":"epica"},{"hp":744350,"ouro":2250000,"exp":540000,"alianca":4500000,"pergaminho":2,"raridade":"epica"},{"hp":967655,"ouro":2500000,"exp":600000,"alianca":5000000,"pergaminho":2,"raridade":"epica"},{"hp":1257951,"ouro":2750000,"exp":660000,"alianca":5500000,"pergaminho":2,"raridade":"epica"},{"hp":1635336,"ouro":3000000,"exp":720000,"alianca":6000000,"pergaminho":2,"raridade":"epica"},{"hp":2125937,"ouro":3250000,"exp":780000,"alianca":6500000,"pergaminho":2,"raridade":"epica"},{"hp":2763718,"ouro":3500000,"exp":840000,"alianca":7000000,"pergaminho":2,"raridade":"epica"},{"hp":3592834,"ouro":3750000,"exp":900000,"alianca":7500000,"pergaminho":2,"raridade":"epica"},{"hp":4670684,"ouro":4000000,"exp":960000,"alianca":8000000,"pergaminho":2,"raridade":"epica"},{"hp":6071889,"ouro":4250000,"exp":1020000,"alianca":8500000,"pergaminho":2,"raridade":"epica"},{"hp":7893455,"ouro":4500000,"exp":1080000,"alianca":9000000,"pergaminho":2,"raridade":"epica"},{"hp":10261492,"ouro":4750000,"exp":1140000,"alianca":9500000,"pergaminho":2,"raridade":"epica"},{"hp":13339939,"ouro":5000000,"exp":1200000,"alianca":10000000,"pergaminho":2,"raridade":"epica"},{"hp":17341921,"ouro":5250000,"exp":1260000,"alianca":10500000,"pergaminho":2,"raridade":"epica"},{"hp":22544498,"ouro":5500000,"exp":1320000,"alianca":11000000,"pergaminho":2,"raridade":"epica"},{"hp":29307847,"ouro":5750000,"exp":1380000,"alianca":11500000,"pergaminho":2,"raridade":"epica"},{"hp":38100201,"ouro":6000000,"exp":1440000,"alianca":12000000,"pergaminho":2,"raridade":"epica"},{"hp":49530261,"ouro":6250000,"exp":1500000,"alianca":12500000,"pergaminho":2,"raridade":"epica"},{"hp":64389340,"ouro":6500000,"exp":1560000,"alianca":13000000,"pergaminho":2,"raridade":"epica"},{"hp":83706142,"ouro":6750000,"exp":1620000,"alianca":13500000,"pergaminho":2,"raridade":"epica"},{"hp":108817984,"ouro":7000000,"exp":1680000,"alianca":14000000,"pergaminho":2,"raridade":"epica"},{"hp":141463380,"ouro":7250000,"exp":1740000,"alianca":14500000,"pergaminho":2,"raridade":"epica"},{"hp":183902394,"ouro":7500000,"exp":1800000,"alianca":15000000,"pergaminho":2,"raridade":"epica"},{"hp":239073112,"ouro":7750000,"exp":1860000,"alianca":15500000,"pergaminho":2,"raridade":"epica"},{"hp":310795045,"ouro":8000000,"exp":1920000,"alianca":16000000,"pergaminho":2,"raridade":"epica"},{"hp":404033559,"ouro":8250000,"exp":1980000,"alianca":16500000,"pergaminho":2,"raridade":"epica"},{"hp":525243627,"ouro":8500000,"exp":2040000,"alianca":17000000,"pergaminho":2,"raridade":"epica"},{"hp":682816715,"ouro":8750000,"exp":2100000,"alianca":17500000,"pergaminho":2,"raridade":"epica"},{"hp":887661729,"ouro":9000000,"exp":2160000,"alianca":18000000,"pergaminho":2,"raridade":"epica"},{"hp":1153960248,"ouro":9250000,"exp":2220000,"alianca":18500000,"pergaminho":2,"raridade":"epica"},{"hp":1500148322,"ouro":9500000,"exp":2280000,"alianca":19000000,"pergaminho":2,"raridade":"epica"},{"hp":1950192819,"ouro":9750000,"exp":2340000,"alianca":19500000,"pergaminho":2,"raridade":"epica"},{"hp":2535250664,"ouro":10000000,"exp":2400000,"alianca":20000000,"pergaminho":2,"raridade":"epica"},{"hp":3295825864,"ouro":10250000,"exp":2460000,"alianca":20500000,"pergaminho":2,"raridade":"epica"},{"hp":4284573623,"ouro":10500000,"exp":2520000,"alianca":21000000,"pergaminho":2,"raridade":"epica"},{"hp":5569945710,"ouro":10750000,"exp":2580000,"alianca":21500000,"pergaminho":2,"raridade":"epica"},{"hp":7240929422,"ouro":11000000,"exp":2640000,"alianca":22000000,"pergaminho":2,"raridade":"epica"},{"hp":9413208249,"ouro":11250000,"exp":2700000,"alianca":22500000,"pergaminho":2,"raridade":"epica"},{"hp":12237170724,"ouro":11500000,"exp":2760000,"alianca":23000000,"pergaminho":2,"raridade":"epica"},{"hp":15908321941,"ouro":11750000,"exp":2820000,"alianca":23500000,"pergaminho":2,"raridade":"epica"},{"hp":20680818524,"ouro":12000000,"exp":2880000,"alianca":24000000,"pergaminho":2,"raridade":"epica"},{"hp":26885064081,"ouro":12250000,"exp":2940000,"alianca":24500000,"pergaminho":2,"raridade":"epica"},{"hp":34950583305,"ouro":12500000,"exp":3000000,"alianca":25000000,"pergaminho":2,"raridade":"epica"},{"hp":45435758296,"ouro":12750000,"exp":3060000,"alianca":25500000,"pergaminho":2,"raridade":"epica"}]}}'::jsonb; $dados$;
 -- <<< DADOS DO JOGO
 
 -- ---------- Arena (PvP) ----------
@@ -2878,6 +2878,9 @@ begin
     end loop;
     insert into public.recompensas (personagem_id, origem, item) values (top, 'boss-alianca',
       jsonb_build_object('tipo', 'bossItem', 'raridade', coalesce(rar, 'epica'), 'nivelBoss', n));
+    -- Fragmento de Selo (Relíquia Rúnica dos Anões)
+    insert into public.recompensas (personagem_id, origem, item) values (top, 'boss-alianca',
+      jsonb_build_object('tipo', 'material', 'raridade', 'fragmento', 'qtd', 1));
   end if;
   update public.aliancas set exp = exp + (info ->> 'alianca')::bigint where id = aid returning * into a;
   loop
@@ -3185,5 +3188,348 @@ revoke execute on function public.alianca_semana(), public.alianca_missao_def(te
   public.alianca_boss_buff(bigint), public.alianca_extras(bigint, text) from public, anon, authenticated;
 revoke execute on function public.alianca_missao_registrar(text, text, int), public.alianca_skill_comprar(text, text) from public, anon;
 grant execute on function public.alianca_missao_registrar(text, text, int), public.alianca_skill_comprar(text, text) to authenticated;
+
+-- ---------- Oficinas e Relíquia Rúnica (Daniel, nov/2026; etapas 4 e 5 do PDF dos Anões) ----------
+-- O Artesão (Ferreiro ou Coletor) abre a oficina com os preços. O cliente pede: o servidor tira do personagem SALVO o item
+-- e os insumos (pergaminhos, proteção, receita, materiais, cristais) e cobra o preço (+ o ouro da receita/forja, que some).
+-- O artesão faz: a sorte é jogada AQUI, com a Sorte/raça guardadas da oficina; o resultado vai ao cliente por recompensa e
+-- o artesão recebe o preço menos a taxa. Sem fazer no prazo, ou cancelado pelo cliente, tudo volta.
+create table if not exists public.oficinas (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  servicos jsonb not null default '{}'::jsonb,     -- { encantar: preço, forjar: preço, ... } só os oferecidos
+  bonus_encanto numeric not null default 0,       -- Sorte x 0,5 + Anão (o jogo do artesão manda)
+  sorte int not null default 0,
+  atualizado_em timestamptz not null default now()
+);
+create table if not exists public.oficina_pedidos (
+  id bigint generated always as identity primary key,
+  artesao text not null references public.personagens (id) on delete cascade,
+  cliente text not null references public.personagens (id) on delete cascade,
+  tipo text not null,
+  preco bigint not null,
+  ouro_extra bigint not null default 0,
+  item jsonb,
+  insumos jsonb not null default '[]'::jsonb,     -- [{ tipo, raridade, qtd }]
+  opcoes jsonb not null default '{}'::jsonb,
+  estado text not null default 'pendente' check (estado in ('pendente', 'feito', 'cancelado', 'expirado')),
+  resultado jsonb,
+  criado_em timestamptz not null default now(),
+  feito_em timestamptz
+);
+create index if not exists oficina_pedidos_artesao on public.oficina_pedidos (artesao, estado);
+create index if not exists oficina_pedidos_cliente on public.oficina_pedidos (cliente, criado_em desc);
+create table if not exists public.reliquias (
+  nome_chave text primary key,
+  nome text not null,
+  dono text,
+  forjada_por text,
+  criada_em timestamptz not null default now()
+);
+alter table public.oficinas enable row level security;
+alter table public.oficina_pedidos enable row level security;
+alter table public.reliquias enable row level security;
+
+create or replace function public.craft_cfg() returns jsonb
+language sql immutable as $$ select public.tanka_dados() -> 'CRAFT'; $$;
+create or replace function public.encanto_cfg() returns jsonb
+language sql immutable as $$ select public.tanka_dados() -> 'ENCANTO'; $$;
+
+-- Material da região / do chefe da região (CRAFT.materiais).
+create or replace function public.craft_material_area(area text) returns text
+language sql immutable as $$ select k from jsonb_each(public.craft_cfg() -> 'materiais') m(k, v) where v ->> 'area' = area limit 1; $$;
+create or replace function public.craft_material_chefe(area text) returns text
+language sql immutable as $$
+  select k from jsonb_each(public.craft_cfg() -> 'materiais') m(k, v)
+  where v ->> 'chefe' = (select a ->> 'chefe' from jsonb_array_elements(public.craft_cfg() -> 'areas') a where a ->> 'id' = area) limit 1;
+$$;
+create or replace function public.craft_area_idx(area text) returns int
+language sql immutable as $$ select (i - 1)::int from jsonb_array_elements(public.craft_cfg() -> 'areas') with ordinality x(a, i) where a ->> 'id' = area; $$;
+
+-- O que o cliente entrega para cada serviço: [{ tipo, raridade, qtd }]. Erro se as opções forem inválidas.
+create or replace function public.oficina_insumos(tipo text, item jsonb, opcoes jsonb) returns jsonb
+language plpgsql immutable as $$
+declare cfg jsonb := public.craft_cfg(); l jsonb := '[]'::jsonb; area text := opcoes ->> 'area'; n int; k text; v jsonb;
+begin
+  if tipo = 'encantar' then
+    l := l || jsonb_build_array(jsonb_build_object('tipo', 'pergaminho', 'raridade', item ->> 'raridade', 'qtd', 1));
+    if coalesce((opcoes ->> 'protecao')::boolean, false) then
+      l := l || jsonb_build_array(jsonb_build_object('tipo', 'protecao', 'raridade', item ->> 'raridade', 'qtd', 1));
+    end if;
+  elsif tipo in ('forjar', 'receita') then
+    if public.craft_area_idx(area) is null then raise exception 'Região inválida.'; end if;
+    if tipo = 'receita' then
+      l := jsonb_build_array(jsonb_build_object('tipo', 'material', 'raridade', public.craft_material_area(area), 'qtd', (cfg -> 'receita' ->> 'material')::int));
+    else
+      if (opcoes ->> 'classe') not in ('cavaleiro', 'arqueiro', 'mago', 'artesao') then raise exception 'Classe inválida.'; end if;
+      if (opcoes ->> 'tipo') not in ('arma', 'elmo', 'peitoral', 'luvas', 'botas', 'secundaria') then raise exception 'Item inválido.'; end if;
+      l := jsonb_build_array(jsonb_build_object('tipo', 'receita', 'raridade', area, 'qtd', 1),
+        jsonb_build_object('tipo', 'material', 'raridade', public.craft_material_area(area), 'qtd', (cfg -> 'forja' ->> 'material')::int));
+      n := least(greatest(coalesce((opcoes ->> 'chefe')::int, 0), 0), (cfg -> 'forja' ->> 'maxExtra')::int);
+      if n > 0 then l := l || jsonb_build_array(jsonb_build_object('tipo', 'material', 'raridade', public.craft_material_chefe(area), 'qtd', n)); end if;
+      n := least(greatest(coalesce((opcoes ->> 'gemas')::int, 0), 0), (cfg -> 'forja' ->> 'maxExtra')::int);
+      if n > 0 then l := l || jsonb_build_array(jsonb_build_object('tipo', 'material', 'raridade', 'gema', 'qtd', n)); end if;
+    end if;
+  elsif tipo = 'protecao' then
+    v := cfg -> 'protecao' -> (opcoes ->> 'raridade');
+    if v is null then raise exception 'Raridade inválida.'; end if;
+    l := jsonb_build_array(jsonb_build_object('tipo', 'cristal', 'raridade', opcoes ->> 'raridade', 'qtd', (v ->> 'cristal')::int));
+    for k in select jsonb_object_keys(v -> 'materiais') loop
+      l := l || jsonb_build_array(jsonb_build_object('tipo', 'material', 'raridade', k, 'qtd', (v -> 'materiais' ->> k)::int));
+    end loop;
+  elsif tipo = 'reliquia' then
+    for k in select jsonb_object_keys(cfg -> 'reliquia' -> 'materiais') loop
+      l := l || jsonb_build_array(jsonb_build_object('tipo', 'material', 'raridade', k, 'qtd', (cfg -> 'reliquia' -> 'materiais' ->> k)::int));
+    end loop;
+  else raise exception 'Serviço inválido.'; end if;
+  return l;
+end $$;
+
+-- Ouro que some (o da receita/forja), além do preço do artesão.
+create or replace function public.oficina_ouro_extra(tipo text, opcoes jsonb) returns bigint
+language sql immutable as $$
+  select case tipo when 'forjar' then (public.craft_cfg() -> 'forja' -> 'ouro' ->> public.craft_area_idx(opcoes ->> 'area'))::bigint
+    when 'receita' then (public.craft_cfg() -> 'receita' -> 'ouro' ->> public.craft_area_idx(opcoes ->> 'area'))::bigint else 0 end;
+$$;
+
+create or replace function public.oficina_semana_reliquias(artesao text) returns int
+language sql stable security definer set search_path = public as $$
+  select count(*)::int from public.oficina_pedidos where oficina_pedidos.artesao = oficina_semana_reliquias.artesao
+    and tipo = 'reliquia' and estado = 'feito' and feito_em >= public.arena_inicio_semana();
+$$;
+
+-- Devolve tudo ao cliente (cancelado ou expirado).
+create or replace function public.oficina_devolver(pid bigint, motivo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare x public.oficina_pedidos; i jsonb;
+begin
+  select * into x from public.oficina_pedidos where id = pid for update;
+  if x.estado <> 'pendente' then return; end if;
+  update public.oficina_pedidos set estado = motivo, feito_em = now() where id = pid;
+  if x.item is not null then insert into public.recompensas (personagem_id, item, origem) values (x.cliente, x.item, 'oficina'); end if;
+  for i in select * from jsonb_array_elements(x.insumos) loop
+    insert into public.recompensas (personagem_id, item, origem) values (x.cliente, i, 'oficina');
+  end loop;
+  perform public.creditar(x.cliente, (x.preco + x.ouro_extra)::int, 0, 'Oficina: pedido ' || case motivo when 'cancelado' then 'cancelado' else 'não feito a tempo' end);
+end $$;
+
+create or replace function public.oficina_expirar() returns void
+language plpgsql security definer set search_path = public as $$
+declare x record;
+begin
+  for x in select id from public.oficina_pedidos where estado = 'pendente'
+      and criado_em < now() - make_interval(hours => (public.craft_cfg() -> 'oficina' ->> 'prazoHoras')::int) loop
+    perform public.oficina_devolver(x.id, 'expirado');
+  end loop;
+end $$;
+
+-- Tudo que a tela das Oficinas precisa.
+create or replace function public.oficina_estado(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  perform public.oficina_expirar();
+  return jsonb_build_object(
+    'minha', (select jsonb_build_object('servicos', o.servicos, 'bonus_encanto', o.bonus_encanto) from public.oficinas o where o.personagem_id = meu),
+    'lista', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'raca', p.dados ->> 'raca', 'sexo', p.dados ->> 'sexo',
+        'classe2', p.dados -> 'talentos' ->> 'classe2', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'servicos', o.servicos,
+        'bonus_encanto', o.bonus_encanto, 'sorte', o.sorte, 'visto_em', p.atualizado_em,
+        'encantos', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.tipo = 'encantar' and x.estado = 'feito'),
+        'acertos', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.tipo = 'encantar' and x.estado = 'feito' and (x.resultado ->> 'sucesso')::boolean),
+        'tent10', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.tipo = 'encantar' and x.estado = 'feito' and (x.resultado ->> 'alvo')::int = 10),
+        'acertos10', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.tipo = 'encantar' and x.estado = 'feito' and (x.resultado ->> 'alvo')::int = 10 and (x.resultado ->> 'sucesso')::boolean),
+        'feitos', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.estado = 'feito'),
+        'fila', (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.estado = 'pendente'),
+        'reliquia_semana', public.oficina_semana_reliquias(p.id))
+        order by (select count(*) from public.oficina_pedidos x where x.artesao = p.id and x.estado = 'feito') desc, p.nome)
+      from public.oficinas o join public.personagens p on p.id = o.personagem_id where o.servicos <> '{}'::jsonb), '[]'::jsonb),
+    'pedidos', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'tipo', x.tipo, 'preco', x.preco, 'item', x.item, 'opcoes', x.opcoes,
+        'estado', x.estado, 'resultado', x.resultado, 'criado_em', x.criado_em, 'artesao', pa.nome) order by x.id desc)
+      from (select * from public.oficina_pedidos where cliente = meu order by id desc limit 20) x join public.personagens pa on pa.id = x.artesao), '[]'::jsonb),
+    'fazer', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'tipo', x.tipo, 'preco', x.preco, 'item', x.item, 'opcoes', x.opcoes,
+        'insumos', x.insumos, 'criado_em', x.criado_em, 'cliente', pc.nome) order by x.id)
+      from public.oficina_pedidos x join public.personagens pc on pc.id = x.cliente where x.artesao = meu and x.estado = 'pendente'), '[]'::jsonb),
+    'agora', now(),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', r.id, 'item', r.item, 'origem', r.origem) order by r.id)
+      from public.recompensas r where r.personagem_id = meu and not r.resgatada), '[]'::jsonb));
+end $$;
+
+-- O artesão abre/atualiza a oficina: servicos = { tipo: preço } (0 ou vazio = não oferece).
+create or replace function public.oficina_configurar(meu text, servicos jsonb, bonus numeric, sorte int) returns void
+language plpgsql security definer set search_path = public as $$
+declare d jsonb; c2 text; k text; v bigint; ok jsonb := '{}'::jsonb; cfg jsonb := public.craft_cfg() -> 'oficina' -> 'servicos';
+begin
+  perform public.conferir_dono(meu);
+  select dados into d from public.personagens where id = meu;
+  c2 := d -> 'talentos' ->> 'classe2';
+  if c2 not in ('ferreiro', 'coletor') then raise exception 'Só Ferreiros e Coletores abrem uma oficina.'; end if;
+  for k in select jsonb_object_keys(coalesce(servicos, '{}'::jsonb)) loop
+    v := floor(coalesce((servicos ->> k)::numeric, 0));
+    continue when v <= 0 or cfg -> k is null;
+    if cfg -> k ->> 'de' <> c2 then raise exception '% não oferece "%".', initcap(c2), cfg -> k ->> 'nome'; end if;
+    if v > 2000000000 then raise exception 'Preço muito alto.'; end if;
+    ok := ok || jsonb_build_object(k, v);
+  end loop;
+  insert into public.oficinas (personagem_id, servicos, bonus_encanto, sorte, atualizado_em)
+    values (meu, ok, least(greatest(coalesce(bonus, 0), 0), 100), greatest(coalesce(sorte, 0), 0), now())
+  on conflict (personagem_id) do update set servicos = excluded.servicos, bonus_encanto = excluded.bonus_encanto,
+    sorte = excluded.sorte, atualizado_em = now();
+end $$;
+
+-- O cliente pede um serviço. Devolve o pedido (com os insumos, para o jogo tirar igual na memória).
+create or replace function public.oficina_pedir(meu text, artesao text, tipo text, item_id text, opcoes jsonb) returns jsonb
+language plpgsql security definer set search_path = public as $$
+#variable_conflict use_column
+declare o public.oficinas; d jsonb; da jsonb; it jsonb := null; ins jsonb; i jsonb; tem int; preco bigint; extra bigint;
+  cfg jsonb := public.craft_cfg(); e jsonb := public.encanto_cfg(); x public.oficina_pedidos; v_nome text;
+begin
+  perform public.conferir_dono(meu);
+  opcoes := coalesce(opcoes, '{}'::jsonb);
+  select * into o from public.oficinas where personagem_id = artesao;
+  preco := (o.servicos ->> tipo)::bigint;
+  if o.personagem_id is null or preco is null then raise exception 'Essa oficina não oferece esse serviço.'; end if;
+  if (select count(*) from public.oficina_pedidos where cliente = meu and estado = 'pendente') >= (cfg -> 'oficina' ->> 'maxPedidos')::int then
+    raise exception 'Você já tem % pedidos esperando. Espere ficarem prontos.', cfg -> 'oficina' ->> 'maxPedidos'; end if;
+  select dados into da from public.personagens where id = artesao;
+  select dados into d from public.personagens where id = meu for update;
+  if tipo in ('encantar', 'reliquia') then
+    select e2 into it from jsonb_array_elements(coalesce(d -> 'inventario', '[]'::jsonb)) e2 where e2 ->> 'id' = item_id limit 1;
+    if it is null then raise exception 'Item não encontrado na mochila (salve o jogo e tente de novo).'; end if;
+    if exists (select 1 from jsonb_each_text(coalesce(d -> 'equipados', '{}'::jsonb)) q where q.value = item_id) then raise exception 'Tire o item do corpo antes.'; end if;
+    if (it ->> 'travado') = 'true' then raise exception 'Destrave o item antes.'; end if;
+    if tipo = 'encantar' and coalesce((it ->> 'encanto')::int, 0) >= (e ->> 'maximo')::int then raise exception 'Esse item já está no máximo.'; end if;
+    if tipo = 'reliquia' then
+      if it ->> 'raridade' <> 'lendaria' or coalesce((it ->> 'encanto')::int, 0) < (cfg -> 'reliquia' ->> 'encantoMin')::int then
+        raise exception 'A relíquia precisa de um item lendário +% ou mais.', cfg -> 'reliquia' ->> 'encantoMin'; end if;
+      if it ? 'runa' then raise exception 'Esse item já é uma relíquia.'; end if;
+      v_nome := btrim(opcoes ->> 'nome');
+      if v_nome is null or char_length(v_nome) not between 3 and 24 then raise exception 'Escolha um nome de 3 a 24 letras para a relíquia.'; end if;
+      if exists (select 1 from public.reliquias where nome_chave = lower(v_nome))
+         or exists (select 1 from public.oficina_pedidos where tipo = 'reliquia' and estado = 'pendente' and lower(opcoes ->> 'nome') = lower(v_nome)) then
+        raise exception 'Já existe uma relíquia com esse nome.'; end if;
+      if da ->> 'raca' <> 'anao' or coalesce((da ->> 'nivel')::int, 1) < (cfg -> 'reliquia' ->> 'nivelMin')::int then
+        raise exception 'Só um Anão Ferreiro level % forja relíquias.', cfg -> 'reliquia' ->> 'nivelMin'; end if;
+      if public.oficina_semana_reliquias(artesao) >= 1 then raise exception 'Esse Ferreiro já forjou a relíquia da semana.'; end if;
+    end if;
+    d := jsonb_set(d, '{inventario}', coalesce((select jsonb_agg(q) from jsonb_array_elements(d -> 'inventario') q where q ->> 'id' <> item_id), '[]'::jsonb));
+  end if;
+  if tipo = 'protecao' then opcoes := jsonb_build_object('raridade', opcoes ->> 'raridade'); end if;
+  ins := public.oficina_insumos(tipo, it, opcoes);
+  for i in select * from jsonb_array_elements(ins) loop
+    select coalesce(sum((c ->> 'qtd')::int), 0) into tem from jsonb_array_elements(coalesce(d -> 'consumiveis', '[]'::jsonb)) c
+      where c ->> 'tipo' = i ->> 'tipo' and c ->> 'raridade' = i ->> 'raridade';
+    if tem < (i ->> 'qtd')::int then raise exception 'Faltam materiais: você tem % de % (precisa de %).', tem, i ->> 'raridade', i ->> 'qtd'; end if;
+    d := jsonb_set(d, '{consumiveis}', coalesce((select jsonb_agg(case when c ->> 'tipo' = i ->> 'tipo' and c ->> 'raridade' = i ->> 'raridade'
+        then jsonb_set(c, '{qtd}', to_jsonb((c ->> 'qtd')::int - (i ->> 'qtd')::int)) else c end)
+      from jsonb_array_elements(d -> 'consumiveis') c
+      where not (c ->> 'tipo' = i ->> 'tipo' and c ->> 'raridade' = i ->> 'raridade' and (c ->> 'qtd')::int - (i ->> 'qtd')::int <= 0)), '[]'::jsonb));
+  end loop;
+  extra := coalesce(public.oficina_ouro_extra(tipo, opcoes), 0);
+  if public.ouro_real(meu) < preco + extra then raise exception 'Ouro insuficiente (precisa de %).', preco + extra; end if;
+  update public.personagens set dados = d where id = meu;
+  perform public.creditar(meu, -(preco + extra)::int, 0, 'Oficina: serviço pedido');
+  insert into public.oficina_pedidos (artesao, cliente, tipo, preco, ouro_extra, item, insumos, opcoes)
+    values (artesao, meu, tipo, preco, extra, it, ins, opcoes) returning * into x;
+  return jsonb_build_object('id', x.id, 'insumos', x.insumos, 'item_id', item_id);
+end $$;
+
+create or replace function public.oficina_cancelar(meu text, pedido bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if not exists (select 1 from public.oficina_pedidos where id = pedido and cliente = meu and estado = 'pendente') then
+    raise exception 'Esse pedido não está mais esperando.'; end if;
+  perform public.oficina_devolver(pedido, 'cancelado');
+end $$;
+
+-- O artesão faz o serviço. A sorte é jogada aqui.
+create or replace function public.oficina_fazer(meu text, pedido bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare x public.oficina_pedidos; o public.oficinas; da jsonb; cfg jsonb := public.craft_cfg(); e jsonb := public.encanto_cfg();
+  alvo int; chance numeric; r numeric; res jsonb; it jsonb; protegido boolean; area text; ch int; ge int; t jsonb; rar text;
+  ordem text[] := array['comum', 'rara', 'epica', 'lendaria']; obra boolean; cr int; runas jsonb; ru jsonb; nome_art text; taxa int;
+begin
+  perform public.conferir_dono(meu);
+  select * into x from public.oficina_pedidos where id = pedido for update;
+  if x.id is null or x.artesao <> meu then raise exception 'Pedido não encontrado.'; end if;
+  if x.estado <> 'pendente' then raise exception 'Esse pedido não está mais esperando.'; end if;
+  select * into o from public.oficinas where personagem_id = meu;
+  select dados into da from public.personagens where id = meu;
+  nome_art := da ->> 'nome';
+  if x.tipo = 'encantar' then
+    it := x.item; alvo := coalesce((it ->> 'encanto')::int, 0) + 1;
+    chance := case when alvo <= (e ->> 'seguroAte')::int then 100
+      else least((e ->> 'chanceMaxima')::numeric, coalesce((e -> 'teto' ->> alvo::text)::numeric, 100), (e -> 'chances' ->> alvo::text)::numeric + o.bonus_encanto) end;
+    protegido := exists (select 1 from jsonb_array_elements(x.insumos) q where q ->> 'tipo' = 'protecao');
+    r := random() * 100;
+    if r < chance then
+      it := jsonb_set(it, '{encanto}', to_jsonb(alvo));
+      res := jsonb_build_object('sucesso', true, 'alvo', alvo, 'chance', chance);
+      insert into public.recompensas (personagem_id, item, origem) values (x.cliente, it, 'oficina');
+    elsif protegido or alvo <= (e ->> 'seguroAte')::int then
+      res := jsonb_build_object('sucesso', false, 'alvo', alvo, 'chance', chance, 'protegido', true);
+      insert into public.recompensas (personagem_id, item, origem) values (x.cliente, it, 'oficina');
+    elsif alvo <= (e ->> 'voltaZeroAte')::int then
+      it := jsonb_set(it, '{encanto}', to_jsonb(0));
+      res := jsonb_build_object('sucesso', false, 'alvo', alvo, 'chance', chance, 'zerou', true);
+      insert into public.recompensas (personagem_id, item, origem) values (x.cliente, it, 'oficina');
+    else
+      cr := coalesce((e -> 'cristais' ->> alvo::text)::int, 0);
+      res := jsonb_build_object('sucesso', false, 'alvo', alvo, 'chance', chance, 'quebrou', true, 'cristais', cr);
+      if cr > 0 then insert into public.recompensas (personagem_id, item, origem) values (x.cliente,
+        jsonb_build_object('tipo', 'cristal', 'raridade', it ->> 'raridade', 'qtd', cr), 'oficina'); end if;
+    end if;
+  elsif x.tipo = 'forjar' then
+    area := x.opcoes ->> 'area';
+    ch := least(greatest(coalesce((x.opcoes ->> 'chefe')::int, 0), 0), (cfg -> 'forja' ->> 'maxExtra')::int);
+    ge := least(greatest(coalesce((x.opcoes ->> 'gemas')::int, 0), 0), (cfg -> 'forja' ->> 'maxExtra')::int);
+    t := jsonb_build_object('lendaria', ch * (cfg -> 'forja' -> 'extraChefe' ->> 'lendaria')::numeric + ge * (cfg -> 'forja' -> 'extraGema' ->> 'lendaria')::numeric,
+      'epica', 5 + ch * (cfg -> 'forja' -> 'extraChefe' ->> 'epica')::numeric + ge * (cfg -> 'forja' -> 'extraGema' ->> 'epica')::numeric, 'rara', 35);
+    r := random() * 100;
+    rar := case when r < (t ->> 'lendaria')::numeric then 'lendaria'
+      when r < (t ->> 'lendaria')::numeric + (t ->> 'epica')::numeric then 'epica'
+      when r < (t ->> 'lendaria')::numeric + (t ->> 'epica')::numeric + 35 then 'rara' else 'comum' end;
+    obra := rar <> 'lendaria' and random() * 100 < (cfg -> 'forja' ->> 'obraPrima')::numeric
+      + case when da ->> 'raca' = 'anao' then (cfg -> 'forja' ->> 'obraPrimaAnao')::numeric else 0 end;
+    if obra then rar := ordem[array_position(ordem, rar) + 1]; end if;
+    res := jsonb_build_object('raridade', rar, 'obraPrima', obra);
+    insert into public.recompensas (personagem_id, item, origem) values (x.cliente, jsonb_build_object('tipo', 'forjado',
+      'spec', jsonb_build_object('classe', x.opcoes ->> 'classe', 'tipo', x.opcoes ->> 'tipo', 'raridade', rar, 'area', area,
+        'semente', floor(random() * 2147483647)::bigint, 'forjadoPor', nome_art, 'obraPrima', obra)), 'oficina');
+  elsif x.tipo = 'receita' then
+    res := jsonb_build_object('sucesso', true);
+    insert into public.recompensas (personagem_id, item, origem) values (x.cliente,
+      jsonb_build_object('tipo', 'receita', 'raridade', x.opcoes ->> 'area', 'qtd', 1), 'oficina');
+  elsif x.tipo = 'protecao' then
+    res := jsonb_build_object('sucesso', true);
+    insert into public.recompensas (personagem_id, item, origem) values (x.cliente,
+      jsonb_build_object('tipo', 'protecao', 'raridade', x.opcoes ->> 'raridade', 'qtd', 1), 'oficina');
+  elsif x.tipo = 'reliquia' then
+    if public.oficina_semana_reliquias(meu) >= 1 then raise exception 'Você já forjou a relíquia desta semana.'; end if;
+    chance := least((cfg -> 'reliquia' ->> 'maxima')::numeric, (cfg -> 'reliquia' ->> 'base')::numeric + o.sorte * (cfg -> 'reliquia' ->> 'porSorte')::numeric);
+    it := x.item;
+    if random() * 100 < chance then
+      runas := cfg -> 'reliquia' -> 'runas';
+      ru := runas -> floor(random() * jsonb_array_length(runas))::int;
+      it := it || jsonb_build_object('nome', x.opcoes ->> 'nome', 'runa', ru ->> 'id', 'reliquia', true, 'forjadoPor', nome_art);
+      insert into public.reliquias (nome_chave, nome, dono, forjada_por) values (lower(x.opcoes ->> 'nome'), x.opcoes ->> 'nome', x.cliente, meu);
+      res := jsonb_build_object('sucesso', true, 'chance', chance, 'runa', ru ->> 'id');
+    else
+      res := jsonb_build_object('sucesso', false, 'chance', chance);
+    end if;
+    insert into public.recompensas (personagem_id, item, origem) values (x.cliente, it, 'oficina');
+  end if;
+  update public.oficina_pedidos set estado = 'feito', resultado = res, feito_em = now() where id = pedido;
+  taxa := (cfg -> 'oficina' ->> 'taxa')::int;
+  perform public.creditar(meu, floor(x.preco * (100 - taxa) / 100.0)::int, 0, 'Oficina: serviço feito (−' || taxa || '% de taxa)');
+  return res;
+end $$;
+
+revoke execute on function public.craft_cfg(), public.encanto_cfg(), public.craft_material_area(text), public.craft_material_chefe(text),
+  public.craft_area_idx(text), public.oficina_insumos(text, jsonb, jsonb), public.oficina_ouro_extra(text, jsonb),
+  public.oficina_semana_reliquias(text), public.oficina_devolver(bigint, text), public.oficina_expirar() from public, anon, authenticated;
+revoke execute on function public.oficina_estado(text), public.oficina_configurar(text, jsonb, numeric, int),
+  public.oficina_pedir(text, text, text, text, jsonb), public.oficina_cancelar(text, bigint), public.oficina_fazer(text, bigint) from public, anon;
+grant execute on function public.oficina_estado(text), public.oficina_configurar(text, jsonb, numeric, int),
+  public.oficina_pedir(text, text, text, text, jsonb), public.oficina_cancelar(text, bigint), public.oficina_fazer(text, bigint) to authenticated;
 
 notify pgrst, 'reload schema';

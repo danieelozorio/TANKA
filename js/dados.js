@@ -55,6 +55,7 @@ Tanka.dados = {
       ouroMaldito: { nome: 'Ouro Amaldiçoado', chefe: 'farao' }, escama: { nome: 'Escama de Dragão', chefe: 'vharkesh' },
       brasaIgnaroth: { nome: 'Brasa do Ignaroth', chefe: 'ignaroth' },
       gema: { nome: 'Pedra Preciosa', minas: true },
+      fragmento: { nome: 'Fragmento de Selo', boss: true },   // quem dá mais dano no boss do clã ganha 1 (Relíquia Rúnica)
     },
     dropMaterial: [6, 8, 10],      // % de cair 1 material da região (1º, 2º e 3º monstro)
     coletorBonus: 50,              // Coletor: +50% nessa chance e +50% nas Minas
@@ -69,6 +70,27 @@ Tanka.dados = {
       // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa
       extraChefe: { epica: 3, lendaria: 0.5 }, extraGema: { epica: 2, lendaria: 0.5 }, maxExtra: 3,
       obraPrima: 2, obraPrimaAnao: 1 },   // % de sair uma raridade acima (Anão +1%)
+    // Oficinas (etapa 4): cada Artesão abre a sua e vende serviços com preço próprio. O cliente entrega tudo (item,
+    // pergaminhos, materiais e o pagamento) e o servidor guarda; a sorte é jogada no servidor com a Sorte e a raça do
+    // ARTESÃO. Feito ou não, o artesão recebe o pagamento menos `taxa`%. Sem fazer em `prazoHoras`, tudo volta ao cliente.
+    oficina: { taxa: 10, prazoHoras: 24, maxPedidos: 5,
+      servicos: {
+        encantar: { nome: 'Encantar item', de: 'ferreiro' }, forjar: { nome: 'Forjar arma ou armadura', de: 'ferreiro' },
+        reliquia: { nome: 'Relíquia Rúnica', de: 'ferreiro' },
+        receita: { nome: 'Fabricar Receita', de: 'coletor' }, protecao: { nome: 'Fabricar Pergaminho de Proteção', de: 'coletor' },
+      } },
+    // Relíquia Rúnica (etapa 5): só Anão Ferreiro level 30+, 1 tentativa por semana. Item lendário +7 ou mais vira uma
+    // relíquia ÚNICA no jogo (nome escolhido pelo cliente, assinatura do anão) com uma runa sorteada (bônus só contra
+    // monstros). Chance = base + Sorte x porSorte, até `maxima`. Falhou: os materiais se perdem, o item volta igual.
+    reliquia: { nivelMin: 30, encantoMin: 7, base: 10, porSorte: 0.05, maxima: 20,
+      materiais: { escama: 3, brasaIgnaroth: 2, fragmento: 1 },
+      runas: [
+        { id: 'furia', nome: 'Runa da Fúria', dano: 6, texto: '+6% de dano' },
+        { id: 'colosso', nome: 'Runa do Colosso', vida: 8, texto: '+8% de vida' },
+        { id: 'falcao', nome: 'Runa do Falcão', critico: 4, texto: '+4% de chance de crítico' },
+        { id: 'tempestade', nome: 'Runa da Tempestade', velocidade: 6, texto: '+6% de velocidade' },
+        { id: 'muralha', nome: 'Runa da Muralha', defesa: 10, texto: '+10% de defesa' },
+      ] },
     // Pergaminho de Proteção (Coletor): cristais da raridade + materiais.
     protecao: {
       comum: { cristal: 50, materiais: { ferro: 10 } },

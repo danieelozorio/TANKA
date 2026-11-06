@@ -31,6 +31,10 @@ const dados = {
   LEILAO: D.LEILAO,
   DEFESA: D.DEFESA,
   TALENTOS: D.TALENTOS, HABILIDADE_INICIAL: D.HABILIDADE_INICIAL, SEGUNDAS_CLASSES: D.SEGUNDAS_CLASSES,
+  // Craft dos Anões e Oficinas (Daniel, nov/2026): o servidor guarda os pedidos e joga a sorte.
+  CRAFT: Object.assign({}, D.CRAFT, { areas: D.areas.map((a) => ({ id: a.id, nivelMin: a.nivelMin, chefe: a.chefe.id })) }),
+  ENCANTO: { maximo: D.encantamento.maximo, seguroAte: D.encantamento.seguroAte, voltaZeroAte: D.encantamento.voltaZeroAte,
+    chances: D.encantamento.chances, teto: D.encantamento.teto, chanceMaxima: D.encantamento.chanceMaxima, cristais: D.CRISTAIS_QUEBRA },
   // Boss da aliança: vida e prêmios de cada nível já calculados (regras.js, tabelaBossAlianca).
   BOSS_ALIANCA: { duracaoMin: D.BOSS_ALIANCA.duracaoMin, grupoMax: D.BOSS_ALIANCA.grupoMax,
     vidaPorNivel: D.BOSS_ALIANCA.vidaPorNivel, item: D.BOSS_ALIANCA.premio.item, niveis: R.tabelaBossAlianca(60) },

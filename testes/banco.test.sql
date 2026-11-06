@@ -902,4 +902,76 @@ select pg_temp.como('b'); select public.mercado_comprar('pb', :an_mat) is not nu
 reset role;
 select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pb' and item ->> 'tipo' = 'material'), 3, 'mercado: comprador recebe os materiais');
 delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
+-- Oficinas e Relíquia Rúnica (Anões, etapas 4 e 5)
+reset role;
+delete from public.recompensas; delete from public.creditos;
+update public.personagens set dados = dados || '{"nivel": 30, "raca": "anao", "talentos": {"classe2": "ferreiro"}}'::jsonb where id = 'pd';
+update public.personagens set dados = dados || '{"talentos": {"classe2": "coletor"}}'::jsonb where id = 'pb';
+update public.personagens set dados = dados || '{"ouro": 100000, "equipados": {}, "inventario": [{"id":"esp9","tipo":"arma","raridade":"epica","encanto":3,"nivel":20},
+  {"id":"len9","tipo":"arma","raridade":"lendaria","encanto":7,"nivel":30}],
+  "consumiveis": [{"id":"pergaminho-epica","tipo":"pergaminho","raridade":"epica","qtd":2},{"id":"protecao-epica","tipo":"protecao","raridade":"epica","qtd":1},
+  {"id":"material-ferro","tipo":"material","raridade":"ferro","qtd":10},{"id":"material-escama","tipo":"material","raridade":"escama","qtd":3},
+  {"id":"material-brasaIgnaroth","tipo":"material","raridade":"brasaIgnaroth","qtd":2},{"id":"material-fragmento","tipo":"material","raridade":"fragmento","qtd":1}]}'::jsonb where id = 'pa';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha($$select public.oficina_configurar('pa', '{"encantar": 10}', 0, 0)$$, 'Só Ferreiros e Coletores');
+select pg_temp.como('d');
+select pg_temp.falha($$select public.oficina_configurar('pd', '{"receita": 10}', 0, 0)$$, 'não oferece');
+select public.oficina_configurar('pd', '{"encantar": 500, "forjar": 1000, "reliquia": 5000}', 30, 100);
+select pg_temp.como('b'); select public.oficina_configurar('pb', '{"receita": 100}', 0, 0);
+select pg_temp.como('a');
+select pg_temp.igual(jsonb_array_length(public.oficina_estado('pa') -> 'lista'), 2, 'oficinas: lista com as abertas');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pb', 'encantar', 'esp9', '{}')$$, 'não oferece');
+select (public.oficina_pedir('pa', 'pd', 'encantar', 'esp9', '{"protecao": true}') ->> 'id')::bigint as ped1 \gset
+reset role;
+select pg_temp.igual((select jsonb_array_length(dados -> 'inventario') from public.personagens where id = 'pa'), 1, 'oficina: item guardado (sai da mochila)');
+select pg_temp.igual((select count(*) from public.personagens, jsonb_array_elements(dados -> 'consumiveis') c where id = 'pa' and c ->> 'tipo' = 'protecao')::int, 0, 'oficina: proteção guardada');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pa'), -500, 'oficina: cliente paga o preço');
+set role authenticated;
+select pg_temp.como('d');
+select pg_temp.igual(jsonb_array_length(public.oficina_estado('pd') -> 'fazer'), 1, 'oficina: artesão vê o pedido');
+select pg_temp.como('a'); select pg_temp.falha('select public.oficina_fazer(''pa'', ' || :ped1 || ')', 'Pedido não encontrado');
+select pg_temp.como('d');
+select (public.oficina_fazer('pd', :ped1) ->> 'alvo')::int = 4;
+reset role;
+select pg_temp.igual((select item ->> 'id' from public.recompensas where personagem_id = 'pa' and item ->> 'id' = 'esp9'), 'esp9', 'oficina: item volta ao cliente (protegido: nunca quebra)');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pd'), 450, 'oficina: artesão recebe com 10% de taxa');
+-- cancelar devolve tudo
+delete from public.recompensas; delete from public.creditos;
+set role authenticated; select pg_temp.como('a');
+select (public.oficina_pedir('pa', 'pb', 'receita', null, '{"area": "floresta"}') ->> 'id')::bigint as ped2 \gset
+select public.oficina_cancelar('pa', :ped2);
+select pg_temp.falha('select public.oficina_cancelar(''pa'', ' || :ped2 || ')', 'não está mais esperando');
+reset role;
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'raridade' = 'ferro'), 10, 'oficina: cancelar devolve os materiais');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pa'), 0, 'oficina: cancelar devolve o ouro (preço + receita)');
+-- receita do Coletor
+update public.personagens set dados = jsonb_set(dados, '{consumiveis}', (dados -> 'consumiveis') || '[{"id":"material-ferro","tipo":"material","raridade":"ferro","qtd":10}]'::jsonb) where id = 'pa';
+delete from public.recompensas;
+set role authenticated; select pg_temp.como('a');
+select (public.oficina_pedir('pa', 'pb', 'receita', null, '{"area": "floresta"}') ->> 'id')::bigint as ped3 \gset
+select pg_temp.como('b'); select public.oficina_fazer('pb', :ped3) is not null;
+reset role;
+select pg_temp.igual((select item ->> 'tipo' from public.recompensas where personagem_id = 'pa'), 'receita', 'oficina: Coletor entrega a receita');
+-- Relíquia Rúnica
+delete from public.recompensas;
+set role authenticated; select pg_temp.como('a');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pd', 'reliquia', 'len9', '{"nome": "X"}')$$, 'nome de 3 a 24');
+select (public.oficina_pedir('pa', 'pd', 'reliquia', 'len9', '{"nome": "Fúria de Thorin"}') ->> 'id')::bigint as ped4 \gset
+select pg_temp.como('d'); select public.oficina_fazer('pd', :ped4) is not null;
+select pg_temp.igual((public.oficina_estado('pd') -> 'lista' -> 0 ->> 'reliquia_semana')::int, 1, 'relíquia: 1 por semana por Ferreiro');
+reset role;
+select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and item ->> 'id' = 'len9')::int, 1, 'relíquia: o item volta (relíquia ou igual)');
+select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and item ->> 'id' = 'len9' and item ? 'runa')::int,
+  (select count(*) from public.reliquias where nome_chave = 'fúria de thorin')::int, 'relíquia: nome único guardado quando dá certo');
+-- prazo de 24 h
+update public.personagens set dados = jsonb_set(dados, '{consumiveis}', (dados -> 'consumiveis') || '[{"id":"material-ferro","tipo":"material","raridade":"ferro","qtd":10}]'::jsonb) where id = 'pa';
+delete from public.recompensas; delete from public.creditos;
+set role authenticated; select pg_temp.como('a');
+select (public.oficina_pedir('pa', 'pb', 'receita', null, '{"area": "floresta"}') ->> 'id')::bigint as ped5 \gset
+reset role; update public.oficina_pedidos set criado_em = now() - interval '25 hours' where id = :ped5;
+set role authenticated; select pg_temp.como('a'); select public.oficina_estado('pa') is not null;
+reset role;
+select pg_temp.igual((select estado from public.oficina_pedidos where id = :ped5), 'expirado', 'oficina: sem fazer em 24 h, volta tudo');
+delete from public.recompensas; delete from public.creditos; delete from public.oficina_pedidos; delete from public.oficinas; delete from public.reliquias;
 \echo TODOS OS TESTES DO BANCO PASSARAM

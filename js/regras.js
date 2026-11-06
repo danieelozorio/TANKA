@@ -746,6 +746,20 @@ Tanka.regras = (function () {
     return { comum: t.comum, rara: t.rara, epica: t.epica, lendaria: t.lendaria,
       obraPrima: F.obraPrima + (p.raca === 'anao' ? F.obraPrimaAnao : 0) };
   }
+  // Item forjado a partir do que o servidor sorteou (serviço da Oficina): mesma semente = mesmo item.
+  // spec = { classe, tipo, raridade, area, semente, forjadoPor, obraPrima }
+  function itemForjado(spec) {
+    var a = D.areas[indiceArea(spec.area)] || D.areas[0], rng = rngSemente(Number(spec.semente) || 1), nivel = a.nivelMin + 2;
+    var falso = { classe: spec.classe, talentos: null, nivel: nivel, raca: 'humano', inventario: [], equipados: {} };
+    var item = spec.tipo === 'arma' ? novoItem('arma', spec.classe, spec.raridade, rng, sortearTipoArma(falso, spec.raridade, rng), nivel)
+      : itemDoTipo(falso, spec.tipo, spec.raridade, rng);
+    if (!item) return null;
+    item.nivel = item.nivel || nivel;
+    item.forjadoPor = spec.forjadoPor;
+    if (spec.obraPrima) item.obraPrima = true;
+    return item;
+  }
+
   // Ferreiro forja 1 item (arma ou peça: tipo = 'arma' | elmo | peitoral | luvas | botas | 'secundaria') para a classe escolhida.
   function forjar(p, areaId, classe, tipo, chefe, gemas, rng) {
     rng = rng || Math.random;
@@ -878,7 +892,21 @@ Tanka.regras = (function () {
   // pve = true: soma as skills de combate do clã (só contra monstros: caçada, masmorra e bosses; nunca na Arena).
   function status(p, pve) {
     var s = statusBase(p);
-    return pve ? comCla(s, p) : s;
+    return pve ? comRunas(comCla(s, p), p) : s;
+  }
+  // Runas das Relíquias equipadas (só contra monstros).
+  function comRunas(s, p) {
+    Object.keys(p.equipados || {}).forEach(function (slot) {
+      var it = p.equipados[slot] && p.inventario.filter(function (i) { return i.id === p.equipados[slot]; })[0], r = it && it.runa && runa(it.runa);
+      if (!r) return;
+      var pct = function (v, x) { return Math.round(v * (1 + x / 100)); };
+      if (r.dano) s.dano = [pct(s.dano[0], r.dano), pct(s.dano[1], r.dano)];
+      if (r.vida) s.hpMax = pct(s.hpMax, r.vida);
+      if (r.critico) { s.chanceCritico += r.critico; s.chanceCriticoMagico += r.critico; }
+      if (r.velocidade) s.velocidade = Math.max(1, pct(s.velocidade, r.velocidade));
+      if (r.defesa) { s.defesa = pct(s.defesa, r.defesa); s.defesaMagica = pct(s.defesaMagica, r.defesa); }
+    });
+    return s;
   }
   function statusBase(p) {
     var a = atributosTotais(p);
@@ -1942,12 +1970,23 @@ Tanka.regras = (function () {
 
   // Chance (%) de levar a arma ao próximo nível.
   // Chance de encantar: chance do nível + Sorte de quem encanta + bônus do Anão, nunca acima do teto do nível.
-  function chanceEncantar(p, item) {
+  function chanceEncantar(p, item) { return chanceEncantarCom(bonusEncanto(p), item); }
+  // Quanto quem encanta soma na chance (Sorte + Anão). As Oficinas guardam isto do artesão.
+  function bonusEncanto(p) { return atributosTotais(p).sor * D.SORTE.encanto + (p.raca === 'anao' ? (D.encantamento.anao || 0) : 0); }
+  function chanceEncantarCom(bonus, item) {
     var E = D.encantamento, alvo = item.encanto + 1;
     if (alvo <= E.seguroAte) return 100;
-    var c = E.chances[alvo] + atributosTotais(p).sor * D.SORTE.encanto + (p.raca === 'anao' ? (E.anao || 0) : 0);
-    return Math.min(E.chanceMaxima, (E.teto && E.teto[alvo]) || 100, c);
+    return Math.min(E.chanceMaxima, (E.teto && E.teto[alvo]) || 100, E.chances[alvo] + (bonus || 0));
   }
+  // Relíquia Rúnica: chance do Ferreiro (base + Sorte x porSorte, até maxima).
+  function chanceReliquia(p) { var Q = D.CRAFT.reliquia; return Math.min(Q.maxima, Q.base + atributosTotais(p).sor * Q.porSorte); }
+  function podeReliquia(p) {
+    var Q = D.CRAFT.reliquia;
+    if (!ehFerreiro(p) || p.raca !== 'anao') return 'Só um Anão Ferreiro forja relíquias.';
+    if (p.nivel < Q.nivelMin) return 'Precisa ser level ' + Q.nivelMin + '.';
+    return true;
+  }
+  function runa(id) { return D.CRAFT.reliquia.runas.filter(function (r) { return r.id === id; })[0] || null; }
 
   // O que acontece se falhar: 'nada', 'zera' ou 'quebra'.
   function riscoEncantar(item) {
@@ -2513,6 +2552,8 @@ Tanka.regras = (function () {
     rolarMaterial: rolarMaterial, areaDasMinas: areaDasMinas, iniciarMinas: iniciarMinas, recolherMinas: recolherMinas,
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
     fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
+    bonusEncanto: bonusEncanto, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
+    runa: runa, itemForjado: itemForjado,
     tabelaBossAlianca: tabelaBossAlianca,
     itemBossAlianca: itemBossAlianca,
     fatorExp: fatorExp,

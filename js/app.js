@@ -540,6 +540,7 @@
     aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
     leilao: svg('<path d="m8 4 8 8m-6-10 8 8m-7-1-7 7m9 3h8m-8 3h8"/>'),
     mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
+    oficinas: svg('<path d="M3 21h18M5 21V11l7-5 7 5v10"/><path d="m10 14 4 4m0-4-4 4"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
     cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>',
     admin: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>'),
@@ -587,11 +588,11 @@
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
-    { id: 'mercado', nome: 'Mercado', abas: ['mercado'] },
+    { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'oficinas'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -945,12 +946,19 @@
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
-      + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item)
+      + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + (estado.compararSemEncanto && (item.encanto || alvo.encanto) ? ' <strong>(os dois sem encanto)</strong>' : '') + '</p>'
         + '<div class="item-acoes">' + botaoCompararEncanto(item, alvo) + '</div>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
   }
 
+  // Relíquia Rúnica (runa, só contra monstros) e assinatura de quem forjou.
+  function craftItemHtml(item) {
+    var ru = item.runa && R.runa(item.runa), h = '';
+    if (ru) h += '<p class="cor-ouro">✨ Relíquia Rúnica · <strong>' + esc(ru.nome) + '</strong>: ' + esc(ru.texto) + ' <span class="suave pequeno">(só contra monstros)</span></p>';
+    if (item.forjadoPor) h += '<p class="suave pequeno">' + (item.obraPrima ? '✨ Obra-prima · ' : '') + 'Forjad' + (item.tipo === 'luvas' || item.tipo === 'botas' ? 'as' : 'o') + ' por <strong>' + esc(item.forjadoPor) + '</strong></p>';
+    return h;
+  }
   // Conjunto da peça: nome, peças equipadas e o bônus de 2/3/4 (aceso quando ativo).
   function conjuntoHtml(p, item) {
     var info = item.conjunto && R.infoConjunto(item.conjunto);
@@ -1822,6 +1830,234 @@
   }
   function C_agora() { return C.agora(); }
 
+  // ----- Mercado › Oficinas (serviços dos Anões; servidor: oficina_*) -----
+  var OF = D.CRAFT.oficina;
+  function carregarOficinas() {
+    var p = estado.personagem;
+    if (!p || estado.oficinasCarregando) return;
+    estado.oficinasCarregando = true;
+    C.oficina.estado(p.id).then(function (r) {
+      estado.oficinasCarregando = false;
+      if (estado.personagem !== p) return;
+      estado.oficinas = r;
+      // A oficina guarda a Sorte do artesão: atualiza quando mudar (itens, pontos).
+      if (r.minha && (Math.abs(Number(r.minha.bonus_encanto) - R.bonusEncanto(p)) > 0.01)) configurarOficina(r.minha.servicos, true);
+      if (r.recompensas && r.recompensas.length) resgatarRecompensas(r.recompensas);
+      if (estado.aba === 'oficinas' && !estado.batalha && !estado.luta) telaJogo();
+    }, function (e) {
+      estado.oficinasCarregando = false;
+      estado.oficinas = { erro: e.message };
+      if (estado.aba === 'oficinas') telaJogo();
+    });
+  }
+  function configurarOficina(servicos, quieto) {
+    var p = estado.personagem;
+    return C.oficina.configurar(p.id, servicos, R.bonusEncanto(p), Math.round(R.atributosTotais(p).sor)).then(function () {
+      if (!quieto) avisar(Object.keys(servicos).length ? 'Oficina aberta! Os jogadores já podem contratar.' : 'Oficina fechada.');
+      if (!quieto) carregarOficinas();
+    }, function (e) { avisar(e.message); });
+  }
+  function servicosDe(p) {
+    var c2 = R.ehFerreiro(p) ? 'ferreiro' : R.ehColetor(p) ? 'coletor' : null;
+    return Object.keys(OF.servicos).filter(function (k) { return OF.servicos[k].de === c2; });
+  }
+  function nomeRacaCurto(x) { return x.raca === 'anao' ? (x.sexo === 'feminino' ? 'Anã' : 'Anão') : (D.racas[x.raca] || {}).nome || ''; }
+  function textoPedido(x) {
+    var o = x.opcoes || {}, it = x.item;
+    if (x.tipo === 'encantar') return 'Encantar ' + (it ? R.nomeItem(it) + ' +' + (it.encanto || 0) : '') + (o.protecao ? ' (com Proteção)' : '');
+    if (x.tipo === 'forjar') return 'Forjar ' + ({ arma: 'arma', elmo: 'elmo', peitoral: 'peitoral', luvas: 'luvas', botas: 'botas', secundaria: 'mão esquerda' })[o.tipo] + ' de ' + (D.classes[o.classe] || {}).nome + ' (' + nomeArea(o.area) + ')';
+    if (x.tipo === 'receita') return 'Receita: ' + nomeArea(o.area);
+    if (x.tipo === 'protecao') return 'Pergaminho de Proteção ' + (D.raridades[o.raridade] || {}).nome;
+    if (x.tipo === 'reliquia') return 'Relíquia Rúnica "' + (o.nome || '') + '"' + (it ? ' (' + R.nomeItem(it) + ')' : '');
+    return x.tipo;
+  }
+  function textoResultado(x) {
+    var r = x.resultado || {};
+    if (x.estado === 'pendente') return '<span class="suave">esperando o artesão</span>';
+    if (x.estado !== 'feito') return '<span class="suave">' + (x.estado === 'cancelado' ? 'cancelado (tudo devolvido)' : 'não feito a tempo (tudo devolvido)') + '</span>';
+    if (x.tipo === 'encantar') return r.sucesso ? '<span class="mais">SUCESSO! foi para +' + r.alvo + '</span>'
+      : r.protegido ? '<span class="suave">falhou, a Proteção segurou</span>' : r.zerou ? '<span class="menos">falhou: voltou a +0</span>' : '<span class="menos">QUEBROU (' + (r.cristais || 0) + ' cristais)</span>';
+    if (x.tipo === 'forjar') return '<span class="raridade-' + r.raridade + '">' + (r.obraPrima ? '✨ obra-prima ' : '') + (D.raridades[r.raridade] || {}).nome + '</span>';
+    if (x.tipo === 'reliquia') return r.sucesso ? '<span class="cor-ouro">✨ RELÍQUIA FORJADA! ' + esc((R.runa(r.runa) || {}).nome || '') + '</span>' : '<span class="menos">a forja falhou (materiais perdidos)</span>';
+    return '<span class="mais">pronto</span>';
+  }
+  function abaOficinas() {
+    var p = estado.personagem, st = estado.oficinas;
+    if (!st) { carregarOficinas(); return '<p class="suave">Carregando…</p>'; }
+    if (st.local) return '<p class="suave">As Oficinas juntam vários jogadores e precisam do servidor.</p>';
+    if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
+    var html = '<p class="suave">Contrate um Artesão: ele encanta, forja ou fabrica para você. Você entrega tudo (item, pergaminhos, materiais e o pagamento) '
+      + 'e o jogo guarda até ele fazer. A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você.</p>';
+    // Minha oficina
+    var meus = servicosDe(p);
+    if (meus.length) {
+      var precos = (st.minha && st.minha.servicos) || {}, eu = (st.lista || []).filter(function (x) { return x.id === p.id; })[0];
+      html += '<div class="caixa-interna"><h3>🏪 Minha oficina</h3><p class="suave pequeno">Deixe em branco o que não quer oferecer. Você recebe o preço menos '
+        + OF.taxa + '% de taxa, acertando ou não. Sua chance de encanto: +' + fmtDec(Math.round(R.bonusEncanto(p) * 10) / 10) + '% (Sorte' + (p.raca === 'anao' ? ' + Anão' : '') + ').</p>'
+        + '<div class="forja-opcoes">' + meus.map(function (k) {
+          var off = k === 'reliquia' && R.podeReliquia(p) !== true;
+          return '<label>' + OF.servicos[k].nome + (off ? ' <span class="suave pequeno">(' + R.podeReliquia(p) + ')</span>' : '')
+            + '<input type="number" min="0" step="1" inputmode="numeric" id="of-preco-' + k + '" value="' + (precos[k] || '') + '" placeholder="Preço em ouro"' + (off ? ' disabled' : '') + '></label>';
+        }).join('') + '</div><div class="botoes"><button class="btn" data-acao="of-salvar">' + (st.minha && Object.keys(precos).length ? 'Salvar preços' : 'Abrir minha oficina') + '</button>'
+        + (st.minha && Object.keys(precos).length ? '<button class="btn secundario" data-acao="of-fechar">Fechar oficina</button>' : '') + '</div>'
+        + (eu ? '<p class="pequeno">Seus números: ' + statsOficina(eu) + '</p>' : '');
+      html += '<h4>Pedidos para fazer</h4>' + ((st.fazer || []).length ? '<div class="itens">' + st.fazer.map(function (x) {
+        return '<div class="item"><div class="item-texto"><strong>' + esc(textoPedido(x)) + '</strong><div class="suave pequeno">Cliente: ' + esc(x.cliente) + ' · '
+          + ouroTxt(x.preco) + ' de ouro</div></div><div class="item-acoes"><button class="btn btn-pequeno" data-acao="of-fazer" data-id="' + x.id + '">'
+          + (x.tipo === 'encantar' || x.tipo === 'reliquia' ? 'Jogar a sorte' : 'Fazer') + '</button></div></div>';
+      }).join('') + '</div>' : '<p class="suave">Nenhum pedido esperando.</p>') + '</div>';
+    }
+    // Lista de oficinas
+    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; });
+    html += '<h3 class="subtitulo">Oficinas abertas</h3>';
+    html += lista.length ? '<div class="itens">' + lista.map(function (x) { return cartaOficina(x); }).join('') + '</div>' : '<p class="suave">Nenhuma oficina aberta agora.</p>';
+    // Meus pedidos
+    if ((st.pedidos || []).length) {
+      html += '<h3 class="subtitulo">Meus pedidos</h3><div class="itens">' + st.pedidos.map(function (x) {
+        return '<div class="item"><div class="item-texto"><strong>' + esc(textoPedido(x)) + '</strong><div class="pequeno">' + esc(x.artesao) + ' · ' + ouroTxt(x.preco)
+          + ' · ' + textoResultado(x) + '</div></div>' + (x.estado === 'pendente' ? '<div class="item-acoes"><button class="btn secundario btn-pequeno" data-acao="of-cancelar" data-id="' + x.id + '">Cancelar</button></div>' : '') + '</div>';
+      }).join('') + '</div>';
+    }
+    return html;
+  }
+  function statsOficina(x) {
+    var pct = x.encantos ? Math.round(100 * x.acertos / x.encantos) : 0;
+    return 'Encantos: ' + x.encantos + ' · Acertos: ' + x.acertos + (x.encantos ? ' (' + pct + '%)' : '') + ' · Acertos no +10: ' + x.acertos10 + ' de ' + x.tent10 + ' · Serviços feitos: ' + x.feitos;
+  }
+  function cartaOficina(x) {
+    var c2 = D.SEGUNDAS_CLASSES[x.classe2] || {}, aberto = estado.contratar && estado.contratar.artesao === x.id;
+    var html = '<div class="item oficina-carta' + (aberto ? ' meu' : '') + '"><div class="item-texto"><div><strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em)
+      + ' <span class="suave pequeno">' + esc(nomeRacaCurto(x)) + ' · ' + esc(x.sexo === 'feminino' && c2.nomeF || c2.nome || '') + ' · Lv ' + x.nivel + '</span>'
+      + (x.raca === 'anao' ? ' <span class="selo-forja">⛰ Forja da Montanha</span>' : '') + (x.feitos >= 100 ? ' <span class="selo-forja">Mestre</span>' : '') + '</div>'
+      + '<div class="suave pequeno">' + statsOficina(x) + (x.fila ? ' · fila: ' + x.fila : '') + '</div>'
+      + '<div class="botoes oficina-servicos">' + Object.keys(x.servicos).map(function (k) {
+        return '<button class="btn btn-pequeno' + (aberto && estado.contratar.tipo === k ? '' : ' secundario') + '" data-acao="of-contratar" data-id="' + x.id + '" data-valor="' + k + '">'
+          + OF.servicos[k].nome + ' · ' + ouroTxt(x.servicos[k]) + '</button>';
+      }).join('') + '</div>'
+      + (aberto ? formContratar(x, estado.contratar.tipo) : '') + '</div></div>';
+    return html;
+  }
+  function formContratar(x, tipo) {
+    var p = estado.personagem, f = estado.contratar, E = D.encantamento, preco = x.servicos[tipo];
+    var livres = R.mochila(p).filter(function (i) { return !i.travado; });
+    var sel = function (campo, lista, atual) {
+      return '<select data-contratar="' + campo + '">' + lista.map(function (o) { return '<option value="' + esc(String(o[0])) + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+    };
+    var h = '<div class="contratar">', aviso = '', pode = true;
+    if (tipo === 'encantar') {
+      var itens = livres.filter(function (i) { return i.encanto < E.maximo; });
+      if (!itens.length) return h + '<p class="suave">Nenhum item na mochila para encantar (tire do corpo e destrave antes).</p></div>';
+      var it = itens.filter(function (i) { return i.id === f.item; })[0] || itens[0];
+      var chance = R.chanceEncantarCom(Number(x.bonus_encanto), it), risco = R.riscoEncantar(it);
+      var temProt = R.qtdConsumivel(p, 'protecao', it.raridade) > 0, prot = !!f.protecao && temProt, temPerg = R.qtdPergaminho(p, it.raridade) > 0;
+      h += '<label>Item ' + sel('item', itens.map(function (i) { return [i.id, R.nomeItem(i) + ' +' + i.encanto + ' (' + D.raridades[i.raridade].nome + ')']; }), it.id) + '</label>'
+        + '<label class="linha-check"><input type="checkbox" data-contratar="protecao"' + (prot ? ' checked' : '') + (temProt ? '' : ' disabled') + '> 🛡 Usar Pergaminho de Proteção '
+        + '<span class="suave pequeno">(' + (temProt ? 'você tem ' + R.qtdConsumivel(p, 'protecao', it.raridade) : 'você não tem da raridade ' + D.raridades[it.raridade].nome) + ')</span></label>'
+        + (temPerg ? '' : '<p class="menos pequeno">Você precisa de 1 Pergaminho ' + D.raridades[it.raridade].nome + ' para entregar.</p>');
+      pode = temPerg;
+      aviso = 'Chance deste artesão: <strong>' + fmtDec(chance) + '%</strong> para o +' + (it.encanto + 1) + '. '
+        + (risco === 'nada' ? 'Sem risco.' : prot ? 'Com Proteção: se falhar, o item fica como está.' : risco === 'zera' ? 'Se falhar, o item <strong>volta a +0</strong>.' : 'Se falhar, o item <strong>QUEBRA</strong>.')
+        + ' Você confia na sorte d' + (x.sexo === 'feminino' ? 'a ' : 'o ') + esc(nomeRacaCurto(x).toLowerCase() || 'artesão') + '?';
+    } else if (tipo === 'forjar') {
+      var comReceita = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; });
+      if (!comReceita.length) return h + '<p class="suave">Você precisa de uma Receita (o Coletor fabrica; também tem no Mercado › Craft).</p></div>';
+      var ar = comReceita.filter(function (a) { return a.id === f.area; })[0] || comReceita[0];
+      var cls = f.classe || p.classe, tp = f.tipo || 'arma', ch = Number(f.chefe) || 0, ge = Number(f.gemas) || 0, nums = [0, 1, 2, 3].map(function (n) { return [n, String(n)]; });
+      var mc = R.materialDoChefe(ar.chefe.id), custo = R.custoForja(p, ar.id).filter(function (c) { return c.tipo !== 'ouro'; });
+      if (ch) custo.push({ tipo: 'material', nome: D.CRAFT.materiais[mc].nome, tem: R.qtdMaterial(p, mc), precisa: ch });
+      if (ge) custo.push({ tipo: 'material', nome: 'Pedra Preciosa', tem: R.qtdMaterial(p, 'gema'), precisa: ge });
+      var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+      h += '<div class="forja-opcoes"><label>Receita ' + sel('area', comReceita.map(function (a) { return [a.id, a.nome]; }), ar.id) + '</label>'
+        + '<label>Classe ' + sel('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</label>'
+        + '<label>Item ' + sel('tipo', [['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']], tp) + '</label>'
+        + '<label>+ ' + esc(D.CRAFT.materiais[mc].nome) + ' ' + sel('chefe', nums, ch) + '</label><label>+ Pedra Preciosa ' + sel('gemas', nums, ge) + '</label></div>'
+        + '<p class="pequeno">Você entrega: ' + custoHtml(custo) + ' · + ' + ouroTxt(extra) + ' de ouro da forja</p>';
+      pode = !R.faltando(p, custo).length;
+      preco += extra;
+      aviso = 'Chances: Comum ' + pc(chs.comum) + ' · Rara ' + pc(chs.rara) + ' · Épica ' + pc(chs.epica) + ' · Lendária ' + pc(chs.lendaria) + ' · obra-prima ' + pc(chs.obraPrima) + '.';
+    } else if (tipo === 'receita') {
+      var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0], cr = R.custoReceita(p, ar2.id), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
+      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label><p class="pequeno">Você entrega: ' + custoHtml(mat) + ' · + ' + ouroTxt(cr[1].precisa) + ' de ouro</p>';
+      pode = !R.faltando(p, mat).length; preco += cr[1].precisa;
+    } else if (tipo === 'protecao') {
+      var rr = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum', cp = R.custoProtecao(p, rr);
+      h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><p class="pequeno">Você entrega: ' + custoHtml(cp) + '</p>';
+      pode = !R.faltando(p, cp).length;
+    } else if (tipo === 'reliquia') {
+      var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
+      if (!lend.length) return h + '<p class="suave">Você precisa de um item lendário +' + Q.encantoMin + ' ou mais na mochila (fora do corpo e destravado).</p></div>';
+      var il = lend.filter(function (i) { return i.id === f.item; })[0] || lend[0];
+      var cm = Object.keys(Q.materiais).map(function (k) { return { tipo: 'material', nome: D.CRAFT.materiais[k].nome, tem: R.qtdMaterial(p, k), precisa: Q.materiais[k] }; });
+      var chR = Math.min(Q.maxima, Q.base + Number(x.sorte) * Q.porSorte);
+      h += '<label>Item ' + sel('item', lend.map(function (i) { return [i.id, R.nomeItem(i) + ' +' + i.encanto]; }), il.id) + '</label>'
+        + '<label>Nome da relíquia <input type="text" maxlength="24" data-contratar="nome" value="' + esc(f.nome || '') + '" placeholder="Ex.: Fúria de Thorin"></label>'
+        + '<p class="pequeno">Você entrega: ' + custoHtml(cm) + '</p>'
+        + (x.reliquia_semana ? '<p class="menos pequeno">Este Ferreiro já forjou a relíquia da semana.</p>' : '');
+      pode = !R.faltando(p, cm).length && !x.reliquia_semana;
+      aviso = 'Chance deste anão: <strong>' + fmtDec(Math.round(chR * 10) / 10) + '%</strong>. Se der certo, o item vira uma relíquia ÚNICA com o nome escolhido e uma runa sorteada '
+        + '(' + Q.runas.map(function (r) { return r.texto; }).join(', ') + '; só contra monstros). Se falhar, os materiais se perdem e o item volta igual.';
+    }
+    h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
+      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
+      + ' · ' + ouroTxt(preco) + '</button><button class="btn secundario" data-acao="of-contratar-fechar">Fechar</button></div></div>';
+    return h;
+  }
+  async function pedirOficina() {
+    var p = estado.personagem, f = estado.contratar, st = estado.oficinas;
+    var x = st && (st.lista || []).filter(function (o) { return o.id === f.artesao; })[0];
+    if (!x || estado.oficinaOcupado) return;
+    var tipo = f.tipo, itemId = null, op = {}, livres = R.mochila(p).filter(function (i) { return !i.travado; });
+    if (tipo === 'encantar') { var ie = livres.filter(function (i) { return i.encanto < D.encantamento.maximo; }); itemId = (ie.filter(function (i) { return i.id === f.item; })[0] || ie[0]).id;
+      var itE = p.inventario.filter(function (i) { return i.id === itemId; })[0]; op.protecao = !!f.protecao && R.qtdConsumivel(p, 'protecao', itE.raridade) > 0; }
+    if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
+      op.classe = f.classe || p.classe; op.tipo = f.tipo || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
+    if (tipo === 'receita') op.area = f.area || D.areas[0].id;
+    if (tipo === 'protecao') op.raridade = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum';
+    if (tipo === 'reliquia') { var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
+      itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
+    estado.oficinaOcupado = true;
+    try {
+      p.poder = R.poder(p);
+      await C.salvarPersonagem(p);                // o servidor tira do personagem salvo
+      var r = await C.oficina.pedir(p.id, x.id, tipo, itemId, op);
+      if (r.item_id) p.inventario = p.inventario.filter(function (i) { return i.id !== r.item_id; });
+      (r.insumos || []).forEach(function (i) { R.mudarConsumivel(p, i.tipo, i.raridade, -i.qtd); });
+      salvar();
+      estado.contratar = null;
+      avisar('Pedido enviado para ' + x.nome + '! Você vê o resultado em "Meus pedidos".', 'item');
+      carregarArena();   // ouro gasto (créditos)
+      carregarOficinas();
+    } catch (e) { avisar(e.message); }
+    estado.oficinaOcupado = false;
+  }
+  function cliqueOficinas(acao, el) {
+    var p = estado.personagem;
+    switch (acao) {
+      case 'of-salvar': {
+        var sv = {};
+        servicosDe(p).forEach(function (k) { var c = document.getElementById('of-preco-' + k), v = c && Math.floor(Number(c.value)); if (v > 0) sv[k] = v; });
+        configurarOficina(sv);
+        return true;
+      }
+      case 'of-fechar': configurarOficina({}); return true;
+      case 'of-contratar': estado.contratar = { artesao: el.dataset.id, tipo: el.dataset.valor }; telaJogo(); return true;
+      case 'of-contratar-fechar': estado.contratar = null; telaJogo(); return true;
+      case 'of-pedir': pedirOficina(); return true;
+      case 'of-cancelar':
+        C.oficina.cancelar(p.id, Number(el.dataset.id)).then(function () { avisar('Pedido cancelado: tudo volta para você.'); carregarArena(); carregarOficinas(); }, function (e) { avisar(e.message); });
+        return true;
+      case 'of-fazer':
+        el.disabled = true;
+        C.oficina.fazer(p.id, Number(el.dataset.id)).then(function (r) {
+          var t = r.sucesso === true ? 'SUCESSO!' : r.raridade ? 'Forjado: ' + D.raridades[r.raridade].nome + (r.obraPrima ? ' (obra-prima!)' : '') : r.sucesso === false ? 'Falhou…' : 'Pronto!';
+          avisar('🔨 ' + t + ' O pagamento chega já já.', r.sucesso === false ? '' : 'item');
+          carregarArena(); carregarOficinas();
+        }, function (e) { avisar(e.message); el.disabled = false; });
+        return true;
+    }
+    return false;
+  }
+
   // ----- Missões diárias e semanais -----
   // Painel de missões: aba fixa na direita da tela que abre um painel com as Diárias e as Semanais
   // (cada uma abre e fecha). Fica fora do #app, como o chat.
@@ -2460,7 +2696,7 @@
       var subAbas = subAbasHtml();
       if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2916,6 +3152,7 @@
     if (aba === 'alianca') carregarAlianca();
     if (aba === 'mundial') carregarBoss();
     if (aba === 'mercado') carregarMercado();
+    if (aba === 'oficinas') carregarOficinas();
   }
 
   function podeVoltarAba() {
@@ -3026,6 +3263,10 @@
       var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
       if (cc && cc.fase === 'encontrou' && cc.encontro.chefe) { if (e.target.value === 'lutar') lutarCacada(); else if (e.target.value === 'fugir') fugirEncontro(); }
     }
+    if (e.target.dataset && e.target.dataset.contratar && estado.contratar) {
+      estado.contratar[e.target.dataset.contratar] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      if (e.target.dataset.contratar !== 'nome') telaJogo();
+    }
     if (e.target.dataset && e.target.dataset.forja) { estado.forja = estado.forja || {}; estado.forja[e.target.dataset.forja] = e.target.value; telaJogo(); }
     if (e.target.id === 'ordem-mochila') {
       visaoMochila().ordem = e.target.value;
@@ -3053,6 +3294,7 @@
     if (!el) return;
     var p = estado.personagem;
     if (el.dataset.acao.indexOf('al-') === 0 && cliqueAlianca(el.dataset.acao, el)) return;
+    if (el.dataset.acao.indexOf('of-') === 0 && cliqueOficinas(el.dataset.acao, el)) return;
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
@@ -3964,13 +4206,20 @@
             + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
-        // Craft (material, receita, proteção) comprado no mercado ou devolvido: vai para os Consumíveis.
-        if (rec.item && TIPOS_CRAFT.indexOf(rec.item.tipo) >= 0) {
+        // Item forjado na Oficina de um Ferreiro: o jogo monta o item com a semente do servidor.
+        if (rec.item && rec.item.tipo === 'forjado') {
+          if (R.mochilaCheia(p)) { if (!avisouCheia) avisar('Mochila cheia! Seu item da Oficina está guardado: libere espaço.'); avisouCheia = true; continue; }
+          var rfo = await C.grupo.resgatar(p.id, rec.id), ifo = R.itemForjado(rfo.spec);
+          if (ifo) { p.inventario.push(ifo); salvar(); avisar((ifo.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'A Oficina entregou ' + R.nomeItem(ifo) + ' (' + nomeRaridadeItem(ifo) + ')!', 'item'); }
+          continue;
+        }
+        // Craft (material, receita, proteção, cristal) do mercado ou da Oficina: vai para os Consumíveis.
+        if (rec.item && (TIPOS_CRAFT.indexOf(rec.item.tipo) >= 0 || rec.item.tipo === 'cristal')) {
           var rcf = await C.grupo.resgatar(p.id, rec.id);
           var ncf = Math.max(1, Math.floor(rcf.qtd || 1));
           R.mudarConsumivel(p, rcf.tipo, rcf.raridade, ncf);
           salvar();
-          avisar(ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : '!'), 'item');
+          avisar(ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
           continue;
         }
         // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.
@@ -3996,7 +4245,7 @@
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisar('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+          if (!avisouCheia) avisar('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
@@ -4004,7 +4253,7 @@
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
-        avisar((rec.origem === 'mercado' ? 'Chegou do mercado: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
+        avisar((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
     } catch (e) { avisar(e.message); }
     estado.resgatando = false;
@@ -4345,6 +4594,7 @@
     var emGrupo = estado.gm && (estado.gm.grupo || estado.gm.fila);
     if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
     // Boss da aliança: a cada 4 s na tela dele ou com o boss aberto; senão a cada 32 s (aviso e prêmios).
+    if (estado.aba === 'oficinas' && ciclosGrupo % 2 === 0 && !estado.contratar) carregarOficinas();
     var bossAberto = estado.bossAl && estado.bossAl.boss && estado.bossAl.boss.estado === 'aberto';
     if ((estado.aba === 'alianca' && estado.aliancaVista === 'boss') || bossAberto || ciclosGrupo % 8 === 6) carregarBossAl();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();

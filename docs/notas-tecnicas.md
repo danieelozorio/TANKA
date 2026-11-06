@@ -368,5 +368,21 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `item.forjadoPor`, `item.obraPrima`. Tela Herói › Oficina (`abaOficina`, selects `data-forja`).
 - **Mercado:** categoria nova `craft`; `mercado_anunciar(..., pergaminho = 'material:<id>' | 'receita:<área>' | 'protecao:<rar>')`
   tira da pilha do consumível e entrega por recompensa (`resgatarRecompensas`, `TIPOS_CRAFT`).
-- Falta (etapas 4 e 5 do PDF): Oficinas (serviços entre jogadores, com o item guardado no servidor e taxa de acerto) e a
-  Relíquia Rúnica. Ícones dos materiais ainda são emojis (⛏ 🔥 💎 📜 🛡).
+- Ícones dos materiais ainda são emojis (⛏ 🔥 💎 📜 🛡); prompt da folha 6x3 entregue ao Daniel.
+
+## Oficinas e Relíquia Rúnica — etapas 4 e 5 (Daniel, nov/2026)
+- Tela **Mercado › Oficinas** (`abaOficinas`, `cliqueOficinas` com ações `of-*`, formulário `estado.contratar` com `data-contratar`).
+  Ferreiro oferece encantar / forjar / relíquia; Coletor oferece receita / proteção (`CRAFT.oficina.servicos[*].de`).
+- Servidor (fim do schema): `oficinas` (preços, `bonus_encanto` = Sorte x 0,5 + Anão e `sorte`, que o jogo do artesão
+  atualiza sozinho), `oficina_pedidos`, `reliquias` (nome único). `oficina_pedir` tira do personagem SALVO o item e os insumos
+  (`oficina_insumos`) e cobra preço + ouro da forja/receita (`oficina_ouro_extra`); o jogo tira igual na memória com o que volta.
+  `oficina_fazer` joga a sorte no servidor (encanto com teto e Proteção; forja com as chances de `CRAFT.forja`, devolve
+  `{tipo:'forjado', spec}` e o jogo monta o item com `R.itemForjado(spec)` pela semente; relíquia com `reliquia.base +
+  sorte x porSorte` até `maxima`) e paga o artesão (preço − 10%). Cancelar ou 24 h sem fazer (`oficina_expirar`) devolve tudo.
+  Taxa de acerto calculada dos pedidos feitos (encantos, acertos, +10). Sem estrelas.
+- **Relíquia:** item lendário +7 do cliente + 3 Escamas + 2 Brasas do Ignaroth + 1 **Fragmento de Selo** (cai para quem dá
+  mais dano no boss do clã). Só Anão Ferreiro level 30+, 1 por semana (`oficina_semana_reliquias`). Sucesso: `item.nome`
+  (escolhido), `item.runa` (sorteada de `CRAFT.reliquia.runas`), `reliquia: true`, `forjadoPor`. Runas valem só contra
+  monstros (`comRunas` dentro de `status(p, true)`). Ficha do item mostra runa e "Forjado por" (`craftItemHtml`).
+- Testes: regras.test.js ("oficinas: ...") e banco.test.sql (bloco "Oficinas e Relíquia Rúnica").
+

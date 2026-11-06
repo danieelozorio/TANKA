@@ -1502,3 +1502,11 @@ html { overscroll-behavior-x: none; }
 .linha-check { display: flex; align-items: center; gap: .45rem; margin: .4rem 0 .8rem; cursor: pointer; }
 .material-chip > :first-child { width: 1.4em; height: 1.4em; flex: none; display: inline-grid; place-items: center; overflow: hidden; }
 .material-chip > :first-child img, .material-chip > :first-child svg { width: 100%; height: 100%; object-fit: contain; }
+
+/* Oficinas */
+.selo-forja { display: inline-block; padding: 0 .4em; border-radius: 6px; font-size: .75rem; background: rgba(201, 162, 74, .18); color: var(--ouro, #c9a24a); border: 1px solid rgba(201, 162, 74, .45); }
+.oficina-servicos { justify-content: flex-start; margin-top: .4rem; flex-wrap: wrap; }
+.contratar { margin-top: .6rem; padding: .6rem .7rem; border: 1px dashed rgba(201, 162, 74, .45); border-radius: 8px; }
+.contratar > label { display: flex; flex-direction: column; gap: .2rem; margin: .3rem 0; font-size: .9rem; }
+.aviso-contratar { margin: .5rem 0; padding: .45rem .6rem; border-left: 3px solid #c9a24a; background: rgba(0, 0, 0, .25); }
+.contratar > label.linha-check { flex-direction: row; align-items: center; }
