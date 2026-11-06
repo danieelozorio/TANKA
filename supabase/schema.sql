@@ -838,7 +838,7 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
 create or replace function public.tanka_dados() returns jsonb
-language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"for"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"dano":[1,2,3,4],"defesaMagica":[0,2,4,6],"vida":[0,0,0,30],"regen":[0,0,1,1]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"dano"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}}},"LEILAO":{"nivelMin":10,"duracaoMin":240,"incrementoPct":5,"muitoCurto":[1,4],"fases":[{"id":"muitoLongo","nome":"Muito longo","acimaMin":180},{"id":"longo","nome":"Longo","acimaMin":60},{"id":"medio","nome":"Médio","acimaMin":20},{"id":"curto","nome":"Curto","acimaMin":0}],"nomeMuitoCurto":"Muito curto","minimo":{"comum":1000,"rara":5000,"epica":10000,"lendaria":50000},"pacotePergaminho":{"comum":10,"rara":5,"epica":3,"lendaria":1},"faixas":[{"id":"l1","nome":"Leilão do Mercador","nivel":[10,19],"mult":1,"itemNivel":[18,22],"raridades":{"comum":30,"rara":45,"epica":22,"lendaria":3}},{"id":"l2","nome":"Leilão da Coroa","nivel":[20,29],"mult":10,"itemNivel":[28,32],"raridades":{"comum":15,"rara":45,"epica":32,"lendaria":8}},{"id":"l3","nome":"Leilão dos Reis","nivel":[30,999],"mult":40,"itemNivel":[42,50],"raridades":{"comum":0,"rara":35,"epica":45,"lendaria":20}}]},"DEFESA":{"k":100,"fator":4.5},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}}}'::jsonb; $dados$;
+language sql immutable as $dados$ select '{"HP_INICIAL":100,"HP_POR_NIVEL":10,"HP_POR_RES":3,"VELOCIDADE":{"inicial":15,"porNivel":1.06},"raridades":{"comum":{"danoMin":[1,5],"danoMax":[5,10]},"rara":{"danoMin":[11,15],"danoMax":[16,20]},"epica":{"danoMin":[21,24],"danoMax":[25,30]},"lendaria":{"danoMin":[31,34],"danoMax":[35,40]}},"classes":{"cavaleiro":{"dano":"fisico","atributoDano":"for"},"arqueiro":{"dano":"fisico","atributoDano":"for"},"mago":{"dano":"magico","atributoDano":"int"},"artesao":{"dano":"fisico","atributoDano":"for"}},"PONTOS_POR_DANO":3,"TIPOS_ARMA":{"espada":{"vel":"normal","fator":1},"espada2m":{"vel":"devagar","fator":1.4},"machado":{"vel":"normal","fator":1},"arco":{"vel":"normal","fator":1},"besta":{"vel":"devagar","fator":1.25},"balestra":{"vel":"normal","fator":1.12},"adaga":{"vel":"rapida","fator":0.83},"livro":{"vel":"normal","fator":1},"cajado":{"vel":"devagar","fator":1.4},"varinha":{"vel":"normal","fator":1},"martelo":{"vel":"normal","fator":1},"martelo2m":{"vel":"devagar","fator":1.4},"maca":{"vel":"normal","fator":1},"mangual":{"vel":"normal","fator":1},"machado2m":{"vel":"devagar","fator":1.4},"garra":{"vel":"rapida","fator":0.83},"cetro":{"vel":"normal","fator":1},"foice":{"vel":"rapida","fator":0.83},"picareta":{"vel":"normal","fator":1}},"VELOCIDADE_ARMA":{"devagar":0.8,"normal":1,"rapida":1.2},"ARMA_PADRAO":{"cavaleiro":"espada","arqueiro":"arco","mago":"cajado","artesao":"martelo"},"RARIDADE_ARMA":{"atributo":[0,2,4,6],"pve":[0,0,10,10],"pvp":[0,0,0,10]},"MAO_ESQUERDA":{"escudo":{"bonus":{"defesa":[3,6,12,24]},"encanto":"defesa"},"aljava":{"bonus":{"precisao":[2,4,6,10],"critico":[1,2,4,8]},"encanto":"critico"},"orbe":{"bonus":{"danoMagico":[5,10,15,25],"danoCriticoMagico":[5,10,20,40]},"encanto":"danoCriticoMagico"},"manopla":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]},"encanto":"defesa"},"livro":{"bonus":{"int":[1,2,4,8],"danoMagico":[3,6,10,15]},"encanto":"int"},"adaga":{"bonus":{"dano":[2,5,10,16],"critico":[1,2,3,5]},"encanto":"dano"},"garra":{"bonus":{"dano":[3,6,12,18]},"encanto":"dano"},"shuriken":{"bonus":{"dano":[1,3,6,10],"critico":[2,4,6,10]},"encanto":"critico"}},"armaduras":{"cavaleiro":{"elmo":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"peitoral":{"bonus":{"defesa":[3,8,16,32],"vida":[15,40,100,250]}},"luvas":{"bonus":{"defesa":[1,3,6,12],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,3,6,12],"res":[1,2,4,8]}}},"arqueiro":{"elmo":{"bonus":{"defesa":[1,3,6,12],"des":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}},"mago":{"elmo":{"bonus":{"defesaMagica":[2,5,10,20],"int":[1,2,4,8]}},"peitoral":{"bonus":{"defesa":[1,3,6,12],"defesaMagica":[2,5,10,20],"vida":[5,15,40,100]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"int":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"des":[1,2,4,8]}}},"artesao":{"elmo":{"bonus":{"defesa":[2,4,8,16],"vida":[5,15,40,100]}},"peitoral":{"bonus":{"defesa":[2,5,10,20],"vida":[10,25,60,150]}},"luvas":{"bonus":{"defesa":[1,2,4,8],"for":[1,2,4,8]}},"botas":{"bonus":{"defesa":[1,2,4,8],"sor":[1,2,4,8]}}}},"joias":{"colar":{"bonus":{"defesaMagica":[1,3,6,12],"vida":[5,15,40,100]}},"anel":{"bonus":{"dano":[1,2,3,4],"defesaMagica":[0,2,4,6],"vida":[0,0,0,30],"regen":[0,0,1,1]}}},"bonusPorNivel":{"elmo":"defesa","peitoral":"defesa","luvas":"defesa","botas":"defesa","colar":"defesaMagica","anel":"dano"},"encantoPct":5,"ARENA":{"nivelMin":5,"entradasMax":5,"recargaMinutos":60,"alcanceDesafio":5,"tempoDado":5,"limiteTurnos":200,"reputacaoVitoria":10,"reputacaoTop1Diario":500,"jackpotPorDefesa":100,"top1PorHora":0.1,"dado":[0,0.6,0.7,0.8,0.9,1,1.05,1.1,1.15,1.2,1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.7,1.8,2],"saque":{"ate":30,"minimo":5,"desde":80,"maximo":10,"meio":[5,8]},"arenas":[{"id":"a1","nome":"Arena 5~10","nivel":[5,10],"jackpotPor10min":50},{"id":"a2","nome":"Arena 11~20","nivel":[11,20],"jackpotPor10min":100},{"id":"a3","nome":"Arena 21~30","nivel":[21,30],"jackpotPor10min":150},{"id":"a4","nome":"Arena 30+","nivel":[31,40],"jackpotPor10min":200}]},"ALIANCA":{"nivelMin":10,"custoOuro":10000,"custoReputacao":300,"vagasIniciais":15,"vagasPorNivel":3,"maxOficiais":3,"nivelMax":10,"expProximo":[50000,100000,200000,400000,700000,1000000,1500000,2000000,3000000],"doacaoMinima":100,"esperaHoras":24,"liderSumidoDias":14,"ativoDias":3,"muralMax":300,"bonus":{"custo":20000,"dias":7,"minimo":5,"maximo":15},"brasao":{"formas":["classico","redondo","pontudo","estandarte"],"cores":["#8e1b1b","#1f4f8e","#2d6b34","#5b2a86","#b8860b","#2b2b2b","#7a3e12","#1f6b6b"],"simbolos":["dragao","lobo","coroa","caveira","espada","machado","olho","chama"]}},"CONJUNTOS":{"paladino":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"destruidor":{"bonus":{"2":{"for":5},"3":{"dano":5},"4":{"velocidade":2}}},"cacador":{"bonus":{"2":{"critico":5},"3":{"dano":5},"4":{"velocidade":3}}},"assassino":{"bonus":{"2":{"evasao":5},"3":{"dano":5},"4":{"velocidade":3}}},"bruxo":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"curandeiro":{"bonus":{"2":{"criticoMagico":5},"3":{"dano":5},"4":{"velocidade":3}}},"ferreiro":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}},"coletor":{"bonus":{"2":{"defesa":23},"3":{"dano":5},"4":{"vida":30}}}},"LEILAO":{"nivelMin":10,"duracaoMin":240,"incrementoPct":5,"muitoCurto":[1,4],"fases":[{"id":"muitoLongo","nome":"Muito longo","acimaMin":180},{"id":"longo","nome":"Longo","acimaMin":60},{"id":"medio","nome":"Médio","acimaMin":20},{"id":"curto","nome":"Curto","acimaMin":0}],"nomeMuitoCurto":"Muito curto","minimo":{"comum":1000,"rara":5000,"epica":10000,"lendaria":50000},"pacotePergaminho":{"comum":10,"rara":5,"epica":3,"lendaria":1},"faixas":[{"id":"l1","nome":"Leilão do Mercador","nivel":[10,19],"mult":1,"itemNivel":[18,22],"raridades":{"comum":30,"rara":45,"epica":22,"lendaria":3}},{"id":"l2","nome":"Leilão da Coroa","nivel":[20,29],"mult":10,"itemNivel":[28,32],"raridades":{"comum":15,"rara":45,"epica":32,"lendaria":8}},{"id":"l3","nome":"Leilão dos Reis","nivel":[30,999],"mult":40,"itemNivel":[42,50],"raridades":{"comum":0,"rara":35,"epica":45,"lendaria":20}}]},"DEFESA":{"k":100,"fator":4.5},"TALENTOS":{"nivelSegunda":10,"pontosIniciais":4,"pontosPorNivel":1,"maxPorHabilidade":10,"unico":{"base":150,"porPonto":5},"unicoReduzido":{"base":120,"porPonto":4},"area":{"base":80,"porPonto":3},"areaReduzida":{"base":60,"porPonto":3},"atordoar":{"base":100,"porPonto":5},"multiplo":{"base":100,"porPonto":3},"bonusPorPonto":1,"atordoarChefeMax":1,"curaSoAbaixo":80},"HABILIDADE_INICIAL":{"cavaleiro":{"id":"espada-giratoria","nome":"Espada Giratória","tipo":"unico","recarga":3,"descricao":"Gira a espada e acerta um inimigo com força."},"arqueiro":{"id":"chuva-de-flechas","nome":"Chuva de Flechas","tipo":"unico","recarga":3,"descricao":"Uma chuva de flechas sobre um inimigo."},"mago":{"id":"meteoro","nome":"Meteoro","tipo":"unico","recarga":3,"descricao":"Uma pedra de fogo cai sobre um inimigo."},"artesao":{"id":"tremor","nome":"Tremor","tipo":"unico","recarga":3,"descricao":"Bate no chão e faz a terra tremer sob um inimigo."}},"SEGUNDAS_CLASSES":{"paladino":{"de":"cavaleiro","nome":"Paladino","nomeF":"Paladina","descricao":"Protege o grupo: atordoa, chama os ataques para si e aguenta firme.","habilidades":[{"id":"martelo-sagrado","nome":"Martelo Sagrado","tipo":"area","atordoa":1,"recarga":5,"descricao":"Dano em área e atordoa todos os inimigos."},{"id":"grito-de-desafio","nome":"Grito de Desafio","tipo":"provocar","turnos":2,"defesaPct":10,"recarga":4,"descricao":"Todos os inimigos atacam só você e sua defesa sobe."},{"id":"golpe-justo","nome":"Golpe Justo","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pele-de-ferro","nome":"Pele de Ferro","tipo":"passiva","defesaPct":10,"vidaPct":10,"descricao":"Mais defesa e mais vida, sempre."}]},"destruidor":{"de":"cavaleiro","nome":"Destruidor","nomeF":"Destruidora","descricao":"Pura força: entra em fúria e derruba tudo.","habilidades":[{"id":"furia","nome":"Fúria","tipo":"reforco","turnos":2,"dano":10,"danoCritico":10,"recarga":4,"descricao":"Mais dano e mais dano crítico."},{"id":"terremoto","nome":"Terremoto","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"golpe-pesado","nome":"Golpe Pesado","tipo":"unico","recarga":3,"descricao":"Um golpe muito forte em um inimigo."},{"id":"forca-bruta","nome":"Força Bruta","tipo":"passiva","atributos":{"for":5},"danoCritico":10,"descricao":"+5 de Força e mais dano crítico, sempre."}]},"cacador":{"de":"arqueiro","nome":"Arqueiro","nomeF":"Arqueira","descricao":"Controla a luta de longe: prende, dispara e corre.","habilidades":[{"id":"flecha-na-perna","nome":"Flecha na Perna","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica parado."},{"id":"saraivada","nome":"Saraivada","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"pes-ligeiros","nome":"Double Shot","tipo":"multiplo","flechas":2,"recarga":3,"descricao":"Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico."},{"id":"reflexo-rapido","nome":"Reflexo Rápido","tipo":"passiva","atributos":{"des":5},"evasao":5,"descricao":"+5 de Destreza e mais esquiva, sempre."}]},"assassino":{"de":"arqueiro","nome":"Assassino","nomeF":"Assassina","descricao":"Some nas sombras e volta com golpes críticos.","habilidades":[{"id":"mira-certeira","nome":"Mira Certeira","tipo":"reforco","turnos":2,"critico":5,"danoCritico":5,"recarga":4,"descricao":"Mais chance e mais dano crítico."},{"id":"sombra","nome":"Sombra","tipo":"furtivo","danoCritico":0,"recarga":4,"descricao":"Esquiva do próximo ataque e o seu próximo golpe é crítico."},{"id":"golpe-fatal","nome":"Golpe Fatal","tipo":"unico","recarga":3,"descricao":"Um golpe enorme em um inimigo."},{"id":"lamina-afiada","nome":"Lâmina Afiada","tipo":"passiva","atributos":{"des":5},"critico":10,"descricao":"+5 de Destreza e mais chance de crítico, sempre."}]},"bruxo":{"de":"mago","nome":"Bruxo","nomeF":"Bruxa","descricao":"Magia de destruição: congela, queima e fulmina.","habilidades":[{"id":"nevasca","nome":"Nevasca","tipo":"area","atordoa":1,"congela":true,"recarga":5,"descricao":"Dano em área e congela todos os inimigos."},{"id":"chuva-de-meteoros","nome":"Chuva de Meteoros","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"raio-da-morte","nome":"Raio da Morte","tipo":"unico","recarga":2,"descricao":"Um raio forte em um inimigo."},{"id":"mente-sombria","nome":"Mente Sombria","tipo":"passiva","atributos":{"int":5},"dano":10,"descricao":"+5 de Inteligência e mais dano, sempre."}]},"curandeiro":{"de":"mago","nome":"Curandeiro","nomeF":"Curandeira","descricao":"Cuida do grupo: cura, fortalece e ainda castiga.","habilidades":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","vidaPct":20,"recarga":4,"descricao":"Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro."},{"id":"explosao-de-luz","nome":"Explosão de Luz","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"bencao","nome":"Bênção","tipo":"reforco","grupo":true,"turnos":2,"vidaPct":20,"precisao":5,"recarga":4,"descricao":"Mais vida máxima e precisão para você e o grupo."},{"id":"fe-profunda","nome":"Fé Profunda","tipo":"passiva","atributos":{"int":5},"danoCriticoMagico":10,"descricao":"+5 de Inteligência e mais dano crítico mágico, sempre."}]},"ferreiro":{"de":"artesao","nome":"Ferreiro","nomeF":"Ferreira","descricao":"Mão pesada e couro grosso.","habilidades":[{"id":"marretada-no-chao","nome":"Marretada no Chão","tipo":"area","recarga":3,"descricao":"Dano em área."},{"id":"martelada","nome":"Martelada","tipo":"unico","recarga":2,"descricao":"Um golpe forte em um inimigo."},{"id":"pancada-tonta","nome":"Pancada Tonta","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Acerta um inimigo e ele fica tonto."},{"id":"couro-grosso","nome":"Couro Grosso","tipo":"passiva","atributos":{"sor":5},"defesaPct":20,"descricao":"+5 de Sorte e mais defesa, sempre."}]},"coletor":{"de":"artesao","nome":"Coletor","nomeF":"Coletora","descricao":"Bate menos, mas sai de toda luta com o bolso cheio.","habilidades":[{"id":"chuva-de-pedras","nome":"Chuva de Pedras","tipo":"area","reduzido":true,"recarga":3,"descricao":"Dano em área (mais fraco)."},{"id":"pedrada","nome":"Pedrada","tipo":"unico","reduzido":true,"recarga":2,"descricao":"Um golpe em um inimigo (mais fraco)."},{"id":"rede","nome":"Rede","tipo":"atordoar","atordoa":2,"recarga":5,"descricao":"Joga a rede em um inimigo e ele fica preso."},{"id":"bolso-fundo","nome":"Bolso Fundo","tipo":"passiva","recompensa":10,"descricao":"Mais ouro e exp em cada luta da caçada."}]}},"BOSS_ALIANCA":{"duracaoMin":60,"grupoMax":4,"vidaPorNivel":1.3,"item":[{"raridade":"lendaria","chance":10},{"raridade":"epica","chance":90}],"niveis":[{"hp":32760,"ouro":2000,"exp":3000,"alianca":4000,"pergaminho":2,"raridade":"comum"},{"hp":42588,"ouro":2500,"exp":3750,"alianca":5000,"pergaminho":2,"raridade":"comum"},{"hp":55364,"ouro":3000,"exp":4500,"alianca":6000,"pergaminho":2,"raridade":"comum"},{"hp":48600,"ouro":10000,"exp":9000,"alianca":20000,"pergaminho":2,"raridade":"rara"},{"hp":63180,"ouro":12500,"exp":11250,"alianca":25000,"pergaminho":2,"raridade":"rara"},{"hp":82134,"ouro":15000,"exp":13500,"alianca":30000,"pergaminho":2,"raridade":"rara"},{"hp":74880,"ouro":160000,"exp":27000,"alianca":320000,"pergaminho":2,"raridade":"rara"},{"hp":97344,"ouro":200000,"exp":33750,"alianca":400000,"pergaminho":2,"raridade":"rara"},{"hp":126547,"ouro":240000,"exp":40500,"alianca":480000,"pergaminho":2,"raridade":"rara"},{"hp":105840,"ouro":400000,"exp":80000,"alianca":800000,"pergaminho":2,"raridade":"epica"},{"hp":137592,"ouro":500000,"exp":100000,"alianca":1000000,"pergaminho":2,"raridade":"epica"},{"hp":178870,"ouro":600000,"exp":120000,"alianca":1200000,"pergaminho":2,"raridade":"epica"},{"hp":133650,"ouro":1000000,"exp":240000,"alianca":2000000,"pergaminho":2,"raridade":"epica"},{"hp":173745,"ouro":1250000,"exp":300000,"alianca":2500000,"pergaminho":2,"raridade":"epica"},{"hp":225869,"ouro":1500000,"exp":360000,"alianca":3000000,"pergaminho":2,"raridade":"epica"},{"hp":293629,"ouro":1750000,"exp":420000,"alianca":3500000,"pergaminho":2,"raridade":"epica"},{"hp":381718,"ouro":2000000,"exp":480000,"alianca":4000000,"pergaminho":2,"raridade":"epica"},{"hp":496233,"ouro":2250000,"exp":540000,"alianca":4500000,"pergaminho":2,"raridade":"epica"},{"hp":645103,"ouro":2500000,"exp":600000,"alianca":5000000,"pergaminho":2,"raridade":"epica"},{"hp":838634,"ouro":2750000,"exp":660000,"alianca":5500000,"pergaminho":2,"raridade":"epica"},{"hp":1090224,"ouro":3000000,"exp":720000,"alianca":6000000,"pergaminho":2,"raridade":"epica"},{"hp":1417291,"ouro":3250000,"exp":780000,"alianca":6500000,"pergaminho":2,"raridade":"epica"},{"hp":1842479,"ouro":3500000,"exp":840000,"alianca":7000000,"pergaminho":2,"raridade":"epica"},{"hp":2395222,"ouro":3750000,"exp":900000,"alianca":7500000,"pergaminho":2,"raridade":"epica"},{"hp":3113789,"ouro":4000000,"exp":960000,"alianca":8000000,"pergaminho":2,"raridade":"epica"},{"hp":4047926,"ouro":4250000,"exp":1020000,"alianca":8500000,"pergaminho":2,"raridade":"epica"},{"hp":5262304,"ouro":4500000,"exp":1080000,"alianca":9000000,"pergaminho":2,"raridade":"epica"},{"hp":6840995,"ouro":4750000,"exp":1140000,"alianca":9500000,"pergaminho":2,"raridade":"epica"},{"hp":8893293,"ouro":5000000,"exp":1200000,"alianca":10000000,"pergaminho":2,"raridade":"epica"},{"hp":11561281,"ouro":5250000,"exp":1260000,"alianca":10500000,"pergaminho":2,"raridade":"epica"},{"hp":15029665,"ouro":5500000,"exp":1320000,"alianca":11000000,"pergaminho":2,"raridade":"epica"},{"hp":19538565,"ouro":5750000,"exp":1380000,"alianca":11500000,"pergaminho":2,"raridade":"epica"},{"hp":25400134,"ouro":6000000,"exp":1440000,"alianca":12000000,"pergaminho":2,"raridade":"epica"},{"hp":33020174,"ouro":6250000,"exp":1500000,"alianca":12500000,"pergaminho":2,"raridade":"epica"},{"hp":42926227,"ouro":6500000,"exp":1560000,"alianca":13000000,"pergaminho":2,"raridade":"epica"},{"hp":55804095,"ouro":6750000,"exp":1620000,"alianca":13500000,"pergaminho":2,"raridade":"epica"},{"hp":72545323,"ouro":7000000,"exp":1680000,"alianca":14000000,"pergaminho":2,"raridade":"epica"},{"hp":94308920,"ouro":7250000,"exp":1740000,"alianca":14500000,"pergaminho":2,"raridade":"epica"},{"hp":122601596,"ouro":7500000,"exp":1800000,"alianca":15000000,"pergaminho":2,"raridade":"epica"},{"hp":159382075,"ouro":7750000,"exp":1860000,"alianca":15500000,"pergaminho":2,"raridade":"epica"},{"hp":207196697,"ouro":8000000,"exp":1920000,"alianca":16000000,"pergaminho":2,"raridade":"epica"},{"hp":269355706,"ouro":8250000,"exp":1980000,"alianca":16500000,"pergaminho":2,"raridade":"epica"},{"hp":350162418,"ouro":8500000,"exp":2040000,"alianca":17000000,"pergaminho":2,"raridade":"epica"},{"hp":455211143,"ouro":8750000,"exp":2100000,"alianca":17500000,"pergaminho":2,"raridade":"epica"},{"hp":591774486,"ouro":9000000,"exp":2160000,"alianca":18000000,"pergaminho":2,"raridade":"epica"},{"hp":769306832,"ouro":9250000,"exp":2220000,"alianca":18500000,"pergaminho":2,"raridade":"epica"},{"hp":1000098881,"ouro":9500000,"exp":2280000,"alianca":19000000,"pergaminho":2,"raridade":"epica"},{"hp":1300128546,"ouro":9750000,"exp":2340000,"alianca":19500000,"pergaminho":2,"raridade":"epica"},{"hp":1690167110,"ouro":10000000,"exp":2400000,"alianca":20000000,"pergaminho":2,"raridade":"epica"},{"hp":2197217242,"ouro":10250000,"exp":2460000,"alianca":20500000,"pergaminho":2,"raridade":"epica"},{"hp":2856382415,"ouro":10500000,"exp":2520000,"alianca":21000000,"pergaminho":2,"raridade":"epica"},{"hp":3713297140,"ouro":10750000,"exp":2580000,"alianca":21500000,"pergaminho":2,"raridade":"epica"},{"hp":4827286282,"ouro":11000000,"exp":2640000,"alianca":22000000,"pergaminho":2,"raridade":"epica"},{"hp":6275472166,"ouro":11250000,"exp":2700000,"alianca":22500000,"pergaminho":2,"raridade":"epica"},{"hp":8158113816,"ouro":11500000,"exp":2760000,"alianca":23000000,"pergaminho":2,"raridade":"epica"},{"hp":10605547961,"ouro":11750000,"exp":2820000,"alianca":23500000,"pergaminho":2,"raridade":"epica"},{"hp":13787212349,"ouro":12000000,"exp":2880000,"alianca":24000000,"pergaminho":2,"raridade":"epica"},{"hp":17923376054,"ouro":12250000,"exp":2940000,"alianca":24500000,"pergaminho":2,"raridade":"epica"},{"hp":23300388870,"ouro":12500000,"exp":3000000,"alianca":25000000,"pergaminho":2,"raridade":"epica"},{"hp":30290505531,"ouro":12750000,"exp":3060000,"alianca":25500000,"pergaminho":2,"raridade":"epica"}]}}'::jsonb; $dados$;
 -- <<< DADOS DO JOGO
 
 -- ---------- Arena (PvP) ----------
@@ -1774,11 +1774,14 @@ begin
   delete from public.alianca_convites where personagem_id = pid;
 end $$;
 
+-- (plpgsql: o boss da aliança é criado mais abaixo no arquivo.)
 create or replace function public.alianca_registrar_saida(pid text) returns void
-language sql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public as $$
+begin
   insert into public.alianca_espera (personagem_id, ate) values (pid, now() + make_interval(hours => (public.alianca_cfg() ->> 'esperaHoras')::int))
   on conflict (personagem_id) do update set ate = excluded.ate;
-$$;
+  perform public.alianca_boss_sala_sair_de(pid);   -- sai do grupo do boss
+end $$;
 
 create or replace function public.alianca_resumo(a public.aliancas) returns jsonb
 language sql stable security definer set search_path = public as $$
@@ -2322,3 +2325,318 @@ end $$;
 
 revoke execute on function public.conferir_conversa_privada(text, text), public.privado_listar(text, text), public.privado_enviar(text, text, text) from public, anon;
 grant execute on function public.privado_listar(text, text), public.privado_enviar(text, text, text) to authenticated;
+
+-- ---------- Boss da aliança (Daniel, nov/2026) ----------
+-- Um boss por dia por aliança. O líder escolhe a hora (0 a 23, Brasília); o boss abre sozinho todo dia nessa hora
+-- e fica aberto BOSS_ALIANCA.duracaoMin minutos. Ataques ilimitados, sozinho ou em grupo de até grupoMax membros.
+-- A luta é calculada no jogo (regras.js, simularBossAlianca, com a semente daqui) e o dano é informado no fim.
+-- Morreu: sobe 1 nível e quem deu dano naquele dia ganha prêmio. Não morreu na hora: amanhã é o mesmo boss, vida cheia.
+-- Vida e prêmios de cada nível: tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' (gerado de js/dados.js).
+create table if not exists public.alianca_boss (
+  alianca_id bigint primary key references public.aliancas (id) on delete cascade,
+  nivel int not null default 1,
+  hora int check (hora between 0 and 23),
+  dia date,                 -- dia (Brasília) em que abriu pela última vez
+  aberto_em timestamptz,
+  hp bigint not null default 0,
+  estado text not null default 'fechado' check (estado in ('fechado', 'aberto', 'morto', 'falhou')),
+  morto_em timestamptz,
+  ultimo_golpe text
+);
+create table if not exists public.alianca_boss_dano (
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  dia date not null,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  dano bigint not null default 0,
+  investidas int not null default 0,
+  primary key (alianca_id, dia, personagem_id)
+);
+create table if not exists public.alianca_boss_salas (
+  id bigint generated always as identity primary key,
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  lider text not null references public.personagens (id) on delete cascade,
+  criado_em timestamptz not null default now()
+);
+create table if not exists public.alianca_boss_sala_membros (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  sala_id bigint not null references public.alianca_boss_salas (id) on delete cascade,
+  entrou_em timestamptz not null default now()
+);
+create table if not exists public.alianca_boss_runs (
+  id bigint generated always as identity primary key,
+  alianca_id bigint not null references public.aliancas (id) on delete cascade,
+  dia date not null,
+  nivel int not null,
+  lider text not null,
+  semente bigint not null,
+  hp_inicio bigint not null,
+  herois jsonb not null,      -- [{ id, dados }]
+  membros text[] not null,
+  estado text not null default 'andamento' check (estado in ('andamento', 'concluida', 'abandonada')),
+  dano bigint,
+  criado_em timestamptz not null default now(),
+  concluido_em timestamptz
+);
+create index if not exists alianca_boss_runs_alianca on public.alianca_boss_runs (alianca_id, criado_em desc);
+alter table public.alianca_boss enable row level security;
+alter table public.alianca_boss_dano enable row level security;
+alter table public.alianca_boss_salas enable row level security;
+alter table public.alianca_boss_sala_membros enable row level security;
+alter table public.alianca_boss_runs enable row level security;
+
+create or replace function public.alianca_boss_cfg() returns jsonb
+language sql immutable as $$ select public.tanka_dados() -> 'BOSS_ALIANCA'; $$;
+
+-- Vida e prêmios do nível n (depois da tabela, a vida continua crescendo vidaPorNivel por nível).
+create or replace function public.alianca_boss_info(n int) returns jsonb
+language plpgsql immutable as $$
+declare cfg jsonb := public.alianca_boss_cfg(); t int := jsonb_array_length(cfg -> 'niveis'); x jsonb;
+begin
+  if n <= t then return cfg -> 'niveis' -> (n - 1); end if;
+  x := cfg -> 'niveis' -> (t - 1);
+  return jsonb_set(x, '{hp}', to_jsonb(round((x ->> 'hp')::numeric * power((cfg ->> 'vidaPorNivel')::numeric, n - t))::bigint));
+end $$;
+
+-- Abre ou fecha o boss conforme a hora (chamada por todas as funções do boss). Devolve a linha atualizada.
+create or replace function public.alianca_boss_atualizar(aid bigint) returns public.alianca_boss
+language plpgsql security definer set search_path = public as $$
+declare b public.alianca_boss; hoje date := public.dia_jogo(); inicio timestamptz;
+  dur interval := make_interval(mins => (public.alianca_boss_cfg() ->> 'duracaoMin')::int);
+begin
+  insert into public.alianca_boss (alianca_id) values (aid) on conflict (alianca_id) do nothing;
+  select * into b from public.alianca_boss where alianca_id = aid for update;
+  if b.estado = 'aberto' and now() >= b.aberto_em + dur then
+    update public.alianca_boss set estado = 'falhou' where alianca_id = aid returning * into b;
+  end if;
+  if b.hora is not null and b.dia is distinct from hoje then
+    inicio := (hoje + make_interval(hours => b.hora)) at time zone 'America/Sao_Paulo';
+    if now() >= inicio and now() < inicio + dur then
+      update public.alianca_boss set dia = hoje, aberto_em = inicio, estado = 'aberto', ultimo_golpe = null, morto_em = null,
+        hp = (public.alianca_boss_info(b.nivel) ->> 'hp')::bigint
+      where alianca_id = aid returning * into b;
+    end if;
+  end if;
+  return b;
+end $$;
+
+-- Sai do grupo do boss (o mais antigo vira líder; grupo vazio é apagado).
+create or replace function public.alianca_boss_sala_sair_de(pid text) returns void
+language plpgsql security definer set search_path = public as $$
+declare s bigint; novo text;
+begin
+  select sala_id into s from public.alianca_boss_sala_membros where personagem_id = pid;
+  if s is null then return; end if;
+  delete from public.alianca_boss_sala_membros where personagem_id = pid;
+  select personagem_id into novo from public.alianca_boss_sala_membros where sala_id = s order by entrou_em limit 1;
+  if novo is null then delete from public.alianca_boss_salas where id = s; return; end if;
+  update public.alianca_boss_salas set lider = novo where id = s and lider = pid;
+end $$;
+
+-- Prêmios quando o boss morre: ouro (créditos), exp e pergaminhos (recompensas) para quem deu dano no dia;
+-- 1 item para quem deu mais dano; exp para a aliança.
+create or replace function public.alianca_boss_premiar(aid bigint, d date, n int) returns void
+language plpgsql security definer set search_path = public as $$
+declare info jsonb := public.alianca_boss_info(n); cfg jsonb := public.alianca_cfg(); x record; top text; r numeric; acum numeric := 0;
+  rar text := null; it jsonb; i int; a public.aliancas; prox bigint;
+begin
+  for x in select bd.personagem_id from public.alianca_boss_dano bd join public.personagens p on p.id = bd.personagem_id
+      where bd.alianca_id = aid and bd.dia = d and bd.dano > 0 loop
+    perform public.creditar(x.personagem_id, (info ->> 'ouro')::int, 0, 'Boss da aliança (nível ' || n || ')');
+    insert into public.recompensas (personagem_id, origem, item) values (x.personagem_id, 'boss-alianca',
+      jsonb_build_object('tipo', 'exp', 'valor', (info ->> 'exp')::bigint, 'nivelBoss', n));
+    for i in 1 .. coalesce((info ->> 'pergaminho')::int, 0) loop
+      insert into public.recompensas (personagem_id, origem, item) values (x.personagem_id, 'boss-alianca',
+        jsonb_build_object('tipo', 'pergaminho', 'raridade', info ->> 'raridade', 'boss', true));
+    end loop;
+  end loop;
+  select bd.personagem_id into top from public.alianca_boss_dano bd join public.personagens p on p.id = bd.personagem_id
+    where bd.alianca_id = aid and bd.dia = d and bd.dano > 0 order by bd.dano desc limit 1;
+  if top is not null then
+    r := random() * 100;
+    for it in select * from jsonb_array_elements(public.alianca_boss_cfg() -> 'item') loop
+      acum := acum + (it ->> 'chance')::numeric;
+      if rar is null and r < acum then rar := it ->> 'raridade'; end if;
+    end loop;
+    insert into public.recompensas (personagem_id, origem, item) values (top, 'boss-alianca',
+      jsonb_build_object('tipo', 'bossItem', 'raridade', coalesce(rar, 'epica'), 'nivelBoss', n));
+  end if;
+  update public.aliancas set exp = exp + (info ->> 'alianca')::bigint where id = aid returning * into a;
+  loop
+    exit when a.nivel >= (cfg ->> 'nivelMax')::int;
+    prox := (cfg -> 'expProximo' ->> (a.nivel - 1))::bigint;
+    exit when a.exp < prox;
+    update public.aliancas set nivel = nivel + 1, exp = exp - prox where id = a.id returning * into a;
+  end loop;
+end $$;
+
+-- Tudo que a tela do boss precisa.
+create or replace function public.alianca_boss_estado(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; b public.alianca_boss; minha bigint; info jsonb;
+  dur int := (public.alianca_boss_cfg() ->> 'duracaoMin')::int;
+begin
+  perform public.conferir_dono(meu);
+  m := public.alianca_minha(meu);
+  b := public.alianca_boss_atualizar(m.alianca_id);
+  info := public.alianca_boss_info(b.nivel);
+  select sala_id into minha from public.alianca_boss_sala_membros where personagem_id = meu;
+  return jsonb_build_object(
+    'agora', now(), 'dia', public.dia_jogo(), 'meu_cargo', m.cargo, 'minha_sala', minha,
+    'boss', jsonb_build_object('nivel', b.nivel, 'hora', b.hora, 'estado', b.estado, 'dia', b.dia, 'hp', b.hp,
+      'hp_max', case when b.estado in ('aberto', 'morto', 'falhou') and b.dia is not null then (public.alianca_boss_info(
+        case when b.estado = 'morto' then b.nivel - 1 else b.nivel end) ->> 'hp')::bigint else (info ->> 'hp')::bigint end,
+      'aberto_em', b.aberto_em, 'fecha_em', b.aberto_em + make_interval(mins => dur), 'morto_em', b.morto_em,
+      'ultimo_golpe', b.ultimo_golpe),
+    -- dano do último dia em que o boss abriu
+    'ranking', coalesce((select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe',
+        'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'dano', bd.dano, 'investidas', bd.investidas)
+        order by bd.dano desc)
+      from public.alianca_boss_dano bd join public.personagens p on p.id = bd.personagem_id
+      where bd.alianca_id = m.alianca_id and bd.dia = b.dia), '[]'::jsonb),
+    'salas', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'lider', s.lider,
+        'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe',
+            'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca',
+            'nivel', coalesce((p.dados ->> 'nivel')::int, 1)) order by sm.entrou_em)
+          from public.alianca_boss_sala_membros sm join public.personagens p on p.id = sm.personagem_id where sm.sala_id = s.id))
+        order by s.id)
+      from public.alianca_boss_salas s where s.alianca_id = m.alianca_id), '[]'::jsonb),
+    -- última investida em que estou (para o grupo assistir junto)
+    'run', (select jsonb_build_object('id', r.id, 'nivel', r.nivel, 'semente', r.semente, 'hp_inicio', r.hp_inicio,
+        'herois', r.herois, 'estado', r.estado, 'lider', r.lider, 'dano', r.dano, 'criado_em', r.criado_em)
+      from public.alianca_boss_runs r where r.alianca_id = m.alianca_id and meu = any (r.membros)
+        and r.criado_em > now() - interval '5 minutes' order by r.id desc limit 1),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+      from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
+end $$;
+
+-- Líder escolhe a hora do boss (0 a 23, Brasília). Vale a partir do próximo dia em que ainda não abriu.
+create or replace function public.alianca_boss_hora(meu text, hora int) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; b public.alianca_boss;
+begin
+  perform public.conferir_dono(meu);
+  m := public.alianca_minha(meu);
+  if m.cargo <> 'lider' then raise exception 'Só o líder escolhe a hora do boss.'; end if;
+  if hora is null or hora < 0 or hora > 23 then raise exception 'Hora inválida.'; end if;
+  b := public.alianca_boss_atualizar(m.alianca_id);
+  if b.estado = 'aberto' then raise exception 'Espere o boss de hoje terminar para mudar a hora.'; end if;
+  update public.alianca_boss set hora = alianca_boss_hora.hora where alianca_id = m.alianca_id;
+  perform public.alianca_boss_atualizar(m.alianca_id);
+end $$;
+
+create or replace function public.alianca_boss_sala_criar(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; s bigint;
+begin
+  perform public.conferir_dono(meu);
+  m := public.alianca_minha(meu);
+  perform public.alianca_boss_sala_sair_de(meu);
+  insert into public.alianca_boss_salas (alianca_id, lider) values (m.alianca_id, meu) returning id into s;
+  insert into public.alianca_boss_sala_membros (personagem_id, sala_id) values (meu, s);
+end $$;
+
+create or replace function public.alianca_boss_sala_entrar(meu text, sala bigint) returns void
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; aid bigint;
+begin
+  perform public.conferir_dono(meu);
+  m := public.alianca_minha(meu);
+  select alianca_id into aid from public.alianca_boss_salas where id = sala for update;
+  if aid is null or aid <> m.alianca_id then raise exception 'Grupo não encontrado.'; end if;
+  if exists (select 1 from public.alianca_boss_sala_membros where personagem_id = meu and sala_id = sala) then return; end if;
+  if (select count(*) from public.alianca_boss_sala_membros where sala_id = sala) >= (public.alianca_boss_cfg() ->> 'grupoMax')::int then
+    raise exception 'O grupo já está cheio.';
+  end if;
+  perform public.alianca_boss_sala_sair_de(meu);
+  insert into public.alianca_boss_sala_membros (personagem_id, sala_id) values (meu, sala);
+end $$;
+
+create or replace function public.alianca_boss_sala_sair(meu text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  perform public.alianca_boss_sala_sair_de(meu);
+end $$;
+
+-- Começa uma investida (sozinho, ou o líder do grupo leva o grupo todo). Devolve a semente e os heróis.
+create or replace function public.alianca_boss_atacar(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare m public.alianca_membros; b public.alianca_boss; s bigint; lider text; ids text[]; run public.alianca_boss_runs;
+begin
+  perform public.conferir_dono(meu);
+  m := public.alianca_minha(meu);
+  b := public.alianca_boss_atualizar(m.alianca_id);
+  if b.estado <> 'aberto' then raise exception 'O boss não está aberto agora.'; end if;
+  select sala_id into s from public.alianca_boss_sala_membros where personagem_id = meu;
+  if s is null then
+    ids := array[meu];
+  else
+    select x.lider into lider from public.alianca_boss_salas x where x.id = s;
+    if lider <> meu then raise exception 'Só o líder do grupo começa a investida.'; end if;
+    select array_agg(sm.personagem_id order by sm.entrou_em) into ids from public.alianca_boss_sala_membros sm
+      join public.alianca_membros am on am.personagem_id = sm.personagem_id and am.alianca_id = m.alianca_id
+      where sm.sala_id = s;
+  end if;
+  update public.alianca_boss_runs set estado = 'abandonada', concluido_em = now()
+    where alianca_id = m.alianca_id and estado = 'andamento' and criado_em < now() - interval '5 minutes';
+  if exists (select 1 from public.alianca_boss_runs where alianca_id = m.alianca_id and estado = 'andamento' and membros && ids) then
+    raise exception 'Alguém do grupo ainda está numa investida.';
+  end if;
+  insert into public.alianca_boss_runs (alianca_id, dia, nivel, lider, semente, hp_inicio, herois, membros)
+  select m.alianca_id, b.dia, b.nivel, meu, floor(random() * 2147483647)::bigint, b.hp,
+         jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by array_position(ids, p.id)), ids
+  from public.personagens p where p.id = any (ids)
+  returning * into run;
+  return jsonb_build_object('id', run.id, 'nivel', run.nivel, 'semente', run.semente, 'hp_inicio', run.hp_inicio,
+    'herois', run.herois, 'estado', run.estado, 'lider', run.lider, 'criado_em', run.criado_em);
+end $$;
+
+-- Fim da investida: danos = dano de cada herói, na ordem de `membros`. O dano conta só se o boss ainda estiver
+-- aberto no mesmo dia e nível; nunca passa da vida que ele ainda tem (outros grupos podem ter batido antes).
+create or replace function public.alianca_boss_concluir(meu text, run_id bigint, danos bigint[]) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare run public.alianca_boss_runs; b public.alianca_boss; total bigint := 0; resto bigint; d bigint; i int; nome text; morreu boolean := false;
+begin
+  perform public.conferir_dono(meu);
+  select * into run from public.alianca_boss_runs where id = run_id for update;
+  if run.id is null or run.lider <> meu then raise exception 'Investida não encontrada.'; end if;
+  if run.estado <> 'andamento' then raise exception 'Essa investida já terminou.'; end if;
+  b := public.alianca_boss_atualizar(run.alianca_id);
+  if b.estado <> 'aberto' or b.dia <> run.dia or b.nivel <> run.nivel then
+    update public.alianca_boss_runs set estado = 'concluida', dano = 0, concluido_em = now() where id = run_id;
+    return jsonb_build_object('dano', 0, 'hp', b.hp, 'morreu', false, 'estado', b.estado);
+  end if;
+  resto := least(b.hp, run.hp_inicio);
+  for i in 1 .. array_length(run.membros, 1) loop
+    d := greatest(0, least(coalesce(danos[i], 0), resto));
+    resto := resto - d;
+    total := total + d;
+    begin
+      insert into public.alianca_boss_dano (alianca_id, dia, personagem_id, dano, investidas)
+      values (run.alianca_id, run.dia, run.membros[i], d, 1)
+      on conflict (alianca_id, dia, personagem_id) do update
+        set dano = public.alianca_boss_dano.dano + excluded.dano, investidas = public.alianca_boss_dano.investidas + 1;
+    end;
+  end loop;
+  update public.alianca_boss_runs set estado = 'concluida', dano = total, concluido_em = now() where id = run_id;
+  update public.alianca_boss set hp = hp - total where alianca_id = run.alianca_id returning * into b;
+  if b.hp <= 0 then
+    morreu := true;
+    select p.nome into nome from public.personagens p where p.id = meu;
+    update public.alianca_boss set hp = 0, estado = 'morto', morto_em = now(), ultimo_golpe = nome, nivel = nivel + 1
+      where alianca_id = run.alianca_id returning * into b;
+    perform public.alianca_boss_premiar(run.alianca_id, run.dia, run.nivel);
+  end if;
+  return jsonb_build_object('dano', total, 'hp', b.hp, 'morreu', morreu, 'estado', b.estado);
+end $$;
+
+revoke execute on function public.alianca_boss_cfg(), public.alianca_boss_info(int), public.alianca_boss_atualizar(bigint),
+  public.alianca_boss_sala_sair_de(text), public.alianca_boss_premiar(bigint, date, int) from public, anon, authenticated;
+revoke execute on function public.alianca_boss_estado(text), public.alianca_boss_hora(text, int), public.alianca_boss_sala_criar(text),
+  public.alianca_boss_sala_entrar(text, bigint), public.alianca_boss_sala_sair(text), public.alianca_boss_atacar(text),
+  public.alianca_boss_concluir(text, bigint, bigint[]) from public, anon;
+grant execute on function public.alianca_boss_estado(text), public.alianca_boss_hora(text, int), public.alianca_boss_sala_criar(text),
+  public.alianca_boss_sala_entrar(text, bigint), public.alianca_boss_sala_sair(text), public.alianca_boss_atacar(text),
+  public.alianca_boss_concluir(text, bigint, bigint[]) to authenticated;
+
+notify pgrst, 'reload schema';

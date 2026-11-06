@@ -744,6 +744,35 @@ Tanka.dados = {
     },
   },
 
+  // ---------- Boss da aliança (Daniel, nov/2026) ----------
+  // Um boss por dia para cada aliança. O líder escolhe a hora (0 a 23, horário de Brasília) e o boss abre sozinho
+  // todo dia nessa hora, por `duracaoMin` minutos. Ataques ilimitados enquanto estiver aberto, sozinho ou em grupo
+  // de até `grupoMax` membros da aliança. Cada investida é uma luta como a da masmorra (vida própria, sem poções)
+  // que acaba quando o grupo cai ou quando o boss atacar `limiteAtaques` vezes; o dano fica no boss (vida de todos).
+  // Morreu: sobe 1 nível e todos que deram dano ganham prêmio. Não morreu na hora: no dia seguinte é o mesmo boss,
+  // com a vida cheia de novo.
+  // Nível do boss: a cada `niveisPorChefe` níveis ele vira o chefe seguinte da lista (mais forte); dentro do mesmo
+  // chefe a vida cresce `vidaPorNivel` por nível. Depois do último chefe, a vida e o ataque continuam crescendo.
+  // Vida = vida do chefe da caçada x `vida` x vidaPorNivel^(nível dentro do chefe).
+  // Estes números também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
+  BOSS_ALIANCA: {
+    duracaoMin: 60, grupoMax: 4, limiteAtaques: 15,
+    chefes: ['varnok', 'guardiao', 'farao', 'vharkesh', 'ignaroth'], niveisPorChefe: 3,
+    vida: 30, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,
+    titulos: ['', 'Desperto', 'Furioso'],
+    // Prêmios quando o boss morre (para quem deu dano naquele dia). ouro e exp: o ouro e a exp do chefe na caçada
+    // vezes estes números, +`porNivel` (25%) a cada nível dentro do chefe; a exp do herói fica limitada a `expMaxPct`%
+    // da exp do level dele. alianca: exp da aliança = ouro do prêmio x este número.
+    // pergaminho: quantos cada um ganha; a raridade melhora com o chefe (índice do chefe na lista).
+    // item: quem deu mais dano ganha 1 item (arma, armadura ou mão esquerda) com estas chances.
+    // Calibrado (simulação): grupo de 4 no level do chefe vence o 1º nível de cada chefe com ~10 a 18 investidas.
+    premio: {
+      ouro: 10, exp: 5, porNivel: 0.25, expMaxPct: 20, alianca: 2,
+      pergaminho: { qtd: 2, raridade: ['comum', 'rara', 'rara', 'epica', 'epica'] },
+      item: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }],
+    },
+  },
+
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
   // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).

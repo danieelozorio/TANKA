@@ -235,3 +235,28 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `>= 2` fixo em `grupo_iniciar`/`fila_casar`/`fila_entrar`). Para devolver as entradas do dia a todos:
   `delete from public.masmorra_entradas where dia = public.dia_jogo();`
 
+
+## Boss da aliança (Daniel, nov/2026)
+- Aba Social > Aliança > botão "⚔ Boss da aliança" (`estado.aliancaVista = 'boss'`, `bossAliancaHtml` em app.js).
+- Regras do Daniel: 1 boss por dia; o **líder** escolhe a hora (0–23, Brasília) e o boss abre sozinho todo dia nessa
+  hora por 60 min (`BOSS_ALIANCA.duracaoMin`); ataques **ilimitados**; grupo de até **4** membros da aliança; se não
+  morrer na hora, no dia seguinte é o **mesmo boss com a vida cheia**; se morrer, sobe 1 nível (mais forte).
+- Números em `BOSS_ALIANCA` (dados.js). Nível n: a cada 3 níveis troca de chefe (Varnok → Guardião → Faraó → Vhar'kesh
+  → Ignaroth; títulos "Desperto"/"Furioso"); vida = vida do chefe da caçada × `vida` (30) × 1,3^(nível dentro do chefe);
+  depois do Ignaroth a vida e o ataque continuam crescendo. Calibrado por simulação: grupo de 4 no level do chefe com
+  itens raros/épicos +3/+4 vence o 1º nível de cada chefe em ~10–18 investidas (≈3.000 de dano por investida no nível 1).
+- Investida = luta da masmorra (`simularSalas`, motor separado de `simularMasmorra`) com 1 sala só (o boss com a vida
+  que falta); acaba quando o grupo cai ou o boss ataca `limiteAtaques` (15) vezes. `R.simularBossAlianca` devolve
+  `danos` por herói. Quem começa (sozinho ou o líder do grupo) já informa o dano no início (`alianca_boss_concluir`);
+  os outros do grupo veem a investida no `alianca_boss_estado` (`run`) e assistem junto (90 s).
+- Prêmios (servidor, `alianca_boss_premiar`) para quem deu dano no dia: ouro via `creditar`; exp (`recompensas`
+  tipo `exp`, o jogo limita a `expMaxPct` 20% da exp do level), 2 pergaminhos (raridade pelo chefe, `boss: true`);
+  maior dano: `bossItem` (10% lendário, 90% épico; o item é gerado no jogo, `R.itemBossAlianca`); aliança: exp =
+  ouro do prêmio × 2. Resgate em `resgatarRecompensas` (app.js).
+- Servidor (schema.sql, fim do arquivo): tabelas `alianca_boss`, `alianca_boss_dano`, `alianca_boss_salas`,
+  `alianca_boss_sala_membros`, `alianca_boss_runs`; abrir/fechar é preguiçoso em `alianca_boss_atualizar` (chamada por
+  todas as funções). Vida/prêmios por nível vêm de `tanka_dados()->'BOSS_ALIANCA'->'niveis'` (60 níveis gerados por
+  `ferramentas/gerar_dados_sql.js` com `R.tabelaBossAlianca`): **mudou BOSS_ALIANCA → rodar a ferramenta e o schema**.
+  Sair/ser expulso da aliança tira do grupo do boss (`alianca_registrar_saida`, agora plpgsql).
+- Atualização: a cada 4 s na tela do boss ou com o boss aberto; senão a cada 32 s (selo "!" na aba e prêmios).
+- Testes: regras.test.js (2 testes "boss da aliança") e banco.test.sql (bloco "Boss da aliança").

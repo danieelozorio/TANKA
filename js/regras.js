@@ -988,6 +988,15 @@ Tanka.regras = (function () {
     return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
   }
 
+  // Item do boss da aliança (quem deu mais dano): 1 arma ou 1 armadura/mão esquerda da classe, na raridade sorteada no servidor.
+  function itemBossAlianca(p, raridade, rng) {
+    rng = rng || Math.random;
+    if (!D.raridades[raridade]) raridade = 'epica';
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
+    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
+    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
+  }
+
   // ---------- Combate ----------
   // Barra de ação: cada lutador soma sua velocidade por tique e age ao chegar a 100.
   // Velocidade 20 contra 10 = duas ações para cada uma do adversário.
@@ -1788,6 +1797,14 @@ Tanka.regras = (function () {
   // herois: dados dos personagens (cópias). Retorna { vitoria, sala (onde terminou), inicio, eventos }.
   // Evento: { tipo: 'golpe', sala, de: 'h'|'m', i, alvo, acerto, critico, dano, caiu } ou { tipo: 'sala', sala }.
   function simularMasmorra(herois, masmorraId, semente) {
+    return simularSalas(herois, salasMasmorra(masmorraId), semente);
+  }
+
+  // Motor da luta em grupo (masmorra e boss da aliança). salas: listas de monstros (hp, ataque, velocidade,
+  // defesa, defesaMagica, indiceArea, chefe). opc.limiteAtaques: a luta acaba quando os monstros atacarem
+  // esse número de vezes (boss da aliança: o "fôlego" de cada investida); o resultado vem com `tempo: true`.
+  function simularSalas(herois, salas, semente, opc) {
+    opc = opc || {};
     var rng = rngSemente(semente);
     var hs = herois.map(function (dados) {
       var p = normalizar(JSON.parse(JSON.stringify(dados)));
@@ -1795,10 +1812,10 @@ Tanka.regras = (function () {
       return { nome: p.nome, classe: p.classe, classe2: p.talentos && p.talentos.classe2 || null, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
-    var salas = salasMasmorra(masmorraId);
+    var ataquesMonstro = 0;
     var inicio = {
       herois: hs.map(function (h) { return { nome: h.nome, classe: h.classe, classe2: h.classe2, raca: h.raca, sexo: h.sexo, hpMax: h.hpMax }; }),
-      salas: salas.map(function (sala) { return sala.map(function (m) { return { id: m.id, nome: m.nome, hpMax: m.hp, elite: m.elite, chefe: m.chefe }; }); }),
+      salas: salas.map(function (sala) { return sala.map(function (m) { return { id: m.id, nome: m.nome, hpMax: m.hpMax || m.hp, hp: m.hp, elite: m.elite, chefe: m.chefe }; }); }),
     };
     var eventos = [];
     // Cada evento leva a vida de todos os heróis depois dele (cura, Bênção e golpes).
@@ -1806,7 +1823,7 @@ Tanka.regras = (function () {
     function vivos(lista) { return lista.filter(function (x) { return x.hp > 0; }); }
     for (var si = 0; si < salas.length; si++) {
       if (si > 0) registrar({ tipo: 'sala', sala: si });
-      var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100, atordoado: 0 }); });
+      var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hpMax || m.hp, vel: Math.max(1, m.velocidade), barra: 100, atordoado: 0 }); });
       var tiques = 0;
       while (vivos(ms).length && vivos(hs).length) {
         if (++tiques > 200000) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
@@ -1866,6 +1883,9 @@ Tanka.regras = (function () {
           });
           ev = null;
         } else {
+          if (opc.limiteAtaques && ++ataquesMonstro > opc.limiteAtaques) {
+            return { vitoria: false, tempo: true, sala: si, inicio: inicio, eventos: eventos };
+          }
           if (ator.atordoado > 0) { ator.atordoado -= 1; ev.atordoado = true; registrar(ev); continue; }
           // Grito de Desafio: os monstros atacam quem provocou.
           var lista = vivos(hs), provocador = lista.filter(function (x) { return x.L.provocaAte >= x.L.turno; })[0];
@@ -1884,6 +1904,63 @@ Tanka.regras = (function () {
       if (!vivos(hs).length) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
     }
     return { vitoria: true, sala: salas.length - 1, inicio: inicio, eventos: eventos };
+  }
+
+  // ---------- Boss da aliança ----------
+  // O boss no nível n: { id, nome, hp (vida cheia), ataque, velocidade, defesa, defesaMagica, indiceArea, chefe }.
+  function bossAlianca(nivel) {
+    var B = D.BOSS_ALIANCA, n = Math.max(1, Math.floor(nivel || 1));
+    var ultimo = B.chefes.length - 1, ic = Math.min(Math.floor((n - 1) / B.niveisPorChefe), ultimo);
+    var k = n - 1 - ic * B.niveisPorChefe;   // nível dentro do chefe (no último chefe não para de crescer)
+    var m = D.monstros[B.chefes[ic]];
+    var extra = Math.max(0, k - (B.niveisPorChefe - 1));
+    var fa = B.ataque * (1 + B.ataquePorNivelExtra * extra);
+    var titulo = B.titulos[Math.min(k, B.titulos.length - 1)] || '';
+    var nomeBase = m.nome.split(',')[0];
+    var P = B.premio, fp = 1 + P.porNivel * k, ouro = Math.round(m.ouro * P.ouro * fp);
+    return { id: B.chefes[ic], indiceChefe: ic, nivel: n, nome: nomeBase + (titulo ? ' ' + titulo : ''), nomeCompleto: m.nome,
+      premio: { ouro: ouro, exp: Math.round(m.exp * P.exp * fp), alianca: ouro * P.alianca,
+        pergaminho: P.pergaminho.qtd, raridadePergaminho: P.pergaminho.raridade[ic] },
+      hp: Math.round(m.hp * B.vida * Math.pow(B.vidaPorNivel, k)),
+      ataque: [Math.round(m.ataque[0] * fa), Math.round(m.ataque[1] * fa)],
+      velocidade: m.velocidade, defesa: m.defesa, defesaMagica: m.defesaMagica, indiceArea: m.indiceArea, chefe: true };
+  }
+
+  // Uma investida contra o boss. hpAtual: vida que o boss ainda tem. Retorna o resultado do motor
+  // (vitoria = o boss morreu) com `danos` (dano de cada herói, na ordem) e `dano` (total).
+  function simularBossAlianca(herois, nivel, hpAtual, semente) {
+    var b = bossAlianca(nivel);
+    var boss = Object.assign({}, b, { hpMax: b.hp, hp: Math.max(1, Math.min(b.hp, Math.round(hpAtual))) });
+    var r = simularSalas(herois, [[boss]], semente, { limiteAtaques: D.BOSS_ALIANCA.limiteAtaques });
+    r.danos = herois.map(function () { return 0; });
+    r.eventos.forEach(function (e) { if (e.tipo === 'golpe' && e.de === 'h' && e.acerto) r.danos[e.i] += e.dano; });
+    var total = r.danos.reduce(function (a, x) { return a + x; }, 0);
+    // o último golpe pode passar da vida que faltava: conta só o que faltava
+    if (total > boss.hp) {
+      var sobra = total - boss.hp;
+      for (var i = r.danos.length - 1; i >= 0 && sobra > 0; i--) { var t = Math.min(sobra, r.danos[i]); r.danos[i] -= t; sobra -= t; }
+      total = boss.hp;
+    }
+    r.dano = total;
+    r.boss = b;
+    return r;
+  }
+
+  // Prêmio de um herói quando o boss morre: { ouro, exp } (exp limitada a expMaxPct% da exp do level do herói).
+  function premioBossAlianca(p, nivelBoss) {
+    var pr = bossAlianca(nivelBoss).premio;
+    return { ouro: pr.ouro, exp: Math.min(pr.exp, Math.floor(expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100)) };
+  }
+
+  // Tabela dos níveis do boss para o servidor (ferramentas/gerar_dados_sql.js): vida cheia e prêmios.
+  function tabelaBossAlianca(ate) {
+    var t = [];
+    for (var n = 1; n <= ate; n++) {
+      var b = bossAlianca(n);
+      t.push({ hp: b.hp, ouro: b.premio.ouro, exp: b.premio.exp, alianca: b.premio.alianca,
+        pergaminho: b.premio.pergaminho, raridade: b.premio.raridadePergaminho });
+    }
+    return t;
   }
 
   // ---------- Skins do dado ----------
@@ -2169,6 +2246,12 @@ Tanka.regras = (function () {
     masmorra: masmorra,
     salasMasmorra: salasMasmorra,
     simularMasmorra: simularMasmorra,
+    simularSalas: simularSalas,
+    bossAlianca: bossAlianca,
+    simularBossAlianca: simularBossAlianca,
+    premioBossAlianca: premioBossAlianca,
+    tabelaBossAlianca: tabelaBossAlianca,
+    itemBossAlianca: itemBossAlianca,
     fatorExp: fatorExp,
     diaReset: diaReset,
     msAteReset: msAteReset,

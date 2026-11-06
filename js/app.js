@@ -492,6 +492,7 @@
     carregarArena();
     estado.alianca = null;
     estado.aliancaCriar = estado.aliancaBrasao = estado.aliancaConfirmar = null;
+    estado.bossAl = null; estado.aliancaVista = null;
     carregarAlianca();
   }
 
@@ -3053,13 +3054,16 @@
         estado.luta.rapido = !estado.luta.rapido;
         redesenharLuta();
         break;
-      case 'luta-fechar':
+      case 'luta-fechar': {
+        var eraBoss = estado.luta && estado.luta.boss;
         clearTimeout(estado.luta.timer);
         estado.luta = null;
+        if (eraBoss) { estado.aba = 'alianca'; estado.aliancaVista = 'boss'; telaJogo(); carregarBossAl(); break; }
         estado.aba = 'masmorra';
         telaJogo();
         resgatarRecompensas();
         break;
+      }
       case 'admin-masmorra-entradas':
         acaoGrupo(function () { return C.grupo.adminRecarregar(p.id); }, 'Entradas da masmorra recarregadas.');
         break;
@@ -3554,7 +3558,29 @@
           if (!D.raridades[perg.raridade]) continue;
           R.mudarPergaminho(p, perg.raridade, 1);
           salvar();
-          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + ' na masmorra!', 'item');
+          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + (perg.boss ? ' no boss da aliança!' : ' na masmorra!'), 'item');
+          continue;
+        }
+        // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.
+        if (rec.item && rec.item.tipo === 'exp') {
+          var rx = await C.grupo.resgatar(p.id, rec.id);
+          var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
+          var subiu = R.ganharExp(p, xp);
+          salvar();
+          avisar('Boss da aliança derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
+          continue;
+        }
+        if (rec.item && rec.item.tipo === 'bossItem') {
+          if (R.mochilaCheia(p)) {
+            if (!avisouCheia) avisar('Mochila cheia! Seu item do boss da aliança está guardado: libere espaço para recebê-lo.');
+            avisouCheia = true;
+            continue;
+          }
+          var rb = await C.grupo.resgatar(p.id, rec.id);
+          var ib = R.itemBossAlianca(p, rb.raridade);
+          p.inventario.push(ib);
+          salvar();
+          avisar('Maior dano no boss da aliança! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
           continue;
         }
         if (R.mochilaCheia(p)) {
@@ -3631,6 +3657,11 @@
     var L = estado.luta, ev = L.sim.eventos[L.idx++];
     if (!ev) {
       L.fim = true;
+      if (L.boss) {
+        L.registro.push(L.sim.vitoria ? '<p class="habilidade-usada">O BOSS CAIU! ' + esc(L.boss.nome) + ' foi derrotado!</p>'
+          : '<p class="destaque">Fim da investida: ' + L.sim.dano.toLocaleString('pt-BR') + ' de dano' + (L.sim.tempo ? ' (o boss recuou para recuperar o fôlego).' : '.') + '</p>');
+        return;
+      }
       var s = L.sim.inicio;
       L.registro.push(L.sim.vitoria
         ? '<p class="habilidade-usada">VITÓRIA! ' + esc(s.salas[2][0].nome) + ' caiu!</p>'
@@ -3640,7 +3671,7 @@
     var herois = L.sim.inicio.herois, monstros = L.sim.inicio.salas[L.sala];
     if (ev.tipo === 'sala') {
       L.sala = ev.sala;
-      L.hpM = L.sim.inicio.salas[L.sala].map(function (m) { return m.hpMax; });
+      L.hpM = L.sim.inicio.salas[L.sala].map(function (m) { return m.hp != null ? m.hp : m.hpMax; });
       L.registro.push('<p class="destaque">— ' + NOMES_SALA[L.sala] + ' —</p>');
       atualizarMusica();
     } else if (ev.tipo === 'hab') {
@@ -3692,13 +3723,24 @@
         + barra('hp', L.hpM[i], m.hpMax, L.hpM[i].toLocaleString('pt-BR') + ' / ' + m.hpMax.toLocaleString('pt-BR'), 'mas' + i) + '</div>';
     }).join('');
     var fim = '';
-    if (L.fim) {
+    if (L.fim && L.boss) {
+      var sv = L.servidor, caiu = sv ? sv.morreu : L.sim.vitoria, danoTotal = sv ? Number(sv.dano) : L.sim.dano;
+      var aindaAberto = !caiu && !(sv && sv.estado && sv.estado !== 'aberto');
+      var podeAtacar = aindaAberto && L.run.lider === estado.personagem.id;
+      fim = '<div class="resultado ' + (caiu ? 'vitoria-chefe' : 'vitoria') + '"><h2>' + (caiu ? 'O BOSS CAIU!' : 'Investida concluída') + '</h2>'
+        + '<p>' + (caiu ? 'A aliança derrotou ' + esc(L.boss.nome) + '! Todos que deram dano hoje recebem o prêmio (chega sozinho). Amanhã ele volta mais forte.'
+          : 'Dano desta investida: <strong>' + danoTotal.toLocaleString('pt-BR') + '</strong>.' + (sv && Number(sv.dano) < L.sim.dano ? ' (Outro grupo bateu ao mesmo tempo: contou só a vida que faltava.)' : '')
+            + (sv && sv.estado && sv.estado !== 'aberto' && !caiu ? ' O boss já tinha fechado: este dano não contou.' : ''))
+        + '</p><p class="suave pequeno">' + L.sim.inicio.herois.map(function (h, i) { return esc(h.nome) + ': ' + L.sim.danos[i].toLocaleString('pt-BR'); }).join(' · ') + '</p>'
+        + '<div class="botoes">' + (podeAtacar ? '<button class="btn" data-acao="al-boss-atacar">⚔ Atacar de novo</button>' : '')
+        + '<button class="btn' + (podeAtacar ? ' secundario' : '') + '" data-acao="luta-fechar">Voltar</button></div></div>';
+    } else if (L.fim) {
       fim = L.sim.vitoria
         ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(L.mm.nome) + '. Cada um ganhou um colar ou anel (vai para a mochila) e tem ' + D.MASMORRA.pergaminho + '% de chance de ganhar um pergaminho de encantamento.</p>'
         : '<div class="resultado derrota"><h2>Derrota</h2><p>O grupo caiu na ' + NOMES_SALA[L.sim.sala].toLowerCase() + '. Ninguém perdeu nada e a entrada não foi gasta.</p>';
       fim += '<div class="botoes"><button class="btn" data-acao="luta-fechar">Voltar</button></div></div>';
     }
-    return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + NOMES_SALA[L.sala] + '</h3>'
+    return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss da aliança · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
       + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
@@ -3886,6 +3928,9 @@
     ciclosGrupo++;
     var emGrupo = estado.gm && (estado.gm.grupo || estado.gm.fila);
     if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
+    // Boss da aliança: a cada 4 s na tela dele ou com o boss aberto; senão a cada 32 s (aviso e prêmios).
+    var bossAberto = estado.bossAl && estado.bossAl.boss && estado.bossAl.boss.estado === 'aberto';
+    if ((estado.aba === 'alianca' && estado.aliancaVista === 'boss') || bossAberto || ciclosGrupo % 8 === 6) carregarBossAl();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);
 
@@ -4463,7 +4508,7 @@
     var st = aliancaAtual();
     if (!st || st.local) return '';
     var n = st.alianca ? (st.pedidos || []).length : (st.convites || []).length;
-    return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
+    return n ? ' <span class="selo-pedidos">' + n + '</span>' : (st.alianca ? seloBossAl() : '');
   }
   function carregarAlianca() {
     var p = estado.personagem;
@@ -4581,6 +4626,11 @@
       html += '<div class="caixa-interna">' + editorBrasao(estado.aliancaBrasao, 'Novo brasão')
         + '<div class="botoes"><button class="btn" data-acao="al-brasao-salvar">Salvar brasão</button><button class="btn secundario" data-acao="al-brasao-fechar">Cancelar</button></div></div>';
     }
+    var vBoss = estado.aliancaVista === 'boss';
+    html += '<div class="botoes alianca-vistas">'
+      + '<button class="btn btn-pequeno' + (vBoss ? ' secundario' : '') + '" data-acao="al-vista" data-valor="geral">Aliança</button>'
+      + '<button class="btn btn-pequeno' + (vBoss ? '' : ' secundario') + '" data-acao="al-vista" data-valor="boss">⚔ Boss da aliança' + seloBossAl() + '</button></div>';
+    if (vBoss) return html + bossAliancaHtml();
     // Mural
     html += '<div class="caixa-interna"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
       + (manda ? '<div class="linha-form"><input id="al-mural" maxlength="' + AL.muralMax + '" placeholder="Escreva um aviso para todos" value="' + esc(a.mural) + '">'
@@ -4688,6 +4738,20 @@
         acaoAlianca(A2.brasao(p.id, nb), 'Brasão atualizado.');
         return true;
       }
+      case 'al-vista':
+        estado.aliancaVista = el.dataset.valor === 'boss' ? 'boss' : null;
+        telaJogo();
+        if (estado.aliancaVista) carregarBossAl();
+        return true;
+      case 'al-boss-hora': {
+        var h = parseInt(valor('al-boss-hora'), 10);
+        acaoBossAl(A2.boss.hora(p.id, h), 'Boss marcado para as ' + h + 'h (horário de Brasília), todos os dias.');
+        return true;
+      }
+      case 'al-boss-sala-criar': acaoBossAl(A2.boss.salaCriar(p.id), 'Grupo criado. Chame até ' + (D.BOSS_ALIANCA.grupoMax - 1) + ' membros para entrar.'); return true;
+      case 'al-boss-sala-entrar': acaoBossAl(A2.boss.salaEntrar(p.id, Number(el.dataset.id)), 'Você entrou no grupo.'); return true;
+      case 'al-boss-sala-sair': acaoBossAl(A2.boss.salaSair(p.id), 'Você saiu do grupo.'); return true;
+      case 'al-boss-atacar': atacarBossAl(el); return true;
       case 'al-pedir-confirmar': estado.aliancaConfirmar = el.dataset.chave; telaJogo(); return true;
       case 'al-cancelar': estado.aliancaConfirmar = null; telaJogo(); return true;
       case 'al-confirmado': {
@@ -4712,6 +4776,178 @@
       }
     }
     return false;
+  }
+
+  // ---------------- Boss da aliança (Daniel, nov/2026) ----------------
+  // estado.bossAl: o que o servidor diz (alianca_boss_estado). A investida é calculada aqui (R.simularBossAlianca)
+  // com a semente do servidor; o líder do grupo (ou quem ataca sozinho) informa o dano no fim.
+  var BA = D.BOSS_ALIANCA;
+  function agoraBossAl() { var st = estado.bossAl; return Date.now() + (st && st.desvio || 0); }
+  function seloBossAl() {
+    var st = estado.bossAl;
+    return st && st.boss && st.boss.estado === 'aberto' ? ' <span class="selo-pedidos">!</span>' : '';
+  }
+  function carregarBossAl() {
+    var p = estado.personagem, al = aliancaAtual();
+    if (!p || estado.bossAlCarregando || !al || !al.alianca) return;
+    estado.bossAlCarregando = true;
+    C.alianca.boss.estado(p.id).then(function (st) {
+      estado.bossAlCarregando = false;
+      if (estado.personagem !== p) return;
+      st.desvio = Date.parse(st.agora) - Date.now();
+      var antes = estado.bossAl;
+      estado.bossAl = st;
+      estado.bossAlErro = null;
+      var run = st.run;
+      // Investida nova do meu grupo (começada por outro membro): assisto junto.
+      // (o líder registra o dano logo no começo, então a investida pode já aparecer como concluída)
+      if (run && run.lider !== p.id && !vistas['b' + run.id] && !estado.luta && !estado.batalha && !estado.lutaArena
+        && agoraBossAl() - Date.parse(run.criado_em) < 90000) {
+        assistirBoss(run, null);
+        return;
+      }
+      if (!estado.luta && st.recompensas && st.recompensas.length) resgatarRecompensas(st.recompensas);
+      if (estado.batalha || estado.resultado || estado.chefeAviso || estado.luta || estado.lutaArena) return;
+      if (estado.aba === 'alianca') telaJogo();
+      else if (!antes || (antes.boss && antes.boss.estado) !== st.boss.estado) atualizarNav();
+    }, function (e) {
+      estado.bossAlCarregando = false;
+      estado.bossAlErro = e.message;
+      if (estado.aba === 'alianca' && estado.aliancaVista === 'boss' && !estado.luta) telaJogo();
+    });
+  }
+  function acaoBossAl(promessa, mensagem) {
+    return promessa.then(function () { if (mensagem) avisar(mensagem); carregarBossAl(); }, function (e) { avisar(e.message); });
+  }
+  function relogioTexto(ms) {
+    var s = Math.max(0, Math.floor(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60;
+    return (h ? h + 'h ' : '') + (h || m ? m + 'min ' : '') + (h ? '' : x + 's');
+  }
+  // Quando o boss abre de novo (texto) e quanto falta (ms), pela hora do líder (Brasília, UTC-3).
+  function proximoBossAl(st) {
+    var b = st.boss;
+    if (b.hora == null) return null;
+    var hh = (b.hora < 10 ? '0' : '') + b.hora;
+    var inicio = Date.parse(st.dia + 'T' + hh + ':00:00-03:00'), agora = agoraBossAl();
+    if (b.dia !== st.dia && agora < inicio) return { texto: 'hoje às ' + b.hora + 'h', falta: inicio - agora };
+    return { texto: 'amanhã às ' + b.hora + 'h', falta: inicio + 86400000 - agora };
+  }
+  function bossAliancaHtml() {
+    var st = estado.bossAl, p = estado.personagem;
+    if (!st) {
+      carregarBossAl();
+      return '<p class="suave">' + (estado.bossAlErro ? esc(estado.bossAlErro) + '<br><span class="pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</span>' : 'Carregando…') + '</p>';
+    }
+    var b = st.boss, aberto = b.estado === 'aberto', lider = st.meu_cargo === 'lider';
+    var nivelMostrado = b.estado === 'morto' && b.dia === st.dia ? b.nivel - 1 : b.nivel;
+    var info = R.bossAlianca(nivelMostrado), prox = proximoBossAl(st);
+    // Situação
+    var situacao;
+    if (aberto) situacao = '<p class="cor-ouro"><strong>O boss está aberto!</strong> Fecha em <span id="boss-relogio" data-fim="' + Date.parse(b.fecha_em) + '">'
+      + relogioTexto(Date.parse(b.fecha_em) - agoraBossAl()) + '</span>.</p>';
+    else if (b.hora == null) situacao = '<p class="suave">' + (lider ? 'Escolha abaixo a hora do boss: ele abre sozinho todo dia nessa hora.' : 'O líder ainda não escolheu a hora do boss.') + '</p>';
+    else if (b.estado === 'morto' && b.dia === st.dia) situacao = '<p class="mais"><strong>Derrotado!</strong>' + (b.ultimo_golpe ? ' Último golpe de ' + esc(b.ultimo_golpe) + '.' : '')
+      + ' O próximo boss (nível ' + b.nivel + ') abre ' + prox.texto + '.</p>';
+    else if (b.estado === 'falhou' && b.dia === st.dia) situacao = '<p class="menos"><strong>O boss escapou.</strong> ' + prox.texto.charAt(0).toUpperCase() + prox.texto.slice(1)
+      + ' vocês enfrentam o mesmo boss, com a vida cheia.</p>';
+    else situacao = '<p>Abre <strong>' + prox.texto + '</strong> (em <span id="boss-relogio" data-fim="' + (agoraBossAl() + prox.falta) + '">' + relogioTexto(prox.falta) + '</span>) e fica '
+      + BA.duracaoMin + ' minutos aberto.</p>';
+    var hpMax = Number(b.hp_max), hp = aberto || (b.dia === st.dia && b.estado !== 'fechado') ? Math.max(0, Number(b.hp)) : hpMax;
+    var html = '<div class="caixa-interna boss-al"><div class="boss-al-topo"><div class="moldura">' + F.imagemMonstro(info.id) + '</div><div class="boss-al-info">'
+      + '<div class="suave pequeno">Boss da aliança · Nível ' + nivelMostrado + '</div><h3>' + esc(info.nome) + '</h3>'
+      + barra('hp', hp, hpMax, hp.toLocaleString('pt-BR') + ' / ' + hpMax.toLocaleString('pt-BR'), 'boss-al') + situacao + '</div></div>';
+    // Prêmio
+    var infoPr = R.bossAlianca(b.nivel), pr = R.premioBossAlianca(p, b.nivel);
+    html += '<p class="suave pequeno">Prêmio do nível ' + b.nivel + ': quem deu dano ganha <span class="cor-ouro">' + pr.ouro.toLocaleString('pt-BR') + ' de ouro</span>, '
+      + pr.exp.toLocaleString('pt-BR') + ' de exp e ' + infoPr.premio.pergaminho + ' pergaminhos para item ' + ITEM_RARIDADE[infoPr.premio.raridadePergaminho]
+      + '; o maior dano ganha 1 item épico ou lendário; a aliança ganha ' + infoPr.premio.alianca.toLocaleString('pt-BR') + ' de exp. '
+      + 'A cada vitória ele volta mais forte no dia seguinte.</p>';
+    // Ataque
+    var minha = st.salas.filter(function (x) { return x.id === st.minha_sala; })[0];
+    if (aberto) {
+      var investida = st.run && st.run.estado === 'andamento' && agoraBossAl() - Date.parse(st.run.criado_em) < 300000;
+      if (minha && minha.lider !== p.id) html += '<p class="suave">Espere o líder do seu grupo começar a investida: você assiste junto.</p>';
+      else html += '<div class="botoes"><button class="btn" data-acao="al-boss-atacar"' + (investida ? ' disabled' : '') + '>'
+        + (minha ? '⚔ Atacar com o grupo (' + minha.membros.length + ')' : '⚔ Atacar sozinho') + '</button></div>';
+      html += '<p class="suave pequeno">Ataques ilimitados até fechar. Cada investida termina quando o grupo cai ou depois de '
+        + BA.limiteAtaques + ' ataques do boss. Em grupo de até ' + BA.grupoMax + ' o dano é muito maior.</p>';
+    }
+    if (lider) {
+      var opcoes = '';
+      for (var h = 0; h < 24; h++) opcoes += '<option value="' + h + '"' + (b.hora === h ? ' selected' : '') + '>' + h + 'h</option>';
+      html += '<div class="linha-form boss-al-hora"><label>Hora do boss (Brasília) <select id="al-boss-hora"' + (aberto ? ' disabled' : '') + '>' + opcoes + '</select></label>'
+        + '<button class="btn secundario btn-pequeno" data-acao="al-boss-hora"' + (aberto ? ' disabled' : '') + '>Salvar</button></div>';
+    }
+    html += '</div>';
+    // Grupos
+    html += '<h3 class="subtitulo">Grupos (até ' + BA.grupoMax + ')</h3>';
+    if (st.salas.length) html += '<div class="itens">' + st.salas.map(function (x) {
+      var meu = x.id === st.minha_sala, cheio = x.membros.length >= BA.grupoMax;
+      return '<div class="item' + (meu ? ' meu' : '') + '"><div class="item-texto">' + x.membros.map(function (m) {
+          return (m.id === x.lider ? '👑 ' : '') + '<strong>' + esc(m.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(m) + ' · Lv ' + m.nivel + '</span>';
+        }).join('<br>') + '</div><div class="item-acoes">'
+        + (meu ? '<button class="btn secundario btn-pequeno" data-acao="al-boss-sala-sair">Sair</button>'
+          : '<button class="btn btn-pequeno" data-acao="al-boss-sala-entrar" data-id="' + x.id + '"' + (cheio ? ' disabled' : '') + '>' + (cheio ? 'Cheio' : 'Entrar') + '</button>')
+        + '</div></div>';
+    }).join('') + '</div>';
+    else html += '<p class="suave">Nenhum grupo ainda.</p>';
+    if (!minha) html += '<div class="botoes"><button class="btn secundario" data-acao="al-boss-sala-criar">Criar grupo</button></div>';
+    // Ranking do dia
+    html += '<h3 class="subtitulo">Dano ' + (b.dia === st.dia ? 'de hoje' : 'do último boss') + '</h3>';
+    html += st.ranking.length ? '<div class="itens">' + st.ranking.map(function (x, i) {
+      return '<div class="item' + (x.id === p.id ? ' meu' : '') + '"><div class="item-texto"><div>' + (i === 0 ? '🏆 ' : (i + 1) + '. ') + '<strong>' + esc(x.nome) + '</strong></div>'
+        + '<div class="suave pequeno">' + nomeClasseX(x) + ' · ' + x.investidas + (x.investidas === 1 ? ' investida' : ' investidas') + '</div></div>'
+        + '<div class="cor-ouro"><strong>' + Number(x.dano).toLocaleString('pt-BR') + '</strong></div></div>';
+    }).join('') + '</div>' : '<p class="suave">Ninguém atacou ainda.</p>';
+    return html;
+  }
+  // Relógio do boss (a cada segundo, só o texto).
+  setInterval(function () {
+    var el = document.getElementById('boss-relogio');
+    if (!el) return;
+    var falta = Number(el.dataset.fim) - agoraBossAl();
+    if (falta <= 0) { el.removeAttribute('id'); carregarBossAl(); return; }
+    el.textContent = relogioTexto(falta);
+  }, 1000);
+
+  async function atacarBossAl(botao) {
+    var p = estado.personagem;
+    if (botao) botao.disabled = true;
+    try {
+      var run = await C.alianca.boss.atacar(p.id);
+      if (estado.luta) { clearTimeout(estado.luta.timer); estado.luta = null; }
+      assistirBoss(run, null);
+    } catch (e) {
+      avisar(e.message);
+      if (botao) botao.disabled = false;
+      carregarBossAl();
+    }
+  }
+  function assistirBoss(run, sim) {
+    vistas['b' + run.id] = true;
+    var p = estado.personagem;
+    sim = sim || R.simularBossAlianca(run.herois.map(function (h) { return h.dados; }), run.nivel, Number(run.hp_inicio), run.semente);
+    var L = {
+      run: run, sim: sim, boss: R.bossAlianca(run.nivel), idx: 0, sala: 0, fim: false, rapido: false, registro: [], servidor: null,
+      hpH: sim.inicio.herois.map(function (h) { return h.hpMax; }),
+      hpM: sim.inicio.salas[0].map(function (m) { return m.hp != null ? m.hp : m.hpMax; }),
+      atraso: Math.max(30, Math.min(350, Math.round(45000 / Math.max(1, sim.eventos.length)))),
+    };
+    L.mm = { nome: L.boss.nome };
+    estado.luta = L;
+    // Quem começou a investida já informa o dano (vale mesmo se fechar a página no meio).
+    if (run.lider === p.id && run.estado === 'andamento') {
+      C.alianca.boss.concluir(p.id, run.id, sim.danos).then(function (r) {
+        L.servidor = r;
+        if (r && r.morreu) carregarAlianca();   // exp nova da aliança
+        if (estado.luta === L && L.fim) redesenharLuta();
+      }, function (e) { avisar('Erro ao registrar o dano: ' + e.message); });
+    }
+    L.registro.push('<p class="destaque">' + (run.herois.length > 1 ? 'O grupo avança' : esc(run.herois[0].dados.nome) + ' avança') + ' contra ' + esc(L.boss.nome) + '!</p>');
+    estado.chefeAviso = null;
+    telaJogo();
+    mostrarPainel();
+    agendarLuta();
   }
 
   // ---------------- Chat global ----------------

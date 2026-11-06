@@ -1662,3 +1662,43 @@ teste('guia: só personagem novo; caçar, equipar o presente, loja, história, a
   R.pularGuia(q);
   assert.strictEqual(R.guiaEstado(q), null);
 });
+
+teste('boss da aliança: começa fraco, cresce por nível e troca de chefe', () => {
+  const B = D.BOSS_ALIANCA;
+  const b1 = R.bossAlianca(1), b2 = R.bossAlianca(2), b4 = R.bossAlianca(B.niveisPorChefe + 1);
+  assert.strictEqual(b1.id, B.chefes[0]);
+  assert.strictEqual(b4.id, B.chefes[1], 'depois de niveisPorChefe níveis vira o próximo chefe');
+  assert.ok(b2.hp > b1.hp && b4.hp > b1.hp);
+  const ultimo = (B.chefes.length - 1) * B.niveisPorChefe + 1;
+  const u1 = R.bossAlianca(ultimo + 5), u2 = R.bossAlianca(ultimo + 6);
+  assert.strictEqual(u1.id, B.chefes[B.chefes.length - 1]);
+  assert.ok(u2.hp > u1.hp && u2.ataque[1] >= u1.ataque[1], 'depois do último chefe continua crescendo');
+  assert.ok(R.bossAlianca(4).premio.ouro > b1.premio.ouro);
+  const t = R.tabelaBossAlianca(5);
+  assert.strictEqual(t.length, 5);
+  assert.strictEqual(t[0].hp, b1.hp);
+});
+
+teste('boss da aliança: investida tem fim, dano por herói e não passa da vida que falta', () => {
+  const herois = ['cavaleiro', 'mago'].map((c) => {
+    const p = R.criarPersonagem('B' + c, 'masculino', 'humano', c);
+    R.admin.subirNivel(p, 14);
+    R.admin.conjunto(p, 'rara');
+    p.inventario.slice().forEach((it) => R.equipar(p, it.id));
+    return p;
+  });
+  const a = R.simularBossAlianca(herois, 1, 1e9, 7), b = R.simularBossAlianca(herois, 1, 1e9, 7);
+  assert.strictEqual(a.dano, b.dano, 'mesma semente, mesma luta');
+  assert.ok(!a.vitoria && a.dano > 0);
+  assert.strictEqual(a.danos.length, 2);
+  assert.strictEqual(a.danos[0] + a.danos[1], a.dano);
+  const golpesBoss = a.eventos.filter((e) => e.tipo === 'golpe' && e.de === 'm').length;
+  assert.ok(golpesBoss <= D.BOSS_ALIANCA.limiteAtaques, 'o boss ataca no máximo limiteAtaques vezes');
+  const fim = R.simularBossAlianca(herois, 1, 50, 7);
+  assert.ok(fim.vitoria, 'com pouca vida o boss morre');
+  assert.strictEqual(fim.dano, 50, 'conta só a vida que faltava');
+  assert.strictEqual(fim.inicio.salas[0][0].hpMax, R.bossAlianca(1).hp);
+  assert.strictEqual(fim.inicio.salas[0][0].hp, 50);
+  const pr = R.premioBossAlianca(herois[0], 1);
+  assert.ok(pr.ouro > 0 && pr.exp > 0 && pr.exp <= R.expNecessaria(herois[0].nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100);
+});

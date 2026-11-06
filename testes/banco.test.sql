@@ -638,4 +638,70 @@ set role authenticated;
 select pg_temp.como('a'); select pg_temp.falha($$select public.fila_entrar('pa', 'toca')$$, 'Sem entradas');
 reset role;
 delete from public.masmorra_entradas; delete from public.masmorra_fila;
+-- Boss da aliança (Daniel, nov/2026)
+reset role;
+delete from public.alianca_espera;
+insert into public.aliancas (nome, sigla) values ('Guardiões', 'GUA');
+insert into public.alianca_membros (personagem_id, alianca_id, cargo)
+  select x.pid, a.id, x.cargo from public.aliancas a, (values ('pa', 'lider'), ('pb', 'membro'), ('pd', 'membro')) x(pid, cargo) where a.sigla = 'GUA';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'fechado', 'boss: sem hora, fica fechado');
+select pg_temp.como('b');
+select pg_temp.falha($$select public.alianca_boss_hora('pb', 20)$$, 'Só o líder escolhe');
+select pg_temp.falha($$select public.alianca_boss_atacar('pb')$$, 'não está aberto');
+select pg_temp.como('a');
+select pg_temp.falha($$select public.alianca_boss_hora('pa', 24)$$, 'Hora inválida');
+select public.alianca_boss_hora('pa', extract(hour from now() at time zone 'America/Sao_Paulo')::int);
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'aberto', 'boss: abre sozinho na hora do líder');
+select pg_temp.igual((public.alianca_boss_estado('pa') -> 'boss' ->> 'hp')::bigint, (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 0 ->> 'hp')::bigint, 'boss: nível 1 com a vida cheia');
+select pg_temp.falha($$select public.alianca_boss_hora('pa', 3)$$, 'Espere o boss de hoje terminar');
+-- grupo de até 4
+select pg_temp.como('b'); select public.alianca_boss_sala_criar('pb');
+select pg_temp.como('d'); select public.alianca_boss_sala_entrar('pd', (public.alianca_boss_estado('pd') -> 'salas' -> 0 ->> 'id')::bigint);
+select pg_temp.igual(jsonb_array_length(public.alianca_boss_estado('pd') -> 'salas' -> 0 -> 'membros'), 2, 'boss: grupo com 2 membros');
+select pg_temp.falha($$select public.alianca_boss_atacar('pd')$$, 'Só o líder do grupo');
+select pg_temp.como('b');
+select (public.alianca_boss_atacar('pb') ->> 'id')::bigint as run_boss \gset
+reset role;
+select pg_temp.igual((select count(*) from public.alianca_boss_runs where id = :run_boss and membros = array['pb', 'pd'])::int, 1, 'boss: investida leva o grupo todo');
+set role authenticated; select pg_temp.como('b');
+select pg_temp.falha($$select public.alianca_boss_atacar('pb')$$, 'ainda está numa investida');
+select pg_temp.igual((public.alianca_boss_concluir('pb', :run_boss, array[1000, 500]::bigint[]) ->> 'dano')::bigint, 1500::bigint, 'boss: dano do grupo somado');
+select pg_temp.falha('select public.alianca_boss_concluir(''pb'', ' || :run_boss || ', array[1]::bigint[])', 'já terminou');
+select pg_temp.igual((public.alianca_boss_estado('pb') -> 'boss' ->> 'hp')::bigint,
+  (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 0 ->> 'hp')::bigint - 1500, 'boss: vida de todos diminui');
+select pg_temp.igual(public.alianca_boss_estado('pb') -> 'ranking' -> 0 ->> 'nome', 'Bruna', 'boss: ranking de dano');
+-- o líder da aliança mata o boss sozinho (dano maior que a vida conta só a vida que falta)
+select pg_temp.como('a');
+select (public.alianca_boss_atacar('pa') ->> 'id')::bigint as run_boss2 \gset
+select pg_temp.igual((public.alianca_boss_concluir('pa', :run_boss2, array[999999999]::bigint[]) ->> 'morreu')::boolean, true, 'boss: morreu');
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'morto', 'boss: fica morto até amanhã');
+select pg_temp.igual((public.alianca_boss_estado('pa') -> 'boss' ->> 'nivel')::int, 2, 'boss: sobe para o nível 2');
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'ultimo_golpe', 'Aldric', 'boss: quem deu o último golpe');
+select pg_temp.falha($$select public.alianca_boss_atacar('pa')$$, 'não está aberto');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.alianca_boss_estado('pa') -> 'recompensas') r where r -> 'item' ->> 'tipo' = 'bossItem')::int, 1, 'boss: maior dano ganha o item');
+select pg_temp.como('d');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.alianca_boss_estado('pd') -> 'recompensas') r where r -> 'item' ->> 'tipo' in ('exp', 'pergaminho'))::int, 3, 'boss: exp e 2 pergaminhos para quem deu dano');
+reset role;
+select pg_temp.igual((select count(*) from public.creditos where motivo like 'Boss da aliança%')::int, 3, 'boss: ouro para os 3 que deram dano');
+select pg_temp.igual((select exp from public.aliancas where sigla = 'GUA'), (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 0 ->> 'alianca')::bigint, 'boss: exp para a aliança');
+-- não matou a tempo: no outro dia, o mesmo boss com a vida cheia
+update public.alianca_boss set estado = 'aberto', hp = 10, aberto_em = now() - interval '61 minutes'
+  where alianca_id = (select id from public.aliancas where sigla = 'GUA');
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'falhou', 'boss: passou 1 hora, falhou');
+reset role;
+update public.alianca_boss set dia = public.dia_jogo() - 1 where alianca_id = (select id from public.aliancas where sigla = 'GUA');
+set role authenticated;
+select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'aberto', 'boss: abre de novo no dia seguinte');
+select pg_temp.igual((public.alianca_boss_estado('pa') -> 'boss' ->> 'hp')::bigint, (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 1 ->> 'hp')::bigint, 'boss: mesmo nível, vida cheia');
+-- quem sai da aliança sai do grupo do boss
+select public.alianca_expulsar('pa', 'pd');
+select pg_temp.igual(jsonb_array_length(public.alianca_boss_estado('pa') -> 'salas' -> 0 -> 'membros'), 1, 'boss: expulso sai do grupo do boss');
+select pg_temp.como('b'); select public.alianca_boss_sala_sair('pb');
+select pg_temp.igual(public.alianca_boss_estado('pb') -> 'salas', '[]'::jsonb, 'boss: grupo vazio some');
+reset role;
+delete from public.aliancas where sigla = 'GUA'; delete from public.alianca_espera; delete from public.recompensas; delete from public.creditos where motivo like 'Boss%';
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -299,6 +299,16 @@ Tanka.contas = (function () {
     chat: function (meu, depois) { return chamar('alianca_chat', { meu: meu, depois: depois || 0 }); },
     chatEnviar: function (meu, texto) { return chamar('alianca_chat_enviar', { meu: meu, texto: texto }); },
     admin: function (meu, id, acao, valor) { return chamar('alianca_admin', { meu: meu, aid: id, acao: acao, valor: valor == null ? null : String(valor) }); },
+    // Boss da aliança
+    boss: {
+      estado: function (meu) { return chamar('alianca_boss_estado', { meu: meu }); },
+      hora: function (meu, hora) { return chamar('alianca_boss_hora', { meu: meu, hora: hora }); },
+      salaCriar: function (meu) { return chamar('alianca_boss_sala_criar', { meu: meu }); },
+      salaEntrar: function (meu, sala) { return chamar('alianca_boss_sala_entrar', { meu: meu, sala: sala }); },
+      salaSair: function (meu) { return chamar('alianca_boss_sala_sair', { meu: meu }); },
+      atacar: function (meu) { return chamar('alianca_boss_atacar', { meu: meu }); },
+      concluir: function (meu, run, danos) { return chamar('alianca_boss_concluir', { meu: meu, run_id: run, danos: danos }); },
+    },
   };
 
   var arena = {

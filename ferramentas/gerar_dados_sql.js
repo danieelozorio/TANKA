@@ -8,7 +8,9 @@ const raiz = path.join(__dirname, '..');
 const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(fs.readFileSync(path.join(raiz, 'js', 'dados.js'), 'utf8'), ctx);
+vm.runInContext(fs.readFileSync(path.join(raiz, 'js', 'regras.js'), 'utf8'), ctx);
 const D = vm.runInContext('Tanka.dados', ctx);
+const R = vm.runInContext('Tanka.regras', ctx);
 const dados = {
   HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, VELOCIDADE: D.VELOCIDADE,
   raridades: Object.fromEntries(Object.entries(D.raridades).map(([k, r]) => [k, { danoMin: r.danoMin, danoMax: r.danoMax }])),
@@ -27,6 +29,9 @@ const dados = {
   LEILAO: D.LEILAO,
   DEFESA: D.DEFESA,
   TALENTOS: D.TALENTOS, HABILIDADE_INICIAL: D.HABILIDADE_INICIAL, SEGUNDAS_CLASSES: D.SEGUNDAS_CLASSES,
+  // Boss da aliança: vida e prêmios de cada nível já calculados (regras.js, tabelaBossAlianca).
+  BOSS_ALIANCA: { duracaoMin: D.BOSS_ALIANCA.duracaoMin, grupoMax: D.BOSS_ALIANCA.grupoMax,
+    vidaPorNivel: D.BOSS_ALIANCA.vidaPorNivel, item: D.BOSS_ALIANCA.premio.item, niveis: R.tabelaBossAlianca(60) },
 };
 const json = JSON.stringify(dados).replace(/'/g, "''");
 const bloco = `-- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
