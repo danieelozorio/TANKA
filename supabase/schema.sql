@@ -561,7 +561,7 @@ begin
         'estado', r.estado, 'criado_em', r.criado_em, 'lider', r.lider, 'fila', r.grupo_id is null)
       from public.masmorra_runs r where meu = any (r.membros) and r.criado_em > now() - interval '20 minutes'
       order by r.id desc limit 1),
-    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
       from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb)
   ) into resultado;
   return resultado;
@@ -2432,7 +2432,7 @@ begin
       from public.leilao_lotes l left join public.personagens p on p.id = l.lider where l.leilao_id = r.id), '[]'::jsonb),
     'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
       from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb),
-    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item) order by x.id)
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
       from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
 end $$;
 
@@ -2463,6 +2463,167 @@ revoke execute on function public.leilao_raridade(jsonb, text), public.leilao_cr
   public.leilao_fase(public.leiloes), public.leilao_faixa_de(text) from public, anon, authenticated;
 revoke execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) from public, anon;
 grant execute on function public.leilao_estado(text), public.leilao_lance(text, bigint, bigint) to authenticated;
+
+-- ---------- Mercado entre jogadores (Henri, nov/2026) ----------
+-- O vendedor anuncia um item da mochila (não equipado, não travado) ou pergaminhos por um preço em ouro que ele escolhe.
+-- O servidor tira o item do personagem salvo (para não duplicar) e guarda a cópia no anúncio. Na compra: o comprador
+-- paga (crédito negativo), o vendedor recebe o preço menos 10% de taxa (crédito) e o item vai para o comprador (recompensa).
+-- Cancelar ou passar de 7 dias devolve o item ao vendedor (recompensa).
+create table if not exists public.mercado_anuncios (
+  id bigint generated always as identity primary key,
+  vendedor text not null references public.personagens (id) on delete cascade,
+  item jsonb not null,
+  categoria text not null,                  -- arma | armadura | joia | pergaminho
+  raridade text not null,
+  nivel int not null default 1,
+  qtd int not null default 1,
+  preco bigint not null check (preco between 1 and 2000000000),
+  estado text not null default 'ativo',     -- ativo | vendido | cancelado | expirado
+  comprador text,
+  criado_em timestamptz not null default now(),
+  expira_em timestamptz not null default now() + interval '7 days',
+  fechado_em timestamptz
+);
+create index if not exists mercado_anuncios_ativos on public.mercado_anuncios (estado, categoria, criado_em desc);
+create index if not exists mercado_anuncios_vendedor on public.mercado_anuncios (vendedor, estado);
+alter table public.mercado_anuncios enable row level security;   -- só pelas funções
+
+create or replace function public.mercado_cfg() returns jsonb
+language sql immutable as $$ select '{"taxa": 10, "dias": 7, "maxAnuncios": 10, "porPagina": 30}'::jsonb $$;
+
+create or replace function public.mercado_raridade_ordem(r text) returns int
+language sql immutable as $$ select case r when 'comum' then 1 when 'rara' then 2 when 'epica' then 3 when 'lendaria' then 4 else 0 end $$;
+
+-- Devolve ao vendedor (recompensa) o que estava anunciado.
+create or replace function public.mercado_devolver(a public.mercado_anuncios, motivo text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.mercado_anuncios set estado = motivo, fechado_em = now() where id = a.id;
+  insert into public.recompensas (personagem_id, item, origem) values (a.vendedor,
+    case when a.categoria = 'pergaminho' then jsonb_build_object('tipo', 'pergaminho', 'raridade', a.raridade, 'qtd', a.qtd)
+         else a.item end, 'mercado');
+end $$;
+
+create or replace function public.mercado_expirar() returns void
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios;
+begin
+  for a in select * from public.mercado_anuncios where estado = 'ativo' and expira_em <= now() order by id limit 200
+    for update skip locked loop
+    perform public.mercado_devolver(a, 'expirado');
+  end loop;
+end $$;
+
+-- Anunciar: item_id (da mochila) ou raridade + qtd de pergaminhos.
+create or replace function public.mercado_anunciar(meu text, item_id text, pergaminho text, qtd int, preco bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.mercado_cfg(); d jsonb; it jsonb; cat text; tem int; n int := greatest(1, coalesce(qtd, 1));
+begin
+  perform public.conferir_dono(meu);
+  if preco is null or preco < 1 or preco > 2000000000 then raise exception 'Preço inválido (de 1 a 2 bilhões de ouro).'; end if;
+  if (select count(*) from public.mercado_anuncios where vendedor = meu and estado = 'ativo') >= (cfg ->> 'maxAnuncios')::int then
+    raise exception 'Você já tem % itens à venda. Espere vender ou cancele um.', cfg ->> 'maxAnuncios'; end if;
+  select dados into d from public.personagens where id = meu for update;
+  if item_id is not null then
+    select e into it from jsonb_array_elements(coalesce(d -> 'inventario', '[]'::jsonb)) e where e ->> 'id' = item_id limit 1;
+    if it is null then raise exception 'Item não encontrado na mochila (salve o jogo e tente de novo).'; end if;
+    if exists (select 1 from jsonb_each_text(coalesce(d -> 'equipados', '{}'::jsonb)) x where x.value = item_id) then
+      raise exception 'Tire o item do corpo antes de vender.'; end if;
+    if (it ->> 'travado') = 'true' then raise exception 'Destrave o item antes de vender.'; end if;
+    cat := case when it ->> 'tipo' = 'arma' then 'arma' when it ->> 'tipo' in ('colar', 'anel') then 'joia' else 'armadura' end;
+    d := jsonb_set(d, '{inventario}', coalesce((select jsonb_agg(e) from jsonb_array_elements(d -> 'inventario') e
+      where e ->> 'id' <> item_id), '[]'::jsonb));
+    n := 1;
+  else
+    if pergaminho not in ('comum', 'rara', 'epica', 'lendaria') then raise exception 'Escolha um item para vender.'; end if;
+    select coalesce(sum((e ->> 'qtd')::int), 0) into tem from jsonb_array_elements(coalesce(d -> 'consumiveis', '[]'::jsonb)) e
+      where e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho;
+    if tem < n then raise exception 'Você só tem % desses pergaminhos.', tem; end if;
+    cat := 'pergaminho';
+    it := jsonb_build_object('tipo', 'pergaminho', 'raridade', pergaminho, 'qtd', n);
+    d := jsonb_set(d, '{consumiveis}', coalesce((select jsonb_agg(case when e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho
+        then jsonb_set(e, '{qtd}', to_jsonb((e ->> 'qtd')::int - n)) else e end)
+      from jsonb_array_elements(d -> 'consumiveis') e
+      where not (e ->> 'tipo' = 'pergaminho' and e ->> 'raridade' = pergaminho and (e ->> 'qtd')::int - n <= 0)), '[]'::jsonb));
+  end if;
+  update public.personagens set dados = d where id = meu;
+  insert into public.mercado_anuncios (vendedor, item, categoria, raridade, nivel, qtd, preco, expira_em)
+    values (meu, it, cat, coalesce(it ->> 'raridade', 'comum'), coalesce((it ->> 'nivel')::int, 1), n, preco,
+      now() + make_interval(days => (cfg ->> 'dias')::int));
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+create or replace function public.mercado_cancelar(meu text, anuncio bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios;
+begin
+  perform public.conferir_dono(meu);
+  select * into a from public.mercado_anuncios where id = anuncio and vendedor = meu for update;
+  if a.id is null or a.estado <> 'ativo' then raise exception 'Este anúncio não está mais à venda.'; end if;
+  perform public.mercado_devolver(a, 'cancelado');
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+create or replace function public.mercado_comprar(meu text, anuncio bigint) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare a public.mercado_anuncios; cfg jsonb := public.mercado_cfg(); nome text; recebe bigint;
+begin
+  perform public.conferir_dono(meu);
+  select * into a from public.mercado_anuncios where id = anuncio for update;
+  if a.id is null or a.estado <> 'ativo' or a.expira_em <= now() then raise exception 'Este item já foi vendido ou saiu do mercado.'; end if;
+  if a.vendedor = meu then raise exception 'Este anúncio é seu.'; end if;
+  if public.ouro_real(meu) < a.preco then raise exception 'Ouro insuficiente.'; end if;
+  select p.nome into nome from public.personagens p where p.id = meu;
+  recebe := floor(a.preco * (100 - (cfg ->> 'taxa')::numeric) / 100);
+  perform public.creditar(meu, -a.preco::int, 0, 'Compra no mercado');
+  perform public.creditar(a.vendedor, recebe::int, 0, 'Mercado: ' || nome || ' comprou seu item (−' || (cfg ->> 'taxa') || '% de taxa)');
+  update public.mercado_anuncios set estado = 'vendido', comprador = meu, fechado_em = now() where id = a.id;
+  insert into public.recompensas (personagem_id, item, origem) values (meu,
+    case when a.categoria = 'pergaminho' then jsonb_build_object('tipo', 'pergaminho', 'raridade', a.raridade, 'qtd', a.qtd)
+         else a.item end, 'mercado');
+  return public.mercado_estado(meu, null, null, 0);
+end $$;
+
+-- Lista: categoria (null = todas) e ordem (recentes | nivel | raridade | preco | preco_desc), 30 por página.
+create or replace function public.mercado_estado(meu text, categoria text, ordem text, pagina int) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare cfg jsonb := public.mercado_cfg(); pp int := (cfg ->> 'porPagina')::int; cat text := nullif(categoria, 'todos');
+begin
+  perform public.conferir_dono(meu);
+  perform public.mercado_expirar();
+  return jsonb_build_object('cfg', cfg,
+    'total', (select count(*) from public.mercado_anuncios a where a.estado = 'ativo' and (cat is null or a.categoria = cat)),
+    'anuncios', coalesce((select jsonb_agg(x.j order by x.n) from (
+      select row_number() over (order by
+          case when ordem = 'nivel' then a.nivel end desc nulls last,
+          case when ordem = 'raridade' then public.mercado_raridade_ordem(a.raridade) end desc nulls last,
+          case when ordem = 'preco' then a.preco end asc nulls last,
+          case when ordem = 'preco_desc' then a.preco end desc nulls last,
+          a.criado_em desc) as n,
+        jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd, 'preco', a.preco,
+          'vendedor', p.nome, 'meu', a.vendedor = meu, 'expira_em', a.expira_em) as j
+      from public.mercado_anuncios a join public.personagens p on p.id = a.vendedor
+      where a.estado = 'ativo' and (cat is null or a.categoria = cat)
+      order by n limit pp offset greatest(0, coalesce(pagina, 0)) * pp) x), '[]'::jsonb),
+    'meus', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd,
+        'preco', a.preco, 'expira_em', a.expira_em) order by a.criado_em desc)
+      from public.mercado_anuncios a where a.vendedor = meu and a.estado = 'ativo'), '[]'::jsonb),
+    'vendas', coalesce((select jsonb_agg(jsonb_build_object('item', a.item, 'qtd', a.qtd, 'preco', a.preco, 'comprador', p.nome,
+        'quando', a.fechado_em) order by a.fechado_em desc)
+      from (select * from public.mercado_anuncios where vendedor = meu and estado = 'vendido' order by fechado_em desc limit 10) a
+      left join public.personagens p on p.id = a.comprador), '[]'::jsonb),
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', id, 'ouro', ouro, 'reputacao', reputacao, 'motivo', motivo) order by id)
+      from public.creditos where personagem_id = meu and not aplicado), '[]'::jsonb),
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
+      from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb));
+end $$;
+
+revoke execute on function public.mercado_cfg(), public.mercado_raridade_ordem(text), public.mercado_devolver(public.mercado_anuncios, text),
+  public.mercado_expirar() from public, anon, authenticated;
+revoke execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) from public, anon;
+grant execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) to authenticated;
 
 notify pgrst, 'reload schema';
 

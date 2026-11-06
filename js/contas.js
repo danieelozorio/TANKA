@@ -324,6 +324,14 @@ Tanka.contas = (function () {
     lance: function (meu, lote, valor) { return chamar('leilao_lance', { meu: meu, lote: lote, valor: valor }); },
   };
 
+  // Mercado entre jogadores: anunciar (item da mochila ou pergaminhos), comprar, cancelar.
+  var mercado = {
+    estado: function (meu, categoria, ordem, pagina) { return chamar('mercado_estado', { meu: meu, categoria: categoria || null, ordem: ordem || null, pagina: pagina || 0 }); },
+    anunciar: function (meu, itemId, pergaminho, qtd, preco) { return chamar('mercado_anunciar', { meu: meu, item_id: itemId, pergaminho: pergaminho, qtd: qtd, preco: preco }); },
+    comprar: function (meu, id) { return chamar('mercado_comprar', { meu: meu, anuncio: Number(id) }); },
+    cancelar: function (meu, id) { return chamar('mercado_cancelar', { meu: meu, anuncio: Number(id) }); },
+  };
+
   // Esqueci a senha: o pedido vai para o painel do admin, que manda uma senha temporária para o e-mail do cadastro.
   var senha = {
     pedir: function (usuario, email) { return pedir('/rest/v1/rpc/senha_pedir', { metodo: 'POST', logado: false, corpo: { u: usuario, e: email } }); },
@@ -345,6 +353,7 @@ Tanka.contas = (function () {
     alianca: alianca,
     grupo: grupo,
     boss: boss,
+    mercado: mercado,
     amigos: amigos,
     ranking: ranking,
     chat: chat,

@@ -207,6 +207,7 @@ Tanka.contas = (function () {
     filaEntrar: soServidor, filaPing: soServidor, filaSair: soServidor,
   };
 
+  var mercado = { estado: function () { return Promise.resolve({ local: true }); }, anunciar: soServidor, comprar: soServidor, cancelar: soServidor };
   var boss = { estado: function () { return Promise.resolve({ local: true }); }, atacar: soServidor, adminInvocar: soServidor };
 
   var arena = {
@@ -234,6 +235,7 @@ Tanka.contas = (function () {
     },
     grupo: grupo,
     boss: boss,
+    mercado: mercado,
     amigos: amigos,
     ranking: ranking,
     chat: chat,

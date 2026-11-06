@@ -719,4 +719,66 @@ select pg_temp.igual((select count(*) from public.recompensas)::int, 2, 'boss: p
 update public.contas set admin = false where usuario = 'duda';
 delete from public.recompensas; delete from public.boss_mundial; delete from public.alianca_membros;
 delete from public.aliancas where sigla in ('BTA', 'BTB');
+
+-- Mercado entre jogadores
+reset role;
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
+update public.personagens set dados = dados || '{"ouro": 1000, "inventario": [{"id":"esp1","tipo":"arma","raridade":"epica","nivel":12},
+  {"id":"elmo1","tipo":"elmo","raridade":"rara","nivel":10},{"id":"anel1","tipo":"anel","raridade":"lendaria","nivel":15},
+  {"id":"trav1","tipo":"botas","raridade":"comum","travado":true}], "equipados": {"elmo":"elmo1"},
+  "consumiveis": [{"id":"pergaminho-rara","tipo":"pergaminho","raridade":"rara","qtd":5}]}'::jsonb where id = 'pa';
+update public.personagens set dados = dados || '{"ouro": 500}'::jsonb where id = 'pb';
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'elmo1', null, 1, 100)$$, 'Tire o item do corpo');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'trav1', null, 1, 100)$$, 'Destrave o item');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'naoexiste', null, 1, 100)$$, 'não encontrado');
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'esp1', null, 1, 0)$$, 'Preço inválido');
+select pg_temp.falha($$select public.mercado_anunciar('pa', null, 'rara', 9, 100)$$, 'só tem 5');
+select public.mercado_anunciar('pa', 'esp1', null, 1, 300) is not null;
+select public.mercado_anunciar('pa', 'anel1', null, 1, 50) is not null;
+select public.mercado_anunciar('pa', null, 'rara', 2, 40) is not null;
+select pg_temp.falha($$select public.mercado_anunciar('pa', 'esp1', null, 1, 300)$$, 'não encontrado');
+reset role;
+select pg_temp.igual((select jsonb_array_length(dados -> 'inventario') from public.personagens where id = 'pa'), 2, 'mercado: item sai da mochila salva');
+select pg_temp.igual((select (dados -> 'consumiveis' -> 0 ->> 'qtd')::int from public.personagens where id = 'pa'), 3, 'mercado: pergaminhos saem da pilha');
+select pg_temp.igual((select categoria from public.mercado_anuncios where item ->> 'id' = 'anel1'), 'joia', 'mercado: anel é joia');
+set role authenticated;
+select pg_temp.como('b');
+select pg_temp.igual(jsonb_array_length(public.mercado_estado('pb', null, null, 0) -> 'anuncios'), 3, 'mercado: todos veem os anúncios');
+select pg_temp.igual(jsonb_array_length(public.mercado_estado('pb', 'arma', null, 0) -> 'anuncios'), 1, 'mercado: filtro de categoria');
+select pg_temp.igual(public.mercado_estado('pb', null, 'raridade', 0) -> 'anuncios' -> 0 -> 'item' ->> 'raridade', 'lendaria', 'mercado: ordenar por raridade');
+select pg_temp.igual(public.mercado_estado('pb', null, 'nivel', 0) -> 'anuncios' -> 0 -> 'item' ->> 'id', 'anel1', 'mercado: ordenar por nível');
+select pg_temp.igual(public.mercado_estado('pb', null, null, 0) -> 'anuncios' -> 0 ->> 'vendedor', 'Aldric', 'mercado: mostra o nome do vendedor');
+select pg_temp.falha(format('select public.mercado_comprar(%L, %s)', 'pb', (select id from public.mercado_anuncios where item ->> 'id' = 'esp1')), 'já foi vendido') where false;
+reset role;
+select id as an_esp from public.mercado_anuncios where item ->> 'id' = 'esp1' \gset
+select id as an_perg from public.mercado_anuncios where categoria = 'pergaminho' \gset
+select id as an_anel from public.mercado_anuncios where item ->> 'id' = 'anel1' \gset
+set role authenticated;
+select pg_temp.como('a'); select pg_temp.falha('select public.mercado_comprar(''pa'', ' || :an_esp || ')', 'é seu');
+select pg_temp.como('b');
+select public.mercado_comprar('pb', :an_esp) is not null;
+select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_esp || ')', 'já foi vendido');
+select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_perg || ') from (select 1) x where public.mercado_comprar(''pb'', ' || :an_anel || ') is not null and false', 'xx') where false;
+reset role;
+update public.mercado_anuncios set preco = 300 where id = :an_perg;
+set role authenticated;
+select pg_temp.como('b'); select pg_temp.falha('select public.mercado_comprar(''pb'', ' || :an_perg || ')', 'Ouro insuficiente');
+reset role;
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pb'), -300, 'mercado: comprador paga o preço');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pa'), 270, 'mercado: vendedor recebe com 10% de taxa');
+select pg_temp.igual((select item ->> 'id' from public.recompensas where personagem_id = 'pb'), 'esp1', 'mercado: item vai para o comprador');
+set role authenticated;
+select pg_temp.como('a'); select public.mercado_cancelar('pa', :an_anel) is not null;
+select pg_temp.falha('select public.mercado_cancelar(''pa'', ' || :an_anel || ')', 'não está mais');
+reset role;
+select pg_temp.igual((select item ->> 'id' from public.recompensas where personagem_id = 'pa'), 'anel1', 'mercado: cancelar devolve o item');
+update public.mercado_anuncios set expira_em = now() - interval '1 second' where id = :an_perg;
+set role authenticated;
+select pg_temp.como('b'); select public.mercado_estado('pb', null, null, 0) is not null;
+reset role;
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'pergaminho'), 2, 'mercado: vencido devolve os pergaminhos');
+select pg_temp.igual((select count(*) from public.mercado_anuncios where estado = 'ativo')::int, 0, 'mercado: nada mais à venda');
+delete from public.recompensas; delete from public.creditos; delete from public.mercado_anuncios;
 \echo TODOS OS TESTES DO BANCO PASSARAM

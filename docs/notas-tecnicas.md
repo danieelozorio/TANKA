@@ -251,3 +251,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (ativo/na aba) ou 60 s. Ataque = `R.iniciarBatalha(p, R.chefeDoNivel(p))` com a vida do reino e no máx.
   `D.CHEFE_MUNDIAL.acoesPorAtaque` (30) ações; `encerrarMundial` usa a vida/poções reais e não tira exp ao cair.
   Prêmios aplicados em `resgatarRecompensas` (`R.premioChefeMundial`, `R.itemDoChefeMundial`, `p.titulo`/`p.titulos`).
+
+## Mercado entre jogadores (Henri, nov/2026)
+- Mercado › Loja, seção "Itens dos jogadores" (`#mercado-jogadores`, redesenho parcial com `redesenharMercado`).
+  Filtro por categoria (arma | armadura | joia | pergaminho) e ordem (recentes | nivel | raridade | preco | preco_desc),
+  30 por página. Botão Vender abre a lista da mochila (sem equipados/travados) e pergaminhos (com quantidade).
+- Servidor: tabela `mercado_anuncios`; `mercado_cfg()` (taxa 10%, 7 dias, 10 anúncios por vendedor).
+  `mercado_anunciar` confere o item no personagem SALVO (cliente salva antes) e tira dele (inventário ou pilha de
+  pergaminhos) sem mudar `versao`; o cliente tira igual na memória e salva.
+  `mercado_comprar`: `ouro_real` ≥ preço → crédito −preço para o comprador, +preço×90% para o vendedor, item em
+  `recompensas` (origem 'mercado'). Cancelar ou vencer (`mercado_expirar`, chamado no `mercado_estado`) devolve por recompensa.
+- Pergaminho em recompensa agora aceita `qtd`. `grupo_estado` e `leilao_estado` passaram a mandar `origem` das recompensas.

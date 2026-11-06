@@ -1443,3 +1443,19 @@ html { overscroll-behavior-x: none; }
   .boss-topo .barra { flex-basis: 100%; order: 3; }
   .boss-cabeca { flex-direction: column; text-align: center; }
 }
+
+/* ---------- Mercado entre jogadores ---------- */
+.mercado-filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
+.mercado-cats { display: flex; flex-wrap: wrap; gap: 4px; }
+.mercado-cats [aria-pressed="true"] { border-color: var(--lendaria); color: var(--lendaria); box-shadow: 0 0 0 1px var(--lendaria) inset; }
+.mercado-ordem select { margin-left: 4px; }
+.mercado-filtros [data-acao="mercado-vender-abrir"] { margin-left: auto; }
+.mercado-venda { border: 1px solid rgba(232, 184, 106, .45); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; background: rgba(232, 184, 106, .05); }
+.mercado-venda-topo { display: flex; justify-content: space-between; align-items: center; }
+.mercado-venda-topo h3 { margin: 0; }
+.mercado-venda .item-acoes { flex-wrap: wrap; gap: 6px; align-items: center; }
+.mercado-venda .lance-valor { width: 110px; }
+.mercado-venda input[id^="venda-qtd-"] { width: 64px; }
+.venda-recebe { min-width: 0; }
+.mercado-vendas { margin: 4px 0 0 18px; padding: 0; }
+@media (max-width: 600px) { .mercado-filtros [data-acao="mercado-vender-abrir"] { margin-left: 0; } }

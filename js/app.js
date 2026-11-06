@@ -1323,7 +1323,8 @@
       + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>'
       + '<p class="suave pequeno">Cada compra vem com nível sorteado entre <strong>' + Math.max(1, p.nivel - D.ITEM_NIVEL.variacao) + ' e ' + Math.min(D.ITEM_NIVEL.maximo, p.nivel + D.ITEM_NIVEL.variacao)
       + '</strong> (o seu level ±' + D.ITEM_NIVEL.variacao + ') e qualidade <span class="raridade-comum">Comum</span> ou <span class="raridade-rara">Rara</span>. '
-      + 'Itens Épicos e Lendários só caem dos monstros.</p>'
+      + 'Itens Épicos e Lendários só caem dos monstros (ou de outros jogadores, aqui embaixo).</p>'
+      + '<h3 class="subtitulo">Itens dos jogadores</h3><div id="mercado-jogadores">' + mercadoJogadoresHtml() + '</div>'
       + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3><div class="itens">'
       + R.armasPermitidas(p).map(function (a) { return linhaMercadoNivel({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: 'rara', encanto: 0 }, a); }).join('') + '</div>'
       + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).map(function (m) {
@@ -1344,6 +1345,189 @@
           + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
       }).join('') + '</div>'
       + trocaPergaminhosHtml(p);
+  }
+
+  // ---------------- Mercado dos jogadores (Mercado > Loja) ----------------
+  // O vendedor escolhe o preço; quem compra paga e o vendedor recebe o preço menos a taxa (10%). Tudo no servidor.
+  var CATEGORIAS_MERCADO = [['todos', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['joia', 'Joias'], ['pergaminho', 'Pergaminhos']];
+  var ORDENS_MERCADO = [['recentes', 'Mais novos'], ['nivel', 'Nível'], ['raridade', 'Raridade'], ['preco', 'Menor preço'], ['preco_desc', 'Maior preço']];
+  function filtroMercado() { return estado.mercadoFiltro || (estado.mercadoFiltro = { categoria: 'todos', ordem: 'recentes', pagina: 0 }); }
+  function itemAnuncio(a) {
+    var it = a.item;
+    return it.tipo === 'pergaminho' ? { tipo: 'pergaminho', classe: null, raridade: it.raridade, encanto: 0, qtd: a.qtd || it.qtd || 1, consumivel: true } : it;
+  }
+  function carregarMercado() {
+    var p = estado.personagem;
+    if (!p || estado.mercadoCarregando) return;
+    var f = filtroMercado();
+    estado.mercadoCarregando = true;
+    C.mercado.estado(p.id, f.categoria, f.ordem, f.pagina).then(function (r) {
+      estado.mercadoCarregando = false;
+      if (estado.personagem !== p) return;
+      receberMercado(r);
+    }, function (e) { estado.mercadoCarregando = false; estado.mercadoErro = e.message; redesenharMercado(); });
+  }
+  function receberMercado(r) {
+    estado.mercado = r;
+    estado.mercadoErro = null;
+    if (r && !r.local) {
+      aplicarCreditos(r.creditos || []);
+      if (r.recompensas && r.recompensas.length && !estado.batalha) resgatarRecompensas(r.recompensas);
+    }
+    redesenharMercado();
+  }
+  function redesenharMercado() {
+    var el = document.getElementById('mercado-jogadores');
+    if (el && estado.aba === 'mercado') el.innerHTML = mercadoJogadoresHtml();
+  }
+  function cartaAnuncio(a, meu) {
+    var p = estado.personagem, it = itemAnuncio(a), r = it.raridade;
+    var usa = it.consumivel || R.podeUsar(p, it);
+    var nome = it.consumivel ? nomeDrop(it) : R.nomeItem(it);
+    var resumo = it.consumivel ? 'Vai para Mochila › Consumíveis' : resumoLote({ item: it });
+    var acao = meu ? '<button class="btn secundario" data-acao="mercado-cancelar" data-id="' + a.id + '">Cancelar venda</button>'
+      : a.meu ? '<span class="suave pequeno">Seu anúncio</span>'
+      : '<button class="btn" data-acao="mercado-comprar" data-id="' + a.id + '"' + (p.ouro < a.preco ? ' disabled title="Ouro insuficiente"' : '') + '>Comprar</button>';
+    return '<div class="leilao-lote carta-' + r + '">'
+      + '<div class="leilao-cab"><button class="icone-pequeno borda-' + r + aura(it) + '" data-acao="mercado-ver" data-id="' + a.id + '" title="Ver o item">'
+      + F.icone(it) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
+      + '<div><div class="leilao-nome raridade-' + r + '">' + esc(nome) + '</div>'
+      + '<div class="suave pequeno">' + D.raridades[r].nome + (it.nivel ? ' · nível ' + it.nivel : '') + (it.encanto ? ' · +' + it.encanto : '') + '</div>'
+      + '<div class="suave pequeno">' + esc(resumo || '') + '</div>'
+      + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>') + '</div></div>'
+      + '<div>Preço: <strong class="cor-ouro">' + ouroTxt(a.preco) + '</strong></div>'
+      + (a.vendedor ? '<div class="suave pequeno">Vendedor: <strong>' + esc(a.vendedor) + '</strong></div>' : '')
+      + '<div class="suave pequeno">Sai do mercado em ' + tempoAnuncio(Date.parse(a.expira_em) - Date.now()) + '</div>'
+      + '<div class="leilao-acao">' + acao + '</div></div>';
+  }
+  function tempoAnuncio(ms) {
+    var h = Math.max(0, Math.floor(ms / 3600000));
+    return h >= 24 ? Math.floor(h / 24) + 'd ' + (h % 24) + 'h' : relogioBoss(ms);
+  }
+  function mercadoJogadoresHtml() {
+    var r = estado.mercado, f = filtroMercado(), p = estado.personagem;
+    if (!r) { carregarMercado(); return '<p class="suave">Carregando os itens dos jogadores…</p>'; }
+    if (r.local) return '<p class="suave">O mercado entre jogadores precisa do servidor: jogue pelo site do Eldrin.</p>';
+    var taxa = r.cfg.taxa;
+    var h = '<p class="suave">Itens à venda por outros jogadores. Quem vende escolhe o preço e recebe o valor menos '
+      + taxa + '% de taxa do mercado. Anúncios ficam ' + r.cfg.dias + ' dias; se ninguém comprar, o item volta para a mochila.</p>'
+      + '<div class="mercado-filtros">'
+      + '<div class="mercado-cats">' + CATEGORIAS_MERCADO.map(function (c) {
+        return '<button class="btn secundario btn-pequeno" data-acao="mercado-categoria" data-valor="' + c[0] + '" aria-pressed="' + (f.categoria === c[0]) + '">' + c[1] + '</button>';
+      }).join('') + '</div>'
+      + '<label class="mercado-ordem">Ordenar por <select id="mercado-ordem">' + ORDENS_MERCADO.map(function (o) {
+        return '<option value="' + o[0] + '"' + (f.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select></label>'
+      + '<button class="btn secundario btn-pequeno" data-acao="mercado-atualizar">Atualizar</button>'
+      + '<button class="btn" data-acao="mercado-vender-abrir">Vender</button></div>';
+    if (estado.mercadoErro) h += '<p class="menos">' + esc(estado.mercadoErro) + '</p>';
+    if (estado.mercadoVender) h += vendaMercadoHtml(r);
+    var lista = r.anuncios || [];
+    h += lista.length ? '<div class="leilao-lotes">' + lista.map(function (a) { return cartaAnuncio(a, false); }).join('') + '</div>'
+      : '<p class="suave">Nenhum item à venda' + (f.categoria !== 'todos' ? ' nesta categoria' : '') + ' agora.</p>';
+    var paginas = Math.ceil((r.total || 0) / r.cfg.porPagina);
+    if (paginas > 1) {
+      h += '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="mercado-pagina" data-valor="-1"' + (f.pagina ? '' : ' disabled') + '>‹ Anterior</button>'
+        + '<span class="suave">Página ' + (f.pagina + 1) + ' de ' + paginas + '</span>'
+        + '<button class="btn secundario btn-pequeno" data-acao="mercado-pagina" data-valor="1"' + (f.pagina + 1 < paginas ? '' : ' disabled') + '>Próxima ›</button></div>';
+    }
+    if ((r.meus || []).length) {
+      h += '<h3 class="subtitulo">Meus itens à venda (' + r.meus.length + '/' + r.cfg.maxAnuncios + ')</h3><div class="leilao-lotes">'
+        + r.meus.map(function (a) { return cartaAnuncio(a, true); }).join('') + '</div>';
+    }
+    if ((r.vendas || []).length) {
+      h += '<h3 class="subtitulo">Minhas últimas vendas</h3><ul class="mercado-vendas">' + r.vendas.map(function (v) {
+        var it = itemAnuncio(v);
+        return '<li>' + esc(it.consumivel ? nomeDrop(it) : R.nomeItem(it)) + ' → <strong>' + esc(v.comprador || '?') + '</strong> por <span class="cor-ouro">'
+          + ouroTxt(v.preco) + '</span> (você recebeu ' + ouroTxt(Math.floor(v.preco * (100 - taxa) / 100)) + ')</li>';
+      }).join('') + '</ul>';
+    }
+    return h + mercadoZoomHtml();
+  }
+  // Painel de venda: itens da mochila (não equipados, não travados) e pergaminhos.
+  function vendaMercadoHtml(r) {
+    var p = estado.personagem, taxa = r.cfg.taxa;
+    var itens = R.mochila(p).filter(function (i) { return !i.travado; });
+    var perg = R.RARIDADES.filter(function (k) { return R.qtdPergaminho(p, k) > 0; });
+    function campoPreco(chave) {
+      return '<input class="lance-valor venda-preco" id="venda-preco-' + chave + '" type="number" inputmode="numeric" min="1" step="1" placeholder="Preço" aria-label="Preço em ouro">'
+        + '<span class="suave pequeno venda-recebe" id="venda-recebe-' + chave + '"></span>';
+    }
+    var h = '<div class="mercado-venda"><div class="mercado-venda-topo"><h3>Vender no mercado</h3>'
+      + '<button class="btn secundario btn-pequeno" data-acao="mercado-vender-fechar">Fechar</button></div>'
+      + '<p class="suave pequeno">Escolha o preço em ouro. Quando alguém comprar, você recebe o valor menos ' + taxa + '% de taxa. '
+      + 'Itens equipados ou travados não aparecem aqui. Você pode ter até ' + r.cfg.maxAnuncios + ' itens à venda.</p>';
+    if (!itens.length && !perg.length) return h + '<p class="suave">Nada para vender na mochila.</p></div>';
+    h += '<div class="itens">' + itens.map(function (i) {
+      return '<div class="item item-com-icone carta-' + i.raridade + '"><div class="icone-pequeno borda-' + i.raridade + aura(i) + '">' + F.icone(i) + '</div>'
+        + '<div class="item-texto"><div>' + nomeItemHtml(i) + ' <span class="suave pequeno">' + D.raridades[i.raridade].nome + (i.nivel ? ' · nível ' + i.nivel : '') + '</span></div>'
+        + '<div class="suave">' + esc(descricaoItem(i) || '') + '</div></div>'
+        + '<div class="item-acoes">' + campoPreco(i.id) + '<button class="btn" data-acao="mercado-anunciar" data-id="' + esc(i.id) + '">Anunciar</button></div></div>';
+    }).join('') + perg.map(function (k) {
+      var it = { tipo: 'pergaminho', classe: null, raridade: k, encanto: 0, qtd: R.qtdPergaminho(p, k), consumivel: true };
+      return '<div class="item item-com-icone carta-' + k + '"><div class="icone-pequeno borda-' + k + '">' + F.icone(it) + '</div>'
+        + '<div class="item-texto"><div class="raridade-' + k + '">' + esc(R.nomeConsumivel(it)) + '</div><div class="suave">Você tem ' + it.qtd + '</div></div>'
+        + '<div class="item-acoes"><input class="lance-valor" id="venda-qtd-' + k + '" type="number" inputmode="numeric" min="1" max="' + it.qtd + '" step="1" value="1" aria-label="Quantidade">'
+        + campoPreco('perg-' + k) + '<button class="btn" data-acao="mercado-anunciar" data-pergaminho="' + k + '">Anunciar</button></div></div>';
+    }).join('') + '</div></div>';
+    return h;
+  }
+  function mercadoZoomHtml() {
+    var r = estado.mercado, id = estado.mercadoVer;
+    var a = r && [].concat(r.anuncios || [], r.meus || []).filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!a || a.item.tipo === 'pergaminho') return '';
+    var p = estado.personagem, it = a.item, outro = R.podeUsar(p, it) ? itemParaComparar(p, it) : null;
+    return '<div class="zoom-fundo leilao-zoom" data-acao="mercado-fechar"><div class="zoom-janela" role="dialog" aria-label="Item à venda">'
+      + '<div class="zoom-cartas">' + cartaZoom(it, outro, 'À venda por ' + (a.vendedor || 'você')) + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
+      + '<div class="botoes"><button class="btn secundario" data-acao="mercado-fechar">Fechar</button></div></div></div>';
+  }
+  async function anunciarMercado(el) {
+    var p = estado.personagem, id = el.dataset.id || null, perg = el.dataset.pergaminho || null;
+    var chave = id || 'perg-' + perg;
+    var preco = Math.floor(Number((document.getElementById('venda-preco-' + chave) || {}).value));
+    var qtd = perg ? Math.floor(Number((document.getElementById('venda-qtd-' + perg) || {}).value)) : 1;
+    if (!(preco >= 1)) { avisar('Digite o preço em ouro.'); return; }
+    if (perg && !(qtd >= 1 && qtd <= R.qtdPergaminho(p, perg))) { avisar('Quantidade inválida.'); return; }
+    if (estado.mercadoOcupado) return;
+    estado.mercadoOcupado = true;
+    try {
+      p.poder = R.poder(p);
+      await C.salvarPersonagem(p);              // o servidor tira o item do personagem salvo
+      var r = await C.mercado.anunciar(p.id, id, perg, qtd, preco);
+      if (id) p.inventario = p.inventario.filter(function (i) { return i.id !== id; });
+      else R.mudarPergaminho(p, perg, -qtd);
+      salvar();
+      avisar('Anunciado no mercado por ' + ouroTxt(preco) + ' de ouro.', 'item');
+      receberMercado(r);
+      atualizarFicha();
+    } catch (e) { avisar(e.message); }
+    estado.mercadoOcupado = false;
+  }
+  async function comprarMercado(id) {
+    var p = estado.personagem, a = estado.mercado && (estado.mercado.anuncios || []).filter(function (x) { return String(x.id) === String(id); })[0];
+    if (!a || estado.mercadoOcupado) return;
+    if (p.ouro < a.preco) { avisar('Ouro insuficiente.'); return; }
+    if (a.item.tipo !== 'pergaminho' && R.mochilaCheia(p)) { avisar('Mochila cheia! Libere espaço antes de comprar.'); return; }
+    estado.mercadoOcupado = true;
+    try {
+      p.poder = R.poder(p);
+      await C.salvarPersonagem(p);              // o servidor confere o ouro salvo
+      var r = await C.mercado.comprar(p.id, id);
+      avisar('Compra feita! O item vai para a sua mochila.', 'item');
+      receberMercado(r);
+    } catch (e) { avisar(e.message); carregarMercado(); }
+    estado.mercadoOcupado = false;
+  }
+  async function cancelarMercado(id) {
+    var p = estado.personagem;
+    if (estado.mercadoOcupado) return;
+    estado.mercadoOcupado = true;
+    try {
+      var r = await C.mercado.cancelar(p.id, id);
+      avisar('Anúncio cancelado: o item volta para a sua mochila.');
+      receberMercado(r);
+    } catch (e) { avisar(e.message); }
+    estado.mercadoOcupado = false;
   }
 
   // Troca de pergaminhos de encantamento: 10 de uma raridade = 1 da seguinte.
@@ -2604,6 +2788,7 @@
     if (aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
     if (aba === 'alianca') carregarAlianca();
     if (aba === 'mundial') carregarBoss();
+    if (aba === 'mercado') carregarMercado();
   }
 
   function podeVoltarAba() {
@@ -2707,6 +2892,7 @@
   });
 
   app.addEventListener('change', function (e) {
+    if (e.target.id === 'mercado-ordem') { var fo = filtroMercado(); fo.ordem = e.target.value; fo.pagina = 0; carregarMercado(); }
     if (e.target.id === 'cacada-pocao') { prefsCacada().pocao = Number(e.target.value) || 0; salvar(); }
     if (e.target.id === 'cacada-chefe') {
       prefsCacada().chefe = e.target.value; salvar();
@@ -2722,6 +2908,10 @@
   });
 
   app.addEventListener('input', function (e) {
+    if (e.target.classList.contains('venda-preco') && estado.mercado && estado.mercado.cfg) {
+      var vp = Math.floor(Number(e.target.value)), alvo = document.getElementById(e.target.id.replace('venda-preco-', 'venda-recebe-'));
+      if (alvo) alvo.textContent = vp >= 1 ? 'Você recebe ' + ouroTxt(Math.floor(vp * (100 - estado.mercado.cfg.taxa) / 100)) : '';
+    }
     if (e.target.id === 'nome-personagem' && estado.criacao) estado.criacao.nome = e.target.value;
     if (e.target.id === 'forca-min') { visaoMochila().forcaMin = Number(e.target.value) || 0; aplicarVisaoMochila(); }
     if (e.target.id === 'confirmar-exclusao') {
@@ -2921,6 +3111,18 @@
         aplicarVisaoMochila();
         break;
       case 'leilao-lance': darLance(el.dataset.id); break;
+      case 'mercado-categoria': filtroMercado().categoria = el.dataset.valor; filtroMercado().pagina = 0; carregarMercado(); redesenharMercado(); break;
+      case 'mercado-pagina': filtroMercado().pagina = Math.max(0, filtroMercado().pagina + Number(el.dataset.valor)); carregarMercado(); break;
+      case 'mercado-atualizar': carregarMercado(); break;
+      case 'mercado-vender-abrir': estado.mercadoVender = true; redesenharMercado(); break;
+      case 'mercado-vender-fechar': estado.mercadoVender = false; redesenharMercado(); break;
+      case 'mercado-anunciar': anunciarMercado(el); break;
+      case 'mercado-comprar': comprarMercado(el.dataset.id); break;
+      case 'mercado-cancelar': cancelarMercado(el.dataset.id); break;
+      case 'mercado-ver': estado.mercadoVer = el.dataset.id; redesenharMercado(); break;
+      case 'mercado-fechar':
+        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="mercado-fechar"].btn')) break;
+        estado.mercadoVer = null; redesenharMercado(); break;
       case 'leilao-atualizar': estado.leilao = null; carregarLeilao(); telaJogo(); break;
       case 'leilao-ver': estado.leilaoVer = el.dataset.id; telaJogo(); break;
       case 'leilao-fechar':
@@ -3587,13 +3789,15 @@
         if (rec.item && rec.item.tipo === 'pergaminho') {
           var perg = await C.grupo.resgatar(p.id, rec.id);
           if (!D.raridades[perg.raridade]) continue;
-          R.mudarPergaminho(p, perg.raridade, 1);
+          var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
+          R.mudarPergaminho(p, perg.raridade, nPerg);
           salvar();
-          avisar('Você ganhou um Pergaminho para item ' + ITEM_RARIDADE[perg.raridade] + (rec.origem === 'boss' ? ' do Chefe Mundial!' : ' na masmorra!'), 'item');
+          avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
+            + (rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisar('Mochila cheia! Seu prêmio (' + (rec.origem === 'boss' ? 'Chefe Mundial' : 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+          if (!avisouCheia) avisar('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
@@ -3601,7 +3805,7 @@
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
-        avisar('Você ganhou ' + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
+        avisar((rec.origem === 'mercado' ? 'Chegou do mercado: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
     } catch (e) { avisar(e.message); }
     estado.resgatando = false;
