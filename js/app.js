@@ -4905,6 +4905,7 @@
     return '<div class="ficha-alianca">' + brasaoSvg(a.brasao) + '<div><strong>' + esc(a.nome) + '</strong> ' + siglaHtml(a.sigla)
       + '<div class="suave pequeno">' + (n ? '<span class="mais">' + n + (n === 1 ? ' skill do clã ativa' : ' skills do clã ativas') + '</span>' : 'Nenhuma skill do clã ainda') + '</div></div></div>';
   }
+  var NOME_CARGO = { lider: 'Líder', vice: 'Vice-líder', oficial: 'Oficial', membro: 'Membro' };
   function siglaHtml(sigla) { return sigla ? '<span class="sigla">[' + esc(sigla) + ']</span> ' : ''; }
 
   // ---------------- Skills e missões do clã (Daniel, nov/2026) ----------------
@@ -4921,8 +4922,8 @@
     return '<span class="skill-cla-ico"><img src="assets/cla/skill-' + k.id + '.webp" alt="" onerror="this.remove()"><span>' + k.simbolo + '</span></span>';
   }
   function skillsClaHtml(st) {
-    var a = st.alianca, chefe = st.meu_cargo === 'lider', sk = st.skills || {}, max = AL.skillPrecos.length;
-    var html = '<div class="caixa-interna"><h3>Skills do clã</h3><p class="suave pequeno">Compradas pelo líder com o ouro do tesouro (<span class="cor-ouro">'
+    var a = st.alianca, chefe = st.meu_cargo === 'lider' || st.meu_cargo === 'vice', sk = st.skills || {}, max = AL.skillPrecos.length;
+    var html = '<div class="caixa-interna"><h3>Skills do clã</h3><p class="suave pequeno">Compradas pelo líder ou pelo vice-líder com o ouro do tesouro (<span class="cor-ouro">'
       + Number(a.tesouro).toLocaleString('pt-BR') + '</span>). Valem para todos os membros, para sempre, contra monstros, masmorras e bosses '
       + '(não valem na Arena). O nível de cada skill vai até o nível do clã (agora ' + a.nivel + ').</p></div><div class="skills-cla">';
     html += AL.skills.map(function (k) {
@@ -4954,12 +4955,12 @@
         return '<div class="item missao-cla' + (x.concluida ? ' feita' : '') + '"><div class="item-texto"><div><strong>' + (x.concluida ? '✅ ' : '') + esc(d.nome) + '</strong></div>'
           + barra('exp', v, d.meta, v.toLocaleString('pt-BR') + ' / ' + d.meta.toLocaleString('pt-BR'))
           + '<div class="suave pequeno">Prêmio: <span class="cor-ouro">' + ouroMissaoCla(d, a.nivel).toLocaleString('pt-BR') + ' de ouro</span> no tesouro'
-          + (semanal && d.buff ? ' + <span class="mais">' + d.buff + '% de dano contra o boss do clã</span> até o fim da semana' : '') + '</div></div></div>';
+          + (semanal && d.buff ? ' + <span class="mais">' + d.buff.toLocaleString('pt-BR') + '% de dano contra o boss do clã</span> até o fim da semana' : '') + '</div></div></div>';
       }).join('') + '</div>';
     }
     return '<div class="caixa-interna"><h3>Missões do clã</h3><p class="suave pequeno">O progresso é a soma de todos os membros. Cada missão cumprida põe ouro no tesouro '
       + '(mais ouro quanto maior o nível do clã). As diárias recomeçam à meia-noite; as semanais, na segunda-feira (Brasília).</p>'
-      + (st.buff_boss ? '<p class="mais"><strong>Buff da semana: +' + st.buff_boss + '% de dano contra o boss do clã!</strong></p>' : '') + '</div>'
+      + (Number(st.buff_boss) ? '<p class="mais"><strong>Buff da semana: +' + Number(st.buff_boss).toLocaleString('pt-BR') + '% de dano contra o boss do clã!</strong></p>' : '') + '</div>'
       + '<h3 class="subtitulo">Diárias</h3>' + lista(AL.missoes.diarias, m.diarias || {}, false)
       + '<h3 class="subtitulo">Semanais</h3>' + lista(AL.missoes.semanais, m.semanais || {}, true);
   }
@@ -5105,15 +5106,16 @@
   }
 
   function telaMinhaAlianca(st) {
-    var p = estado.personagem, a = st.alianca, cargo = st.meu_cargo, chefe = cargo === 'lider', manda = cargo !== 'membro';
+    // chefe = líder; comanda = líder ou vice-líder (skills, hora do boss, brasão, oficiais)
+    var p = estado.personagem, a = st.alianca, cargo = st.meu_cargo, chefe = cargo === 'lider', comanda = chefe || cargo === 'vice', manda = cargo !== 'membro';
     var html = '<div class="alianca-topo">' + brasaoSvg(a.brasao, 'grande') + '<div class="alianca-titulo">'
       + '<h2>' + esc(a.nome) + ' ' + siglaHtml(a.sigla) + '</h2>'
       + '<div class="suave">Level ' + a.nivel + ' · ' + a.membros + '/' + a.vagas + ' membros · Poder ' + Number(a.poder).toLocaleString('pt-BR') + '</div>'
       + (a.exp_proximo ? barra('exp', a.exp, a.exp_proximo, Number(a.exp).toLocaleString('pt-BR') + ' / ' + Number(a.exp_proximo).toLocaleString('pt-BR') + ' de exp')
         : '<div class="cor-ouro">Level máximo!</div>')
-      + '<div class="suave pequeno">Você é <strong>' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[cargo] + '</strong></div></div>'
-      + (chefe ? '<button class="btn secundario btn-pequeno" data-acao="al-brasao-abrir">Mudar brasão</button>' : '') + '</div>';
-    if (chefe && estado.aliancaBrasao) {
+      + '<div class="suave pequeno">Você é <strong>' + NOME_CARGO[cargo] + '</strong></div></div>'
+      + (comanda ? '<button class="btn secundario btn-pequeno" data-acao="al-brasao-abrir">Mudar brasão</button>' : '') + '</div>';
+    if (comanda && estado.aliancaBrasao) {
       html += '<div class="caixa-interna">' + editorBrasao(estado.aliancaBrasao, 'Novo brasão')
         + '<div class="botoes"><button class="btn" data-acao="al-brasao-salvar">Salvar brasão</button><button class="btn secundario" data-acao="al-brasao-fechar">Cancelar</button></div></div>';
     }
@@ -5161,16 +5163,18 @@
     // Membros
     html += '<h3 class="subtitulo">Membros (' + a.membros + '/' + a.vagas + ')</h3><div class="itens">' + st.membros.map(function (x) {
       var eu = x.id === p.id, acoes = '';
+      var bt = function (valor, rotulo) { return '<button class="btn secundario btn-pequeno" data-acao="al-cargo" data-id="' + x.id + '" data-valor="' + valor + '">' + rotulo + '</button>'; };
       if (!eu && chefe) {
-        acoes += x.cargo === 'oficial'
-          ? '<button class="btn secundario btn-pequeno" data-acao="al-cargo" data-id="' + x.id + '" data-valor="membro">Rebaixar</button>'
-          : '<button class="btn secundario btn-pequeno" data-acao="al-cargo" data-id="' + x.id + '" data-valor="oficial">Promover a oficial</button>';
+        if (x.cargo !== 'vice') acoes += bt('vice', 'Tornar vice-líder');
+        acoes += x.cargo === 'membro' ? bt('oficial', 'Promover a oficial') : bt('membro', 'Rebaixar');
         acoes += confirmar('lider:' + x.id, 'Passar liderança', 'Confirmar: passar');
+      } else if (!eu && cargo === 'vice' && (x.cargo === 'oficial' || x.cargo === 'membro')) {
+        acoes += x.cargo === 'oficial' ? bt('membro', 'Rebaixar') : bt('oficial', 'Promover a oficial');
       }
-      if (!eu && (chefe || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
-      var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'oficial' ? '⭐ ' : '';
+      if (!eu && (chefe || (cargo === 'vice' && (x.cargo === 'oficial' || x.cargo === 'membro')) || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
+      var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'vice' ? '🛡️ ' : x.cargo === 'oficial' ? '⭐ ' : '';
       return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '"><div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
-        + '<div class="suave pequeno">' + ({ lider: 'Líder', oficial: 'Oficial', membro: 'Membro' })[x.cargo] + ' · ' + nomeClasseX(x)
+        + '<div class="suave pequeno">' + NOME_CARGO[x.cargo] + ' · ' + nomeClasseX(x)
         + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';
     }).join('') + '</div>';
@@ -5224,7 +5228,7 @@
         return true;
       }
       case 'al-bonus': acaoAlianca(A2.bonus(p.id, el.dataset.valor), 'Bônus ativado por ' + AL.bonus.dias + ' dias para todos!', 'nivel'); return true;
-      case 'al-cargo': acaoAlianca(A2.cargo(p.id, el.dataset.id, el.dataset.valor), el.dataset.valor === 'oficial' ? 'Promovido a oficial.' : 'Rebaixado a membro.'); return true;
+      case 'al-cargo': acaoAlianca(A2.cargo(p.id, el.dataset.id, el.dataset.valor), ({ vice: 'Agora é o vice-líder do clã.', oficial: 'Promovido a oficial.' })[el.dataset.valor] || 'Rebaixado a membro.'); return true;
       case 'al-brasao-abrir': {
         var atual = aliancaAtual().alianca.brasao || {};
         estado.aliancaBrasao = { forma: atual.forma || 'classico', cor: atual.cor || AL.brasao.cores[0], simbolo: atual.simbolo || 'dragao' };
@@ -5338,7 +5342,7 @@
       carregarBossAl();
       return '<p class="suave">' + (estado.bossAlErro ? esc(estado.bossAlErro) + '<br><span class="pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</span>' : 'Carregando…') + '</p>';
     }
-    var b = st.boss, aberto = b.estado === 'aberto', lider = st.meu_cargo === 'lider';
+    var b = st.boss, aberto = b.estado === 'aberto', lider = st.meu_cargo === 'lider' || st.meu_cargo === 'vice';
     var nivelMostrado = b.estado === 'morto' && b.dia === st.dia ? b.nivel - 1 : b.nivel;
     var info = R.bossAlianca(nivelMostrado), prox = proximoBossAl(st);
     // Situação
@@ -5495,7 +5499,7 @@
 
   function linhaChatAlianca(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + (m.cargo === 'lider' ? '👑 ' : m.cargo === 'oficial' ? '⭐ ' : '')
+    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + (m.cargo === 'lider' ? '👑 ' : m.cargo === 'vice' ? '🛡️ ' : m.cargo === 'oficial' ? '⭐ ' : '')
       + '<strong class="chat-nome">' + esc(m.personagem) + '</strong>: ' + esc(m.texto) + '</p>';
   }
   function chatDaAlianca() { var st = aliancaAtual(); return !!(st && st.alianca); }

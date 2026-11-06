@@ -765,21 +765,21 @@ Tanka.dados = {
     ],
     // Missões do clã (Daniel, nov/2026): o progresso é a soma de todos os membros. Cumpriu: `ouro` vai para o tesouro,
     // x (1 + ouroPorNivel x (nível do clã - 1)). Semanais: além do ouro, `buff`% de dano contra o boss do clã até o fim
-    // da semana (segunda 00:00, Brasília; somam). tipo: monstros (caçada), encantar (tentativas na Forja), arena (lutas
+    // da semana (segunda 00:00, Brasília; somam: as 4 = +10%). Ouro pela metade e buff 10% no total (Daniel, nov/2026). tipo: monstros (caçada), encantar (tentativas na Forja), arena (lutas
     // atacando), masmorra (vitórias), bossCla (boss do clã derrotado; contado pelo servidor).
     missoesOuroPorNivel: 0.2,
     missoes: {
       diarias: [
-        { tipo: 'monstros', meta: 1000, ouro: 6000, nome: 'Caçar 1.000 monstros' },
-        { tipo: 'encantar', meta: 50, ouro: 4000, nome: 'Encantar 50 vezes' },
-        { tipo: 'arena', meta: 50, ouro: 4000, nome: 'Lutar 50 vezes na Arena' },
-        { tipo: 'masmorra', meta: 10, ouro: 5000, nome: 'Vencer 10 masmorras' },
+        { tipo: 'monstros', meta: 1000, ouro: 3000, nome: 'Caçar 1.000 monstros' },
+        { tipo: 'encantar', meta: 50, ouro: 2000, nome: 'Encantar 50 vezes' },
+        { tipo: 'arena', meta: 50, ouro: 2000, nome: 'Lutar 50 vezes na Arena' },
+        { tipo: 'masmorra', meta: 10, ouro: 2500, nome: 'Vencer 10 masmorras' },
       ],
       semanais: [
-        { tipo: 'monstros', meta: 15000, ouro: 40000, buff: 5, nome: 'Caçar 15.000 monstros' },
-        { tipo: 'encantar', meta: 500, ouro: 30000, buff: 5, nome: 'Encantar 500 vezes' },
-        { tipo: 'arena', meta: 400, ouro: 30000, buff: 5, nome: 'Lutar 400 vezes na Arena' },
-        { tipo: 'bossCla', meta: 4, ouro: 50000, buff: 5, nome: 'Derrotar o boss do clã 4 vezes' },
+        { tipo: 'monstros', meta: 15000, ouro: 20000, buff: 2.5, nome: 'Caçar 15.000 monstros' },
+        { tipo: 'encantar', meta: 500, ouro: 15000, buff: 2.5, nome: 'Encantar 500 vezes' },
+        { tipo: 'arena', meta: 400, ouro: 15000, buff: 2.5, nome: 'Lutar 400 vezes na Arena' },
+        { tipo: 'bossCla', meta: 4, ouro: 25000, buff: 2.5, nome: 'Derrotar o boss do clã 4 vezes' },
       ],
     },
     // O jogo manda o progresso em lotes; o servidor aceita no máximo isto por envio (contra exageros).

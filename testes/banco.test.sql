@@ -192,6 +192,14 @@ select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'vagas'
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'bonus_pct')::int, 6, 'bônus de 6% no level 2');
 select public.alianca_bonus('pa', 'exp');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 36000, 'bônus gasta 20.000 do tesouro');
+-- Vice-líder: 1 por clã; promove/rebaixa oficiais, compra skills; não mexe no líder
+select public.alianca_cargo('pa', 'pb', 'vice');
+select pg_temp.igual((select cargo from public.alianca_membros where personagem_id = 'pb'), null::text, 'tabela de membros fechada para leitura');
+select pg_temp.como('b');
+select pg_temp.igual(public.alianca_estado('pb', null) ->> 'meu_cargo', 'vice', 'vice-líder nomeado pelo líder');
+select pg_temp.falha($$select public.alianca_cargo('pb', 'pa', 'membro')$$, 'O vice-líder só promove e rebaixa oficiais');
+select pg_temp.falha($$select public.alianca_expulsar('pb', 'pa')$$, 'Você não pode expulsar');
+select pg_temp.como('a');
 -- Skills do clã: só o líder, com o tesouro, nível <= nível do clã
 select pg_temp.falha($$select public.alianca_skill_comprar('pa', 'voar')$$, 'Skill inválida');
 select public.alianca_skill_comprar('pa', 'dano');
@@ -206,12 +214,12 @@ select public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_mi
   public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_missao_registrar('pa', 'monstros', 999);
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'progresso')::int, 1200, 'missão: no máximo 300 monstros por envio');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'concluida')::boolean, true, 'missão diária cumprida');
-select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 11000 + 100000 - 40000 + 7200, 'missão diária: 6.000 x 1,2 no tesouro');
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 11000 + 100000 - 40000 + 3600, 'missão diária: 3.000 x 1,2 no tesouro');
 select pg_temp.falha($$select public.alianca_missao_registrar('pa', 'trapaca', 1)$$, 'Missão inválida');
 reset role;
 update public.alianca_missoes set progresso = 15000, concluida = true where periodo = 'semana' and tipo = 'monstros';
 set role authenticated; select pg_temp.como('a');
-select pg_temp.igual((public.alianca_estado('pa', null) ->> 'buff_boss')::int, 5, 'missão semanal: +5% de dano contra o boss do clã');
+select pg_temp.igual((public.alianca_estado('pa', null) ->> 'buff_boss')::numeric, 2.5, 'missão semanal: +2,5% de dano contra o boss do clã');
 select pg_temp.igual(public.alianca_estado('pa', null) -> 'alianca' ->> 'bonus_exp_ate' is not null, true, 'bônus de exp ativo');
 select pg_temp.como('b');
 select pg_temp.falha($$select public.alianca_bonus('pb', 'ouro')$$, 'Só o líder ativa os bônus');
@@ -674,7 +682,7 @@ set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'fechado', 'boss: sem hora, fica fechado');
 select pg_temp.como('b');
-select pg_temp.falha($$select public.alianca_boss_hora('pb', 20)$$, 'Só o líder escolhe');
+select pg_temp.falha($$select public.alianca_boss_hora('pb', 20)$$, 'Só o líder e o vice-líder escolhem');
 select pg_temp.falha($$select public.alianca_boss_atacar('pb')$$, 'não está aberto');
 select pg_temp.como('a');
 select pg_temp.falha($$select public.alianca_boss_hora('pa', 24)$$, 'Hora inválida');

@@ -340,3 +340,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `alianca_boss_runs.buff` e no `simularBossAlianca(..., buff)` via `opc.buffDano`).
 - Telas: Clã | ✦ Skills | 📜 Missões | ⚔ Boss do clã (`estado.aliancaVista`). Testes: regras.test.js ("skills do clã") e
   banco.test.sql (doação por dia, skills, missões, buff, boss conta na semanal).
+- **Ajustes (Daniel, nov/2026):** ouro das missões pela metade (diárias 3.000/2.000/2.000/2.500; semanais
+  20.000/15.000/15.000/25.000, x1,2 por nível do clã acima do 1) e buff de 2,5% por semanal (as 4 = +10%; `buff` agora é
+  numeric no banco: `alianca_boss_buff` e `alianca_boss_runs.buff`).
+- **Vice-líder (cargo `vice`, 1 por clã):** o líder nomeia ("Tornar vice-líder"; o vice antigo vira oficial). O vice compra
+  skills, escolhe a hora do boss, muda o brasão, promove/rebaixa e expulsa oficiais e membros; não mexe no líder nem desfaz o
+  clã. Se o líder some, o vice assume primeiro (`alianca_conferir_lider`). Check do cargo trocado com `alter table ... drop/add
+  constraint alianca_membros_cargo_check`. Ícone 🛡️ (lista, chat). Ícones das skills: Daniel vai mandar uma folha 5x2
+  (prompt no scratchpad); cortar em `assets/cla/skill-<id>.webp` na ordem de `ALIANCA.skills`.
+
