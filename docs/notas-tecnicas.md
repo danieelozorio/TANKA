@@ -124,7 +124,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   lendária 1,6–1,7), `multQualidade` em regras.js mapeia a qualidade dentro da faixa da raridade. Só itens novos (o dano/bônus
   fica salvo no item).
 - Encanto em %: `encantamento.pctPorNivel` = 5. Arma: dano x(1 + 5% x encanto) (`multEncanto`/`danoArmaComEncanto`);
-  armadura/joia/mão: bônus principal +5% por nível, mínimo +1 por nível (`bonusComEncanto`). Servidor igual
+  armadura/joia/mão: bônus principal +5% por nível, sem mínimo desde nov/2026 (`bonusComEncanto`). Servidor igual
   (`encantoPct` em tanka_dados, tanka_status). Testes: regras.test.js e banco.test.sql.
 - Tipos de arma equilibrados: o `fator` do tipo vale para o GOLPE INTEIRO (arma + dano do herói + mão esquerda), em
   `status` e no tanka_status (`fat`). Fatores: rápida 0,83 (x1,2 ataques = normal), lenta de uma mão 1,25 (x0,8 = normal),
@@ -262,3 +262,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `mercado_comprar`: `ouro_real` ≥ preço → crédito −preço para o comprador, +preço×90% para o vendedor, item em
   `recompensas` (origem 'mercado'). Cancelar ou vencer (`mercado_expirar`, chamado no `mercado_estado`) devolve por recompensa.
 - Pergaminho em recompensa agora aceita `qtd`. `grupo_estado` e `leilao_estado` passaram a mandar `origem` das recompensas.
+
+## Poder dos itens: +6 de uma raridade ≈ +0 da seguinte (Henri, nov/2026)
+- Arma já seguia a regra (+5%/nível no dano; cada raridade ~30% acima). Armadura/joia/mão esquerda tinham "no mínimo
+  +1 por nível", que nos níveis baixos/médios deixava comum +6 acima de épica +0. Agora é só +5%/nível
+  (`bonusComEncanto` sem arredondar; defesa arredonda depois do x4,5). Vale para todos os itens já existentes.
+- `tanka_status` (Arena) arredonda igual ao cliente (defesa: `round(b0*m*fator)/fator`). Teste novo em regras.test.js.

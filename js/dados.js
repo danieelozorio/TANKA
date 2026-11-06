@@ -205,8 +205,8 @@ Tanka.dados = {
     chances: { 4: 70, 5: 60, 6: 50, 7: 40, 8: 30, 9: 20, 10: 10 },
     chanceMaxima: 95,          // teto depois do bônus de Sorte (SORTE.encanto por ponto)
     voltaZeroAte: 6,           // falha até +6 volta a arma para +0; do +7 em diante ela quebra
-    // Cada + do encanto dá +5% do próprio item: na arma, do dano; nas outras peças, do bônus principal
-    // (mínimo +1 por nível de encanto). Assim um item roxo +0 ganha de um azul +4 do mesmo nível.
+    // Cada + do encanto dá +5% do próprio item: na arma, do dano; nas outras peças, do bônus principal.
+    // Cada raridade é ~30% mais forte que a anterior, então +6 (+30%) iguala o +0 da raridade seguinte.
     pctPorNivel: 5,
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
@@ -276,7 +276,7 @@ Tanka.dados = {
     picareta: { nome: 'Picareta', classe: 'artesao', vel: 'normal', fator: 1 },
   },
   ARMA_PADRAO: { cavaleiro: 'espada', arqueiro: 'arco', mago: 'cajado', artesao: 'martelo' },
-  // Mão esquerda: bônus por raridade (comum, rara, épica, lendária); encanto: o bônus que sobe +1 por nível de encanto.
+  // Mão esquerda: bônus por raridade (comum, rara, épica, lendária); encanto: o bônus que sobe +5% por nível de encanto.
   MAO_ESQUERDA: {
     escudo: { nome: 'Escudo', bonus: { defesa: [3, 6, 12, 24] }, encanto: 'defesa' },
     aljava: { nome: 'Aljava', bonus: { precisao: [2, 4, 6, 10], critico: [1, 2, 4, 8] }, encanto: 'critico' },

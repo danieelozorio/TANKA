@@ -301,6 +301,7 @@ Tanka.regras = (function () {
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);
+      if (k !== 'defesa' && k !== 'defesaMagica') b[k] = Math.round(b[k]);   // a defesa arredonda depois do fator
     }
     // Defesa em porcentagem: a defesa dos itens vale x DEFESA.fator (4,5), inclusive nos itens já salvos.
     if (b.defesa) b.defesa = Math.round(b.defesa * D.DEFESA.fator);
@@ -314,9 +315,11 @@ Tanka.regras = (function () {
 
   // Encanto: cada + dá +5% (pctPorNivel) do próprio item.
   function multEncanto(item) { return 1 + ((item && item.encanto) || 0) * D.encantamento.pctPorNivel / 100; }
-  // Bônus principal de armadura/joia/mão esquerda com o encanto: +5% por nível, no mínimo +1 por nível.
+  // Bônus principal de armadura/joia/mão esquerda com o encanto: +5% por nível (sem arredondar aqui), igual à arma.
+  // Assim comum +6 ≈ rara +0, rara +6 ≈ épica +0 e épica +6 ≈ lendária +0 (o "mínimo +1 por nível" antigo
+  // deixava um item +6 de raridade baixa muito acima do +0 da raridade seguinte).
   function bonusComEncanto(valor, encanto) {
-    return Math.max(valor + encanto, Math.round(valor * (1 + encanto * D.encantamento.pctPorNivel / 100)));
+    return valor * (1 + encanto * D.encantamento.pctPorNivel / 100);
   }
 
   // Dano da arma já com o encanto (+5% por nível) e o fator do tipo da arma.

@@ -1222,7 +1222,7 @@ language plpgsql stable as $$
 declare
   T jsonb := public.tanka_dados();
   raridades text[] := array['comum', 'rara', 'epica', 'lendaria'];
-  eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int; b0 numeric;
+  eq jsonb := '{}'::jsonb; iid text; it jsonb; tipo text; idx int; def jsonb; k text; arr jsonb; enc int; b0 numeric; m numeric; fd numeric;
   fo numeric; de numeric; re numeric; inte numeric; nivel int := coalesce((p ->> 'nivel')::int, 1);
   magico boolean; dmin numeric := 0; dmax numeric := 0; extra numeric; bonus numeric;
   pas jsonb; npas int := 0; pv jsonb := '{}'::jsonb; hp numeric; dfs numeric; dfm numeric; pct numeric;
@@ -1279,9 +1279,12 @@ begin
     if enc > 0 then
       k := case when tipo = 'secundaria' then def ->> 'encanto' else T -> 'bonusPorNivel' ->> tipo end;
       b0 := case when jsonb_typeof(it -> 'bonus') = 'object' then (it -> 'bonus' ->> k)::numeric else (def -> 'bonus' -> k ->> idx)::numeric end;
-      -- encanto: +encantoPct% por nível do bônus principal, no mínimo +1 por nível (igual a R.bonusComEncanto)
-      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) + greatest(enc::numeric,
-        round(coalesce(b0, 0) * (1 + enc * coalesce((T ->> 'encantoPct')::numeric, 5) / 100)) - coalesce(b0, 0))));
+      -- encanto: +encantoPct% por nível do bônus principal, arredondado como R.bonusItem
+      -- (defesa: arredonda o item já x DEFESA.fator; outros bônus: arredonda o valor)
+      m := 1 + enc * coalesce((T ->> 'encantoPct')::numeric, 5) / 100;
+      fd := coalesce((T -> 'DEFESA' ->> 'fator')::numeric, 1);
+      eq := jsonb_set(eq, array[k], to_jsonb(coalesce((eq ->> k)::numeric, 0) - coalesce(b0, 0)
+        + case when k in ('defesa', 'defesaMagica') then round(coalesce(b0, 0) * m * fd) / fd else round(coalesce(b0, 0) * m) end));
     end if;
   end loop;
   -- bônus dos conjuntos (2, 3 e 4 peças com o mesmo nome; somam)
