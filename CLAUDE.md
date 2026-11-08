@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Eldrin (antigo Tanka) — anotações para o Claude
 
 RPG medieval místico de navegador, em português (PT-BR). Repositório `danieelozorio/TANKA`.
@@ -51,8 +55,15 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
    `js/app.js` é um arquivo grande; evitar os dois mexerem na mesma tela ao mesmo tempo.
 
 ## Estrutura
+Sem build e sem npm: HTML + CSS + JS puro, tudo pendurado no objeto global `Tanka`. O `index.html` carrega os scripts
+nesta ordem: `dados.js` → `historia.js` → `regras.js` → `config.js` → `contas.js` → `retratos.js` → `dado3d.js` → `app.js`.
+`sw.js` é o service worker (cache `eldrin-v1`) do app no celular.
+Fluxo: `app.js` (tela) lê os números de `Tanka.dados`, calcula com `Tanka.regras` e salva pelo `Tanka.contas`. O que
+vale dinheiro ou disputa (Arena, clã, leilão, oficinas, chat) é decidido no servidor, nas funções do `schema.sql`; por
+isso alguns números vivem nos dois lados (ver `tanka_dados()` abaixo).
 - `index.html` — página do jogo. `js/config.js` (Supabase), `js/contas.js` (login e chamadas ao servidor via REST/RPC),
   `js/contas-local.js` (versão sem servidor, para a prévia).
+- `js/historia.js` — capítulos da história (regiões, chefes, prêmios).
 - `js/dados.js` — **todos os números do jogo** (`Tanka.dados`): classes, raças, itens, raridades, preços, monstros e áreas
   (`dano` em faixa), encantamento, VIDA, ARENA, ALIANCA, MISSOES, SKINS_DADO, RECOMECO.
 - `js/regras.js` — regras puras sem tela (`Tanka.regras`): status, poder, batalha, drops, encantar, mochila
@@ -70,11 +81,18 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
 - `ferramentas/recortar_fundo.py` e `recortar_grade.py` — tirar fundo/recortar artes geradas.
 
 ## Testes
-- `node testes/regras.test.js` — regras do jogo (rodar sempre antes de commitar).
+- `node testes/regras.test.js` — regras do jogo (rodar sempre antes de commitar). Não tem filtro por teste: para ver só
+  as falhas, `node testes/regras.test.js | grep -v '^ok'`. O arquivo carrega `dados.js`/`regras.js` num `vm` e cada
+  `teste('nome', fn)` imprime `ok`/`FALHA`. Um teste de conjuntos ("segundas classes") falha às vezes por arredondamento.
+- `node testes/arena.test.js` — Arena no banco (depois do `banco.test.sh`; precisa de `npm install pg` e `PGHOST`/`PGPORT`).
 - `sh testes/banco.test.sh` — schema num PostgreSQL local (precisa de um Postgres rodando; usa `testes/supabase_falso.sql`).
 - Teste no navegador: servir a pasta (`python3 -m http.server 8123`) e usar o Playwright já instalado; para testar com
   servidor, interceptar as chamadas ao Supabase e responder com um Postgres local (era uma "ponte" no scratchpad).
 - O container não alcança supabase.co nem cdnjs: para o 3D, servir o three.min.js local.
+
+## Skills do projeto (`.claude/skills/`)
+- `sem-limite` — estilo de resposta do Daniel (direto, frases curtas, problema → passos, termo técnico explicado).
+- `pdf-eldrin` — PDFs do jogo no visual escuro/dourado (molde, exemplos e `gerar_pdf.js` com o Playwright).
 
 ## Detalhes técnicos (ler só quando precisar)
 O que já existe no jogo, pendências, regras de itens/armas/encanto/conjuntos, consumíveis, leilão, app no celular e as
