@@ -60,9 +60,13 @@ Tanka.dados = {
     dropMaterial: [6, 8, 10],      // % de cair 1 material da região (1º, 2º e 3º monstro); cai mesmo em região abaixo do level
     dropChefe: 15,                 // % de o chefe deixar 1 do material dele (Daniel: antes era sempre)
     coletorBonus: 50,              // Coletor: +50% nessa chance e +50% nas Minas
+    // Mineração (Aventura › Mineração, Henri nov/2026): ~4 por hora; as longas rendem um pouco menos por hora.
+    // Parar antes do fim: com 50% do tempo ou mais, metade do prêmio; antes disso, nada.
     minas: {
-      opcoes: [{ minutos: 60, qtd: [3, 5] }, { minutos: 240, qtd: [12, 18] }],
+      opcoes: [{ minutos: 30, qtd: [1, 3] }, { minutos: 60, qtd: [3, 5] }, { minutos: 120, qtd: [6, 10] },
+        { minutos: 240, qtd: [12, 18] }, { minutos: 480, qtd: [24, 32] }, { minutos: 1440, qtd: [60, 84] }],
       gemaPct: 8,                  // % de cada unidade minerada virar Pedra Preciosa
+      metadeDesde: 50,             // % do tempo a partir do qual parar ainda dá metade do prêmio
     },
     // Receita da região (Coletor): materiais da região + ouro. Forja (Ferreiro): 1 receita + materiais + ouro.
     receita: { material: 10, ouro: [500, 1500, 3000, 6000, 12000, 25000, 50000] },   // ouro por região (índice da área)

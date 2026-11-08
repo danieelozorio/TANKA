@@ -587,13 +587,13 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mundial', 'historia'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mineracao', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'oficinas'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
-  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -1775,25 +1775,7 @@
   function abaOficina() {
     var p = estado.personagem, C = D.CRAFT, html = '';   // (C aqui = D.CRAFT; o relógio vem de C_agora)
     var liberadas = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; });
-    // Minas
-    html += '<div class="caixa-interna"><h3>⛏ Minas</h3>';
-    if (p.minas) {
-      var falta = p.minas.fim - C_agora(), mat = C.materiais[R.materialDaArea(p.minas.area)].nome;
-      html += falta > 0 ? '<p>Minerando <strong>' + esc(mat) + '</strong>… pronto em <strong>' + relogioTexto(falta) + '</strong>.</p>'
-        : '<p class="mais">A mineração terminou!</p><div class="botoes"><button class="btn" data-acao="minas-recolher">Recolher</button></div>';
-    } else {
-      var minasId = (estado.forja || {}).minas, area = liberadas.filter(function (a) { return a.id === minasId; })[0] || R.areaDasMinas(p), matA = C.materiais[R.materialDaArea(area.id)].nome;
-      html += '<label class="linha-form">Minerar em <select data-forja="minas">' + liberadas.map(function (a) {
-          return '<option value="' + a.id + '"' + (a.id === area.id ? ' selected' : '') + '>' + esc(a.nome) + ' (' + esc(C.materiais[R.materialDaArea(a.id)].nome) + ')</option>';
-        }).join('') + '</select></label>'
-        + '<p class="suave pequeno">Mande seu herói minerar e volte depois: ele traz <strong>' + esc(matA) + '</strong> (' + esc(area.nome) + ') e às vezes '
-        + '<strong>Pedra Preciosa</strong> (' + C.minas.gemaPct + '% por unidade).' + (R.ehColetor(p) ? ' Como Coletor, você minera <strong>+' + C.coletorBonus + '%</strong>.' : '') + '</p><div class="botoes">'
-        + C.minas.opcoes.map(function (o, i) {
-          return '<button class="btn' + (i ? ' secundario' : '') + '" data-acao="minas-iniciar" data-valor="' + i + '">Minerar ' + (o.minutos >= 60 ? o.minutos / 60 + ' h' : o.minutos + ' min')
-            + ' (' + o.qtd[0] + '–' + o.qtd[1] + ')</button>';
-        }).join('') + '</div>';
-    }
-    html += '</div>';
+    // (as Minas foram para Aventura › Mineração)
     // Materiais
     var meus = R.consumiveis(p).filter(function (c) { return ['material', 'receita', 'protecao', 'cristal'].indexOf(c.tipo) >= 0; });
     html += '<div class="caixa-interna"><h3>Seus materiais</h3>' + (meus.length ? '<div class="materiais-lista">' + meus.map(function (c) {
@@ -2708,7 +2690,7 @@
       var subAbas = subAbasHtml();
       if (zealot) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -2907,6 +2889,7 @@
     return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
   }
   function iniciarCacada(areaId) {
+    if (bloqueadoMinerando('caçar')) return;
     var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
     var alvos = area ? selecaoArea(area).slice() : [];
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
@@ -3463,6 +3446,7 @@
       case 'desafio-confirmar': {
         var alvoDesafio = estado.desafio && estado.desafio.id, livre = estado.desafio && estado.desafio.tipo === 'livre';
         if (!alvoDesafio) break;
+        if (bloqueadoMinerando('lutar na Arena')) { estado.desafio = null; telaJogo(); break; }
         estado.desafio = null;
         if (livre) estado.aba = 'arena';   // a luta e o resultado aparecem na Arena
         telaJogo();
@@ -3475,6 +3459,7 @@
         telaJogo();
         break;
       case 'arena-revanche':
+        if (bloqueadoMinerando('lutar na Arena')) break;
         comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
         break;
       case 'marcar': {
@@ -3850,16 +3835,27 @@
         estado.ultimoEncanto = null;
         telaJogo();
         break;
+      case 'minas-tempo': estado.minasTempo = Number(el.dataset.valor); telaJogo(); break;
+      case 'minas-area': estado.minasArea = el.dataset.valor; telaJogo(); break;
+      case 'minas-fechar': estado.minasArea = null; telaJogo(); break;
       case 'minas-iniciar': {
-        var rm = R.iniciarMinas(p, Number(el.dataset.valor), C.agora(), (estado.forja || {}).minas);
+        if (estado.cacada || estado.batalha || estado.lutaArena) { avisar('Termine a caçada ou a luta antes de minerar.'); break; }
+        var rm = R.iniciarMinas(p, estado.minasTempo == null ? 1 : estado.minasTempo, C.agora(), estado.minasArea);
         if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
+        telaJogo();
+        break;
+      }
+      case 'minas-parar': {
+        var rp2 = R.pararMinas(p, C.agora());
+        if (typeof rp2 !== 'string') salvar();
+        avisoMinas(rp2, true);
         telaJogo();
         break;
       }
       case 'minas-recolher': {
         var rc = R.recolherMinas(p, C.agora());
-        if (typeof rc === 'string') avisar(rc);
-        else { salvar(); avisar('⛏ Você minerou ' + rc.qtd + ' ' + D.CRAFT.materiais[rc.material].nome + (rc.gemas ? ' e ' + rc.gemas + ' Pedra(s) Preciosa(s)!' : '!'), 'item'); }
+        if (typeof rc !== 'string') salvar();
+        avisoMinas(rc, false);
         telaJogo();
         break;
       }
@@ -4611,6 +4607,94 @@
     if ((estado.aba === 'alianca' && estado.aliancaVista === 'boss') || bossAberto || ciclosGrupo % 8 === 6) carregarBossAl();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);
+
+  // ---------------- Aventura › Mineração (Henri, nov/2026) ----------------
+  // Escolhe o tempo e a mina no mapa (janelinha com o drop e a média), Minerar / Parar de Minerar e histórico.
+  // Minerando, o herói não caça nem luta na Arena (R.minerando).
+  function tempoMinas(min) { return min >= 60 ? (min / 60) + ' h' : min + ' min'; }
+  function bloqueadoMinerando(acao) {
+    var p = estado.personagem;
+    if (!p || !R.minerando(p, C.agora())) return false;
+    avisar('⛏ Seu herói está minerando: pare a mineração (Aventura › Mineração) para ' + acao + '.');
+    return true;
+  }
+  function janelaMinaHtml(area, e) {
+    var p = estado.personagem, CR = D.CRAFT, mat = CR.materiais[R.materialDaArea(area.id)], op = estado.minasTempo;
+    var md = R.mediaMinas(p, op), o = CR.minas.opcoes[op];
+    var x = Math.max(16, Math.min(84, e.x)), baixo = e.y < 45;
+    return '<div class="mina-janela' + (baixo ? ' baixo' : ' cima') + '" style="left:' + x + '%;top:' + e.y + '%">'
+      + '<button class="mina-fechar" data-acao="minas-fechar" aria-label="Fechar">✕</button>'
+      + '<div class="mina-titulo">' + esc(area.nome) + '</div>'
+      + '<div class="mina-drop">' + iconeConsumivel({ tipo: 'material', raridade: R.materialDaArea(area.id) }) + ' ' + esc(mat.nome) + '</div>'
+      + '<div class="mina-drop">' + iconeConsumivel({ tipo: 'material', raridade: 'gema' }) + ' Pedra Preciosa <span class="suave">(' + CR.minas.gemaPct + '% de cada unidade)</span></div>'
+      + '<div class="mina-media">Em ' + tempoMinas(o.minutos) + ', em média: <strong>' + md.qtd.toLocaleString('pt-BR') + '</strong> ' + esc(mat.nome)
+      + ' e <strong>' + md.gemas.toLocaleString('pt-BR') + '</strong> Pedra Preciosa' + (R.ehColetor(p) ? ' <span class="mais">(+' + CR.coletorBonus + '% Coletor)</span>' : '') + '</div></div>';
+  }
+  function abaMineracao() {
+    var p = estado.personagem, CR = D.CRAFT, agora = C.agora(), mi = p.minas;
+    if (estado.minasTempo == null) estado.minasTempo = 1;
+    var h = '<h3 class="subtitulo">⛏ Mineração</h3><p class="suave pequeno">Escolha quanto tempo minerar e a mina no mapa. '
+      + 'Enquanto minera, seu herói não pode caçar nem lutar na Arena. Parar antes do fim: com ' + CR.minas.metadeDesde
+      + '% do tempo ou mais, você leva metade do prêmio; antes disso, nada.</p>';
+    if (mi) {
+      var area = D.areas.filter(function (a) { return a.id === mi.area; })[0], mat = CR.materiais[R.materialDaArea(mi.area)];
+      var total = mi.fim - mi.inicio, feito = Math.min(total, Math.max(0, agora - mi.inicio)), pct = Math.round(feito * 100 / total);
+      var acabou = agora >= mi.fim;
+      h += '<div class="caixa-interna mina-andamento"><div><strong>' + (acabou ? 'Mineração terminou!' : 'Minerando') + '</strong> ' + esc(mat.nome) + ' em '
+        + esc(area ? area.nome : mi.area) + ' · ' + tempoMinas(mi.minutos || Math.round(total / 60000)) + '</div>'
+        + barra('exp', feito, total, acabou ? 'Pronto' : '<span id="minas-relogio">' + relogioTexto(mi.fim - agora) + '</span>')
+        + (acabou ? '' : '<p class="pequeno ' + (pct >= CR.minas.metadeDesde ? 'mais' : 'menos') + '">'
+          + (pct >= CR.minas.metadeDesde ? 'Se parar agora, leva metade do prêmio.' : 'Se parar agora, não leva nada (ainda não chegou a ' + CR.minas.metadeDesde + '% do tempo).') + '</p>')
+        + (acabou ? '<div class="botoes"><button class="btn" data-acao="minas-recolher">Recolher</button></div>' : '') + '</div>';
+    }
+    h += '<div class="minas-tempos">' + CR.minas.opcoes.map(function (o, i) {
+      return '<button class="btn secundario btn-pequeno" data-acao="minas-tempo" data-valor="' + i + '" aria-pressed="' + (estado.minasTempo === i) + '"'
+        + (mi ? ' disabled' : '') + '>' + tempoMinas(o.minutos) + '</button>';
+    }).join('') + '</div>';
+    var janela = '';
+    var nos = D.areas.map(function (a, i) {
+      var e = estiloArea(a, i), livre = p.nivel >= a.nivelMin, esc_ = estado.minasArea === a.id;
+      if (esc_ && livre) janela = janelaMinaHtml(a, e);
+      return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + (esc_ ? ' escolhida' : '') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
+        + (livre ? ' data-acao="minas-area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(CR.materiais[R.materialDaArea(a.id)].nome) + '">'
+        + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
+        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? esc(CR.materiais[R.materialDaArea(a.id)].nome) : 'Libera no level ' + a.nivelMin) + '</span></button>';
+    }).join('');
+    h += '<div class="mapa-mundo mapa-minas">' + nos + janela + '</div>';
+    var escolhida = D.areas.filter(function (a) { return a.id === estado.minasArea && p.nivel >= a.nivelMin; })[0];
+    h += '<div class="botoes minas-acoes"><button class="btn btn-iniciar" data-acao="minas-iniciar"' + (mi || !escolhida ? ' disabled' : '') + '>⛏ Minerar'
+      + (escolhida ? ' em ' + esc(escolhida.nome) + ' (' + tempoMinas(CR.minas.opcoes[estado.minasTempo].minutos) + ')' : '') + '</button>'
+      + '<button class="btn perigo" data-acao="minas-parar"' + (mi && agora < mi.fim ? '' : ' disabled') + '>Parar de Minerar</button></div>'
+      + (escolhida || mi ? '' : '<p class="suave pequeno">Clique numa mina do mapa para escolher onde minerar.</p>');
+    var hist = p.historicoMinas || {}, linhas = D.areas.filter(function (a) { return hist[a.id]; }).map(function (a) {
+      var r = hist[a.id];
+      return '<tr><td>' + esc(a.nome) + '</td><td>' + (r.minutos / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' h</td><td>'
+        + r.qtd.toLocaleString('pt-BR') + ' ' + esc(CR.materiais[R.materialDaArea(a.id)].nome) + '</td><td>' + r.gemas.toLocaleString('pt-BR') + '</td><td>' + r.vezes + '</td></tr>';
+    }).join('');
+    h += '<h3 class="subtitulo">Histórico de mineração</h3>' + (linhas
+      ? '<table class="boss-rank"><tr><th>Mina</th><th>Tempo minerado</th><th>Minério recebido</th><th>Pedras Preciosas</th><th>Vezes</th></tr>' + linhas + '</table>'
+      : '<p class="suave">Você ainda não minerou.</p>');
+    return h;
+  }
+  function avisoMinas(rc, parou) {
+    if (typeof rc === 'string') { avisar(rc); return; }
+    var nome = D.CRAFT.materiais[rc.material].nome;
+    if (parou && rc.parcial && !rc.metade) { avisar('Mineração interrompida antes da metade: nada foi minerado.'); return; }
+    avisar('⛏ ' + (rc.metade ? 'Você parou na metade e levou metade: ' : 'Você minerou ') + rc.qtd + ' ' + nome
+      + (rc.gemas ? ' e ' + rc.gemas + ' Pedra(s) Preciosa(s)!' : '!'), 'item');
+  }
+  // Relógio da mineração (1 s) e aviso quando termina.
+  setInterval(function () {
+    var p = estado.personagem;
+    if (!p || !p.minas) return;
+    var falta = p.minas.fim - C.agora(), r = document.getElementById('minas-relogio');
+    if (r) r.textContent = relogioTexto(falta);
+    if (falta <= 0 && estado.minasAvisada !== p.minas.fim) {
+      estado.minasAvisada = p.minas.fim;
+      avisar('⛏ A mineração terminou! Recolha em Aventura › Mineração.', 'item');
+      if (estado.aba === 'mineracao' && !estado.batalha) telaJogo();
+    }
+  }, 1000);
 
   // ---------------- Chefe Mundial: "O Despertar de Ignaroth" ----------------
   // Todo dia às 20h por 1 hora. A vida é uma só para o reino (servidor). Cada ataque é uma luta normal contra o chefe

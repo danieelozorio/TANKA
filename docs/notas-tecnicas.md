@@ -414,3 +414,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Chaves novas em `D.bonus`: `danoPct` (dano % para todos, somado ao `danoMagico` em `danoComMao`), `vidaPct`, `defesaPct`
   (multiplicam vida e defesa/defesa mágica em `statusBase`, antes da passiva). `tanka_status` igual.
 - Itens antigos de mão esquerda continuam com os bônus que tinham (Henri: personagens serão apagados para o teste do zero).
+
+## Mineração em Aventura (Henri, nov/2026)
+- Aba `mineracao` (Aventura › Mineração, `abaMineracao`); as Minas saíram de Herói › Oficina (a Oficina ficou com
+  receitas, proteção e forja). Tempos em `CRAFT.minas.opcoes`: 30 min (1–3), 1 h (3–5), 2 h (6–10), 4 h (12–18),
+  8 h (24–32), 24 h (60–84). Mapa igual ao da caçada (`data-acao="minas-area"`) com janelinha `janelaMinaHtml`
+  (material, Pedra Preciosa e a média do tempo escolhido, `R.mediaMinas`).
+- `p.minas` guarda `minutos` e `qtd` (faixa) no começo. `R.pararMinas`: com `metadeDesde` (50%) do tempo ou mais, metade;
+  antes, nada. `R.recolherMinas` no fim. Histórico em `p.historicoMinas[area] = { minutos, qtd, gemas, vezes }`.
+- Ocupado: `R.minerando(p, agora)` barra `iniciarCacada` e a Arena (`bloqueadoMinerando` no jogo; no servidor,
+  `arena_comecar_tipo` recusa se `dados.minas.fim` > agora).

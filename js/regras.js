@@ -672,25 +672,46 @@ Tanka.regras = (function () {
     if (!o) return 'Opção inválida.';
     if (!a || p.nivel < a.nivelMin) return 'Região ainda não liberada.';
     if (p.minas) return 'Você já está minerando.';
-    p.minas = { inicio: agora, fim: agora + o.minutos * 60000, opcao: opcao, area: a.id };
+    // guarda a faixa de quantidade no começo (mudar a tabela depois não muda uma mineração em andamento)
+    p.minas = { inicio: agora, fim: agora + o.minutos * 60000, opcao: opcao, area: a.id, minutos: o.minutos, qtd: o.qtd.slice() };
     return true;
   }
-  // Recolhe o que foi minerado (quando o tempo acabou). Retorna { material, qtd, gemas } ou o motivo.
-  function recolherMinas(p, agora, rng) {
+  // Ocupado minerando (não pode caçar nem lutar na Arena) até o tempo acabar.
+  function minerando(p, agora) { return !!(p.minas && agora < p.minas.fim); }
+  // Média esperada de uma opção numa região: { qtd, gemas } (com o bônus do Coletor).
+  function mediaMinas(p, opcao) {
+    var C = D.CRAFT, o = C.minas.opcoes[opcao];
+    if (!o) return null;
+    var q = (o.qtd[0] + o.qtd[1]) / 2 * (ehColetor(p) ? 1 + C.coletorBonus / 100 : 1);
+    return { qtd: Math.round(q * (1 - C.minas.gemaPct / 100) * 10) / 10, gemas: Math.round(q * C.minas.gemaPct / 100 * 10) / 10 };
+  }
+  // Entrega o minerado: inteiro no fim; parando antes, metade com 50% do tempo ou mais, nada antes disso.
+  // Guarda no histórico por região (minutos minerados, minério e pedras). Retorna { material, qtd, gemas, parcial } ou o motivo.
+  function entregarMinas(p, agora, rng, parar) {
     rng = rng || Math.random;
     var mi = p.minas, C = D.CRAFT;
     if (!mi) return 'Você não está minerando.';
-    if (agora < mi.fim) return 'Ainda minerando.';
-    var o = C.minas.opcoes[mi.opcao], q = o.qtd[0] + Math.floor(rng() * (o.qtd[1] - o.qtd[0] + 1));
+    if (!parar && agora < mi.fim) return 'Ainda minerando.';
+    var total = mi.fim - mi.inicio, feito = Math.max(0, Math.min(total, agora - mi.inicio));
+    var frac = feito >= total ? 1 : feito * 100 / total >= C.minas.metadeDesde ? 0.5 : 0;
+    var faixa = mi.qtd || (C.minas.opcoes[mi.opcao] || C.minas.opcoes[0]).qtd;
+    var q = faixa[0] + Math.floor(rng() * (faixa[1] - faixa[0] + 1));
     if (ehColetor(p)) q = Math.round(q * (1 + C.coletorBonus / 100));
+    q = Math.floor(q * frac);
     var gemas = 0;
     for (var i = 0; i < q; i++) if (rng() * 100 < C.minas.gemaPct) gemas++;
     var id = materialDaArea(mi.area);
-    mudarConsumivel(p, 'material', id, q - gemas);
+    if (q - gemas) mudarConsumivel(p, 'material', id, q - gemas);
     if (gemas) mudarConsumivel(p, 'material', 'gema', gemas);
+    var h = p.historicoMinas || (p.historicoMinas = {}), r = h[mi.area] || (h[mi.area] = { minutos: 0, qtd: 0, gemas: 0, vezes: 0 });
+    r.minutos += Math.round(feito / 60000); r.qtd += q - gemas; r.gemas += gemas; r.vezes++;
     delete p.minas;
-    return { material: id, qtd: q - gemas, gemas: gemas };
+    return { material: id, qtd: q - gemas, gemas: gemas, parcial: frac < 1, metade: frac === 0.5 };
   }
+  // Recolhe o que foi minerado (quando o tempo acabou).
+  function recolherMinas(p, agora, rng) { return entregarMinas(p, agora, rng, false); }
+  // Para antes da hora (ou recolhe, se já acabou).
+  function pararMinas(p, agora, rng) { return entregarMinas(p, agora, rng, true); }
   function indiceArea(areaId) { return D.areas.map(function (a) { return a.id; }).indexOf(areaId); }
   // O que falta para fabricar/forjar: lista de { nome, tem, precisa } (vazia = pode).
   function faltando(p, custos) {
@@ -2571,6 +2592,7 @@ Tanka.regras = (function () {
     skillCla: skillCla, defSkillCla: defSkillCla, bonusCla: bonusCla, precoSkillCla: precoSkillCla,
     ehColetor: ehColetor, ehFerreiro: ehFerreiro, materialDaArea: materialDaArea, materialDoChefe: materialDoChefe, qtdMaterial: qtdMaterial,
     rolarMaterial: rolarMaterial, areaDasMinas: areaDasMinas, iniciarMinas: iniciarMinas, recolherMinas: recolherMinas,
+    pararMinas: pararMinas, minerando: minerando, mediaMinas: mediaMinas,
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
     fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
     bonusEncanto: bonusEncanto, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,

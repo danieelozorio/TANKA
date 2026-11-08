@@ -1827,8 +1827,8 @@ teste('craft: Minas, receita do Coletor, proteção e forja do Ferreiro', () => 
   assert.strictEqual(R.iniciarMinas(col, 0, 1000, 'floresta'), true, 'pode minerar numa região baixa');
   assert.strictEqual(col.minas.area, 'floresta');
   delete col.minas;
-  assert.strictEqual(R.iniciarMinas(col, 0, 1000), true);
-  assert.notStrictEqual(R.iniciarMinas(col, 0, 1000), true, 'uma mineração por vez');
+  assert.strictEqual(R.iniciarMinas(col, 1, 1000), true);   // 1 h
+  assert.notStrictEqual(R.iniciarMinas(col, 1, 1000), true, 'uma mineração por vez');
   assert.ok(typeof R.recolherMinas(col, 2000) === 'string', 'ainda minerando');
   const m = R.recolherMinas(col, 1000 + 61 * 60000, fixo(0.5));
   assert.strictEqual(m.material, R.materialDaArea(R.areaDasMinas(col).id));
@@ -1900,4 +1900,26 @@ teste('mão esquerda: % fixos pela raridade (não crescem com o nível) e valem 
   const mp = R.novoItem('secundaria', null, 'epica', () => 0.5, 'manopla', 30); delete mp.bonus.for; delete mp.bonus.res; delete mp.bonus.des; delete mp.bonus.int; delete mp.bonus.sor;
   p.inventario.push(mp); R.equipar(p, mp.id);
   assert.deepStrictEqual([...R.status(p).dano], [Math.round(d0[0] * 1.1), Math.round(d0[1] * 1.1)], 'manopla épica +10% de dano');
+});
+
+teste('mineração: 30 min a 24 h, parar com 50% dá metade, antes disso nada; histórico por região', () => {
+  const p = R.criarPersonagem('M', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 12);
+  assert.strictEqual(D.CRAFT.minas.opcoes.map((o) => o.minutos).join(), '30,60,120,240,480,1440');
+  const T = 1000, H = 3600000;
+  assert.strictEqual(R.iniciarMinas(p, 3, T, 'ruinas'), true);   // 4 h
+  assert.ok(R.minerando(p, T + H) && !R.minerando(p, T + 4 * H), 'ocupado só até o fim');
+  // parou com 25%: nada
+  let r = R.pararMinas(p, T + H, () => 0.99);
+  assert.strictEqual(r.qtd + r.gemas, 0); assert.ok(!p.minas);
+  // parou com 50%: metade (faixa 12–18, sorteio no máximo = 18 → 9)
+  R.iniciarMinas(p, 3, T, 'ruinas');
+  r = R.pararMinas(p, T + 2 * H, () => 0.99);
+  assert.strictEqual(r.qtd + r.gemas, 9); assert.ok(r.metade);
+  // até o fim: inteiro
+  R.iniciarMinas(p, 3, T, 'ruinas');
+  r = R.recolherMinas(p, T + 4 * H, () => 0.99);
+  assert.strictEqual(r.qtd + r.gemas, 18); assert.ok(!r.parcial);
+  const h = p.historicoMinas.ruinas;
+  assert.strictEqual(h.minutos, 60 + 120 + 240); assert.strictEqual(h.qtd + h.gemas, 27); assert.strictEqual(h.vezes, 3);
+  assert.ok(R.mediaMinas(p, 5).qtd > R.mediaMinas(p, 4).qtd);
 });

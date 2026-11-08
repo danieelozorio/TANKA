@@ -995,4 +995,17 @@ begin
   if (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: o 1 do dado devia errar: %', r -> 'ev'; end if;
   raise notice 'ok   arena: esquiva não conta; só o 1 do dado erra';
 end $$;
+-- Mineração: quem está minerando não luta na Arena
+do $$
+begin
+  update public.personagens set dados = dados || jsonb_build_object('minas', jsonb_build_object('fim', extract(epoch from now()) * 1000 + 3600000)) where id = 'pa';
+  begin
+    perform public.arena_comecar_tipo('pa', 'pb', null, 'livre');
+    raise exception 'FALHA mineração: devia barrar a Arena';
+  exception when others then
+    if sqlerrm not like '%minerando%' then raise; end if;
+  end;
+  update public.personagens set dados = dados - 'minas' where id = 'pa';
+  raise notice 'ok   mineração: quem está minerando não luta na Arena';
+end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM

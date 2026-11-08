@@ -1756,6 +1756,11 @@ create or replace function public.arena_comecar_tipo(meu text, alvo text, revanc
 language plpgsql as $$
 declare ar text; lid bigint;
 begin
+  -- minerando (Aventura › Mineração) o herói está ocupado: não luta na Arena (p.minas.fim em ms)
+  if exists (select 1 from public.personagens where id = meu and jsonb_typeof(dados -> 'minas' -> 'fim') = 'number'
+      and (dados -> 'minas' ->> 'fim')::numeric > extract(epoch from now()) * 1000) then
+    raise exception 'Seu herói está minerando: pare a mineração para lutar na Arena.';
+  end if;
   perform public.arena_encerrar_abandonadas(meu);
   perform public.arena_gastar_entrada(meu);
   select arena into ar from public.arena_posicoes where personagem_id = meu;
