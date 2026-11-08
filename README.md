@@ -1,6 +1,6 @@
-# Tanka — Arena Medieval Mística
+# Eldrin (antigo Tanka) — RPG Medieval Místico
 
-RPG medieval místico de navegador. Domínio: **tankaarena.com**.
+RPG medieval místico de navegador. Site: **[eldrinonline.com.br](https://eldrinonline.com.br)**. (O e-mail interno do login continua `@jogador.tankaarena.com`; não mudar.)
 
 ## Como jogar localmente
 
@@ -184,7 +184,7 @@ ferramentas/        recortar_grade.py (recorta grades de ícones)
 testes/             testes das regras em Node
 ```
 
-## Próximos passos para o tankaarena.com
+## Próximos passos para o eldrinonline.com.br
 
 - **Fase 2 do servidor**: combate, drops, compras e encantamento calculados no servidor (Supabase Edge Functions), para impedir trapaça.
 - Sistema de craft do Artesão (a chance já é calculada e exibida).

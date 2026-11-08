@@ -5,7 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Eldrin (antigo Tanka) — anotações para o Claude
 
 RPG medieval místico de navegador, em português (PT-BR). Repositório `danieelozorio/TANKA`.
-Jogo publicado: https://danieelozorio.github.io/TANKA/ (GitHub Pages, branch `main`).
+Jogo publicado: **https://eldrinonline.com.br** (GitHub Pages, branch `main`; endereço antigo:
+https://danieelozorio.github.io/TANKA/). O e-mail interno do login continua `@jogador.tankaarena.com`: NÃO mudar,
+senão os jogadores perdem a conta.
 Prévia no Claude (Artifact): REMOVIDA a pedido do Daniel (nov/2026) para economizar créditos. Não recriar sem ele pedir.
 
 ## Quem trabalha no projeto
