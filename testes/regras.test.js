@@ -1333,8 +1333,10 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   const s0 = R.status(p);
   R.equipar(p, pecas[0].id); const s1 = R.status(p);
   R.equipar(p, pecas[1].id); const s2 = R.status(p);
-  const semSet = Math.round((pecas[0].bonus.defesa || 0) * D.DEFESA.fator) + Math.round((pecas[1].bonus.defesa || 0) * D.DEFESA.fator);
-  assert.strictEqual(s2.defesa, s0.defesa + semSet + 23, '2 peças: +23 de defesa');
+  // mesmas 2 peças sem o conjunto: a diferença tem que ser só o bônus de 2 peças
+  pecas[0].conjunto = pecas[1].conjunto = undefined; const s2sem = R.status(p);
+  pecas[0].conjunto = pecas[1].conjunto = 'paladino-2';
+  assert.strictEqual(s2.defesa, s2sem.defesa + 23, '2 peças: +23 de defesa');
   R.equipar(p, pecas[2].id); const s3 = R.status(p);
   assert.strictEqual(s3.dano[0] - s2.dano[0] - Math.floor((R.atributosTotais(p).for) / 3) + Math.floor((R.atributosTotais(p).for - (pecas[2].bonus.for || 0)) / 3), 5, '3 peças: +5 de dano');
   R.equipar(p, pecas[3].id);
