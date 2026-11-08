@@ -219,6 +219,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Retratos das falas: `assets/historia/<id>.webp` (aldric, capuz, kael — 320x320, do Gemini). Sem a imagem, aparece a
   inicial; monstros usam o retrato do monstro; narrador = 📜.
 
+- Lore das raças (Daniel, nov/2026): `lema` e `lore` em `D.racas` (dados.js), mostrados na criação de personagem
+  (`.lore-raca`, abaixo das cartas de raça). Cada raça guardou um selo: Humanos = Areias (Amenreth) e Dravenhold;
+  Elfos = Floresta (raízes de Velgrath); Elfos Negros = Pântano; Orcs = Vale (pacto com Vhar'kesh; o resto dos povos
+  esqueceu, por isso a surpresa de Aldric no c5); Anões = Torre Carmesim (era a forja deles; o Guardião da Torre é uma
+  armadura anã) + correntes e chaves; Cume = todas as raças juntas (origem da Ordem dos Guardiões).
+
 ## Guia do Aventureiro (tutorial; Daniel, nov/2026)
 - Só personagens criados depois desta versão (`criarPersonagem` grava `guia: { passo: 0, abates: 0 }`); os antigos não têm.
 - Texto em `js/historia.js` (`D.GUIA`): boas-vindas, caçar 3 criaturas, equipar o presente (Elmo do Aprendiz raro do

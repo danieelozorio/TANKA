@@ -1475,6 +1475,8 @@ html { overscroll-behavior-x: none; }
 
 /* Traços da raça (criação e ficha) */
 .tracos-raca { margin-top: .6em; line-height: 1.5; }
+.lore-raca { margin: .8rem 0 0; padding: .7rem .9rem; border-left: 3px solid var(--ouro); background: var(--painel-2); font-style: italic; line-height: 1.5; }
+.lore-raca strong { color: var(--ouro-claro); font-style: normal; }
 .tracos-raca .mais { color: #7fd17f; }
 .tracos-raca .menos { color: #e07a6f; }
 
