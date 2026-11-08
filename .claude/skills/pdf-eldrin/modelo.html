@@ -1,0 +1,73 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>TÍTULO DO PDF</title>
+<style>
+@font-face { font-family: G; src: url('assets/fontes/ebgaramond.woff2'); font-weight: 400 800; }
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; background: #14100c; color: #e8dcc4; font-family: G, serif; font-size: 11.5pt; line-height: 1.45; }
+.pg { width: 210mm; height: 297mm; padding: 15mm 18mm; page-break-after: always; overflow: hidden; position: relative; }
+.capa { padding: 0; background: #000; }
+.capa .fundo { position: absolute; inset: 0; background-position: center 20%; background-size: cover; filter: brightness(.8); }
+.capa .sh { position: absolute; inset: 0; background: linear-gradient(#000a 0%, #0000 40%, #000e 85%); }
+.capa .t { position: absolute; bottom: 26mm; width: 100%; text-align: center; }
+.capa h1 { font-size: 36pt; margin: 0; color: #f0c56a; font-weight: 600; text-shadow: 0 2px 12px #000; }
+.capa .sub { font-size: 14pt; letter-spacing: 5px; text-transform: uppercase; }
+.capa small { display: block; margin-top: 6mm; color: #b9a98a; font-size: 10pt; letter-spacing: 2px; }
+.capa img { position: absolute; top: 12mm; left: 50%; transform: translateX(-50%); width: 120mm; mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 60%, transparent 100%); }
+h2 { font-size: 22pt; margin: 0 0 1mm; color: #f0c56a; font-weight: 600; }
+.num { color: #d4a24c; letter-spacing: 4px; text-transform: uppercase; font-size: 9.5pt; }
+h3 { font-size: 12pt; color: #d4a24c; text-transform: uppercase; letter-spacing: 2.5px; margin: 5mm 0 2mm;
+  border-bottom: 1px solid #5a4528; padding-bottom: 1mm; }
+p { margin: 0 0 2.5mm; }
+ul { margin: 0 0 3mm 5mm; padding: 0 0 0 4mm; } li { margin-bottom: 1.2mm; }
+b { color: #f3e3bd; }
+.caixa { background: #1f1810; border: 1px solid #5a4528; border-radius: 4px; padding: 4mm 5mm; margin: 3mm 0; }
+.aviso { background: #2a1410; border-color: #8a3a28; }
+.citacao { font-style: italic; border-left: 3px solid #d4a24c; padding: 2mm 4mm; background: #1a140d; margin: 3mm 0; }
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 11pt; }
+th, td { border-bottom: 1px solid #3a2e1e; padding: 1.6mm 2mm; text-align: center; }
+th { color: #d4a24c; font-weight: 600; text-align: center; } td:first-child, th:first-child { text-align: left; }
+tr.dest td { color: #f0c56a; font-weight: 600; }
+.duas { display: flex; gap: 6mm; } .duas > div { flex: 1; }
+.retrato { display: flex; gap: 5mm; align-items: center; margin: 3mm 0; }
+.retrato img { width: 30mm; height: 36mm; object-fit: cover; border-radius: 4px; border: 1px solid #8a6a3a; flex: none; }
+.passos { counter-reset: n; list-style: none; padding: 0; margin-left: 0; }
+.passos li { counter-increment: n; position: relative; padding-left: 9mm; }
+.passos li::before { content: counter(n); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%;
+  background: #d4a24c; color: #14100c; text-align: center; font-weight: 700; line-height: 6mm; font-size: 9.5pt; }
+.ico { width: 14mm; float: right; margin: 0 0 2mm 4mm; }
+.rodape { position: absolute; bottom: 8mm; left: 18mm; right: 18mm; text-align: center; color: #7d6f57; font-size: 9pt; }
+
+/* tabela com ícone na 1ª coluna (como no PDF dos Materiais) */
+table.lista td { text-align: left; vertical-align: middle; } table.lista th { text-align: left; }
+td.ic { width: 15mm; } td.ic img { width: 13mm; height: 13mm; object-fit: contain; display: block; }
+.pq { font-size: 9pt; color: #b9a98a; }
+</style></head><body>
+<!-- MOLDE DO PDF DO ELDRIN. Cada <div class="pg"> é UMA página A4 (não pode passar da altura; se passar, abra outra página).
+     Caminhos de imagem: relativos à raiz do repositório (assets/...). -->
+
+<!-- CAPA: troque a imagem de fundo por um personagem/monstro de assets/ ligado ao assunto -->
+<div class="pg capa"><div class="fundo" style="background-image:url('assets/personagens/anao-ferreiro.jpg')"></div><div class="sh"></div>
+  <img src="assets/logo-eldrin.webp">
+  <div class="t"><h1>Título</h1><div class="sub">Subtítulo</div><small>Assunto · versão 1 · data</small></div></div>
+
+<!-- PÁGINA DE CONTEÚDO -->
+<div class="pg">
+  <div class="num">Parte 1</div><h2>Título da página</h2>
+  <p>Texto curto. <b>Negrito dourado</b> para o que importa.</p>
+  <h3>Subtítulo</h3>
+  <ul><li>Item de lista.</li></ul>
+  <div class="caixa"><b>Dica:</b> caixa de destaque.</div>
+  <div class="caixa aviso"><b>⚠️ Atenção:</b> caixa vermelha para riscos.</div>
+  <div class="citacao">Frase de lore em itálico.</div>
+  <table><tr><th>Coluna</th><th>Valor</th></tr><tr><td>Linha</td><td>10</td></tr><tr class="dest"><td>Linha em destaque</td><td>20</td></tr></table>
+  <table class="lista"><tr><th></th><th>Item</th><th>Onde</th></tr>
+    <tr><td class="ic"><img src="assets/itens/receita.webp"></td><td><b>Receita</b><div class="pq">detalhe pequeno</div></td><td>Coletor</td></tr></table>
+  <div class="duas">
+    <div class="retrato"><img src="assets/personagens/anao-ferreiro.jpg"><div><b style="color:#f0c56a;font-size:13pt">🔨 Nome</b><br>Descrição.</div></div>
+    <div class="retrato"><img src="assets/personagens/anao-coletor.jpg"><div><b style="color:#f0c56a;font-size:13pt">💰 Nome</b><br>Descrição.</div></div>
+  </div>
+  <ol class="passos"><li>Primeiro passo.</li><li>Segundo passo.</li></ol>
+  <div class="rodape">Eldrin · Título do PDF</div>
+</div>
+</body></html>

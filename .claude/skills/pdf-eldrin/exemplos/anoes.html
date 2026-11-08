@@ -1,0 +1,215 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Os Anões: Mestres da Forja</title>
+<style>
+@font-face { font-family: G; src: url('assets/fontes/ebgaramond.woff2'); font-weight: 400 800; }
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; background: #14100c; color: #e8dcc4; font-family: G, serif; font-size: 11.5pt; line-height: 1.45; }
+.pg { width: 210mm; height: 297mm; padding: 15mm 18mm; page-break-after: always; overflow: hidden; position: relative; }
+.capa { padding: 0; background: #000; }
+.capa .fundo { position: absolute; inset: 0; background: url('assets/personagens/anao-ferreiro.jpg') center 20%/cover; filter: brightness(.8); }
+.capa .sh { position: absolute; inset: 0; background: linear-gradient(#000a 0%, #0000 40%, #000e 85%); }
+.capa .t { position: absolute; bottom: 26mm; width: 100%; text-align: center; }
+.capa h1 { font-size: 36pt; margin: 0; color: #f0c56a; font-weight: 600; text-shadow: 0 2px 12px #000; }
+.capa .sub { font-size: 14pt; letter-spacing: 5px; text-transform: uppercase; }
+.capa small { display: block; margin-top: 6mm; color: #b9a98a; font-size: 10pt; letter-spacing: 2px; }
+.capa img { position: absolute; top: 12mm; left: 50%; transform: translateX(-50%); width: 120mm; mix-blend-mode: screen;
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 60%, transparent 100%); }
+h2 { font-size: 22pt; margin: 0 0 1mm; color: #f0c56a; font-weight: 600; }
+.num { color: #d4a24c; letter-spacing: 4px; text-transform: uppercase; font-size: 9.5pt; }
+h3 { font-size: 12pt; color: #d4a24c; text-transform: uppercase; letter-spacing: 2.5px; margin: 5mm 0 2mm;
+  border-bottom: 1px solid #5a4528; padding-bottom: 1mm; }
+p { margin: 0 0 2.5mm; }
+ul { margin: 0 0 3mm 5mm; padding: 0 0 0 4mm; } li { margin-bottom: 1.2mm; }
+b { color: #f3e3bd; }
+.caixa { background: #1f1810; border: 1px solid #5a4528; border-radius: 4px; padding: 4mm 5mm; margin: 3mm 0; }
+.aviso { background: #2a1410; border-color: #8a3a28; }
+.citacao { font-style: italic; border-left: 3px solid #d4a24c; padding: 2mm 4mm; background: #1a140d; margin: 3mm 0; }
+table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; font-size: 11pt; }
+th, td { border-bottom: 1px solid #3a2e1e; padding: 1.6mm 2mm; text-align: center; }
+th { color: #d4a24c; font-weight: 600; text-align: center; } td:first-child, th:first-child { text-align: left; }
+tr.dest td { color: #f0c56a; font-weight: 600; }
+.duas { display: flex; gap: 6mm; } .duas > div { flex: 1; }
+.retrato { display: flex; gap: 5mm; align-items: center; margin: 3mm 0; }
+.retrato img { width: 30mm; height: 36mm; object-fit: cover; border-radius: 4px; border: 1px solid #8a6a3a; flex: none; }
+.passos { counter-reset: n; list-style: none; padding: 0; margin-left: 0; }
+.passos li { counter-increment: n; position: relative; padding-left: 9mm; }
+.passos li::before { content: counter(n); position: absolute; left: 0; top: 0; width: 6mm; height: 6mm; border-radius: 50%;
+  background: #d4a24c; color: #14100c; text-align: center; font-weight: 700; line-height: 6mm; font-size: 9.5pt; }
+.ico { width: 14mm; float: right; margin: 0 0 2mm 4mm; }
+.rodape { position: absolute; bottom: 8mm; left: 18mm; right: 18mm; text-align: center; color: #7d6f57; font-size: 9pt; }
+</style></head><body>
+
+<div class="pg capa"><div class="fundo"></div><div class="sh"></div>
+  <img src="assets/logo-eldrin.webp">
+  <div class="t"><h1>Os Anões</h1><div class="sub">Mestres da Forja</div><small>Proposta de craft, oficinas e encantamento · versão 4 · não está no jogo ainda</small></div></div>
+
+<div class="pg">
+  <div class="num">Visão geral</div><h2>A ideia em uma página</h2>
+  <p>Os anões viram <b>a raça do craft</b> de Eldrin. Cada classe do Artesão ganha um papel claro:</p>
+  <div class="duas">
+    <div class="retrato"><img src="assets/personagens/anao-ferreiro.jpg"><div><b style="color:#f0c56a;font-size:13pt">🔨 Ferreiro</b><br>
+      <b>Forja e encanta.</b> Cria armas e armaduras usando as <b>receitas do Coletor</b> e encanta com a <b>sorte dele</b>.</div></div>
+    <div class="retrato"><img src="assets/personagens/anao-coletor.jpg"><div><b style="color:#f0c56a;font-size:13pt">💰 Coletor</b><br>
+      <b>Faz as receitas e as proteções.</b> Com os materiais que o cliente traz, fabrica as <b>Receitas</b> e o <b>Pergaminho de Proteção</b>.</div></div>
+  </div>
+  <h3>O que muda</h3>
+  <ul>
+    <li><b>Encanto mais difícil:</b> cada nível tem um <b>teto de chance</b>. O <b>+10 chega no máximo a 20%</b>.</li>
+    <li><b>Bônus do Anão:</b> +3% em cada encanto, sempre respeitando o teto.</li>
+    <li><b>Pergaminho de Proteção:</b> se o encanto falhar, o item <b>não quebra</b>, só falha. Quem fabrica é o Coletor.</li>
+    <li><b>Receitas:</b> o <b>Coletor</b> fabrica a Receita; com ela e os materiais, o <b>Ferreiro</b> forja a arma ou a armadura.
+      Itens de drop aumentam a chance de o item sair <b>épico ou lendário</b>.</li>
+    <li><b>Aba Oficinas:</b> cada Artesão vende os seus serviços. O cliente contrata <b>sabendo do risco</b>.</li>
+    <li><b>Sem estrelas:</b> a oficina mostra só a <b>taxa de acerto real</b> de cada um.</li>
+    <li><b>Relíquia Rúnica:</b> o item único que só um Anão Ferreiro consegue tentar forjar.</li>
+  </ul>
+  <h3>A lore</h3>
+  <p>Foram os anões que <b>forjaram as correntes de luz</b> que prendem o Ignaroth e que guardaram as chaves dos Sete Selos.
+  Por isso, em Eldrin, quem quer um item forjado e bem encantado procura um Ferreiro anão. E quem precisa da receita ou da proteção procura o Coletor.</p>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja</div>
+</div>
+
+<div class="pg">
+  <div class="num">Parte 1</div><h2>Encantamento: mais difícil, com teto</h2>
+  <p>Hoje a Sorte sobe a chance sem limite: um Artesão com muita Sorte chega a 65% no +10. A proposta é colocar um
+  <b>teto por nível</b>. Nem o melhor anão do servidor passa disso.</p>
+  <table>
+    <tr><th>Encanto</th><th>Chance normal (sem Sorte)</th><th>Teto máximo (muita Sorte + Anão)</th><th>Se falhar sem proteção</th></tr>
+    <tr><td>+1 a +3</td><td>100%</td><td>100%</td><td>—</td></tr>
+    <tr><td>+4</td><td>70%</td><td>85%</td><td>volta a +0</td></tr>
+    <tr><td>+5</td><td>60%</td><td>75%</td><td>volta a +0</td></tr>
+    <tr><td>+6</td><td>50%</td><td>65%</td><td>volta a +0</td></tr>
+    <tr><td>+7</td><td>40%</td><td>55%</td><td>quebra</td></tr>
+    <tr><td>+8</td><td>30%</td><td>42%</td><td>quebra</td></tr>
+    <tr><td>+9</td><td>20%</td><td>30%</td><td>quebra</td></tr>
+    <tr class="dest"><td>+10</td><td>10%</td><td>20%</td><td>quebra</td></tr>
+  </table>
+  <h3>Como a chance é calculada</h3>
+  <ul>
+    <li>Chance = chance normal + <b>0,5% por ponto de Sorte</b> de quem encanta + <b>3% se for Anão</b>.</li>
+    <li>O resultado nunca passa do <b>teto</b> da tabela.</li>
+    <li>Em um serviço, vale a <b>Sorte e a raça do Ferreiro</b>, e não as do dono do item. É isso que o cliente paga.</li>
+  </ul>
+  <div class="caixa aviso"><b>⚠️ Atenção:</b> o teto vale para <b>todos os jogadores</b>, não só nos serviços. Quem hoje tem muita
+  Sorte vai sentir a chance cair no +8 ao +10. Vale avisar no jogo quando publicar.</div>
+  <h3>Item quebrado</h3>
+  <p>Continua como hoje: o item que quebra vira <b>cristais</b> da raridade dele (100 / 150 / 200 / 500 tentando +7 / +8 / +9 / +10).
+  Os cristais passam a servir de ingrediente nas receitas e nas proteções do Coletor (Partes 2 e 3).</p>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja</div>
+</div>
+
+<div class="pg">
+  <div class="num">Parte 2</div><h2>Pergaminho de Proteção 🛡️</h2>
+  <img class="ico" src="assets/itens/pergaminho-lendaria.jpg">
+  <p>Usado junto com o pergaminho de encanto. <b>Se o encanto falhar, o item fica como estava:</b> não quebra e não volta a +0.
+  Os dois pergaminhos são gastos, acertando ou não.</p>
+  <h3>Quem faz</h3>
+  <ul>
+    <li><b>Só o Coletor fabrica</b> o Pergaminho de Proteção.</li>
+    <li>O jogador <b>junta os materiais</b> (farmando ou comprando de outros jogadores) e <b>leva para o Coletor</b> fazer.</li>
+    <li>Precisa ser da <b>mesma raridade do item</b>. Proteger um lendário pede material de chefe: caro e difícil.</li>
+  </ul>
+  <h3>Receita (exemplo)</h3>
+  <table>
+    <tr><th>Proteção</th><th>Materiais</th></tr>
+    <tr><td>Comum</td><td>10 Minério de Ferro + 50 Cristais comuns</td></tr>
+    <tr><td>Rara</td><td>10 Couro Endurecido + 5 Essência de Névoa + 80 Cristais raros</td></tr>
+    <tr><td>Épica</td><td>5 Osso Rúnico + 3 Areia Rubra + 120 Cristais épicos</td></tr>
+    <tr><td>Lendária</td><td>2 Escama de Dragão + 1 Brasa do Ignaroth + 200 Cristais lendários</td></tr>
+  </table>
+  <h3>De onde vêm os materiais</h3>
+  <ul>
+    <li><b>Monstros de cada região:</b> cada região tem o seu material (ex.: Minério de Ferro na Floresta, Essência de Névoa no Pântano).</li>
+    <li><b>Chefes e bosses:</b> materiais raros (Escama de Dragão, Brasa do Ignaroth, Fragmento de Selo).</li>
+    <li><b>Minas:</b> o personagem minera por um tempo (como o acampamento) e volta com minério e pedras preciosas.
+      O Coletor encontra <b>mais</b> material.</li>
+    <li><b>Itens quebrados:</b> viram cristais.</li>
+  </ul>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja</div>
+</div>
+
+<div class="pg">
+  <div class="num">Parte 3</div><h2>Receitas: o Coletor cria, o Ferreiro forja</h2>
+  <p>Forjar um item tem <b>duas etapas</b>, com as duas classes do Artesão trabalhando juntas:</p>
+  <ol class="passos">
+    <li><b>Coletor fabrica a Receita.</b> O cliente leva os materiais e o Coletor cria a Receita da arma ou da armadura
+      (ex.: <i>"Receita: Espada level 20"</i>). A Receita é um item que vai para a mochila e pode ser vendido.</li>
+    <li><b>Ferreiro forja o item.</b> O cliente leva a Receita, os materiais da forja e os ingredientes extras (se quiser)
+      para o Ferreiro, que forja a arma ou a armadura.</li>
+  </ol>
+  <h3>Ingredientes que melhoram a raridade</h3>
+  <p>Na hora da forja, o cliente pode entregar ao Ferreiro <b>ingredientes extras</b> para aumentar a chance de o item sair
+  <b>épico ou lendário</b>:</p>
+  <ul>
+    <li><b>Itens de drop:</b> materiais dos chefes e das masmorras.</li>
+    <li><b>Itens do Coletor:</b> essências e pedras preciosas das Minas.</li>
+    <li><b>Itens de outras classes</b> (ideia): cada classe produz um ingrediente próprio, por exemplo o Mago com o <b>Pó Arcano</b>.
+      Assim todo mundo tem algo para vender.</li>
+  </ul>
+  <table>
+    <tr><th>Espada level 20 (exemplo)</th><th>Comum</th><th>Rara</th><th>Épica</th><th>Lendária</th></tr>
+    <tr><td>Só a receita básica</td><td>60%</td><td>35%</td><td>5%</td><td>0%</td></tr>
+    <tr><td>+ 3 Escamas de Dragão</td><td>40%</td><td>45%</td><td>13%</td><td>2%</td></tr>
+    <tr class="dest"><td>+ 3 Escamas + 1 Pó Arcano</td><td>30%</td><td>48%</td><td>18%</td><td>4%</td></tr>
+  </table>
+  <div class="caixa"><b>Equilíbrio:</b> o item fabricado é tão bom quanto um da mesma raridade caído na caçada, nunca melhor.
+  A graça é a <b>chance controlada</b>: em vez de esperar a sorte da caçada, você junta material e aposta na raridade.</div>
+  <h3>Obra-prima</h3>
+  <p>Uma chance pequena (2%) de o item sair <b>uma raridade acima</b> do sorteio; o Ferreiro anão tem um pouco mais.
+  O item leva a assinatura de quem forjou: <i>"Forjado por Grimbold"</i>.</p>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja</div>
+</div>
+
+<div class="pg">
+  <div class="num">Parte 4</div><h2>A aba Oficinas</h2>
+  <p>Uma aba nova no Mercado. Cada Artesão abre a sua oficina e define os preços. Ela fica ao lado do
+  <b>Mercado entre jogadores</b> (que o Henri já publicou) e usa a mesma ideia de guardar o item no servidor.</p>
+  <div class="duas">
+    <div class="caixa"><b>🔨 Ferreiro vende</b><ul style="margin-bottom:0"><li>Forjar armas e armaduras (com a Receita do cliente).</li><li>Encantar item (preço por tentativa).</li><li>Relíquia Rúnica (Parte 5).</li></ul></div>
+    <div class="caixa"><b>💰 Coletor vende</b><ul style="margin-bottom:0"><li>Fabricar Receitas.</li><li>Fabricar Pergaminho de Proteção.</li><li>Materiais avulsos.</li></ul></div>
+  </div>
+  <h3>Como funciona um pedido de encanto</h3>
+  <ol class="passos">
+    <li>O cliente escolhe a oficina e <b>entrega tudo</b>: a arma, os pergaminhos de encanto, a proteção (se quiser) e o pagamento.</li>
+    <li>O jogo <b>guarda tudo</b> no servidor: ninguém consegue sumir com nada.</li>
+    <li>Antes de confirmar, o cliente vê um aviso com a chance real do anão.</li>
+    <li>O Ferreiro recebe "Novo pedido!" e clica em <b>Encantar</b>. A sorte é jogada pelo servidor, com a Sorte do Ferreiro.</li>
+    <li>O item volta para o cliente, encantado, igual (com proteção) ou quebrado em cristais. <b>O Ferreiro recebe o pagamento de qualquer jeito.</b></li>
+    <li>Se o artesão não fizer o serviço em 24 horas, tudo volta para o cliente.</li>
+  </ol>
+  <div class="citacao">"Chance deste anão: <b>20%</b> para o +10. Você <b>não</b> está usando Pergaminho de Proteção: se falhar,
+  seu item <b>quebra</b>. Você confia na sorte do anão?" &nbsp; <b>[Confio! Contratar]</b></div>
+  <h3>Taxa de acerto (sem estrelas)</h3>
+  <ul>
+    <li>A oficina mostra os <b>números reais</b>, calculados pelo jogo: <i>"Encantos: 312 · Acertos: 118 (38%) · No +10: 3 de 27"</i>.</li>
+    <li>Selo <b>"Forja da Montanha"</b> para todo Anão e <b>"Mestre"</b> depois de 100 serviços.</li>
+    <li>Taxa do jogo: 10% do pagamento some do jogo, igual ao Mercado entre jogadores.</li>
+  </ul>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja</div>
+</div>
+
+<div class="pg">
+  <div class="num">Parte 5</div><h2>✨ Relíquia Rúnica: o item único</h2>
+  <p>Só um <b>Anão Ferreiro level 30 ou mais</b> consegue tentar forjar. É o item mais raro do jogo: <b>só existe um de cada</b>.</p>
+  <ul>
+    <li><b>Nome escolhido pelo cliente</b>, por exemplo <i>"Fúria de Thorin"</i>, e assinatura do anão: <i>"Forjada por Grimbold"</i>.</li>
+    <li>Base lendária com um <b>bônus rúnico especial</b> sorteado, por exemplo "+5% de dano contra chefes" ou "cura 2% da vida a cada golpe".</li>
+    <li><b>O que precisa:</b> uma arma ou armadura lendária +7 ou mais, materiais de chefe e um <b>Fragmento de Selo</b> (raro, do boss da aliança).</li>
+    <li><b>Chance de dar certo:</b> de <b>10% a 20%</b> (Sorte do anão e ingredientes extras ajudam um pouco).</li>
+    <li><b>Se falhar:</b> os materiais e o Fragmento de Selo <b>se perdem</b>. O item lendário volta para o cliente.</li>
+    <li><b>Limite:</b> cada Ferreiro faz <b>1 tentativa por semana</b>.</li>
+  </ul>
+  <div class="caixa">A Relíquia é uma <b>raridade nova</b> no jogo. Ela mexe em várias telas (cores, poder, Arena), por isso fica por último.</div>
+
+  <div class="num" style="margin-top:8mm">Ordem sugerida</div><h2>Como colocar no jogo</h2>
+  <table>
+    <tr><th>Etapa</th><th>O que entra</th><th>Precisa do servidor?</th></tr>
+    <tr><td>1</td><td>Teto das chances + bônus do Anão</td><td>Não</td></tr>
+    <tr><td>2</td><td>Materiais nos monstros, Minas, cristais com uso</td><td>Não</td></tr>
+    <tr><td>3</td><td>Receitas e Proteção (Coletor) e forja de itens (Ferreiro), cada um para si</td><td>Não</td></tr>
+    <tr><td>4</td><td>Aba Oficinas (pedidos entre jogadores, taxa de acerto)</td><td>Sim (rodar o schema)</td></tr>
+    <tr><td>5</td><td>Relíquia Rúnica</td><td>Sim</td></tr>
+  </table>
+  <div class="rodape">Eldrin · Os Anões: Mestres da Forja · todos os números são sugestões e podem ser ajustados</div>
+</div>
+</body></html>
