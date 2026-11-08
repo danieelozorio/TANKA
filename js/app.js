@@ -154,7 +154,7 @@
     if (!item.id && R.definicao(item)) {
       var idx = Object.keys(D.raridades).indexOf(item.raridade), def = R.definicao(item), ex = D.VARIACAO_ITEM.extra[item.raridade];
       return Object.keys(def.bonus).map(function (k) {
-        var f = R.faixaBonus(def.bonus[k][idx]);
+        var f = (def.fixos || []).indexOf(k) >= 0 ? [def.bonus[k][idx], def.bonus[k][idx]] : R.faixaBonus(def.bonus[k][idx]);
         return D.bonus[k] + ' +' + (f[0] === f[1] ? f[0] : f[0] + '–' + f[1]);
       }).concat(ex ? ['+1 atributo sorteado (+' + ex[0] + '–' + ex[1] + ')'] : []).join(' · ');
     }

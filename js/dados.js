@@ -217,7 +217,7 @@ Tanka.dados = {
   bonus: {
     defesa: 'Defesa', defesaMagica: 'Defesa Mágica', vida: 'Vida',
     for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte',
-    dano: 'Dano', regen: 'Regeneração de vida %/min', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
+    dano: 'Dano', danoPct: 'Dano %', vidaPct: 'Vida %', defesaPct: 'Defesa %', regen: 'Regeneração de vida %/min', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
   },
 
   // Armaduras de cada classe. Valores dos bônus na ordem: comum, rara, épica, lendária.
@@ -361,16 +361,18 @@ Tanka.dados = {
   },
   ARMA_PADRAO: { cavaleiro: 'espada', arqueiro: 'arco', mago: 'cajado', artesao: 'martelo' },
   // Mão esquerda: bônus por raridade (comum, rara, épica, lendária); encanto: o bônus que sobe +5% por nível de encanto.
+  // Henri (nov/2026): para valer tanto quanto os +12% da arma de duas mãos, a mão esquerda dá % fixos pela raridade
+  // (os bônus em `fixos` não crescem com o nível do item): dano 4/7/10/14%; o Escudo dá vida % e defesa %.
   MAO_ESQUERDA: {
-    escudo: { nome: 'Escudo', bonus: { defesa: [3, 6, 12, 24] }, encanto: 'defesa' },
-    aljava: { nome: 'Aljava', bonus: { precisao: [2, 4, 6, 10], critico: [1, 2, 4, 8] }, encanto: 'critico' },
-    orbe: { nome: 'Orbe', bonus: { danoMagico: [5, 10, 15, 25], danoCriticoMagico: [5, 10, 20, 40] }, encanto: 'danoCriticoMagico' },
-    manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], for: [1, 2, 4, 8] }, encanto: 'defesa' },
+    escudo: { nome: 'Escudo', bonus: { defesaPct: [6, 10, 13, 16], vidaPct: [3, 5, 7, 9] }, fixos: ['defesaPct', 'vidaPct'], encanto: 'defesaPct' },
+    aljava: { nome: 'Aljava', bonus: { danoPct: [4, 7, 10, 14], critico: [1, 2, 3, 5] }, fixos: ['danoPct', 'critico'], encanto: 'danoPct' },
+    orbe: { nome: 'Orbe', bonus: { danoMagico: [4, 7, 10, 14], danoCriticoMagico: [5, 10, 15, 20] }, fixos: ['danoMagico', 'danoCriticoMagico'], encanto: 'danoMagico' },
+    manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], danoPct: [4, 7, 10, 14] }, fixos: ['danoPct'], encanto: 'danoPct' },
     // segundas classes (a partir de rara)
-    livro: { nome: 'Livro de Magias', bonus: { int: [1, 2, 4, 8], danoMagico: [3, 6, 10, 15] }, encanto: 'int' },
-    adaga: { nome: 'Adaga', bonus: { dano: [2, 5, 10, 16], critico: [1, 2, 3, 5] }, encanto: 'dano' },
+    livro: { nome: 'Livro de Magias', bonus: { int: [1, 2, 4, 8], danoMagico: [4, 7, 10, 14] }, fixos: ['danoMagico'], encanto: 'danoMagico' },
+    adaga: { nome: 'Adaga', bonus: { dano: [2, 5, 10, 16], critico: [1, 2, 3, 5] }, fixos: ['critico'], encanto: 'dano' },
     garra: { nome: 'Garra', bonus: { dano: [3, 6, 12, 18] }, encanto: 'dano' },
-    shuriken: { nome: 'Shuriken', bonus: { dano: [1, 3, 6, 10], critico: [2, 4, 6, 10] }, encanto: 'critico' },
+    shuriken: { nome: 'Shuriken', bonus: { dano: [1, 3, 6, 10], critico: [2, 4, 6, 10] }, fixos: ['critico'], encanto: 'critico' },
   },
   // Armas e mão esquerda de cada classe base e de cada segunda classe.
   ARMAS_CLASSE: {

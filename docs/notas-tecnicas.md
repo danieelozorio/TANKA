@@ -404,3 +404,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`furtivo`) continua desviando do próximo golpe e garantindo o 20 no golpe seguinte (`critEm`) — Henri testou sem
   o desvio e pediu de volta. Precisão nunca contou na Arena.
 - Nevasca (Bruxo) congela 2 turnos (`atordoa: 2`), na caçada, masmorra e Arena (chefes seguem limitados a 1).
+
+## Mão esquerda x duas mãos (Henri, nov/2026)
+- `MAO_ESQUERDA` ganhou `fixos`: bônus que valem pela raridade e NÃO crescem com o nível do item (`sortearBonus`).
+  Aljava: dano % 4/7/10/14 + crítico 1/2/3/5 (saiu a precisão). Manopla: defesa (cresce) + dano % 4/7/10/14 (saiu FOR).
+  Orbe: dano mágico 4/7/10/14 + dano crítico mágico 5/10/15/20. Livro: INT (cresce) + dano mágico 4/7/10/14.
+  Escudo: defesa % 6/10/13/16 + vida % 3/5/7/9 (calibrado para o Poder ficar 97–104% do de duas mãos).
+  Adaga/Shuriken: só o crítico ficou fixo. Encanto: escudo `defesaPct`, aljava/manopla `danoPct`, orbe/livro `danoMagico`.
+- Chaves novas em `D.bonus`: `danoPct` (dano % para todos, somado ao `danoMagico` em `danoComMao`), `vidaPct`, `defesaPct`
+  (multiplicam vida e defesa/defesa mágica em `statusBase`, antes da passiva). `tanka_status` igual.
+- Itens antigos de mão esquerda continuam com os bônus que tinham (Henri: personagens serão apagados para o teste do zero).

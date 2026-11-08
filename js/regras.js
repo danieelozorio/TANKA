@@ -215,7 +215,10 @@ Tanka.regras = (function () {
     var def = definicao(item), idx = RARIDADES.indexOf(item.raridade), b = {};
     if (!def) return b;
     if (item.tipo === 'anel') return sortearBonusAnel(item, rng);
-    if (item.nivel) Object.keys(def.bonus).forEach(function (k) { b[k] = bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade); });
+    // bônus em `fixos` (mão esquerda em %) valem pela raridade e não crescem com o nível do item
+    if (item.nivel) Object.keys(def.bonus).forEach(function (k) {
+      b[k] = (def.fixos || []).indexOf(k) >= 0 ? def.bonus[k][idx] : bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade);
+    });
     else Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
     var extra = D.VARIACAO_ITEM.extra[item.raridade];
     if (extra) {
@@ -920,20 +923,22 @@ Tanka.regras = (function () {
     var danoBase = arma ? danoArmaComEncanto(arma, true) : [0, 0], fat = ta ? ta.fator : 1;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
+    var pctItem = function (v, k) { return eq[k] ? Math.round(v * (1 + eq[k] / 100)) : v; };   // % da mão esquerda
     return comConjunto(comRaca(comPassiva({
-      hpMax: D.HP_INICIAL
+      hpMax: pctItem(D.HP_INICIAL
         + Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES   // toda RES acima de 10 dá vida (nov/2026)
         + (p.nivel - 1) * D.HP_POR_NIVEL
-        + eq.vida,
+        + eq.vida, 'vidaPct'),
       tipoDano: magico ? 'magico' : 'fisico',
       danoArma: danoArma,
       ataque: magico ? 0 : bonus,                    // FOR (Cavaleiro/Artesão) ou DES (Caçador)
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
-      dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)], magico ? eq.danoMagico : 0),
+      dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)],
+        (magico ? eq.danoMagico || 0 : 0) + (eq.danoPct || 0)),
       // cada ponto de RES conta: 0,45 de defesa por ponto (antes só a cada 10) + armaduras (já x4,5)
-      defesa: Math.round(a.res * D.DEFESA.fator / 10) + eq.defesa,
-      defesaMagica: Math.round(a.res * D.DEFESA.fator / 10) + eq.defesaMagica,
+      defesa: pctItem(Math.round(a.res * D.DEFESA.fator / 10) + eq.defesa, 'defesaPct'),
+      defesaMagica: pctItem(Math.round(a.res * D.DEFESA.fator / 10) + eq.defesaMagica, 'defesaPct'),
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
@@ -1562,7 +1567,7 @@ Tanka.regras = (function () {
   // Tudo aqui só lê ou muda os dados; a tela decide como mostrar.
 
   // Força do item: arma = dano médio x10; armadura e joia = soma dos bônus com pesos.
-  var PESO_BONUS = { defesa: 8 / D.DEFESA.fator, defesaMagica: 8 / D.DEFESA.fator, vida: 1, regen: 20, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2 };
+  var PESO_BONUS = { defesa: 8 / D.DEFESA.fator, defesaMagica: 8 / D.DEFESA.fator, vida: 1, regen: 20, for: 6, des: 6, res: 6, int: 6, sor: 6, dano: 10, precisao: 4, critico: 6, danoMagico: 4, danoCriticoMagico: 2, danoPct: 12, vidaPct: 10, defesaPct: 6 };
   function forcaItem(item) {
     if (item.tipo === 'arma') { var d = danoArmaComEncanto(item); return Math.round((d[0] + d[1]) / 2 * 10); }
     var b = bonusItem(item), total = 0;

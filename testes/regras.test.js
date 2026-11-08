@@ -1213,7 +1213,9 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   const e2 = add({ id: 'e2', tipo: 'arma', classe: 'cavaleiro', arma: 'espada2m', raridade: 'comum', variacao: 0, dano: [4, 8], encanto: 0 });
   const esc = add({ id: 'esc', tipo: 'secundaria', classe: null, mao: 'escudo', raridade: 'rara', variacao: 0, encanto: 1 });
   assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
-  assert.strictEqual(R.status(p).defesa, s0.defesa + Math.round(6 * 1.05 * D.DEFESA.fator), 'escudo raro +6 de defesa, +5% do encanto (x4,5)');
+  // escudo raro: +10% de defesa (+5% do encanto +1 = 10,5 → 11%) e +5% de vida (nov/2026)
+  assert.strictEqual(R.status(p).defesa, Math.round(s0.defesa * 1.11), 'escudo raro +10% de defesa, +1 de encanto');
+  assert.strictEqual(R.status(p).hpMax, Math.round(s0.hpMax * 1.05), 'escudo raro +5% de vida');
   assert.strictEqual(R.equipar(p, 'e2'), 'arma');
   assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
   const s1 = R.status(p);
@@ -1881,3 +1883,21 @@ teste('oficinas: chance com o bônus do artesão, item forjado pela semente e ru
   assert.strictEqual(arma.encanto, 8);
 });
 
+
+teste('mão esquerda: % fixos pela raridade (não crescem com o nível) e valem tanto quanto a arma de duas mãos', () => {
+  for (const n of [15, 45]) {
+    const it = R.novoItem('secundaria', null, 'epica', () => 0.5, 'aljava', n);
+    assert.strictEqual(it.bonus.danoPct, 10, 'aljava épica +10% de dano no nível ' + n);
+    assert.strictEqual(it.bonus.critico, 3);
+    assert.ok(!('precisao' in it.bonus), 'aljava sem precisão');
+    const o = R.novoItem('secundaria', null, 'lendaria', () => 0.5, 'orbe', n);
+    assert.strictEqual(o.bonus.danoMagico, 14);
+    assert.strictEqual(o.bonus.danoCriticoMagico, 20);
+  }
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao'); p.nivel = 30; p.inventario = []; p.equipados = { arma: null, secundaria: null };
+  const m = R.novoItem('arma', 'artesao', 'epica', () => 0.5, 'martelo', 30); p.inventario.push(m); R.equipar(p, m.id);
+  const d0 = R.status(p).dano;
+  const mp = R.novoItem('secundaria', null, 'epica', () => 0.5, 'manopla', 30); delete mp.bonus.for; delete mp.bonus.res; delete mp.bonus.des; delete mp.bonus.int; delete mp.bonus.sor;
+  p.inventario.push(mp); R.equipar(p, mp.id);
+  assert.deepStrictEqual([...R.status(p).dano], [Math.round(d0[0] * 1.1), Math.round(d0[1] * 1.1)], 'manopla épica +10% de dano');
+});
