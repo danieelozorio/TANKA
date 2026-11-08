@@ -274,13 +274,11 @@ begin
   r := public.arena_vez(a, d, 10); a := r -> 'eu'; d := r -> 'outro';
   if r -> 'ev' ->> 'hab' <> 'Sombra' then raise exception 'FALHA arena: 1ª vez devia usar Sombra: %', r -> 'ev'; end if;
   r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
-  -- na Arena só o 1 do dado erra: a Sombra não desvia mais (Henri, nov/2026)
-  if (r -> 'ev' ? 'sombra') or (r -> 'ev' ? 'esquiva') or (r -> 'ev' ->> 'dano')::int <= 0 then raise exception 'FALHA arena: com dado 10 o ataque devia acertar mesmo com Sombra: %', r -> 'ev'; end if;
-  a := jsonb_set(a, '{atordoado}', '0');   -- a Flecha na Perna acertou e atordoou: tira para testar o Golpe Fatal
+  if not (r -> 'ev' ? 'sombra') or (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: ataque devia errar na Sombra: %', r -> 'ev'; end if;
   r := public.arena_vez(a, d, 2); a := r -> 'eu'; d := r -> 'outro';
   if r -> 'ev' ->> 'hab' <> 'Golpe Fatal' or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <> 64 then
     raise exception 'FALHA arena: Golpe Fatal com dado garantido devia dar 20 x 2 x 1,6 = 64: %', r -> 'ev'; end if;
-  raise notice 'ok   arena: Sombra não desvia (só o 1 erra) e o golpe seguinte vale o 20 do dado';
+  raise notice 'ok   arena: Sombra faz errar e o golpe seguinte vale o 20 do dado';
   -- Flecha na Perna atordoa: o outro perde a vez sem dado (a 1ª flecha foi gasta na Sombra)
   d := jsonb_set(d, '{pronto}', '{}');
   r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';

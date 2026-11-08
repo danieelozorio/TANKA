@@ -1326,7 +1326,7 @@
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
-        + 'a Sombra faz o próximo golpe valer o 20 do dado. Esquiva e precisão não contam: só o 1 do dado erra.</p><div class="ordem-hab">'
+        + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p><div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'

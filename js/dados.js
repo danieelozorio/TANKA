@@ -550,7 +550,7 @@ Tanka.dados = {
     assassino: { de: 'arqueiro', nome: 'Assassino', nomeF: 'Assassina', descricao: 'Some nas sombras e volta com golpes críticos.',
       habilidades: [
         { id: 'mira-certeira', nome: 'Mira Certeira', tipo: 'reforco', turnos: 2, critico: 5, danoCritico: 5, recarga: 4, descricao: 'Mais chance e mais dano crítico.' },
-        { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque (na Arena, só o dado decide) e o seu próximo golpe é crítico.' },
+        { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque e o seu próximo golpe é crítico.' },
         { id: 'golpe-fatal', nome: 'Golpe Fatal', tipo: 'unico', recarga: 3, descricao: 'Um golpe enorme em um inimigo.' },
         { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
       ] },

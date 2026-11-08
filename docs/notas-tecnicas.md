@@ -400,6 +400,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`R.iniciarMinas(p, opcao, agora, areaId)`, qualquer uma liberada; select `data-forja="minas"`).
 
 ## Arena: só o dado decide (Henri, nov/2026)
-- `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto) e o desvio da Sombra (`furtivo`); na Arena só o 1 do
-  dado erra. A Sombra continua garantindo o 20 no golpe seguinte (`critEm`). Precisão nunca contou na Arena.
+- `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
+  (`furtivo`) continua desviando do próximo golpe e garantindo o 20 no golpe seguinte (`critEm`) — Henri testou sem
+  o desvio e pediu de volta. Precisão nunca contou na Arena.
 - Nevasca (Bruxo) congela 2 turnos (`atordoa: 2`), na caçada, masmorra e Arena (chefes seguem limitados a 1).
