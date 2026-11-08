@@ -274,11 +274,13 @@ begin
   r := public.arena_vez(a, d, 10); a := r -> 'eu'; d := r -> 'outro';
   if r -> 'ev' ->> 'hab' <> 'Sombra' then raise exception 'FALHA arena: 1ª vez devia usar Sombra: %', r -> 'ev'; end if;
   r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
-  if not (r -> 'ev' ? 'sombra') or (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: ataque devia errar na Sombra: %', r -> 'ev'; end if;
+  -- na Arena só o 1 do dado erra: a Sombra não desvia mais (Henri, nov/2026)
+  if (r -> 'ev' ? 'sombra') or (r -> 'ev' ? 'esquiva') or (r -> 'ev' ->> 'dano')::int <= 0 then raise exception 'FALHA arena: com dado 10 o ataque devia acertar mesmo com Sombra: %', r -> 'ev'; end if;
+  a := jsonb_set(a, '{atordoado}', '0');   -- a Flecha na Perna acertou e atordoou: tira para testar o Golpe Fatal
   r := public.arena_vez(a, d, 2); a := r -> 'eu'; d := r -> 'outro';
   if r -> 'ev' ->> 'hab' <> 'Golpe Fatal' or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <> 64 then
     raise exception 'FALHA arena: Golpe Fatal com dado garantido devia dar 20 x 2 x 1,6 = 64: %', r -> 'ev'; end if;
-  raise notice 'ok   arena: Sombra faz errar e o golpe seguinte vale o 20 do dado';
+  raise notice 'ok   arena: Sombra não desvia (só o 1 erra) e o golpe seguinte vale o 20 do dado';
   -- Flecha na Perna atordoa: o outro perde a vez sem dado (a 1ª flecha foi gasta na Sombra)
   d := jsonb_set(d, '{pronto}', '{}');
   r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
@@ -979,4 +981,20 @@ set role authenticated; select pg_temp.como('a'); select public.oficina_estado('
 reset role;
 select pg_temp.igual((select estado from public.oficina_pedidos where id = :ped5), 'expirado', 'oficina: sem fazer em 24 h, volta tudo');
 delete from public.recompensas; delete from public.creditos; delete from public.oficina_pedidos; delete from public.oficinas; delete from public.reliquias;
+-- Arena: esquiva não conta, só o 1 do dado erra
+do $$
+declare a jsonb; d jsonb; r jsonb; i int; erros int := 0;
+begin
+  a := jsonb_build_object('hp', 100000, 'hpMax', 100000, 'dano', '[20,20]'::jsonb, 'magico', true, 'defesa', 0, 'defesaMagica', 0, 'velBase', 20, 'vel', 20,
+    'esquiva', 0, 'kit', '[]'::jsonb, 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
+  d := a || jsonb_build_object('esquiva', 100, 'magico', false);
+  for i in 1..50 loop
+    r := public.arena_vez(a, d, 2 + (i % 19)); d := r -> 'outro';
+    if (r -> 'ev' ->> 'dano')::int <= 0 then erros := erros + 1; end if;
+  end loop;
+  if erros > 0 then raise exception 'FALHA arena: com 100%% de esquiva, dados de 2 a 20 erraram % vezes', erros; end if;
+  r := public.arena_vez(a, d, 1);
+  if (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: o 1 do dado devia errar: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: esquiva não conta; só o 1 do dado erra';
+end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -398,3 +398,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Ajuste (Daniel, nov/2026):** material do chefe agora cai com `CRAFT.dropChefe` (15%, Coletor x1,5), não sempre; material
   da região cai mesmo com penalidade de área (para farmar Ferro etc. depois); Minas: o jogador escolhe a região
   (`R.iniciarMinas(p, opcao, agora, areaId)`, qualquer uma liberada; select `data-forja="minas"`).
+
+## Arena: só o dado decide (Henri, nov/2026)
+- `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto) e o desvio da Sombra (`furtivo`); na Arena só o 1 do
+  dado erra. A Sombra continua garantindo o 20 no golpe seguinte (`critEm`). Precisão nunca contou na Arena.
+- Nevasca (Bruxo) congela 2 turnos (`atordoa: 2`), na caçada, masmorra e Arena (chefes seguem limitados a 1).

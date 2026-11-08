@@ -550,13 +550,13 @@ Tanka.dados = {
     assassino: { de: 'arqueiro', nome: 'Assassino', nomeF: 'Assassina', descricao: 'Some nas sombras e volta com golpes críticos.',
       habilidades: [
         { id: 'mira-certeira', nome: 'Mira Certeira', tipo: 'reforco', turnos: 2, critico: 5, danoCritico: 5, recarga: 4, descricao: 'Mais chance e mais dano crítico.' },
-        { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque e o seu próximo golpe é crítico.' },
+        { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque (na Arena, só o dado decide) e o seu próximo golpe é crítico.' },
         { id: 'golpe-fatal', nome: 'Golpe Fatal', tipo: 'unico', recarga: 3, descricao: 'Um golpe enorme em um inimigo.' },
         { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
       ] },
     bruxo: { de: 'mago', nome: 'Bruxo', nomeF: 'Bruxa', descricao: 'Magia de destruição: congela, queima e fulmina.',
       habilidades: [
-        { id: 'nevasca', nome: 'Nevasca', tipo: 'area', atordoa: 1, congela: true, recarga: 5, descricao: 'Dano em área e congela todos os inimigos.' },
+        { id: 'nevasca', nome: 'Nevasca', tipo: 'area', atordoa: 2, congela: true, recarga: 5, descricao: 'Dano em área e congela todos os inimigos.' },
         { id: 'chuva-de-meteoros', nome: 'Chuva de Meteoros', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'raio-da-morte', nome: 'Raio da Morte', tipo: 'unico', recarga: 2, descricao: 'Um raio forte em um inimigo.' },
         { id: 'mente-sombria', nome: 'Mente Sombria', tipo: 'passiva', atributos: { int: 5 }, dano: 10, descricao: '+5 de Inteligência e mais dano, sempre.' },
