@@ -21,7 +21,9 @@
   <script>
     (function () {
       var t = 'classica';
-      try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
+      var m = document.cookie.match(/(?:^|; )eldrin_interface=(\w+)/);   // cookie primeiro (no iPhone o localStorage às vezes
+      if (m) t = m[1];                                                  // não grava a tempo antes de recarregar)
+      else try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
       document.documentElement.setAttribute('data-interface', t);
       if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=135">');
     })();
@@ -39,7 +41,7 @@
   <script src="js/contas.js?v=171"></script>
   <script src="js/retratos.js?v=120"></script>
   <script src="js/dado3d.js?v=121"></script>
-  <script src="js/app.js?v=174"></script>
+  <script src="js/app.js?v=175"></script>
   <script>
     // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});

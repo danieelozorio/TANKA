@@ -531,3 +531,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - No iOS o `audio.volume` não muda por código (fica 1). O `sumir()` só pausava quando o volume chegava a 0, então ao
   trocar de cena (entrada → jogo, arena, chefe) a música velha nunca parava e desligar só pausava a atual.
   Agora `sumir()` pausa por tempo (~1,2 s), desligar chama `pararTodas()` (lista `audios`) e volume 0 vira `muted`.
+
+## Troca de interface no iPhone (Henri, nov/2026)
+- No iPhone a troca Zealot → Clássica recarregava e voltava Zealot (o localStorage não gravava a tempo antes do
+  `location.reload()`). Agora a escolha também vai num cookie `eldrin_interface` (lido primeiro em `jogar/index.html` e
+  `ferramentas/artifact.html`) e a página recarrega 150 ms depois.

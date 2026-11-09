@@ -6800,7 +6800,8 @@
       b.addEventListener('click', function () {
         if (b.dataset.interface === interfaceAtual()) return;
         guardar('eldrin.interface', b.dataset.interface);
-        location.reload();
+        try { document.cookie = 'eldrin_interface=' + b.dataset.interface + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
+        setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
       });
     });
     p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
