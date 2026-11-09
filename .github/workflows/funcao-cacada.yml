@@ -34,4 +34,4 @@ jobs:
       - name: Enviar para o Supabase
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::warning::Falta o segredo SUPABASE_ACCESS_TOKEN: função não enviada."; exit 0; fi
-          supabase functions deploy cacada --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api
+          supabase functions deploy cacada --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes
