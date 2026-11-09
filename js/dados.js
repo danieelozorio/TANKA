@@ -866,7 +866,7 @@ Tanka.dados = {
 
   // Alianças: criar, cargos, tesouro, level e bônus (o servidor usa estes números; ver supabase/schema.sql).
   ALIANCA: {
-    nivelMin: 10, custoOuro: 10000, custoReputacao: 100,
+    nivelMin: 10, custoOuro: 6000, custoReputacao: 100,
     vagasIniciais: 15, vagasPorNivel: 3, maxOficiais: 3, nivelMax: 10,
     expProximo: [50000, 100000, 200000, 400000, 700000, 1000000, 1500000, 2000000, 3000000],   // Lv1->2 ... Lv9->10
     doacaoMinima: 100, esperaHoras: 24, liderSumidoDias: 14, ativoDias: 3, muralMax: 300,
