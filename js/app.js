@@ -713,6 +713,12 @@
       var c = R.consumiveis(p).filter(function (x) { return x.id === estado.consumivelFoco; })[0];
       return c ? fichaConsumivelHtml(c) : null;
     }
+    if (estado.dropFoco) {
+      var dr = dropsCacada[estado.dropFoco];
+      if (!dr) return null;
+      var naMochila = p.inventario.some(function (i) { return i.id === dr.id; });
+      return fichaItemHtml(dr, true) + '<p class="suave pequeno">' + (naMochila ? 'Está na sua mochila: equipe ou venda pela aba Herói.' : 'Este item não está mais na mochila.') + '</p>';
+    }
     var it = estado.itemFoco && p.inventario.find(function (i) { return i.id === estado.itemFoco; });
     if (!it) return null;
     return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
@@ -722,21 +728,22 @@
     if (f) f.remove();
     estado.itemFoco = null;
     estado.consumivelFoco = null;
+    estado.dropFoco = null;
     estado.vendaPendente = null;
-    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"]').forEach(function (x) { x.classList.remove('focado'); });
+    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"], .focado[data-acao="drop-ver"]').forEach(function (x) { x.classList.remove('focado'); });
   }
   function desenharFlutuante(ancora) {
     var html = fichaFlutuanteConteudo();
     var f = document.getElementById('ficha-flutuante');
     if (!html) { if (f) f.remove(); return; }
     if (!ancora || !ancora.isConnected) {
-      var id = estado.consumivelFoco || estado.itemFoco;
-      ancora = document.querySelector('[data-acao="' + (estado.consumivelFoco ? 'consumivel' : 'item') + '"][data-id="' + id + '"]');
+      var id = estado.consumivelFoco || estado.itemFoco || estado.dropFoco;
+      ancora = document.querySelector('[data-acao="' + (estado.consumivelFoco ? 'consumivel' : estado.dropFoco ? 'drop-ver' : 'item') + '"][data-id="' + id + '"]');
     }
     if (!ancora) { if (f) f.remove(); return; }
     if (!f) { f = document.createElement('div'); f.id = 'ficha-flutuante'; f.setAttribute('role', 'dialog'); app.appendChild(f); }
     f.innerHTML = '<button class="btn-x ficha-flutuante-x" data-acao="ficha-fechar" aria-label="Fechar">✕</button>' + html;
-    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"]').forEach(function (x) { x.classList.remove('focado'); });
+    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"], .focado[data-acao="drop-ver"]').forEach(function (x) { x.classList.remove('focado'); });
     ancora.classList.add('focado');
     // posição: ao lado do item (direita; se não couber, esquerda), dentro da tela
     var r = ancora.getBoundingClientRect(), larg = f.offsetWidth, alt = f.offsetHeight, m = 8;
@@ -749,7 +756,7 @@
   document.addEventListener('mousedown', function (e) {
     var f = document.getElementById('ficha-flutuante');
     if (!f || f.contains(e.target)) return;
-    if (e.target.closest && e.target.closest('[data-acao="item"], [data-acao="consumivel"]')) return;
+    if (e.target.closest && e.target.closest('[data-acao="item"], [data-acao="consumivel"], [data-acao="drop-ver"]')) return;
     fecharFlutuante();
   });
   window.addEventListener('resize', function () { if (document.getElementById('ficha-flutuante')) desenharFlutuante(); });
@@ -1172,7 +1179,7 @@
       + (estado.compararSemEncanto ? 'Comparar com encanto' : 'Comparar sem encanto') + '</button>';
   }
 
-  function fichaItemHtml(item) {
+  function fichaItemHtml(item, soVer) {
     var p = estado.personagem;
     if (!item) {
       return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam; o botão direito equipa. A seta verde ▲ mostra o que é melhor que o equipado.'
@@ -1200,7 +1207,8 @@
       }).join('');
     }
     var acoes = '';
-    if (slot) {
+    if (soVer) acoes = '';
+    else if (slot) {
       acoes += '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
       acoes += R.podeUsar(p, item)
@@ -1289,7 +1297,8 @@
     var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
     var semEnc = outro && estado.compararSemEncanto && (item.encanto || outro.encanto);
     var acoes = '';
-    if (slot) {
+    if (soVer) acoes = '';
+    else if (slot) {
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
       acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
@@ -3039,7 +3048,7 @@
         arena.style.minHeight = c.alturaArena + 'px';
       }
     });
-    if (estado.itemFoco || estado.consumivelFoco) desenharFlutuante();
+    if (estado.itemFoco || estado.consumivelFoco || estado.dropFoco) desenharFlutuante();
   };
 
   // Leva a tela até o painel (aviso do chefe e batalha aparecem no topo dele).
@@ -3367,7 +3376,24 @@
     return [nomeRaridadeItem(it), descricaoItem(it)].concat(it.tipo === 'arma' ? extrasArma(it) : []).join(' · ');
   }
 
+  // Drop da caçada. Pergaminho mostra só o texto; arma/armadura abre a ficha completa, igual à da mochila (só para ver),
+  // com a seta verde quando é melhor que o equipado.
+  var dropsCacada = {};
+  function comDrop(p, it) {
+    return p.inventario.some(function (x) { return x.id === it.id; }) ? p : Object.assign({}, p, { inventario: p.inventario.concat([it]) });
+  }
+  function dropMelhor(it) {
+    var p = estado.personagem;
+    try { return !!(p && it.id && R.itemMelhor(comDrop(p, it), it)); } catch (e) { return false; }
+  }
   function dropHtml(it, icone) {
+    if (!it.consumivel && it.id) {
+      dropsCacada[it.id] = it;
+      var seta = icone && dropMelhor(it) ? '<span class="seta-melhor" title="Melhor que o equipado">' + SETA_MELHOR + '</span>' : '';
+      return '<span class="drop-cacada"><button type="button" data-acao="drop-ver" data-id="' + it.id + '" class="' + (icone ? 'icone-pequeno borda-' : 'drop-nome raridade-')
+        + corItem(it) + (icone ? aura(it) : '') + '" aria-label="' + esc(nomeDrop(it)) + (dropMelhor(it) ? ' (melhor que o equipado)' : '') + '">'
+        + (icone ? F.icone(it) + seta : esc(nomeDrop(it)) + (dropMelhor(it) ? ' <span class="mais" title="Melhor que o equipado">▲</span>' : '')) + '</button></span>';
+    }
     return '<span class="drop-cacada"><button type="button" class="' + (icone ? 'icone-pequeno borda-' : 'drop-nome raridade-')
       + corItem(it) + '" aria-expanded="false" aria-label="' + esc(nomeDrop(it)) + '">'
       + (icone ? F.icone(it) : esc(nomeDrop(it)))
@@ -3593,7 +3619,7 @@
     var menu = document.getElementById('menu-jogo');
     if (menu) menu.open = false;
     estado.aba = aba;
-    estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = null;
+    estado.vendaPendente = estado.encantoPendente = estado.ultimoEncanto = estado.itemFoco = estado.dropFoco = null;
     estado.zoom = estado.desafio = null;
     estado.vendaLote = null;
     if (aba !== 'social') estado.amigoAberto = estado.removerAmigo = null;
@@ -3849,10 +3875,19 @@
         estado.timerZoom = setTimeout(function () {
           estado.vendaPendente = null;
           estado.consumivelFoco = null;
+          estado.dropFoco = null;
           if (estado.itemFoco === alvoId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); return; }
           estado.itemFoco = alvoId;
           desenharFlutuante(el);
         }, 260);
+        break;
+      }
+      case 'drop-ver': {
+        var dropId = el.dataset.id;
+        if (estado.dropFoco === dropId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
+        estado.itemFoco = estado.consumivelFoco = null;
+        estado.dropFoco = dropId;
+        desenharFlutuante(el);
         break;
       }
       case 'zoom-fechar':
@@ -3983,7 +4018,7 @@
       case 'consumivel':
         if (estado.consumivelFoco === el.dataset.id && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
         estado.consumivelFoco = el.dataset.id;
-        estado.itemFoco = null;
+        estado.itemFoco = estado.dropFoco = null;
         desenharFlutuante(el);
         break;
       case 'item-ampliar':

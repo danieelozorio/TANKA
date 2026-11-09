@@ -76,6 +76,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   largura do aparelho em todas as abas.
 - Opções da caçada (chefe / poção automática) são botões (`data-acao="cacada-opcao"`), não `<select>`: a lista se
   fechava sozinha a cada redesenho. Barrinha fina de exp embaixo da vida na caçada: `expFinaHtml` (`.exp-fina`).
+- Drops da caçada (arma/armadura) abrem a mesma ficha flutuante da mochila, só para ver (`data-acao="drop-ver"`,
+  `estado.dropFoco`, `fichaItemHtml(item, true)` sem botões; os objetos ficam em `dropsCacada`). Seta verde quando é
+  melhor que o equipado (`dropMelhor`: `R.itemMelhor`, pondo o item na mochila de mentira se ele já saiu dela).
+  Pergaminho continua com a fichinha de texto.
 
 ## Itens por nível (parte 1 FEITA)
 - `ITEM_NIVEL` (dados.js): nível 1–60; drop = level ±3 (35+: 35–60); raridade = qualidade (faixaQualidade); arma
