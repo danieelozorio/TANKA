@@ -3,7 +3,7 @@
   "short_name": "Eldrin",
   "description": "RPG medieval místico: cace monstros, suba de level, enfrente a Arena.",
   "lang": "pt-BR",
-  "start_url": "./",
+  "start_url": "./jogar/",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",

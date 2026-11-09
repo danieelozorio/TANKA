@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <!-- O jogo fica em /jogar/, mas os arquivos (js, css, assets) continuam na raiz do site. -->
+  <base href="../">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eldrin — RPG Narrado · Arena &amp; Glória</title>
+  <meta name="description" content="Eldrin: RPG medieval místico de navegador. Escolha sua raça e classe, cace monstros, suba de level e encontre armas raras. Eldrinonline.com.br">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0a0c12">
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/app/icone-192.png">
+  <link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=EB+Garamond:wght@400;500;600&family=IM+Fell+English+SC&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/estilo.css?v=167">
+  <!-- Interface escolhida na engrenagem (⚙): Clássica (padrão) ou Zealot (tema Pedra Sombria do Daniel). -->
+  <script>
+    (function () {
+      var t = 'classica';
+      try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
+      document.documentElement.setAttribute('data-interface', t);
+      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=134">');
+    })();
+  </script>
+</head>
+<body>
+  <main id="app" aria-live="polite"></main>
+  <div id="aviso" role="status" hidden></div>
+
+  <script src="js/dados.js?v=166"></script>
+  <script src="js/historia.js?v=5"></script>
+  <script src="js/regras.js?v=166"></script>
+  <script src="js/servidor-cacada.js?v=167"></script>
+  <script src="js/config.js?v=120"></script>
+  <script src="js/contas.js?v=167"></script>
+  <script src="js/retratos.js?v=120"></script>
+  <script src="js/dado3d.js?v=121"></script>
+  <script src="js/app.js?v=170"></script>
+  <script>
+    // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
+    if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
+  </script>
+</body>
+</html>

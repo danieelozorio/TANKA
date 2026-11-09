@@ -47,7 +47,7 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
    - Antes: `git fetch origin && git merge origin/main` no `trabalho-local` (pode ter coisa que o Henri publicou),
      rodar os testes.
    - `git checkout main && git merge --ff-only origin/main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
-5. A cada mudança de JS/CSS, subir o `?v=N` em `index.html` e em `ferramentas/artifact.html` (cache do navegador).
+5. A cada mudança de JS/CSS, subir o `?v=N` em `jogar/index.html` e em `ferramentas/artifact.html` (cache do navegador).
    Se os dois mudarem o número ao mesmo tempo, na junção ficar com o maior + 1.
 6. Se mudar `supabase/schema.sql`, avisar que alguém com acesso ao Supabase (Daniel, ou o Henri se for convidado) precisa **rodar o schema de novo** no SQL Editor do Supabase
    (o arquivo é idempotente; o aviso de RLS pode ser aceito no botão verde).
@@ -57,13 +57,14 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
    `js/app.js` é um arquivo grande; evitar os dois mexerem na mesma tela ao mesmo tempo.
 
 ## Estrutura
-Sem build e sem npm: HTML + CSS + JS puro, tudo pendurado no objeto global `Tanka`. O `index.html` carrega os scripts
+Sem build e sem npm: HTML + CSS + JS puro, tudo pendurado no objeto global `Tanka`. O `jogar/index.html` carrega os scripts
 nesta ordem: `dados.js` → `historia.js` → `regras.js` → `config.js` → `contas.js` → `retratos.js` → `dado3d.js` → `app.js`.
 `sw.js` é o service worker (cache `eldrin-v1`) do app no celular.
 Fluxo: `app.js` (tela) lê os números de `Tanka.dados`, calcula com `Tanka.regras` e salva pelo `Tanka.contas`. O que
 vale dinheiro ou disputa (Arena, clã, leilão, oficinas, chat) é decidido no servidor, nas funções do `schema.sql`; por
 isso alguns números vivem nos dois lados (ver `tanka_dados()` abaixo).
-- `index.html` — página do jogo. `js/config.js` (Supabase), `js/contas.js` (login e chamadas ao servidor via REST/RPC),
+- `index.html` — página de apresentação (botão Jogar). `jogar/index.html` — página do jogo (endereço /jogar/; usa
+  `<base href="../">`, então js/css/assets continuam na raiz). `js/config.js` (Supabase), `js/contas.js` (login e chamadas ao servidor via REST/RPC),
   `js/contas-local.js` (versão sem servidor, para a prévia).
 - `js/historia.js` — capítulos da história (regiões, chefes, prêmios).
 - `js/dados.js` — **todos os números do jogo** (`Tanka.dados`): classes, raças, itens, raridades, preços, monstros e áreas

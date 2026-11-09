@@ -3,43 +3,104 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Eldrin — RPG Narrado · Arena &amp; Glória</title>
-  <meta name="description" content="Eldrin: RPG medieval místico de navegador. Escolha sua raça e classe, cace monstros, suba de level e encontre armas raras. Eldrinonline.com.br">
+  <!-- Página de apresentação do Eldrin. O jogo fica em jogar/ (jogar/index.html). -->
+  <title>Eldrin Online · RPG medieval místico</title>
+  <meta name="description" content="Eldrin Online: RPG medieval místico de navegador. Escolha sua raça e classe, cace monstros, entre em masmorras em grupo, lute na Arena no D20 e funde sua aliança.">
+  <meta property="og:title" content="Eldrin Online">
+  <meta property="og:description" content="RPG medieval místico de navegador. Escolha sua classe e prepare sua lenda.">
+  <meta property="og:image" content="assets/logo-eldrin.webp">
   <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#0a0c12">
+  <meta name="theme-color" content="#07080c">
   <link rel="icon" type="image/png" sizes="192x192" href="assets/app/icone-192.png">
   <link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=EB+Garamond:wght@400;500;600&family=IM+Fell+English+SC&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo.css?v=167">
-  <!-- Interface escolhida na engrenagem (⚙): Clássica (padrão) ou Zealot (tema Pedra Sombria do Daniel). -->
-  <script>
-    (function () {
-      var t = 'classica';
-      try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
-      document.documentElement.setAttribute('data-interface', t);
-      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=134">');
-    })();
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root { --ouro: #e2b45c; --ouro-claro: #f4d9a0; --texto: #e8dcc4; --suave: #a8987a; --fundo: #07080c; --borda: #5a4528; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--fundo); color: var(--texto); font-family: 'EB Garamond', Georgia, serif; }
+    a { color: inherit; }
+
+    .topo { position: relative; min-height: 100svh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 48px 16px 64px; overflow: hidden; }
+    .topo video, .topo .imagem { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; }
+    .topo .imagem { background: url('assets/fundo-entrada.webp') center / cover; }
+    .topo::after { content: ''; position: absolute; inset: 0; z-index: 1;
+      background: radial-gradient(ellipse at center, #07080c55 0%, #07080ccc 70%), linear-gradient(#07080c00 60%, var(--fundo)); }
+    .topo > *:not(video):not(.imagem) { position: relative; z-index: 2; }
+    .logo { width: min(520px, 90vw); mix-blend-mode: screen;
+      -webkit-mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%); mask-image: radial-gradient(ellipse 50% 50% at center, #000 62%, transparent 100%); }
+    .selo { font-family: Cinzel, serif; letter-spacing: .35em; font-size: .8rem; color: var(--ouro); margin: 6px 0 0; text-transform: uppercase; }
+    .frase { font-size: clamp(1.15rem, 2.6vw, 1.45rem); max-width: 34ch; margin: 18px auto 30px; font-style: italic; color: var(--ouro-claro); }
+
+    .jogar { display: inline-flex; align-items: center; gap: 12px; font-family: Cinzel, serif; font-weight: 700; font-size: 1.35rem;
+      letter-spacing: .18em; text-transform: uppercase; text-decoration: none; color: #1a1206;
+      background: linear-gradient(#f6d58e, #d49b3c 55%, #a8721f); border: 1px solid #ffe7b0; border-radius: 6px;
+      padding: 16px 48px; box-shadow: 0 0 0 4px #00000080, 0 0 38px #e2b45c66, inset 0 1px 0 #fff6;
+      transition: transform .15s ease, box-shadow .15s ease; }
+    .jogar:hover, .jogar:focus-visible { transform: translateY(-2px); box-shadow: 0 0 0 4px #00000080, 0 0 56px #e2b45caa, inset 0 1px 0 #fff6; outline: none; }
+    .jogar:active { transform: translateY(1px); }
+    .beta { margin-top: 18px; font-family: Cinzel, serif; font-size: .78rem; letter-spacing: .25em; color: var(--suave); text-transform: uppercase; }
+
+    section { max-width: 1040px; margin: 0 auto; padding: 56px 16px; text-align: center; }
+    h2 { font-family: Cinzel, serif; font-weight: 500; color: var(--ouro); letter-spacing: .2em; text-transform: uppercase; font-size: 1.05rem; margin: 0 0 28px; }
+    .classes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .classe { margin: 0; border: 1px solid var(--borda); border-radius: 6px; overflow: hidden; background: #120e09; }
+    .classe img { display: block; width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: center 20%; }
+    .classe figcaption { font-family: Cinzel, serif; color: var(--ouro-claro); padding: 10px 6px 12px; letter-spacing: .1em; }
+    .classe small { display: block; font-family: 'EB Garamond', serif; color: var(--suave); letter-spacing: 0; font-size: .95rem; margin-top: 2px; }
+    .recursos { font-family: Cinzel, serif; letter-spacing: .12em; color: var(--texto); font-size: 1rem; line-height: 2; }
+    .recursos span { color: var(--ouro); margin: 0 10px; }
+    .recursos b { font-weight: inherit; white-space: nowrap; }
+    .final { padding-bottom: 72px; }
+    .final p { color: var(--suave); font-size: 1.1rem; margin: 0 0 22px; }
+    footer { text-align: center; color: #6d6150; font-size: .9rem; padding: 0 16px 32px; }
+
+    @media (max-width: 720px) {
+      .classes { grid-template-columns: repeat(2, 1fr); }
+      .jogar { font-size: 1.15rem; padding: 14px 36px; }
+      .topo { min-height: 82svh; }
+      section { padding: 40px 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) { .topo video { display: none; } }
+  </style>
 </head>
 <body>
-  <main id="app" aria-live="polite"></main>
-  <div id="aviso" role="status" hidden></div>
+  <header class="topo">
+    <div class="imagem" aria-hidden="true"></div>
+    <video autoplay muted loop playsinline poster="assets/fundo-entrada.webp" aria-hidden="true">
+      <source src="assets/fundo-entrada.webm" type="video/webm">
+      <source src="assets/fundo-entrada.mp4" type="video/mp4">
+    </video>
+    <img class="logo" src="assets/logo-eldrin.webp" alt="Eldrin Online">
+    <p class="selo">RPG medieval místico</p>
+    <p class="frase">Os portões de Eldrin estão abertos. Escolha sua classe e prepare sua lenda.</p>
+    <a class="jogar" href="jogar/">⚔ Jogar</a>
+    <p class="beta">Open Beta · Dezembro 2026</p>
+  </header>
 
-  <script src="js/dados.js?v=166"></script>
-  <script src="js/historia.js?v=5"></script>
-  <script src="js/regras.js?v=166"></script>
-  <script src="js/servidor-cacada.js?v=167"></script>
-  <script src="js/config.js?v=120"></script>
-  <script src="js/contas.js?v=167"></script>
-  <script src="js/retratos.js?v=120"></script>
-  <script src="js/dado3d.js?v=121"></script>
-  <script src="js/app.js?v=170"></script>
+  <section>
+    <h2>Escolha sua classe</h2>
+    <div class="classes">
+      <figure class="classe"><img src="assets/personagens/humano-cavaleiro.jpg" alt="Cavaleiro humano" loading="lazy"><figcaption>Cavaleiro<small>Humano</small></figcaption></figure>
+      <figure class="classe"><img src="assets/personagens/elfo-cacador-f.jpg" alt="Caçadora elfa" loading="lazy"><figcaption>Caçador<small>Elfo</small></figcaption></figure>
+      <figure class="classe"><img src="assets/personagens/elfonegro-mago-f.jpg" alt="Maga elfa negra" loading="lazy"><figcaption>Mago<small>Elfo Negro</small></figcaption></figure>
+      <figure class="classe"><img src="assets/personagens/anao-artesao.jpg" alt="Artesão anão" loading="lazy"><figcaption>Artesão<small>Anão</small></figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <p class="recursos"><b>Caçadas</b><span>◆</span><b>Masmorras em grupo</b><span>◆</span><b>Arena no D20</b><span>◆</span><b>Alianças</b><span>◆</span><b>Chefe Mundial</b></p>
+  </section>
+
+  <section class="final">
+    <p>Siga o Eldrin Online no Instagram e no Facebook para acompanhar as novidades.</p>
+    <a class="jogar" href="jogar/">⚔ Jogar</a>
+  </section>
+
+  <footer>© 2026 Eldrin Online</footer>
   <script>
-    // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
   </script>
 </body>

@@ -503,3 +503,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   volta ao jeito antigo.
 - Testes: `node testes/regras.test.js` (regra) e `deno run --allow-read --allow-env testes/cacada_servidor.test.ts`
   (função, com Supabase de mentira; antes rodar `node ferramentas/gerar_servidor.js`).
+
+## Página inicial e endereço do jogo (Henri, nov/2026)
+- `index.html` (raiz) é a página de apresentação, com o botão Jogar. O jogo saiu da raiz para `jogar/index.html`
+  (endereço `/jogar/`), com `<base href="../">`: js, css, assets, sw.js e manifest continuam na raiz.
+- `manifest.webmanifest`: `start_url` = `./jogar/` (o app instalado no celular abre direto no jogo).
+- O ?v=N dos scripts agora se sobe em `jogar/index.html`.
