@@ -1555,3 +1555,11 @@ html { overscroll-behavior-x: none; }
 .painel-lista small { color: var(--texto-suave, #9aa0aa); }
 .pl-ico { flex: none; width: 22px; text-align: center; }
 @media (max-width: 600px) { #painel-topo { top: 110px; } .btn-aviso { width: 36px; height: 36px; } }
+
+/* ---------- Ficha flutuante do item (abre no clique) ---------- */
+#ficha-flutuante { position: fixed; z-index: 55; width: min(340px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow-y: auto;
+  padding: 14px 16px 12px; border-radius: 12px; border: 1px solid rgba(201, 162, 74, .65); background: rgba(14, 16, 22, .97);
+  color: var(--texto); box-shadow: 0 14px 40px rgba(0, 0, 0, .7); }
+#ficha-flutuante .ficha-flutuante-x { position: absolute; top: 6px; right: 8px; }
+#ficha-flutuante .ficha-item-topo { padding-right: 18px; }
+.dica-mochila { margin: 4px 0 8px; }

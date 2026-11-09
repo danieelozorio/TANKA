@@ -463,3 +463,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`avisarCaixa`, origem da recompensa → boss/leilao/mercado/oficina/cla/masmorra) e de `aplicarCreditos` (menos os
   que o próprio jogador fez: lance, compra, fundação/doação do clã, pedido na oficina). "Mochila cheia" não entra.
 - Sininho: todo `avisar` (`guardarNotificacao`), até 60, no localStorage por personagem (`eldrin.notificacoes.<id>`).
+
+## Ficha do item flutuante (Henri, nov/2026)
+- Saiu o painel `#ficha-item` ao lado dos equipados (mudava de tamanho e empurrava a mochila) e o "passar o mouse".
+  Um clique em item/consumível abre `#ficha-flutuante` (dentro do #app, `position: fixed`, ao lado do item) com
+  `fichaItemHtml` + botão "Ampliar e comparar" (`item-ampliar` → o zoom de antes). Fecha clicando fora, no ✕, no mesmo
+  item ou Esc. `telaJogo` foi embrulhada para reabrir a ficha presa ao item depois de redesenhar.

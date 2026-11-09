@@ -703,6 +703,58 @@
     if (estado.painelTopo && !(t.closest && (t.closest('#painel-topo') || t.closest('.avisos-topo')))) abrirPainelTopo(null);
   });
 
+  // ---------------- Ficha flutuante do item (Henri, nov/2026) ----------------
+  // Um clique num item (ou consumível) abre a ficha numa janelinha presa a ele, por cima da tela: nada mais muda
+  // de lugar. Fecha clicando fora, no ✕, no mesmo item ou com Esc. Depois de redesenhar a tela, volta a se prender ao item.
+  function fichaFlutuanteConteudo() {
+    var p = estado.personagem;
+    if (!p) return null;
+    if (estado.consumivelFoco) {
+      var c = R.consumiveis(p).filter(function (x) { return x.id === estado.consumivelFoco; })[0];
+      return c ? fichaConsumivelHtml(c) : null;
+    }
+    var it = estado.itemFoco && p.inventario.find(function (i) { return i.id === estado.itemFoco; });
+    if (!it) return null;
+    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
+  }
+  function fecharFlutuante() {
+    var f = document.getElementById('ficha-flutuante');
+    if (f) f.remove();
+    estado.itemFoco = null;
+    estado.consumivelFoco = null;
+    estado.vendaPendente = null;
+    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"]').forEach(function (x) { x.classList.remove('focado'); });
+  }
+  function desenharFlutuante(ancora) {
+    var html = fichaFlutuanteConteudo();
+    var f = document.getElementById('ficha-flutuante');
+    if (!html) { if (f) f.remove(); return; }
+    if (!ancora || !ancora.isConnected) {
+      var id = estado.consumivelFoco || estado.itemFoco;
+      ancora = document.querySelector('[data-acao="' + (estado.consumivelFoco ? 'consumivel' : 'item') + '"][data-id="' + id + '"]');
+    }
+    if (!ancora) { if (f) f.remove(); return; }
+    if (!f) { f = document.createElement('div'); f.id = 'ficha-flutuante'; f.setAttribute('role', 'dialog'); app.appendChild(f); }
+    f.innerHTML = '<button class="btn-x ficha-flutuante-x" data-acao="ficha-fechar" aria-label="Fechar">✕</button>' + html;
+    document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"]').forEach(function (x) { x.classList.remove('focado'); });
+    ancora.classList.add('focado');
+    // posição: ao lado do item (direita; se não couber, esquerda), dentro da tela
+    var r = ancora.getBoundingClientRect(), larg = f.offsetWidth, alt = f.offsetHeight, m = 8;
+    var x = r.right + m + larg <= window.innerWidth - m ? r.right + m : Math.max(m, r.left - m - larg);
+    if (window.innerWidth < 600) x = Math.max(m, (window.innerWidth - larg) / 2);
+    var y = Math.min(Math.max(m, r.top), Math.max(m, window.innerHeight - alt - m));
+    f.style.left = x + 'px';
+    f.style.top = y + 'px';
+  }
+  document.addEventListener('mousedown', function (e) {
+    var f = document.getElementById('ficha-flutuante');
+    if (!f || f.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('[data-acao="item"], [data-acao="consumivel"]')) return;
+    fecharFlutuante();
+  });
+  window.addEventListener('resize', function () { if (document.getElementById('ficha-flutuante')) desenharFlutuante(); });
+  document.addEventListener('scroll', function () { if (document.getElementById('ficha-flutuante')) desenharFlutuante(); }, true);
+
   // Redesenha a ficha e a barra de recursos sem mexer no resto da tela.
   function atualizarFicha() {
     [['.ficha', fichaHtml], ['#recursos', recursosHtml]].forEach(function (x) {
@@ -1202,10 +1254,11 @@
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
-      + '<div class="lateral"><div class="caixa-interna" id="ficha-item">' + (cFoco ? fichaConsumivelHtml(cFoco) : fichaItemHtml(foco)) + '</div>'
-      + '<div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
+      + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
-      + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas + baixo + '</div></div>';
+      + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
+      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Clique num item para ver a ficha; dois cliques ou o botão direito equipam.' : 'Toque num item para ver a ficha; dois toques equipam.') + '</p>'
+      + baixo + '</div></div>';
   }
 
   // ----- Consumíveis: pergaminhos (e, no futuro, cristais e outros), empilhados com a quantidade -----
@@ -2887,6 +2940,12 @@
     chatVisivel(true);
     desenharMissoes(true);
   }
+  // Depois de redesenhar, a ficha flutuante (se aberta) volta a se prender ao item; some se o item saiu da tela.
+  var telaJogoSemFicha = telaJogo;
+  telaJogo = function () {
+    telaJogoSemFicha.apply(this, arguments);
+    if (estado.itemFoco || estado.consumivelFoco) desenharFlutuante();
+  };
 
   // Leva a tela até o painel (aviso do chefe e batalha aparecem no topo dele).
   function mostrarPainel() {
@@ -3565,9 +3624,10 @@
         clearTimeout(estado.timerZoom);
         estado.timerZoom = setTimeout(function () {
           estado.vendaPendente = null;
+          estado.consumivelFoco = null;
+          if (estado.itemFoco === alvoId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); return; }
           estado.itemFoco = alvoId;
-          estado.zoom = alvoId;
-          telaJogo();
+          desenharFlutuante(el);
         }, 260);
         break;
       }
@@ -3697,8 +3757,14 @@
         telaJogo();
         break;
       case 'consumivel':
+        if (estado.consumivelFoco === el.dataset.id && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
         estado.consumivelFoco = el.dataset.id;
         estado.itemFoco = null;
+        desenharFlutuante(el);
+        break;
+      case 'item-ampliar':
+        estado.zoom = el.dataset.id;
+        fecharFlutuante();
         telaJogo();
         break;
       case 'mochila-filtro': {
@@ -4141,6 +4207,7 @@
         mostrarPainel();
         break;
       case 'fugir': encerrar(); break;
+      case 'ficha-fechar': fecharFlutuante(); break;
       case 'painel-topo': abrirPainelTopo(el.dataset.valor); break;
       case 'boss-atacar': atacarMundial(); break;
       case 'boss-invocar':
@@ -4230,30 +4297,9 @@
     telaJogo();
   });
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('ficha-flutuante')) fecharFlutuante();
     if (e.key === 'Escape' && estado.zoom) { estado.zoom = null; telaJogo(); }
     if (e.key === 'Escape' && estado.desafio) { estado.desafio = null; telaJogo(); }
-  });
-
-  // Mouse sobre um item: mostra a ficha dele depois de um instante (para não trocar ao só passar por cima).
-  var timerFoco;
-  app.addEventListener('mouseover', function (e) {
-    if (!temMouse) return;
-    var el = e.target.closest('[data-acao="item"]');
-    if (!el || el.dataset.id === estado.itemFoco) return;
-    clearTimeout(timerFoco);
-    timerFoco = setTimeout(function () {
-      var painel = document.getElementById('ficha-item');
-      var p = estado.personagem;
-      if (!painel || !p || !el.isConnected) return;
-      estado.itemFoco = el.dataset.id;
-      estado.vendaPendente = null;
-      painel.innerHTML = fichaItemHtml(p.inventario.find(function (i) { return i.id === el.dataset.id; }));
-      document.querySelectorAll('[data-acao="item"].focado').forEach(function (x) { x.classList.remove('focado'); });
-      el.classList.add('focado');
-    }, 180);
-  });
-  app.addEventListener('mouseout', function (e) {
-    if (e.target.closest && e.target.closest('[data-acao="item"]')) clearTimeout(timerFoco);
   });
 
   // A vida volta com o tempo: atualiza a ficha a cada 20 s (fora da batalha).
