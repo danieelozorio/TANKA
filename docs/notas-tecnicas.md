@@ -450,7 +450,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Testes: banco.test.sql ("arena: ..." level 30) e regras.test.js ("habilidades do level 20/30", "level 20 na caçada").
 - Tela: `efeitoNivel` (texto com os valores), cadeado "Libera no level N" (`.trancada`), etiqueta do modo (`.hab-nivel`);
   mensagens novas na caçada (☠️ veneno, 🧪 bolso), masmorra e Arena (queima, calado, Milagre, devolve, cego, executa).
-- Ícones: faltam os 16 (`assets/habilidades/<id>.webp`); prompt de folha 4x4 no scratchpad (eldrin-icones-habilidades-20-30.txt).
+- Ícones: os 16 FEITOS (2ª folha do Daniel, Gemini, 4x4 limpa), cortados com `separacoes` de recortar_grade.py (margem 8)
+  (só a pintura, sem o nome) em `assets/habilidades/<id>.webp` 192x192.
 
 ## Caixa de entrada e sininho (Henri, nov/2026)
 - Botões ✉ e 🔔 no fim da barra de recursos (`botoesAvisosHtml`), com selo de não lidas; painel `#painel-topo` no body.
