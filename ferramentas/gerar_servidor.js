@@ -12,6 +12,7 @@ function gerar() {
 }
 module.exports = { gerar, destino: path.join(raiz, 'supabase/functions/_shared/tanka.js') };
 if (require.main === module) {
+  fs.mkdirSync(path.dirname(module.exports.destino), { recursive: true });
   fs.writeFileSync(module.exports.destino, gerar());
   console.log('Gerado:', path.relative(raiz, module.exports.destino));
 }
