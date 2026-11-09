@@ -445,3 +445,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: `efeitoNivel` (texto com os valores), cadeado "Libera no level N" (`.trancada`), etiqueta do modo (`.hab-nivel`);
   mensagens novas na caçada (☠️ veneno, 🧪 bolso), masmorra e Arena (queima, calado, Milagre, devolve, cego, executa).
 - Ícones: faltam os 16 (`assets/habilidades/<id>.webp`); prompt de folha 4x4 no scratchpad (eldrin-icones-habilidades-20-30.txt).
+
+## Caixa de entrada e sininho (Henri, nov/2026)
+- Botões ✉ e 🔔 no fim da barra de recursos (`botoesAvisosHtml`), com selo de não lidas; painel `#painel-topo` no body.
+- Caixa: `p.caixa` (até 80, mais novo primeiro, `{t, o, x}`) e `p.caixaVista`. Entra pelos avisos de `resgatarRecompensas`
+  (`avisarCaixa`, origem da recompensa → boss/leilao/mercado/oficina/cla/masmorra) e de `aplicarCreditos` (menos os
+  que o próprio jogador fez: lance, compra, fundação/doação do clã, pedido na oficina). "Mochila cheia" não entra.
+- Sininho: todo `avisar` (`guardarNotificacao`), até 60, no localStorage por personagem (`eldrin.notificacoes.<id>`).

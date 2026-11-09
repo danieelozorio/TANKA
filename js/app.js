@@ -26,6 +26,7 @@
   // Avisos: selos que entram pelo canto e somem sozinhos (não empurram a tela).
   // tipo: '' (aviso), 'vitoria', 'nivel', 'item' ou 'ruim'.
   function avisar(msg, tipo) {
+    guardarNotificacao(msg, tipo);
     aviso.hidden = false;
     var selo = document.createElement('div');
     selo.className = 'selo-aviso' + (tipo ? ' selo-' + tipo : '');
@@ -570,8 +571,137 @@
         '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</span>',
         '<button class="rec-usar" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + ' title="Beber uma poção">Usar</button>')
       + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)
+      + botoesAvisosHtml()
       + '</div></div>';
   }
+
+  // ---------------- Caixa de entrada (carta) e sininho (Henri, nov/2026) ----------------
+  // Caixa: o que o personagem RECEBEU (Chefe Mundial, Arena, leilão, mercado, clã, masmorra, oficina), salvo no
+  // personagem (p.caixa, mais novo primeiro, até 80; p.caixaVista = quando abriu). Sininho: todos os balões de aviso
+  // (até 60, guardados neste navegador).
+  var ICONE_CARTA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.2 7 12 11.5 18.8 7z"/></svg>';
+  var ICONE_SINO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a6 6 0 0 1 6 6v3.5l1.8 3.3A1 1 0 0 1 19 16H5a1 1 0 0 1-.9-1.2L6 11.5V8a6 6 0 0 1 6-6zm-2.5 15h5a2.5 2.5 0 0 1-5 0z"/></svg>';
+  var ORIGENS_CAIXA = { boss: ['🐉', 'Chefe Mundial'], arena: ['⚔', 'Arena'], leilao: ['🔨', 'Leilão'], mercado: ['💰', 'Mercado'],
+    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'] };
+  function origemCaixa(o) {
+    return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra';
+  }
+  function origemCredito(m) {
+    m = m || '';
+    return /Arena/.test(m) ? 'arena' : /leilão/.test(m) ? 'leilao' : /^Mercado/.test(m) ? 'mercado' : /clã/.test(m) ? 'cla' : /^Oficina/.test(m) ? 'oficina' : 'arena';
+  }
+  function caixaRegistrar(origem, texto) {
+    var p = estado.personagem;
+    if (!p || /^Mochila cheia/.test(texto)) return;
+    p.caixa = p.caixa || [];
+    p.caixa.unshift({ t: C.agora(), o: origem, x: texto });
+    if (p.caixa.length > 80) p.caixa.length = 80;
+    salvar();
+    atualizarSelos();
+  }
+  function caixaNaoLidas(p) {
+    return (p.caixa || []).filter(function (c) { return c.t > (p.caixaVista || 0); }).length;
+  }
+  var notificacoes = null;
+  function chaveNotif() { return 'eldrin.notificacoes.' + ((estado.personagem && estado.personagem.id) || 'geral'); }
+  function lerNotificacoes() {
+    if (notificacoes && notificacoes.chave === chaveNotif()) return notificacoes;
+    var dados = null;
+    try { dados = JSON.parse(localStorage.getItem(chaveNotif()) || 'null'); } catch (e) { dados = null; }
+    notificacoes = { chave: chaveNotif(), lista: (dados && dados.lista) || [], vista: (dados && dados.vista) || 0 };
+    return notificacoes;
+  }
+  function gravarNotificacoes() {
+    try { localStorage.setItem(notificacoes.chave, JSON.stringify({ lista: notificacoes.lista, vista: notificacoes.vista })); } catch (e) { /* sem armazenamento */ }
+  }
+  function guardarNotificacao(msg, tipo) {
+    if (typeof estado === 'undefined' || !estado.personagem) return;
+    var n = lerNotificacoes();
+    n.lista.unshift({ t: Date.now(), x: String(msg), k: tipo || '' });
+    if (n.lista.length > 60) n.lista.length = 60;
+    gravarNotificacoes();
+    atualizarSelos();
+  }
+  function seloNumero(n) { return n ? '<span class="selo-num">' + (n > 99 ? '99+' : n) + '</span>' : ''; }
+  function botoesAvisosHtml() {
+    var p = estado.personagem, n = lerNotificacoes();
+    var nn = n.lista.filter(function (x) { return x.t > n.vista; }).length;
+    return '<div class="avisos-topo">'
+      + '<button class="btn-aviso" id="btn-caixa" data-acao="painel-topo" data-valor="caixa" title="Caixa de entrada: o que você recebeu" aria-label="Caixa de entrada">'
+      + ICONE_CARTA + seloNumero(caixaNaoLidas(p)) + '</button>'
+      + '<button class="btn-aviso" id="btn-sino" data-acao="painel-topo" data-valor="sino" title="Notificações" aria-label="Notificações">'
+      + ICONE_SINO + seloNumero(nn) + '</button></div>';
+  }
+  function atualizarSelos() {
+    var p = estado.personagem;
+    if (!p) return;
+    var bc = document.getElementById('btn-caixa'), bs = document.getElementById('btn-sino'), n = lerNotificacoes();
+    var trocar = function (b, qtd) {
+      if (!b) return;
+      var velho = b.querySelector('.selo-num');
+      if (velho) velho.remove();
+      if (qtd) b.insertAdjacentHTML('beforeend', seloNumero(qtd));
+    };
+    trocar(bc, estado.painelTopo === 'caixa' ? 0 : caixaNaoLidas(p));
+    trocar(bs, estado.painelTopo === 'sino' ? 0 : n.lista.filter(function (x) { return x.t > n.vista; }).length);
+    if (estado.painelTopo) desenharPainelTopo();
+  }
+  function quandoTexto(t) {
+    var d = new Date(t), hoje = new Date();
+    var hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    return d.toDateString() === hoje.toDateString() ? hora : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + hora;
+  }
+  function desenharPainelTopo() {
+    var el = document.getElementById('painel-topo'), p = estado.personagem, tipo = estado.painelTopo;
+    if (!tipo || !p) { if (el) el.remove(); return; }
+    if (!el) { el = document.createElement('div'); el.id = 'painel-topo'; document.body.appendChild(el); }
+    var h;
+    if (tipo === 'caixa') {
+      var lista = p.caixa || [];
+      h = '<div class="painel-topo-cab"><strong>✉ Caixa de entrada</strong><button class="btn-x" data-acao="painel-topo" data-valor="" aria-label="Fechar">✕</button></div>'
+        + '<p class="suave pequeno">O que seu herói recebeu: Chefe Mundial, Arena, leilão, mercado, clã, masmorra e oficina.</p>'
+        + (lista.length ? '<ul class="painel-lista">' + lista.map(function (c) {
+          var o = ORIGENS_CAIXA[c.o] || ['•', ''];
+          return '<li' + (c.t > (estado.caixaVistaAntes || 0) ? ' class="nova"' : '') + '><span class="pl-ico">' + o[0] + '</span><div><small>' + o[1] + ' · ' + quandoTexto(c.t) + '</small><div>' + esc(c.x) + '</div></div></li>';
+        }).join('') + '</ul>' : '<p class="suave">Nada recebido ainda.</p>');
+    } else {
+      var n = lerNotificacoes();
+      h = '<div class="painel-topo-cab"><strong>🔔 Notificações</strong><span>'
+        + (n.lista.length ? '<button class="btn secundario btn-pequeno" data-acao="notificacoes-limpar">Limpar</button>' : '')
+        + '<button class="btn-x" data-acao="painel-topo" data-valor="" aria-label="Fechar">✕</button></span></div>'
+        + (n.lista.length ? '<ul class="painel-lista">' + n.lista.map(function (x) {
+          return '<li' + (x.t > (estado.sinoVistoAntes || 0) ? ' class="nova"' : '') + '><span class="pl-ico">•</span><div><small>' + quandoTexto(x.t) + '</small><div>' + esc(x.x) + '</div></div></li>';
+        }).join('') + '</ul>' : '<p class="suave">Nenhuma notificação.</p>');
+    }
+    el.innerHTML = '<div class="painel-topo-caixa" role="dialog">' + h + '</div>';
+  }
+  function abrirPainelTopo(tipo) {
+    var p = estado.personagem;
+    estado.painelTopo = estado.painelTopo === tipo || !tipo ? null : tipo;
+    if (estado.painelTopo === 'caixa') {
+      estado.caixaVistaAntes = p.caixaVista || 0;
+      p.caixaVista = C.agora();
+      salvar();
+    } else if (estado.painelTopo === 'sino') {
+      var n = lerNotificacoes();
+      estado.sinoVistoAntes = n.vista;
+      n.vista = Date.now();
+      gravarNotificacoes();
+    }
+    desenharPainelTopo();
+    atualizarSelos();
+  }
+  document.addEventListener('click', function (e) {
+    var t = e.target;
+    var botao = t.closest && t.closest('[data-acao="painel-topo"], [data-acao="notificacoes-limpar"]');
+    if (botao && botao.closest('#painel-topo')) {
+      e.preventDefault();
+      if (botao.dataset.acao === 'notificacoes-limpar') { var n = lerNotificacoes(); n.lista = []; gravarNotificacoes(); desenharPainelTopo(); }
+      else abrirPainelTopo(null);
+      return;
+    }
+    if (estado.painelTopo && !(t.closest && (t.closest('#painel-topo') || t.closest('.avisos-topo')))) abrirPainelTopo(null);
+  });
 
   // Redesenha a ficha e a barra de recursos sem mexer no resto da tela.
   function atualizarFicha() {
@@ -4005,6 +4135,7 @@
         mostrarPainel();
         break;
       case 'fugir': encerrar(); break;
+      case 'painel-topo': abrirPainelTopo(el.dataset.valor); break;
       case 'boss-atacar': atacarMundial(); break;
       case 'boss-invocar':
         C.boss.adminInvocar(estado.personagem.id, Number(el.dataset.valor) || null, 60)
@@ -4187,6 +4318,8 @@
 
   // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão para os Consumíveis.
   async function resgatarRecompensas(lista) {
+    // os prêmios recebidos também ficam na caixa de entrada (origem da recompensa)
+    var avisarCaixa = function (msg, tipo) { avisar(msg, tipo); caixaRegistrar(origemCaixa(rec && rec.origem), msg); };
     var p = estado.personagem, g = estado.gm;
     lista = lista || (g && g.recompensas);
     if (!p || !lista || !lista.length || estado.resgatando) return;
@@ -4202,18 +4335,18 @@
             await C.grupo.resgatar(p.id, rec.id);
             R.mudarPergaminho(p, ganho.raridade, ganho.qtd);
             salvar();
-            avisar('Você venceu o leilão: ' + nomeDrop(ganho) + '! (Mochila › Consumíveis)', 'item');
+            avisarCaixa('Você venceu o leilão: ' + nomeDrop(ganho) + '! (Mochila › Consumíveis)', 'item');
             continue;
           }
           if (R.mochilaCheia(p)) {
-            if (!avisouCheia) avisar('Mochila cheia! Seu item do leilão está guardado: libere espaço para recebê-lo.');
+            if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item do leilão está guardado: libere espaço para recebê-lo.');
             avisouCheia = true;
             continue;
           }
           await C.grupo.resgatar(p.id, rec.id);
           p.inventario.push(ganho);
           salvar();
-          avisar('Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
+          avisarCaixa('Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
           continue;
         }
         // Chefe Mundial: ouro e exp (x ataques) e o título do golpe final.
@@ -4221,9 +4354,9 @@
           var bp = await C.grupo.resgatar(p.id, rec.id);
           var ganhoBoss = R.premioChefeMundial(p, bp);
           salvar();
-          avisar('🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + ganhoBoss.ouro.toLocaleString('pt-BR') + ' de ouro e +'
+          avisarCaixa('🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + ganhoBoss.ouro.toLocaleString('pt-BR') + ' de ouro e +'
             + ganhoBoss.exp.toLocaleString('pt-BR') + ' de exp!', 'vitoria');
-          if (ganhoBoss.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
+          if (ganhoBoss.niveis) avisarCaixa('Level up! Level ' + p.nivel, 'nivel');
           continue;
         }
         if (rec.item && rec.item.tipo === 'titulo') {
@@ -4232,7 +4365,7 @@
           if (p.titulos.indexOf(tit.nome) < 0) p.titulos.push(tit.nome);
           p.titulo = tit.nome;
           salvar();
-          avisar('🐉 Novo título: "' + tit.nome + '"!', 'nivel');
+          avisarCaixa('🐉 Novo título: "' + tit.nome + '"!', 'nivel');
           continue;
         }
         // Pergaminho de encantamento: não ocupa a mochila.
@@ -4242,15 +4375,15 @@
           var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
           R.mudarPergaminho(p, perg.raridade, nPerg);
           salvar();
-          avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
+          avisarCaixa((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
             + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
         // Item forjado na Oficina de um Ferreiro: o jogo monta o item com a semente do servidor.
         if (rec.item && rec.item.tipo === 'forjado') {
-          if (R.mochilaCheia(p)) { if (!avisouCheia) avisar('Mochila cheia! Seu item da Oficina está guardado: libere espaço.'); avisouCheia = true; continue; }
+          if (R.mochilaCheia(p)) { if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item da Oficina está guardado: libere espaço.'); avisouCheia = true; continue; }
           var rfo = await C.grupo.resgatar(p.id, rec.id), ifo = R.itemForjado(rfo.spec);
-          if (ifo) { p.inventario.push(ifo); salvar(); avisar((ifo.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'A Oficina entregou ' + R.nomeItem(ifo) + ' (' + nomeRaridadeItem(ifo) + ')!', 'item'); }
+          if (ifo) { p.inventario.push(ifo); salvar(); avisarCaixa((ifo.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'A Oficina entregou ' + R.nomeItem(ifo) + ' (' + nomeRaridadeItem(ifo) + ')!', 'item'); }
           continue;
         }
         // Craft (material, receita, proteção, cristal) do mercado ou da Oficina: vai para os Consumíveis.
@@ -4259,7 +4392,7 @@
           var ncf = Math.max(1, Math.floor(rcf.qtd || 1));
           R.mudarConsumivel(p, rcf.tipo, rcf.raridade, ncf);
           salvar();
-          avisar(ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
+          avisarCaixa(ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
           continue;
         }
         // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.
@@ -4268,12 +4401,12 @@
           var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
           var subiu = R.ganharExp(p, xp);
           salvar();
-          avisar('Boss do clã derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
+          avisarCaixa('Boss do clã derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
           continue;
         }
         if (rec.item && rec.item.tipo === 'bossItem') {
           if (R.mochilaCheia(p)) {
-            if (!avisouCheia) avisar('Mochila cheia! Seu item do boss do clã está guardado: libere espaço para recebê-lo.');
+            if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item do boss do clã está guardado: libere espaço para recebê-lo.');
             avisouCheia = true;
             continue;
           }
@@ -4281,11 +4414,11 @@
           var ib = R.itemBossAlianca(p, rb.raridade);
           p.inventario.push(ib);
           salvar();
-          avisar('Maior dano no boss do clã! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
+          avisarCaixa('Maior dano no boss do clã! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisar('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+          if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
@@ -4293,9 +4426,9 @@
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
-        avisar((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
+        avisarCaixa((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
-    } catch (e) { avisar(e.message); }
+    } catch (e) { avisarCaixa(e.message); }
     estado.resgatando = false;
     if (g && lista === g.recompensas) g.recompensas = [];
     if (!estado.luta && !estado.batalha && !estado.resultado && !estado.chefeAviso) telaJogo();
@@ -4949,6 +5082,9 @@
         if (c.ouro) partes.push((c.ouro > 0 ? '+' : '−') + Math.abs(c.ouro).toLocaleString('pt-BR') + ' de ouro');
         if (c.reputacao) partes.push('+' + c.reputacao + ' de reputação');
         avisar(c.motivo + ': ' + partes.join(' e ') + '.');
+        if (!/^(Lance no leilão|Compra no mercado|Fundação do clã|Doação ao tesouro|Oficina: serviço pedido)/.test(c.motivo || '')) {
+          caixaRegistrar(origemCredito(c.motivo), c.motivo + ': ' + partes.join(' e ') + '.');
+        }
       }
     } catch (e) { /* tenta de novo na próxima atualização */ }
     estado.aplicandoCreditos = false;
