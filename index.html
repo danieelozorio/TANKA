@@ -16,6 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <script>
+    // Aberto pelo aplicativo do celular (APK ou app instalado): vai direto para o jogo.
+    try {
+      if (document.referrer.indexOf('android-app://') === 0 || matchMedia('(display-mode: standalone)').matches
+        || matchMedia('(display-mode: fullscreen)').matches || navigator.standalone) location.replace('jogar/');
+    } catch (e) {}
+  </script>
   <style>
     :root { --ouro: #e2b45c; --ouro-claro: #f4d9a0; --texto: #e8dcc4; --suave: #a8987a; --fundo: #07080c; --borda: #5a4528; }
     * { box-sizing: border-box; }

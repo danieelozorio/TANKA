@@ -509,3 +509,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (endereço `/jogar/`), com `<base href="../">`: js, css, assets, sw.js e manifest continuam na raiz.
 - `manifest.webmanifest`: `start_url` = `./jogar/` (o app instalado no celular abre direto no jogo).
 - O ?v=N dos scripts agora se sobe em `jogar/index.html`.
+- APK/app instalado: a página inicial (`index.html`) manda direto para `jogar/` quando aberta pelo app (referrer
+  `android-app://` ou display-mode standalone/fullscreen). `.nojekyll` na raiz deixa o GitHub Pages publicar a pasta
+  `.well-known/` (para o `assetlinks.json` do APK novo, gerado no PWABuilder com https://eldrinonline.com.br/jogar/).
