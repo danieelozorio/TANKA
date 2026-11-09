@@ -510,7 +510,7 @@ Tanka.dados = {
   // "turnos" = vezes do herói. recarga 3 = usada na vez 2, volta na vez 5.
   TALENTOS: {
     nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
-    // Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
+    // Passivas são fixas (valor de 1 ponto, sem receber pontos). Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
     pontosDepois: { nivel: 20, porNivel: 2 },
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
@@ -539,7 +539,7 @@ Tanka.dados = {
         { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre.' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
-          descricao: 'Recupera um pouco da vida a cada turno (0,6% a 1,2% da vida máxima). Mais forte na caçada.' },
+          descricao: 'Recupera 0,66% da vida máxima a cada turno. Mais forte na caçada.' },
         { id: 'defesa-suprema', nome: 'Defesa Suprema', tipo: 'reforco', nivel: 30, foco: 'arena', turnos: 2, recarga: 5,
           defesaPct: [30, 2], reflete: 15, descricao: '+30% a +50% de defesa por 2 turnos e devolve 15% do dano recebido. Mais forte na Arena.' },
       ] },
@@ -549,8 +549,8 @@ Tanka.dados = {
         { id: 'terremoto', nome: 'Terremoto', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
         { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
-        { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, foco: 'cacada', rouboVida: [20, 1],
-          descricao: 'Parte do dano que você causa vira vida (20% a 30%). Mais forte na caçada.' },
+        { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, foco: 'cacada', rouboVida: [4, 1],
+          descricao: '5% do dano que você causa vira vida. Mais forte na caçada.' },
         { id: 'golpe-apocaliptico', nome: 'Golpe Apocalíptico', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 5],
           vidaFaltando: 0.5, descricao: 'Golpe de 200% a 250%, +0,5% de dano para cada 1% de vida que falta. Mais forte na Arena.' },
       ] },
@@ -602,9 +602,9 @@ Tanka.dados = {
         { id: 'bencao', nome: 'Bênção', tipo: 'reforco', grupo: true, turnos: 2, vidaPct: 20, precisao: 5, recarga: 4, descricao: 'Mais vida máxima e precisão para você e o grupo.' },
         { id: 'fe-profunda', nome: 'Fé Profunda', tipo: 'passiva', atributos: { int: 5 }, danoCriticoMagico: 10, descricao: '+5 de Inteligência e mais dano crítico mágico, sempre.' },
         { id: 'regeneracao', nome: 'Regeneração', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [1, 0.1],
-          descricao: 'Recupera 1% a 2% da vida máxima a cada turno. Mais forte na caçada.' },
+          descricao: 'Recupera 1,1% da vida máxima a cada turno. Mais forte na caçada.' },
         { id: 'milagre', nome: 'Milagre', tipo: 'passiva', nivel: 30, foco: 'arena', milagrePct: [20, 1],
-          descricao: 'Uma vez por luta, se cair, volta com 20% a 30% da vida. Mais forte na Arena.' },
+          descricao: 'Uma vez por luta, se cair, volta com 21% da vida. Mais forte na Arena.' },
       ] },
     ferreiro: { de: 'artesao', nome: 'Ferreiro', nomeF: 'Ferreira', descricao: 'Mão pesada e couro grosso.',
       habilidades: [
@@ -613,7 +613,7 @@ Tanka.dados = {
         { id: 'pancada-tonta', nome: 'Pancada Tonta', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica tonto.' },
         { id: 'couro-grosso', nome: 'Couro Grosso', tipo: 'passiva', atributos: { sor: 5 }, defesaPct: 20, descricao: '+5 de Sorte e mais defesa, sempre.' },
         { id: 'tempera-de-fogo', nome: 'Têmpera de Fogo', tipo: 'passiva', nivel: 20, foco: 'cacada', reducaoDano: [10, 1], danoExtraPct: [20, 1.5],
-          descricao: 'Recebe 10% a 20% menos dano e causa 20% a 35% mais dano. Mais forte na caçada.' },
+          descricao: 'Recebe 11% menos dano e causa 21,5% mais dano. Mais forte na caçada.' },
         { id: 'martelo-das-correntes', nome: 'Martelo das Correntes', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [220, 0],
           atordoa: 1, quebraDefesaPct: 30,
           descricao: 'Golpe de 220% que prende o oponente por 1 turno e tira 30% da defesa dele até o fim da luta. Mais forte na Arena.' },
@@ -625,7 +625,7 @@ Tanka.dados = {
         { id: 'rede', nome: 'Rede', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Joga a rede em um inimigo e ele fica preso.' },
         { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada.' },
         { id: 'bolso-de-pocoes', nome: 'Bolso de Poções', tipo: 'passiva', nivel: 20, foco: 'cacada', curaEmergencia: [35, 2], limiar: 40,
-          descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 35% a 55% da vida. Mais forte na caçada.' },
+          descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 37% da vida. Mais forte na caçada.' },
         { id: 'po-nos-olhos', nome: 'Pó nos Olhos', tipo: 'cegar', nivel: 30, foco: 'arena', recarga: 6, turnos: 2, erroPct: 30,
           descricao: 'Por 2 turnos, o oponente tem 30% de chance de errar cada ataque. Mais forte na Arena.' },
       ] },

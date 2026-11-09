@@ -426,6 +426,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `arena_comecar_tipo` recusa se `dados.minas.fim` > agora).
 
 ## Habilidades do level 20 e 30 (Daniel, Henri e Rafael, nov/2026; PDF "Novas Habilidades" v4)
+- **Passivas fixas** (Daniel): TODAS as passivas (as de sempre e as do 20/30) ficam sempre ligadas com o valor de 1 ponto
+  (`PTS_PASSIVA` em regras.js; `arena_passiva`/`arena_extras`/`arena_milagre` com n = 1) e não recebem pontos
+  (`mudarPontoHabilidade` recusa). `talentos()` apaga os pontos que estavam nelas (voltam livres). Sede de Sangue: 5%
+  (`rouboVida: [4, 1]`). A tela mostra a passiva sem os botões. Pontos de arma numa passiva não fazem nada.
 - **Valem em todo lugar** (Daniel): a do 20 tem `foco: 'cacada'` (mais forte caçando) e a do 30 `foco: 'arena'`, mas as
   duas entram em todas as ordens (`ordemNiveis2`). Cliente: `extrasNivel` (antes extrasPve) em `L.ex` também com
   `milagrePct`; golpes do 30 contra monstros (`opcoesNivel`, `depoisDoGolpeNivel`, `tickQueima`, `alvo.defQuebra`,

@@ -401,6 +401,10 @@ Tanka.regras = (function () {
     if (!t.pontos) t.pontos = {};
     if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [], defesa: [] };
     if (!t.ordem.defesa) t.ordem.defesa = (t.ordem.arena || []).slice();   // personagens de antes: copia a da Arena
+    // Passivas fixas (nov/2026): os pontos que estavam nelas voltam a ficar livres.
+    if (t.classe2 && D.SEGUNDAS_CLASSES[t.classe2]) {
+      D.SEGUNDAS_CLASSES[t.classe2].habilidades.forEach(function (h) { if (h.tipo === 'passiva' && t.pontos[h.id]) delete t.pontos[h.id]; });
+    }
     // Habilidades do level 20/30 (nov/2026): entram uma vez no começo da ordem de todos os modos (valem em todo lugar).
     if (t.classe2 && !t.ordemNiveis2 && D.SEGUNDAS_CLASSES[t.classe2]) {
       D.SEGUNDAS_CLASSES[t.classe2].habilidades.forEach(function (h) {
@@ -430,8 +434,7 @@ Tanka.regras = (function () {
     if (!c) return x;
     c.habilidades.forEach(function (h) {
       if (h.tipo !== 'passiva' || !h.nivel || !habLiberada(p, h)) return;
-      var n = pontosEm(p, h.id);
-      if (n <= 0) return;
+      var n = PTS_PASSIVA;   // passivas fixas
       ['regenPct', 'rouboVida', 'reducaoDano', 'danoExtraPct', 'curaEmergencia', 'milagrePct'].forEach(function (k) { if (h[k]) x[k] = (x[k] || 0) + valorNivel(h[k], n); });
       if (h.limiar) x.limiar = h.limiar;
     });
@@ -445,12 +448,13 @@ Tanka.regras = (function () {
   // Pontos numa habilidade: os distribuídos + os da arma equipada (que passam do limite de 10).
   function pontosEm(p, id) { return ((p.talentos && p.talentos.pontos[id]) || 0) + (pontosDaArma(p)[id] || 0); }
   function pontosDistribuidos(p, id) { return (p.talentos && p.talentos.pontos[id]) || 0; }
-  // A passiva da segunda classe (precisa de 1 ponto).
+  // A passiva da segunda classe: fixa (Daniel, nov/2026), sempre ligada com o valor de 1 ponto; não recebe pontos.
+  var PTS_PASSIVA = 1;
   function passiva(p) {
     var c = segundaClasse(p);
     if (!c) return null;
-    var def = c.habilidades.filter(function (h) { return h.tipo === 'passiva' && !h.nivel; })[0], pts = pontosEm(p, def.id);
-    return pts > 0 ? { def: def, pts: pts } : null;
+    var def = c.habilidades.filter(function (h) { return h.tipo === 'passiva' && !h.nivel; })[0];
+    return def ? { def: def, pts: PTS_PASSIVA } : null;
   }
   // Valor de um campo em % de um reforço/cura/passiva com N pontos.
   function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
@@ -485,6 +489,7 @@ Tanka.regras = (function () {
     var c = segundaClasse(p), t = talentos(p);
     if (!c || !c.habilidades.some(function (h) { return h.id === id; })) return 'Escolha a segunda classe primeiro.';
     var hd = c.habilidades.filter(function (h) { return h.id === id; })[0];
+    if (delta > 0 && hd.tipo === 'passiva') return 'Passiva: sempre ligada, não recebe pontos.';
     if (delta > 0 && !habLiberada(p, hd)) return 'Libera no level ' + hd.nivel + '.';
     // (o limite de 10 vale só para os pontos distribuídos; a arma soma por fora)
     var atual = t.pontos[id] || 0, novo = atual + delta;

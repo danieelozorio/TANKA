@@ -989,9 +989,9 @@ select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elemen
 select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 29,
   '{"classe2":"cacador","pontos":{"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["tiro-silenciador","saraivada"]}}'))) x),
   'saraivada', 'arena: o level 30 não vale antes do 30');
-select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro","pontos":{"milagre":10}}')), 30::numeric, 'arena: Milagre com 10 pontos = 30%');
+select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro"}')), 21::numeric, 'arena: Milagre fixo = 21%');
 select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 20, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":10}}')),
-  '{"reducaoDano":20,"danoExtraPct":35}'::jsonb, 'arena: Têmpera de Fogo vale na Arena');
+  '{"reducaoDano":11,"danoExtraPct":21.5}'::jsonb, 'arena: Têmpera de Fogo vale na Arena (fixa)');
 select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 19, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":1}}')),
   '{}'::jsonb, 'arena: passiva do level 20 só a partir do 20');
 do $$

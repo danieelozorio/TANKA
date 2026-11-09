@@ -1098,12 +1098,13 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   R.admin.subirNivel(p, 9);
   assert.strictEqual(R.pontosHabilidadeTotal(p), 4);
   assert.notStrictEqual(R.escolherSegundaClasse(p, 'assassino'), true, 'só as da própria classe');
+  const antes = R.status(p).hpMax;
   assert.strictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
   assert.strictEqual(R.kitHabilidades(p, 'cacada').length, 0, 'sem ponto, nenhuma ativa');
-  const antes = R.status(p).hpMax;
-  assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), true);
-  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva 10% + 1% por ponto');
-  for (let i = 0; i < 3; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
+  // passiva fixa (nov/2026): já liga com o valor de 1 ponto e não recebe pontos
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva fixa: 10% + 1%');
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), 'Passiva: sempre ligada, não recebe pontos.');
+  for (let i = 0; i < 4; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
   assert.strictEqual(R.pontosHabilidadeLivres(p), 0);
   assert.notStrictEqual(R.mudarPontoHabilidade(p, 'golpe-justo', 1), true, 'sem pontos');
   R.admin.subirNivel(p, 10);
@@ -1335,8 +1336,9 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   const s0 = R.status(p);
   R.equipar(p, pecas[0].id); const s1 = R.status(p);
   R.equipar(p, pecas[1].id); const s2 = R.status(p);
-  const semSet = Math.round((pecas[0].bonus.defesa || 0) * D.DEFESA.fator) + Math.round((pecas[1].bonus.defesa || 0) * D.DEFESA.fator);
-  assert.strictEqual(s2.defesa, s0.defesa + semSet + 23, '2 peças: +23 de defesa');
+  // compara com as mesmas peças sem o conjunto (a passiva fixa do Paladino muda a defesa das peças, não o bônus do conjunto)
+  pecas.forEach((it) => { it.conjunto = undefined; }); const s2sem = R.status(p); pecas.forEach((it) => { it.conjunto = 'paladino-2'; });
+  assert.ok(s2.defesa - s2sem.defesa === 23, '2 peças: +23 de defesa (' + (s2.defesa - s2sem.defesa) + ')');
   R.equipar(p, pecas[2].id); const s3 = R.status(p);
   assert.strictEqual(s3.dano[0] - s2.dano[0] - Math.floor((R.atributosTotais(p).for) / 3) + Math.floor((R.atributosTotais(p).for - (pecas[2].bonus.for || 0)) / 3), 5, '3 peças: +5 de dano');
   R.equipar(p, pecas[3].id);
@@ -1347,7 +1349,7 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   // Destruidor: 2 peças = +5 de Força
   pecas.forEach((it) => { it.conjunto = 'destruidor-2'; });
   const forSem = p.atributos.for + R.bonusEquipamentos(p).for;
-  assert.strictEqual(R.atributosTotais(p).for, forSem + 5);
+  assert.strictEqual(R.atributosTotais(p).for, forSem + 5 + 5, 'conjunto +5 e a passiva fixa Força Bruta +5');
 });
 
 teste('conjunto: 10% das armaduras da caçada, na raridade sorteada; fora da venda em lote', () => {
@@ -1956,17 +1958,18 @@ teste('habilidades do level 20/30: pontos +2 do 21, liberam no level e valem em 
 teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, veneno e Bolso de Poções', () => {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
-    R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);
+    R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);   // (passivas: fixas, os pontos não entram)
     for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, hab, 1);
     p.hpAtual = R.status(p).hpMax; return p;
   };
   const x = (c, c2, h) => R.extrasNivel(mk(c, c2, h));
-  assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 1.2 });
-  assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 30 });
-  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 20, danoExtraPct: 35 });
-  assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 55, limiar: 40 });
+  // passivas fixas: valor de 1 ponto; Sede de Sangue 5%
+  assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 0.66 });
+  assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 5 });
+  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 11, danoExtraPct: 21.5 });
+  assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 37, limiar: 40 });
   // vale em todo lugar (o lutador da Arena também leva)
-  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').ex }, { regenPct: 2 });
+  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').ex }, { regenPct: 1.1 });
   // luta de verdade: o veneno do Arqueiro tira vida a cada vez e o Bolso cura uma vez
   let s = 3; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
   const a = mk('arqueiro', 'cacador', 'flecha-envenenada');
@@ -1999,7 +2002,7 @@ teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó
   const cu = mk('mago', 'curandeiro', 'milagre');
   const L = R.novoLutador(cu, 'cacada'), h = { hp: 0, hpMax: 1000 };
   assert.strictEqual(R.depoisDeReceber(L, h), 'milagre');
-  assert.strictEqual(h.hp, 300);
+  assert.strictEqual(h.hp, 210, 'Milagre fixo: 21%');
   h.hp = 0; assert.strictEqual(R.depoisDeReceber(L, h), false, 'só uma vez');
   // Martelo das Correntes e Maldição: golpe com quebra de defesa / queimadura no monstro
   let s = 5; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };

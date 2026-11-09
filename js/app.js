@@ -1435,6 +1435,8 @@
   function cartaHabilidade(def, pts, pend, editavel, arma) {
     var dist = pts + (pend || 0), total = dist + (arma || 0), max = D.TALENTOS.maxPorHabilidade;
     var trancada = def.nivel && !R.habLiberada(estado.personagem, def);
+    // passivas fixas (nov/2026): sempre ligadas com o valor de 1 ponto, sem botões
+    if (def.tipo === 'passiva') { total = trancada ? 0 : 1; editavel = false; }
     return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + (trancada ? ' trancada' : '') + '">'
       + '<div class="hab-topo"><span class="hab-titulo">' + iconeHab(def) + '<strong>' + def.nome + '</strong></span><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
       + (def.nivel ? '<p class="hab-nivel">' + (trancada ? '🔒 Libera no level ' + def.nivel : 'Level ' + def.nivel) + ' · ' + (def.foco === 'cacada' ? 'mais forte na caçada' : 'mais forte na Arena') + '</p>' : '')
@@ -1479,7 +1481,7 @@
       h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
         + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
-        + 'Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>'
+        + 'As passivas ficam sempre ligadas e não recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>'
         + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
