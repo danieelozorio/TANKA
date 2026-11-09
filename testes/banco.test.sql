@@ -1094,4 +1094,10 @@ begin
   update public.personagens set dados = dados - 'minas' where id = 'pa';
   raise notice 'ok   mineração: quem está minerando não luta na Arena';
 end $$;
+-- Caçada no servidor: bônus do clã vem do banco
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.cacada_bonus('pa') ->> 'exp', '0', 'cacada_bonus: sem clã, sem bônus');
+select pg_temp.falha($$select public.cacada_bonus('pb')$$, 'Personagem inválido');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

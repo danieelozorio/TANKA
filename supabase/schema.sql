@@ -1004,6 +1004,25 @@ revoke execute on function public.boss_estado(text), public.boss_atacar(text, in
 grant execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
   public.admin_boss_invocar(text, bigint, int) to authenticated;
 
+-- ---------- Caçada no servidor (plano anti-trapaça, etapa 1) ----------
+-- Bônus do clã para a Edge Function `cacada`: as skills (para R.bonusCla) e o bônus de 7 dias de exp/ouro, direto do
+-- banco (o navegador não escolhe o próprio bônus). Sem clã: { cla: null, exp: 0, ouro: 0 }.
+create or replace function public.cacada_bonus(meu text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare a public.aliancas; pct int;
+begin
+  perform public.conferir_dono(meu);
+  select x.* into a from public.alianca_membros m join public.aliancas x on x.id = m.alianca_id where m.personagem_id = meu;
+  if a.id is null then return jsonb_build_object('cla', null, 'exp', 0, 'ouro', 0); end if;
+  pct := public.alianca_bonus_pct(a.nivel);
+  return jsonb_build_object(
+    'cla', jsonb_build_object('id', a.id, 'skills', coalesce((select jsonb_object_agg(k.skill, k.nivel) from public.alianca_skills k where k.alianca_id = a.id), '{}'::jsonb)),
+    'exp', case when a.bonus_exp_ate > now() then pct else 0 end,
+    'ouro', case when a.bonus_ouro_ate > now() then pct else 0 end);
+end $$;
+revoke execute on function public.cacada_bonus(text) from public, anon;
+grant execute on function public.cacada_bonus(text) to authenticated;
+
 -- Pega uma recompensa (o jogo coloca na mochila e salva).
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb
 language plpgsql security definer set search_path = public as $$

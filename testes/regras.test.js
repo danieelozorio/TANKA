@@ -2023,3 +2023,41 @@ teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó
   R.aoReceber(L3, 100, m2, () => 0.5);
   assert.strictEqual(m2.hp, 85);
 });
+
+// ---- Caçada decidida pelo servidor (anti-trapaça, etapa 1) ----
+vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', 'servidor-cacada.js'), 'utf8'), ctx);
+const SC = vm.runInContext('Tanka.servidorCacada', ctx);
+teste('servidor da caçada: ritmo, monstros válidos, luta inteira e próximo encontro', () => {
+  const p = R.criarPersonagem('S', 'masculino', 'humano', 'cavaleiro');
+  let t = 1.8e12;
+  assert.ok(SC.lutar(p, t, rng).erro, 'sem encontro não luta');
+  assert.ok(SC.encontro(p, ['chefe-inexistente', 'lobo-gigante-xyz'], t, rng).erro, 'alvos inválidos');
+  const e = SC.encontro(p, ['lobo'], t, rng);
+  assert.strictEqual(e.encontro.normal, 'lobo');
+  assert.ok(SC.lutar(p, t + 10, rng).erro, 'antes do monstro aparecer');
+  t = e.encontro.prontoEm;
+  const ouro0 = p.ouro;
+  const s = SC.lutar(p, t, rng, { exp: 0, ouro: 0 }, { alvos: ['lobo'] });
+  assert.ok(s.eventos.length > 0 && s.res.resultado, 'lutou');
+  if (s.res.resultado === 'vitoria') { assert.ok(p.ouro >= ouro0 && p.abates.lobo === 1); assert.ok(s.proximo && p.encontro); }
+  assert.ok(p.cacadaLivreEm > t, 'ritmo guardado');
+  assert.ok(SC.lutar(p, t + 1, rng).erro, 'próxima luta só depois do ritmo');
+  delete p.encontro;
+  assert.ok(SC.encontro(p, ['lobo'], t + 1, rng).erro, 'nova busca só depois do ritmo');
+});
+teste('servidor da caçada: mineração e vida baixa bloqueiam; fugir do chefe', () => {
+  const p = R.criarPersonagem('S', 'masculino', 'humano', 'cavaleiro');
+  const t = 1.8e12;
+  p.minas = { fim: t + 60000 };
+  assert.ok(/minerando/.test(SC.encontro(p, ['lobo'], t, rng).erro));
+  delete p.minas;
+  p.hpAtual = 1;
+  assert.ok(/Vida baixa/.test(SC.encontro(p, ['lobo'], t, rng).erro));
+  p.hpAtual = R.status(p).hpMax;
+  p.encontro = { monstro: 'x', normal: 'lobo', chefe: true, em: t, prontoEm: t };
+  const f = SC.fugir(p, t, true);
+  assert.strictEqual(f.encontro.monstro, 'lobo');
+  assert.strictEqual(p.encontro.chefe, false);
+  SC.fugir(p, t);
+  assert.ok(!p.encontro);
+});
