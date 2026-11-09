@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "br.com.eldrinonline.jogo",
+    "sha256_cert_fingerprints": ["32:33:81:91:38:93:18:B7:38:A5:5D:1B:61:6C:3C:CE:DF:93:E8:64:4D:4D:9F:D4:C5:4C:91:CD:A3:75:AD:3E"]
+  }
+}]
