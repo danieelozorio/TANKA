@@ -80,6 +80,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `estado.dropFoco`, `fichaItemHtml(item, true)` sem botões; os objetos ficam em `dropsCacada`). Seta verde quando é
   melhor que o equipado (`dropMelhor`: `R.itemMelhor`, pondo o item na mochila de mentira se ele já saiu dela).
   Pergaminho continua com a fichinha de texto.
+- Zealot no celular (≤700px): barra de ícones embaixo igual à Clássica (`navBaixoHtml`, `#abas-baixo`, último filho do
+  `#app` em coluna); o menu de cima fica só com Trocar personagem/Som/Sair. Sub-abas da Zealot no celular rolam de lado
+  (`justify-content: flex-start`: com `center` a parte da esquerda ficava inalcançável) e a escolhida é rolada até ficar
+  à vista no `telaJogo`. Bug corrigido: `width: max-content` nas sub-abas empurrava o botão Menu para fora da tela.
 - "JWT expired" (nov/2026): `contas.js` renova o passe sozinho. `pedir` tenta de novo uma vez depois de um 401/JWT
   (`renovarSessao`, uma renovação só para vários pedidos ao mesmo tempo) e `sessaoValida` usa o relógio do servidor
   (`agora()`) com 5 min de folga, porque o relógio do celular pode estar errado.

@@ -1573,7 +1573,7 @@ html { overscroll-behavior-x: none; }
 /* Celular: as sub-abas (Personagem, Encantar, Oficina…) não podem passar da largura da tela. Se passar, o navegador
    "alarga" a página inteira: ela fica dançando de lado e o toque cai no lugar errado. Aqui elas rolam de lado. */
 @media (max-width: 720px) {
-  .sub-abas { display: flex; max-width: 100%; width: max-content; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sub-abas { display: flex; max-width: 100%; width: fit-content; min-width: 0; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
   .sub-abas::-webkit-scrollbar { display: none; }
   .sub-abas button { flex: 0 0 auto; white-space: nowrap; padding-inline: .8em; }
   /* Caçada: a caixa já nasce do tamanho do monstro achado, para as opções abaixo não pularem a cada fase. */

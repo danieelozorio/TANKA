@@ -412,3 +412,14 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
 .menu-jogo > summary:hover { filter: brightness(1.15); }
 .menu-jogo[open] > summary { color: #ffe0a1; background: linear-gradient(#5a2c16, #2a140b); }
 @media (max-width: 380px) { .menu-jogo > summary { padding: 0 .7rem 0 .5rem; } .menu-rotulo { font-size: .9rem; } }
+
+/* Celular: barra de ícones embaixo (igual à Clássica); o menu de cima fica só com Trocar personagem, Som e Sair. */
+.abas-baixo { display: none; }
+@media (max-width: 700px) {
+  #app > .abas-baixo { display: grid; position: static; flex-shrink: 0; order: 10; border-radius: 0; border-inline: 0; border-bottom: 0; }
+  #app > .abas-baixo button { font-size: .72rem; }
+  #app:has(> .conteudo > .jogo) > .topo { grid-template-columns: minmax(0, 1fr) auto; }
+  #app > .topo > .sub-abas { flex-wrap: nowrap; justify-content: flex-start; margin-inline: auto; }
+  .menu-jogo .abas-jogo { display: none; }
+  .menu-jogo-acoes { padding-top: .15rem; }
+}

@@ -891,6 +891,10 @@
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
   function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
   function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  // Zealot no celular: a mesma barra de ícones da Clássica, embaixo da tela (o menu de cima fica só com Trocar/Som/Sair).
+  function navBaixoHtml() {
+    return navHtml().replace('id="abas-jogo"', 'id="abas-baixo"').replace('class="abas-jogo"', 'class="abas-jogo abas-baixo"');
+  }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
@@ -911,10 +915,11 @@
   function atualizarNav() {
     var nav = document.getElementById('abas-jogo');
     if (!nav) return;
-    var sub = document.getElementById('sub-abas');
+    var sub = document.getElementById('sub-abas'), baixo = document.getElementById('abas-baixo');
     var tmp = document.createElement('div');
-    tmp.innerHTML = navHtml() + subAbasHtml();
+    tmp.innerHTML = navHtml() + subAbasHtml() + (baixo ? navBaixoHtml() : '');
     nav.replaceWith(tmp.querySelector('#abas-jogo'));
+    if (baixo) baixo.replaceWith(tmp.querySelector('#abas-baixo'));
     if (sub && tmp.querySelector('#sub-abas')) sub.replaceWith(tmp.querySelector('#sub-abas'));
   }
 
@@ -3026,6 +3031,7 @@
       + (personagemCompacto ? ' data-personagem-vista="' + vista + '"' : zealot && estado.cacada ? ' data-cacada-compacta' : '')
       + '>' + vistas + fichaHtml()
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
+      + (zealot && navegacao ? navBaixoHtml() : '')
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
@@ -3041,6 +3047,9 @@
     var args = arguments, ctx = this;
     manterRolagem(function () {
       telaJogoSemFicha.apply(ctx, args);
+      // Sub-abas que rolam de lado (celular): a escolhida fica à vista.
+      var sub = document.getElementById('sub-abas'), ativa = sub && sub.querySelector('.ativa');
+      if (ativa && sub.scrollWidth > sub.clientWidth) sub.scrollLeft = Math.max(0, ativa.getBoundingClientRect().left - sub.getBoundingClientRect().left + sub.scrollLeft - (sub.clientWidth - ativa.offsetWidth) / 2);
       // A caixa da caçada (procurando / monstro achado / luta) fica com a maior altura que já teve: nada abaixo dela pula.
       var c = estado.cacada, arena = c && document.querySelector('.cacada-arena');
       if (arena) {
