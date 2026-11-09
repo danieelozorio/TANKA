@@ -526,3 +526,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - APK/app instalado: a página inicial (`index.html`) manda direto para `jogar/` quando aberta pelo app (referrer
   `android-app://` ou display-mode standalone/fullscreen). `.nojekyll` na raiz deixa o GitHub Pages publicar a pasta
   `.well-known/` (para o `assetlinks.json` do APK novo, gerado no PWABuilder com https://eldrinonline.com.br/jogar/).
+
+## Música no iPhone/iPad (Henri, nov/2026)
+- No iOS o `audio.volume` não muda por código (fica 1). O `sumir()` só pausava quando o volume chegava a 0, então ao
+  trocar de cena (entrada → jogo, arena, chefe) a música velha nunca parava e desligar só pausava a atual.
+  Agora `sumir()` pausa por tempo (~1,2 s), desligar chama `pararTodas()` (lista `audios`) e volume 0 vira `muted`.

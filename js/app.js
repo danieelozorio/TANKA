@@ -6691,14 +6691,18 @@
   Sons.volume(musica.efeitos / 100);
   function guardar(chave, valor) { try { localStorage.setItem(chave, valor); } catch (e) { /* ignora */ } }
   function volumeAlvo() { return musica.volume / 100; }
-  // Some com um áudio aos poucos (~1,2 s) e pausa.
+  // Some com um áudio aos poucos (~1,2 s) e pausa. No iPhone/iPad o volume não muda por código (fica sempre 1):
+  // por isso a pausa vem por tempo, senão a música velha nunca parava e tocava junto com a nova.
+  var audios = [];   // todos os áudios de música criados (para desligar de verdade)
   function sumir(audio) {
     if (!audio) return;
+    var passos = 0;
     var t = setInterval(function () {
       var v = audio.volume - 0.04;
-      if (v <= 0.01 || audio.paused) { clearInterval(t); audio.pause(); } else audio.volume = v;
+      if (v <= 0.01 || audio.paused || ++passos >= 25) { clearInterval(t); audio.pause(); } else audio.volume = v;
     }, 50);
   }
+  function pararTodas() { audios.forEach(function (a) { a.pause(); }); }
   function entrar(audio) {
     audio.volume = 0;
     var t = setInterval(function () {
@@ -6710,6 +6714,9 @@
   function novaFaixa(cena) {
     var lista = FAIXAS[cena], i = cena === 'jogo' ? musica.faixa % lista.length : 0, f = lista[i];
     var audio = new Audio('assets/musica/' + f.arquivo + '?v=1');
+    audios = audios.filter(function (a) { return !a.paused; });   // as pausadas já pararam
+    audios.push(audio);
+    audio.muted = musica.volume === 0;   // no iPhone, volume 0 só funciona como "mudo"
     audio.loop = lista.length === 1;
     audio.addEventListener('ended', function () {   // playlist do jogo: passa para a próxima
       if (musica.atual && musica.atual.audio === audio) { musica.faixa++; musica.atual = null; tocarMusica(); }
@@ -6800,13 +6807,13 @@
     p.querySelector('#config-musica').addEventListener('change', function (e) {
       musica.ligada = e.target.checked;
       guardar('eldrin.musica', musica.ligada ? 'on' : 'off');
-      if (musica.ligada) tocarMusica(); else if (musica.atual) musica.atual.audio.pause();
+      if (musica.ligada) tocarMusica(); else pararTodas();
       desenharBotaoMusica();
     });
     p.querySelector('#config-volume').addEventListener('input', function (e) {
       musica.volume = parseInt(e.target.value, 10);
       p.querySelector('#config-vol-txt').textContent = musica.volume + '%';
-      if (musica.atual) musica.atual.audio.volume = volumeAlvo();
+      if (musica.atual) { musica.atual.audio.volume = volumeAlvo(); musica.atual.audio.muted = musica.volume === 0; }
       guardar('eldrin.volume', musica.volume);
     });
     p.querySelector('#config-efeitos').addEventListener('input', function (e) {
@@ -6827,7 +6834,7 @@
   var TOQUES = ['click', 'touchend', 'keydown'];
   function primeiroToque(e) {
     if (e && e.target && e.target.closest && e.target.closest('#botao-musica')) return;   // o próprio botão cuida
-    if (musica.atual && !musica.atual.audio.paused) return;
+    if (!musica.ligada || (musica.atual && !musica.atual.audio.paused)) return;
     tocarMusica();
   }
   TOQUES.forEach(function (ev) { document.addEventListener(ev, primeiroToque, true); });
