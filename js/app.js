@@ -757,13 +757,99 @@
 
   // Redesenha a ficha e a barra de recursos sem mexer no resto da tela.
   function atualizarFicha() {
-    [['.ficha', fichaHtml], ['#recursos', recursosHtml]].forEach(function (x) {
-      var velho = document.querySelector(x[0]);
-      if (!velho) return;
-      var nova = document.createElement('div');
-      nova.innerHTML = x[1]();
-      velho.replaceWith(nova.firstChild);
+    manterRolagem(function () {
+      [['.ficha', fichaHtml], ['#recursos', recursosHtml]].forEach(function (x) {
+        var velho = document.querySelector(x[0]);
+        if (!velho) return;
+        var nova = document.createElement('div');
+        nova.innerHTML = x[1]();
+        velho.replaceWith(nova.firstChild);
+      });
     });
+  }
+
+  // Redesenhar a tela não pode mexer no que o jogador está olhando (no celular a tela "subia sozinha" a cada toque ou
+  // monstro achado): marca um elemento visível (o último tocado, se ainda estiver na tela), redesenha e rola a página
+  // para ele voltar ao mesmo lugar. A altura da página fica presa até as imagens novas carregarem.
+  var rolagemVez = 0, ultimoToque = null;
+  document.addEventListener('pointerdown', function (e) { ultimoToque = e.target; }, true);
+  function chaveElemento(el) {
+    for (; el && el !== app; el = el.parentElement) {
+      var sel = el.id ? '#' + CSS.escape(el.id)
+        : el.dataset && el.dataset.acao ? '[data-acao="' + el.dataset.acao + '"]' + ['valor', 'atributo', 'monstro', 'aba', 'id'].map(function (k) {
+          return el.dataset[k] ? '[data-' + k + '="' + CSS.escape(el.dataset[k]) + '"]' : '';
+        }).join('') : null;
+      if (sel) return { sel: sel, i: Array.prototype.indexOf.call(app.querySelectorAll(sel), el) };
+    }
+    return null;
+  }
+  function naTela(el) {
+    if (!el || !app.contains(el)) return false;
+    var r = el.getBoundingClientRect();
+    return r.height > 0 && r.bottom > 0 && r.top < window.innerHeight;
+  }
+  function ancoraRolagem() {
+    var alvo = naTela(document.activeElement) && document.activeElement !== document.body ? document.activeElement
+      : naTela(ultimoToque) ? ultimoToque : null;
+    if (!alvo) {
+      var lista = app.querySelectorAll('[id], [data-acao]');
+      for (var i = 0; i < lista.length && !alvo; i++) {
+        var r = lista[i].getBoundingClientRect();
+        if (r.height > 0 && r.top >= 0 && r.top < window.innerHeight && getComputedStyle(lista[i]).position !== 'fixed') alvo = lista[i];
+      }
+    }
+    var chave = alvo && chaveElemento(alvo);
+    if (!chave) return null;
+    chave.top = app.querySelectorAll(chave.sel)[chave.i].getBoundingClientRect().top;
+    return chave;
+  }
+  function voltarAncora(chave, y) {
+    var el = chave && app.querySelectorAll(chave.sel)[chave.i];
+    if (el) {
+      var d = el.getBoundingClientRect().top - chave.top;
+      if (Math.abs(d) > 1) window.scrollTo(0, window.scrollY + d);
+    } else if (window.scrollY !== y) window.scrollTo(0, y);
+  }
+  // Caixas com rolagem própria (ex.: a caçada na interface Zealot) também voltavam ao topo: guarda e devolve.
+  function caminhoAte(el) {
+    var c = [];
+    for (; el && el !== app; el = el.parentElement) c.unshift(Array.prototype.indexOf.call(el.parentElement.children, el));
+    return c;
+  }
+  function rolagensInternas() {
+    var lista = [];
+    Array.prototype.forEach.call(app.querySelectorAll('*'), function (el) {
+      if (el.scrollTop > 0 && el.id !== 'registro' && el.scrollHeight > el.clientHeight) lista.push({ c: caminhoAte(el), cls: el.className, top: el.scrollTop });
+    });
+    return lista;
+  }
+  function voltarRolagensInternas(lista) {
+    lista.forEach(function (r) {
+      var el = app;
+      for (var i = 0; el && i < r.c.length; i++) el = el.children[r.c[i]];
+      if (el && el.className === r.cls) el.scrollTop = r.top;
+    });
+  }
+  function manterRolagem(desenhar) {
+    var y = window.scrollY, vez = ++rolagemVez, internas = rolagensInternas();
+    if (!y) { desenhar(); voltarRolagensInternas(internas); return; }
+    var chave = ancoraRolagem();
+    app.style.minHeight = app.offsetHeight + 'px';
+    desenhar();
+    voltarRolagensInternas(internas);
+    voltarAncora(chave, y);
+    var imgs = Array.prototype.filter.call(app.querySelectorAll('img'), function (i) { return !i.complete; });
+    var soltar = function () {
+      if (vez !== rolagemVez) return;
+      var c = ancoraRolagem(), y2 = window.scrollY;
+      app.style.minHeight = '';
+      if (c) voltarAncora(c, y2); else if (window.scrollY !== y2) window.scrollTo(0, y2);
+    };
+    if (!imgs.length) { requestAnimationFrame(soltar); return; }
+    Promise.race([
+      Promise.all(imgs.map(function (i) { return new Promise(function (ok) { i.addEventListener('load', ok); i.addEventListener('error', ok); }); })),
+      new Promise(function (ok) { setTimeout(ok, 1500); }),
+    ]).then(soltar);
   }
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
@@ -2943,7 +3029,16 @@
   // Depois de redesenhar, a ficha flutuante (se aberta) volta a se prender ao item; some se o item saiu da tela.
   var telaJogoSemFicha = telaJogo;
   telaJogo = function () {
-    telaJogoSemFicha.apply(this, arguments);
+    var args = arguments, ctx = this;
+    manterRolagem(function () {
+      telaJogoSemFicha.apply(ctx, args);
+      // A caixa da caçada (procurando / monstro achado / luta) fica com a maior altura que já teve: nada abaixo dela pula.
+      var c = estado.cacada, arena = c && document.querySelector('.cacada-arena');
+      if (arena) {
+        c.alturaArena = Math.max(c.alturaArena || 0, arena.offsetHeight);
+        arena.style.minHeight = c.alturaArena + 'px';
+      }
+    });
     if (estado.itemFoco || estado.consumivelFoco) desenharFlutuante();
   };
 
@@ -3308,6 +3403,7 @@
   // O servidor sorteia o monstro e o chefe, faz a luta inteira e aplica os prêmios; aqui só mostramos.
   // Um pedido por luta: a resposta da luta já traz o próximo monstro encontrado.
   var CACA_SERVIDOR = typeof C.cacada === 'function';
+  var CACA_RESPONDEU = false;   // a função da caçada já respondeu nesta sessão
   function adotarPersonagem(novo) {
     var p = estado.personagem;
     if (!novo || novo === p || novo.id !== p.id) return;
@@ -3317,8 +3413,9 @@
   function erroCacada(e) {
     var c = estado.cacada;
     if (e && e.conflito) return;   // o jogo já recarrega o personagem
-    // A função ainda não foi enviada ao Supabase (404): enquanto isso, a caçada segue no jeito antigo.
-    if (e && e.status === 404 && CACA_SERVIDOR) {
+    // A função ainda não foi enviada ao Supabase: enquanto isso, a caçada segue no jeito antigo. O navegador às vezes não
+    // vê o 404 (a resposta vem sem CORS e o fetch falha como "sem conexão"); se a função nunca respondeu, vale o mesmo.
+    if (e && (e.status === 404 || (!e.status && !CACA_RESPONDEU)) && CACA_SERVIDOR) {
       CACA_SERVIDOR = false;
       if (c && c.ativa) { c.lutando = false; c.servEncontro = c.servProximo = null; procurarMonstro(); }
       return;
@@ -3339,6 +3436,7 @@
     if (c.servProximo) { var e = c.servProximo; c.servProximo = null; esperarEncontro(c, e, c.servBusca, c.servDiferenca); return; }
     c.servEncontro = null;
     C.cacada('encontro', { personagem: p.id, alvos: c.alvos }).then(function (r) {
+      CACA_RESPONDEU = true;
       adotarPersonagem(r.personagem);
       if (estado.cacada !== c || !c.ativa) return;
       if (r.erro) {
@@ -3355,6 +3453,7 @@
     var antes = JSON.parse(JSON.stringify(p));   // a luta é mostrada a partir do herói de antes dela
     var enc = c.encontro;
     C.cacada('lutar', { personagem: p.id, alvos: c.alvos, pocao: prefsCacada().pocao }).then(function (r) {
+      CACA_RESPONDEU = true;
       c.lutando = false;
       adotarPersonagem(r.personagem);
       if (estado.cacada !== c) return;
@@ -3394,13 +3493,35 @@
     + '<path d="M3 39h42" stroke="#c69b63" stroke-width="2" stroke-linecap="round"/>'
     + '</svg>';
 
+  // Barrinha fina de experiência embaixo da vida, na caçada (só para ter uma noção de quanto falta para o level).
+  function expFinaHtml(p) {
+    var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
+    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var texto = maximo ? 'Level máximo' : 'Experiência: ' + p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR') + ' (' + Math.floor(pct) + '%)';
+    return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
+      + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>';
+  }
+  // Opções da caçada em botões de toque (antes eram listas que se fechavam sozinhas no celular a cada monstro achado).
+  function opcoesCacadaHtml() {
+    var pref = prefsCacada();
+    function grupo(nome, campo, atual, opcoes) {
+      return '<div class="cacada-opcao"><span>' + nome + '</span><div class="opcao-botoes" role="group" aria-label="' + nome + '">'
+        + opcoes.map(function (o) {
+          return '<button type="button" data-acao="cacada-opcao" data-campo="' + campo + '" data-valor="' + o[0] + '" aria-pressed="' + (String(atual) === String(o[0])) + '">' + o[1] + '</button>';
+        }).join('') + '</div></div>';
+    }
+    return '<div class="cacada-opcoes"><label><input type="checkbox" data-acao="cacada-sempre"' + (pref.lutarSempre ? ' checked' : '') + '> Lutar sempre sem perguntar</label>'
+      + grupo('Chefes', 'chefe', pref.chefe || 'perguntar', [['perguntar', 'Perguntar'], ['fugir', 'Fugir'], ['lutar', 'Lutar']])
+      + grupo('Poção automática', 'pocao', pref.pocao || 0, [[0, 'Desligada']].concat(D.CACADA.pocaoAuto.map(function (v) { return [v, 'Abaixo de ' + v + '%']; })))
+      + '</div>';
+  }
   function cacadaHtml() {
     var c = estado.cacada, p = estado.personagem, b = estado.batalha, s = R.status(p), pref = prefsCacada();
     var area = D.areas.find(function (a) { return a.id === c.area; }), e = estiloArea(area, D.areas.indexOf(area));
     var emLuta = c.fase === 'lutando' && b;
     var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
     var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
-      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>'
+      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + expFinaHtml(p)
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
@@ -3430,13 +3551,7 @@
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
       + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
-    var opcoes = '<div class="cacada-opcoes"><label><input type="checkbox" data-acao="cacada-sempre"' + (pref.lutarSempre ? ' checked' : '') + '> Lutar sempre sem perguntar</label>'
-      + '<label>Chefes <select id="cacada-chefe">' + [['perguntar', 'sempre perguntar'], ['fugir', 'sempre fugir'], ['lutar', 'sempre lutar']].map(function (o) {
-        return '<option value="' + o[0] + '"' + ((pref.chefe || 'perguntar') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
-      }).join('') + '</select></label>'
-      + '<label>Poção automática <select id="cacada-pocao"><option value="0"' + (pref.pocao ? '' : ' selected') + '>desligada</option>'
-      + D.CACADA.pocaoAuto.map(function (v) { return '<option value="' + v + '"' + (pref.pocao === v ? ' selected' : '') + '>abaixo de ' + v + '% da vida</option>'; }).join('')
-      + '</select></label></div>';
+    var opcoes = opcoesCacadaHtml();
     var resumo = '<div class="cacada-resumo">'
       + [['⚔', 'Derrotados', c.mortos], ['✦', 'Exp', c.exp.toLocaleString('pt-BR')], ['◎', 'Ouro', c.ouro.toLocaleString('pt-BR')], ['🎒', 'Itens', c.itens.reduce(function (t, it) { return t + (it.qtd || 1); }, 0)],
         ['⏱', 'Tempo', '<span id="cacada-tempo">' + duracaoTexto(Date.now() - c.inicio) + '</span>']].map(function (x) {
@@ -3461,7 +3576,7 @@
         + '><summary>Opções, drops e histórico</summary>' + detalhes + '</details>';
     }
     return topo + '<div class="arena cacada-arena"' + fundo + '>' + jogador + '<div class="vs">' + (emLuta ? 'VS' : '') + '</div>' + direita + '</div>'
-      + (emLuta || estado.registro.length ? '<div class="registro" id="registro">' + estado.registro.join('') + '</div>' : '')
+      + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'   // sempre aqui: a tela não pula quando a luta começa
       + (zealot ? resumo + detalhes : opcoes + resumo + itens + historico);
   }
 
@@ -3594,12 +3709,6 @@
 
   app.addEventListener('change', function (e) {
     if (e.target.id === 'mercado-ordem') { var fo = filtroMercado(); fo.ordem = e.target.value; fo.pagina = 0; carregarMercado(); }
-    if (e.target.id === 'cacada-pocao') { prefsCacada().pocao = Number(e.target.value) || 0; salvar(); }
-    if (e.target.id === 'cacada-chefe') {
-      prefsCacada().chefe = e.target.value; salvar();
-      var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
-      if (cc && cc.fase === 'encontrou' && cc.encontro.chefe) { if (e.target.value === 'lutar') lutarCacada(); else if (e.target.value === 'fugir') fugirEncontro(); }
-    }
     if (e.target.dataset && e.target.dataset.contratar && estado.contratar) {
       estado.contratar[e.target.dataset.contratar] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
       if (e.target.dataset.contratar !== 'nome') telaJogo();
@@ -4358,6 +4467,19 @@
       case 'cacada-parar': pararCacada(); break;
       case 'cacada-continuar': if (estado.cacada) { var areaC = estado.cacada.area; iniciarCacada(areaC); } break;
       case 'cacada-fechar': fecharCacada(); break;
+      case 'cacada-opcao': {
+        var prefO = prefsCacada();
+        if (el.dataset.campo === 'pocao') prefO.pocao = Number(el.dataset.valor) || 0;
+        else prefO.chefe = el.dataset.valor;
+        salvar();
+        var blocoO = document.querySelector('.cacada-opcoes');
+        if (blocoO) { var tmpO = document.createElement('div'); tmpO.innerHTML = opcoesCacadaHtml(); blocoO.replaceWith(tmpO.firstChild); }
+        var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
+        if (el.dataset.campo === 'chefe' && cc && cc.fase === 'encontrou' && cc.encontro.chefe) {
+          if (el.dataset.valor === 'lutar') lutarCacada(); else if (el.dataset.valor === 'fugir') fugirEncontro();
+        }
+        break;
+      }
       case 'cacada-sempre':
         prefsCacada().lutarSempre = el.checked;
         salvar();

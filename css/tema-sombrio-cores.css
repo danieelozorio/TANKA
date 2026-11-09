@@ -52,4 +52,5 @@ input { background: #12110f; }
 .cacada-arena { background: #161412 center / cover no-repeat; }
 .busca-barra { background: #090908; }
 .cacada-opcoes select { background: #12110f; }
+.opcao-botoes button { background: #12110f; }
 @media (max-width: 700px) { .mapa-mundo { background: linear-gradient(rgba(14, 13, 12, .55), rgba(14, 13, 12, .55)), url(../assets/mapa-reino.webp) center / cover no-repeat, #161412; } }

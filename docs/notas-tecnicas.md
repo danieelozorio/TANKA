@@ -66,6 +66,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   uma imagem mudar sem mudar de nome), ícones em `assets/app/` (recorte do logo; dá para trocar por um ícone próprio).
 - APK: precisa do Android SDK (dl.google.com está bloqueado neste ambiente). Caminhos: liberar dl.google.com na rede do
   ambiente e montar um TWA aqui, ou o Daniel gerar no PWABuilder.com com a URL do jogo.
+- Rolagem no celular (nov/2026): `telaJogo` e `atualizarFicha` passam por `manterRolagem` (app.js): marca um elemento
+  visível (o focado, o último tocado ou o primeiro na tela), redesenha e rola para ele voltar ao mesmo lugar; também
+  guarda o `scrollTop` de caixas com rolagem própria (caçada na Zealot) e prende a altura do `#app` até as imagens novas
+  carregarem. Na caçada, a `.cacada-arena` fica com a maior altura que já teve (`c.alturaArena`) e o `#registro` existe
+  desde o começo, para nada abaixo pular entre "procurando / monstro achado / luta".
+- Sub-abas no celular (≤720px) rolam de lado: antes passavam da tela (4 botões = 460px) e o navegador alargava a página
+  inteira (toques caíam no lugar errado). Para conferir: `innerWidth` no Playwright com aparelho de celular tem que ser a
+  largura do aparelho em todas as abas.
+- Opções da caçada (chefe / poção automática) são botões (`data-acao="cacada-opcao"`), não `<select>`: a lista se
+  fechava sozinha a cada redesenho. Barrinha fina de exp embaixo da vida na caçada: `expFinaHtml` (`.exp-fina`).
 
 ## Itens por nível (parte 1 FEITA)
 - `ITEM_NIVEL` (dados.js): nível 1–60; drop = level ±3 (35+: 35–60); raridade = qualidade (faixaQualidade); arma

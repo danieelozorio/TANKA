@@ -1223,6 +1223,12 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .cacada-opcoes label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; color: inherit; }
 .cacada-opcoes input[type="checkbox"] { width: auto; margin: 0; accent-color: #c9a24a; }
 .cacada-opcoes select { padding: .25em .4em; border: 1px solid var(--borda); border-radius: 6px; background: #0d1118; color: var(--texto); font: inherit; }
+.exp-fina { height: 4px; margin: 3px 0 .3rem; border-radius: 3px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.exp-fina > i { display: block; height: 100%; background: linear-gradient(90deg, #1f4f86, #4f94e0 70%, #7bb6ff); transition: width .4s ease; }
+.cacada-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.opcao-botoes { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.opcao-botoes button { min-height: 32px; padding: .25em .7em; border: 1px solid var(--borda); border-radius: 999px; background: #0d1118; color: var(--suave); font: inherit; font-size: .85rem; cursor: pointer; touch-action: manipulation; }
+.opcao-botoes button[aria-pressed="true"] { color: #1a1208; border-color: #c9a24a; background: linear-gradient(180deg, #f3dca0, #c9a24a); }
 .cacada-resumo { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .4rem; margin-bottom: .7rem; }
 .cacada-num { padding: .4rem .5rem; border: 1px solid rgba(201, 162, 74, .25); border-radius: 8px; background: rgba(0, 0, 0, .25); text-align: center; }
 .cacada-num small { display: block; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--suave); }
@@ -1563,3 +1569,13 @@ html { overscroll-behavior-x: none; }
 #ficha-flutuante .ficha-flutuante-x { position: absolute; top: 6px; right: 8px; }
 #ficha-flutuante .ficha-item-topo { padding-right: 18px; }
 .dica-mochila { margin: 4px 0 8px; }
+
+/* Celular: as sub-abas (Personagem, Encantar, Oficina…) não podem passar da largura da tela. Se passar, o navegador
+   "alarga" a página inteira: ela fica dançando de lado e o toque cai no lugar errado. Aqui elas rolam de lado. */
+@media (max-width: 720px) {
+  .sub-abas { display: flex; max-width: 100%; width: max-content; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sub-abas::-webkit-scrollbar { display: none; }
+  .sub-abas button { flex: 0 0 auto; white-space: nowrap; padding-inline: .8em; }
+  /* Caçada: a caixa já nasce do tamanho do monstro achado, para as opções abaixo não pularem a cada fase. */
+  html:not([data-interface="zealot"]) .cacada-arena { min-height: 24rem; }
+}
