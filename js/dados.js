@@ -510,6 +510,8 @@ Tanka.dados = {
   // "turnos" = vezes do herói. recarga 3 = usada na vez 2, volta na vez 5.
   TALENTOS: {
     nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
+    // Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
+    pontosDepois: { nivel: 20, porNivel: 2 },
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
     atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
@@ -535,6 +537,11 @@ Tanka.dados = {
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
         { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
         { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre.' },
+        // Level 20 (caçada e masmorra) e level 30 (Arena). Valores [base, por ponto]: base + porPonto x pontos.
+        { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, modo: 'pve', regenPct: [0.6, 0.06],
+          descricao: 'Recupera um pouco da vida a cada turno (0,6% a 1,2% da vida máxima). Só contra monstros.' },
+        { id: 'defesa-suprema', nome: 'Defesa Suprema', tipo: 'reforco', nivel: 30, modo: 'arena', turnos: 2, recarga: 5,
+          defesaPct: [30, 2], reflete: 15, descricao: '+30% a +50% de defesa por 2 turnos e devolve 15% do dano recebido. Só na Arena.' },
       ] },
     destruidor: { de: 'cavaleiro', nome: 'Destruidor', nomeF: 'Destruidora', descricao: 'Pura força: entra em fúria e derruba tudo.',
       habilidades: [
@@ -542,6 +549,10 @@ Tanka.dados = {
         { id: 'terremoto', nome: 'Terremoto', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
         { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
+        { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, modo: 'pve', rouboVida: [20, 1],
+          descricao: 'Parte do dano que você causa vira vida (20% a 30%). Só contra monstros.' },
+        { id: 'golpe-apocaliptico', nome: 'Golpe Apocalíptico', tipo: 'unico', nivel: 30, modo: 'arena', recarga: 5, mult: [200, 5],
+          vidaFaltando: 0.5, descricao: 'Golpe de 200% a 250%, +0,5% de dano para cada 1% de vida que falta. Só na Arena.' },
       ] },
     // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
     cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',
@@ -552,6 +563,11 @@ Tanka.dados = {
         { id: 'pes-ligeiros', nome: 'Double Shot', tipo: 'multiplo', flechas: 2, recarga: 3,
           descricao: 'Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico.' },
         { id: 'reflexo-rapido', nome: 'Reflexo Rápido', tipo: 'passiva', atributos: { des: 5 }, evasao: 5, descricao: '+5 de Destreza e mais esquiva, sempre.' },
+        { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, modo: 'pve', recarga: 4, turnos: 3,
+          dotPct: [90, 5], curaMorte: 5, pula: true,
+          descricao: 'Veneno de 90% a 140% de um ataque por turno, por 3 turnos. Pula para outro monstro; cada monstro morto pelo veneno cura 5%.' },
+        { id: 'tiro-silenciador', nome: 'Tiro Silenciador', tipo: 'unico', nivel: 30, modo: 'arena', recarga: 6, mult: [180, 0],
+          ignoraDefesaPct: 50, silencia: 1, descricao: 'Golpe de 180% que ignora metade da defesa e cala o oponente por 1 turno. Só na Arena.' },
       ] },
     assassino: { de: 'arqueiro', nome: 'Assassino', nomeF: 'Assassina', descricao: 'Some nas sombras e volta com golpes críticos.',
       habilidades: [
@@ -559,6 +575,12 @@ Tanka.dados = {
         { id: 'sombra', nome: 'Sombra', tipo: 'furtivo', danoCritico: 0, recarga: 4, descricao: 'Esquiva do próximo ataque e o seu próximo golpe é crítico.' },
         { id: 'golpe-fatal', nome: 'Golpe Fatal', tipo: 'unico', recarga: 3, descricao: 'Um golpe enorme em um inimigo.' },
         { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
+        { id: 'corte-vampirico', nome: 'Corte Vampírico', tipo: 'dot', nivel: 20, modo: 'pve', recarga: 4, turnos: 3,
+          dotPct: [40, 4], curaDot: 20,
+          descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira.' },
+        { id: 'execucao', nome: 'Execução', tipo: 'unico', nivel: 30, modo: 'arena', recarga: 5, mult: [250, 0], garantido: true,
+          semEsquiva: true, executa: { abaixo: 30, bonus: 50 },
+          descricao: 'Golpe de 250%, sempre no máximo do dado, que não pode ser esquivado. +50% se o oponente tiver menos de 30% da vida. Só na Arena.' },
       ] },
     bruxo: { de: 'mago', nome: 'Bruxo', nomeF: 'Bruxa', descricao: 'Magia de destruição: congela, queima e fulmina.',
       habilidades: [
@@ -566,6 +588,12 @@ Tanka.dados = {
         { id: 'chuva-de-meteoros', nome: 'Chuva de Meteoros', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'raio-da-morte', nome: 'Raio da Morte', tipo: 'unico', recarga: 2, descricao: 'Um raio forte em um inimigo.' },
         { id: 'mente-sombria', nome: 'Mente Sombria', tipo: 'passiva', atributos: { int: 5 }, dano: 10, descricao: '+5 de Inteligência e mais dano, sempre.' },
+        { id: 'escudo-de-gelo', nome: 'Escudo de Gelo', tipo: 'escudo', nivel: 20, modo: 'pve', recarga: 5, turnos: 3,
+          escudoPct: [10, 1], congelaChance: 30,
+          descricao: 'Escudo que segura dano (10% a 20% da vida) por 3 turnos; quem bate nele tem 30% de chance de congelar.' },
+        { id: 'maldicao-de-ignaroth', nome: 'Maldição de Ignaroth', tipo: 'unico', nivel: 30, modo: 'arena', recarga: 5, mult: [200, 0],
+          queima: { turnos: 3, pct: 15 }, cortaCura: 50,
+          descricao: 'Golpe de 200% que queima por 3 turnos e corta pela metade as curas do oponente. Só na Arena.' },
       ] },
     curandeiro: { de: 'mago', nome: 'Curandeiro', nomeF: 'Curandeira', descricao: 'Cuida do grupo: cura, fortalece e ainda castiga.',
       habilidades: [
@@ -573,6 +601,10 @@ Tanka.dados = {
         { id: 'explosao-de-luz', nome: 'Explosão de Luz', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'bencao', nome: 'Bênção', tipo: 'reforco', grupo: true, turnos: 2, vidaPct: 20, precisao: 5, recarga: 4, descricao: 'Mais vida máxima e precisão para você e o grupo.' },
         { id: 'fe-profunda', nome: 'Fé Profunda', tipo: 'passiva', atributos: { int: 5 }, danoCriticoMagico: 10, descricao: '+5 de Inteligência e mais dano crítico mágico, sempre.' },
+        { id: 'regeneracao', nome: 'Regeneração', tipo: 'passiva', nivel: 20, modo: 'pve', regenPct: [1, 0.1],
+          descricao: 'Recupera 1% a 2% da vida máxima a cada turno. Só contra monstros.' },
+        { id: 'milagre', nome: 'Milagre', tipo: 'passiva', nivel: 30, modo: 'arena', milagrePct: [20, 1],
+          descricao: 'Uma vez por luta, se cair, volta com 20% a 30% da vida. Só na Arena.' },
       ] },
     ferreiro: { de: 'artesao', nome: 'Ferreiro', nomeF: 'Ferreira', descricao: 'Mão pesada e couro grosso.',
       habilidades: [
@@ -580,6 +612,11 @@ Tanka.dados = {
         { id: 'martelada', nome: 'Martelada', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
         { id: 'pancada-tonta', nome: 'Pancada Tonta', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica tonto.' },
         { id: 'couro-grosso', nome: 'Couro Grosso', tipo: 'passiva', atributos: { sor: 5 }, defesaPct: 20, descricao: '+5 de Sorte e mais defesa, sempre.' },
+        { id: 'tempera-de-fogo', nome: 'Têmpera de Fogo', tipo: 'passiva', nivel: 20, modo: 'pve', reducaoDano: [10, 1], danoPvEPct: [20, 1.5],
+          descricao: 'Recebe 10% a 20% menos dano e causa 20% a 35% mais dano. Só contra monstros.' },
+        { id: 'martelo-das-correntes', nome: 'Martelo das Correntes', tipo: 'unico', nivel: 30, modo: 'arena', recarga: 5, mult: [220, 0],
+          atordoa: 1, quebraDefesaPct: 30,
+          descricao: 'Golpe de 220% que prende o oponente por 1 turno e tira 30% da defesa dele até o fim da luta. Só na Arena.' },
       ] },
     coletor: { de: 'artesao', nome: 'Coletor', nomeF: 'Coletora', descricao: 'Bate menos, mas sai de toda luta com o bolso cheio.',
       habilidades: [
@@ -587,6 +624,10 @@ Tanka.dados = {
         { id: 'pedrada', nome: 'Pedrada', tipo: 'unico', reduzido: true, recarga: 2, descricao: 'Um golpe em um inimigo (mais fraco).' },
         { id: 'rede', nome: 'Rede', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Joga a rede em um inimigo e ele fica preso.' },
         { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada.' },
+        { id: 'bolso-de-pocoes', nome: 'Bolso de Poções', tipo: 'passiva', nivel: 20, modo: 'pve', curaEmergencia: [35, 2], limiar: 40,
+          descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 35% a 55% da vida. Só contra monstros.' },
+        { id: 'po-nos-olhos', nome: 'Pó nos Olhos', tipo: 'cegar', nivel: 30, modo: 'arena', recarga: 6, turnos: 2, erroPct: 30,
+          descricao: 'Por 2 turnos, o oponente tem 30% de chance de errar cada ataque. Só na Arena.' },
       ] },
   },
   niveisHabilidade: [1, 10, 20, 30],

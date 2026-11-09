@@ -424,3 +424,24 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   antes, nada. `R.recolherMinas` no fim. Histórico em `p.historicoMinas[area] = { minutos, qtd, gemas, vezes }`.
 - Ocupado: `R.minerando(p, agora)` barra `iniciarCacada` e a Arena (`bloqueadoMinerando` no jogo; no servidor,
   `arena_comecar_tipo` recusa se `dados.minas.fim` > agora).
+
+## Habilidades do level 20 e 30 (Daniel, Henri e Rafael, nov/2026; PDF "Novas Habilidades" v4)
+- Dados: 2 habilidades a mais por segunda classe em `SEGUNDAS_CLASSES` (no fim da lista), com `nivel` (20/30) e `modo`
+  ('pve' = caçada e masmorra; 'arena' = Arena). Valores novos em `[base, porPonto]` (`R.valorNivel`). Pontos:
+  `TALENTOS.pontosDepois` = +2 por level do 21 em diante (14 no 20, 34 no 30); servidor em `arena_pontos_ok`.
+- `R.passiva` / `arena_passiva` continuam pegando só a passiva de sempre (sem `nivel`). `R.habLiberada`, `R.habNoModo`;
+  `kitHabilidades` filtra por modo e nível; `talentos()` põe as novas UMA vez no começo da ordem do modo (`ordemNiveis`).
+- Level 20 (regras.js, caçada `passo/ataqueMonstro/golpeJogador` e masmorra `simularSalas`): `extrasPve` (regenPct,
+  rouboVida, reducaoDano, danoPvEPct, curaEmergencia+limiar) em `L.pve`; tipos novos `dot` (veneno/sangramento, `tickDot`
+  no começo da vez; `pula` para o próximo monstro vivo) e `escudo` (`aoReceber`, pode congelar quem bate), ambos sem gastar
+  a vez (`ehReforco`). Bolso de Poções: `depoisDeReceber` (1x por luta). Números calibrados por simulação (400 caçadas por
+  classe nas Areias, conjunto raro +3): todas ganham ~+20% a +90% de abates por barra de vida (Arqueiro ganha menos, já era o melhor).
+- Level 30 (schema.sql, `arena_vez`): Defesa Suprema (reforço com `defesaPct` + `reflete`), Golpe Apocalíptico
+  (`vidaFaltando`), Tiro Silenciador (`silenciado`, `ignoraDefesaPct`), Execução (`garantido` = 20 do dado, `semEsquiva`
+  passa pela Sombra, `executa`), Maldição (`queima` no começo da vez + `cortaCura`), Milagre (`arena_milagre` no lutador,
+  `arena_milagre_usar`), Martelo das Correntes (`atordoa` + `defQuebra`), Pó nos Olhos (tipo `cegar`: `cego`/`cegoPct`).
+  `arena_avancar`/`arena_jogar` agora também terminam a luta se quem age cai na própria vez (queimadura, dano devolvido).
+  Testes: banco.test.sql ("arena: ..." level 30) e regras.test.js ("habilidades do level 20/30", "level 20 na caçada").
+- Tela: `efeitoNivel` (texto com os valores), cadeado "Libera no level N" (`.trancada`), etiqueta do modo (`.hab-nivel`);
+  mensagens novas na caçada (☠️ veneno, 🧪 bolso), masmorra e Arena (queima, calado, Milagre, devolve, cego, executa).
+- Ícones: faltam os 16 (`assets/habilidades/<id>.webp`); prompt de folha 4x4 no scratchpad (eldrin-icones-habilidades-20-30.txt).

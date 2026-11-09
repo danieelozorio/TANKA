@@ -1252,6 +1252,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
   background: linear-gradient(180deg, rgba(255, 255, 255, .03), rgba(0, 0, 0, .2)); }
 .carta-hab.passiva { border-color: rgba(120, 170, 255, .4); }
 .carta-hab.sem-ponto { opacity: .72; }
+.carta-hab.trancada { opacity: .55; }
+.hab-nivel { margin: .2em 0 0; font-size: .75rem; color: var(--ouro); letter-spacing: .03em; }
 .carta-hab p { margin: 0; }
 .hab-topo { display: flex; justify-content: space-between; align-items: center; gap: .5rem; font-family: var(--titulo); color: var(--ouro-claro); }
 .hab-titulo { display: flex; align-items: center; gap: .55rem; min-width: 0; }

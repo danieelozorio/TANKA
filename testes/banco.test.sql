@@ -979,6 +979,67 @@ set role authenticated; select pg_temp.como('a'); select public.oficina_estado('
 reset role;
 select pg_temp.igual((select estado from public.oficina_pedidos where id = :ped5), 'expirado', 'oficina: sem fazer em 24 h, volta tudo');
 delete from public.recompensas; delete from public.creditos; delete from public.oficina_pedidos; delete from public.oficinas; delete from public.reliquias;
+-- Habilidades do level 20/30 (nov/2026): pontos +2 do 21, level 20 fora da Arena, level 30 só no 30
+select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 30, '{"classe2":"cacador","pontos":{"saraivada":10,"pes-ligeiros":10,"flecha-na-perna":10,"reflexo-rapido":4}}')), true, 'arena: 34 pontos no level 30');
+select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 30, '{"classe2":"cacador","pontos":{"saraivada":10,"pes-ligeiros":10,"flecha-na-perna":10,"reflexo-rapido":5}}')), false, 'arena: 35 pontos no level 30 não');
+select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 21, '{"classe2":"cacador","pontos":{"saraivada":10,"pes-ligeiros":6}}')), true, 'arena: 16 pontos no level 21');
+select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 30,
+  '{"classe2":"cacador","pontos":{"flecha-envenenada":1,"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["flecha-envenenada","tiro-silenciador","saraivada"]}}'))) x),
+  'tiro-silenciador,saraivada', 'arena: o level 20 fica fora, o level 30 entra');
+select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 29,
+  '{"classe2":"cacador","pontos":{"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["tiro-silenciador","saraivada"]}}'))) x),
+  'saraivada', 'arena: o level 30 não vale antes do 30');
+select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro","pontos":{"milagre":10}}')), 30::numeric, 'arena: Milagre com 10 pontos = 30%');
+do $$
+declare a jsonb; d jsonb; r jsonb; base jsonb;
+begin
+  base := jsonb_build_object('hp', 1000, 'hpMax', 1000, 'dano', '[100,100]'::jsonb, 'magico', false, 'defesa', 100, 'defesaMagica', 100, 'velBase', 20, 'vel', 20,
+    'esquiva', 0, 'kit', '[]'::jsonb, 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
+  -- Tiro Silenciador: cala 1 vez e ignora metade da defesa
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 30, '{"classe2":"cacador","pontos":{"tiro-silenciador":1},"ordem":{"arena":["tiro-silenciador"]}}')));
+  d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 30, '{"classe2":"assassino","pontos":{"golpe-fatal":1},"ordem":{"arena":["golpe-fatal"]}}')));
+  r := public.arena_vez(a, d, 10); a := r -> 'eu'; d := r -> 'outro';
+  if not (r -> 'ev' ? 'calou') then raise exception 'FALHA silenciador: %', r -> 'ev'; end if;
+  r := public.arena_vez(d, a, 10);
+  if r -> 'ev' ? 'hab' or not (r -> 'ev' ? 'calado') then raise exception 'FALHA silenciador: devia ficar sem habilidade: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Tiro Silenciador cala o oponente';
+  -- Martelo das Correntes: prende e tira 30% da defesa
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('artesao', 30, '{"classe2":"ferreiro","pontos":{"martelo-das-correntes":1},"ordem":{"arena":["martelo-das-correntes"]}}')));
+  r := public.arena_vez(a, base, 10);
+  if (r -> 'outro' ->> 'defQuebra')::numeric <> 30 or (r -> 'outro' ->> 'atordoado')::int <> 1 then raise exception 'FALHA martelo: %', r -> 'outro'; end if;
+  raise notice 'ok   arena: Martelo das Correntes prende e quebra a defesa';
+  -- Maldição: queima por 3 vezes e corta a cura
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 30, '{"classe2":"bruxo","pontos":{"maldicao-de-ignaroth":1},"ordem":{"arena":["maldicao-de-ignaroth"]}}')));
+  r := public.arena_vez(a, base, 10); d := r -> 'outro';
+  if (d -> 'queima' ->> 'turnos')::int <> 3 or (d ->> 'cortaCura')::int <> 3 then raise exception 'FALHA maldição: %', d; end if;
+  r := public.arena_vez(d, a, 1);
+  if (r -> 'ev' ->> 'queimou')::int <> 15 then raise exception 'FALHA maldição: queimadura de 15%% do dano: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Maldição de Ignaroth queima e corta a cura';
+  -- Milagre: volta uma vez
+  d := base || jsonb_build_object('hp', 1, 'milagre', 25, 'defesa', 0);
+  r := public.arena_vez(base, d, 20);
+  if (r -> 'outro' ->> 'hp')::int <> 250 or not (r -> 'ev' ? 'milagre') then raise exception 'FALHA milagre: %', r; end if;
+  r := public.arena_vez(base, (r -> 'outro') || jsonb_build_object('hp', 1), 20);
+  if (r -> 'outro' ->> 'hp')::int <> 0 then raise exception 'FALHA milagre: só uma vez: %', r -> 'outro'; end if;
+  raise notice 'ok   arena: Milagre volta uma vez por luta';
+  -- Defesa Suprema: +defesa e devolve 15%
+  d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('cavaleiro', 30, '{"classe2":"paladino","pontos":{"defesa-suprema":10},"ordem":{"arena":["defesa-suprema"]}}')));
+  r := public.arena_vez(d, base, 1); d := r -> 'eu';
+  if public.arena_buff(d || jsonb_build_object('turno', 1), 'defesaPct') <> 50 then raise exception 'FALHA defesa suprema: %', d -> 'buffs'; end if;
+  r := public.arena_vez(base, d, 10);
+  if (r -> 'ev' ->> 'devolvido')::int <= 0 then raise exception 'FALHA defesa suprema: devolve dano: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Defesa Suprema sobe a defesa e devolve dano';
+  -- Pó nos Olhos: o outro fica cego por 2 vezes
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('artesao', 30, '{"classe2":"coletor","pontos":{"po-nos-olhos":1},"ordem":{"arena":["po-nos-olhos"]}}')));
+  r := public.arena_vez(a, base, 10);
+  if (r -> 'outro' ->> 'cego')::int <> 2 or (r -> 'outro' ->> 'cegoPct')::numeric <> 30 then raise exception 'FALHA pó nos olhos: %', r -> 'outro'; end if;
+  raise notice 'ok   arena: Pó nos Olhos cega o oponente';
+  -- Execução: sempre o 20 do dado e +50% abaixo de 30% da vida
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 30, '{"classe2":"assassino","pontos":{"execucao":1},"ordem":{"arena":["execucao"]}}')));
+  r := public.arena_vez(a, base || jsonb_build_object('hp', 200, 'furtivo', true), 2);
+  if not (r -> 'ev' ? 'executou') or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <= 0 then raise exception 'FALHA execução: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Execução não erra, não é esquivada e executa';
+end $$;
 -- Arena: esquiva não conta, só o 1 do dado erra
 do $$
 declare a jsonb; d jsonb; r jsonb; i int; erros int := 0;

@@ -1233,13 +1233,40 @@
   }
 
   // ----- Aba Habilidades: habilidade inicial, segunda classe, pontos e ordem de uso -----
-  var TIPO_HAB = { unico: 'Golpe', multiplo: 'Golpe duplo', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva' };
+  var TIPO_HAB = { unico: 'Golpe', multiplo: 'Golpe duplo', area: 'Área', atordoar: 'Atordoar', reforco: 'Reforço', furtivo: 'Reforço', provocar: 'Reforço', cura: 'Cura', passiva: 'Passiva',
+    dot: 'Veneno', escudo: 'Escudo', cegar: 'Cegueira' };
+  // Habilidades do level 20 (caçada e masmorra) e do level 30 (Arena): o efeito com N pontos.
+  function efeitoNivel(def, n) {
+    var v = function (c) { return String(R.valorNivel(def[c], n)).replace('.', ','); };
+    var x = [];
+    if (def.regenPct) x.push('recupera <b>' + v('regenPct') + '%</b> da vida a cada turno');
+    if (def.rouboVida) x.push('<b>' + v('rouboVida') + '%</b> do dano que você causa vira vida');
+    if (def.reducaoDano) x.push('recebe <b>' + v('reducaoDano') + '%</b> menos dano');
+    if (def.danoPvEPct) x.push('causa <b>+' + v('danoPvEPct') + '%</b> de dano');
+    if (def.curaEmergencia) x.push('uma vez por luta, abaixo de ' + def.limiar + '% da vida, recupera <b>' + v('curaEmergencia') + '%</b>');
+    if (def.dotPct) x.push((def.curaDot ? 'sangramento' : 'veneno') + ' de <b>' + v('dotPct') + '%</b> do seu dano por turno, por ' + def.turnos + ' turnos'
+      + (def.curaDot ? '; você recupera ' + def.curaDot + '% do que ele tira' : '') + (def.pula ? '; pula para outro monstro; cada monstro morto pelo veneno cura ' + def.curaMorte + '%' : ''));
+    if (def.escudoPct) x.push('escudo que segura <b>' + v('escudoPct') + '%</b> da vida por ' + def.turnos + ' turnos; quem bate tem ' + def.congelaChance + '% de chance de congelar');
+    if (def.mult) x.push('golpe de <b>' + v('mult') + '%</b>' + (def.ignoraDefesaPct ? ' que ignora ' + def.ignoraDefesaPct + '% da defesa' : ''));
+    if (def.vidaFaltando) x.push('+' + String(def.vidaFaltando).replace('.', ',') + '% de dano para cada 1% de vida que falta');
+    if (def.silencia) x.push('o oponente fica ' + def.silencia + ' vez sem habilidades');
+    if (def.garantido) x.push('sempre vale o 20 do dado e não pode ser esquivado');
+    if (def.executa) x.push('<b>+' + def.executa.bonus + '%</b> se o oponente tiver menos de ' + def.executa.abaixo + '% da vida');
+    if (def.queima) x.push('queima por ' + def.queima.turnos + ' vezes (' + def.queima.pct + '% do seu dano) e corta as curas pela metade');
+    if (def.quebraDefesaPct) x.push('prende por ' + def.atordoa + ' vez e tira ' + def.quebraDefesaPct + '% da defesa até o fim da luta');
+    if (def.erroPct) x.push('por ' + def.turnos + ' vezes, o oponente tem ' + def.erroPct + '% de chance de errar');
+    if (def.milagrePct) x.push('uma vez por luta, se cair, volta com <b>' + v('milagrePct') + '%</b> da vida');
+    if (Array.isArray(def.defesaPct)) x.push('<b>+' + v('defesaPct') + '%</b> de defesa por ' + def.turnos + ' vezes e devolve ' + def.reflete + '% do dano recebido');
+    var t = x.join('; ');
+    return t.charAt(0).toUpperCase() + t.slice(1) + '.';
+  }
   var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
     vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
   var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
   // O que a habilidade faz com N pontos (com 0 pontos mostra como fica com 1).
   function efeitoHabilidade(def, pts) {
     var n = def.inicial ? 0 : Math.max(1, pts), T = D.TALENTOS;
+    if (def.nivel) return efeitoNivel(def, n);
     var bonus = function () {
       return Object.keys(CAMPO_HAB).filter(function (c) { return def[c]; }).map(function (c) {
         return CAMPO_HAB[c] + ' +' + R.valorBonus(def, c, n) + '%';
@@ -1277,12 +1304,14 @@
   }, true);
   function cartaHabilidade(def, pts, pend, editavel, arma) {
     var dist = pts + (pend || 0), total = dist + (arma || 0), max = D.TALENTOS.maxPorHabilidade;
-    return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + '">'
+    var trancada = def.nivel && !R.habLiberada(estado.personagem, def);
+    return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + (trancada ? ' trancada' : '') + '">'
       + '<div class="hab-topo"><span class="hab-titulo">' + iconeHab(def) + '<strong>' + def.nome + '</strong></span><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
+      + (def.nivel ? '<p class="hab-nivel">' + (trancada ? '🔒 Libera no level ' + def.nivel : 'Level ' + def.nivel) + ' · ' + (def.modo === 'pve' ? 'só contra monstros' : 'só na Arena') + '</p>' : '')
       + '<p class="hab-efeito">' + efeitoHabilidade(def, total) + '</p>'
       + '<p class="suave pequeno">' + (def.recarga ? 'Recarga: ' + def.recarga + ' turnos' : 'Sempre ligada') + (emGrupo(def) && def.tipo !== 'passiva' ? ' · melhor em grupo' : '')
-      + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' ? ' · não gasta a vez' : '') + '</p>'
-      + (editavel ? '<div class="hab-pontos"><button class="btn-mini" data-acao="hab-menos" data-id="' + def.id + '"' + (pend ? '' : ' disabled') + '>−</button>'
+      + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' || def.tipo === 'dot' || def.tipo === 'escudo' || def.tipo === 'cegar' ? ' · não gasta a vez' : '') + '</p>'
+      + (editavel && !trancada ? '<div class="hab-pontos"><button class="btn-mini" data-acao="hab-menos" data-id="' + def.id + '"' + (pend ? '' : ' disabled') + '>−</button>'
         + '<span><b>' + dist + '</b>/' + max + (pend ? ' <em class="mais">(+' + pend + ')</em>' : '') + (arma ? ' <em class="raridade-lendaria" title="Pontos da arma equipada">+' + arma + ' da arma</em>' : '') + '</span>'
         + '<button class="btn-mini" data-acao="hab-mais" data-id="' + def.id + '"' + (dist >= max ? ' disabled' : '') + '>+</button></div>' : '')
       + '</div>';
@@ -1312,7 +1341,7 @@
           var sc = D.SEGUNDAS_CLASSES[id];
           return '<div class="classe2"><div class="classe2-retrato moldura">' + F.personagem(p.raca, id, p.sexo) + '</div>'
             + '<h4>' + (fem && sc.nomeF || sc.nome) + '</h4><p class="suave">' + sc.descricao + '</p>'
-            + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span><br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>'
+            + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span>' + (x.nivel ? ' <span class="suave pequeno">(level ' + x.nivel + ')</span>' : '') + '<br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>'
             + (pode ? '<button class="btn" data-acao="hab-classe" data-valor="' + id + '">Ser ' + (fem && sc.nomeF || sc.nome) + '</button>' : '') + '</div>';
         }).join('') + '</div>';
     } else {
@@ -1320,7 +1349,7 @@
       h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
         + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
-        + 'Você ganha +' + T.pontosPorNivel + ' ponto a cada level.</p>'
+        + 'Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>'
         + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
@@ -1328,7 +1357,7 @@
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
         + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p><div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
-          var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
+          var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0 && R.habNoModo(x, m[0]); });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
             + lista.map(function (id, i) {
               var x = ativas.filter(function (a) { return a.id === id; })[0];
@@ -2777,6 +2806,8 @@
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
     if (ev.pocao) {
       linha('cura', ICONE_POCAO + ' ' + nomeJ + ' bebe uma poção e recupera <strong>' + ev.cura + '</strong> de vida.');
+    } else if (ev.dot) {
+      linha('habilidade-usada', '☠️ ' + esc(ev.habilidade) + ': ' + nomeM + ' perde <strong>' + ev.dano + '</strong> de vida.');
     } else if (ev.habilidade) {
       if (!ev.acerto) linha('errou', '⚡ ' + ev.habilidade.toUpperCase() + '! Mas ' + nomeJ + ' erra o golpe.');
       else {
@@ -2803,6 +2834,7 @@
       if (!ev.acerto) linha('errou', nomeM + ' ataca, mas ' + nomeJ + ' se esquiva.');
       else {
         linha('dano-recebido', nomeM + ' ataca e causa <strong>' + ev.dano + '</strong> de dano.');
+        if (ev.bolso) linha('cura', '🧪 Bolso de Poções! ' + nomeJ + ' bebe um gole e recupera vida.');
         golpe('lutador-jogador');
       }
     }
@@ -4359,7 +4391,8 @@
       if (!ev.acerto) L.registro.push('<p class="errou">' + esc(h.nome) + ' erra ' + esc(m.nome) + '.</p>');
       else {
         L.hpM[ev.alvo] = Math.max(0, L.hpM[ev.alvo] - ev.dano);
-        L.registro.push('<p class="' + (ev.critico ? 'critico' : '') + '">' + (ev.critico ? 'CRÍTICO! ' : '') + esc(h.nome) + ' acerta ' + esc(m.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
+        L.registro.push(ev.dot ? '<p class="habilidade-usada">☠️ ' + esc(m.nome) + ' perde <strong>' + ev.dano + '</strong> (veneno de ' + esc(h.nome) + ').</p>'
+          : '<p class="' + (ev.critico ? 'critico' : '') + '">' + (ev.critico ? 'CRÍTICO! ' : '') + esc(h.nome) + ' acerta ' + esc(m.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
         if (ev.caiu) L.registro.push('<p class="destaque">' + esc(m.nome) + ' caiu!</p>');
         else if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(m.nome) + (ev.congelou ? ' está congelado!' : ' está atordoado!') + '</p>');
       }
@@ -4369,6 +4402,7 @@
       else {
         L.hpH[ev.alvo] = Math.max(0, L.hpH[ev.alvo] - ev.dano);
         L.registro.push('<p class="dano-recebido">' + esc(mo.nome) + ' acerta ' + esc(alvo.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
+        if (ev.bolso) L.registro.push('<p class="cura">🧪 ' + esc(alvo.nome) + ' usa o Bolso de Poções e recupera vida.</p>');
         if (ev.caiu) L.registro.push('<p class="dano-recebido"><strong>' + esc(alvo.nome) + ' caiu!</strong></p>');
       }
     }
@@ -5263,6 +5297,10 @@
     // Habilidades: o nome antes do dado; atordoado e cura não têm golpe.
     if (ev.hab) L.registro.push('<p class="habilidade-usada">' + (ev.cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + esc(atk.nome) + ' usa <strong>' + esc(ev.hab) + '</strong>'
       + (ev.cura ? ' e recupera <strong>' + ev.cura + '</strong> de vida' : '') + '!</p>');
+    // Level 30 (nov/2026): queimadura, cala, cegueira, Milagre e dano devolvido.
+    if (ev.queimou) L.registro.push('<p class="dano-recebido">🔥 ' + esc(atk.nome) + ' queima e perde <strong>' + ev.queimou + '</strong>.</p>');
+    if (ev.milagreEu) L.registro.push('<p class="cura">✨ Milagre! ' + esc(atk.nome) + ' volta à luta.</p>');
+    if (ev.calado) L.registro.push('<p class="errou">🤐 ' + esc(atk.nome) + ' está calado: sem habilidades nesta vez.</p>');
     if (ev.atordoado) {
       L.registro.push('<p class="errou">' + esc(atk.nome) + (atk.sexo === 'feminino' ? ' está atordoada' : ' está atordoado') + ' e perde a vez.</p>');
       if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
@@ -5273,7 +5311,15 @@
     if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
-      + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20!)' : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
+      + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? (ev.hab ? ' (vale o 20!)' : ' (Sombra: vale o 20!)') : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
+    if (ev.errouCego) L.registro.push('<p class="errou">🌫️ ' + esc(atk.nome) + ' está com pó nos olhos e erra!</p>');
+    if (ev.executou) L.registro.push('<p class="critico">💀 Execução! ' + esc(alvo.nome) + ' estava fraco.</p>');
+    if (ev.devolvido) L.registro.push('<p class="dano-recebido">🛡️ ' + esc(alvo.nome) + ' devolve <strong>' + ev.devolvido + '</strong> de dano.</p>');
+    if (ev.calou) L.registro.push('<p class="destaque">🤐 ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
+    if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−30%).</p>');
+    if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + esc(alvo.nome) + ' está queimando e as curas dele caem pela metade.</p>');
+    if (ev.cegou) L.registro.push('<p class="destaque">🌫️ ' + esc(alvo.nome) + ' leva pó nos olhos.</p>');
+    if (ev.milagre) L.registro.push('<p class="cura">✨ Milagre! ' + esc(alvo.nome) + ' volta à luta.</p>');
     if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(alvo.nome) + (alvo.sexo === 'feminino' ? (ev.congelou ? ' está congelada' : ' está atordoada') : (ev.congelou ? ' está congelado' : ' está atordoado')) + ' por ' + ev.atordoou + (ev.atordoou > 1 ? ' turnos!' : ' turno!') + '</p>');
     if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
   }

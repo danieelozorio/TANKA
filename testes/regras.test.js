@@ -1923,3 +1923,67 @@ teste('mineração: 30 min a 24 h, parar com 50% dá metade, antes disso nada; h
   assert.strictEqual(h.minutos, 60 + 120 + 240); assert.strictEqual(h.qtd + h.gemas, 27); assert.strictEqual(h.vezes, 3);
   assert.ok(R.mediaMinas(p, 5).qtd > R.mediaMinas(p, 4).qtd);
 });
+
+teste('habilidades do level 20/30: pontos +2 do 21, liberam no level, cada uma no seu modo', () => {
+  const mk = (classe, c2, nivel) => {
+    const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
+    R.admin.subirNivel(p, nivel - 1); R.escolherSegundaClasse(p, c2); return p;
+  };
+  assert.strictEqual(R.pontosHabilidadeTotal(mk('cavaleiro', 'paladino', 20)), 14);
+  assert.strictEqual(R.pontosHabilidadeTotal(mk('cavaleiro', 'paladino', 21)), 16);
+  assert.strictEqual(R.pontosHabilidadeTotal(mk('cavaleiro', 'paladino', 30)), 34);
+  const p = mk('arqueiro', 'cacador', 19);
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'flecha-envenenada', 1), 'Libera no level 20.');
+  R.admin.subirNivel(p, 1);
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'flecha-envenenada', 1), true);
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'tiro-silenciador', 1), 'Libera no level 30.');
+  R.admin.subirNivel(p, 10);
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'tiro-silenciador', 1), true);
+  const ids = (m) => R.kitHabilidades(p, m).map((k) => k.def.id);
+  assert.ok(ids('cacada').includes('flecha-envenenada') && !ids('cacada').includes('tiro-silenciador'));
+  assert.ok(ids('arena').includes('tiro-silenciador') && !ids('arena').includes('flecha-envenenada'));
+  // personagem antigo (ordem sem as novas): elas entram uma vez, no modo certo
+  const v = mk('mago', 'bruxo', 30); delete v.talentos.ordemNiveis;
+  Object.keys(v.talentos.ordem).forEach((m) => { v.talentos.ordem[m] = v.talentos.ordem[m].filter((id) => !D.SEGUNDAS_CLASSES.bruxo.habilidades.find((h) => h.id === id).nivel); });
+  const t = R.talentos(v);
+  assert.ok(t.ordem.cacada.includes('escudo-de-gelo') && !t.ordem.arena.includes('escudo-de-gelo'));
+  assert.ok(t.ordem.defesa.includes('maldicao-de-ignaroth') && !t.ordem.masmorra.includes('maldicao-de-ignaroth'));
+  // a passiva de sempre continua sendo a 1ª (status), as novas não mexem nos atributos
+  R.mudarPontoHabilidade(v, 'mente-sombria', 1);
+  assert.strictEqual(R.passiva(v).def.id, 'mente-sombria');
+});
+
+teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, veneno e Bolso de Poções', () => {
+  const mk = (classe, c2, hab) => {
+    const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
+    R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);
+    for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, hab, 1);
+    p.hpAtual = R.status(p).hpMax; return p;
+  };
+  const x = (c, c2, h) => R.extrasPve(mk(c, c2, h));
+  assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 1.2 });
+  assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 30 });
+  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 20, danoPvEPct: 35 });
+  assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 55, limiar: 40 });
+  // na Arena não vale
+  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').pve }, {});
+  // luta de verdade: o veneno do Arqueiro tira vida a cada vez e o Bolso cura uma vez
+  let s = 3; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+  const a = mk('arqueiro', 'cacador', 'flecha-envenenada');
+  const b = R.iniciarBatalha(a, 'mumia', rnd);
+  let venenos = 0, n = 0;
+  while (!b.fim && n++ < 500) { const e = R.passo(b); if (e && b.lutador.dot && b.lutador.dot.turnos < 3) venenos++; }
+  assert.ok(venenos > 0, 'o veneno agiu');
+  const c = mk('artesao', 'coletor', 'bolso-de-pocoes');
+  const bc = R.iniciarBatalha(c, 'farao', rnd);
+  let bolso = 0; n = 0;
+  while (!bc.fim && n++ < 2000) { const e = R.passo(bc); if (e && e.bolso) bolso++; }
+  assert.ok(bolso <= 1, 'Bolso de Poções só uma vez por luta');
+  // escudo segura dano
+  const L = R.novoLutador(mk('mago', 'bruxo', 'escudo-de-gelo'), 'cacada');
+  L.turno = 1; L.escudo = 50; L.escudoAte = 3; L.congelaChance = 30;
+  const m = { atordoado: 0 };
+  assert.strictEqual(R.aoReceber(L, 80, m, () => 0), 30);
+  assert.strictEqual(L.escudo, 0);
+  assert.strictEqual(m.atordoado, 1, 'quem bate no escudo pode congelar');
+});
