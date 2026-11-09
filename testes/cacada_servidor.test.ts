@@ -48,7 +48,7 @@ const pedir = (corpo: unknown, token = 'tok-u1') => tratar(new Request(base + '/
 let r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo', 'javali'] }, 'tok-ruim');
 ok(r.status === 401, 'sem login válido: 401');
 r = await pedir({ acao: 'encontro', personagem: 'outro', alvos: ['lobo'] });
-ok(r.status === 404, 'personagem de outra conta: 404');
+ok(r.status === 403, 'personagem de outra conta: 403');
 r = await pedir({ acao: 'lutar', personagem: p0.id });
 ok((await r.json()).erro, 'lutar sem encontro: erro');
 r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo', 'urso-pardo-inexistente', 'chefe'] });

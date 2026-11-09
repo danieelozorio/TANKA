@@ -469,3 +469,23 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Um clique em item/consumível abre `#ficha-flutuante` (dentro do #app, `position: fixed`, ao lado do item) com
   `fichaItemHtml` + botão "Ampliar e comparar" (`item-ampliar` → o zoom de antes). Fecha clicando fora, no ✕, no mesmo
   item ou Esc. `telaJogo` foi embrulhada para reabrir a ficha presa ao item depois de redesenhar.
+
+## Anti-trapaça — etapa 1: caçada no servidor (Henri, nov/2026)
+- Plano completo: https://claude.ai/artifact/MCf7AJMvDfvfjccGQc2PVy (etapas 2–5 ainda não feitas).
+- Regra única em `js/servidor-cacada.js` (`Tanka.servidorCacada`: `encontro`, `lutar`, `fugir`). Roda na Edge Function
+  `supabase/functions/cacada/index.ts` e, na prévia sem servidor, dentro de `contas-local.js`.
+- `ferramentas/gerar_servidor.js` junta dados/historia/regras/servidor-cacada em `supabase/functions/_shared/tanka.js`
+  (gerado, fora do git). O GitHub (`.github/workflows/funcao-cacada.yml`) gera, testa e envia a função a cada push no
+  main que mexe nas regras. Precisa do segredo `SUPABASE_ACCESS_TOKEN` no repositório; sem ele só avisa.
+- A função: confere o login (`/auth/v1/user`), lê o personagem com o login do jogador (RLS), pega o bônus do clã em
+  `cacada_bonus(meu)` (schema.sql), roda a regra com o relógio/sorteio do servidor e grava com a proteção de versão
+  (409 = outra aba). Publicada com `--no-verify-jwt` (chaves novas do Supabase); não usa a chave secreta.
+- Ritmo: `p.encontro.prontoEm` (metade do tempo de busca) e `p.cacadaLivreEm` (fim da luta no modo rápido). Pedir de
+  novo devolve o mesmo encontro (não sorteia outro chefe); fugir não acelera.
+- Cliente (`app.js`, `CACA_SERVIDOR`): a luta vem pronta (`eventos` com vida/poder depois de cada um) e é animada pelo
+  `turno()` com `b.replay`; sem poção/habilidade manual no meio da luta (poção automática pela opção da caçada).
+  "Caçar de novo" vira caçada contínua de um monstro. `C.cacada` entra na fila das gravações e troca o personagem em
+  uso pelo do servidor (o mesmo objeto); `salvarPersonagem` copia na hora de gravar. Se a função não existir (404),
+  volta ao jeito antigo.
+- Testes: `node testes/regras.test.js` (regra) e `deno run --allow-read --allow-env testes/cacada_servidor.test.ts`
+  (função, com Supabase de mentira; antes rodar `node ferramentas/gerar_servidor.js`).

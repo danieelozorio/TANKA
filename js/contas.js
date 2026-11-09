@@ -186,10 +186,12 @@ Tanka.contas = (function () {
     return e;
   }
   function salvarPersonagem(p) {
-    var copia = JSON.parse(JSON.stringify(p));
     var i = conta ? conta.personagens.findIndex(function (x) { return x.id === p.id; }) : -1;
     if (i >= 0) conta.personagens[i] = p;
     fila = fila.catch(function () {}).then(async function () {
+      // A cópia é feita na hora de gravar (e não ao pedir): se a caçada do servidor rodou antes na fila, grava o
+      // personagem já com o resultado dela.
+      var copia = JSON.parse(JSON.stringify(p));
       if (emConflito) throw erroConflito();
       if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
       var antes = versaoNoServidor[copia.id] !== undefined ? versaoNoServidor[copia.id] : (Number(copia.versao) || 0);
@@ -206,6 +208,39 @@ Tanka.contas = (function () {
       p.versao = copia.versao;
     });
     return fila;
+  }
+
+  // Caçada decidida pelo servidor (função `cacada`, plano anti-trapaça). Entra na mesma fila das gravações: espera o
+  // que estava pendente, e a versão que a função gravou passa a ser a desta aba. Devolve a resposta da função
+  // ({ erro } quando a regra recusou; o personagem novo vem em `personagem`).
+  function cacada(acao, corpo) {
+    var pedido = Object.assign({ acao: acao }, corpo || {});
+    var feito = fila.catch(function () {}).then(async function () {
+      if (emConflito) throw erroConflito();
+      if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
+      var r;
+      try {
+        r = await pedir('/functions/v1/cacada', { metodo: 'POST', corpo: pedido });
+      } catch (e) {
+        if (e.status === 409) { emConflito = true; if (aoConflito) aoConflito(); throw erroConflito(); }
+        throw e;
+      }
+      if (r && r.personagem) {
+        versaoNoServidor[r.personagem.id] = r.personagem.versao;
+        // Troca o conteúdo do personagem que o jogo está usando (o mesmo objeto), antes de qualquer outra gravação
+        // da fila: assim nenhuma gravação velha passa por cima do resultado da caçada.
+        var i = conta ? conta.personagens.findIndex(function (x) { return x.id === r.personagem.id; }) : -1;
+        if (i >= 0) {
+          var vivo = conta.personagens[i];
+          Object.keys(vivo).forEach(function (k) { delete vivo[k]; });
+          r.personagem = Object.assign(vivo, r.personagem);
+        }
+      }
+      if (r && r.agora) r.diferenca = r.agora - Date.now();   // relógio da função - relógio do aparelho
+      return r;
+    });
+    fila = feito.catch(function () {});
+    return feito;
   }
 
   // ---------- Chat global ----------
@@ -392,6 +427,7 @@ Tanka.contas = (function () {
     criarPersonagem: criarPersonagem,
     excluirPersonagem: excluirPersonagem,
     salvarPersonagem: salvarPersonagem,
+    cacada: cacada,
     aoConflito: function (f) { aoConflito = f; },
   };
 })();

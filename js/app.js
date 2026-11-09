@@ -2841,7 +2841,7 @@
           + '<span class="cacada-habilidade-simbolo" aria-hidden="true">✦</span>' + iconeHab(def)
           + '<small aria-hidden="true">' + (recarga || '✓') + '</small></span>';
       }).join('');
-      var podeBeber = !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
+      var podeBeber = !b.replay && !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
       return '<div class="cacada-acoes">' + habilidades
         + '<button class="btn cacada-pocao" data-acao="beber-pocao" title="Beber poção"'
         + (podeBeber ? '' : ' disabled') + '>' + ICONE_POCAO + ' Poção (' + b.pocoes + ')'
@@ -2854,7 +2854,7 @@
       : '<button class="btn btn-habilidade' + (cheia ? ' pronta' : '') + '" data-acao="habilidade"' + (cheia ? '' : ' disabled') + '>⚡ ' + nome + '</button>';
     var pocao = b.pocaoPendente
       ? '<button class="btn btn-pocao" disabled>' + ICONE_POCAO + ' Bebendo…</button>'
-      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>' + ICONE_POCAO + ' Beber poção (' + b.pocoes + ')</button>';
+      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (!b.replay && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>' + ICONE_POCAO + ' Beber poção (' + b.pocoes + ')</button>';
     if (!D.HABILIDADES_ATIVAS) return pocao;
     return botao + pocao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
   }
@@ -2992,8 +2992,19 @@
     var b = estado.batalha;
     if (!b) return;
     var linhasAntes = estado.registro.length;
-    if (estado.cacada && R.precisaPocao(b, prefsCacada().pocao)) R.beberPocao(b);
-    var ev = R.passo(b);
+    var ev;
+    if (b.replay) {   // luta que o servidor já decidiu: só mostra os eventos, um por turno
+      var x = b.replay.eventos[b.replay.i++];
+      if (!x) { b.fim = b.replay.res.resultado || 'fuga'; encerrar(); return; }
+      ev = x.ev;
+      b.jogador.hp = x.jh; b.jogador.hpMax = x.jm; b.monstro.hp = x.mh; b.jogador.poder = x.po; b.pocoes = x.pc;
+      b.monstro.atordoado = x.at;
+      if (b.lutador) { b.lutador.turno = x.tu; if (x.pr) b.lutador.pronto = x.pr; }
+      if (b.replay.i >= b.replay.eventos.length) b.fim = b.replay.res.resultado || 'fuga';
+    } else {
+      if (estado.cacada && R.precisaPocao(b, prefsCacada().pocao)) R.beberPocao(b);
+      ev = R.passo(b);
+    }
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
     if (ev.queimou) linha('habilidade-usada', '🔥 ' + nomeM + ' queima e perde <strong>' + ev.queimou + '</strong>.');
     if (ev.queimou && b.fim) { /* morreu queimado: só a linha acima */ } else if (ev.pocao) {
@@ -3057,8 +3068,15 @@
     if (!b) return;
     clearTimeout(estado.timer);
     if (b.mundial) { encerrarMundial(b); return; }
-    var primeiraVez = !(estado.personagem.abates[b.monstroId] || 0);
-    var res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
+    var primeiraVez, res;
+    if (b.replay) {   // o servidor já aplicou tudo (prêmios, missões, história): só conta para a missão do clã
+      res = b.replay.res;
+      primeiraVez = b.replay.extras && b.replay.extras.primeiraVez;
+      if (res.resultado === 'vitoria') missaoCla('monstros', 1);
+      if (b.replay.extras && b.replay.extras.historia) avisoHistoria();
+    } else {
+    primeiraVez = !(estado.personagem.abates[b.monstroId] || 0);
+    res = R.concluirBatalha(estado.personagem, b, C.agora(), bonusAlianca());
     if (res.resultado === 'vitoria') {
       R.registrarMissao(estado.personagem, 'abate', 1, C.agora());
       missaoCla('monstros', 1);
@@ -3066,11 +3084,12 @@
       if (R.registrarHistoria(estado.personagem, 'abate', b.monstroId)) avisoHistoria();
       R.registrarGuia(estado.personagem, 'abate');
     }
+    }
     if (estado.cacada) {
       if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.'
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
       if (res.material && estado.cacada) estado.cacada.materiais = (estado.cacada.materiais || 0) + res.material.qtd;
-      else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
+      if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
       else linha('errou', esc(estado.personagem.nome) + ' fugiu.');
       fimLutaCacada(res, b, primeiraVez);
       return;
@@ -3115,10 +3134,10 @@
     var p = estado.personagem;
     return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
   }
-  function iniciarCacada(areaId) {
+  function iniciarCacada(areaId, soEstes) {
     if (bloqueadoMinerando('caçar')) return;
     var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
-    var alvos = area ? selecaoArea(area).slice() : [];
+    var alvos = soEstes ? soEstes.slice() : area ? selecaoArea(area).slice() : [];
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
     if (R.atualizarTempo(p, C.agora())) salvar();
     if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
@@ -3159,6 +3178,7 @@
     c.fase = 'buscando';
     c.encontro = null;
     c.prazo = null;
+    if (CACA_SERVIDOR) { procurarNoServidor(); return; }
     // O monstro é sorteado já no começo: o mais forte demora mais para ser achado.
     c.proximo = R.escolherMonstroCacada(p, c.alvos);
     if (!c.proximo) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
@@ -3170,10 +3190,17 @@
   function encontrarMonstro() {
     var c = estado.cacada, p = estado.personagem;
     if (!c || !c.ativa) return;
+    var chefe;
+    if (CACA_SERVIDOR) {   // o monstro (e o chefe) foi sorteado pelo servidor
+      if (!c.servEncontro) { procurarMonstro(); return; }
+      c.encontro = { monstro: c.servEncontro.monstro, normal: c.servEncontro.normal, chefe: !!c.servEncontro.chefe };
+      chefe = c.encontro.chefe;
+    } else {
     var id = c.proximo && R.podeCacar(p, c.proximo) ? c.proximo : R.escolherMonstroCacada(p, c.alvos);
     if (!id) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
-    var chefe = R.sortearChefe(p, id);
+    chefe = R.sortearChefe(p, id);
     c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
+    }
     c.fase = 'encontrou';
     if (!chefe && prefsCacada().lutarSempre) { lutarCacada(); return; }
     // Chefe: o jogador escolhe nas opções se sempre pergunta, sempre foge ou sempre luta.
@@ -3189,6 +3216,7 @@
     if (!c || !c.ativa || !c.encontro) return;
     clearTimeout(c.timer);
     c.prazo = null;
+    if (CACA_SERVIDOR) { lutarNoServidor(); return; }
     c.fase = 'lutando';
     estado.escolhido = c.encontro.normal;
     estado.batalha = R.iniciarBatalha(p, c.encontro.monstro);
@@ -3201,10 +3229,17 @@
     var c = estado.cacada;
     if (!c || c.fase !== 'encontrou') return;
     clearTimeout(c.timer);
-    if (c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // evitou o chefe: a chance zera
+    if (CACA_SERVIDOR) {
+      c.servEncontro = null;
+      c.fase = 'buscando';
+      C.cacada('fugir', { personagem: estado.personagem.id }).then(function (r) {
+        adotarPersonagem(r.personagem);
+        if (estado.cacada === c && c.ativa) procurarMonstro();
+      }).catch(erroCacada);
+    } else if (c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // evitou o chefe: a chance zera
     c.historico.unshift({ monstro: c.encontro.monstro, resultado: 'evitou' });
     c.historico = c.historico.slice(0, D.CACADA.historico);
-    procurarMonstro();
+    if (!CACA_SERVIDOR) procurarMonstro();
   }
   function pararCacada(motivo) {
     var c = estado.cacada;
@@ -3214,7 +3249,11 @@
     c.prazo = null;
     c.motivo = motivo || 'Você parou a caçada.';
     if (estado.batalha) { encerrar(); return; }        // parar no meio da luta = fugir dela
-    if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // parou com o chefe na frente
+    if (CACA_SERVIDOR) {
+      if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe) {   // parou com o chefe na frente: fugiu dele
+        C.cacada('fugir', { personagem: estado.personagem.id }).then(function (r) { adotarPersonagem(r.personagem); }).catch(function () {});
+      }
+    } else if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe && R.evitarChefe(estado.personagem, c.encontro.monstro)) salvar();   // parou com o chefe na frente
     c.fase = 'parada';
     clearInterval(c.relogio);
     telaJogo();
@@ -3252,18 +3291,94 @@
     c.historico = c.historico.slice(0, D.CACADA.historico);
     estado.ultimaBatalha = b;
     estado.batalha = null;
-    salvar();
+    if (!b.replay) salvar();   // a do servidor já foi gravada por ele
     if (res.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
     var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
     if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
     itens.forEach(function (it) { if (!it.consumivel) avisar('Item novo: ' + R.nomeItem(it), 'item'); });   // pergaminho tem aviso próprio
     if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
     if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
+    if (b.replay && b.replay.parou) { pararCacada(b.replay.parou); return; }
     c.fase = 'pausa';
     telaJogo();
     clearTimeout(c.timer);
     c.timer = setTimeout(procurarMonstro, estado.rapido ? 450 : 900);
   }
+  // ---- Caçada decidida pelo servidor (plano anti-trapaça, etapa 1) ----
+  // O servidor sorteia o monstro e o chefe, faz a luta inteira e aplica os prêmios; aqui só mostramos.
+  // Um pedido por luta: a resposta da luta já traz o próximo monstro encontrado.
+  var CACA_SERVIDOR = typeof C.cacada === 'function';
+  function adotarPersonagem(novo) {
+    var p = estado.personagem;
+    if (!novo || novo === p || novo.id !== p.id) return;
+    Object.keys(p).forEach(function (k) { delete p[k]; });
+    Object.assign(p, novo);
+  }
+  function erroCacada(e) {
+    var c = estado.cacada;
+    if (e && e.conflito) return;   // o jogo já recarrega o personagem
+    // A função ainda não foi enviada ao Supabase (404): enquanto isso, a caçada segue no jeito antigo.
+    if (e && e.status === 404 && CACA_SERVIDOR) {
+      CACA_SERVIDOR = false;
+      if (c && c.ativa) { c.lutando = false; c.servEncontro = c.servProximo = null; procurarMonstro(); }
+      return;
+    }
+    if (c) { c.lutando = false; pararCacada((e && e.message) || 'Sem conexão com o servidor.'); }
+  }
+  // Espera o monstro aparecer: o tempo da busca, nunca antes do que o servidor marcou.
+  function esperarEncontro(c, e, busca, diferenca) {
+    c.servEncontro = e;
+    var pronto = e.prontoEm - (diferenca || 0) + 150;   // no relógio do aparelho
+    c.busca = Math.max(pronto - Date.now(), Math.round((busca || 0) / (estado.rapido ? 2 : 1)), 300);
+    telaJogo();
+    clearTimeout(c.timer);
+    c.timer = setTimeout(encontrarMonstro, c.busca);
+  }
+  function procurarNoServidor() {
+    var c = estado.cacada, p = estado.personagem;
+    if (c.servProximo) { var e = c.servProximo; c.servProximo = null; esperarEncontro(c, e, c.servBusca, c.servDiferenca); return; }
+    c.servEncontro = null;
+    C.cacada('encontro', { personagem: p.id, alvos: c.alvos }).then(function (r) {
+      adotarPersonagem(r.personagem);
+      if (estado.cacada !== c || !c.ativa) return;
+      if (r.erro) {
+        if (r.espera) { clearTimeout(c.timer); c.timer = setTimeout(procurarMonstro, r.espera + 200); return; }
+        pararCacada(r.erro); return;
+      }
+      esperarEncontro(c, r.encontro, r.busca, r.diferenca);
+    }).catch(erroCacada);
+  }
+  function lutarNoServidor() {
+    var c = estado.cacada, p = estado.personagem;
+    if (c.lutando) return;
+    c.lutando = true;
+    var antes = JSON.parse(JSON.stringify(p));   // a luta é mostrada a partir do herói de antes dela
+    var enc = c.encontro;
+    C.cacada('lutar', { personagem: p.id, alvos: c.alvos, pocao: prefsCacada().pocao }).then(function (r) {
+      c.lutando = false;
+      adotarPersonagem(r.personagem);
+      if (estado.cacada !== c) return;
+      if (r.erro) {
+        if (r.espera && c.ativa) { clearTimeout(c.timer); c.timer = setTimeout(lutarCacada, r.espera + 200); return; }
+        pararCacada(r.erro); return;
+      }
+      c.servEncontro = null;
+      c.servProximo = r.proximo || null;
+      c.servBusca = r.busca;
+      c.servDiferenca = r.diferenca;
+      var b = R.iniciarBatalha(R.normalizar(antes), r.monstroId);
+      b.replay = { eventos: r.eventos || [], i: 0, res: r.res, extras: r.extras || {}, parou: r.parou };
+      c.fase = 'lutando';
+      estado.escolhido = r.normal;
+      estado.batalha = b;
+      estado.registro = [];
+      linha('destaque', esc(p.nome) + (enc && enc.chefe ? ' enfrenta ' : ' encontra ') + D.monstros[r.monstroId].nome + '!');
+      if (!c.ativa) { encerrar(); return; }   // parou enquanto o servidor lutava: mostra só o resultado
+      telaJogo();
+      agendar();
+    }).catch(erroCacada);
+  }
+
   function fecharCacada() {
     pararTimersCacada();
     estado.cacada = null;
@@ -4030,7 +4145,7 @@
         telaJogo();
         break;
       case 'beber-pocao':
-        if (estado.batalha && R.beberPocao(estado.batalha)) {
+        if (estado.batalha && !estado.batalha.replay && R.beberPocao(estado.batalha)) {
           document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
         }
         break;
@@ -4164,7 +4279,7 @@
         break;
       }
       case 'habilidade':
-        if (estado.batalha && R.prepararHabilidade(estado.batalha)) {
+        if (estado.batalha && !estado.batalha.replay && R.prepararHabilidade(estado.batalha)) {
           document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
         }
         break;
@@ -4179,6 +4294,7 @@
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
         if (R.atualizarTempo(p, C.agora())) salvar();
         if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
+        if (CACA_SERVIDOR) { estado.resultado = null; iniciarCacada(D.monstros[alvo].area, [alvo]); break; }
         if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {

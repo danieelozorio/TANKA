@@ -16,7 +16,7 @@ Tanka.servidorCacada = (function () {
   var PAUSA = 450;                  // pausa entre lutas no modo rápido
   var MAX_PASSOS = 800;             // trava de segurança da simulação
 
-  function erro(msg) { return { erro: msg }; }
+  function erro(msg, espera) { var e = { erro: msg }; if (espera > 0) e.espera = Math.ceil(espera); return e; }
 
   // Procura um monstro: escolhe entre os alvos (só os liberados), sorteia o chefe e guarda o encontro.
   function encontro(p, alvos, agora, rng) {
@@ -25,7 +25,13 @@ Tanka.servidorCacada = (function () {
     if (p.acampado) R.acampar(p, agora, false);   // caçar levanta o acampamento
     if (p.minas && agora < p.minas.fim) return erro('Seu herói está minerando: pare a mineração para caçar.');
     if (!R.vidaParaCacar(p)) return erro('Vida baixa demais: é preciso ter mais de ' + D.CACADA.vidaMinima + '% da vida para caçar.');
-    if (p.cacadaLivreEm && agora < p.cacadaLivreEm - TOLERANCIA) return erro('Calma: o herói ainda está se recuperando da última luta.');
+    if (p.cacadaLivreEm && agora < p.cacadaLivreEm - TOLERANCIA) return erro('Calma: o herói ainda está se recuperando da última luta.', p.cacadaLivreEm - agora);
+    // Já tem um monstro encontrado entre esses alvos: é o mesmo (pedir de novo não sorteia outro chefe).
+    var e = p.encontro;
+    if (e && Array.isArray(alvos) && alvos.indexOf(e.normal) >= 0 && D.monstros[e.monstro]) {
+      return { encontro: copiaEncontro(e), busca: R.tempoBusca(p, e.normal) };
+    }
+    if (e && agora < e.prontoEm - TOLERANCIA) return erro('Calma: o herói ainda está procurando.', e.prontoEm - agora);
     return novoEncontro(p, alvos, agora, rng);
   }
   // Sorteia o encontro a partir de `desde` (sem mexer no relógio da vida).
@@ -49,6 +55,8 @@ Tanka.servidorCacada = (function () {
     var e = p.encontro;
     if (!e) return { ok: true };
     if (e.chefe) R.evitarChefe(p, e.monstro);
+    // Fugir não acelera a caçada: a próxima busca só começa quando este monstro apareceria.
+    p.cacadaLivreEm = Math.max(p.cacadaLivreEm || 0, e.prontoEm);
     if (trocarPorNormal && e.chefe) {
       p.encontro = { monstro: e.normal, normal: e.normal, chefe: false, em: e.em, prontoEm: e.prontoEm };
       return { encontro: copiaEncontro(p.encontro) };
@@ -65,7 +73,7 @@ Tanka.servidorCacada = (function () {
     opcoes = opcoes || {};
     var e = p.encontro;
     if (!e) return erro('Nenhum monstro encontrado: procure de novo.');
-    if (agora < e.prontoEm - TOLERANCIA) return erro('Calma: o monstro ainda não apareceu.');
+    if (agora < e.prontoEm - TOLERANCIA) return erro('Calma: o monstro ainda não apareceu.', e.prontoEm - agora);
     R.atualizarTempo(p, agora);
     if (p.hpAtual <= 0) { delete p.encontro; return erro('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); }
     var primeiraVez = !(p.abates[e.monstro] || 0);

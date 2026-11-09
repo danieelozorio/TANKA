@@ -247,6 +247,23 @@ Tanka.contas = (function () {
     iniciar: async function () { return contaAtual(); },
     agora: function () { return Date.now(); },
     criarPersonagem: async function (p) { salvarPersonagem(p); },
+    // Caçada: a mesma regra da função do servidor (js/servidor-cacada.js), rodando aqui, sobre o personagem gravado.
+    cacada: async function (acao, corpo) {
+      corpo = corpo || {};
+      var chave = sessao(), contas = ler();
+      if (!chave || !contas[chave]) throw new Error('Sessão expirada. Entre novamente.');
+      var guardado = contas[chave].personagens.find(function (x) { return x.id === corpo.personagem; });
+      if (!guardado) throw new Error('Personagem não encontrado.');
+      var R = Tanka.regras, S = Tanka.servidorCacada, t = Date.now();
+      var p = R.normalizar(JSON.parse(JSON.stringify(guardado)));
+      var saida = acao === 'encontro' ? S.encontro(p, corpo.alvos, t)
+        : acao === 'fugir' ? S.fugir(p, t, !!corpo.trocarPorNormal)
+        : S.lutar(p, t, Math.random, { exp: 0, ouro: 0 }, { alvos: corpo.alvos, pocao: corpo.pocao, continuar: corpo.continuar });
+      if (saida.erro) return saida;
+      p.versao = (Number(p.versao) || 0) + 1;
+      salvarPersonagem(p);
+      return Object.assign(saida, { personagem: JSON.parse(JSON.stringify(p)), agora: t, diferenca: 0 });
+    },
     excluirPersonagem: async function (id) {
       var chave = sessao(), contas = ler();
       if (!chave || !contas[chave]) throw new Error('Sessão expirada. Entre novamente.');

@@ -2061,3 +2061,13 @@ teste('servidor da caçada: mineração e vida baixa bloqueiam; fugir do chefe',
   SC.fugir(p, t);
   assert.ok(!p.encontro);
 });
+teste('servidor da caçada: pedir de novo não sorteia outro monstro; fugir não acelera', () => {
+  const p = R.criarPersonagem('S', 'masculino', 'humano', 'cavaleiro');
+  const t = 1.8e12;
+  const e1 = SC.encontro(p, ['lobo'], t, rng).encontro;
+  const e2 = SC.encontro(p, ['lobo'], t + 50, rng).encontro;
+  assert.deepStrictEqual(JSON.stringify(e1), JSON.stringify(e2));
+  SC.fugir(p, t + 60);
+  assert.ok(SC.encontro(p, ['lobo'], t + 70, rng).erro, 'depois de fugir espera o tempo do monstro');
+  assert.ok(SC.encontro(p, ['lobo'], e1.prontoEm, rng).encontro);
+});

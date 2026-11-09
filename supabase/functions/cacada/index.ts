@@ -43,7 +43,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   // 2. personagem (com o login do jogador: o banco só devolve se for dele)
   const r = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&select=conta_id,dados', { headers: cab });
   const linhas = r.ok ? await r.json() : [];
-  if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 404);
+  if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 403);
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
 
