@@ -1372,7 +1372,7 @@
     if (def.regenPct) x.push('recupera <b>' + v('regenPct') + '%</b> da vida a cada turno');
     if (def.rouboVida) x.push('<b>' + v('rouboVida') + '%</b> do dano que você causa vira vida');
     if (def.reducaoDano) x.push('recebe <b>' + v('reducaoDano') + '%</b> menos dano');
-    if (def.danoPvEPct) x.push('causa <b>+' + v('danoPvEPct') + '%</b> de dano');
+    if (def.danoExtraPct) x.push('causa <b>+' + v('danoExtraPct') + '%</b> de dano');
     if (def.curaEmergencia) x.push('uma vez por luta, abaixo de ' + def.limiar + '% da vida, recupera <b>' + v('curaEmergencia') + '%</b>');
     if (def.dotPct) x.push((def.curaDot ? 'sangramento' : 'veneno') + ' de <b>' + v('dotPct') + '%</b> do seu dano por turno, por ' + def.turnos + ' turnos'
       + (def.curaDot ? '; você recupera ' + def.curaDot + '% do que ele tira' : '') + (def.pula ? '; pula para outro monstro; cada monstro morto pelo veneno cura ' + def.curaMorte + '%' : ''));
@@ -1437,7 +1437,7 @@
     var trancada = def.nivel && !R.habLiberada(estado.personagem, def);
     return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + (trancada ? ' trancada' : '') + '">'
       + '<div class="hab-topo"><span class="hab-titulo">' + iconeHab(def) + '<strong>' + def.nome + '</strong></span><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
-      + (def.nivel ? '<p class="hab-nivel">' + (trancada ? '🔒 Libera no level ' + def.nivel : 'Level ' + def.nivel) + ' · ' + (def.modo === 'pve' ? 'só contra monstros' : 'só na Arena') + '</p>' : '')
+      + (def.nivel ? '<p class="hab-nivel">' + (trancada ? '🔒 Libera no level ' + def.nivel : 'Level ' + def.nivel) + ' · ' + (def.foco === 'cacada' ? 'mais forte na caçada' : 'mais forte na Arena') + '</p>' : '')
       + '<p class="hab-efeito">' + efeitoHabilidade(def, total) + '</p>'
       + '<p class="suave pequeno">' + (def.recarga ? 'Recarga: ' + def.recarga + ' turnos' : 'Sempre ligada') + (emGrupo(def) && def.tipo !== 'passiva' ? ' · melhor em grupo' : '')
       + (def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' || def.tipo === 'dot' || def.tipo === 'escudo' || def.tipo === 'cegar' ? ' · não gasta a vez' : '') + '</p>'
@@ -1487,7 +1487,7 @@
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
         + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p><div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
-          var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0 && R.habNoModo(x, m[0]); });
+          var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
             + lista.map(function (id, i) {
               var x = ativas.filter(function (a) { return a.id === id; })[0];
@@ -2934,7 +2934,8 @@
     if (estado.cacada && R.precisaPocao(b, prefsCacada().pocao)) R.beberPocao(b);
     var ev = R.passo(b);
     var nomeJ = esc(b.jogador.nome), nomeM = b.monstro.nome;
-    if (ev.pocao) {
+    if (ev.queimou) linha('habilidade-usada', '🔥 ' + nomeM + ' queima e perde <strong>' + ev.queimou + '</strong>.');
+    if (ev.queimou && b.fim) { /* morreu queimado: só a linha acima */ } else if (ev.pocao) {
       linha('cura', ICONE_POCAO + ' ' + nomeJ + ' bebe uma poção e recupera <strong>' + ev.cura + '</strong> de vida.');
     } else if (ev.dot) {
       linha('habilidade-usada', '☠️ ' + esc(ev.habilidade) + ': ' + nomeM + ' perde <strong>' + ev.dano + '</strong> de vida.');
@@ -2948,6 +2949,8 @@
         if (ev.quebrouArmadura) linha('destaque', 'A armadura de ' + nomeM + ' rachou! Ele recebe +25% de dano.');
         golpe('lutador-monstro', true);
       }
+    } else if (ev.cego) {
+      linha('errou', '🌫️ ' + nomeM + ' está com pó nos olhos e erra.');
     } else if (ev.atordoado) {
       linha('errou', nomeM + ' está atordoado e perde a vez.');
     } else if (ev.sombra) {
@@ -2965,6 +2968,7 @@
       else {
         linha('dano-recebido', nomeM + ' ataca e causa <strong>' + ev.dano + '</strong> de dano.');
         if (ev.bolso) linha('cura', '🧪 Bolso de Poções! ' + nomeJ + ' bebe um gole e recupera vida.');
+        if (ev.milagre) linha('cura', '✨ Milagre! ' + nomeJ + ' volta à luta.');
         golpe('lutador-jogador');
       }
     }
@@ -4524,7 +4528,8 @@
       if (!ev.acerto) L.registro.push('<p class="errou">' + esc(h.nome) + ' erra ' + esc(m.nome) + '.</p>');
       else {
         L.hpM[ev.alvo] = Math.max(0, L.hpM[ev.alvo] - ev.dano);
-        L.registro.push(ev.dot ? '<p class="habilidade-usada">☠️ ' + esc(m.nome) + ' perde <strong>' + ev.dano + '</strong> (veneno de ' + esc(h.nome) + ').</p>'
+        L.registro.push(ev.queima ? '<p class="habilidade-usada">🔥 ' + esc(m.nome) + ' queima e perde <strong>' + ev.dano + '</strong>.</p>'
+          : ev.dot ? '<p class="habilidade-usada">☠️ ' + esc(m.nome) + ' perde <strong>' + ev.dano + '</strong> (veneno de ' + esc(h.nome) + ').</p>'
           : '<p class="' + (ev.critico ? 'critico' : '') + '">' + (ev.critico ? 'CRÍTICO! ' : '') + esc(h.nome) + ' acerta ' + esc(m.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
         if (ev.caiu) L.registro.push('<p class="destaque">' + esc(m.nome) + ' caiu!</p>');
         else if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(m.nome) + (ev.congelou ? ' está congelado!' : ' está atordoado!') + '</p>');
@@ -4536,6 +4541,7 @@
         L.hpH[ev.alvo] = Math.max(0, L.hpH[ev.alvo] - ev.dano);
         L.registro.push('<p class="dano-recebido">' + esc(mo.nome) + ' acerta ' + esc(alvo.nome) + ': <strong>' + ev.dano + '</strong>.</p>');
         if (ev.bolso) L.registro.push('<p class="cura">🧪 ' + esc(alvo.nome) + ' usa o Bolso de Poções e recupera vida.</p>');
+        if (ev.milagre) L.registro.push('<p class="cura">✨ Milagre! ' + esc(alvo.nome) + ' volta à luta.</p>');
         if (ev.caiu) L.registro.push('<p class="dano-recebido"><strong>' + esc(alvo.nome) + ' caiu!</strong></p>');
       }
     }
@@ -5435,6 +5441,7 @@
       + (ev.cura ? ' e recupera <strong>' + ev.cura + '</strong> de vida' : '') + '!</p>');
     // Level 30 (nov/2026): queimadura, cala, cegueira, Milagre e dano devolvido.
     if (ev.queimou) L.registro.push('<p class="dano-recebido">🔥 ' + esc(atk.nome) + ' queima e perde <strong>' + ev.queimou + '</strong>.</p>');
+    if (ev.envenenado) L.registro.push('<p class="dano-recebido">☠️ ' + esc(atk.nome) + ' sangra/está envenenado e perde <strong>' + ev.envenenado + '</strong>.</p>');
     if (ev.milagreEu) L.registro.push('<p class="cura">✨ Milagre! ' + esc(atk.nome) + ' volta à luta.</p>');
     if (ev.calado) L.registro.push('<p class="errou">🤐 ' + esc(atk.nome) + ' está calado: sem habilidades nesta vez.</p>');
     if (ev.atordoado) {
@@ -5454,6 +5461,11 @@
     if (ev.calou) L.registro.push('<p class="destaque">🤐 ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
     if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−30%).</p>');
     if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + esc(alvo.nome) + ' está queimando e as curas dele caem pela metade.</p>');
+    if (ev.envenenou) L.registro.push('<p class="destaque">☠️ ' + esc(alvo.nome) + ' foi envenenado.</p>');
+    if (ev.escudo) L.registro.push('<p class="destaque">🧊 ' + esc(atk.nome) + ' levanta um escudo de gelo.</p>');
+    if (ev.escudoSegurou) L.registro.push('<p class="suave">🧊 O escudo de ' + esc(alvo.nome) + ' segura <strong>' + ev.escudoSegurou + '</strong>.</p>');
+    if (ev.congelouEu) L.registro.push('<p class="destaque">🧊 ' + esc(atk.nome) + ' congela ao bater no escudo!</p>');
+    if (ev.bolso) L.registro.push('<p class="cura">🧪 ' + esc(alvo.nome) + ' usa o Bolso de Poções.</p>');
     if (ev.cegou) L.registro.push('<p class="destaque">🌫️ ' + esc(alvo.nome) + ' leva pó nos olhos.</p>');
     if (ev.milagre) L.registro.push('<p class="cura">✨ Milagre! ' + esc(alvo.nome) + ' volta à luta.</p>');
     if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(alvo.nome) + (alvo.sexo === 'feminino' ? (ev.congelou ? ' está congelada' : ' está atordoada') : (ev.congelou ? ' está congelado' : ' está atordoado')) + ' por ' + ev.atordoou + (ev.atordoou > 1 ? ' turnos!' : ' turno!') + '</p>');

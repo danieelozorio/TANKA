@@ -426,6 +426,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `arena_comecar_tipo` recusa se `dados.minas.fim` > agora).
 
 ## Habilidades do level 20 e 30 (Daniel, Henri e Rafael, nov/2026; PDF "Novas Habilidades" v4)
+- **Valem em todo lugar** (Daniel): a do 20 tem `foco: 'cacada'` (mais forte caçando) e a do 30 `foco: 'arena'`, mas as
+  duas entram em todas as ordens (`ordemNiveis2`). Cliente: `extrasNivel` (antes extrasPve) em `L.ex` também com
+  `milagrePct`; golpes do 30 contra monstros (`opcoesNivel`, `depoisDoGolpeNivel`, `tickQueima`, `alvo.defQuebra`,
+  `alvo.cego`, `reflete` em `aoReceber`, Milagre em `depoisDeReceber`). Servidor: `arena_extras` (ex no lutador),
+  `arena_curar` (metade com a cura cortada), veneno (`veneno` no outro), escudo, Têmpera, roubo, Bolso e regeneração em
+  `arena_vez`. O texto abaixo que fala "só contra monstros"/"só na Arena" é da primeira versão.
 - Dados: 2 habilidades a mais por segunda classe em `SEGUNDAS_CLASSES` (no fim da lista), com `nivel` (20/30) e `modo`
   ('pve' = caçada e masmorra; 'arena' = Arena). Valores novos em `[base, porPonto]` (`R.valorNivel`). Pontos:
   `TALENTOS.pontosDepois` = +2 por level do 21 em diante (14 no 20, 34 no 30); servidor em `arena_pontos_ok`.

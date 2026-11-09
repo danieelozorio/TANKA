@@ -985,11 +985,15 @@ select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 30, '{"cla
 select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 21, '{"classe2":"cacador","pontos":{"saraivada":10,"pes-ligeiros":6}}')), true, 'arena: 16 pontos no level 21');
 select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 30,
   '{"classe2":"cacador","pontos":{"flecha-envenenada":1,"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["flecha-envenenada","tiro-silenciador","saraivada"]}}'))) x),
-  'tiro-silenciador,saraivada', 'arena: o level 20 fica fora, o level 30 entra');
+  'flecha-envenenada,tiro-silenciador,saraivada', 'arena: o level 20 e o level 30 entram (valem em todo lugar)');
 select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 29,
   '{"classe2":"cacador","pontos":{"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["tiro-silenciador","saraivada"]}}'))) x),
   'saraivada', 'arena: o level 30 não vale antes do 30');
 select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro","pontos":{"milagre":10}}')), 30::numeric, 'arena: Milagre com 10 pontos = 30%');
+select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 20, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":10}}')),
+  '{"reducaoDano":20,"danoExtraPct":35}'::jsonb, 'arena: Têmpera de Fogo vale na Arena');
+select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 19, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":1}}')),
+  '{}'::jsonb, 'arena: passiva do level 20 só a partir do 20');
 do $$
 declare a jsonb; d jsonb; r jsonb; base jsonb;
 begin
@@ -1039,6 +1043,27 @@ begin
   r := public.arena_vez(a, base || jsonb_build_object('hp', 200, 'furtivo', true), 2);
   if not (r -> 'ev' ? 'executou') or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <= 0 then raise exception 'FALHA execução: %', r -> 'ev'; end if;
   raise notice 'ok   arena: Execução não erra, não é esquivada e executa';
+  -- Level 20 na Arena: veneno (quem envenenou recupera), escudo, regeneração, roubo de vida e Bolso de Poções
+  a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
+  r := public.arena_vez(a, base, 10); a := r -> 'eu'; d := r -> 'outro';
+  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 80 then raise exception 'FALHA sangramento: %', d -> 'veneno'; end if;
+  r := public.arena_vez(d, a, 1);
+  if (r -> 'ev' ->> 'envenenado')::int <> 80 or (r -> 'outro' ->> 'hp')::int <> 516 then raise exception 'FALHA sangramento: tira 80 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
+  raise notice 'ok   arena: Corte Vampírico sangra e cura quem cortou';
+  d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 20, '{"classe2":"bruxo","pontos":{"escudo-de-gelo":10},"ordem":{"arena":["escudo-de-gelo"]}}')));
+  r := public.arena_vez(d, base, 1); d := r -> 'eu';
+  if (d ->> 'escudo')::int <> 200 then raise exception 'FALHA escudo: %', d; end if;
+  r := public.arena_vez(base, d, 10);
+  if (r -> 'ev' ->> 'escudoSegurou')::int <= 0 then raise exception 'FALHA escudo: devia segurar: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Escudo de Gelo segura dano';
+  a := base || jsonb_build_object('hp', 500, 'ex', '{"regenPct":2,"rouboVida":30}'::jsonb);
+  r := public.arena_vez(a, base, 10);
+  if (r -> 'eu' ->> 'hp')::int <= 520 then raise exception 'FALHA regeneração/roubo: %', r -> 'eu' ->> 'hp'; end if;
+  raise notice 'ok   arena: regeneração e roubo de vida';
+  d := base || jsonb_build_object('hp', 450, 'ex', '{"curaEmergencia":50,"limiar":40}'::jsonb);
+  r := public.arena_vez(base, d, 10);
+  if not (r -> 'ev' ? 'bolso') or not (r -> 'outro' ->> 'bolsoUsado')::boolean then raise exception 'FALHA bolso: %', r; end if;
+  raise notice 'ok   arena: Bolso de Poções uma vez abaixo de 40%%';
 end $$;
 -- Arena: esquiva não conta, só o 1 do dado erra
 do $$

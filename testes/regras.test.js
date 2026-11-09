@@ -1111,11 +1111,11 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   assert.strictEqual(R.pontosEm(p, 'golpe-justo'), 10, 'máximo 10');
   assert.strictEqual(R.multHabilidade(D.SEGUNDAS_CLASSES.paladino.habilidades[2], 10), 200);
   // ordem
-  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['martelo-sagrado', 'grito-de-desafio', 'golpe-justo']);
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['defesa-suprema', 'martelo-sagrado', 'grito-de-desafio', 'golpe-justo']);
   R.moverHabilidade(p, 'cacada', 'golpe-justo', 'subir');
-  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['martelo-sagrado', 'golpe-justo', 'grito-de-desafio']);
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['defesa-suprema', 'martelo-sagrado', 'golpe-justo', 'grito-de-desafio']);
   R.moverHabilidade(p, 'cacada', 'martelo-sagrado', 'tirar');
-  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['golpe-justo', 'grito-de-desafio']);
+  assert.deepStrictEqual([...R.talentos(p).ordem.cacada], ['defesa-suprema', 'golpe-justo', 'grito-de-desafio']);
   // recomeço das habilidades
   p.ouro = 1999;
   assert.strictEqual(R.comprarRecomecoHabilidades(p), 'Ouro insuficiente.');
@@ -1924,7 +1924,7 @@ teste('mineração: 30 min a 24 h, parar com 50% dá metade, antes disso nada; h
   assert.ok(R.mediaMinas(p, 5).qtd > R.mediaMinas(p, 4).qtd);
 });
 
-teste('habilidades do level 20/30: pontos +2 do 21, liberam no level, cada uma no seu modo', () => {
+teste('habilidades do level 20/30: pontos +2 do 21, liberam no level e valem em todo lugar', () => {
   const mk = (classe, c2, nivel) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
     R.admin.subirNivel(p, nivel - 1); R.escolherSegundaClasse(p, c2); return p;
@@ -1940,14 +1940,14 @@ teste('habilidades do level 20/30: pontos +2 do 21, liberam no level, cada uma n
   R.admin.subirNivel(p, 10);
   assert.strictEqual(R.mudarPontoHabilidade(p, 'tiro-silenciador', 1), true);
   const ids = (m) => R.kitHabilidades(p, m).map((k) => k.def.id);
-  assert.ok(ids('cacada').includes('flecha-envenenada') && !ids('cacada').includes('tiro-silenciador'));
-  assert.ok(ids('arena').includes('tiro-silenciador') && !ids('arena').includes('flecha-envenenada'));
-  // personagem antigo (ordem sem as novas): elas entram uma vez, no modo certo
-  const v = mk('mago', 'bruxo', 30); delete v.talentos.ordemNiveis;
+  assert.ok(ids('cacada').includes('flecha-envenenada') && ids('cacada').includes('tiro-silenciador'));
+  assert.ok(ids('arena').includes('tiro-silenciador') && ids('arena').includes('flecha-envenenada'));
+  // personagem antigo (ordem sem as novas): elas entram uma vez, em todos os modos
+  const v = mk('mago', 'bruxo', 30); delete v.talentos.ordemNiveis2;
   Object.keys(v.talentos.ordem).forEach((m) => { v.talentos.ordem[m] = v.talentos.ordem[m].filter((id) => !D.SEGUNDAS_CLASSES.bruxo.habilidades.find((h) => h.id === id).nivel); });
   const t = R.talentos(v);
-  assert.ok(t.ordem.cacada.includes('escudo-de-gelo') && !t.ordem.arena.includes('escudo-de-gelo'));
-  assert.ok(t.ordem.defesa.includes('maldicao-de-ignaroth') && !t.ordem.masmorra.includes('maldicao-de-ignaroth'));
+  assert.ok(t.ordem.cacada.includes('escudo-de-gelo') && t.ordem.arena.includes('escudo-de-gelo'));
+  assert.ok(t.ordem.defesa.includes('maldicao-de-ignaroth') && t.ordem.masmorra.includes('maldicao-de-ignaroth'));
   // a passiva de sempre continua sendo a 1ª (status), as novas não mexem nos atributos
   R.mudarPontoHabilidade(v, 'mente-sombria', 1);
   assert.strictEqual(R.passiva(v).def.id, 'mente-sombria');
@@ -1960,13 +1960,13 @@ teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, vene
     for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, hab, 1);
     p.hpAtual = R.status(p).hpMax; return p;
   };
-  const x = (c, c2, h) => R.extrasPve(mk(c, c2, h));
+  const x = (c, c2, h) => R.extrasNivel(mk(c, c2, h));
   assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 1.2 });
   assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 30 });
-  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 20, danoPvEPct: 35 });
+  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 20, danoExtraPct: 35 });
   assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 55, limiar: 40 });
-  // na Arena não vale
-  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').pve }, {});
+  // vale em todo lugar (o lutador da Arena também leva)
+  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').ex }, { regenPct: 2 });
   // luta de verdade: o veneno do Arqueiro tira vida a cada vez e o Bolso cura uma vez
   let s = 3; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
   const a = mk('arqueiro', 'cacador', 'flecha-envenenada');
@@ -1986,4 +1986,37 @@ teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, vene
   assert.strictEqual(R.aoReceber(L, 80, m, () => 0), 30);
   assert.strictEqual(L.escudo, 0);
   assert.strictEqual(m.atordoado, 1, 'quem bate no escudo pode congelar');
+});
+
+teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó nos Olhos e Defesa Suprema', () => {
+  const mk = (classe, c2, hab) => {
+    const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
+    R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, c2);
+    for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, hab, 1);
+    p.hpAtual = R.status(p).hpMax; return p;
+  };
+  // Milagre: uma vez por luta, na caçada também
+  const cu = mk('mago', 'curandeiro', 'milagre');
+  const L = R.novoLutador(cu, 'cacada'), h = { hp: 0, hpMax: 1000 };
+  assert.strictEqual(R.depoisDeReceber(L, h), 'milagre');
+  assert.strictEqual(h.hp, 300);
+  h.hp = 0; assert.strictEqual(R.depoisDeReceber(L, h), false, 'só uma vez');
+  // Martelo das Correntes e Maldição: golpe com quebra de defesa / queimadura no monstro
+  let s = 5; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
+  for (const [c, c2, hab, campo] of [['artesao', 'ferreiro', 'martelo-das-correntes', 'defQuebra'], ['mago', 'bruxo', 'maldicao-de-ignaroth', 'queima']]) {
+    const p = mk(c, c2, hab); const b = R.iniciarBatalha(p, 'farao', rnd);
+    let n = 0, viu = false; while (!b.fim && n++ < 400) { R.passo(b); if (b.monstro[campo]) viu = true; }
+    assert.ok(viu, hab + ' marcou o monstro');
+  }
+  // Pó nos Olhos: o monstro cego erra (com 100% de chance)
+  const L2 = R.novoLutador(mk('artesao', 'coletor', 'po-nos-olhos'), 'cacada');
+  const m = { cego: 2, cegoPct: 100, hp: 100 };
+  assert.strictEqual(R.aoReceber(L2, 50, m, () => 0.5), 0);
+  assert.strictEqual(m.cego, 1);
+  // Defesa Suprema devolve dano para o monstro
+  const L3 = R.novoLutador(mk('cavaleiro', 'paladino', 'defesa-suprema'), 'cacada');
+  L3.turno = 1; L3.buffs.push({ ate: 2, reflete: 15 });
+  const m2 = { hp: 100 };
+  R.aoReceber(L3, 100, m2, () => 0.5);
+  assert.strictEqual(m2.hp, 85);
 });
