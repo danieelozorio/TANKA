@@ -69,6 +69,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `br.com.eldrinonline.jogo`, abre `https://eldrinonline.com.br/jogar/`. A chave (keystore) e a senha ficaram SÓ com o
   Daniel (não estão no repositório). `.well-known/assetlinks.json` tem a impressão SHA-256 da chave (tela cheia, sem
   barra do navegador; precisa do `.nojekyll` para a pasta com ponto ser publicada). App novo = mesma chave, `appVersionCode` maior.
+- APK para baixar: `baixar/Eldrin.apk` (botão "Baixar app Android (APK)" no `botaoInstalar()`: tela de login e ⚙;
+  some no iPhone e dentro do app). App novo: gerar com a mesma chave e trocar esse arquivo.
 - (antigo) APK: precisa do Android SDK (dl.google.com está bloqueado neste ambiente). Caminhos: liberar dl.google.com na rede do
   ambiente e montar um TWA aqui, ou o Daniel gerar no PWABuilder.com com a URL do jogo.
 - Rolagem no celular (nov/2026): `telaJogo` e `atualizarFicha` passam por `manterRolagem` (app.js): marca um elemento

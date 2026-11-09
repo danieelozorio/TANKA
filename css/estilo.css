@@ -1303,6 +1303,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 @keyframes instalarBrilha { 0%, 100% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 6px 22px rgba(242, 201, 76, .25); } 50% { box-shadow: 0 0 0 1px rgba(0, 0, 0, .4), 0 6px 30px rgba(242, 201, 76, .6); } }
 @media (prefers-reduced-motion: reduce) { .btn-instalar { animation: none; } }
 .btn-instalar[hidden] { display: none; }
+.btn-apk { display: block; margin-top: .6rem; padding: .75em 1em; text-align: center; text-decoration: none; }
+.dica-apk { margin: .35rem 0 0; text-align: center; }
 #config-painel .btn-instalar { width: 100%; margin-top: .5rem; }
 .conjunto-ficha { margin: .5rem 0; padding: .45rem .6rem; border: 1px solid rgba(201, 169, 107, .35); border-radius: 8px; background: rgba(201, 169, 107, .07); }
 .conjunto-ficha strong { color: var(--ouro-claro); }

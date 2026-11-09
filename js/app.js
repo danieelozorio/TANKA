@@ -6641,8 +6641,11 @@
   function ehCelular() { return ehIOS() || /android|mobi/i.test(navigator.userAgent); }
   // No celular aparece sempre (se ainda não instalou); no computador, só quando o navegador deixa instalar.
   function podeInstalar() { return !jaInstalado() && (!!instalacao.evento || ehCelular()); }
+  // App Android (APK) para baixar direto do site; some no iPhone e dentro do próprio app.
   function botaoInstalar() {
-    return '<button class="btn largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar para celular</button>';
+    return '<button class="btn largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar para celular</button>'
+      + (jaInstalado() || ehIOS() ? '' : '<a class="btn secundario largo btn-apk" href="baixar/Eldrin.apk" download="Eldrin.apk">🤖 Baixar app Android (APK)</a>'
+        + '<p class="suave pequeno dica-apk">Depois de baixar, toque no arquivo e permita "instalar de fontes desconhecidas".</p>');
   }
   function atualizarBotoesInstalar() {
     document.querySelectorAll('[data-acao="instalar-app"]').forEach(function (b) { b.hidden = !podeInstalar(); });
