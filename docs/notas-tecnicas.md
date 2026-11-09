@@ -80,6 +80,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `estado.dropFoco`, `fichaItemHtml(item, true)` sem botões; os objetos ficam em `dropsCacada`). Seta verde quando é
   melhor que o equipado (`dropMelhor`: `R.itemMelhor`, pondo o item na mochila de mentira se ele já saiu dela).
   Pergaminho continua com a fichinha de texto.
+- "JWT expired" (nov/2026): `contas.js` renova o passe sozinho. `pedir` tenta de novo uma vez depois de um 401/JWT
+  (`renovarSessao`, uma renovação só para vários pedidos ao mesmo tempo) e `sessaoValida` usa o relógio do servidor
+  (`agora()`) com 5 min de folga, porque o relógio do celular pode estar errado.
 
 ## Itens por nível (parte 1 FEITA)
 - `ITEM_NIVEL` (dados.js): nível 1–60; drop = level ±3 (35+: 35–60); raridade = qualidade (faixaQualidade); arma

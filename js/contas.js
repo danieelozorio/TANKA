@@ -24,8 +24,33 @@ Tanka.contas = (function () {
     try { return JSON.parse(localStorage.getItem(CHAVE_SESSAO)); } catch (e) { return null; }
   }
 
+  // "JWT expired": o passe de login venceu (celular dormindo, relógio do aparelho errado). Renova e tenta de novo, uma vez.
+  function passeVencido(e) {
+    return e.status === 401 || /jwt/i.test(e.message || '') || e.codigo === 'PGRST301' || e.codigo === 'PGRST303';
+  }
   async function pedir(caminho, opcoes) {
     opcoes = opcoes || {};
+    if (opcoes.logado === false || !sessao || !sessao.refresh_token || opcoes.repetindo) return pedirUmaVez(caminho, opcoes);
+    try { return await pedirUmaVez(caminho, opcoes); } catch (e) {
+      if (!passeVencido(e)) throw e;
+      if (!(await renovarSessao())) throw new Error('Sua sessão expirou. Entre novamente.');
+      return pedirUmaVez(caminho, Object.assign({}, opcoes, { repetindo: true }));
+    }
+  }
+  var renovando = null;   // vários pedidos ao mesmo tempo esperam a mesma renovação
+  function renovarSessao() {
+    if (!renovando) {
+      var velha = sessao;
+      renovando = pedirUmaVez('/auth/v1/token?grant_type=refresh_token', {
+        metodo: 'POST', logado: false, corpo: { refresh_token: velha.refresh_token },
+      }).then(function (nova) { guardarSessao(nova); return true; }, function (e) {
+        if (e.status >= 400 && e.status < 500 && sessao === velha) guardarSessao(null);
+        return false;
+      }).then(function (ok) { renovando = null; return ok; });
+    }
+    return renovando;
+  }
+  async function pedirUmaVez(caminho, opcoes) {
     var cab = { apikey: CFG.supabaseChave, 'Content-Type': 'application/json' };
     if (opcoes.logado !== false && sessao) cab.Authorization = 'Bearer ' + sessao.access_token;
     Object.assign(cab, opcoes.cabecalhos || {});
@@ -56,16 +81,11 @@ Tanka.contas = (function () {
   // Renova o token se faltar menos de 1 minuto para vencer.
   async function sessaoValida() {
     if (!sessao) return false;
-    if (sessao.expires_at && sessao.expires_at * 1000 - Date.now() > 60000) return true;
-    try {
-      guardarSessao(await pedir('/auth/v1/token?grant_type=refresh_token', {
-        metodo: 'POST', logado: false, corpo: { refresh_token: sessao.refresh_token },
-      }));
-      return true;
-    } catch (e) {
-      if (e.status >= 400 && e.status < 500) guardarSessao(null);
-      return !!sessao;
-    }
+    // Relógio do servidor (o do celular pode estar adiantado ou atrasado); renova com 5 min de folga.
+    if (sessao.expires_at && sessao.expires_at * 1000 - agora() > 300000) return true;
+    if (!sessao.refresh_token) return false;
+    await renovarSessao();
+    return !!sessao;
   }
 
   async function sincronizarRelogio() {
