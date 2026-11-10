@@ -218,7 +218,8 @@
         + '<button class="link-senha" type="button" data-acao="auth" data-modo="entrar">Voltar para entrar</button></form>'
       : cadastro
       ? '<form data-form="cadastro" novalidate>'
-        + '<label>Nome de usuário<input name="usuario" autocomplete="username" required maxlength="16"></label>'
+        + '<label>Nome de usuário<input name="usuario" autocomplete="username" required maxlength="16" pattern="[A-Za-z0-9_]{3,16}" data-so-usuario autocapitalize="none" spellcheck="false"></label>'
+        + '<p class="suave pequeno">De 3 a 16 caracteres: letras, números ou _ (sem espaços, pontos ou acentos).</p>'
         + '<label>Senha<input name="senha" type="password" autocomplete="new-password" required></label>'
         + '<label>Confirmar senha<input name="confirmar" type="password" autocomplete="new-password" required></label>'
         + '<label>E-mail<input name="email" type="email" autocomplete="email" required></label>'
@@ -3550,6 +3551,12 @@
       + grupo('Poção automática', 'pocao', pref.pocao || 0, [[0, 'Desligada']].concat(D.CACADA.pocaoAuto.map(function (v) { return [v, 'Abaixo de ' + v + '%']; })))
       + '</div>';
   }
+  // Pegadas da caçada (no lugar da lupa): o herói caminhando até achar o monstro.
+  var PEGADA = '<svg viewBox="0 0 20 32" focusable="false"><ellipse cx="10" cy="20" rx="6" ry="9" fill="currentColor"/>'
+    + '<circle cx="4.5" cy="7" r="2.2" fill="currentColor"/><circle cx="9" cy="4.5" r="2.4" fill="currentColor"/><circle cx="14" cy="5.5" r="2.1" fill="currentColor"/><circle cx="17.3" cy="9" r="1.7" fill="currentColor"/></svg>';
+  var PASSOS_HTML = [0, 1, 2, 3, 4, 5].map(function (i) {
+    return '<span class="passo ' + (i % 2 ? 'dir' : 'esq') + '" style="animation-delay:' + (i * 0.3).toFixed(1) + 's">' + PEGADA + '</span>';
+  }).join('');
   function cacadaHtml() {
     var c = estado.cacada, p = estado.personagem, b = estado.batalha, s = R.status(p), pref = prefsCacada();
     var area = D.areas.find(function (a) { return a.id === c.area; }), e = estiloArea(area, D.areas.indexOf(area));
@@ -3560,7 +3567,7 @@
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
-      direita = '<div class="cacada-busca"><div class="busca-icone">🔎</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Caçada em andamento…') + '</div>'
+      direita = '<div class="cacada-busca"><div class="busca-passos" aria-hidden="true">' + PASSOS_HTML + '</div><div class="busca-txt">' + (c.fase === 'pausa' ? 'Recuperando o fôlego…' : 'Caçada em andamento…') + '</div>'
         + '<div class="busca-barra"><i style="animation-duration:' + (c.fase === 'pausa' ? 900 : c.busca) + 'ms"></i></div>'
         + '</div>';
     } else if (c.fase === 'encontrou') {
@@ -3758,6 +3765,15 @@
   });
 
   app.addEventListener('input', function (e) {
+    // Cadastro: o nome de usuário só aceita letras, números e _ (espaço, ponto e acento nem entram no campo).
+    if (e.target.hasAttribute && e.target.hasAttribute('data-so-usuario')) {
+      var limpo = e.target.value.replace(/[^A-Za-z0-9_]/g, '');
+      if (limpo !== e.target.value) {
+        var pos = Math.max(0, (e.target.selectionStart || 0) - (e.target.value.length - limpo.length));
+        e.target.value = limpo;
+        try { e.target.setSelectionRange(pos, pos); } catch (err) { /* campo sem cursor */ }
+      }
+    }
     if (e.target.classList.contains('venda-preco') && estado.mercado && estado.mercado.cfg) {
       var vp = Math.floor(Number(e.target.value)), alvo = document.getElementById(e.target.id.replace('venda-preco-', 'venda-recebe-'));
       if (alvo) alvo.textContent = vp >= 1 ? 'Você recebe ' + ouroTxt(Math.floor(vp * (100 - estado.mercado.cfg.taxa) / 100)) : '';
