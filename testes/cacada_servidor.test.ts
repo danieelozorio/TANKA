@@ -64,6 +64,8 @@ j = await r.json();
 ok(j.res && j.res.resultado === 'vitoria' && j.eventos.length > 0, 'lutou e venceu o lobo (' + (j.eventos?.length) + ' eventos)');
 ok(j.res.exp === Math.floor(Tanka.dados.monstros.lobo.exp * 1.15) * 2 && j.res.vitalidade, 'bônus de 15% do clã vindo do banco + Vitalidade x2 (exp ' + j.res.exp + ')');
 ok(banco[p0.id].dados.vitalidade.pts === 99, 'Vitalidade gasta e gravada no banco');
+ok(banco[p0.id].dados.estamina.pts === 239 && j.res.estamina === 1, 'Estamina: o lobo gastou 1 (gravado no banco)');
+ok(banco[p0.id].dados.hpAtual === R.status(banco[p0.id].dados).hpMax, 'vida cheia depois da luta');
 ok(j.personagem.ouro > 0 && banco[p0.id].dados.ouro === j.personagem.ouro, 'ouro gravado no banco');
 ok(j.proximo && banco[p0.id].dados.encontro, 'já veio o próximo encontro');
 ok(banco[p0.id].dados.versao === 2, 'versão 2 depois da luta');

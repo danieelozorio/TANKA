@@ -5,6 +5,7 @@
 //
 // O personagem guarda:
 //   p.encontro       = { monstro, normal, chefe, em, prontoEm }  monstro encontrado e ainda não enfrentado
+//   p.estamina       = { pts, em, potes }  cada luta gasta a estamina do monstro (R.custoEstamina); a vida começa cheia
 //   p.cacadaLivreEm  = quando a próxima busca pode começar (fim da luta anterior, no ritmo mais rápido do jogo)
 // Ações: encontro (procura um monstro entre os alvos), lutar (luta inteira, prêmios aplicados), fugir.
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
@@ -16,6 +17,7 @@ Tanka.servidorCacada = (function () {
   var PAUSA = 450;                  // pausa entre lutas no modo rápido
   var MAX_PASSOS = 800;             // trava de segurança da simulação
 
+  var SEM_ESTAMINA = 'Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).';
   function erro(msg, espera) { var e = { erro: msg }; if (espera > 0) e.espera = Math.ceil(espera); return e; }
 
   // Procura um monstro: escolhe entre os alvos (só os liberados), sorteia o chefe e guarda o encontro.
@@ -24,10 +26,11 @@ Tanka.servidorCacada = (function () {
     R.atualizarTempo(p, agora);
     if (p.acampado) R.acampar(p, agora, false);   // caçar levanta o acampamento
     if (p.minas && agora < p.minas.fim) return erro('Seu herói está minerando: pare a mineração para caçar.');
-    if (!R.vidaParaCacar(p)) return erro('Vida baixa demais: é preciso ter mais de ' + D.CACADA.vidaMinima + '% da vida para caçar.');
+    if (!R.estaminaParaCacar(p)) return erro(SEM_ESTAMINA);
     if (p.cacadaLivreEm && agora < p.cacadaLivreEm - TOLERANCIA) return erro('Calma: o herói ainda está se recuperando da última luta.', p.cacadaLivreEm - agora);
     // Já tem um monstro encontrado entre esses alvos: é o mesmo (pedir de novo não sorteia outro chefe).
     var e = p.encontro;
+    if (e && D.monstros[e.monstro] && R.custoEstamina(e.monstro) > R.estamina(p).pts) { delete p.encontro; e = null; }   // a estamina não paga mais
     if (e && Array.isArray(alvos) && alvos.indexOf(e.normal) >= 0 && D.monstros[e.monstro]) {
       return { encontro: copiaEncontro(e), busca: R.tempoBusca(p, e.normal) };
     }
@@ -40,9 +43,15 @@ Tanka.servidorCacada = (function () {
       return D.monstros[id] && !D.monstros[id].chefe && R.podeCacar(p, id) && R.monstroLiberado(p, id);
     });
     if (!lista.length) return erro('Nenhum dos monstros escolhidos pode ser caçado agora.');
+    // só os monstros que a estamina paga
+    var pts = R.estamina(p).pts;
+    lista = lista.filter(function (id) { return R.custoEstamina(id) <= pts; });
+    if (!lista.length) return erro(SEM_ESTAMINA);
     var id = R.escolherMonstroCacada(p, lista, rng);
     if (!id) return erro('Nenhum dos monstros escolhidos pode ser caçado agora.');
-    var chefe = R.sortearChefe(p, id, rng);
+    var area = D.areas[D.monstros[id].indiceArea];
+    // o chefe só aparece se a estamina paga a luta contra ele
+    var chefe = area && R.custoEstamina(area.chefe.id) <= pts ? R.sortearChefe(p, id, rng) : null;
     var busca = R.tempoBusca(p, id);
     p.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe, em: desde, prontoEm: desde + Math.round(busca / 2) };
     return { encontro: copiaEncontro(p.encontro), busca: busca };
@@ -75,7 +84,7 @@ Tanka.servidorCacada = (function () {
     if (!e) return erro('Nenhum monstro encontrado: procure de novo.');
     if (agora < e.prontoEm - TOLERANCIA) return erro('Calma: o monstro ainda não apareceu.', e.prontoEm - agora);
     R.atualizarTempo(p, agora);
-    if (p.hpAtual <= 0) { delete p.encontro; return erro('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); }
+    if (R.estamina(p).pts < R.custoEstamina(e.monstro)) { delete p.encontro; return erro(SEM_ESTAMINA); }
     var primeiraVez = !(p.abates[e.monstro] || 0);
     var b = R.iniciarBatalha(p, e.monstro, rng);
     var pref = Number(opcoes.pocao != null ? opcoes.pocao : (p.prefsCacada && p.prefsCacada.pocao)) || 0;
@@ -101,8 +110,7 @@ Tanka.servidorCacada = (function () {
     var saida = { monstroId: b.monstroId, normal: e.normal, chefe: e.chefe, eventos: eventos, res: limparRes(res), extras: extras };
     // Caçada contínua: o próximo encontro já vem junto (1 pedido por luta). A busca começa quando a luta acabar.
     if (opcoes.alvos && res.resultado !== 'derrota' && opcoes.continuar !== false) {
-      var prox = !R.vidaParaCacar(p) ? erro('Vida baixa: a caçada parou. Espere a vida voltar, acampe ou use uma poção.')
-        : novoEncontro(p, opcoes.alvos, p.cacadaLivreEm, rng);
+      var prox = novoEncontro(p, opcoes.alvos, p.cacadaLivreEm, rng);
       if (prox.encontro) { saida.proximo = prox.encontro; saida.busca = prox.busca; } else saida.parou = prox.erro;
     }
     return saida;

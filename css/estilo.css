@@ -1236,6 +1236,11 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .vit-fina > i { display: block; height: 100%; background: #8a8f98; opacity: .65; transition: width .4s ease; }
 .barra.vitalidade > i { background: linear-gradient(90deg, #5d626b, #7d828b); opacity: .75; box-shadow: none; }
 .barra.vitalidade > b { color: #e4e6ea; text-shadow: 0 1px 2px rgba(0, 0, 0, .8); }
+.r-estamina { --cor: #f0b53c; --brilho: rgba(240, 181, 60, .32); }
+.barra.estamina > i { background: linear-gradient(90deg, #8a5a12, #e0a030 70%, #ffd070); box-shadow: 0 0 10px rgba(224, 160, 48, .45); }
+.est-fina { position: relative; height: 14px; margin: 3px 0; border-radius: 4px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.est-fina > i { display: block; height: 100%; background: linear-gradient(90deg, #8a5a12, #e0a030 70%, #ffd070); transition: width .4s ease; }
+.est-fina > b { position: absolute; inset: 0; font-size: .68rem; line-height: 14px; text-align: center; color: #fff; font-weight: 600; text-shadow: 0 1px 2px #000; }
 .exp-fina > i { display: block; height: 100%; background: linear-gradient(90deg, #1f4f86, #4f94e0 70%, #7bb6ff); transition: width .4s ease; }
 .cacada-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .opcao-botoes { display: inline-flex; flex-wrap: wrap; gap: 4px; }

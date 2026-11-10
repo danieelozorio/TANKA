@@ -504,14 +504,30 @@
     return min >= 60 ? Math.floor(min / 60) + 'h ' + (min % 60) + 'min' : min + ' min';
   }
 
-  // Vida com o tempo, acampamento, poções do dia e contagem até o reset.
+  // Estamina: barra, tempo até encher e acampamento (a vida começa cheia em toda luta).
+  function textoEstamina(p) {
+    var E = D.ESTAMINA;
+    return 'Cada luta da caçada gasta estamina: ' + E.custo.join(', ') + ' (1º, 2º e 3º monstro da área) e ' + E.custoChefe
+      + ' o chefe. Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min, e fica cheia à meia-noite. '
+      + 'Potes de estamina no Mercado (reputação).';
+  }
+  function estaminaHtml(p) {
+    var e = R.estamina(p), max = D.ESTAMINA.maximo;
+    return '<div class="suave dica" tabindex="0">Estamina <i class="dica-i">?</i><span class="dica-balao" role="tooltip"><strong>Estamina</strong><span>'
+      + esc(textoEstamina(p)) + '</span></span></div><div id="ficha-estamina">' + barra('estamina', Math.min(e.pts, max), max, e.pts + ' / ' + max) + '</div>';
+  }
+  function estaminaFinaHtml(p) {
+    var e = R.estamina(p), max = D.ESTAMINA.maximo;
+    return '<div class="est-fina" role="progressbar" aria-label="Estamina ' + e.pts + ' de ' + max + '" title="Estamina ' + e.pts + ' / ' + max
+      + '" aria-valuenow="' + e.pts + '" aria-valuemin="0" aria-valuemax="' + max + '"><i style="width:' + Math.min(100, e.pts / max * 100) + '%"></i><b>⚡ ' + e.pts + ' / ' + max + '</b></div>';
+  }
   function vidaTempoHtml(p, s, emBatalha) {
-    var min = R.minutosParaVidaCheia(p);
-    var texto = emBatalha ? 'Em batalha: a vida não volta.'
-      : min ? 'Vida cheia em ' + tempoTexto(min * 60000) + (p.acampado ? ' (acampado)' : '') : 'Vida cheia';
+    var min = R.minutosParaEstaminaCheia(p), cheia = R.estamina(p).pts >= D.ESTAMINA.maximo;
+    var texto = emBatalha ? 'Em batalha: a estamina não volta.'
+      : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado ? ' (acampado)' : '') : 'Estamina cheia';
     var acampar = p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
-      : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || p.hpAtual >= s.hpMax ? ' disabled' : '') + '>Acampar (vida 3x mais rápido)</button>';
+      : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || cheia ? ' disabled' : '') + '>Acampar (estamina 3x mais rápido)</button>';
     return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar;
   }
 
@@ -552,7 +568,6 @@
   // Barra fixa no alto: ouro, reputação, poções do dia e entradas da Arena.
   function recursosHtml() {
     var p = estado.personagem, s = R.status(p), emBatalha = !!estado.batalha;
-    var podeUsar = !emBatalha && p.pocoes > 0 && p.hpAtual < s.hpMax;
     var e = estado.arena && estado.arena.entradas, arena, arenaRotulo = 'Arena';
     if (p.nivel < A.nivelMin) arena = 'Lv ' + A.nivelMin;
     else if (!e) arena = '…';
@@ -565,12 +580,11 @@
         + '<span class="rec-txt"><small>' + rotulo + '</small><strong>' + valor + '</strong></span>' + (extra || '') + '</div>';
     }
     return '<div class="barra-recursos" id="recursos"><div class="recursos-dentro">'
-      + recurso('r-vida', 'Vida', '♥', 'Vida', p.hpAtual + '/' + s.hpMax)
+      + recurso('r-vida r-estamina', 'Estamina: cada luta da caçada gasta. Enche com o tempo, acampando ou com potes (Mercado)', '⚡', 'Estamina', '<span id="rec-estamina">' + R.estamina(p).pts + '</span>/' + D.ESTAMINA.maximo)
       + recurso('r-ouro', 'Ouro', ICONES.ouro, 'Ouro', p.ouro.toLocaleString('pt-BR'))
       + recurso('r-reputacao', 'Reputação', ICONES.reputacao, 'Reputação', (p.reputacao || 0).toLocaleString('pt-BR'))
-      + recurso('r-pocao', 'Poções do dia · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (vida cheia e 2 poções)', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
-        '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + D.VIDA.pocoesPorDia + '</span>',
-        '<button class="rec-usar" data-acao="usar-pocao"' + (podeUsar ? '' : ' disabled') + ' title="Beber uma poção">Usar</button>')
+      + recurso('r-pocao', 'Poções de vida (só na caçada) · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (estamina cheia e 2 poções). Mais poções no Mercado.', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
+        '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + R.maxPocoes(p) + '</span>')
       + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)
       + botoesAvisosHtml()
       + '</div></div>';
@@ -980,7 +994,8 @@
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
       + '<div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
-      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', p.hpAtual, s.hpMax, p.hpAtual + ' / ' + s.hpMax, 'ficha') + '</div>'
+      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : s.hpMax, emBatalha ? estado.batalha.jogador.hpMax : s.hpMax, (emBatalha ? estado.batalha.jogador.hp : s.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : s.hpMax), 'ficha') + '</div>'
+      + estaminaHtml(p)
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
@@ -1095,6 +1110,7 @@
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
+      + '<dt title="Estamina gasta em cada luta contra este monstro">Estamina</dt><dd>⚡ ' + R.custoEstamina(id) + '</dd>'
       + (m.chanceArma ? '<dt>Armas</dt><dd>' + m.chanceArma + '%</dd>' : '')
       + (m.chanceArmadura ? '<dt>Armaduras</dt><dd>' + m.chanceArmadura + '%</dd>' : '')
       + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + m.pergaminho.chance + '%</dd>' : '')
@@ -1663,6 +1679,26 @@
     return h;
   }
 
+  // Poção de vida (ouro, preço pelo level) e pote de estamina (reputação, 2 por dia).
+  function linhaPocaoVida(p) {
+    var preco = R.precoPocao(p), max = R.maxPocoes(p), cheio = (p.pocoes || 0) >= max, falta = preco - (p.ouro || 0);
+    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">' + ICONE_POCAO + '</div>'
+      + '<div class="item-texto"><div><strong>Poção de vida</strong></div>'
+      + '<div class="suave">Enche a vida no meio de uma luta da caçada (não vale na Arena, masmorra nem Chefe Mundial) · '
+      + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.pocoes || 0) + '/' + max + ' (2 de graça todo dia)</div></div>'
+      + '<div class="item-acoes">' + (cheio ? '<span class="suave">Máximo guardado</span>' : falta > 0 ? '<span class="suave">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>' : '')
+      + '<button class="btn" data-acao="pocao-comprar"' + (cheio || falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
+  }
+  function linhaPoteEstamina(p) {
+    var preco = R.precoPoteEstamina(p), E = D.ESTAMINA, usados = R.estamina(p).potes || 0, falta = preco == null ? 0 : preco - (p.reputacao || 0);
+    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">⚡</div>'
+      + '<div class="item-texto"><div><strong>Pote de estamina</strong></div>'
+      + '<div class="suave">+' + E.pote.enche + ' de estamina na hora · ' + (preco == null ? 'os ' + E.pote.precos.length + ' de hoje já foram' : preco + ' de reputação')
+      + ' · ' + usados + '/' + E.pote.precos.length + ' hoje (1º ' + E.pote.precos[0] + ', 2º ' + E.pote.precos[1] + ' de reputação) · você tem '
+      + (p.reputacao || 0).toLocaleString('pt-BR') + ' de reputação</div></div>'
+      + '<div class="item-acoes">' + (preco == null ? '<span class="suave">Volta amanhã</span>' : falta > 0 ? '<span class="suave">Faltam ' + falta + ' de reputação</span>' : '')
+      + '<button class="btn" data-acao="pote-estamina"' + (preco == null || falta > 0 ? ' disabled' : '') + '>Beber</button></div></div>';
+  }
   function linhaRecomeco(p) {
     var preco = D.RECOMECO.precoOuro, falta = preco - (p.ouro || 0);
     return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
@@ -1688,6 +1724,7 @@
       }).join('') + '</div>' : '')
       + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
       + R.TIPOS_ARMADURA.map(function (tipo) { return linhaMercadoNivel({ tipo: tipo, classe: p.classe, raridade: 'rara', encanto: 0 }, ''); }).join('') + '</div>'
+      + '<h3 class="subtitulo">Poções</h3><div class="itens">' + linhaPocaoVida(p) + linhaPoteEstamina(p) + '</div>'
       + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>'
       + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
       + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
@@ -2879,11 +2916,11 @@
         ? '<button class="btn perigo" data-acao="admin" data-op="esvaziar-mochila" data-valor="0">Confirmar: apagar tudo</button>'
           + '<button class="btn secundario" data-acao="admin" data-op="cancelar" data-valor="0">Cancelar</button>'
         : botoes('pedir-esvaziar', [0], function () { return 'Esvaziar mochila'; }, 'menos'))
-      + grupo('Vida e poções', 'Cura, devolve as poções do dia ou simula o reset da meia-noite.',
-        '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Curar tudo</button>'
+      + grupo('Estamina e poções', 'Enche a estamina, devolve as poções do dia ou simula o reset da meia-noite.',
+        '<button class="btn" data-acao="admin" data-op="curar" data-valor="0">Encher estamina</button>'
         + '<button class="btn" data-acao="admin" data-op="pocoes" data-valor="0">Recarregar poções</button>'
         + '<button class="btn" data-acao="admin" data-op="reset" data-valor="0">Simular reset diário</button>'
-        + botoes('vida', [50, 10, 0], function (v) { return v ? 'Vida em ' + v + '%' : 'Zerar vida'; }, 'menos')
+        + botoes('vida', [50, 10, 0], function (v) { return v ? 'Estamina em ' + v + '%' : 'Zerar estamina'; }, 'menos')
         + botoes('zerar-pocoes', [0], function () { return 'Zerar poções'; }, 'menos'))
       + grupo('Pedidos de senha', 'Jogadores que clicaram em "Esqueci a senha" com usuário e e-mail certos. Gere a senha temporária e mande para o e-mail do cadastro.',
         '<button class="btn" data-acao="senha-pedidos">' + (estado.adminSenhas ? 'Atualizar pedidos' : 'Ver pedidos') + '</button>')
@@ -2917,7 +2954,7 @@
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     if (r.resultado === 'derrota') {
-      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você volta ao acampamento sem vida' + (r.expPerdida ? ' e perde <strong class="menos">' + r.expPerdida.toLocaleString('pt-BR') + ' de exp</strong>' : '') + '. Espere a vida voltar, acampe ou use uma poção. Cuidado com áreas difíceis demais!</p>'
+      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você perde a estamina da luta' + (r.expPerdida ? ' e <strong class="menos">' + r.expPerdida.toLocaleString('pt-BR') + ' de exp</strong>' : '') + '. Cuidado com monstros difíceis demais!</p>'
         + '<div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
@@ -3165,7 +3202,7 @@
     document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'jogador');
     document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro');
     document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'ficha');
-    document.getElementById('ficha-pocoes').textContent = b.pocoes + '/' + D.VIDA.pocoesPorDia;
+    document.getElementById('ficha-pocoes').textContent = b.pocoes + '/' + R.maxPocoes(estado.personagem);
     if (D.HABILIDADES_ATIVAS) document.getElementById('poder-jogador').innerHTML = barraPoder(b);
     document.getElementById('controle-habilidade').innerHTML = controleHabilidade(b);
     var reg = document.getElementById('registro');
@@ -3204,10 +3241,10 @@
     }
     }
     if (estado.cacada) {
-      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.'
+      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.' + (res.estamina ? ' −' + res.estamina + ' de estamina.' : '')
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
       if (res.material && estado.cacada) estado.cacada.materiais = (estado.cacada.materiais || 0) + res.material.qtd;
-      if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
+      if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.' + (res.expPerdida ? ' −' + res.expPerdida + ' de exp.' : '') + (res.estamina ? ' −' + res.estamina + ' de estamina.' : ''));
       else linha('errou', esc(estado.personagem.nome) + ' fugiu.');
       fimLutaCacada(res, b, primeiraVez);
       return;
@@ -3259,7 +3296,7 @@
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
     if (R.atualizarTempo(p, C.agora())) salvar();
     if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
-    if (!R.vidaParaCacar(p)) { avisar('Vida baixa demais: é preciso ter mais de ' + D.CACADA.vidaMinima + '% da vida para caçar.'); return; }
+    if (!R.estaminaParaCacar(p, alvos)) { avisar('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     pararTimersCacada();
     estado.resultado = null;
     estado.ultimaBatalha = null;
@@ -3292,13 +3329,13 @@
     var c = estado.cacada, p = estado.personagem;
     if (!c || !c.ativa) return;
     if (R.atualizarTempo(p, C.agora())) salvar();
-    if (!R.vidaParaCacar(p)) { pararCacada('Vida baixa: a caçada parou. Espere a vida voltar, acampe ou use uma poção.'); return; }
+    if (!R.estaminaParaCacar(p, c.alvos)) { pararCacada('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     c.fase = 'buscando';
     c.encontro = null;
     c.prazo = null;
     if (CACA_SERVIDOR) { procurarNoServidor(); return; }
     // O monstro é sorteado já no começo: o mais forte demora mais para ser achado.
-    c.proximo = R.escolherMonstroCacada(p, c.alvos);
+    c.proximo = R.escolherMonstroCacada(p, c.alvos.filter(function (id) { return R.custoEstamina(id) <= R.estamina(p).pts; }));
     if (!c.proximo) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
     c.busca = Math.round(R.tempoBusca(p, c.proximo) / (estado.rapido ? 2 : 1));
     telaJogo();
@@ -3316,7 +3353,8 @@
     } else {
     var id = c.proximo && R.podeCacar(p, c.proximo) ? c.proximo : R.escolherMonstroCacada(p, c.alvos);
     if (!id) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
-    chefe = R.sortearChefe(p, id);
+    var areaCh = D.areas[D.monstros[id].indiceArea];   // o chefe só aparece se a estamina paga a luta contra ele
+    chefe = areaCh && R.custoEstamina(areaCh.chefe.id) <= R.estamina(p).pts ? R.sortearChefe(p, id) : null;
     c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
     }
     c.fase = 'encontrou';
@@ -3431,7 +3469,7 @@
     var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
     if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
     itens.forEach(function (it) { if (!it.consumivel) avisar('Item novo: ' + R.nomeItem(it), 'item'); });   // pergaminho tem aviso próprio
-    if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
+    if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha: perdeu a estamina da luta' + (res.expPerdida ? ' e ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
     if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
     if (b.replay && b.replay.parou) { pararCacada(b.replay.parou); return; }
     c.fase = 'pausa';
@@ -3583,7 +3621,7 @@
     var emLuta = c.fase === 'lutando' && b;
     var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
     var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
-      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + expFinaHtml(p) + vitFinaHtml(p)
+      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + estaminaFinaHtml(p) + expFinaHtml(p) + vitFinaHtml(p)
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
@@ -3604,9 +3642,9 @@
         + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div></div>';
     } else {
       direita = '<div class="cacada-busca parada"><div class="busca-icone">' + ICONE_ACAMPAMENTO + '</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
-        + '<div class="botoes"><button class="btn" data-acao="cacada-continuar"' + (R.vidaParaCacar(p) ? '' : ' disabled') + '>Continuar caçada</button>'
+        + '<div class="botoes"><button class="btn" data-acao="cacada-continuar"' + (R.estaminaParaCacar(p, c.alvos) ? '' : ' disabled') + '>Continuar caçada</button>'
         + '<button class="btn secundario" data-acao="cacada-fechar">Voltar à região</button></div>'
-        + (R.vidaParaCacar(p) ? '' : '<p class="suave pequeno">Precisa de mais de ' + D.CACADA.vidaMinima + '% da vida. Use uma poção ou acampe.</p>') + '</div>';
+        + (R.estaminaParaCacar(p, c.alvos) ? '' : '<p class="suave pequeno">Sem estamina para estes monstros. Acampe, espere ou use um pote de estamina (Mercado).</p>') + '</div>';
     }
     var ativa = c.ativa;
     var topo = '<div class="cacada-topo" style="--cor:' + e.cor + '"><div><h3>' + iconeArea(area) + ' Caçada · ' + area.nome + '</h3>'
@@ -4322,7 +4360,7 @@
       case 'acampar':
         R.acampar(p, C.agora(), true);
         salvar();
-        avisar(p.nome + ' monta acampamento junto à fogueira. A vida volta 3x mais rápido.');
+        avisar(p.nome + ' monta acampamento junto à fogueira. A estamina volta 3x mais rápido.');
         telaJogo();
         break;
       case 'levantar':
@@ -4330,10 +4368,18 @@
         salvar();
         telaJogo();
         break;
-      case 'usar-pocao':
-        if (R.usarPocao(p, C.agora())) { salvar(); avisar('Você bebe a poção e recupera toda a vida.'); }
+      case 'pocao-comprar': {
+        var rp = R.comprarPocao(p);
+        if (rp === true) { salvar(); avisar('Poção de vida comprada.', 'vitoria'); } else avisar(rp);
         telaJogo();
         break;
+      }
+      case 'pote-estamina': {
+        var re = R.comprarPoteEstamina(p, C.agora());
+        if (re === true) { salvar(); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
+        telaJogo();
+        break;
+      }
       case 'beber-pocao':
         if (estado.batalha && !estado.batalha.replay && R.beberPocao(estado.batalha)) {
           document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
@@ -4463,8 +4509,8 @@
           exp: 'Exp agora: ' + p.exp.toLocaleString('pt-BR') + ' (level ' + p.nivel + ').', 'resetar-atributos': 'Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir.',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
           pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',
-          curar: 'Vida recuperada.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: vida cheia e poções do dia.',
-          vida: 'Vida em ' + p.hpAtual + '.', 'zerar-pocoes': 'Poções zeradas.', 'esvaziar-mochila': 'Mochila esvaziada.', reputacao: 'Reputação: ' + (p.reputacao || 0) + '.' }[op]);
+          curar: 'Estamina cheia.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: estamina cheia e poções do dia.',
+          vida: 'Estamina em ' + R.estamina(p).pts + '.', 'zerar-pocoes': 'Poções zeradas.', 'esvaziar-mochila': 'Mochila esvaziada.', reputacao: 'Reputação: ' + (p.reputacao || 0) + '.' }[op]);
         telaJogo();
         break;
       }
@@ -4483,8 +4529,8 @@
         if (!R.monstroLiberado(p, alvo)) { avisar('Derrote ' + D.monstros[R.monstroAnterior(alvo)].nome + ' primeiro.'); break; }
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
         if (R.atualizarTempo(p, C.agora())) salvar();
-        if (p.hpAtual <= 0) { avisar('Você está sem vida. Espere a vida voltar, acampe ou use uma poção.'); break; }
-        if (CACA_SERVIDOR) { estado.resultado = null; iniciarCacada(D.monstros[alvo].area, [alvo]); break; }
+        estado.resultado = null; iniciarCacada(D.monstros[alvo].area, [alvo]);   // luta avulsa virou caçada de um monstro só
+        break;
         if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
@@ -4621,11 +4667,12 @@
     if (e.key === 'Escape' && estado.desafio) { estado.desafio = null; telaJogo(); }
   });
 
-  // A vida volta com o tempo: atualiza a ficha a cada 20 s (fora da batalha).
+  // A estamina volta com o tempo: atualiza a ficha a cada 20 s (fora da batalha). Não precisa gravar: a conta sai
+  // do relógio (p.estamina.em), e o próximo salvamento leva o valor certo.
   setInterval(function () {
     var p = estado.personagem;
     if (!p || estado.batalha || !document.querySelector('.ficha')) return;
-    if (R.atualizarTempo(p, C.agora())) salvar();
+    R.atualizarTempo(p, C.agora());
     atualizarFicha();
   }, 20000);
 
@@ -5289,16 +5336,17 @@
     if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
     if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
     var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
+    var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
     var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
       + '<h2>O Despertar de Ignaroth</h2><p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
       + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
-      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Sua vida é a da caçada: se acabar, espere voltar ou beba uma poção.</p></div></div>';
+      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção.</p></div></div>';
     if (ativo) {
-      var podeAtacar = !estado.cacada && p.hpAtual > R.status(p).hpMax * 0.05;
+      var podeAtacar = !estado.cacada && usadas < entradasBoss;
       h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
         + '<div class="suave">Volta a dormir em <strong>' + relogioBoss(Date.parse(b.fim) - bossAgora()) + '</strong></div></div>'
-        + '<div class="botoes"><button class="btn perigo" data-acao="boss-atacar"' + (podeAtacar ? '' : ' disabled') + '>⚔ Atacar Ignaroth</button></div>'
-        + (estado.cacada ? '<p class="menos">Pare a caçada para atacar.</p>' : !podeAtacar ? '<p class="menos">Vida muito baixa: espere recuperar ou beba uma poção.</p>' : '');
+        + '<div class="botoes"><button class="btn perigo" data-acao="boss-atacar"' + (podeAtacar ? '' : ' disabled') + '>⚔ Atacar Ignaroth (' + Math.max(0, entradasBoss - usadas) + '/' + entradasBoss + ')</button></div>'
+        + (estado.cacada ? '<p class="menos">Pare a caçada para atacar.</p>' : !podeAtacar ? '<p class="menos">Você já usou os ' + entradasBoss + ' ataques deste despertar.</p>' : '');
     } else if (b && b.estado === 'derrotado') {
       h += '<div class="resultado vitoria-chefe"><h3>Ignaroth caiu!</h3><p>Golpe final: <strong>' + esc(b.golpe_final || '?') + '</strong> (título "' + esc(cfg.titulo) + '").'
         + (b.alianca_vencedora ? ' O clã <strong>' + esc(b.alianca_vencedora) + '</strong> ganhou ' + Number(b.bonus_alianca || 0).toLocaleString('pt-BR') + ' de ouro no tesouro.' : '')
@@ -5334,12 +5382,12 @@
   function atacarMundial() {
     var p = estado.personagem;
     if (!bossAtivo() || estado.batalha || estado.cacada) return;
-    if (R.atualizarTempo(p, C.agora())) salvar();
-    if (p.hpAtual <= R.status(p).hpMax * 0.05) { avisar('Vida muito baixa: espere recuperar ou beba uma poção.'); return; }
+    var maxBoss = (estado.boss.cfg || {}).entradas || D.CHEFE_MUNDIAL.entradas;
+    if (estado.boss.eu && estado.boss.eu.ataques >= maxBoss) { avisar('Você já usou os ' + maxBoss + ' ataques deste despertar.'); return; }
     var espera = (estado.bossEnvio || 0) + ((estado.boss.cfg || {}).intervaloSeg || 15) * 1000 - Date.now();
     if (espera > 0) { avisar('Recupere o fôlego: ataque de novo em ' + Math.ceil(espera / 1000) + 's.'); return; }
     var bs = estado.boss.boss, chefeId = R.chefeDoNivel(p);
-    var b = R.iniciarBatalha(p, chefeId);
+    var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina
     b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
     b.imagemId = 'ignaroth-mundial';
     b.monstro.nome = 'Ignaroth (Chefe Mundial)';
@@ -5357,10 +5405,7 @@
   function encerrarMundial(b) {
     var p = estado.personagem;
     var dano = Math.max(0, b.mundial.vidaInicial - Math.max(0, b.monstro.hp));
-    // a vida e as poções são as da caçada; cair aqui não tira exp
-    p.hpAtual = Math.max(0, Math.min(b.jogador.hp, R.status(p).hpMax));
-    p.pocoes = b.pocoes;
-    p.vidaEm = C.agora();
+    // cair aqui não tira exp, estamina nem poção
     estado.ultimaBatalha = b;
     estado.batalha = null;
     estado.aba = 'mundial';

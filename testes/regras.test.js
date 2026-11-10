@@ -267,23 +267,21 @@ teste('anel: dano ~15% de uma arma do nível, defesa mágica (rara+), atributos 
   assert.deepStrictEqual(Object.keys(c.bonus), ['dano']);
   assert.deepStrictEqual(Object.keys(ra.bonus).sort(), ['dano', 'defesaMagica']);
   const attrs = (b) => Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
-  assert.strictEqual(attrs(e.bonus).length, 1); assert.strictEqual(e.bonus.regen, 1); assert.ok(!e.bonus.vida);
-  assert.strictEqual(attrs(l.bonus).length, 2); assert.strictEqual(l.bonus.regen, 1); assert.ok(l.bonus.vida > 0);
+  assert.strictEqual(attrs(e.bonus).length, 1); assert.ok(!('regen' in e.bonus)); assert.ok(!e.bonus.vida);
+  assert.strictEqual(attrs(l.bonus).length, 2); assert.ok(!('regen' in l.bonus)); assert.ok(l.bonus.vida > 0);
   const arma = R.novoItem('arma', 'cavaleiro', 'rara', rng2, null, 20), media = (arma.dano[0] + arma.dano[1]) / 2;
   assert.ok(ra.bonus.dano >= 2 && ra.bonus.dano <= 4 && ra.bonus.dano < media / 4, ra.bonus.dano + ' vs ' + media);
-  // regen: 2% base + 1% por anel épico/lendário
-  const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'); p.hpAtual = 1;
-  const t0 = R.minutosParaVidaCheia(p);
-  p.inventario.push(e, l); R.equipar(p, e.id); R.equipar(p, l.id); p.hpAtual = 1;
-  const hp = R.status(p).hpMax, t1 = R.minutosParaVidaCheia(p);
-  assert.strictEqual(t1, Math.ceil((hp - 1) / (hp * 4 / 100)));
-  assert.ok(t0 > t1);
+  // anel de antes com regeneração: perde a regeneração ao carregar (nov/2026)
+  const pr = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  pr.inventario.push({ id: 'reg', tipo: 'anel', classe: null, raridade: 'epica', encanto: 0, nivel: 20, bonus: { dano: 3, regen: 1 } });
+  R.normalizar(pr);
+  assert.ok(!('regen' in pr.inventario.find((i) => i.id === 'reg').bonus));
   // anel antigo (Sorte) vira novo ao carregar o personagem
   const q = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
   q.inventario.push({ id: 'velho', tipo: 'anel', classe: null, raridade: 'lendaria', encanto: 3, bonus: { sor: 9 } });
   R.normalizar(q);
   const v = q.inventario.find((i) => i.id === 'velho');
-  assert.ok(v.bonus.dano > 0 && v.bonus.regen === 1 && !('sor' in v.bonus && Object.keys(v.bonus).length === 1));
+  assert.ok(v.bonus.dano > 0 && !('regen' in v.bonus) && !('sor' in v.bonus && Object.keys(v.bonus).length === 1));
   assert.strictEqual(v.encanto, 3);
 });
 
@@ -500,7 +498,7 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40 });   // defesa dos itens x4,5
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: Math.round(3 * D.DEFESA.fator), defesaMagica: Math.round(5 * D.DEFESA.fator), vida: 15 });
   assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
-  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * D.DEFESA.fator), regen: 1 });   // reserva sem nível; encanto no dano
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * D.DEFESA.fator) });   // reserva sem nível; encanto no dano
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: Math.round(1 * 1.05 * D.DEFESA.fator), vida: 5 });
 });
 
@@ -653,7 +651,7 @@ teste('missões: progresso, resgate, bônus diário e reset do dia/semana', () =
   R.registrarMissao(p, 'encantar', 3, seg); R.registrarMissao(p, 'arena', 2, seg); R.registrarMissao(p, 'masmorra', 1, seg);
   ['d-encantar', 'd-arena', 'd-masmorra'].forEach((id) => assert.ok(R.resgatarMissao(p, 'diarias', id, seg)));
   assert.ok(R.resgatarBonusDiario(p, seg));
-  assert.strictEqual(p.reputacao, 40);
+  assert.strictEqual(p.reputacao, 100);   // 40 da missão da Arena + 60 do bônus: paga os 2 potes de estamina
   assert.strictEqual(p.missoes.s['s-cacar'], 19);
   const terca = seg + 86400000;
   R.garantirMissoes(p, terca);
@@ -813,38 +811,97 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
   assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
 });
 
-teste('vida volta 2% por minuto (6% acampado) e não passa do máximo', () => {
-  const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');   // RES 10: 100 de vida
+teste('estamina: 240, enche em 90 min (30 acampado), não passa do máximo; vida sempre cheia fora da luta', () => {
+  const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');
   R.atualizarTempo(p, T0);
-  p.hpAtual = 10; p.vidaEm = T0;
-  R.atualizarTempo(p, T0 + 10 * 60000);
-  assert.strictEqual(p.hpAtual, 30);
-  assert.strictEqual(R.minutosParaVidaCheia(p), 35);
-  R.acampar(p, T0 + 10 * 60000, true);
-  R.atualizarTempo(p, T0 + 20 * 60000);
-  assert.strictEqual(p.hpAtual, 90);
+  assert.strictEqual(p.estamina.pts, 240);
+  p.estamina.pts = 0; p.estamina.em = T0; p.hpAtual = 3;
+  R.atualizarTempo(p, T0 + 9 * 60000);
+  assert.strictEqual(p.estamina.pts, 24);   // 240 / 90 por minuto
+  assert.strictEqual(p.hpAtual, R.status(p).hpMax);
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), 81);
+  R.acampar(p, T0 + 9 * 60000, true);
+  R.atualizarTempo(p, T0 + 19 * 60000);
+  assert.strictEqual(p.estamina.pts, 104);  // +8 por minuto acampado
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), 17);
   R.atualizarTempo(p, T0 + 600 * 60000);
-  assert.strictEqual(p.hpAtual, 100);
+  assert.strictEqual(p.estamina.pts, 240);
+  // meia-noite: cheia de novo, potes do dia zerados, poções de volta
+  p.estamina.pts = 5; p.estamina.potes = 2; p.pocoes = 0;
+  R.atualizarTempo(p, T0 + 86400000);
+  assert.strictEqual(p.estamina.pts, 240); assert.strictEqual(p.estamina.potes, 0); assert.strictEqual(p.pocoes, 2);
 });
 
-teste('poção: cura 100%, gasta 1, não usa com a vida cheia nem sem poção', () => {
-  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'arqueiro');   // RES 10: 100 de vida
+teste('estamina: custo 1/2/3 e chefe 5 em todas as áreas; a luta gasta (vitória, derrota e fuga); vida cheia em toda luta', () => {
+  D.areas.forEach((a) => {
+    assert.strictEqual(a.monstros.map((m) => R.custoEstamina(m.id)).join(), '1,2,3');
+    assert.strictEqual(R.custoEstamina(a.chefe.id), 5);
+    assert.ok(a.monstros.every((m) => D.monstros[m.id].ataqueCacada) && D.monstros[a.chefe.id].ataqueCacada, 'dano da caçada em ' + a.id);
+  });
+  const p = R.criarPersonagem('E', 'masculino', 'humano', 'cavaleiro');
   R.atualizarTempo(p, T0);
-  assert.strictEqual(R.usarPocao(p, T0), false);
-  p.hpAtual = 5;
-  assert.strictEqual(R.usarPocao(p, T0), true);
-  assert.strictEqual(p.hpAtual, 100);
-  assert.strictEqual(p.pocoes, 1);
-  p.hpAtual = 5; R.usarPocao(p, T0);
-  p.hpAtual = 5;
-  assert.strictEqual(R.usarPocao(p, T0), false);
+  p.hpAtual = 1;
+  let b = R.iniciarBatalha(p, 'urso', rng);
+  assert.strictEqual(b.jogador.hp, b.jogador.hpMax, 'começa a luta com a vida cheia');
+  assert.strictEqual(b.ataque.join(), D.monstros.urso.ataqueCacada.join());
+  b.fim = 'vitoria';
+  let r = R.concluirBatalha(p, b, T0);
+  assert.strictEqual(r.estamina, 3); assert.strictEqual(p.estamina.pts, 237);
+  b = R.iniciarBatalha(p, 'velgrath', rng); b.fim = 'derrota'; b.jogador.hp = 0;
+  p.nivel = 6; p.exp = 100;
+  r = R.concluirBatalha(p, b, T0);
+  assert.strictEqual(p.estamina.pts, 232); assert.strictEqual(r.expPerdida, 12);
+  assert.strictEqual(p.hpAtual, R.status(p).hpMax, 'derrota não deixa o herói sem vida');
+  b = R.iniciarBatalha(p, 'lobo', rng);
+  R.concluirBatalha(p, b, T0);   // fuga
+  assert.strictEqual(p.estamina.pts, 231);
+  // sem estamina para o monstro
+  p.estamina.pts = 2;
+  assert.ok(R.estaminaParaCacar(p, ['urso', 'cobra'])); assert.ok(!R.estaminaParaCacar(p, ['urso']));
+  p.estamina.pts = 0; assert.ok(!R.estaminaParaCacar(p));
+  // Chefe Mundial: dano antigo do chefe, sem poções
+  const bm = R.iniciarBatalha(p, 'ignaroth', rng, { mundial: true });
+  assert.strictEqual(bm.ataque.join(), D.monstros.ignaroth.ataque.join()); assert.strictEqual(bm.pocoes, 0);
+});
+
+teste('pote de estamina: 40 e 60 de reputação, +240, 2 por dia', () => {
+  const p = R.criarPersonagem('Pote', 'masculino', 'humano', 'arqueiro');
+  R.atualizarTempo(p, T0);
+  p.estamina.pts = 10; p.reputacao = 30;
+  assert.strictEqual(R.comprarPoteEstamina(p, T0), 'Reputação insuficiente.');
+  p.reputacao = 100;
+  assert.strictEqual(R.precoPoteEstamina(p), 40);
+  assert.strictEqual(R.comprarPoteEstamina(p, T0), true);
+  assert.strictEqual(p.estamina.pts, 250); assert.strictEqual(p.reputacao, 60);
+  assert.strictEqual(R.precoPoteEstamina(p), 60);
+  assert.strictEqual(R.comprarPoteEstamina(p, T0), true);
+  assert.strictEqual(p.estamina.pts, 490); assert.strictEqual(p.reputacao, 0);
+  p.reputacao = 500;
+  assert.ok(/já usou/.test(R.comprarPoteEstamina(p, T0)));
+  // acima do máximo não recarrega nem perde
+  R.atualizarTempo(p, T0 + 3600000);
+  assert.strictEqual(p.estamina.pts, 490);
+});
+
+teste('poção de vida: compra com ouro pelo level, guarda no máximo 2 (VIP 4)', () => {
+  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'arqueiro');
+  R.atualizarTempo(p, T0);
+  assert.strictEqual(p.pocoes, 2);
+  assert.ok(/máximo/.test(R.comprarPocao(p)));
+  p.pocoes = 0; p.ouro = 150;
+  assert.strictEqual(R.precoPocao(p), 100);
+  assert.strictEqual(R.comprarPocao(p), true);
+  assert.strictEqual(p.ouro, 50); assert.strictEqual(p.pocoes, 1);
+  assert.strictEqual(R.comprarPocao(p), 'Ouro insuficiente.');
+  [[9, 100], [10, 500], [19, 500], [20, 5000], [29, 5000], [30, 10000], [40, 10000]].forEach(([n, o]) => { p.nivel = n; assert.strictEqual(R.precoPocao(p), o); });
+  assert.strictEqual(R.maxPocoes(Object.assign({}, p, { vip: true })), 4);
 });
 
 teste('poção na batalha: gasta a vez do jogador e desconta ao fim da luta', () => {
   const p = R.criarPersonagem('Bebe', 'masculino', 'humano', 'cavaleiro');
   R.atualizarTempo(p, T0);
-  p.hpAtual = 20;
   const b = R.iniciarBatalha(p, 'lobo', rng);
+  b.jogador.hp = 20;
   assert.strictEqual(R.beberPocao(b), true);
   let ev;
   do { ev = R.passo(b); } while (ev.ator !== 'jogador');
@@ -878,13 +935,12 @@ teste('penalidade de área: só com 2 mapas liberados à frente (50%), 3 ou mais
   assert.strictEqual(res.exp, Math.max(1, Math.floor(D.monstros.lobo.exp / 10)));
 });
 
-teste('derrota deixa 0 de vida; habilidades desligadas não disparam', () => {
+teste('derrota tira 5% da exp (não desce de level); habilidades desligadas não disparam', () => {
   const p = R.criarPersonagem('Caido', 'masculino', 'humano', 'mago');
   const b = R.iniciarBatalha(p, 'urso', rng);
   b.fim = 'derrota'; b.jogador.hp = 0;
   p.nivel = 6; p.exp = 100; // level 6 pede 240: perde 5% = 12
   const res = R.concluirBatalha(p, b, T0);
-  assert.strictEqual(p.hpAtual, 0);
   assert.strictEqual(res.expPerdida, 12);
   assert.strictEqual(p.exp, 88);
   p.exp = 5;
@@ -930,7 +986,7 @@ teste('admin: tirar ouro, baixar level, exp, pergaminhos, vida e mochila', () =>
   R.admin.exp(p, -100); assert.strictEqual(p.exp, 0);
   R.admin.pergaminhos(p, 3); R.admin.pergaminhos(p, -10);
   assert.strictEqual(R.qtdPergaminho(p, 'rara'), 0);
-  R.admin.vida(p, 0); assert.strictEqual(p.hpAtual, 0);
+  R.admin.vida(p, 0); assert.strictEqual(p.estamina.pts, 0);
   R.admin.conjunto(p, 'rara');
   R.admin.esvaziarMochila(p);
   assert.strictEqual(p.inventario.length, 1); // só a arma equipada
@@ -1040,7 +1096,7 @@ teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
   assert.strictEqual(res.exp, Math.floor(m.exp * 1.1));
 });
 
-teste('caçada contínua: tempo e chance por força do monstro e rastreio (velocidade + sorte), vida mínima e poção automática', () => {
+teste('caçada contínua: tempo e chance por força do monstro e rastreio (velocidade + sorte) e poção automática', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   // tempo: 3 s o mais fraco, 4 s o do meio, 5 s o mais forte no começo da região
   assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [3000, 4000, 5000]);
@@ -1063,10 +1119,6 @@ teste('caçada contínua: tempo e chance por força do monstro e rastreio (veloc
   q.atributos.sor = 200;
   assert.deepStrictEqual(R.chancesCacada(q, ['lobo', 'cobra', 'urso']).map(x => Math.round(x.chance)), [33, 33, 33]);
   assert.strictEqual(R.escolherMonstroCacada(q, ['sapo']), null);
-  // vida mínima: mais que 5%
-  const hpMax = R.status(q).hpMax;
-  q.hpAtual = Math.floor(hpMax * 0.05); assert.ok(!R.vidaParaCacar(q));
-  q.hpAtual = Math.floor(hpMax * 0.05) + 1; assert.ok(R.vidaParaCacar(q));
   // poção automática
   const b = { fim: null, pocoes: 1, pocaoPendente: false, jogador: { hp: 9, hpMax: 100 } };
   assert.ok(R.precisaPocao(b, 10)); assert.ok(!R.precisaPocao(b, 5)); assert.ok(!R.precisaPocao(b, 0));
@@ -1600,7 +1652,7 @@ teste('defesa do herói em porcentagem: 100 = -50%, nunca imortal, igual na caç
   b.jogador.hp = 1e6; b.jogador.barra = 0; b.monstro.barra = 100;
   const ev = R.passo(b);
   assert.strictEqual(ev.ator, 'monstro');
-  assert.strictEqual(ev.dano, R.danoComDefesa(D.monstros.urso.ataque[0], def));
+  assert.strictEqual(ev.dano, R.danoComDefesa(D.monstros.urso.ataqueCacada[0], def));
 });
 
 teste('história: capítulos com regiões, chefes e masmorras que existem', () => {
@@ -2047,15 +2099,20 @@ teste('servidor da caçada: ritmo, monstros válidos, luta inteira e próximo en
   delete p.encontro;
   assert.ok(SC.encontro(p, ['lobo'], t + 1, rng).erro, 'nova busca só depois do ritmo');
 });
-teste('servidor da caçada: mineração e vida baixa bloqueiam; fugir do chefe', () => {
+teste('servidor da caçada: mineração e falta de estamina bloqueiam; fugir do chefe', () => {
   const p = R.criarPersonagem('S', 'masculino', 'humano', 'cavaleiro');
   const t = 1.8e12;
   p.minas = { fim: t + 60000 };
   assert.ok(/minerando/.test(SC.encontro(p, ['lobo'], t, rng).erro));
   delete p.minas;
-  p.hpAtual = 1;
-  assert.ok(/Vida baixa/.test(SC.encontro(p, ['lobo'], t, rng).erro));
-  p.hpAtual = R.status(p).hpMax;
+  R.atualizarTempo(p, t);
+  p.estamina.pts = 0;
+  assert.ok(/Sem estamina/.test(SC.encontro(p, ['lobo'], t, rng).erro));
+  p.estamina.pts = 2; p.abates.lobo = 1; p.abates.cobra = 1;
+  assert.ok(/Sem estamina/.test(SC.encontro(p, ['urso'], t, rng).erro), 'não paga o urso (3)');
+  assert.strictEqual(SC.encontro(p, ['urso', 'lobo'], t, rng).encontro.normal, 'lobo', 'só sorteia o que a estamina paga');
+  delete p.encontro; delete p.cacadaLivreEm;
+  p.estamina.pts = 240;
   p.encontro = { monstro: 'x', normal: 'lobo', chefe: true, em: t, prontoEm: t };
   const f = SC.fugir(p, t, true);
   assert.strictEqual(f.encontro.monstro, 'lobo');

@@ -206,7 +206,6 @@ Tanka.regras = (function () {
         b[k] = rolar(extra, rng);
       }
     }
-    if (tem('regen')) b.regen = A.regen;
     return b;
   }
   // Anel antigo (dava Sorte): ganha os bônus novos da raridade e do nível dele.
@@ -1025,6 +1024,8 @@ Tanka.regras = (function () {
     });
     if (!p.presencaChefe) p.presencaChefe = {};
     if (typeof p.pocoes !== 'number') { p.pocoes = D.VIDA.pocoesPorDia; p.ultimoReset = null; p.vidaEm = null; p.acampado = false; }
+    estamina(p);
+    p.inventario.forEach(function (i) { if (i.bonus && i.bonus.regen) delete i.bonus.regen; });   // anel: a regeneração saiu (nov/2026)
     if (p.abates.grakk) { p.abates.velgrath = (p.abates.velgrath || 0) + p.abates.grakk; delete p.abates.grakk; } // chefe renomeado
     if (!p.equipados) {
       p.equipados = Object.assign(equipamentosVazios(), { arma: p.armaEquipada || null });
@@ -1307,37 +1308,51 @@ Tanka.regras = (function () {
     var local = agora + D.VIDA.fusoReset * 3600000;
     return 86400000 - (local % 86400000);
   }
-  function regenPorMinuto(p) {
-    // base + anéis (épico e lendário: +1% cada), tudo multiplicado no acampamento
-    return status(p).hpMax * (D.VIDA.regenPorMinuto + (bonusEquipamentos(p).regen || 0)) * (p.acampado ? D.VIDA.acampamento : 1) / 100;
+  // ---- Estamina: o que limita a caçada (a vida começa cheia em toda luta) ----
+  function estamina(p) {
+    if (!p.estamina || typeof p.estamina.pts !== 'number') p.estamina = { pts: D.ESTAMINA.maximo, em: null, potes: 0 };
+    return p.estamina;
   }
+  // Custo de enfrentar um monstro: 1º, 2º e 3º da área, e o chefe.
+  function custoEstamina(monstroId) {
+    var m = D.monstros[monstroId], E = D.ESTAMINA;
+    if (!m || !m.area) return 0;
+    if (m.chefe) return E.custoChefe;
+    var area = areaDoMonstro(monstroId);
+    var i = area.monstros.findIndex(function (x) { return x.id === monstroId; });
+    return E.custo[Math.max(0, Math.min(E.custo.length - 1, i))];
+  }
+  function estaminaPorMinuto(p) { return D.ESTAMINA.maximo / (p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar); }
 
-  // Aplica o reset diário e a vida recuperada desde a última conta. Não chamar durante a batalha.
-  // Retorna true se algo mudou.
+  // Aplica o reset diário (estamina cheia, poções do dia) e a estamina recuperada desde a última conta.
+  // Fora da luta a vida está sempre cheia. Não chamar durante a batalha. Retorna true se algo mudou.
   function atualizarTempo(p, agora) {
-    var hpMax = status(p).hpMax;
+    var hpMax = status(p).hpMax, e = estamina(p), E = D.ESTAMINA, mudou = false;
+    if (p.hpAtual !== hpMax) { p.hpAtual = hpMax; mudou = true; }
     var dia = diaReset(agora);
     if (p.ultimoReset !== dia) {
       p.ultimoReset = dia;
-      p.hpAtual = hpMax;
-      p.pocoes = D.VIDA.pocoesPorDia;
+      p.pocoes = Math.max(p.pocoes || 0, D.VIDA.pocoesPorDia);
+      e.pts = Math.max(e.pts, E.maximo);
+      e.potes = 0;
+      e.em = agora;
       p.vidaEm = agora;
       return true;
     }
-    if (!p.vidaEm || p.hpAtual >= hpMax || agora < p.vidaEm) { p.vidaEm = agora; return false; }
-    var porMin = regenPorMinuto(p);
-    var ganho = Math.floor((agora - p.vidaEm) / 60000 * porMin);
-    if (ganho <= 0) return false;
-    p.hpAtual = Math.min(hpMax, p.hpAtual + ganho);
-    // Guarda a sobra de tempo que ainda não virou 1 de vida.
-    p.vidaEm = p.hpAtual >= hpMax ? agora : p.vidaEm + ganho / porMin * 60000;
+    if (!e.em || e.pts >= E.maximo || agora < e.em) { e.em = agora; return mudou; }
+    var porMin = estaminaPorMinuto(p);
+    var ganho = Math.floor((agora - e.em) / 60000 * porMin);
+    if (ganho <= 0) return mudou;
+    e.pts = Math.min(E.maximo, e.pts + ganho);
+    // Guarda a sobra de tempo que ainda não virou 1 ponto.
+    e.em = e.pts >= E.maximo ? agora : e.em + ganho / porMin * 60000;
     return true;
   }
 
-  // Minutos até a vida encher (0 se já está cheia).
-  function minutosParaVidaCheia(p) {
-    var falta = status(p).hpMax - p.hpAtual;
-    return falta > 0 ? Math.ceil(falta / regenPorMinuto(p)) : 0;
+  // Minutos até a estamina encher (0 se já está cheia).
+  function minutosParaEstaminaCheia(p) {
+    var falta = D.ESTAMINA.maximo - estamina(p).pts;
+    return falta > 0 ? Math.ceil(falta / estaminaPorMinuto(p)) : 0;
   }
 
   function acampar(p, agora, sim) {
@@ -1345,13 +1360,41 @@ Tanka.regras = (function () {
     p.acampado = !!sim;
   }
 
-  // Poção fora da batalha: cura 100%. Retorna false sem poção ou com a vida cheia.
-  function usarPocao(p, agora) {
+  // Tem estamina para caçar pelo menos um destes monstros? (sem lista: pelo menos 1 ponto)
+  function estaminaParaCacar(p, ids) {
+    var pts = estamina(p).pts;
+    if (!ids || !ids.length) return pts >= 1;
+    return ids.some(function (id) { return custoEstamina(id) <= pts; });
+  }
+
+  // Pote de estamina (Mercado): pago com reputação, 1º e 2º do dia com preços diferentes.
+  function precoPoteEstamina(p) {
+    var precos = D.ESTAMINA.pote.precos, n = estamina(p).potes || 0;
+    return n < precos.length ? precos[n] : null;
+  }
+  function comprarPoteEstamina(p, agora) {
     atualizarTempo(p, agora);
-    if (p.pocoes <= 0 || p.hpAtual >= status(p).hpMax) return false;
-    p.pocoes -= 1;
-    p.hpAtual = status(p).hpMax;
-    p.vidaEm = agora;
+    var preco = precoPoteEstamina(p), e = estamina(p);
+    if (preco == null) return 'Você já usou os ' + D.ESTAMINA.pote.precos.length + ' potes de hoje.';
+    if ((p.reputacao || 0) < preco) return 'Reputação insuficiente.';
+    p.reputacao -= preco;
+    e.potes = (e.potes || 0) + 1;
+    e.pts += D.ESTAMINA.pote.enche;
+    return true;
+  }
+
+  // Poção de vida: quantas cabem e quanto custa (pelo level).
+  function maxPocoes(p) { return p && p.vip ? D.POCAO.maximoVip : D.POCAO.maximo; }
+  function precoPocao(p) {
+    var f = D.POCAO.precos.find(function (x) { return p.nivel <= x.ate; });
+    return (f || D.POCAO.precos[D.POCAO.precos.length - 1]).ouro;
+  }
+  function comprarPocao(p) {
+    if ((p.pocoes || 0) >= maxPocoes(p)) return 'Você já tem o máximo de poções (' + maxPocoes(p) + ').';
+    var preco = precoPocao(p);
+    if (p.ouro < preco) return 'Ouro insuficiente.';
+    p.ouro -= preco;
+    p.pocoes = (p.pocoes || 0) + 1;
     return true;
   }
 
@@ -1422,8 +1465,9 @@ Tanka.regras = (function () {
     return D.niveisHabilidade.filter(function (n) { return p.nivel >= n; }).length;
   }
 
-  function iniciarBatalha(p, monstroId, rng) {
-    var m = D.monstros[monstroId];
+  // opcoes.mundial: ataque contra o Chefe Mundial (dano antigo do chefe, sem poções, não gasta estamina).
+  function iniciarBatalha(p, monstroId, rng, opcoes) {
+    var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial);
     var s = status(p, true);   // contra monstro: com as skills do clã
     return {
       monstroId: monstroId,
@@ -1434,9 +1478,10 @@ Tanka.regras = (function () {
       sorte: atributosTotais(p).sor,
       auto: !!p.habilidadeAuto,          // usa a habilidade sozinha quando carregar
       habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
-      pocoes: p.pocoes,                   // poções disponíveis na luta
+      pocoes: mundial ? 0 : (p.pocoes || 0),   // poções disponíveis na luta (só na caçada)
+      ataque: mundial || !m.ataqueCacada ? m.ataque : m.ataqueCacada,   // dano do monstro nesta luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
-      jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
+      jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
       lutador: novoLutador(p, 'cacada'),   // habilidades da caçada (ordem, recargas, reforços)
       chefe: !!m.chefe,
       // Nas 2 primeiras zonas o monstro começa com a barra cheia (o primeiro golpe é dele). Da 3ª zona em diante
@@ -1535,7 +1580,7 @@ Tanka.regras = (function () {
     if (b.lutador && b.lutador.furtivo) { b.lutador.furtivo = false; ev.sombra = true; return ev; }
     // Acerto do monstro: 80% + 2% por área, menos a evasão do jogador.
     if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
-    var dano = aoReceber(b.lutador, danoComDefesa(rolar(m.ataque, rng), defesaHeroi(s, b.lutador)), b.monstro, rng);
+    var dano = aoReceber(b.lutador, danoComDefesa(rolar(b.ataque || m.ataque, rng), defesaHeroi(s, b.lutador)), b.monstro, rng);
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
@@ -1639,9 +1684,14 @@ Tanka.regras = (function () {
 
   function concluirBatalha(p, b, agora, bonus) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
-    p.hpAtual = Math.min(b.jogador.hp, status(p).hpMax);   // a vida extra da Bênção acaba com a luta
+    p.hpAtual = status(p).hpMax;   // a vida volta cheia depois de toda luta
     p.pocoes = b.pocoes;
     p.vidaEm = agora || Date.now();
+    // Toda luta da caçada gasta a estamina do monstro (vitória, derrota ou fuga).
+    res.estamina = custoEstamina(b.monstroId);
+    var est = estamina(p);
+    est.pts = Math.max(0, est.pts - res.estamina);
+    if (!est.em || est.pts + res.estamina >= D.ESTAMINA.maximo) est.em = agora || Date.now();   // estava cheia: a recarga começa agora
     if (b.fim === 'vitoria') {
       var m = D.monstros[b.monstroId];
       var area = areaDoMonstro(b.monstroId);
@@ -1703,8 +1753,7 @@ Tanka.regras = (function () {
       }
     } else if (!b.fim) {
       evitarChefe(p, b.monstroId);   // fugiu da luta contra o chefe
-    } else if (b.fim === 'derrota') {
-      p.hpAtual = 0;
+    } else if (b.fim === 'derrota') {   // perde a estamina da luta e parte da exp
       res.expPerdida = Math.min(p.exp, Math.ceil(expNecessaria(p.nivel) * D.PERDA_EXP_DERROTA / 100));
       if (p.nivel >= D.NIVEL_MAXIMO) res.expPerdida = 0;
       p.exp -= res.expPerdida;
@@ -1893,8 +1942,6 @@ Tanka.regras = (function () {
     for (var i = 0; i < lista.length; i++) { r -= lista[i].chance; if (r < 0) return lista[i].id; }
     return lista[lista.length - 1].id;
   }
-  // Para caçar é preciso ter mais que 5% da vida.
-  function vidaParaCacar(p) { return p.hpAtual > status(p).hpMax * D.CACADA.vidaMinima / 100; }
   // Poção automática na luta: abaixo do limite (% da vida), se ainda houver poção.
   function precisaPocao(b, limite) {
     return !!limite && !b.fim && b.pocoes > 0 && !b.pocaoPendente && b.jogador.hp > 0 && b.jogador.hp * 100 / b.jogador.hpMax < limite;
@@ -2571,7 +2618,8 @@ Tanka.regras = (function () {
       RARIDADES.forEach(function (k) { mudarPergaminho(p, k, quantidade); });
     },
     // Deixa a vida em X% da máxima (0 = sem vida).
-    vida: function (p, pct) { p.hpAtual = Math.floor(status(p).hpMax * pct / 100); },
+    // Deixa a estamina em X% da máxima (0 = sem estamina). (antes mexia na vida)
+    vida: function (p, pct) { estamina(p).pts = Math.floor(D.ESTAMINA.maximo * pct / 100); },
     zerarPocoes: function (p) { p.pocoes = 0; },
     // Tira da mochila tudo que não está equipado.
     esvaziarMochila: function (p) {
@@ -2590,7 +2638,7 @@ Tanka.regras = (function () {
   };
 
   // Cura tudo (admin).
-  function descansar(p, agora) { p.hpAtual = status(p).hpMax; p.vidaEm = agora || Date.now(); }
+  function descansar(p, agora) { p.hpAtual = status(p).hpMax; p.vidaEm = agora || Date.now(); estamina(p).pts = Math.max(estamina(p).pts, D.ESTAMINA.maximo); }
 
   // Equipa no espaço certo; se já houver item lá, ele volta para a mochila.
   // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
@@ -2761,7 +2809,14 @@ Tanka.regras = (function () {
     evolucaoCacada: evolucaoCacada,
     chancesCacada: chancesCacada,
     escolherMonstroCacada: escolherMonstroCacada,
-    vidaParaCacar: vidaParaCacar,
+    estaminaParaCacar: estaminaParaCacar,
+    custoEstamina: custoEstamina,
+    estamina: estamina,
+    precoPoteEstamina: precoPoteEstamina,
+    comprarPoteEstamina: comprarPoteEstamina,
+    maxPocoes: maxPocoes,
+    precoPocao: precoPocao,
+    comprarPocao: comprarPocao,
     precisaPocao: precisaPocao,
     monstroAnterior: monstroAnterior,
     monstroLiberado: monstroLiberado,
@@ -2806,9 +2861,8 @@ Tanka.regras = (function () {
     diaReset: diaReset,
     msAteReset: msAteReset,
     atualizarTempo: atualizarTempo,
-    minutosParaVidaCheia: minutosParaVidaCheia,
+    minutosParaEstaminaCheia: minutosParaEstaminaCheia,
     acampar: acampar,
-    usarPocao: usarPocao,
     beberPocao: beberPocao,
   };
 })();

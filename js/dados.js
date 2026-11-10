@@ -275,15 +275,16 @@ Tanka.dados = {
       nomes: ['Colar de Cobre', 'Colar de Prata', 'Colar de Ametista', 'Colar do Sol Eterno'] },
     // Anel (Henri, nov/2026): comum = dano; rara + defesa mágica; épica + 1 atributo sorteado + regeneração;
     // lendária + 2 atributos sorteados + vida + regeneração. Valores por nível em ANEL (os de baixo são só de reserva).
-    anel: { tipo: 'Anel', bonus: { dano: [1, 2, 3, 4], defesaMagica: [0, 2, 4, 6], vida: [0, 0, 0, 30], regen: [0, 0, 1, 1] },
+    anel: { tipo: 'Anel', bonus: { dano: [1, 2, 3, 4], defesaMagica: [0, 2, 4, 6], vida: [0, 0, 0, 30] },
       nomes: ['Anel de Cobre', 'Anel de Prata', 'Anel de Ametista', 'Anel do Sol Eterno'] },
   },
   // Anel por nível: dano = danoPctArma% do dano médio de uma arma do mesmo nível e qualidade (mínimo 1);
   // defesa mágica e vida crescem com o nível como as armaduras (valor de referência da rara);
   // atributos: quantos atributos diferentes sorteados (valores de VARIACAO_ITEM.extra); regen: % da vida por minuto
   // (soma aos VIDA.regenPorMinuto, fora da luta; 2 anéis somam).
-  ANEL: { danoPctArma: 15, defesaMagica: 2, vida: 15, regen: 1,
-    desde: { defesaMagica: 'rara', atributos: 'epica', regen: 'epica', vida: 'lendaria' }, atributos: { epica: 1, lendaria: 2 } },
+  // nov/2026: a regeneração de vida do anel saiu (a vida começa cheia em toda luta).
+  ANEL: { danoPctArma: 15, defesaMagica: 2, vida: 15,
+    desde: { defesaMagica: 'rara', atributos: 'epica', vida: 'lendaria' }, atributos: { epica: 1, lendaria: 2 } },
 
   // Encantamento: +0 a +10, gastando 1 pergaminho da raridade da arma por tentativa.
   encantamento: {
@@ -492,6 +493,15 @@ Tanka.dados = {
   // Acampado, multiplica pela velocidade do acampamento, mas não pode caçar.
   // Reset diário à meia-noite de Brasília (UTC-3): vida cheia e as poções do dia voltam.
   VIDA: { regenPorMinuto: 2, acampamento: 3, pocoesPorDia: 2, fusoReset: -3 },
+  // Estamina (Daniel/Henri, nov/2026): o que limita a caçada. Barra igual para todos; cada luta gasta pelo monstro
+  // (1º, 2º, 3º da área e chefe). Enche sozinha em minutosSemAcampar, acampado em minutosAcampado, e à meia-noite.
+  // A vida do herói começa cheia em toda luta (o dano dos monstros na caçada é o `danoCacada` de cada um).
+  // pote: comprado com reputação (precos = 1º e 2º do dia), enche +240 (pode passar do máximo).
+  ESTAMINA: { maximo: 240, minutosAcampado: 30, minutosSemAcampar: 90, custo: [1, 2, 3], custoChefe: 5,
+    pote: { enche: 240, precos: [40, 60] } },
+  // Poção de vida: 2 de graça por dia (VIDA.pocoesPorDia); mais, só comprando com ouro (preço pelo level).
+  // Guarda no máximo `maximo` (VIP: maximoVip). Só vale na caçada (Arena, masmorra e Chefe Mundial não usam).
+  POCAO: { maximo: 2, maximoVip: 4, precos: [{ ate: 9, ouro: 100 }, { ate: 19, ouro: 500 }, { ate: 29, ouro: 5000 }, { ate: 999, ouro: 10000 }] },
 
   // Penalidade de área baixa (exp e ouro reduzidos e nenhum drop): conta quantos mapas DEPOIS desta área o herói
   // já liberou pelo level. Até 1 mapa à frente: sem penalidade (sempre 2 mapas para farmar: o mais alto e o anterior).
@@ -671,7 +681,7 @@ Tanka.dados = {
   },
   NIVEL_MAXIMO: 40,
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
-  CHEFE_MUNDIAL: { acoesPorAtaque: 30 },
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
 
   areas: [
     {
@@ -680,77 +690,77 @@ Tanka.dados = {
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
       base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
       monstros: [
-        { id: 'lobo', dano: [3, 5], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.' },
-        { id: 'cobra', dano: [4, 6], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
-        { id: 'urso', dano: [5, 8], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
+        { id: 'lobo', dano: [3, 5], danoCacada: [7, 12], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.' },
+        { id: 'cobra', dano: [4, 6], danoCacada: [9, 14], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
+        { id: 'urso', dano: [5, 8], danoCacada: [12, 19], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
       ],
-      chefe: { id: 'velgrath', dano: [8, 10], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
+      chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [15, 19], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
       base: { hp: 70, ataque: 8, exp: 10 }, ouro: [12, 20, 30],
       monstros: [
-        { id: 'sapo', dano: [10, 15], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.' },
-        { id: 'aranha', dano: [15, 20], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
-        { id: 'troll', dano: [18, 22], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
+        { id: 'sapo', dano: [10, 15], danoCacada: [6, 10], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.' },
+        { id: 'aranha', dano: [15, 20], danoCacada: [10, 13], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
+        { id: 'troll', dano: [18, 22], danoCacada: [11, 14], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
       ],
-      chefe: { id: 'morgath', dano: [25, 30], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
+      chefe: { id: 'morgath', dano: [25, 30], danoCacada: [15, 17], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
     },
     {
       id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.3,
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
       base: { hp: 140, ataque: 15, exp: 30 }, ouro: [40, 60, 80],
       monstros: [
-        { id: 'esqueleto', dano: [20, 28], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
-        { id: 'goblin', dano: [26, 35], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
-        { id: 'gargula', dano: [31, 42], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
+        { id: 'esqueleto', dano: [20, 28], danoCacada: [33, 46], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
+        { id: 'goblin', dano: [26, 35], danoCacada: [42, 57], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
+        { id: 'gargula', dano: [31, 42], danoCacada: [51, 69], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
       ],
-      chefe: { id: 'varnok', dano: [38, 52], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
+      chefe: { id: 'varnok', dano: [38, 52], danoCacada: [59, 79], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
     },
     {
       id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3, ajusteVida: 1.35,
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
       base: { hp: 200, ataque: 22, exp: 90 }, ouro: [100, 150, 200],
       monstros: [
-        { id: 'golem', dano: [30, 40], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
-        { id: 'cultista', dano: [38, 52], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
-        { id: 'espectro', dano: [46, 63], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
+        { id: 'golem', dano: [30, 40], danoCacada: [37, 50], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
+        { id: 'cultista', dano: [38, 52], danoCacada: [47, 65], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
+        { id: 'espectro', dano: [46, 63], danoCacada: [57, 79], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
-      chefe: { id: 'guardiao', dano: [56, 75], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
+      chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [69, 92], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
     },
     {
       id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
       base: { hp: 320, ataque: 32, exp: 270 }, ouro: [800, 1600, 3200],
       monstros: [
-        { id: 'escorpiao', dano: [44, 59], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
-        { id: 'lagarto', dano: [54, 74], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
-        { id: 'mumia', dano: [68, 92], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
+        { id: 'escorpiao', dano: [44, 59], danoCacada: [68, 91], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
+        { id: 'lagarto', dano: [54, 74], danoCacada: [84, 115], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
+        { id: 'mumia', dano: [68, 92], danoCacada: [105, 142], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
-      chefe: { id: 'farao', dano: [82, 110], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
+      chefe: { id: 'farao', dano: [82, 110], danoCacada: [128, 172], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
     },
     {
       id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
       base: { hp: 420, ataque: 40, exp: 800 }, ouro: [2000, 4000, 8000],
       monstros: [
-        { id: 'drake', dano: [54, 74], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
-        { id: 'wyvern', dano: [68, 92], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
-        { id: 'cavaleiroDraconico', dano: [86, 116], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
+        { id: 'drake', dano: [54, 74], danoCacada: [123, 168], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
+        { id: 'wyvern', dano: [68, 92], danoCacada: [155, 209], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
+        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [196, 264], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
-      chefe: { id: 'vharkesh', dano: [103, 140], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
+      chefe: { id: 'vharkesh', dano: [103, 140], danoCacada: [225, 304], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
     },
     {
       id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 1.35,
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
       base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [5000, 10000, 20000],
       monstros: [
-        { id: 'salamandra', dano: [82, 110], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
-        { id: 'demonio', dano: [102, 138], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
-        { id: 'elemental', dano: [128, 173], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
+        { id: 'salamandra', dano: [82, 110], danoCacada: [233, 312], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
+        { id: 'demonio', dano: [102, 138], danoCacada: [290, 392], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
+        { id: 'elemental', dano: [128, 173], danoCacada: [363, 491], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
-      chefe: { id: 'ignaroth', dano: [154, 208], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
+      chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [542, 731], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
     },
   ],
 
@@ -856,10 +866,10 @@ Tanka.dados = {
     diarias: [
       { id: 'd-cacar', nome: 'Caçador do dia', texto: 'Derrote 15 monstros nas caçadas', evento: 'abate', meta: 15, premio: { ouroPorNivel: 30 } },
       { id: 'd-encantar', nome: 'Martelo quente', texto: 'Tente encantar 3 vezes', evento: 'encantar', meta: 3, premio: { pergaminhoArma: 1 } },
-      { id: 'd-arena', nome: 'Sangue na areia', texto: 'Lute 2 vezes na Arena', evento: 'arena', meta: 2, premio: { reputacao: 20 } },
+      { id: 'd-arena', nome: 'Sangue na areia', texto: 'Lute 2 vezes na Arena', evento: 'arena', meta: 2, premio: { reputacao: 40 } },
       { id: 'd-masmorra', nome: 'Desbravador', texto: 'Vença 1 masmorra em grupo', evento: 'masmorra', meta: 1, premio: { ouroPorNivel: 50 } },
     ],
-    bonusDiario: { pergaminhoArma: 1, reputacao: 20 },   // completar e resgatar todas as diárias
+    bonusDiario: { pergaminhoArma: 1, reputacao: 60 },   // completar e resgatar todas as diárias
     semanais: [
       { id: 's-cacar', nome: 'Terror das matas', texto: 'Derrote 150 monstros nas caçadas', evento: 'abate', meta: 150, premio: { ouroPorNivel: 300 } },
       { id: 's-chefe', nome: 'Matador de lendas', texto: 'Derrote 2 chefes de área', evento: 'chefe', meta: 2, premio: { pergaminhoArma: 3 } },
@@ -1043,6 +1053,7 @@ Tanka.dados = {
       D.monstros[m.id] = {
         nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
         hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: velNova,
+        ataqueCacada: m.danoCacada ? m.danoCacada.slice() : null,   // dano na caçada (vida cheia a cada luta); `ataque` vale na masmorra e nos bosses
         defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
         // Tabelas no formato { raridade, chance } (cumulativas): chance do drop x qualidade (DROPS_CACADA).
         chanceArma: dc.arma || 0, chanceArmadura: dc.armadura || 0,
@@ -1055,6 +1066,7 @@ Tanka.dados = {
     var m3 = D.monstros[area.monstros[2].id], c = area.chefe, C = D.chefe;
     D.monstros[c.id] = {
       nome: c.nome, descricao: c.descricao, area: area.id, indiceArea: indiceArea, chefe: true,
+      ataqueCacada: c.danoCacada ? c.danoCacada.slice() : null,
       hp: Math.round(m3.hp * C.vida), ataque: c.dano ? c.dano.slice() : [Math.round(m3.ataque[0] * C.ataque), Math.round(m3.ataque[1] * C.ataque)],
       velocidade: Math.max(1, Math.round(velNova * C.velocidade)), defesa: Math.round(m3.defesa * C.defesa), defesaMagica: Math.round(m3.defesa * C.defesa),
       // `ouro` e `exp` no chefe da área substituem a conta (5x o 3º monstro).

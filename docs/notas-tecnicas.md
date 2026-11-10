@@ -559,3 +559,25 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `abrirAba('leilao')` apaga `estado.leilao` antes de desenhar: mostra "Carregando…" e pega a fase do servidor (antes
   mostrava a fase guardada da última visita, ex.: "Médio" de 10 min atrás, e o jogador perdia o fim).
 - `redesenharLeilao`: atualiza a cada 20 s, e a cada 5 s nas fases Curto e Muito curto.
+
+## Estamina (Daniel/Henri, nov/2026) — PDF "Estamina: o fôlego do caçador"
+- `D.ESTAMINA` = { maximo 240, minutosAcampado 30, minutosSemAcampar 90, custo [1,2,3], custoChefe 5, pote { enche 240,
+  precos [40, 60] de reputação } }. `p.estamina = { pts, em, potes }`.
+- `R.atualizarTempo`: reset da meia-noite (estamina cheia, potes do dia zerados, poções = pelo menos 2) e recarga pela
+  hora (`em`); fora da luta a vida fica sempre cheia. Acampar = estamina 3x mais rápido (não caça acampado).
+- Vida cheia a cada luta (`iniciarBatalha` começa com hpMax). Por isso a caçada usa `danoCacada` de cada monstro
+  (`D.monstros[id].ataqueCacada`, em `b.ataque`); o `dano` antigo (`ataque`) continua valendo na masmorra, no boss do clã
+  e no Chefe Mundial. Calibrado com `node ferramentas/simular_cacada.js`: herói típico da área perde ~60% da vida no 3º
+  monstro e o forte ~55% no chefe; 1º e 2º são seguros; o típico precisa de poção para o chefe.
+- `concluirBatalha`: toda luta gasta `R.custoEstamina(monstro)` (vitória, derrota, fuga); derrota = perde a estamina da
+  luta e 5% da exp (não fica mais sem vida). `servidor-cacada.js`: só sorteia monstro (e chefe) que a estamina paga;
+  sem estamina a caçada para.
+- Poção de vida: 2 de graça por dia; compra no Mercado por ouro (`D.POCAO.precos`: 100 / 500 / 5.000 / 10.000 pelos
+  levels 1–9 / 10–19 / 20–29 / 30+), guarda no máximo 2 (VIP 4, `p.vip`). Só na caçada (o botão "Usar" de fora saiu).
+- Pote de estamina: Mercado › Poções, `R.comprarPoteEstamina` (40 e 60 de reputação, 2 por dia, pode passar de 240).
+- Missões: diária da Arena 40 de reputação, bônus de todas as diárias 60 (paga os 2 potes).
+- Anel: a regeneração de vida saiu (anéis antigos perdem `bonus.regen` no `normalizar`).
+- Chefe Mundial: `iniciarBatalha(..., { mundial: true })` (vida cheia, sem poção, sem estamina) e no máximo 5 ataques por
+  despertar (`boss_cfg.entradas` + trava em `boss_atacar`; `D.CHEFE_MUNDIAL.entradas`).
+- Tela: barra de Estamina na ficha e na caçada (⚡), custo ⚡ na carta de cada monstro, admin "Estamina e poções".
+- Teste do banco: o preço do clã mudou (6.000/100) e o teste foi acertado para continuar rodando.
