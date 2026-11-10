@@ -536,10 +536,3 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - No iPhone a troca Zealot → Clássica recarregava e voltava Zealot (o localStorage não gravava a tempo antes do
   `location.reload()`). Agora a escolha também vai num cookie `eldrin_interface` (lido primeiro em `jogar/index.html` e
   `ferramentas/artifact.html`) e a página recarrega 150 ms depois.
-
-## Herói de corpo inteiro nos equipamentos (Daniel, nov/2026; teste)
-- Herói > Personagem: se existir arte de corpo inteiro, ela entra no lugar do retrato (`.retrato-central.corpo-inteiro`).
-- Arte sem fundo em `assets/personagens/corpo/<raca>-<classe>[-f].webp`; só vale para as listadas em `CORPO_INTEIRO`
-  (retratos.js, `F.corpoInteiro`). Por enquanto só `anao-arqueiro` (masculino). Prompt: corpo inteiro, fundo cinza liso,
-  2:3, com o retrato atual anexado. Fundo tirado com a regra do `recortar_fundo.py` sem redimensionar (corta pelo contorno)
-  e miolo cinza (entre perna e arma) com fundo bem parecido (distância < 18, saturação < 10, manchas ≥ 400 px).
