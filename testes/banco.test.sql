@@ -155,7 +155,13 @@ select public.alianca_criar('pa', 'Lobos da Neve', 'lob', '{"forma":"classico","
 select pg_temp.igual(public.alianca_estado('pa', null) -> 'alianca' ->> 'sigla', 'LOB', 'aliança criada com a sigla em maiúsculas');
 select pg_temp.igual(public.alianca_estado('pa', null) ->> 'meu_cargo', 'lider', 'quem cria vira líder');
 reset role;
-select pg_temp.igual(public.ouro_real('pa'), 40000, 'criar cobra 10.000 de ouro');
+-- O preço de criar o clã mudou (hoje 6.000 de ouro e 100 de reputação); o resto deste teste foi escrito com 10.000 e 300:
+-- tira a diferença aqui para as contas de baixo continuarem valendo.
+update public.personagens set dados = jsonb_set(jsonb_set(dados,
+    '{ouro}', to_jsonb((dados ->> 'ouro')::int - (10000 - (public.tanka_dados() -> 'ALIANCA' ->> 'custoOuro')::int))),
+    '{reputacao}', to_jsonb((dados ->> 'reputacao')::int - (300 - (public.tanka_dados() -> 'ALIANCA' ->> 'custoReputacao')::int)))
+  where id = 'pa';
+select pg_temp.igual(public.ouro_real('pa'), 40000, 'criar cobra o ouro do clã');
 select pg_temp.igual(public.reputacao_real('pa'), 700, 'criar cobra 300 de reputação');
 set role authenticated;
 select pg_temp.como('d');
@@ -779,6 +785,14 @@ select pg_temp.falha($$select public.boss_atacar('pa', 300, 'rei_goblin')$$, 'Es
 select pg_temp.falha($$select public.boss_atacar('pb', 300, 'x')$$, 'Personagem inválido');
 select pg_temp.como('b'); select public.boss_atacar('pb', 250, 'rainha_aranha');
 select pg_temp.como('c'); select public.boss_atacar('pc', 200, 'rei_goblin');
+-- no máximo 5 ataques por despertar
+reset role;
+update public.boss_mundial_dano set ataques = 5, ultimo_em = now() - interval '1 minute' where personagem_id = 'pc';
+set role authenticated;
+select pg_temp.como('c'); select pg_temp.falha($$select public.boss_atacar('pc', 200, 'rei_goblin')$$, 'já usou os 5 ataques');
+reset role;
+update public.boss_mundial_dano set ataques = 1 where personagem_id = 'pc';
+\echo ok chefe mundial: 5 ataques por despertar
 reset role;
 update public.boss_mundial_dano set ultimo_em = now() - interval '20 seconds';
 set role authenticated;

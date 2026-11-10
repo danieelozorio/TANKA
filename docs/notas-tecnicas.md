@@ -536,3 +536,64 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - No iPhone a troca Zealot → Clássica recarregava e voltava Zealot (o localStorage não gravava a tempo antes do
   `location.reload()`). Agora a escolha também vai num cookie `eldrin_interface` (lido primeiro em `jogar/index.html` e
   `ferramentas/artifact.html`) e a página recarrega 150 ms depois.
+
+## Monstro ataca primeiro (Henri, nov/2026)
+- `iniciarBatalha` (caçada): o monstro só começa com a barra cheia (golpe garantido primeiro) nas 2 primeiras zonas
+  (Floresta Sombria, Pântano de Brumafria) — `monstroComeca(m)` pela ordem de `D.areas`. Da 3ª zona em diante os dois
+  começam com a barra vazia e age primeiro o mais rápido.
+
+## Vitalidade (Henri, nov/2026)
+- **DESLIGADA** desde 10/11/2026 (teste do progresso sem ela): `D.VITALIDADE.ligada = false`. Para voltar: `ligada: true`
+  em js/dados.js (sobe o ?v=); a regra, a barra e os testes voltam sozinhos.
+- `D.VITALIDADE` = { maximo 100, maximoVip 200 (p.vip, futuro), porHora 5, multiplicador 2, fuso -3 }.
+- `p.vitalidade = { pts, dia, em }`, atualizada sem pressa por `R.atualizarVitalidade(p, agora)`: dia novo (meia-noite
+  de Brasília) = cheia; senão +porHora a cada hora cheia desde `em` (cheia não acumula horas).
+- `concluirBatalha`: vitória fora de área penalizada gasta 1 ponto e dobra exp e ouro (depois dos bônus de clã/Coletor);
+  `res.vitalidade = true`. Drops não mudam. Como a caçada roda no servidor (função `cacada`), lá também vale.
+- Tela: barra branca "Vitalidade" embaixo da Experiência na ficha (com dica) e barrinha branca embaixo da exp na caçada;
+  "(Vitalidade x2)" na linha da vitória.
+
+## Chapéu do mago com defesa (Henri, nov/2026)
+- `armaduras.mago.elmo.bonus.defesa` = [1, 3, 6, 12] (igual ao capuz do arqueiro, menos que elmo do cavaleiro/artesão).
+  Chapéus antigos ganham a defesa no `normalizar` (pelo nível/qualidade ou raridade). `tanka_dados()` regerado.
+
+## Leilão: fase sempre do servidor ao abrir (Henri, nov/2026)
+- `abrirAba('leilao')` apaga `estado.leilao` antes de desenhar: mostra "Carregando…" e pega a fase do servidor (antes
+  mostrava a fase guardada da última visita, ex.: "Médio" de 10 min atrás, e o jogador perdia o fim).
+- `redesenharLeilao`: atualiza a cada 20 s, e a cada 5 s nas fases Curto e Muito curto.
+
+## Estamina (Daniel/Henri, nov/2026) — PDF "Estamina: o fôlego do caçador"
+- `D.ESTAMINA` = { maximo 240, minutosAcampado 30, minutosSemAcampar 90, custo [1,2,3], custoChefe 5, pote { enche 240,
+  precos [40, 60] de reputação } }. `p.estamina = { pts, em, potes }`.
+- `R.atualizarTempo`: reset da meia-noite (estamina cheia, potes do dia zerados, poções = pelo menos 2) e recarga pela
+  hora (`em`); fora da luta a vida fica sempre cheia. Acampar = estamina 3x mais rápido (não caça acampado).
+- Vida cheia a cada luta (`iniciarBatalha` começa com hpMax). Por isso a caçada usa `danoCacada` de cada monstro
+  (`D.monstros[id].ataqueCacada`, em `b.ataque`); o `dano` antigo (`ataque`) continua valendo na masmorra, no boss do clã
+  e no Chefe Mundial. Calibrado com `node ferramentas/simular_cacada.js`: herói típico da área perde ~60% da vida no 3º
+  monstro e o forte ~55% no chefe; 1º e 2º são seguros; o típico precisa de poção para o chefe.
+- `concluirBatalha`: toda luta gasta `R.custoEstamina(monstro)` (vitória, derrota, fuga); derrota = perde a estamina da
+  luta e 5% da exp (não fica mais sem vida). `servidor-cacada.js`: só sorteia monstro (e chefe) que a estamina paga;
+  sem estamina a caçada para.
+- Poção de vida: 2 de graça por dia; compra no Mercado por ouro (`D.POCAO.precos`: 100 / 500 / 5.000 / 10.000 pelos
+  levels 1–9 / 10–19 / 20–29 / 30+), guarda no máximo 2 (VIP 4, `p.vip`). Só na caçada (o botão "Usar" de fora saiu).
+- Pote de estamina: Mercado › Poções, `R.comprarPoteEstamina` (40 e 60 de reputação, 2 por dia, pode passar de 240).
+- Missões: diária da Arena 40 de reputação, bônus de todas as diárias 60 (paga os 2 potes).
+- Anel: a regeneração de vida saiu (anéis antigos perdem `bonus.regen` no `normalizar`).
+- Chefe Mundial: `iniciarBatalha(..., { mundial: true })` (vida cheia, sem poção, sem estamina) e no máximo 5 ataques por
+  despertar (`boss_cfg.entradas` + trava em `boss_atacar`; `D.CHEFE_MUNDIAL.entradas`).
+- Tela: barra de Estamina na ficha e na caçada (⚡), custo ⚡ na carta de cada monstro, admin "Estamina e poções".
+- Teste do banco: o preço do clã mudou (6.000/100) e o teste foi acertado para continuar rodando.
+
+## Exp dos monstros (Henri, nov/2026)
+- `D.MONSTRO.expMonstros` = [1, 2.5, 5]: exp do 1º, 2º e 3º monstro = `base.exp` da área x isso (antes 1, 2, 4).
+  Floresta 2/5/10, Pântano 10/25/50, Ruínas 30/75/150, Torre 90/225/450, Areias 270/675/1350, Vale 800/2000/4000,
+  Cume 2400/6000/12000. Chefe = 5x o 3º (Velgrath 50). Por ponto de estamina: 1º = 1x a base, 2º = 1,25x, 3º = 1,67x,
+  chefe = 5x (o 2º rende mais que o 1º e menos que o 3º).
+
+## Atualização automática (Henri, nov/2026)
+- **DESLIGADA** em 10/11/2026 (`ATUALIZAR_SOZINHO = false` em app.js): causou problema. Suspeita: o GitHub Pages guarda o
+  HTML por até 10 min; o recarregar pegava a página velha e o jogo recarregava de novo a cada 2 min.
+- `app.js` (fim): a cada 2 min e ao voltar para a aba, baixa `jogar/index.html` sem cache e compara os `?v=` dos js/css
+  com os da página aberta. Mudou = versão nova publicada: aviso "Saiu uma versão nova…" e recarrega em 4 s, esperando a
+  luta na tela acabar (batalha, masmorra, Arena ou pedido de luta da caçada). Depende de subir o `?v=` a cada publicação
+  (regra 5 do CLAUDE.md), o que já é feito.
