@@ -550,3 +550,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `res.vitalidade = true`. Drops não mudam. Como a caçada roda no servidor (função `cacada`), lá também vale.
 - Tela: barra branca "Vitalidade" embaixo da Experiência na ficha (com dica) e barrinha branca embaixo da exp na caçada;
   "(Vitalidade x2)" na linha da vitória.
+
+## Chapéu do mago com defesa (Henri, nov/2026)
+- `armaduras.mago.elmo.bonus.defesa` = [1, 3, 6, 12] (igual ao capuz do arqueiro, menos que elmo do cavaleiro/artesão).
+  Chapéus antigos ganham a defesa no `normalizar` (pelo nível/qualidade ou raridade). `tanka_dados()` regerado.

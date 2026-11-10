@@ -1039,6 +1039,13 @@ Tanka.regras = (function () {
       if (i.qualidade == null) i.qualidade = sortearQualidade(i.raridade);
       i.bonus = sortearBonusAnel(i, Math.random);
     });
+    // Chapéu do mago de antes da defesa (nov/2026): ganha a defesa pela raridade e nível dele.
+    p.inventario.forEach(function (i) {
+      if (i.tipo !== 'elmo' || i.classe !== 'mago' || !i.bonus || i.bonus.defesa) return;
+      var def = definicao(i), idx = RARIDADES.indexOf(i.raridade);
+      if (!def || !def.bonus.defesa) return;
+      i.bonus.defesa = i.nivel && i.qualidade != null ? bonusDoNivel(def.bonus.defesa[1], i.nivel, i.qualidade) : def.bonus.defesa[idx];
+    });
     return p;
   }
 

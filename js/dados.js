@@ -247,7 +247,8 @@ Tanka.dados = {
         nomes: ['Botas de Couro', 'Botas Élficas', 'Botas da Lua Sangrenta', 'Botas do Sol Dourado'] },
     },
     mago: {
-      elmo: { tipo: 'Chapéu', bonus: { defesaMagica: [2, 5, 10, 20], int: [1, 2, 4, 8] },
+      // Henri (nov/2026): o chapéu também dá defesa (menos que o elmo do cavaleiro/artesão, igual ao capuz do arqueiro)
+      elmo: { tipo: 'Chapéu', bonus: { defesa: [1, 3, 6, 12], defesaMagica: [2, 5, 10, 20], int: [1, 2, 4, 8] },
         nomes: ['Chapéu de Linho', 'Chapéu Arcano', 'Chapéu do Vazio Estelar', 'Chapéu da Origem'] },
       peitoral: { tipo: 'Manto', bonus: { defesa: [1, 3, 6, 12], defesaMagica: [2, 5, 10, 20], vida: [5, 15, 40, 100] },
         nomes: ['Manto de Linho', 'Manto Arcano', 'Manto do Vazio Estelar', 'Manto da Origem'] },

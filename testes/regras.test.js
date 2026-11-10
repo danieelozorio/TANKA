@@ -2095,3 +2095,11 @@ teste('Vitalidade: x2 na exp e no ouro, gasta 1, recarrega 5/h e enche no dia se
   assert.strictEqual(R.atualizarVitalidade(p, Date.UTC(2026, 10, 11, 3, 1)).pts, 100, 'meia-noite em Brasília (03:01 UTC): cheia');
   assert.strictEqual(R.maxVitalidade(Object.assign({}, p, { vip: true })), 200);
 });
+teste('chapéu do mago dá defesa (novo e antigo)', () => {
+  const p = R.criarPersonagem('M', 'masculino', 'humano', 'mago');
+  const it = R.completarItem(p, R.novoItem('elmo', 'mago', 'rara', rng), rng);
+  assert.ok(it.bonus.defesa > 0 && R.bonusItem(it).defesa > 0);
+  delete it.bonus.defesa; p.inventario.push(it);
+  R.normalizar(p);
+  assert.ok(it.bonus.defesa > 0, 'chapéu antigo ganhou defesa');
+});
