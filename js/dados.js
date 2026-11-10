@@ -692,9 +692,9 @@ Tanka.dados = {
       monstros: [
         { id: 'lobo', dano: [3, 5], danoCacada: [7, 12], nome: 'Lobo Selvagem', descricao: 'Caça em matilha nas florestas enevoadas.' },
         { id: 'cobra', dano: [4, 6], danoCacada: [9, 14], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
-        { id: 'urso', dano: [5, 8], danoCacada: [12, 19], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
+        { id: 'urso', dano: [5, 8], danoCacada: [14, 23], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
       ],
-      chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [15, 19], ouro: 20, exp: 50, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
+      chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [17, 21], ouro: 20, exp: 50, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
@@ -703,9 +703,9 @@ Tanka.dados = {
       monstros: [
         { id: 'sapo', dano: [10, 15], danoCacada: [6, 10], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.' },
         { id: 'aranha', dano: [15, 20], danoCacada: [10, 13], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
-        { id: 'troll', dano: [18, 22], danoCacada: [11, 14], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
+        { id: 'troll', dano: [18, 22], danoCacada: [15, 20], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
       ],
-      chefe: { id: 'morgath', dano: [25, 30], danoCacada: [15, 17], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
+      chefe: { id: 'morgath', dano: [25, 30], danoCacada: [17, 19], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
     },
     {
       id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.3,
@@ -714,7 +714,7 @@ Tanka.dados = {
       monstros: [
         { id: 'esqueleto', dano: [20, 28], danoCacada: [33, 46], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
         { id: 'goblin', dano: [26, 35], danoCacada: [42, 57], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
-        { id: 'gargula', dano: [31, 42], danoCacada: [51, 69], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
+        { id: 'gargula', dano: [31, 42], danoCacada: [58, 78], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
       ],
       chefe: { id: 'varnok', dano: [38, 52], danoCacada: [59, 79], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
     },
@@ -725,9 +725,9 @@ Tanka.dados = {
       monstros: [
         { id: 'golem', dano: [30, 40], danoCacada: [37, 50], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
         { id: 'cultista', dano: [38, 52], danoCacada: [47, 65], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
-        { id: 'espectro', dano: [46, 63], danoCacada: [57, 79], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
+        { id: 'espectro', dano: [46, 63], danoCacada: [100, 138], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
-      chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [69, 92], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
+      chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [86, 115], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
     },
     {
       id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
@@ -736,9 +736,9 @@ Tanka.dados = {
       monstros: [
         { id: 'escorpiao', dano: [44, 59], danoCacada: [68, 91], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
         { id: 'lagarto', dano: [54, 74], danoCacada: [84, 115], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
-        { id: 'mumia', dano: [68, 92], danoCacada: [105, 142], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
+        { id: 'mumia', dano: [68, 92], danoCacada: [163, 220], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
-      chefe: { id: 'farao', dano: [82, 110], danoCacada: [128, 172], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
+      chefe: { id: 'farao', dano: [82, 110], danoCacada: [143, 193], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
     },
     {
       id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
@@ -747,7 +747,7 @@ Tanka.dados = {
       monstros: [
         { id: 'drake', dano: [54, 74], danoCacada: [123, 168], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
         { id: 'wyvern', dano: [68, 92], danoCacada: [155, 209], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
-        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [196, 264], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
+        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [261, 351], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
       chefe: { id: 'vharkesh', dano: [103, 140], danoCacada: [225, 304], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
     },
@@ -758,9 +758,9 @@ Tanka.dados = {
       monstros: [
         { id: 'salamandra', dano: [82, 110], danoCacada: [233, 312], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
         { id: 'demonio', dano: [102, 138], danoCacada: [290, 392], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
-        { id: 'elemental', dano: [128, 173], danoCacada: [363, 491], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
+        { id: 'elemental', dano: [128, 173], danoCacada: [450, 610], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
-      chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [542, 731], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
+      chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [612, 825], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
     },
   ],
 

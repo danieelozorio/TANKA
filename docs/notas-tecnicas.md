@@ -584,6 +584,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: barra de Estamina na ficha e na caçada (⚡), custo ⚡ na carta de cada monstro, admin "Estamina e poções".
 - Teste do banco: o preço do clã mudou (6.000/100) e o teste foi acertado para continuar rodando.
 
+- **3º monstro e chefe mais duros (Daniel, nov/2026):** `danoCacada` do 3º monstro recalibrado para o herói "forte" da
+  simulação perder ~40% da vida (Cume ~17%) e o "típico" vencer só parte das lutas sem poção (Floresta/Pântano/Ruínas
+  ~85–90%, Vale ~70%, Cume ~55%, Areias ~45%, Torre ~30%) e ~100% com 2 poções. Chefes: forte perde ~60% (Ruínas e Vale
+  não mudaram). 3º: urso 14–23, troll 15–20, gárgula 58–78, espectro 100–138, múmia 163–220, cavaleiro dracônico 261–351,
+  elemental 450–610. Chefes: Velgrath 17–21, Morgath 17–19, Guardião 86–115, Faraó 143–193, Ignaroth 612–825.
+
 ## Exp dos monstros (Henri, nov/2026)
 - `D.MONSTRO.expMonstros` = [1, 2.5, 5]: exp do 1º, 2º e 3º monstro = `base.exp` da área x isso (antes 1, 2, 4).
   Floresta 2/5/10, Pântano 10/25/50, Ruínas 30/75/150, Torre 90/225/450, Areias 270/675/1350, Vale 800/2000/4000,
