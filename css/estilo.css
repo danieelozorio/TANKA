@@ -1213,11 +1213,11 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .busca-txt { font: 700 1.1rem var(--titulo); color: var(--ouro-claro); }
 .busca-barra { width: min(240px, 100%); height: 10px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(201, 162, 74, .4); background: #07090d; }
 .busca-barra i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #2a5f99, #5aa0ec, #9cd0ff); animation: buscaEnche linear forwards; }
-.busca-passos { display: flex; align-items: center; gap: .35rem; height: 3.2rem; color: var(--ouro-claro, #e8c87a); filter: drop-shadow(0 1px 3px #000); }
-.busca-passos .passo { width: 1.1rem; opacity: 0; animation: passoMarca 1.8s linear infinite; }
+.busca-passos { display: flex; align-items: center; gap: .9rem; height: 4rem; color: #d9b877; filter: drop-shadow(0 1px 2px #000); }
+.busca-passos .passo { width: 1.2rem; opacity: 0; animation: passoMarca 2.4s linear infinite; }
 .busca-passos .passo svg { display: block; width: 100%; transform: rotate(90deg); }
-.busca-passos .passo.esq { transform: translateY(-.55rem); }
-.busca-passos .passo.dir { transform: translateY(.55rem); }
+.busca-passos .passo.esq { transform: translateY(-.7rem); }
+.busca-passos .passo.dir { transform: translateY(.7rem); }
 .busca-passos .passo.dir svg { transform: rotate(90deg) scaleX(-1); }
 @keyframes passoMarca { 0% { opacity: 0; } 8% { opacity: .95; } 55% { opacity: .5; } 80%, 100% { opacity: 0; } }
 @keyframes buscaEnche { to { width: 100%; } }

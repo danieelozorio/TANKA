@@ -3552,8 +3552,8 @@
       + '</div>';
   }
   // Pegadas da caçada (no lugar da lupa): o herói caminhando até achar o monstro.
-  var PEGADA = '<svg viewBox="0 0 20 32" focusable="false"><ellipse cx="10" cy="20" rx="6" ry="9" fill="currentColor"/>'
-    + '<circle cx="4.5" cy="7" r="2.2" fill="currentColor"/><circle cx="9" cy="4.5" r="2.4" fill="currentColor"/><circle cx="14" cy="5.5" r="2.1" fill="currentColor"/><circle cx="17.3" cy="9" r="1.7" fill="currentColor"/></svg>';
+  var PEGADA = '<svg viewBox="0 0 24 48" focusable="false"><path d="M12 2C18 2 21 8 20.3 15c-.5 5-3 8.5-3.4 12.5H7.2C6.6 23 3.8 20 3.8 14 3.8 7 7 2 12 2Z" fill="currentColor"/>'
+    + '<rect x="7" y="31" width="10.5" height="14" rx="5" fill="currentColor"/></svg>';
   var PASSOS_HTML = [0, 1, 2, 3, 4, 5].map(function (i) {
     return '<span class="passo ' + (i % 2 ? 'dir' : 'esq') + '" style="animation-delay:' + (i * 0.3).toFixed(1) + 's">' + PEGADA + '</span>';
   }).join('');
