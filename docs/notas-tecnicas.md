@@ -541,3 +541,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `iniciarBatalha` (caçada): o monstro só começa com a barra cheia (golpe garantido primeiro) nas 2 primeiras zonas
   (Floresta Sombria, Pântano de Brumafria) — `monstroComeca(m)` pela ordem de `D.areas`. Da 3ª zona em diante os dois
   começam com a barra vazia e age primeiro o mais rápido.
+
+## Vitalidade (Henri, nov/2026)
+- `D.VITALIDADE` = { maximo 100, maximoVip 200 (p.vip, futuro), porHora 5, multiplicador 2, fuso -3 }.
+- `p.vitalidade = { pts, dia, em }`, atualizada sem pressa por `R.atualizarVitalidade(p, agora)`: dia novo (meia-noite
+  de Brasília) = cheia; senão +porHora a cada hora cheia desde `em` (cheia não acumula horas).
+- `concluirBatalha`: vitória fora de área penalizada gasta 1 ponto e dobra exp e ouro (depois dos bônus de clã/Coletor);
+  `res.vitalidade = true`. Drops não mudam. Como a caçada roda no servidor (função `cacada`), lá também vale.
+- Tela: barra branca "Vitalidade" embaixo da Experiência na ficha (com dica) e barrinha branca embaixo da exp na caçada;
+  "(Vitalidade x2)" na linha da vitória.

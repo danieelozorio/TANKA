@@ -763,6 +763,10 @@ Tanka.dados = {
   // A defesa do monstro reduz o dano em porcentagem: dano x 100 / (100 + defesa)
   // (40 de defesa = -29% de dano). Nunca deixa o monstro imortal.
   // Sorte (Henri, nov/2026): % por ponto de SOR no encantamento (soma). A Sorte não mexe mais no drop nem no crítico físico.
+  // Vitalidade (Henri, nov/2026): cada vitória na caçada gasta 1 ponto e dá exp e ouro x2. Recarrega porHora a
+  // cada hora e enche à meia-noite (horário de Brasília, fuso -3). maximoVip: para o VIP no futuro (p.vip).
+  // Não gasta em área abaixo do nível do herói (exp reduzida).
+  VITALIDADE: { maximo: 100, maximoVip: 200, porHora: 5, multiplicador: 2, fuso: -3 },
   SORTE: { encanto: 0.5, drop: 0.2 },   // drop: +0,2% sobre a chance base de cada drop por ponto (nov/2026)
 
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.

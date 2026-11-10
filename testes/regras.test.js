@@ -308,6 +308,7 @@ teste('batalha completa contra o lobo termina e aplica resultado', () => {
   let vitorias = 0;
   for (let i = 0; i < 200; i++) {
     const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+    R.atualizarVitalidade(p, Date.now()).pts = 0;   // sem Vitalidade: valores base
     const b = R.iniciarBatalha(p, 'lobo', rng);
     let passos = 0;
     while (!b.fim) { R.passo(b); passos++; assert.ok(passos < 10000); }
@@ -1031,6 +1032,7 @@ teste('Pergaminho do Recomeço: compra com 2.000 de ouro e devolve os pontos', (
 
 teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
   const D2 = D, p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
+  R.atualizarVitalidade(p, Date.now()).pts = 0;
   const b = R.iniciarBatalha(p, 'lobo'); b.fim = 'vitoria'; b.monstro.hp = 0;
   const m = D2.monstros.lobo;
   const res = R.concluirBatalha(p, b, Date.now(), { exp: 10, ouro: 50 });
@@ -1466,7 +1468,7 @@ teste('Double Shot (Arqueiro): 2 flechas de 100% (+3% por ponto) no mesmo turno,
 
 teste('área abaixo do nível: exp e ouro reduzidos juntos e nenhum drop (item, pergaminho, chefe)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
-  const vencer = (id) => { const b = R.iniciarBatalha(p, id, rng); b.fim = 'vitoria'; return R.concluirBatalha(p, b); };
+  const vencer = (id) => { R.atualizarVitalidade(p, Date.now()).pts = 0; const b = R.iniciarBatalha(p, id, rng); b.fim = 'vitoria'; return R.concluirBatalha(p, b); };
   // Floresta: level 9 = só o Pântano à frente: sem penalidade.
   p.nivel = 9;
   let r = vencer('urso');
@@ -2076,4 +2078,20 @@ teste('monstro ataca primeiro só nas 2 primeiras zonas', () => {
   assert.strictEqual(R.iniciarBatalha(p, 'lobo').monstro.barra, 100);
   assert.strictEqual(R.iniciarBatalha(p, 'sapo').monstro.barra, 100);
   assert.strictEqual(R.iniciarBatalha(p, 'esqueleto').monstro.barra, 0);
+});
+
+teste('Vitalidade: x2 na exp e no ouro, gasta 1, recarrega 5/h e enche no dia seguinte', () => {
+  const p = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro');
+  const t = Date.UTC(2026, 10, 10, 15, 0, 0);   // 12h em Brasília
+  assert.strictEqual(R.atualizarVitalidade(p, t).pts, 100);
+  const b = R.iniciarBatalha(p, 'lobo', rng); b.fim = 'vitoria';
+  const r = R.concluirBatalha(p, b, t);
+  assert.ok(r.vitalidade); assert.strictEqual(r.exp, D.monstros.lobo.exp * 2); assert.strictEqual(r.ouro, D.monstros.lobo.ouro * 2);
+  assert.strictEqual(p.vitalidade.pts, 99);
+  p.vitalidade.pts = 0; p.vitalidade.em = t;
+  assert.strictEqual(R.atualizarVitalidade(p, t + 2.5 * 3600000).pts, 10);   // 2 horas cheias
+  const b2 = R.iniciarBatalha(p, 'lobo', rng); b2.fim = 'vitoria'; p.vitalidade.pts = 0;
+  assert.ok(!R.concluirBatalha(p, b2, t + 2.5 * 3600000).vitalidade, 'sem pontos, sem bônus');
+  assert.strictEqual(R.atualizarVitalidade(p, Date.UTC(2026, 10, 11, 3, 1)).pts, 100, 'meia-noite em Brasília (03:01 UTC): cheia');
+  assert.strictEqual(R.maxVitalidade(Object.assign({}, p, { vip: true })), 200);
 });

@@ -1611,6 +1611,25 @@ Tanka.regras = (function () {
   // (sem descer de level) e só caça de novo quando a vida voltar com o tempo ou com poção.
   // `agora`: a vida com o tempo volta a contar a partir do fim da luta.
   // `bonus`: % a mais de exp e de ouro (bônus da aliança), ex.: { exp: 9, ouro: 9 }.
+  // ---- Vitalidade (exp e ouro x2 na caçada) ----
+  function maxVitalidade(p) { return p && p.vip ? D.VITALIDADE.maximoVip : D.VITALIDADE.maximo; }
+  function diaVitalidade(t) { return Math.floor((t + D.VITALIDADE.fuso * 3600000) / 86400000); }
+  // Atualiza e devolve p.vitalidade = { pts, dia, em }: novo dia = cheia; senão +porHora a cada hora cheia.
+  function atualizarVitalidade(p, agora) {
+    agora = agora || Date.now();
+    var V = D.VITALIDADE, max = maxVitalidade(p), v = p.vitalidade, dia = diaVitalidade(agora);
+    if (!v || typeof v.pts !== 'number' || v.dia !== dia) return (p.vitalidade = { pts: max, dia: dia, em: agora });
+    if (v.pts >= max || v.em > agora) { v.em = agora; return v; }   // cheia não guarda horas
+    var horas = Math.floor((agora - v.em) / 3600000);
+    if (horas > 0) { v.pts = Math.min(max, v.pts + horas * V.porHora); v.em += horas * 3600000; }
+    return v;
+  }
+  // Minutos até o próximo ponto (para mostrar).
+  function proximaVitalidade(p, agora) {
+    var v = atualizarVitalidade(p, agora);
+    return v.pts >= maxVitalidade(p) ? 0 : Math.max(1, Math.ceil((v.em + 3600000 - (agora || Date.now())) / 60000));
+  }
+
   function concluirBatalha(p, b, agora, bonus) {
     var res = { resultado: b.fim || 'fuga', exp: 0, ouro: 0, niveis: 0, drop: null };
     p.hpAtual = Math.min(b.jogador.hp, status(p).hpMax);   // a vida extra da Bênção acaba com a luta
@@ -1636,6 +1655,13 @@ Tanka.regras = (function () {
       if (b.s.bonusRecompensa) {   // passiva do Coletor
         res.exp = Math.floor(res.exp * (1 + b.s.bonusRecompensa / 100));
         res.ouro = Math.floor(res.ouro * (1 + b.s.bonusRecompensa / 100));
+      }
+      var vit = atualizarVitalidade(p, agora);
+      if (!res.penalizado && vit.pts > 0) {   // Vitalidade: exp e ouro dobrados
+        vit.pts -= 1;
+        res.exp = Math.floor(res.exp * D.VITALIDADE.multiplicador);
+        res.ouro = Math.floor(res.ouro * D.VITALIDADE.multiplicador);
+        res.vitalidade = true;
       }
       p.ouro += res.ouro;
       res.niveis = ganharExp(p, res.exp);
@@ -2605,6 +2631,9 @@ Tanka.regras = (function () {
     ATRIBUTOS: ATRIBUTOS,
     atributosIniciais: atributosIniciais,
     expNecessaria: expNecessaria,
+    maxVitalidade: maxVitalidade,
+    atualizarVitalidade: atualizarVitalidade,
+    proximaVitalidade: proximaVitalidade,
     criarPersonagem: criarPersonagem,
     normalizar: normalizar,
     vender: vender,

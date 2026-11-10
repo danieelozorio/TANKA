@@ -1232,6 +1232,10 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .cacada-opcoes input[type="checkbox"] { width: auto; margin: 0; accent-color: #c9a24a; }
 .cacada-opcoes select { padding: .25em .4em; border: 1px solid var(--borda); border-radius: 6px; background: #0d1118; color: var(--texto); font: inherit; }
 .exp-fina { height: 4px; margin: 3px 0 .3rem; border-radius: 3px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.vit-fina { height: 3px; margin: -1px 0 .3rem; border-radius: 3px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.vit-fina > i { display: block; height: 100%; background: linear-gradient(90deg, #cfd3da, #fff); box-shadow: 0 0 6px rgba(255, 255, 255, .5); transition: width .4s ease; }
+.barra.vitalidade > i { background: linear-gradient(90deg, #b9bec8, #f4f6fa 70%, #fff); box-shadow: 0 0 10px rgba(255, 255, 255, .35); }
+.barra.vitalidade > b { color: #1b1d22; text-shadow: 0 0 4px rgba(255, 255, 255, .8); }
 .exp-fina > i { display: block; height: 100%; background: linear-gradient(90deg, #1f4f86, #4f94e0 70%, #7bb6ff); transition: width .4s ease; }
 .cacada-opcao { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
 .opcao-botoes { display: inline-flex; flex-wrap: wrap; gap: 4px; }

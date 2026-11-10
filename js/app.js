@@ -984,6 +984,7 @@
       + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp', 1, 1, 'Level máximo')
         : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
+      + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
       + poderHtml(p) + bonusFichaHtml()
       + '<div class="secao"><h3>Arma</h3>' + armaFichaHtml(p, arma, s) + '</div>'
@@ -3200,7 +3201,7 @@
     }
     }
     if (estado.cacada) {
-      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro.'
+      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.'
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
       if (res.material && estado.cacada) estado.cacada.materiais = (estado.cacada.materiais || 0) + res.material.qtd;
       if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.');
@@ -3529,6 +3530,22 @@
     + '<path d="M3 39h42" stroke="#c69b63" stroke-width="2" stroke-linecap="round"/>'
     + '</svg>';
 
+  // Vitalidade: barra branca embaixo da experiência (exp e ouro x2 na caçada enquanto tiver pontos).
+  function textoVitalidade(p) {
+    var v = R.atualizarVitalidade(p, C.agora()), max = R.maxVitalidade(p), min = R.proximaVitalidade(p, C.agora());
+    return 'Vitalidade ' + v.pts + ' / ' + max + ': cada vitória na caçada gasta 1 e dá exp e ouro em dobro. '
+      + (min ? '+' + D.VITALIDADE.porHora + ' em ' + (min >= 60 ? '1 h' : min + ' min') + '. ' : '') + 'Enche à meia-noite.';
+  }
+  function vitalidadeHtml(p) {
+    var v = R.atualizarVitalidade(p, C.agora()), max = R.maxVitalidade(p);
+    return '<div class="suave dica" tabindex="0">Vitalidade <i class="dica-i">?</i><span class="dica-balao" role="tooltip"><strong>Vitalidade</strong><span>' + esc(textoVitalidade(p)) + '</span></span></div>'
+      + barra('vitalidade', v.pts, max, v.pts + ' / ' + max + (v.pts ? ' · exp e ouro x2' : ''));
+  }
+  function vitFinaHtml(p) {
+    var v = R.atualizarVitalidade(p, C.agora()), max = R.maxVitalidade(p), texto = textoVitalidade(p);
+    return '<div class="vit-fina" role="progressbar" aria-label="' + esc(texto) + '" title="' + esc(texto) + '" aria-valuenow="' + v.pts
+      + '" aria-valuemin="0" aria-valuemax="' + max + '"><i style="width:' + (v.pts / max * 100) + '%"></i></div>';
+  }
   // Barrinha fina de experiência embaixo da vida, na caçada (só para ter uma noção de quanto falta para o level).
   function expFinaHtml(p) {
     var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
@@ -3563,7 +3580,7 @@
     var emLuta = c.fase === 'lutando' && b;
     var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
     var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
-      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + expFinaHtml(p)
+      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + expFinaHtml(p) + vitFinaHtml(p)
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
