@@ -591,6 +591,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   chefe = 5x (o 2º rende mais que o 1º e menos que o 3º).
 
 ## Atualização automática (Henri, nov/2026)
+- **DESLIGADA** em 10/11/2026 (`ATUALIZAR_SOZINHO = false` em app.js): causou problema. Suspeita: o GitHub Pages guarda o
+  HTML por até 10 min; o recarregar pegava a página velha e o jogo recarregava de novo a cada 2 min.
 - `app.js` (fim): a cada 2 min e ao voltar para a aba, baixa `jogar/index.html` sem cache e compara os `?v=` dos js/css
   com os da página aberta. Mudou = versão nova publicada: aviso "Saiu uma versão nova…" e recarrega em 4 s, esperando a
   luta na tela acabar (batalha, masmorra, Arena ou pedido de luta da caçada). Depende de subir o `?v=` a cada publicação

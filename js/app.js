@@ -6934,13 +6934,16 @@
   var versaoCarregada = assinaturaVersao(Array.prototype.map.call(document.querySelectorAll('script[src],link[rel=stylesheet][href]'),
     function (e) { return e.getAttribute('src') || e.getAttribute('href'); }).join(' '));
   var atualizando = false;
+  // DESLIGADO (Henri, 10/11/2026): causou problema (provável: o GitHub Pages guarda a página por até 10 min, então o
+  // recarregar abria a versão velha de novo e o jogo recarregava em loop). Para ligar: true (e resolver esse cache antes).
+  var ATUALIZAR_SOZINHO = false;
   function ocupadoParaAtualizar() { return !!(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.lutando)); }
   function recarregarQuandoLivre() {
     if (ocupadoParaAtualizar()) { setTimeout(recarregarQuandoLivre, 3000); return; }
     location.reload();
   }
   function conferirVersao() {
-    if (atualizando || !versaoCarregada || location.protocol === 'file:' || !/\/jogar\/?/.test(location.pathname)) return;
+    if (!ATUALIZAR_SOZINHO || atualizando || !versaoCarregada || location.protocol === 'file:' || !/\/jogar\/?/.test(location.pathname)) return;
     fetch(location.pathname + '?nova=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (html) {
       var nova = assinaturaVersao(html);
       if (!nova || nova === versaoCarregada || atualizando) return;
