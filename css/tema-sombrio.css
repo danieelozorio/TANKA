@@ -141,6 +141,8 @@ h1, h2, h3 { font-family: var(--titulo); font-weight: 500; color: #e0d3b8; lette
 /* Retrato do herói com moldura fina dourada */
 .retrato-central { border: 3px solid #3a3530; border-radius: 3px; box-shadow: 0 0 0 1px #000, 0 0 0 2px #6a5638, 0 0 30px rgba(0, 0, 0, .9); }
 .retrato-central > img { filter: brightness(.88) contrast(1.05); }
+.retrato-central.corpo-inteiro { border: 0; box-shadow: none; }
+.retrato-central.corpo-inteiro > img { filter: brightness(.9) contrast(1.05) drop-shadow(0 6px 10px rgba(0, 0, 0, .8)); }
 
 /* ---------- Herói > Personagem em telas grandes: 3 colunas (ficha | equipamento | mochila) ---------- */
 @media (min-width: 1450px) {

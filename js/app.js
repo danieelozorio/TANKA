@@ -1354,7 +1354,9 @@
     var baixo = naConsumiveis ? consumiveisHtml(consumiveis)
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
-      + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
+      + (F.corpoInteiro(p.raca, classeRetrato(p), p.sexo)
+        ? '<div class="retrato-central corpo-inteiro">' + F.corpoInteiro(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
+        : '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>')
       + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas

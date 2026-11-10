@@ -252,6 +252,14 @@ Tanka.retratos = (function () {
     return '<img class="retrato-img" src="' + arquivo + '" alt="" data-raca="' + raca + '" data-classe="' + classe + '" data-sexo="' + sexo + '">';
   }
 
+  // Corpo inteiro (sem fundo) para a tela de equipamentos: assets/personagens/corpo/<raca>-<classe>[-f].webp.
+  // Só as combinações listadas aqui; as outras continuam com o retrato normal.
+  var CORPO_INTEIRO = { 'anao-arqueiro': true };
+  function corpoInteiro(raca, classe, sexo) {
+    var nome = raca.toLowerCase() + '-' + classe + (sexo === 'feminino' ? '-f' : '');
+    return CORPO_INTEIRO[nome] ? '<img class="corpo-img" src="assets/personagens/corpo/' + nome + '.webp" alt="">' : '';
+  }
+
   // Carta de raça: o retrato de cavaleiro da raça, no sexo escolhido.
   function imagemRaca(raca, sexo) {
     return personagem(raca, 'cavaleiro', sexo);
@@ -405,7 +413,7 @@ Tanka.retratos = (function () {
   }, true);
 
   return {
-    personagem: personagem, desenho: desenho, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro,
+    personagem: personagem, corpoInteiro: corpoInteiro, desenho: desenho, imagemRaca: imagemRaca, imagemMonstro: imagemMonstro,
     icone: icone, silhueta: silhueta,
   };
 })();
