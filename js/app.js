@@ -6925,6 +6925,31 @@
 
   // ---------------- Início ----------------
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
+  // ---- Versão nova publicada: atualiza a página sozinho (Henri, nov/2026) ----
+  // A cada 2 min (e ao voltar para a aba) baixa a página do jogo sem cache e compara os ?v= dos scripts e estilos
+  // com os desta página. Mudou = alguém publicou: avisa e recarrega, esperando acabar a luta que estiver na tela.
+  function assinaturaVersao(texto) { return (texto.match(/\.(?:js|css)\?v=\d+/g) || []).sort().join(','); }
+  var versaoCarregada = assinaturaVersao(Array.prototype.map.call(document.querySelectorAll('script[src],link[rel=stylesheet][href]'),
+    function (e) { return e.getAttribute('src') || e.getAttribute('href'); }).join(' '));
+  var atualizando = false;
+  function ocupadoParaAtualizar() { return !!(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.lutando)); }
+  function recarregarQuandoLivre() {
+    if (ocupadoParaAtualizar()) { setTimeout(recarregarQuandoLivre, 3000); return; }
+    location.reload();
+  }
+  function conferirVersao() {
+    if (atualizando || !versaoCarregada || location.protocol === 'file:' || !/\/jogar\/?/.test(location.pathname)) return;
+    fetch(location.pathname + '?nova=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (html) {
+      var nova = assinaturaVersao(html);
+      if (!nova || nova === versaoCarregada || atualizando) return;
+      atualizando = true;
+      avisar('✨ Saiu uma versão nova do Eldrin! Atualizando o jogo…', 'nivel');
+      setTimeout(recarregarQuandoLivre, 4000);
+    }).catch(function () {});
+  }
+  setInterval(conferirVersao, 120000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) conferirVersao(); });
+
   C.iniciar().then(function (conta) {
     estado.conta = conta;
     if (conta) { if (!retomarJogo()) depoisDeEntrar(); } else telaAuth('entrar');

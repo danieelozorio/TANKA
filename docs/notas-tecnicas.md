@@ -587,3 +587,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Floresta 2/5/10, Pântano 10/25/50, Ruínas 30/75/150, Torre 90/225/450, Areias 270/675/1350, Vale 800/2000/4000,
   Cume 2400/6000/12000. Chefe = 5x o 3º (Velgrath 50). Por ponto de estamina: 1º = 1x a base, 2º = 1,25x, 3º = 1,67x,
   chefe = 5x (o 2º rende mais que o 1º e menos que o 3º).
+
+## Atualização automática (Henri, nov/2026)
+- `app.js` (fim): a cada 2 min e ao voltar para a aba, baixa `jogar/index.html` sem cache e compara os `?v=` dos js/css
+  com os da página aberta. Mudou = versão nova publicada: aviso "Saiu uma versão nova…" e recarrega em 4 s, esperando a
+  luta na tela acabar (batalha, masmorra, Arena ou pedido de luta da caçada). Depende de subir o `?v=` a cada publicação
+  (regra 5 do CLAUDE.md), o que já é feito.
