@@ -581,3 +581,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   despertar (`boss_cfg.entradas` + trava em `boss_atacar`; `D.CHEFE_MUNDIAL.entradas`).
 - Tela: barra de Estamina na ficha e na caçada (⚡), custo ⚡ na carta de cada monstro, admin "Estamina e poções".
 - Teste do banco: o preço do clã mudou (6.000/100) e o teste foi acertado para continuar rodando.
+
+## Exp dos monstros (Henri, nov/2026)
+- `D.MONSTRO.expMonstros` = [2, 2.5, 5]: exp do 1º, 2º e 3º monstro = `base.exp` da área x isso (antes 1, 2, 4).
+  Floresta 4/5/10, Pântano 20/25/50, Ruínas 60/75/150, Torre 180/225/450, Areias 540/675/1350, Vale 1600/2000/4000,
+  Cume 4800/6000/12000. Chefe = 5x o 3º (Velgrath 50). Por estamina: 1º = 4x base, 2º = 2,5x, 3º = 3,3x, chefe = 5x.

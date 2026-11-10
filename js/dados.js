@@ -694,7 +694,7 @@ Tanka.dados = {
         { id: 'cobra', dano: [4, 6], danoCacada: [9, 14], nome: 'Cobra Viscosa', descricao: 'Desliza pelos pântanos deixando um rastro de gosma venenosa.' },
         { id: 'urso', dano: [5, 8], danoCacada: [12, 19], nome: 'Urso Raivoso', descricao: 'Senhor das cavernas. Sua fúria derruba árvores.' },
       ],
-      chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [15, 19], ouro: 20, exp: 40, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
+      chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [15, 19], ouro: 20, exp: 50, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
     },
     {
       id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
@@ -786,7 +786,10 @@ Tanka.dados = {
     // Henri (nov/2026): a velocidade do monstro vem da velocidade de um herói (arma normal) no level mínimo da área:
     // 1º monstro 70%, 2º 80%, 3º 90% (o chefe igual ao 3º). Assim o herói da área ataca mais vezes que o monstro.
     // O dano dos monstros não mudou. (velocidade/velocidadePorMonstro/entreAreas não são mais usados na velocidade.)
-    velocidadeHeroi: [0.7, 0.8, 0.9] },
+    velocidadeHeroi: [0.7, 0.8, 0.9],
+    // Exp do 1º, 2º e 3º monstro = base.exp da área x estes números (Henri, nov/2026: antes 1, 2 e 4).
+    // Floresta (base 2): 4, 5 e 10. O chefe dá 5x o 3º.
+    expMonstros: [2, 2.5, 5] },
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
   // e 5x a exp e o ouro (para valer o risco).
@@ -1054,7 +1057,7 @@ Tanka.dados = {
         nome: m.nome, descricao: m.descricao, area: area.id, indiceArea: indiceArea,
         hp: Math.round(b.hp * f * (area.ajusteVida || 1)), ataque: m.dano ? m.dano.slice() : [ataque, ataque], velocidade: velNova,
         ataqueCacada: m.danoCacada ? m.danoCacada.slice() : null,   // dano na caçada (vida cheia a cada luta); `ataque` vale na masmorra e nos bosses
-        defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: b.exp * f, ouro: area.ouro[i],
+        defesa: Math.max(1, Math.round(def)), defesaMagica: Math.max(1, Math.round(def)), exp: Math.round(b.exp * M.expMonstros[i]), ouro: area.ouro[i],
         // Tabelas no formato { raridade, chance } (cumulativas): chance do drop x qualidade (DROPS_CACADA).
         chanceArma: dc.arma || 0, chanceArmadura: dc.armadura || 0,
         drops: tabelaDrop(dc.arma), dropsArmadura: tabelaDrop(dc.armadura), dropsItem: [],
