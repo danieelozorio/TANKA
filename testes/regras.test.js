@@ -2071,3 +2071,9 @@ teste('servidor da caçada: pedir de novo não sorteia outro monstro; fugir não
   assert.ok(SC.encontro(p, ['lobo'], t + 70, rng).erro, 'depois de fugir espera o tempo do monstro');
   assert.ok(SC.encontro(p, ['lobo'], e1.prontoEm, rng).encontro);
 });
+teste('monstro ataca primeiro só nas 2 primeiras zonas', () => {
+  const p = R.criarPersonagem('Z', 'masculino', 'humano', 'cavaleiro');
+  assert.strictEqual(R.iniciarBatalha(p, 'lobo').monstro.barra, 100);
+  assert.strictEqual(R.iniciarBatalha(p, 'sapo').monstro.barra, 100);
+  assert.strictEqual(R.iniciarBatalha(p, 'esqueleto').monstro.barra, 0);
+});

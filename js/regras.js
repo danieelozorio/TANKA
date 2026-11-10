@@ -1432,11 +1432,18 @@ Tanka.regras = (function () {
       jogador: { nome: p.nome, hp: p.hpAtual, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
       lutador: novoLutador(p, 'cacada'),   // habilidades da caçada (ordem, recargas, reforços)
       chefe: !!m.chefe,
-      // O monstro começa com a barra cheia: o primeiro golpe da luta é sempre dele.
-      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: 100,
+      // Nas 2 primeiras zonas o monstro começa com a barra cheia (o primeiro golpe é dele). Da 3ª zona em diante
+      // (Ruínas de Dravenhold...) os dois começam vazios: ataca primeiro quem for mais rápido.
+      monstro: { nome: m.nome, hp: m.hp, hpMax: m.hp, vel: Math.max(1, m.velocidade), barra: monstroComeca(m) ? 100 : 0,
         atordoado: 0, armaduraQuebrada: false },
       fim: null,
     };
+  }
+
+  // O monstro ataca primeiro só nas 2 primeiras zonas de caça (Floresta Sombria e Pântano de Brumafria).
+  function monstroComeca(m) {
+    var i = D.areas.findIndex(function (a) { return a.id === m.area; });
+    return i >= 0 && i < 2;
   }
 
   // Um golpe do jogador. opcoes: mult, sempreAcerta, ignoraDefesa, bonusCritico (%).

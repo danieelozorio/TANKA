@@ -536,3 +536,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - No iPhone a troca Zealot → Clássica recarregava e voltava Zealot (o localStorage não gravava a tempo antes do
   `location.reload()`). Agora a escolha também vai num cookie `eldrin_interface` (lido primeiro em `jogar/index.html` e
   `ferramentas/artifact.html`) e a página recarrega 150 ms depois.
+
+## Monstro ataca primeiro (Henri, nov/2026)
+- `iniciarBatalha` (caçada): o monstro só começa com a barra cheia (golpe garantido primeiro) nas 2 primeiras zonas
+  (Floresta Sombria, Pântano de Brumafria) — `monstroComeca(m)` pela ordem de `D.areas`. Da 3ª zona em diante os dois
+  começam com a barra vazia e age primeiro o mais rápido.
