@@ -1943,7 +1943,10 @@
   function redesenharLeilao() {
     clearTimeout(estado.leilaoTimer);
     if (estado.aba !== 'leilao') return;
-    estado.leilaoTimer = setTimeout(function () { if (estado.aba === 'leilao' && estado.personagem) carregarLeilao(); }, 20000);
+    // atualiza sozinho: a cada 20 s, e a cada 5 s no Curto e no Muito curto (o fim está perto)
+    var fase = estado.leilao && estado.leilao.fase && estado.leilao.fase.id;
+    var espera = fase === 'curto' || fase === 'muitoCurto' ? 5000 : 20000;
+    estado.leilaoTimer = setTimeout(function () { if (estado.aba === 'leilao' && estado.personagem) carregarLeilao(); }, espera);
     var ativo = document.activeElement;
     if (ativo && ativo.classList && ativo.classList.contains('lance-valor')) return;
     if (!estado.batalha && !estado.resultado && !estado.chefeAviso && !estado.luta && !estado.lutaArena && !estado.cacada) telaJogo();
@@ -3656,6 +3659,7 @@
     estado.zoom = estado.desafio = null;
     estado.vendaLote = null;
     if (aba !== 'social') estado.amigoAberto = estado.removerAmigo = null;
+    if (aba === 'leilao') estado.leilao = null;   // sempre pega a fase do servidor ao abrir (nunca a guardada de antes)
     telaJogo();
     if (aba === 'social') carregarSocial();
     if (aba === 'masmorra') carregarGrupo();

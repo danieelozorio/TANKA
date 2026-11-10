@@ -554,3 +554,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Chapéu do mago com defesa (Henri, nov/2026)
 - `armaduras.mago.elmo.bonus.defesa` = [1, 3, 6, 12] (igual ao capuz do arqueiro, menos que elmo do cavaleiro/artesão).
   Chapéus antigos ganham a defesa no `normalizar` (pelo nível/qualidade ou raridade). `tanka_dados()` regerado.
+
+## Leilão: fase sempre do servidor ao abrir (Henri, nov/2026)
+- `abrirAba('leilao')` apaga `estado.leilao` antes de desenhar: mostra "Carregando…" e pega a fase do servidor (antes
+  mostrava a fase guardada da última visita, ex.: "Médio" de 10 min atrás, e o jogador perdia o fim).
+- `redesenharLeilao`: atualiza a cada 20 s, e a cada 5 s nas fases Curto e Muito curto.
