@@ -788,8 +788,9 @@ Tanka.dados = {
     // O dano dos monstros não mudou. (velocidade/velocidadePorMonstro/entreAreas não são mais usados na velocidade.)
     velocidadeHeroi: [0.7, 0.8, 0.9],
     // Exp do 1º, 2º e 3º monstro = base.exp da área x estes números (Henri, nov/2026: antes 1, 2 e 4).
-    // Floresta (base 2): 4, 5 e 10. O chefe dá 5x o 3º.
-    expMonstros: [2, 2.5, 5] },
+    // Floresta (base 2): 2, 5 e 10. O chefe dá 5x o 3º. Por ponto de estamina (custo 1, 2, 3): 1x, 1,25x e 1,67x a base,
+    // ou seja, o 2º rende mais que o 1º e menos que o 3º.
+    expMonstros: [1, 2.5, 5] },
 
   // Chefe em relação ao 3º monstro da área: +50% de vida e velocidade, +20% de ataque, dobro da defesa,
   // e 5x a exp e o ouro (para valer o risco).

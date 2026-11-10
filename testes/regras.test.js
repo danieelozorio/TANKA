@@ -78,14 +78,14 @@ teste('level up dá 3 pontos e cura; vários levels de uma vez', () => {
   assert.strictEqual(p.nivel, 4); assert.strictEqual(p.exp, 5); assert.strictEqual(p.pontosLivres, 9);
 });
 
-teste('lobo: 3 lobos (4 exp cada) sobem para o level 2', () => {
-  assert.strictEqual(D.monstros.lobo.exp, 4);
+teste('lobo: 5 lobos (2 exp cada) sobem para o level 2', () => {
+  assert.strictEqual(D.monstros.lobo.exp, 2);
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
-  for (let i = 0; i < 3; i++) R.ganharExp(p, D.monstros.lobo.exp);
+  for (let i = 0; i < 5; i++) R.ganharExp(p, D.monstros.lobo.exp);
   assert.strictEqual(p.nivel, 2);
 });
 
-teste('cobra = 2x lobo, urso = 2x cobra (vida); exp 4, 5 e 10; dano em faixa', () => {
+teste('cobra = 2x lobo, urso = 2x cobra (vida); exp 2, 5 e 10; dano em faixa', () => {
   const { lobo, cobra, urso } = D.monstros;
   for (const [a, b] of [[lobo, cobra], [cobra, urso]]) {
     assert.strictEqual(b.hp, a.hp * 2);
@@ -311,7 +311,7 @@ teste('batalha completa contra o lobo termina e aplica resultado', () => {
     let passos = 0;
     while (!b.fim) { R.passo(b); passos++; assert.ok(passos < 10000); }
     const r = R.concluirBatalha(p, b);
-    if (r.resultado === 'vitoria') { vitorias++; assert.strictEqual(p.exp, 4); assert.strictEqual(p.ouro, 2); assert.strictEqual(r.ouro, 2); assert.strictEqual(p.abates.lobo, 1); }
+    if (r.resultado === 'vitoria') { vitorias++; assert.strictEqual(p.exp, 2); assert.strictEqual(p.ouro, 2); assert.strictEqual(r.ouro, 2); assert.strictEqual(p.abates.lobo, 1); }
     if (r.drop) assert.strictEqual(r.drop.classe, 'cavaleiro');
   }
   assert.ok(vitorias > 190, 'vitórias: ' + vitorias);
@@ -596,10 +596,10 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
   for (const a of D.areas) {
     const [m1, m2, m3] = a.monstros.map((m) => D.monstros[m.id]);
     const aj = a.ajusteVida || 1;
-    assert.strictEqual(m1.hp, Math.round(a.base.hp * aj)); assert.strictEqual(m1.exp, a.base.exp * 2);
+    assert.strictEqual(m1.hp, Math.round(a.base.hp * aj)); assert.strictEqual(m1.exp, a.base.exp);
     const cr = a.crescimento || D.crescimento;
     [m1, m2, m3].forEach((m, i) => {
-      assert.strictEqual(m.hp, Math.round(a.base.hp * 2 ** i * aj)); assert.strictEqual(m.exp, Math.round(a.base.exp * [2, 2.5, 5][i]));
+      assert.strictEqual(m.hp, Math.round(a.base.hp * 2 ** i * aj)); assert.strictEqual(m.exp, Math.round(a.base.exp * [1, 2.5, 5][i]));
       assert.ok(m.ataque[0] < m.ataque[1], 'dano em faixa');
     });
     assert.ok(m1.velocidade < m2.velocidade && m2.velocidade < m3.velocidade);
