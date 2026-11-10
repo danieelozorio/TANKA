@@ -3578,11 +3578,13 @@
       + (min ? '+' + D.VITALIDADE.porHora + ' em ' + (min >= 60 ? '1 h' : min + ' min') + '. ' : '') + 'Enche à meia-noite.';
   }
   function vitalidadeHtml(p) {
+    if (!D.VITALIDADE.ligada) return '';
     var v = R.atualizarVitalidade(p, C.agora()), max = R.maxVitalidade(p);
     return '<div class="suave dica" tabindex="0">Vitalidade <i class="dica-i">?</i><span class="dica-balao" role="tooltip"><strong>Vitalidade</strong><span>' + esc(textoVitalidade(p)) + '</span></span></div>'
       + barra('vitalidade', v.pts, max, v.pts + ' / ' + max + (v.pts ? ' · exp e ouro x2' : ''));
   }
   function vitFinaHtml(p) {
+    if (!D.VITALIDADE.ligada) return '';
     var v = R.atualizarVitalidade(p, C.agora()), max = R.maxVitalidade(p), texto = textoVitalidade(p);
     return '<div class="vit-fina" role="progressbar" aria-label="' + esc(texto) + '" title="' + esc(texto) + '" aria-valuenow="' + v.pts
       + '" aria-valuemin="0" aria-valuemax="' + max + '"><i style="width:' + (v.pts / max * 100) + '%"></i></div>';

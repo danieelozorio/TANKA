@@ -543,6 +543,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   começam com a barra vazia e age primeiro o mais rápido.
 
 ## Vitalidade (Henri, nov/2026)
+- **DESLIGADA** desde 10/11/2026 (teste do progresso sem ela): `D.VITALIDADE.ligada = false`. Para voltar: `ligada: true`
+  em js/dados.js (sobe o ?v=); a regra, a barra e os testes voltam sozinhos.
 - `D.VITALIDADE` = { maximo 100, maximoVip 200 (p.vip, futuro), porHora 5, multiplicador 2, fuso -3 }.
 - `p.vitalidade = { pts, dia, em }`, atualizada sem pressa por `R.atualizarVitalidade(p, agora)`: dia novo (meia-noite
   de Brasília) = cheia; senão +porHora a cada hora cheia desde `em` (cheia não acumula horas).

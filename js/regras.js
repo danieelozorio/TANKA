@@ -1713,8 +1713,8 @@ Tanka.regras = (function () {
         res.exp = Math.floor(res.exp * (1 + b.s.bonusRecompensa / 100));
         res.ouro = Math.floor(res.ouro * (1 + b.s.bonusRecompensa / 100));
       }
-      var vit = atualizarVitalidade(p, agora);
-      if (!res.penalizado && vit.pts > 0) {   // Vitalidade: exp e ouro dobrados
+      var vit = D.VITALIDADE.ligada ? atualizarVitalidade(p, agora) : null;
+      if (D.VITALIDADE.ligada && !res.penalizado && vit.pts > 0) {   // Vitalidade: exp e ouro dobrados
         vit.pts -= 1;
         res.exp = Math.floor(res.exp * D.VITALIDADE.multiplicador);
         res.ouro = Math.floor(res.ouro * D.VITALIDADE.multiplicador);

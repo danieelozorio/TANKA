@@ -2138,6 +2138,8 @@ teste('monstro ataca primeiro só nas 2 primeiras zonas', () => {
 });
 
 teste('Vitalidade: x2 na exp e no ouro, gasta 1, recarrega 5/h e enche no dia seguinte', () => {
+  const ligada = D.VITALIDADE.ligada; D.VITALIDADE.ligada = true;
+  try {
   const p = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro');
   const t = Date.UTC(2026, 10, 10, 15, 0, 0);   // 12h em Brasília
   assert.strictEqual(R.atualizarVitalidade(p, t).pts, 100);
@@ -2151,6 +2153,7 @@ teste('Vitalidade: x2 na exp e no ouro, gasta 1, recarrega 5/h e enche no dia se
   assert.ok(!R.concluirBatalha(p, b2, t + 2.5 * 3600000).vitalidade, 'sem pontos, sem bônus');
   assert.strictEqual(R.atualizarVitalidade(p, Date.UTC(2026, 10, 11, 3, 1)).pts, 100, 'meia-noite em Brasília (03:01 UTC): cheia');
   assert.strictEqual(R.maxVitalidade(Object.assign({}, p, { vip: true })), 200);
+  } finally { D.VITALIDADE.ligada = ligada; }
 });
 teste('chapéu do mago dá defesa (novo e antigo)', () => {
   const p = R.criarPersonagem('M', 'masculino', 'humano', 'mago');
@@ -2159,4 +2162,12 @@ teste('chapéu do mago dá defesa (novo e antigo)', () => {
   delete it.bonus.defesa; p.inventario.push(it);
   R.normalizar(p);
   assert.ok(it.bonus.defesa > 0, 'chapéu antigo ganhou defesa');
+});
+
+teste('Vitalidade desligada: sem x2 e sem gastar pontos', () => {
+  if (D.VITALIDADE.ligada) return;
+  const p = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro');
+  const b = R.iniciarBatalha(p, 'lobo', rng); b.fim = 'vitoria';
+  const r = R.concluirBatalha(p, b, Date.now());
+  assert.ok(!r.vitalidade); assert.strictEqual(r.exp, D.monstros.lobo.exp);
 });
