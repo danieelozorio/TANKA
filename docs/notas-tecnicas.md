@@ -654,3 +654,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Agora: aplica o prêmio usando `rec.item` (o mesmo que o servidor devolveria), guarda o id em `p.recebidas` (últimos
   200), grava (`await C.salvarPersonagem`) e só então marca no servidor. Gravação falhou = o prêmio volta na próxima
   vez; marcação falhou = `p.recebidas` impede entrega dupla.
+
+## Página inicial: seção Sobre (Henri, nov/2026)
+- `index.html`: menu no topo (Sobre, Arena, Classes, Jogar), botão "Sobre ↓" ao lado do Jogar, e as seções: o que é
+  Eldrin, números (5 raças, 4 classes, 8 especializações, 7 regiões, 7 masmorras, +10), herói (print), Leilão (print),
+  Arena com o D20 3D de verdade (`js/dado3d.js`, skin dourada; a 1ª rolada cai no 20, depois sorteia; sem WebGL mostra
+  "20"), cartas (Caçadas, Masmorras, Chefe Mundial, Alianças), fala do Aldric (historia.js) e as classes.
+- Prints em `assets/site/` (perfil.webp, leilao.webp), tirados do jogo com um herói montado no teste local.

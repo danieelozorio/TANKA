@@ -64,8 +64,81 @@
     .final p { color: var(--suave); font-size: 1.1rem; margin: 0 0 22px; }
     footer { text-align: center; color: #6d6150; font-size: .9rem; padding: 0 16px 32px; }
 
+    html { scroll-behavior: smooth; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+    /* barra do topo */
+    .topo > .menu { position: absolute; }
+    .menu { position: absolute; top: 0; left: 0; right: 0; z-index: 3; display: flex; justify-content: flex-end; gap: 6px; padding: 14px 16px; }
+    .menu a { font-family: Cinzel, serif; font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; text-decoration: none;
+      color: var(--ouro-claro); padding: 8px 12px; border-radius: 4px; background: #07080c66; border: 1px solid #e2b45c33; }
+    .menu a:hover, .menu a:focus-visible { border-color: var(--ouro); outline: none; }
+    .acoes-topo { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; align-items: center; }
+    .sobre-btn { display: inline-flex; align-items: center; gap: 10px; font-family: Cinzel, serif; font-weight: 700; font-size: 1.05rem;
+      letter-spacing: .18em; text-transform: uppercase; text-decoration: none; color: var(--ouro-claro);
+      padding: 15px 30px; border: 1px solid var(--ouro); border-radius: 6px; background: #07080c99; transition: background .15s ease; }
+    .sobre-btn:hover, .sobre-btn:focus-visible { background: #e2b45c22; outline: none; }
+    .sobre-btn i { font-style: normal; display: inline-block; animation: descer 1.8s ease-in-out infinite; }
+    @keyframes descer { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px); } }
+    @media (prefers-reduced-motion: reduce) { .sobre-btn i { animation: none; } }
+
+    /* sobre */
+    .intro { max-width: 720px; }
+    .intro p { font-size: 1.2rem; line-height: 1.6; color: var(--texto); margin: 0; }
+    .numeros { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; max-width: 1040px; margin: 0 auto; padding: 0 16px 24px; }
+    .numeros div { border: 1px solid var(--borda); border-radius: 6px; background: #120e09; padding: 14px 6px; text-align: center; }
+    .numeros b { display: block; font-family: Cinzel, serif; font-size: 1.7rem; color: var(--ouro); line-height: 1.1; }
+    .numeros span { color: var(--suave); font-size: .95rem; }
+    .destaque { display: grid; grid-template-columns: 1.15fr 1fr; gap: 40px; align-items: center; text-align: left; }
+    .destaque.inverso { grid-template-columns: 1fr 1.15fr; }
+    .destaque.inverso .midia { order: 2; }
+    .destaque h3 { font-family: Cinzel, serif; font-weight: 700; color: var(--ouro-claro); font-size: clamp(1.4rem, 3vw, 1.9rem); margin: 0 0 6px; letter-spacing: .04em; }
+    .destaque .rotulo { font-family: Cinzel, serif; color: var(--ouro); letter-spacing: .3em; font-size: .75rem; text-transform: uppercase; margin: 0 0 10px; }
+    .destaque p { font-size: 1.15rem; line-height: 1.6; margin: 0 0 14px; }
+    .destaque ul { margin: 0; padding: 0; list-style: none; }
+    .destaque li { padding: 6px 0 6px 26px; position: relative; font-size: 1.08rem; line-height: 1.45; }
+    .destaque li::before { content: '◆'; position: absolute; left: 4px; color: var(--ouro); font-size: .8rem; top: 9px; }
+    .midia { margin: 0; }
+    .print { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--borda);
+      box-shadow: 0 20px 50px #000c, 0 0 0 1px #00000080; }
+    .midia figcaption { color: var(--suave); font-size: .92rem; margin-top: 8px; text-align: center; font-style: italic; }
+
+    /* arena: D20 ao vivo */
+    .mesa { position: relative; height: 340px; border-radius: 12px; overflow: hidden; border: 1px solid #6b4a22;
+      background: radial-gradient(ellipse at 50% 45%, #5a3a1c 0%, #2c1a0c 60%, #160c05 100%); box-shadow: inset 0 0 60px #000c, 0 20px 50px #000c; }
+    .mesa .palco { position: absolute; inset: 0; }
+    .mesa .palco canvas { width: 100% !important; height: 100% !important; display: block; }
+    .mesa .sem3d { position: absolute; inset: 0; display: grid; place-items: center; font-family: Cinzel, serif; font-size: 5rem; color: var(--ouro); }
+    .mesa .resultado { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-family: Cinzel, serif; font-weight: 700;
+      letter-spacing: .12em; font-size: 1.15rem; color: var(--ouro-claro); text-shadow: 0 2px 8px #000; min-height: 1.4em; pointer-events: none; }
+    .mesa.ouro { box-shadow: inset 0 0 60px #000c, 0 0 46px #e2b45c66, 0 20px 50px #000c; border-color: var(--ouro); }
+    .mesa.ouro .resultado { color: #ffd76a; font-size: 1.5rem; }
+    .rolar { margin-top: 16px; font-family: Cinzel, serif; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 1rem;
+      color: #1a1206; background: linear-gradient(#f6d58e, #d49b3c 55%, #a8721f); border: 1px solid #ffe7b0; border-radius: 6px;
+      padding: 12px 28px; cursor: pointer; }
+    .rolar:disabled { opacity: .55; cursor: default; }
+    .rolar:focus-visible { outline: 2px solid var(--ouro-claro); outline-offset: 3px; }
+
+    /* mais aventuras */
+    .cartas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: left; }
+    .carta { border: 1px solid var(--borda); border-radius: 8px; overflow: hidden; background: #120e09; }
+    .carta img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; }
+    .carta.escudo img { object-fit: contain; padding: 18px; background: radial-gradient(circle, #2a2014, #120e09); }
+    .carta div { padding: 12px 14px 16px; }
+    .carta h4 { font-family: Cinzel, serif; color: var(--ouro-claro); margin: 0 0 6px; font-size: 1.05rem; letter-spacing: .05em; }
+    .carta p { margin: 0; color: var(--suave); font-size: 1rem; line-height: 1.45; }
+    .citacao { max-width: 760px; font-style: italic; font-size: clamp(1.2rem, 2.6vw, 1.5rem); color: var(--ouro-claro); line-height: 1.5; }
+    .citacao small { display: block; margin-top: 10px; font-style: normal; color: var(--suave); font-size: .95rem; letter-spacing: .1em; }
+
+    @media (max-width: 900px) {
+      .destaque, .destaque.inverso { grid-template-columns: 1fr; gap: 22px; }
+      .destaque.inverso .midia { order: 0; }
+      .numeros { grid-template-columns: repeat(3, 1fr); }
+      .cartas { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 720px) {
       .classes { grid-template-columns: repeat(2, 1fr); }
+      .mesa { height: 260px; }
+      .menu a { padding: 7px 9px; font-size: .7rem; letter-spacing: .12em; }
       .jogar { font-size: 1.15rem; padding: 14px 36px; }
       .topo { min-height: 82svh; }
       section { padding: 40px 16px; }
@@ -75,6 +148,7 @@
 </head>
 <body>
   <header class="topo">
+    <nav class="menu" aria-label="Menu"><a href="#sobre">Sobre</a><a href="#arena">Arena</a><a href="#classes">Classes</a><a href="jogar/">Jogar</a></nav>
     <div class="imagem" aria-hidden="true"></div>
     <video autoplay muted loop playsinline poster="assets/fundo-entrada.webp" aria-hidden="true">
       <source src="assets/fundo-entrada.webm" type="video/webm">
@@ -83,11 +157,100 @@
     <img class="logo" src="assets/logo-eldrin.webp" alt="Eldrin Online">
     <p class="selo">RPG medieval místico</p>
     <p class="frase">Os portões de Eldrin estão abertos. Escolha sua classe e prepare sua lenda.</p>
-    <a class="jogar" href="jogar/">⚔ Jogar</a>
+    <div class="acoes-topo">
+      <a class="jogar" href="jogar/">⚔ Jogar</a>
+      <a class="sobre-btn" href="#sobre">Sobre <i aria-hidden="true">↓</i></a>
+    </div>
     <p class="beta">Open Beta · Dezembro 2026</p>
   </header>
 
+  <section id="sobre" class="intro">
+    <h2>O que é Eldrin</h2>
+    <p>Um RPG de navegador em português, sem download. Crie seu herói, cace monstros em sete regiões, forje e encante seu equipamento, dispute itens raros no leilão e prove seu valor na Arena, onde cada golpe depende de um D20.</p>
+  </section>
+  <div class="numeros">
+    <div><b>5</b><span>raças</span></div>
+    <div><b>4</b><span>classes</span></div>
+    <div><b>8</b><span>especializações</span></div>
+    <div><b>7</b><span>regiões</span></div>
+    <div><b>7</b><span>masmorras</span></div>
+    <div><b>+10</b><span>de encanto</span></div>
+  </div>
+
   <section>
+    <div class="destaque">
+      <figure class="midia"><img class="print" src="assets/site/perfil.webp" width="1400" height="789" loading="lazy"
+        alt="Tela do herói no jogo: o paladino Kaelthar, level 24, com vida, estamina, experiência, poder e os equipamentos em volta do retrato">
+        <figcaption>Tela do herói, direto do jogo.</figcaption></figure>
+      <div>
+        <p class="rotulo">Seu herói</p>
+        <h3>Monte o herói do seu jeito</h3>
+        <p>Cinco raças, quatro classes e, no level 10, a especialização: o cavaleiro vira Paladino ou Destruidor, o mago vira Bruxo ou Curandeiro.</p>
+        <ul>
+          <li>Equipamentos comuns, raros, épicos e lendários, com bônus sorteados</li>
+          <li>Encante até +10 e complete conjuntos para ganhar bônus extras</li>
+          <li>Distribua atributos e habilidades, e veja seu Poder subir</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="destaque inverso">
+      <figure class="midia"><img class="print" src="assets/site/leilao.webp" width="1100" height="1157" loading="lazy"
+        alt="Tela do Leilão do Mercador no jogo: lotes de armas e armaduras com lance atual, próximo lance e o botão Dar lance">
+        <figcaption>O Leilão do Mercador, com lances de outros jogadores.</figcaption></figure>
+      <div>
+        <p class="rotulo">Leilão do Reino</p>
+        <h3>Dispute itens raros com outros jogadores</h3>
+        <p>A cada 4 horas o Reino leiloa 12 lotes: armas, armaduras, joias e pacotes de pergaminhos. Todo mundo do mesmo nível vê os mesmos itens.</p>
+        <ul>
+          <li>Cada lance precisa ser pelo menos 5% maior que o anterior</li>
+          <li>Se alguém cobrir seu lance, o ouro volta para você</li>
+          <li>No fim, a fase "Muito curto" dura de 1 a 4 minutos, sorteados. Ninguém sabe o segundo exato.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="arena">
+    <div class="destaque">
+      <div class="midia">
+        <div class="mesa" id="mesa"><div class="palco" id="palco" aria-hidden="true"></div><div class="resultado" id="resultado" aria-live="polite"></div></div>
+        <button class="rolar" id="rolar" type="button">🎲 Role o dado</button>
+      </div>
+      <div>
+        <p class="rotulo">Arena</p>
+        <h3>Na Arena, quem decide é o D20</h3>
+        <p>Lutas entre jogadores, por turnos. A cada golpe você rola o dado: um 20 é acerto crítico, um 1 é erro.</p>
+        <ul>
+          <li>Ranking, com prêmio de ouro para quem fica no topo</li>
+          <li>Dados com skins: Rubi, Safira, Ouro Real, Obsidiana, Dragão Cinzento…</li>
+          <li>Cada especialização tem habilidades próprias para virar a luta</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mais aventuras</h2>
+    <div class="cartas">
+      <article class="carta"><img src="assets/monstros/urso-raivoso.jpg" alt="Urso Raivoso, monstro da Floresta Sombria" loading="lazy">
+        <div><h4>Caçadas</h4><p>Sete regiões, de Floresta Sombria ao Cume do Fogo Eterno, cada uma com seu chefe.</p></div></article>
+      <article class="carta"><img src="assets/monstros/varnok.jpg" alt="Varnok, o Lich" loading="lazy">
+        <div><h4>Masmorras em grupo</h4><p>Entre com mais dois jogadores, enfrente a elite e o chefe e leve joias e pergaminhos.</p></div></article>
+      <article class="carta"><img src="assets/monstros/boss-mundial.jpg" alt="Chefe Mundial" loading="lazy">
+        <div><h4>Chefe Mundial</h4><p>Quando ele desperta, todos os jogadores atacam juntos. Quem dá o golpe final ganha um título.</p></div></article>
+      <article class="carta escudo"><img src="assets/aliancas/escudo-classico.webp" alt="Escudo de aliança" loading="lazy">
+        <div><h4>Alianças</h4><p>Funde seu clã, pinte o escudo, suba de nível e enfrente o boss do clã com seus amigos.</p></div></article>
+    </div>
+  </section>
+
+  <section>
+    <p class="citacao">"Você chegou na hora certa, jovem. Sou Aldric, o último guardião dos selos. Algo está envenenando esta floresta…"<small>Mestre Aldric · Os Sete Selos, capítulo 1</small></p>
+  </section>
+
+  <section id="classes">
     <h2>Escolha sua classe</h2>
     <div class="classes">
       <figure class="classe"><img src="assets/personagens/humano-cavaleiro.jpg" alt="Cavaleiro humano" loading="lazy"><figcaption>Cavaleiro<small>Humano</small></figcaption></figure>
@@ -97,17 +260,54 @@
     </div>
   </section>
 
-  <section>
-    <p class="recursos"><b>Caçadas</b> <span>◆</span> <b>Masmorras em grupo</b> <span>◆</span> <b>Arena no D20</b> <span>◆</span> <b>Alianças</b> <span>◆</span> <b>Chefe Mundial</b></p>
-  </section>
-
   <section class="final">
     <p>Siga o Eldrin Online no Instagram e no Facebook para acompanhar as novidades.</p>
     <a class="jogar" href="jogar/">⚔ Jogar</a>
   </section>
 
   <footer>© 2026 Eldrin Online</footer>
+  <script src="js/dado3d.js?v=121"></script>
   <script>
+    // Arena: o D20 de verdade do jogo. A 1ª rolada cai no 20; as outras, no que o dado mandar.
+    (function () {
+      var palco = document.getElementById('palco'), mesa = document.getElementById('mesa'), saida = document.getElementById('resultado');
+      var botao = document.getElementById('rolar'), dado = null, primeira = true, rolando = false;
+      function textoDe(n) { return n === 20 ? '20 NATURAL! Acerto crítico!' : n === 1 ? '1… Errou o golpe!' : n >= 18 ? n + ': golpe forte!' : 'Tirou ' + n + '.'; }
+      function semTres() { palco.innerHTML = '<div class="sem3d">20</div>'; }
+      function preparar() {
+        if (dado || !window.Tanka || !Tanka.dado3d || !Tanka.dado3d.temWebgl()) return Promise.resolve(!!dado);
+        return Tanka.dado3d.carregar().then(function (ok) {
+          if (!ok) return false;
+          try { dado = Tanka.dado3d.criar(palco, 'dourada'); dado.parado(20); return true; } catch (e) { return false; }
+        });
+      }
+      function rolar() {
+        if (rolando) return;
+        rolando = true; botao.disabled = true;
+        var n = primeira ? 20 : 1 + Math.floor(Math.random() * 20);
+        primeira = false;
+        mesa.classList.remove('ouro'); saida.textContent = '';
+        preparar().then(function (tem) {
+          if (!tem) { semTres(); palco.firstChild.textContent = n; fim(n); return; }
+          dado.brilho(null); dado.cair(1);
+          setTimeout(function () { dado.pousar(n, function () { fim(n); }); }, 1250);
+        });
+      }
+      function fim(n) {
+        if (dado) dado.brilho(n === 20 ? 'ouro' : n === 1 ? 'falha' : null);
+        mesa.classList.toggle('ouro', n === 20);
+        saida.textContent = textoDe(n);
+        rolando = false; botao.disabled = false; botao.textContent = '🎲 Rolar de novo';
+      }
+      botao.addEventListener('click', rolar);
+      // Mostra o dado parado quando a Arena aparece na tela (só carrega o 3D aí).
+      if ('IntersectionObserver' in window) {
+        var obs = new IntersectionObserver(function (es) {
+          if (es.some(function (e) { return e.isIntersecting; })) { obs.disconnect(); preparar().then(function (t) { if (!t) semTres(); }); }
+        }, { rootMargin: '200px' });
+        obs.observe(mesa);
+      } else preparar().then(function (t) { if (!t) semTres(); });
+    })();
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});
   </script>
 </body>
