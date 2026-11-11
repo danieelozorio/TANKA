@@ -661,3 +661,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Arena com o D20 3D de verdade (`js/dado3d.js`, skin dourada; a 1ª rolada cai no 20, depois sorteia; sem WebGL mostra
   "20"), cartas (Caçadas, Masmorras, Chefe Mundial, Alianças), fala do Aldric (historia.js) e as classes.
 - Prints em `assets/site/` (perfil.webp, leilao.webp), tirados do jogo com um herói montado no teste local.
+
+## Ouro das últimas áreas (Henri/Daniel, nov/2026)
+- O ouro pulava x16 da Torre para as Areias (67 -> 1.067 por estamina no 3º monstro) e o fim do jogo rendia ~5 mi/dia.
+  Agora cresce ~x3 por área, como a exp: Areias 150/300/600 (chefe 3.000), Vale 450/900/1.800 (9.000),
+  Cume 1.350/2.700/5.400 (27.000). Prêmios do boss do clã e do Chefe Mundial (feitos do ouro dos chefes) caem junto.
+- Próximo passo combinado (parte 2, ainda não feito): gastos de ouro que crescem com o jogador (encanto custar ouro etc.).

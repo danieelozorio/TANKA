@@ -732,7 +732,7 @@ Tanka.dados = {
     {
       id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
-      base: { hp: 320, ataque: 32, exp: 270 }, ouro: [800, 1600, 3200],
+      base: { hp: 320, ataque: 32, exp: 270 }, ouro: [150, 300, 600],   // nov/2026: era 800/1600/3200 (ouro x16 da Torre); agora ~x3 por área, como a exp
       monstros: [
         { id: 'escorpiao', dano: [44, 59], danoCacada: [68, 91], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
         { id: 'lagarto', dano: [54, 74], danoCacada: [84, 115], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
@@ -743,7 +743,7 @@ Tanka.dados = {
     {
       id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
-      base: { hp: 420, ataque: 40, exp: 800 }, ouro: [2000, 4000, 8000],
+      base: { hp: 420, ataque: 40, exp: 800 }, ouro: [450, 900, 1800],   // era 2000/4000/8000
       monstros: [
         { id: 'drake', dano: [54, 74], danoCacada: [123, 168], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
         { id: 'wyvern', dano: [68, 92], danoCacada: [155, 209], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
@@ -754,7 +754,7 @@ Tanka.dados = {
     {
       id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 1.35,
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
-      base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [5000, 10000, 20000],
+      base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [1350, 2700, 5400],   // era 5000/10000/20000
       monstros: [
         { id: 'salamandra', dano: [82, 110], danoCacada: [233, 312], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
         { id: 'demonio', dano: [102, 138], danoCacada: [290, 392], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
