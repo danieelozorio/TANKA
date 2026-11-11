@@ -2128,53 +2128,125 @@
       return '<span class="' + (ok ? 'mais' : 'menos') + '">' + (c.tipo === 'ouro' ? fmt(c.precisa) + ' de ouro' : fmt(Math.min(c.tem, c.precisa)) + '/' + fmt(c.precisa) + ' ' + esc(c.nome)) + '</span>';
     }).join(' · ');
   }
+  // ----- Herói › Oficina: Forja do Ferreiro e Bancada do Coletor (Daniel, nov/2026: com retrato e passo a passo) -----
+  var PECAS_FORJA = [['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']];
+  // Escolhas da forja (região, classe, peça e reforços), com os mesmos padrões na tela e no botão Forjar.
+  function forjaAtual(p) {
+    var liberadas = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }), fj = estado.forja || {};
+    var area = liberadas.some(function (a) { return a.id === fj.area; }) ? fj.area : liberadas[liberadas.length - 1].id;
+    var lim = function (v) { return Math.max(0, Math.min(3, Number(v) || 0)); };
+    return { area: area, classe: D.classes[fj.classe] ? fj.classe : p.classe, tipo: fj.tipo || 'arma', chefe: lim(fj.chefe), gemas: lim(fj.gemas), liberadas: liberadas };
+  }
+  // Ícone de um custo (material, receita, cristal ou ouro).
+  function iconeCusto(c) {
+    if (c.tipo === 'ouro') return ICONES.ouro;
+    return iconeConsumivel({ tipo: c.tipo, raridade: c.id });
+  }
+  // Custos como fichinhas: ícone, quanto tem / quanto precisa (verde quando dá, vermelho quando falta).
+  function custoChips(lista) {
+    return '<div class="custo-chips">' + lista.map(function (c) {
+      var ok = c.tem >= c.precisa, fmt = function (v) { return Number(v).toLocaleString('pt-BR'); };
+      var txt = c.tipo === 'ouro' ? fmt(c.precisa) : fmt(Math.min(c.tem, c.precisa)) + '/' + fmt(c.precisa);
+      return '<span class="custo-chip ' + (ok ? 'ok' : 'falta') + '" title="' + esc(c.nome + ': você tem ' + fmt(c.tem) + ', precisa de ' + fmt(c.precisa)) + '">'
+        + '<i>' + iconeCusto(c) + '</i><b>' + txt + '</b><small>' + esc(c.tipo === 'ouro' ? 'ouro' : c.nome) + '</small></span>';
+    }).join('') + '</div>';
+  }
+  // Retrato do artesão: o do próprio herói quando ele é dessa classe; senão o mestre anão dela.
+  function retratoArtesao(p, c2) {
+    var meu = (p.talentos && p.talentos.classe2) === c2;
+    return F.personagem(meu ? p.raca : 'anao', c2, p.sexo);
+  }
   function abaOficina() {
-    var p = estado.personagem, C = D.CRAFT, html = '';   // (C aqui = D.CRAFT; o relógio vem de C_agora)
-    var liberadas = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; });
-    // (as Minas foram para Aventura › Mineração)
-    // Materiais
+    var p = estado.personagem, C = D.CRAFT;   // (C aqui = D.CRAFT; o relógio vem de C_agora)
+    var fer = R.ehFerreiro(p), col = R.ehColetor(p);
+    var vista = estado.oficinaVista || (col ? 'coletor' : 'forja');
+    var nomeC2 = function (c2) { var x = D.SEGUNDAS_CLASSES[c2]; return p.sexo === 'feminino' && x.nomeF || x.nome; };
+    // Seletor: as duas bancadas, com o retrato de cada artesão
+    var cartao = function (id, c2, titulo, texto, meu) {
+      return '<button type="button" class="oficina-cartao' + (vista === id ? ' ativo' : '') + '" data-acao="oficina-vista" data-valor="' + id + '">'
+        + '<span class="oficina-retrato">' + retratoArtesao(p, c2) + '</span><span class="oficina-cartao-texto"><strong>' + titulo + '</strong>'
+        + '<small>' + texto + '</small>' + (meu ? '<em class="selo-forja">Você é ' + esc(nomeC2(c2)) + '</em>' : '') + '</span></button>';
+    };
+    var html = '<div class="oficina-cartoes">'
+      + cartao('forja', 'ferreiro', '🔨 Forja', 'Armas e armaduras novas', fer)
+      + cartao('coletor', 'coletor', '📜 Bancada', 'Receitas e Proteções', col) + '</div>';
+    // Seus materiais (fechado: os custos de cada receita já mostram o que você tem)
     var meus = R.consumiveis(p).filter(function (c) { return ['material', 'receita', 'protecao', 'cristal'].indexOf(c.tipo) >= 0; });
-    html += '<div class="caixa-interna"><h3>Seus materiais</h3>' + (meus.length ? '<div class="materiais-lista">' + meus.map(function (c) {
-      return '<span class="material-chip borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + ' ' + esc(R.nomeConsumivel(c)) + ' <strong>' + c.qtd.toLocaleString('pt-BR') + '</strong></span>';
-    }).join('') + '</div>' : '<p class="suave">Nenhum ainda. Materiais caem dos monstros da caçada (cada região tem o seu; o chefe deixa um raro) e vêm das Minas.</p>')
-      + '<p class="suave pequeno">Também dá para comprar e vender materiais, receitas e proteções no Mercado.</p></div>';
-    // Coletor
-    var col = R.ehColetor(p);
-    html += '<div class="caixa-interna"><h3>💰 Coletor: receitas e proteções</h3>'
-      + (col ? '' : '<p class="suave pequeno">Só o <strong>Coletor</strong> (segunda classe do Artesão) fabrica. Os outros compram dele no Mercado.</p>')
-      + '<h4>Receitas</h4><div class="itens">' + liberadas.map(function (a) {
-        var c = R.custoReceita(p, a.id), pode = col && !R.faltando(p, c).length;
-        return '<div class="item"><div class="item-texto"><strong>📜 Receita: ' + esc(a.nome) + '</strong><div class="pequeno">' + custoHtml(c) + '</div></div>'
-          + (col ? '<div class="item-acoes"><button class="btn btn-pequeno" data-acao="craft-receita" data-id="' + a.id + '"' + (pode ? '' : ' disabled') + '>Fabricar</button></div>' : '') + '</div>';
-      }).join('') + '</div><h4>Pergaminho de Proteção</h4><div class="itens">' + Object.keys(C.protecao).map(function (r) {
-        var c = R.custoProtecao(p, r), pode = col && !R.faltando(p, c).length;
-        return '<div class="item"><div class="item-texto"><strong class="raridade-' + r + '">🛡 Proteção ' + D.raridades[r].nome + '</strong><div class="pequeno">' + custoHtml(c) + '</div></div>'
-          + (col ? '<div class="item-acoes"><button class="btn btn-pequeno" data-acao="craft-protecao" data-id="' + r + '"' + (pode ? '' : ' disabled') + '>Fabricar</button></div>' : '') + '</div>';
-      }).join('') + '</div></div>';
-    // Ferreiro
-    var fer = R.ehFerreiro(p), fj = estado.forja || {}, arF = fj.area && liberadas.some(function (a) { return a.id === fj.area; }) ? fj.area : liberadas[liberadas.length - 1].id;
-    var cls = fj.classe || p.classe, tipo = fj.tipo || 'arma', ch = Number(fj.chefe) || 0, ge = Number(fj.gemas) || 0;
-    var areaF = D.areas.filter(function (a) { return a.id === arF; })[0], mcF = R.materialDoChefe(areaF.chefe.id);
-    var opc = function (lista, atual) { return lista.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join(''); };
-    var custoF = R.custoForja(p, arF);
-    if (ch) custoF.push({ tipo: 'material', nome: C.materiais[mcF].nome, tem: R.qtdMaterial(p, mcF), precisa: ch });
-    if (ge) custoF.push({ tipo: 'material', nome: C.materiais.gema.nome, tem: R.qtdMaterial(p, 'gema'), precisa: ge });
-    var chances = R.chancesForja(p, arF, ch, ge), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
-    var nums = [0, 1, 2, 3].map(function (n) { return [n, String(n)]; });
-    html += '<div class="caixa-interna"><h3>🔨 Ferreiro: forja</h3>'
-      + (fer ? '' : '<p class="suave pequeno">Só o <strong>Ferreiro</strong> (segunda classe do Artesão) forja armas e armaduras com as receitas do Coletor.</p>')
-      + '<div class="forja-opcoes">'
-      + '<label>Região <select data-forja="area">' + opc(liberadas.map(function (a) { return [a.id, a.nome + ' (item level ' + (a.nivelMin + 2) + ')']; }), arF) + '</select></label>'
-      + '<label>Para a classe <select data-forja="classe">' + opc(Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</select></label>'
-      + '<label>Item <select data-forja="tipo">' + opc([['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']], tipo) + '</select></label>'
-      + '<label>+ ' + esc(C.materiais[mcF].nome) + ' <select data-forja="chefe">' + opc(nums, ch) + '</select></label>'
-      + '<label>+ Pedra Preciosa <select data-forja="gemas">' + opc(nums, ge) + '</select></label></div>'
-      + '<p class="pequeno">Precisa: ' + custoHtml(custoF) + '</p>'
-      + '<p class="pequeno">Chance: <span class="raridade-comum">Comum ' + pct(chances.comum) + '</span> · <span class="raridade-rara">Rara ' + pct(chances.rara) + '</span> · '
+    html += '<details class="caixa-interna oficina-materiais"' + (estado.oficinaMateriais ? ' open' : '') + '><summary data-acao="oficina-materiais">🎒 Seus materiais (' + meus.length + ')</summary>'
+      + (meus.length ? '<div class="materiais-lista">' + meus.map(function (c) {
+        return '<span class="material-chip borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + ' ' + esc(R.nomeConsumivel(c)) + ' <strong>' + c.qtd.toLocaleString('pt-BR') + '</strong></span>';
+      }).join('') + '</div>' : '<p class="suave">Nenhum ainda. Materiais caem dos monstros da caçada (cada região tem o seu; o chefe deixa um raro) e vêm das Minas.</p>')
+      + '<p class="suave pequeno">Também dá para comprar e vender materiais, receitas e proteções no Mercado.</p></details>';
+    var semClasse = function (c2, oQue) {
+      return '<div class="oficina-aviso"><p>Só ' + (p.sexo === 'feminino' ? 'a ' : 'o ') + '<strong>' + esc(nomeC2(c2)) + '</strong> (segunda classe do Artesão) ' + oQue + '. '
+        + 'Você pode ver os custos aqui e contratar um artesão de outro jogador.</p>'
+        + '<button class="btn secundario btn-pequeno" data-acao="aba" data-aba="oficinas">Contratar no Mercado › Oficinas</button></div>';
+    };
+    if (vista === 'coletor') {
+      var liberadas = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; });
+      html += '<div class="caixa-interna oficina-bancada"><div class="oficina-fala"><span class="oficina-retrato grande">' + retratoArtesao(p, 'coletor') + '</span>'
+        + '<p>' + (col ? 'Receitas abrem a forja de uma região. Proteções salvam o item quando o encanto falha.' : 'Receitas e Pergaminhos de Proteção saem da bancada do Coletor.') + '</p></div>'
+        + (col ? '' : semClasse('coletor', 'fabrica'))
+        + '<h4>📜 Receitas <span class="suave pequeno">· 1 por forja, da região do item</span></h4><div class="oficina-grade">' + liberadas.map(function (a) {
+          var c = R.custoReceita(p, a.id), pode = col && !R.faltando(p, c).length, tem = R.qtdConsumivel(p, 'receita', a.id);
+          return '<div class="oficina-receita"><div class="oficina-receita-topo">' + iconeArea(a) + '<div><strong>' + esc(a.nome) + '</strong>'
+            + '<small class="suave">Você tem ' + tem + '</small></div></div>' + custoChips(c)
+            + (col ? '<button class="btn btn-pequeno" data-acao="craft-receita" data-id="' + a.id + '"' + (pode ? '' : ' disabled') + '>Fabricar</button>' : '') + '</div>';
+        }).join('') + '</div><h4>🛡 Pergaminhos de Proteção <span class="suave pequeno">· se o encanto falhar, o item não quebra nem zera</span></h4><div class="oficina-grade">'
+        + Object.keys(C.protecao).map(function (r) {
+          var c = R.custoProtecao(p, r), pode = col && !R.faltando(p, c).length, tem = R.qtdConsumivel(p, 'protecao', r);
+          return '<div class="oficina-receita borda-' + r + '"><div class="oficina-receita-topo"><span class="icone-pequeno borda-' + r + '">' + iconeConsumivel({ tipo: 'protecao', raridade: r }) + '</span>'
+            + '<div><strong class="raridade-' + r + '">Proteção ' + D.raridades[r].nome + '</strong><small class="suave">Você tem ' + tem + '</small></div></div>' + custoChips(c)
+            + (col ? '<button class="btn btn-pequeno" data-acao="craft-protecao" data-id="' + r + '"' + (pode ? '' : ' disabled') + '>Fabricar</button>' : '') + '</div>';
+        }).join('') + '</div></div>';
+      return html;
+    }
+    // Forja do Ferreiro, em 4 passos
+    var f = forjaAtual(p), areaF = D.areas.filter(function (a) { return a.id === f.area; })[0], mcF = R.materialDoChefe(areaF.chefe.id);
+    var custoF = R.custoForja(p, f.area);
+    if (f.chefe) custoF.push({ tipo: 'material', id: mcF, nome: C.materiais[mcF].nome, tem: R.qtdMaterial(p, mcF), precisa: f.chefe });
+    if (f.gemas) custoF.push({ tipo: 'material', id: 'gema', nome: C.materiais.gema.nome, tem: R.qtdMaterial(p, 'gema'), precisa: f.gemas });
+    var chances = R.chancesForja(p, f.area, f.chefe, f.gemas), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+    var botoes = function (campo, lista, atual) {
+      return '<div class="forja-botoes">' + lista.map(function (o) {
+        return '<button type="button" class="btn btn-pequeno' + (String(o[0]) === String(atual) ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="' + campo + '" data-valor="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+    };
+    var reforco = function (campo, c, info) {
+      var v = f[campo];
+      return '<div class="forja-reforco"><span class="forja-reforco-ico">' + iconeConsumivel({ tipo: 'material', raridade: c }) + '</span><div><strong>' + esc(C.materiais[c].nome) + '</strong>'
+        + '<small class="suave">' + info + ' · você tem ' + R.qtdMaterial(p, c) + '</small></div>'
+        + '<div class="passo-qtd"><button type="button" class="btn btn-pequeno secundario" data-acao="forja-qtd" data-campo="' + campo + '" data-valor="-1"' + (v <= 0 ? ' disabled' : '') + ' aria-label="Menos">−</button>'
+        + '<b>' + v + '</b><button type="button" class="btn btn-pequeno secundario" data-acao="forja-qtd" data-campo="' + campo + '" data-valor="1"' + (v >= 3 ? ' disabled' : '') + ' aria-label="Mais">+</button></div></div>';
+    };
+    var falta = R.faltando(p, custoF), cheia = R.mochilaCheia(p);
+    var barraCh = ['comum', 'rara', 'epica', 'lendaria'].map(function (r) {
+      return chances[r] > 0 ? '<i class="fundo-' + r + '" style="width:' + chances[r] + '%" title="' + D.raridades[r].nome + ' ' + pct(chances[r]) + '"></i>' : '';
+    }).join('');
+    html += '<div class="caixa-interna oficina-bancada"><div class="oficina-fala"><span class="oficina-retrato grande">' + retratoArtesao(p, 'ferreiro') + '</span>'
+      + '<p>' + (fer ? 'Escolha a região, a peça e os reforços. O martelo faz o resto.' : 'Armas e armaduras novas saem da forja do Ferreiro, com uma Receita do Coletor.') + '</p></div>'
+      + (fer ? '' : semClasse('ferreiro', 'forja'))
+      + '<ol class="forja-passos">'
+      + '<li><h4>Região <span class="suave pequeno">· define o level do item</span></h4><div class="forja-botoes">' + f.liberadas.map(function (a) {
+        var temR = R.qtdConsumivel(p, 'receita', a.id) > 0;
+        return '<button type="button" class="btn btn-pequeno forja-regiao' + (a.id === f.area ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="area" data-valor="' + a.id + '">'
+          + iconeArea(a) + '<span>' + esc(a.nome) + '<small>item level ' + (a.nivelMin + 2) + (temR ? ' · 📜' : '') + '</small></span></button>';
+      }).join('') + '</div></li>'
+      + '<li><h4>Para a classe</h4>' + botoes('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), f.classe) + '</li>'
+      + '<li><h4>Peça</h4><div class="forja-botoes">' + PECAS_FORJA.map(function (o) {
+        return '<button type="button" class="btn btn-pequeno forja-peca' + (o[0] === f.tipo ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="tipo" data-valor="' + o[0] + '">'
+          + '<span class="icone-pequeno">' + F.icone({ tipo: o[0], classe: f.classe, raridade: 'comum', encanto: 0 }) + '</span>' + o[1] + '</button>';
+      }).join('') + '</div></li>'
+      + '<li><h4>Reforços <span class="suave pequeno">· opcional: sobem a chance de raridade alta</span></h4>'
+      + reforco('chefe', mcF, 'do chefe da região') + reforco('gemas', 'gema', 'das Minas') + '</li></ol>'
+      + '<div class="forja-resumo"><h4>Chance de sair</h4><div class="forja-chance">' + barraCh + '</div>'
+      + '<p class="pequeno"><span class="raridade-comum">Comum ' + pct(chances.comum) + '</span> · <span class="raridade-rara">Rara ' + pct(chances.rara) + '</span> · '
       + '<span class="raridade-epica">Épica ' + pct(chances.epica) + '</span> · <span class="raridade-lendaria">Lendária ' + pct(chances.lendaria) + '</span>'
       + ' · ✨ obra-prima (uma raridade acima) ' + pct(chances.obraPrima) + (p.raca === 'anao' ? ' <span class="mais">(+1% por ser anão)</span>' : '') + '</p>'
-      + (fer ? '<div class="botoes"><button class="btn" data-acao="forjar"' + (R.faltando(p, custoF).length || R.mochilaCheia(p) ? ' disabled' : '') + '>Forjar</button></div>' : '')
-      + '</div>';
+      + '<h4>Você gasta</h4>' + custoChips(custoF)
+      + (fer ? '<button class="btn largo forja-botao" data-acao="forjar"' + (falta.length || cheia ? ' disabled' : '') + '>🔨 Forjar</button>'
+        + (falta.length ? '<p class="menos pequeno">Falta: ' + falta.map(function (c) { return esc(c.nome); }).join(', ') + '.</p>' : cheia ? '<p class="menos pequeno">Mochila cheia: libere um espaço.</p>' : '') : '')
+      + '</div></div>';
     return html;
   }
   function C_agora() { return C.agora(); }
@@ -4532,9 +4604,28 @@
         telaJogo();
         break;
       }
+      case 'oficina-vista':
+        estado.oficinaVista = el.dataset.valor;
+        telaJogo();
+        break;
+      case 'oficina-materiais':
+        estado.oficinaMateriais = !el.parentNode.open;   // o <details> abre sozinho; só lembra para o próximo redesenho
+        break;
+      case 'forja-op':
+        estado.forja = estado.forja || {};
+        estado.forja[el.dataset.campo] = el.dataset.valor;
+        telaJogo();
+        break;
+      case 'forja-qtd': {
+        var fq = forjaAtual(p);
+        estado.forja = estado.forja || {};
+        estado.forja[el.dataset.campo] = Math.max(0, Math.min(3, fq[el.dataset.campo] + Number(el.dataset.valor)));
+        telaJogo();
+        break;
+      }
       case 'forjar': {
-        var fj = estado.forja || {}, arF = fj.area || (R.areaDasMinas(p) || {}).id;
-        var rf = R.forjar(p, arF, fj.classe || p.classe, fj.tipo || 'arma', Number(fj.chefe) || 0, Number(fj.gemas) || 0);
+        var fa = forjaAtual(p);   // as mesmas escolhas que a tela mostra
+        var rf = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
         if (typeof rf === 'string') avisar(rf);
         else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item'); }
         telaJogo();

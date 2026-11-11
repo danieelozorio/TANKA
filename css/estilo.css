@@ -1602,3 +1602,73 @@ html { overscroll-behavior-x: none; }
   /* Caçada: a caixa já nasce do tamanho do monstro achado, para as opções abaixo não pularem a cada fase. */
   html:not([data-interface="zealot"]) .cacada-arena { min-height: 24rem; }
 }
+
+/* ---- Herói › Oficina (Daniel, nov/2026): bancadas com retrato, forja em passos, custos com ícone ---- */
+.oficina-cartoes { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-bottom: .8rem; }
+.oficina-cartao { display: flex; align-items: center; gap: .6rem; padding: .5rem; text-align: left; cursor: pointer;
+  border: 1px solid rgba(201, 162, 74, .3); border-radius: 8px; background: rgba(0, 0, 0, .35); color: inherit; font: inherit; }
+.oficina-cartao.ativo { border-color: var(--ouro); background: linear-gradient(rgba(201, 162, 74, .18), rgba(0, 0, 0, .35)); box-shadow: 0 0 12px rgba(201, 162, 74, .25); }
+.oficina-cartao-texto { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.oficina-cartao-texto strong { font-size: 1rem; }
+.oficina-cartao-texto small { font-size: .78rem; opacity: .8; }
+.oficina-cartao-texto .selo-forja { align-self: flex-start; font-style: normal; }
+.oficina-retrato { width: 3.4rem; height: 3.4rem; flex: none; border-radius: 6px; overflow: hidden; border: 1px solid #8a6a3a; }
+.oficina-retrato.grande { width: 5.5rem; height: 6.6rem; }
+.oficina-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; display: block; }
+.oficina-materiais summary { cursor: pointer; font-weight: 600; }
+.oficina-materiais[open] summary { margin-bottom: .5rem; }
+.oficina-fala { display: flex; align-items: center; gap: .8rem; margin-bottom: .6rem; }
+.oficina-fala p { margin: 0; padding: .55rem .75rem; border-radius: 8px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(201, 162, 74, .25); font-style: italic; }
+.oficina-aviso { padding: .55rem .75rem; margin-bottom: .6rem; border-radius: 8px; border: 1px dashed rgba(201, 162, 74, .45); }
+.oficina-aviso p { margin: 0 0 .45rem; font-size: .9rem; }
+.oficina-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .55rem; margin-bottom: .8rem; }
+.oficina-receita { display: flex; flex-direction: column; gap: .45rem; padding: .55rem .65rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(0, 0, 0, .3); }
+.oficina-receita.borda-comum, .oficina-receita.borda-rara, .oficina-receita.borda-epica, .oficina-receita.borda-lendaria { background-size: 160% 160%; }
+.oficina-receita-topo { display: flex; align-items: center; gap: .55rem; }
+.oficina-receita-topo > div { display: flex; flex-direction: column; }
+.oficina-receita-topo .icone-area { width: 2.4rem; height: 2.4rem; object-fit: contain; flex: none; }
+.oficina-receita-topo .icone-pequeno { width: 2.4rem; height: 2.4rem; }
+.oficina-receita .btn { align-self: flex-start; }
+.custo-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.custo-chip { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .5rem .15rem .25rem; border-radius: 999px; font-size: .8rem;
+  border: 1px solid rgba(255, 255, 255, .14); background: rgba(0, 0, 0, .35); }
+.custo-chip > i { width: 1.35rem; height: 1.35rem; flex: none; display: inline-grid; place-items: center; overflow: hidden; font-style: normal; }
+.custo-chip > i img, .custo-chip > i svg { width: 100%; height: 100%; object-fit: contain; }
+.custo-chip small { opacity: .75; }
+.custo-chip.ok b { color: #7fd38a; }
+.custo-chip.falta { border-color: rgba(208, 100, 90, .55); }
+.custo-chip.falta b { color: #ef8a7e; }
+.forja-passos { counter-reset: passo; list-style: none; margin: .4rem 0 .8rem; padding: 0; display: flex; flex-direction: column; gap: .7rem; }
+.forja-passos > li { counter-increment: passo; position: relative; padding-left: 2.1rem; }
+.forja-passos > li::before { content: counter(passo); position: absolute; left: 0; top: .05rem; width: 1.5rem; height: 1.5rem; border-radius: 50%;
+  display: grid; place-items: center; background: var(--ouro); color: #1a130a; font-weight: 700; font-size: .85rem; }
+.forja-passos h4, .forja-resumo h4, .oficina-bancada h4 { margin: 0 0 .35rem; }
+.forja-botoes { display: flex; flex-wrap: wrap; gap: .35rem; }
+.forja-botoes .btn.sel { border-color: var(--ouro); box-shadow: 0 0 0 1px var(--ouro), 0 0 10px rgba(201, 162, 74, .45); color: #f4d499; }
+.forja-botoes .btn.secundario { opacity: .8; }
+.forja-regiao { gap: .4rem; text-align: left; }
+.forja-regiao .icone-area { width: 1.7rem; height: 1.7rem; object-fit: contain; flex: none; }
+.forja-regiao span { display: flex; flex-direction: column; line-height: 1.15; }
+.forja-regiao small { font-size: .7rem; opacity: .75; }
+.forja-peca .icone-pequeno { width: 1.6rem; height: 1.6rem; border-radius: 4px; }
+.forja-reforco { display: flex; align-items: center; gap: .55rem; padding: .35rem 0; }
+.forja-reforco > div:not(.passo-qtd) { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.forja-reforco-ico { width: 2rem; height: 2rem; flex: none; display: grid; place-items: center; }
+.forja-reforco-ico img { width: 100%; height: 100%; object-fit: contain; }
+.passo-qtd { display: inline-flex; align-items: center; gap: .4rem; flex: none; }
+.passo-qtd b { min-width: 1.2rem; text-align: center; font-size: 1.1rem; }
+.passo-qtd .btn { width: 2rem; padding-inline: 0; }
+.forja-resumo { padding: .7rem; border-radius: 8px; border: 1px solid rgba(201, 162, 74, .35); background: rgba(0, 0, 0, .3); }
+.forja-resumo .custo-chips { margin-bottom: .6rem; }
+.forja-chance { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: rgba(0, 0, 0, .5); margin-bottom: .35rem; }
+.forja-chance i { display: block; height: 100%; }
+.forja-chance .fundo-comum { background: #9aa0a8; }
+.forja-chance .fundo-rara { background: var(--rara, #4f94e0); }
+.forja-chance .fundo-epica { background: var(--epica, #a46be0); }
+.forja-chance .fundo-lendaria { background: var(--lendaria, #f2c94c); }
+.forja-botao { font-size: 1.05rem; }
+@media (max-width: 520px) {
+  .oficina-cartao { flex-direction: column; text-align: center; align-items: center; }
+  .oficina-cartao-texto .selo-forja { align-self: center; }
+  .oficina-retrato { width: 4.2rem; height: 4.8rem; }
+}

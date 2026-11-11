@@ -427,6 +427,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   da região cai mesmo com penalidade de área (para farmar Ferro etc. depois); Minas: o jogador escolhe a região
   (`R.iniciarMinas(p, opcao, agora, areaId)`, qualquer uma liberada; select `data-forja="minas"`).
 
+- **Herói › Oficina nova (Daniel, nov/2026):** `abaOficina` com dois cartões (Forja / Bancada, `estado.oficinaVista`,
+  ação `oficina-vista`) com retrato (`retratoArtesao`: o do herói se ele é dessa classe, senão o anão da classe, no sexo
+  do herói). Materiais num `<details>` fechado (`estado.oficinaMateriais`). Forja em 4 passos com botões (`forja-op`:
+  área, classe, tipo; `forja-qtd`: reforços 0–3), barra de chance e custos com ícone (`custoChips`, `iconeCusto`).
+  `forjaAtual(p)` dá as mesmas escolhas para a tela e para o botão Forjar (antes o botão usava a área das Minas quando o
+  jogador não mexia na região, diferente da tela). Sem a classe: aviso + botão para Mercado › Oficinas.
+
 ## Arena: só o dado decide (Henri, nov/2026)
 - `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
   (`furtivo`) continua desviando do próximo golpe e garantindo o 20 no golpe seguinte (`critEm`) — Henri testou sem
