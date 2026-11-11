@@ -456,7 +456,6 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 /* Botão de poção da caçada: pequeno (antes ocupava a largura toda). */
 .btn.cacada-pocao, .lutador .btn.btn-pocao { width: auto; padding: .3em .7em; font-size: .78rem; gap: .3em; }
 .cacada-pocao .icone-pocao, .lutador .btn-pocao .icone-pocao { width: 1.1em; height: 1.1em; }
-.cacada-pocao.ligada { border-color: #c9a24a; color: #f4d499; }
 .registro .cura { color: #8fe0a0; }
 .carregando { text-align: center; padding: 4rem 1rem; color: var(--suave); font-family: var(--titulo); }
 

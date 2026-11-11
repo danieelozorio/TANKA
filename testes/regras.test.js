@@ -2130,6 +2130,48 @@ teste('servidor da caçada: pedir de novo não sorteia outro monstro; fugir não
   assert.ok(SC.encontro(p, ['lobo'], t + 70, rng).erro, 'depois de fugir espera o tempo do monstro');
   assert.ok(SC.encontro(p, ['lobo'], e1.prontoEm, rng).encontro);
 });
+teste('servidor da caçada: luta em etapas (prêmio só no fim, poção na hora, luta largada termina sozinha)', () => {
+  const novo = () => { const p = R.criarPersonagem('E', 'masculino', 'humano', 'cavaleiro'); p.pocoes = 2; return p; };
+  // mesma semente = mesma luta
+  const s1 = SC.sorteioSemente(42), s2 = SC.sorteioSemente(42);
+  assert.strictEqual(s1(), s2());
+  let p = novo(), t = 1.8e12;
+  const e = SC.encontro(p, ['lobo'], t, rng).encontro;
+  t = e.prontoEm;
+  const exp0 = p.exp, est0 = R.estamina(p).pts;
+  const l = SC.lutar(p, t, rng, { exp: 0, ouro: 0 }, { alvos: ['lobo'], etapas: true });
+  assert.ok(l.etapas && l.eventos.length > 0 && !l.res, 'começou sem resultado');
+  assert.ok(p.luta && !p.encontro, 'luta guardada');
+  assert.strictEqual(p.exp, exp0, 'sem exp no começo');
+  assert.strictEqual(R.estamina(p).pts, est0, 'estamina só no fim');
+  assert.ok(SC.fim(p, t + 1, rng).espera, 'fim antes do tempo da luta: espera');
+  const f = SC.fim(p, t + l.eventos.length * 275 + 10, rng, { alvos: ['lobo'] });
+  assert.ok(f.res && f.res.resultado, 'resultado no fim');
+  assert.ok(!p.luta, 'luta fechada');
+  if (f.res.resultado === 'vitoria') assert.ok(p.exp > exp0 || p.nivel > 1, 'exp no fim');
+  assert.ok(R.estamina(p).pts < est0, 'gastou estamina no fim');
+  // poção: a luta é refeita igual até o turno da poção e a poção entra depois
+  p = novo(); t = 1.9e12;
+  p.abates.lobo = 1; p.abates.cobra = 1;
+  const e2 = SC.encontro(p, ['urso'], t, rng).encontro;
+  t = e2.prontoEm;
+  const l2 = SC.lutar(p, t, rng, { exp: 0, ouro: 0 }, { etapas: true });
+  const ferido = l2.eventos.findIndex((x) => x.jh < x.jm);
+  assert.ok(ferido >= 0, 'o herói apanhou');
+  const turnoP = ferido + 1;
+  assert.ok(SC.pocao(p, t, 0).erro, 'vida cheia no começo: não bebe');
+  const pc = SC.pocao(p, t + 100, turnoP);
+  assert.ok(!pc.erro, 'bebeu: ' + pc.erro);
+  assert.deepStrictEqual(JSON.stringify(pc.eventos.slice(0, turnoP)), JSON.stringify(l2.eventos.slice(0, turnoP)), 'igual até a poção');
+  assert.ok(pc.eventos.slice(turnoP).some((x) => x.ev.pocao), 'a poção aparece depois');
+  assert.ok(SC.pocao(p, t + 200, turnoP).erro, 'não volta no tempo');
+  // largou a luta: a próxima ação da caçada termina a luta sozinha e aplica o resultado
+  assert.ok(SC.encontro(p, ['urso'], t + 10, rng).espera, 'antes do fim da luta: espera');
+  const depois = t + pc.eventos.length * 275 + 1000;
+  SC.encontro(p, ['lobo'], depois, rng);
+  assert.ok(!p.luta, 'luta largada fechada');
+  assert.strictEqual(p.pocoes, 1, 'gastou a poção bebida');
+});
 teste('monstro ataca primeiro só nas 2 primeiras zonas', () => {
   const p = R.criarPersonagem('Z', 'masculino', 'humano', 'cavaleiro');
   assert.strictEqual(R.iniciarBatalha(p, 'lobo').monstro.barra, 100);

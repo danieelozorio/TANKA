@@ -2964,14 +2964,10 @@
     return '<div class="barra poder' + (b.jogador.poder >= D.PODER.maximo ? ' cheia' : '') + '"><i style="width:' + b.jogador.poder + '%"></i><b>Poder ' + b.jogador.poder + '</b></div>';
   }
 
-  // Caçada decidida no servidor: a luta já vem pronta, então não dá para beber na mão. O botão troca a poção
-  // automática (desligada → abaixo de 10% → abaixo de 5%), que vale a partir da próxima luta.
-  function pocaoAutoBtn(b) {
-    var v = prefsCacada().pocao || 0;
-    var titulo = 'Poção automática: ' + (v ? 'bebe sozinho abaixo de ' + v + '% da vida' : 'desligada')
-      + '. Toque para mudar (vale a partir da próxima luta).';
-    return '<button class="btn cacada-pocao' + (v ? ' ligada' : '') + '" data-acao="pocao-auto" title="' + titulo + '" aria-label="' + titulo + '">'
-      + ICONE_POCAO + ' ' + b.pocoes + ' · ' + (v ? 'auto ' + v + '%' : 'auto off') + '</button>';
+  // Pode beber agora? Na luta que veio pronta do servidor (jogo antigo) não; na luta em etapas sim, até o último golpe.
+  function podeBeberPocao(b) {
+    if (b.pocaoPendente || b.fim || b.pocoes <= 0 || b.jogador.hp >= b.jogador.hpMax) return false;
+    return !b.replay || (b.replay.etapas && b.replay.i < b.replay.eventos.length);
   }
   var ICONE_POCAO = '<svg class="icone-pocao" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
     + '<path d="M9 5V9C5.5 10.5 4 13 4 16a8 6 0 0 0 16 0c0-3-1.5-5.5-5-7V5Z" fill="#302026" stroke="#d5aa76" stroke-width="1.3"/>'
@@ -2992,14 +2988,12 @@
           + '<span class="cacada-habilidade-simbolo" aria-hidden="true">✦</span>' + iconeHab(def)
           + '<small aria-hidden="true">' + (recarga || '✓') + '</small></span>';
       }).join('');
-      if (b.replay) return '<div class="cacada-acoes">' + habilidades + pocaoAutoBtn(b) + '</div>';
-      var podeBeber = !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
+      var podeBeber = podeBeberPocao(b);
       return '<div class="cacada-acoes">' + habilidades
         + '<button class="btn cacada-pocao" data-acao="beber-pocao" title="Beber poção"'
         + (podeBeber ? '' : ' disabled') + '>' + ICONE_POCAO + ' Poção (' + b.pocoes + ')'
         + (b.pocaoPendente ? '…' : '') + '</button></div>';
     }
-    if (b.replay) return pocaoAutoBtn(b);
     var cheia = b.jogador.poder >= D.PODER.maximo;
     var nome = D.habilidades[b.classe].nome;
     var botao = b.habilidadePendente
@@ -3007,7 +3001,7 @@
       : '<button class="btn btn-habilidade' + (cheia ? ' pronta' : '') + '" data-acao="habilidade"' + (cheia ? '' : ' disabled') + '>⚡ ' + nome + '</button>';
     var pocao = b.pocaoPendente
       ? '<button class="btn btn-pocao" disabled>' + ICONE_POCAO + ' Bebendo…</button>'
-      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (!b.replay && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax ? '' : ' disabled') + '>' + ICONE_POCAO + ' Beber poção (' + b.pocoes + ')</button>';
+      : '<button class="btn btn-pocao" data-acao="beber-pocao"' + (podeBeberPocao(b) ? '' : ' disabled') + '>' + ICONE_POCAO + ' Beber poção (' + b.pocoes + ')</button>';
     if (!D.HABILIDADES_ATIVAS) return pocao;
     return botao + pocao + '<label class="auto-habilidade"><input type="checkbox" id="auto-habilidade" data-acao="auto-habilidade"' + (b.auto ? ' checked' : '') + '> Usar automaticamente</label>';
   }
@@ -3160,13 +3154,14 @@
     var linhasAntes = estado.registro.length;
     var ev;
     if (b.replay) {   // luta que o servidor já decidiu: só mostra os eventos, um por turno
+      if (b.pocaoPendente) return;   // esperando o servidor confirmar a poção
       var x = b.replay.eventos[b.replay.i++];
-      if (!x) { b.fim = b.replay.res.resultado || 'fuga'; encerrar(); return; }
+      if (!x) { if (b.replay.etapas && !b.replay.res) { fimNoServidor(); return; } b.fim = b.replay.res.resultado || 'fuga'; encerrar(); return; }
       ev = x.ev;
       b.jogador.hp = x.jh; b.jogador.hpMax = x.jm; b.monstro.hp = x.mh; b.jogador.poder = x.po; b.pocoes = x.pc;
       b.monstro.atordoado = x.at;
       if (b.lutador) { b.lutador.turno = x.tu; if (x.pr) b.lutador.pronto = x.pr; }
-      if (b.replay.i >= b.replay.eventos.length) b.fim = b.replay.res.resultado || 'fuga';
+      if (b.replay.i >= b.replay.eventos.length && b.replay.res) b.fim = b.replay.res.resultado || 'fuga';
     } else {
       if (estado.cacada && R.precisaPocao(b, prefsCacada().pocao)) R.beberPocao(b);
       ev = R.passo(b);
@@ -3226,6 +3221,7 @@
       reg.insertAdjacentHTML('beforeend', estado.registro.slice(-1).join(''));
     }
     if (b.fim) setTimeout(function () { encerrar(); }, 500);
+    else if (b.replay && b.replay.etapas && b.replay.i >= b.replay.eventos.length) setTimeout(fimNoServidor, 500);
     else agendar();
   }
 
@@ -3415,6 +3411,14 @@
     clearTimeout(c.timer);
     c.prazo = null;
     c.motivo = motivo || 'Você parou a caçada.';
+    if (estado.batalha && estado.batalha.replay && estado.batalha.replay.etapas && !estado.batalha.fim) {   // luta em etapas: termina e para
+      linha('destaque', 'A caçada para quando esta luta acabar.');
+      var regP = document.getElementById('registro');
+      if (regP) { regP.insertAdjacentHTML('beforeend', estado.registro.slice(-1).join('')); regP.scrollTop = regP.scrollHeight; }
+      var topoP = document.querySelector('[data-acao="cacada-parar"]');
+      if (topoP) topoP.disabled = true;
+      return;
+    }
     if (estado.batalha) { encerrar(); return; }        // parar no meio da luta = fugir dela
     if (CACA_SERVIDOR) {
       if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe) {   // parou com o chefe na frente: fugiu dele
@@ -3541,7 +3545,7 @@
     c.lutando = true;
     var antes = JSON.parse(JSON.stringify(p));   // a luta é mostrada a partir do herói de antes dela
     var enc = c.encontro;
-    C.cacada('lutar', { personagem: p.id, alvos: c.alvos, pocao: prefsCacada().pocao }).then(function (r) {
+    C.cacada('lutar', { personagem: p.id, alvos: c.alvos, pocao: prefsCacada().pocao, etapas: true }).then(function (r) {
       CACA_RESPONDEU = true;
       c.lutando = false;
       adotarPersonagem(r.personagem);
@@ -3556,16 +3560,72 @@
       c.servDiferenca = r.diferenca;
       antes = R.normalizar(antes);
       var b = R.iniciarBatalha(antes, r.monstroId);
-      b.replay = { eventos: r.eventos || [], i: 0, res: r.res, extras: r.extras || {}, parou: r.parou, antes: antes };
+      // etapas: o servidor ainda não deu o prêmio (vem no fim, em fimNoServidor). Sem etapas: função antiga, já veio tudo.
+      b.replay = { eventos: r.eventos || [], i: 0, res: r.etapas ? null : r.res, extras: r.extras || {}, parou: r.parou, antes: antes, etapas: !!r.etapas };
       c.fase = 'lutando';
       estado.escolhido = r.normal;
       estado.batalha = b;
       estado.registro = [];
       linha('destaque', esc(p.nome) + (enc && enc.chefe ? ' enfrenta ' : ' encontra ') + D.monstros[r.monstroId].nome + '!');
-      if (!c.ativa) { encerrar(); return; }   // parou enquanto o servidor lutava: mostra só o resultado
+      if (!c.ativa && !b.replay.etapas) { encerrar(); return; }   // parou enquanto o servidor lutava: mostra só o resultado
       telaJogo();
       agendar();
     }).catch(erroCacada);
+  }
+
+  // Luta em etapas: o jogador bebeu uma poção. A luta para na tela até o servidor refazê-la com a poção nesse turno.
+  function beberNoServidor() {
+    var b = estado.batalha, c = estado.cacada, p = estado.personagem;
+    if (!b || !b.replay || !podeBeberPocao(b)) return;
+    var turnoP = b.replay.i;
+    b.pocaoPendente = true;
+    clearTimeout(estado.timer);
+    var ctl = document.getElementById('controle-habilidade');
+    if (ctl) ctl.innerHTML = controleHabilidade(b);
+    C.cacada('pocao', { personagem: p.id, turno: turnoP }).then(function (r) {
+      if (estado.batalha !== b) return;
+      b.pocaoPendente = false;
+      if (r.erro) avisar(r.erro);
+      else {
+        adotarPersonagem(r.personagem);
+        b.replay.eventos = b.replay.eventos.slice(0, turnoP).concat((r.eventos || []).slice(turnoP));
+      }
+      var ctl2 = document.getElementById('controle-habilidade');
+      if (ctl2) ctl2.innerHTML = controleHabilidade(b);
+      agendar();
+    }).catch(function (e) {
+      if (estado.batalha !== b) return;
+      b.pocaoPendente = false;
+      avisar((e && e.message) || 'Sem conexão com o servidor.');
+      agendar();
+    });
+  }
+  // Luta em etapas: a animação acabou. Agora o servidor aplica o resultado (exp, ouro, itens) e manda o próximo monstro.
+  function fimNoServidor() {
+    var b = estado.batalha, c = estado.cacada, p = estado.personagem;
+    if (!b || !b.replay || b.replay.res || b.replay.pedindoFim) return;
+    b.replay.pedindoFim = true;
+    C.cacada('fim', { personagem: p.id, alvos: c && c.alvos, continuar: !!(c && c.ativa) }).then(function (r) {
+      CACA_RESPONDEU = true;
+      if (estado.batalha !== b) return;
+      b.replay.pedindoFim = false;
+      if (r.erro) {
+        if (r.espera) { setTimeout(fimNoServidor, r.espera + 200); return; }
+        adotarPersonagem(r.personagem);
+        if (c) pararCacada(r.erro); return;
+      }
+      adotarPersonagem(r.personagem);
+      b.replay.res = r.res;
+      b.replay.extras = r.extras || {};
+      b.replay.parou = r.parou;
+      if (c) { c.servProximo = r.proximo || null; c.servBusca = r.busca; c.servDiferenca = r.diferenca; }
+      b.fim = r.res.resultado || 'fuga';
+      encerrar();
+    }).catch(function (e) {
+      if (estado.batalha !== b) return;
+      b.replay.pedindoFim = false;
+      erroCacada(e);
+    });
   }
 
   function fecharCacada() {
@@ -4395,18 +4455,9 @@
         telaJogo();
         break;
       }
-      case 'pocao-auto': {
-        var prefP = prefsCacada(), ops = [0].concat(D.CACADA.pocaoAuto);
-        prefP.pocao = ops[(ops.indexOf(prefP.pocao || 0) + 1) % ops.length];
-        salvar();
-        avisar(prefP.pocao ? 'Poção automática: abaixo de ' + prefP.pocao + '% da vida (a partir da próxima luta).' : 'Poção automática desligada.');
-        if (estado.batalha && document.getElementById('controle-habilidade')) document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
-        var blocoP = document.querySelector('.cacada-opcoes');
-        if (blocoP) { var tmpP = document.createElement('div'); tmpP.innerHTML = opcoesCacadaHtml(); blocoP.replaceWith(tmpP.firstChild); }
-        break;
-      }
       case 'beber-pocao':
-        if (estado.batalha && !estado.batalha.replay && R.beberPocao(estado.batalha)) {
+        if (estado.batalha && estado.batalha.replay) { beberNoServidor(); break; }
+        if (estado.batalha && R.beberPocao(estado.batalha)) {
           document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
         }
         break;
