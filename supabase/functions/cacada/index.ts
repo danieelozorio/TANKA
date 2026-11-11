@@ -1,5 +1,5 @@
 // Edge Function `cacada` (plano anti-trapaça, etapa 1): a caçada é decidida aqui, no servidor.
-// O jogo manda { acao: 'encontro' | 'lutar' | 'pocao' | 'fim' | 'fugir', personagem, alvos?, pocao?, continuar?,
+// O jogo manda { acao: 'encontro' | 'lutar' | 'pocao' | 'fim' | 'fugir' | 'parar' | 'retomar', personagem, alvos?, pocao?, continuar?, auto?,
 // trocarPorNormal?, etapas?, turno? } (etapas: luta em etapas; pocao: bebe no `turno`; fim: aplica o resultado).
 // com o login do jogador (Authorization). A função:
 //   1. confere o login (Auth do Supabase) e carrega o personagem do banco COM o login do jogador (só lê o que é dele);
@@ -34,7 +34,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   try { pedido = await req.json(); } catch { return responder({ erro: 'Pedido inválido.' }, 400); }
   const id = String(pedido.personagem ?? '');
   const acao = String(pedido.acao ?? '');
-  if (!id || !['encontro', 'lutar', 'pocao', 'fim', 'fugir'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
+  if (!id || !['encontro', 'lutar', 'pocao', 'fim', 'fugir', 'parar', 'retomar'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
 
   // 1. login
   const u = await fetch(base + '/auth/v1/user', { headers: cab });
@@ -50,7 +50,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
 
   // 3. bônus do clã (skills e bônus de 7 dias), direto do banco
   let bonus = { exp: 0, ouro: 0 };
-  if (acao === 'lutar') {
+  if (acao === 'lutar' || (acao === 'retomar' && p.cacadaAuto)) {
     const b = await fetch(base + '/rest/v1/rpc/cacada_bonus', { method: 'POST', headers: cab, body: JSON.stringify({ meu: id }) });
     if (b.ok) {
       const cla = await b.json();
@@ -62,10 +62,13 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   // 4. a regra, com o relógio e o sorteio do servidor
   const t = agora();
   let saida: Record<string, unknown>;
-  if (acao === 'encontro') saida = S.encontro(p, pedido.alvos, t, sorteio);
+  if (acao === 'retomar' && !p.cacadaAuto) return responder({ ausente: { lutas: 0, ligada: false }, personagem: linhas[0].dados, agora: t });
+  if (acao === 'encontro') saida = S.encontro(p, pedido.alvos, t, sorteio, pedido.auto);
+  else if (acao === 'parar') saida = S.parar(p, t);
+  else if (acao === 'retomar') saida = S.retomar(p, t, sorteio, bonus);
   else if (acao === 'fugir') saida = S.fugir(p, t, !!pedido.trocarPorNormal);
   else if (acao === 'pocao') saida = S.pocao(p, t, pedido.turno);
-  else if (acao === 'fim') saida = S.fim(p, t, sorteio, { alvos: pedido.alvos, continuar: pedido.continuar });
+  else if (acao === 'fim') saida = S.fim(p, t, sorteio, { alvos: pedido.alvos, continuar: pedido.continuar, auto: pedido.auto });
   else saida = S.lutar(p, t, sorteio, bonus, { alvos: pedido.alvos, pocao: pedido.pocao, continuar: pedido.continuar, etapas: !!pedido.etapas });
   if (saida.erro) return responder(saida);
 

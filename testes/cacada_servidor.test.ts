@@ -81,5 +81,39 @@ r = await pedir({ acao: 'lutar', personagem: p0.id });
 j = await r.json();
 r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo'] });
 ok((await r.json()).erro, 'nova busca logo depois da luta: barrada');
+// Caçada com o jogo fechado (11/11/2026): liga no encontro, retomar faz as lutas do tempo fora, parar desliga.
+r = await pedir({ acao: 'retomar', personagem: p0.id });
+j = await r.json();
+ok(j.ausente && j.ausente.lutas === 0 && !j.ausente.ligada, 'retomar sem caçada ligada: nada');
+relogio += 10000;
+r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo'], auto: { chefe: 'fugir', lutarSempre: false, pocao: 30 } });
+j = await r.json();
+ok(!j.erro && banco[p0.id].dados.cacadaAuto && banco[p0.id].dados.cacadaAuto.pocao === 30, 'encontro com auto: caçada ligada no banco');
+const est0 = banco[p0.id].dados.estamina.pts, exp0 = banco[p0.id].dados.exp + 0, niv0 = banco[p0.id].dados.nivel;
+relogio += 2 * 60 * 1000;   // 2 minutos com a aba fechada
+r = await pedir({ acao: 'retomar', personagem: p0.id });
+j = await r.json();
+const lutas2min = j.ausente.lutas;
+ok(lutas2min >= 8 && lutas2min <= 40, 'retomar depois de 2 min: ' + lutas2min + ' lutas, ' + j.ausente.vitorias + ' vitórias');
+ok(banco[p0.id].dados.estamina.pts === est0 - lutas2min, 'a estamina gastou 1 por lobo (' + banco[p0.id].dados.estamina.pts + ')');
+ok(banco[p0.id].dados.nivel > niv0 || banco[p0.id].dados.exp > exp0, 'ganhou exp no banco');
+r = await pedir({ acao: 'retomar', personagem: p0.id });
+ok((await r.json()).ausente.lutas === 0, 'retomar de novo na hora: nenhuma luta a mais');
+// horas fora: para quando a estamina acaba
+relogio += 6 * 60 * 60 * 1000;
+r = await pedir({ acao: 'retomar', personagem: p0.id });
+j = await r.json();
+ok(!banco[p0.id].dados.cacadaAuto && j.ausente.parou, 'horas fora: caçou até ' + (j.ausente.derrotas ? 'morrer' : 'acabar a estamina') + ' e desligou (' + j.ausente.lutas + ' lutas, estamina ' + banco[p0.id].dados.estamina.pts + ')');
+ok(j.ausente.lutas + lutas2min <= 240, 'nunca mais lutas do que a estamina paga');
+// parar desliga
+banco[p0.id].dados.estamina.pts = 240;
+relogio += 10000;
+r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo'], auto: { chefe: 'fugir' } });
+ok(banco[p0.id].dados.cacadaAuto, 'ligou de novo');
+r = await pedir({ acao: 'parar', personagem: p0.id });
+ok(!banco[p0.id].dados.cacadaAuto, 'parar: desligou');
+relogio += 60 * 60 * 1000;
+r = await pedir({ acao: 'retomar', personagem: p0.id });
+ok((await r.json()).ausente.lutas === 0, 'depois de parar, fechar o jogo não caça');
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA CAÇADA NO SERVIDOR PASSARAM', '· gravações:', gravacoes);
 if (falhas) Deno.exit(1);

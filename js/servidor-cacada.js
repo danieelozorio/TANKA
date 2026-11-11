@@ -9,7 +9,10 @@
 //   p.cacadaLivreEm  = quando a próxima busca pode começar (fim da luta anterior, no ritmo mais rápido do jogo)
 //   p.luta           = luta em andamento (luta em etapas, Daniel nov/2026): { monstro, normal, chefe, semente, inicio,
 //                      pocoes: [turnos em que o jogador bebeu], auto, bonus, heroi (cópia do herói no começo), primeiraVez }
-// Ações: encontro (procura um monstro entre os alvos), lutar, pocao, fim, fugir.
+//   p.cacadaAuto     = caçada ligada (Henri, 11/11/2026): { alvos, chefe, lutarSempre, pocao, em }. Fica ligada com a aba
+//                      fechada ou o app no fundo: `retomar` faz as lutas que caberiam no tempo fora (até acabar a
+//                      estamina, morrer ou o jogador parar). Desliga com `parar`, derrota ou sem estamina.
+// Ações: encontro (procura um monstro entre os alvos), lutar, pocao, fim, fugir, parar, retomar.
 // Luta em etapas (`opcoes.etapas`): `lutar` começa a luta e devolve os eventos SEM dar prêmio; `pocao` bebe uma poção num
 // turno (a luta é refeita com a mesma semente, então tudo antes dele é igual); `fim` aplica o resultado, só depois do
 // tempo da luta. Luta largada no meio é terminada sozinha (com a poção automática) na próxima ação da caçada.
@@ -22,6 +25,9 @@ Tanka.servidorCacada = (function () {
   var MS_TURNO = 275;               // um turno animado no modo rápido (o mais curto que o jogo mostra)
   var PAUSA = 450;                  // pausa entre lutas no modo rápido
   var MAX_PASSOS = 800;             // trava de segurança da simulação
+  var MS_TURNO_FORA = 550;          // caçando com o jogo fechado: o ritmo normal da tela (turno de 550 ms)
+  var PAUSA_FORA = 900;             // e a pausa normal entre as lutas
+  var MAX_LUTAS_FORA = 1000;        // trava por pedido (a estamina acaba bem antes)
 
   var SEM_ESTAMINA = 'Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).';
   // Sorteio com semente (mulberry32): a mesma semente refaz a mesma luta.
@@ -37,10 +43,11 @@ Tanka.servidorCacada = (function () {
   function erro(msg, espera) { var e = { erro: msg }; if (espera > 0) e.espera = Math.ceil(espera); return e; }
 
   // Procura um monstro: escolhe entre os alvos (só os liberados), sorteia o chefe e guarda o encontro.
-  function encontro(p, alvos, agora, rng) {
+  function encontro(p, alvos, agora, rng, auto) {
     rng = rng || Math.random;
     var pend = fecharPendente(p, agora);
     if (pend) return pend;
+    if (auto) ligarAuto(p, alvos, auto, agora);
     R.atualizarTempo(p, agora);
     if (p.acampado) R.acampar(p, agora, false);   // caçar levanta o acampamento
     if (p.minas && agora < p.minas.fim) return erro('Seu herói está minerando: pare a mineração para caçar.');
@@ -222,6 +229,9 @@ Tanka.servidorCacada = (function () {
     if (!p.luta) return erro('Nenhuma luta em andamento.');
     var saida = terminarLuta(p, agora);
     if (saida.erro) return saida;
+    if (opcoes.continuar === false) delete p.cacadaAuto;
+    else if (opcoes.auto && opcoes.alvos) ligarAuto(p, opcoes.alvos, opcoes.auto, agora);
+    if (saida.res.resultado === 'derrota') delete p.cacadaAuto;
     if (opcoes.alvos && saida.res.resultado !== 'derrota' && opcoes.continuar !== false) {
       var prox = novoEncontro(p, opcoes.alvos, Math.max(agora, p.cacadaLivreEm), rng);
       if (prox.encontro) { saida.proximo = prox.encontro; saida.busca = prox.busca; } else saida.parou = prox.erro;
@@ -235,8 +245,81 @@ Tanka.servidorCacada = (function () {
     return r.erro ? r : null;
   }
 
+  // ---- Caçada com o jogo fechado (Henri, 11/11/2026) ----
+  function ligarAuto(p, alvos, auto, agora) {
+    if (!Array.isArray(alvos) || !alvos.length) return;
+    p.cacadaAuto = { alvos: alvos.filter(function (id) { return D.monstros[id]; }).slice(0, 20),
+      chefe: ['lutar', 'fugir', 'perguntar'].indexOf(auto.chefe) >= 0 ? auto.chefe : 'perguntar',
+      lutarSempre: !!auto.lutarSempre, pocao: Math.max(0, Math.min(90, Number(auto.pocao) || 0)), em: agora };
+  }
+  // O jogador parou a caçada (ou saiu dela): termina a luta largada e desliga.
+  function parar(p, agora) {
+    fecharPendente(p, agora);
+    delete p.cacadaAuto;
+    return { ok: true };
+  }
+  // Faz as lutas que caberiam no tempo em que o jogo ficou fechado/no fundo, no ritmo normal da tela.
+  // Chefe: luta só se o jogador escolheu "sempre lutar"; senão foge (ninguém para responder).
+  // Devolve `ausente` = { lutas, vitorias, derrotas, exp, ouro, niveis, itens, parou, ligada }.
+  function retomar(p, agora, rng, bonus) {
+    rng = rng || Math.random;
+    var A = p.cacadaAuto;
+    var s = { lutas: 0, vitorias: 0, derrotas: 0, fugas: 0, exp: 0, ouro: 0, niveis: 0, itens: [], parou: '', ligada: !!A };
+    if (!A) return { ausente: s };
+    if (p.luta) {   // luta largada: termina na hora em que ela acabaria
+      var sim = simular(p.luta), fimL = p.luta.inicio + sim.eventos.length * MS_TURNO;
+      if (agora < fimL) return { ausente: s };
+      somar(s, terminarLuta(p, Math.max(fimL, Math.min(agora, fimL + PAUSA))));
+    }
+    var desligar = function (msg) { delete p.cacadaAuto; s.parou = msg; s.ligada = false; };
+    if (s.derrotas) desligar(p.nome + ' caiu em batalha. A caçada parou.');
+    for (var n = 0; p.cacadaAuto && n < MAX_LUTAS_FORA; n++) {
+      var t = Math.max(p.cacadaLivreEm || 0, A.em || 0);
+      if (t > agora) break;
+      if (p.minas && t < p.minas.fim) { desligar('Seu herói foi minerar: a caçada parou.'); break; }
+      var e = p.encontro;
+      if (!e || A.alvos.indexOf(e.normal) < 0) {
+        R.atualizarTempo(p, t);
+        var novo = novoEncontro(p, A.alvos, t, rng);
+        if (novo.erro) { desligar(novo.erro); break; }
+        e = p.encontro;
+      }
+      // na tela: a busca inteira e, sem "lutar sempre", a contagem de 3 s
+      var visto = Math.max(e.prontoEm, (e.em || e.prontoEm) + R.tempoBusca(p, e.normal));
+      var hora = visto + (A.lutarSempre ? 0 : D.CACADA.contagem * 1000);
+      if (e.chefe && A.chefe !== 'lutar') {
+        if (visto > agora) break;
+        fugir(p, visto, false);
+        s.fugas++;
+        p.cacadaLivreEm = visto + PAUSA_FORA;
+        continue;
+      }
+      if (hora > agora) break;   // o monstro ainda não apareceu (ou ainda está na contagem): o jogo continua daqui
+      var r = lutar(p, hora, rng, bonus, { pocao: A.pocao });
+      if (r.erro) { desligar(r.erro); break; }
+      p.cacadaLivreEm = hora + r.eventos.length * MS_TURNO_FORA + PAUSA_FORA;
+      somar(s, r);
+      if (r.res.resultado === 'derrota') { desligar(p.nome + ' caiu em batalha: perdeu a estamina da luta' + (r.res.expPerdida ? ' e ' + r.res.expPerdida + ' de exp' : '') + '. A caçada parou.'); break; }
+    }
+    // Acabou a estamina bem na última luta: desliga já (não fica esperando).
+    if (p.cacadaAuto && !p.encontro && !R.estaminaParaCacar(p, A.alvos)) desligar(SEM_ESTAMINA);
+    s.itens = s.itens.slice(0, 30);
+    return { ausente: s };
+  }
+  function somar(s, r) {
+    if (!r || !r.res) return;
+    var res = r.res;
+    s.lutas++;
+    if (res.resultado === 'vitoria') {
+      s.vitorias++; s.exp += res.exp || 0; s.ouro += res.ouro || 0;
+      [res.drop, res.dropArmadura].forEach(function (it) { if (it) s.itens.unshift(it); });
+      if (res.pergaminho) s.itens.unshift({ tipo: 'pergaminho', classe: null, raridade: res.pergaminho, encanto: 0, qtd: res.qtdPergaminhos || 1, consumivel: true });
+    } else if (res.resultado === 'derrota') s.derrotas++;
+    s.niveis += res.niveis || 0;
+  }
+
   // O resultado vai pela internet: só dados (os itens já estão na mochila do personagem devolvido).
   function limparRes(res) { return JSON.parse(JSON.stringify(res)); }
 
-  return { encontro: encontro, lutar: lutar, pocao: pocao, fim: fim, fugir: fugir, sorteioSemente: sorteioSemente, TOLERANCIA: TOLERANCIA };
+  return { encontro: encontro, lutar: lutar, pocao: pocao, fim: fim, fugir: fugir, parar: parar, retomar: retomar, sorteioSemente: sorteioSemente, TOLERANCIA: TOLERANCIA };
 })();

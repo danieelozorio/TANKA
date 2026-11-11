@@ -256,10 +256,12 @@ Tanka.contas = (function () {
       if (!guardado) throw new Error('Personagem não encontrado.');
       var R = Tanka.regras, S = Tanka.servidorCacada, t = Date.now();
       var p = R.normalizar(JSON.parse(JSON.stringify(guardado)));
-      var saida = acao === 'encontro' ? S.encontro(p, corpo.alvos, t)
+      var saida = acao === 'encontro' ? S.encontro(p, corpo.alvos, t, Math.random, corpo.auto)
+        : acao === 'parar' ? S.parar(p, t)
+        : acao === 'retomar' ? S.retomar(p, t, Math.random, { exp: 0, ouro: 0 })
         : acao === 'fugir' ? S.fugir(p, t, !!corpo.trocarPorNormal)
         : acao === 'pocao' ? S.pocao(p, t, corpo.turno)
-        : acao === 'fim' ? S.fim(p, t, Math.random, { alvos: corpo.alvos, continuar: corpo.continuar })
+        : acao === 'fim' ? S.fim(p, t, Math.random, { alvos: corpo.alvos, continuar: corpo.continuar, auto: corpo.auto })
         : S.lutar(p, t, Math.random, { exp: 0, ouro: 0 }, { alvos: corpo.alvos, pocao: corpo.pocao, continuar: corpo.continuar, etapas: !!corpo.etapas });
       if (saida.erro) return saida;
       p.versao = (Number(p.versao) || 0) + 1;

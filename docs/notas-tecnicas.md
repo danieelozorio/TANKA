@@ -674,3 +674,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Caçador: `atributoDano` voltou para 'des' (estava 'for' desde 03/11). Presente de 1 Recomeço: `p.presenteDestrezaCacador`
   (quem ainda não tinha visto o da Força ganha os 2 numa mensagem só). tanka_dados regenerado.
 - Caçada: `CACADA.tempoInicio`/`tempoFinal` = [2000, 2000] (monstro novo sempre em 2 s).
+- **Caçada com o jogo fechado** (Henri, 11/11/2026): `p.cacadaAuto` = { alvos, chefe, lutarSempre, pocao, em }, ligado pelo
+  `encontro`/`fim` com `auto` (as opções da caçada) e desligado por `parar` (botão Parar/fechar a caçada), derrota ou sem
+  estamina. Ação `retomar` (servidor-cacada.js): faz as lutas que caberiam no tempo fora, no ritmo normal da tela (busca
+  inteira + contagem de 3 s sem "lutar sempre", turno 550 ms, pausa 900 ms); chefe só luta com "sempre lutar", senão foge.
+  App: aba escondida/app no fundo = `cacadaParaFundo` (para os timers); ao voltar (`visibilitychange`) ou ao entrar no
+  jogo com `cacadaAuto`, `retomarCacada` pede o `retomar`, avisa o resumo ("Enquanto você esteve fora…") e continua a
+  caçada na tela (troca o objeto `estado.cacada` para respostas atrasadas não mexerem). Testes: cacada_servidor.test.ts.

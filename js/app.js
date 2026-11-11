@@ -492,7 +492,9 @@
     if (estado.cacada) { clearTimeout(estado.cacada.timer); clearInterval(estado.cacada.relogio); }
     estado.cacada = null;
     estado.areaAberta = null;
+    estado.retomando = false;
     telaJogo();
+    if (estado.personagem.cacadaAuto) setTimeout(retomarCacada, 300);   // caçada que ficou ligada com o jogo fechado
     carregarSocial();
     carregarGrupo();
     estado.arena = null;
@@ -3532,6 +3534,9 @@
       return;
     }
     if (estado.batalha) { encerrar(); return; }        // parar no meio da luta = fugir dela
+    if (CACA_SERVIDOR && estado.personagem && estado.personagem.cacadaAuto) {   // desliga a caçada com o jogo fechado
+      C.cacada('parar', { personagem: estado.personagem.id }).then(function (r) { adotarPersonagem(r.personagem); }).catch(function () {});
+    }
     if (CACA_SERVIDOR) {
       if (c.fase === 'encontrou' && c.encontro && c.encontro.chefe) {   // parou com o chefe na frente: fugiu dele
         C.cacada('fugir', { personagem: estado.personagem.id }).then(function (r) { adotarPersonagem(r.personagem); }).catch(function () {});
@@ -3640,7 +3645,7 @@
     var c = estado.cacada, p = estado.personagem;
     if (c.servProximo) { var e = c.servProximo; c.servProximo = null; esperarEncontro(c, e, c.servBusca, c.servDiferenca); return; }
     c.servEncontro = null;
-    C.cacada('encontro', { personagem: p.id, alvos: c.alvos }).then(function (r) {
+    C.cacada('encontro', { personagem: p.id, alvos: c.alvos, auto: autoCacada() }).then(function (r) {
       CACA_RESPONDEU = true;
       adotarPersonagem(r.personagem);
       if (estado.cacada !== c || !c.ativa) return;
@@ -3685,6 +3690,67 @@
     }).catch(erroCacada);
   }
 
+  // ---- Caçada com o jogo fechado / no fundo (Henri, 11/11/2026) ----
+  // Enquanto a caçada está ligada, o servidor guarda p.cacadaAuto. Com a aba escondida o jogo para de pedir lutas;
+  // ao voltar (ou ao entrar no jogo de novo), `retomar` faz no servidor as lutas que caberiam no tempo fora.
+  function autoCacada() {
+    var pr = prefsCacada();
+    return { chefe: pr.chefe, lutarSempre: !!pr.lutarSempre, pocao: pr.pocao || 0 };
+  }
+  function areaDoAlvo(id) { var m = D.monstros[id]; return m && D.areas[m.indiceArea] ? D.areas[m.indiceArea].id : null; }
+  function cacadaParaFundo() {
+    var c = estado.cacada;
+    if (!CACA_SERVIDOR || !c || !c.ativa) return;
+    c.fora = true;
+    clearTimeout(c.timer);
+    clearTimeout(estado.timer);
+  }
+  function retomarCacada() {
+    var p = estado.personagem, velho = estado.cacada;
+    if (!CACA_SERVIDOR || !p || estado.retomando) return;
+    if (velho && !velho.fora) return;
+    if (!velho && !p.cacadaAuto) return;
+    var c = null;
+    if (velho) {
+      // Troca o objeto da caçada: respostas atrasadas da aba escondida não mexem mais na tela.
+      clearTimeout(velho.timer); clearInterval(velho.relogio); clearTimeout(estado.timer);
+      if (estado.batalha && estado.batalha.replay) { estado.batalha = null; }
+      c = Object.assign({}, velho, { fora: false, timer: null, relogio: null, lutando: false, encontro: null,
+        servEncontro: null, servProximo: null, prazo: null, fase: 'buscando' });
+      estado.cacada = c;
+      c.relogio = setInterval(tiqueCacada, 250);
+      telaJogo();
+    }
+    estado.retomando = true;
+    C.cacada('retomar', { personagem: p.id }).then(function (r) {
+      estado.retomando = false;
+      adotarPersonagem(r.personagem);
+      var s = r.ausente || {};
+      if (s.lutas || s.fugas) {
+        avisar('⚔ Enquanto você esteve fora: ' + s.lutas + ' luta' + (s.lutas === 1 ? '' : 's') + ', ' + (s.vitorias || 0) + ' vitória' + (s.vitorias === 1 ? '' : 's')
+          + ', +' + (s.exp || 0).toLocaleString('pt-BR') + ' de exp e +' + (s.ouro || 0).toLocaleString('pt-BR') + ' de ouro'
+          + ((s.itens || []).length ? ', ' + s.itens.length + ' ' + (s.itens.length === 1 ? 'item' : 'itens') : '')
+          + (s.niveis ? '. Level up! Level ' + estado.personagem.nivel : '') + '.', s.niveis ? 'nivel' : 'item');
+      }
+      if (!c && estado.personagem.cacadaAuto && !estado.cacada && !estado.lutaArena && !estado.luta) {   // entrou de novo: a caçada continua na tela
+        var A = estado.personagem.cacadaAuto;
+        iniciarCacada(areaDoAlvo(A.alvos[0]), A.alvos);
+        c = estado.cacada;
+      }
+      if (c && (s.lutas || s.fugas)) {
+        c.mortos += s.vitorias || 0; c.exp += s.exp || 0; c.ouro += s.ouro || 0;
+        c.itens = (s.itens || []).concat(c.itens).slice(0, 30);
+      }
+      if (!c || estado.cacada !== c) { if (s.lutas) telaJogo(); return; }
+      if (!estado.personagem.cacadaAuto) { pararCacada(s.parou || 'A caçada parou.'); return; }
+      if (c.ativa && c.fase === 'buscando' && !c.timer) procurarMonstro();
+      else telaJogo();
+    }).catch(function (e) {
+      estado.retomando = false;
+      if (c && estado.cacada === c) erroCacada(e);
+    });
+  }
+
   // Luta em etapas: o jogador bebeu uma poção. A luta para na tela até o servidor refazê-la com a poção nesse turno.
   function beberNoServidor() {
     var b = estado.batalha, c = estado.cacada, p = estado.personagem;
@@ -3718,7 +3784,7 @@
     var b = estado.batalha, c = estado.cacada, p = estado.personagem;
     if (!b || !b.replay || b.replay.res || b.replay.pedindoFim) return;
     b.replay.pedindoFim = true;
-    C.cacada('fim', { personagem: p.id, alvos: c && c.alvos, continuar: !!(c && c.ativa) }).then(function (r) {
+    C.cacada('fim', { personagem: p.id, alvos: c && c.alvos, continuar: !!(c && c.ativa), auto: c && c.ativa ? autoCacada() : null }).then(function (r) {
       CACA_RESPONDEU = true;
       if (estado.batalha !== b) return;
       b.replay.pedindoFim = false;
@@ -3742,6 +3808,7 @@
   }
 
   function fecharCacada() {
+    if (estado.cacada && estado.cacada.ativa) pararCacada();
     pararTimersCacada();
     estado.cacada = null;
     estado.ultimaBatalha = null;
@@ -4845,6 +4912,11 @@
     }
     salvar();
     telaJogo();
+  });
+  // Caçada com a aba escondida / app no fundo: para de pedir lutas e, ao voltar, o servidor faz as que faltaram.
+  document.addEventListener('visibilitychange', function () {
+    if (!estado.personagem) return;
+    if (document.visibilityState === 'hidden') cacadaParaFundo(); else retomarCacada();
   });
   // Ao esconder a aba ou fechar o jogo, guarda o tempo de atividade contado até agora.
   document.addEventListener('visibilitychange', function () {
