@@ -1,5 +1,6 @@
 // Edge Function `cacada` (plano anti-trapaça, etapa 1): a caçada é decidida aqui, no servidor.
-// O jogo manda { acao: 'encontro' | 'lutar' | 'fugir', personagem, alvos?, pocao?, continuar?, trocarPorNormal? }
+// O jogo manda { acao: 'encontro' | 'lutar' | 'pocao' | 'fim' | 'fugir', personagem, alvos?, pocao?, continuar?,
+// trocarPorNormal?, etapas?, turno? } (etapas: luta em etapas; pocao: bebe no `turno`; fim: aplica o resultado).
 // com o login do jogador (Authorization). A função:
 //   1. confere o login (Auth do Supabase) e carrega o personagem do banco COM o login do jogador (só lê o que é dele);
 //   2. pega o bônus do clã no banco (rpc cacada_bonus), sem confiar no que o navegador diz;
@@ -33,7 +34,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   try { pedido = await req.json(); } catch { return responder({ erro: 'Pedido inválido.' }, 400); }
   const id = String(pedido.personagem ?? '');
   const acao = String(pedido.acao ?? '');
-  if (!id || !['encontro', 'lutar', 'fugir'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
+  if (!id || !['encontro', 'lutar', 'pocao', 'fim', 'fugir'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
 
   // 1. login
   const u = await fetch(base + '/auth/v1/user', { headers: cab });
@@ -63,7 +64,9 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   let saida: Record<string, unknown>;
   if (acao === 'encontro') saida = S.encontro(p, pedido.alvos, t, sorteio);
   else if (acao === 'fugir') saida = S.fugir(p, t, !!pedido.trocarPorNormal);
-  else saida = S.lutar(p, t, sorteio, bonus, { alvos: pedido.alvos, pocao: pedido.pocao, continuar: pedido.continuar });
+  else if (acao === 'pocao') saida = S.pocao(p, t, pedido.turno);
+  else if (acao === 'fim') saida = S.fim(p, t, sorteio, { alvos: pedido.alvos, continuar: pedido.continuar });
+  else saida = S.lutar(p, t, sorteio, bonus, { alvos: pedido.alvos, pocao: pedido.pocao, continuar: pedido.continuar, etapas: !!pedido.etapas });
   if (saida.erro) return responder(saida);
 
   // 5. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)

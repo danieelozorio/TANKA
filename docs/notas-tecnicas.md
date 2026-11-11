@@ -590,6 +590,22 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   não mudaram). 3º: urso 14–23, troll 15–20, gárgula 58–78, espectro 100–138, múmia 163–220, cavaleiro dracônico 261–351,
   elemental 450–610. Chefes: Velgrath 17–21, Morgath 17–19, Guardião 86–115, Faraó 143–193, Ignaroth 612–825.
 
+- **Caçada: luta em etapas, poção na hora e exp só no fim (Daniel, nov/2026).** `servidor-cacada.js`: com
+  `opcoes.etapas`, `lutar` só começa a luta (`p.luta` = { monstro, normal, chefe, semente, inicio, pocoes, auto, bonus,
+  heroi (cópia do herói com só os itens equipados), primeiraVez, total }) e devolve os eventos SEM prêmio. A luta é
+  refeita sempre com `sorteioSemente(semente)` (mulberry32), a poção automática e as poções do jogador
+  (`luta.pocoes` = turnos; a poção entra antes do evento daquele turno). Ações novas: `pocao` (turno = próximo evento da
+  tela; recusa vida cheia, sem poção, já bebendo, turno repetido/anterior ou depois do fim) e `fim` (só depois de
+  `inicio + eventos x 275 ms`; aplica `concluirBatalha`, missões, história, e já manda o próximo encontro). Poções
+  compradas no meio da luta não se perdem. Luta largada (fechou o jogo) é terminada sozinha por `fecharPendente` no
+  começo de `encontro`/`lutar`/`fugir` (com espera se o tempo dela não passou). Sem `etapas` (jogo antigo no cache)
+  continua a luta inteira de uma vez. Função `cacada` (index.ts) e `contas-local.js` aceitam `pocao`/`fim`.
+- Cliente (`app.js`): `lutarNoServidor` manda `etapas: true`; `b.replay.etapas` com `res` nulo; ao acabar os eventos,
+  `fimNoServidor` pede o resultado e só então `encerrar`. Botão de poção (`podeBeberPocao`, `beberNoServidor`) pausa
+  a animação, pede `pocao` e troca os eventos dali em diante. Parar no meio da luta em etapas: a luta termina e a
+  caçada para depois. Barra de exp da caçada mostra o herói de antes (`b.replay.antes`) até o fim, com o número
+  (`.exp-fina > b`). Botão de poção menor (`.btn.cacada-pocao`).
+
 ## Exp dos monstros (Henri, nov/2026)
 - `D.MONSTRO.expMonstros` = [1, 2.5, 5]: exp do 1º, 2º e 3º monstro = `base.exp` da área x isso (antes 1, 2, 4).
   Floresta 2/5/10, Pântano 10/25/50, Ruínas 30/75/150, Torre 90/225/450, Areias 270/675/1350, Vale 800/2000/4000,

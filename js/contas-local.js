@@ -258,7 +258,9 @@ Tanka.contas = (function () {
       var p = R.normalizar(JSON.parse(JSON.stringify(guardado)));
       var saida = acao === 'encontro' ? S.encontro(p, corpo.alvos, t)
         : acao === 'fugir' ? S.fugir(p, t, !!corpo.trocarPorNormal)
-        : S.lutar(p, t, Math.random, { exp: 0, ouro: 0 }, { alvos: corpo.alvos, pocao: corpo.pocao, continuar: corpo.continuar });
+        : acao === 'pocao' ? S.pocao(p, t, corpo.turno)
+        : acao === 'fim' ? S.fim(p, t, Math.random, { alvos: corpo.alvos, continuar: corpo.continuar })
+        : S.lutar(p, t, Math.random, { exp: 0, ouro: 0 }, { alvos: corpo.alvos, pocao: corpo.pocao, continuar: corpo.continuar, etapas: !!corpo.etapas });
       if (saida.erro) return saida;
       p.versao = (Number(p.versao) || 0) + 1;
       salvarPersonagem(p);
