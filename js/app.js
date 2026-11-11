@@ -3038,7 +3038,7 @@
 
   // Pode beber agora? Na luta que veio pronta do servidor (jogo antigo) não; na luta em etapas sim, até o último golpe.
   function podeBeberPocao(b) {
-    if (b.pocaoPendente || b.fim || b.pocoes <= 0 || b.jogador.hp >= b.jogador.hpMax) return false;
+    if (b.pocaoPendente || b.pocaoNaFila || b.fim || b.pocoes <= 0 || b.jogador.hp >= b.jogador.hpMax) return false;
     return !b.replay || (b.replay.etapas && b.replay.i < b.replay.eventos.length);
   }
   var ICONE_POCAO = '<svg class="icone-pocao" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
@@ -3230,6 +3230,7 @@
       var x = b.replay.eventos[b.replay.i++];
       if (!x) { if (b.replay.etapas && !b.replay.res) { fimNoServidor(); return; } b.fim = b.replay.res.resultado || 'fuga'; encerrar(); return; }
       ev = x.ev;
+      if (ev.pocao) b.pocaoNaFila = false;
       b.jogador.hp = x.jh; b.jogador.hpMax = x.jm; b.monstro.hp = x.mh; b.jogador.poder = x.po; b.pocoes = x.pc;
       b.monstro.atordoado = x.at;
       if (b.lutador) { b.lutador.turno = x.tu; if (x.pr) b.lutador.pronto = x.pr; }
@@ -3661,6 +3662,7 @@
       else {
         adotarPersonagem(r.personagem);
         b.replay.eventos = b.replay.eventos.slice(0, turnoP).concat((r.eventos || []).slice(turnoP));
+        b.pocaoNaFila = true;   // confirmada: o botão espera o herói beber (na próxima vez dele)
       }
       var ctl2 = document.getElementById('controle-habilidade');
       if (ctl2) ctl2.innerHTML = controleHabilidade(b);
