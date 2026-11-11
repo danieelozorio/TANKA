@@ -999,6 +999,12 @@ Tanka.regras = (function () {
       if (ganha) p.recomecos = (p.recomecos || 0) + 1;
       p.presenteForcaCacador = ganha ? 1 : 2;
     }
+    // ...e voltou para a Destreza (11/11/2026): mais 1 Recomeço, uma vez só.
+    if (!p.presenteDestrezaCacador) {
+      var ganhaDes = p.classe === 'arqueiro' && p.nivel > 1;
+      if (ganhaDes) p.recomecos = (p.recomecos || 0) + 1;
+      p.presenteDestrezaCacador = ganhaDes ? 1 : 2;
+    }
     // Raças e classes rebalanceadas (nov/2026): os atributos iniciais passam a ser só os da classe (70 pontos);
     // os pontos que o jogador distribuiu continuam os mesmos.
     if (!p.atributosV2 && p.atributos && p.atributosIniciais && D.classes[p.classe]) {
@@ -1322,7 +1328,11 @@ Tanka.regras = (function () {
     var i = area.monstros.findIndex(function (x) { return x.id === monstroId; });
     return E.custo[Math.max(0, Math.min(E.custo.length - 1, i))];
   }
-  function estaminaPorMinuto(p) { return D.ESTAMINA.maximo / (p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar); }
+  // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta à meia-noite ou com pote).
+  function estaminaPorMinuto(p) {
+    var min = p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar;
+    return min > 0 ? D.ESTAMINA.maximo / min : 0;
+  }
 
   // Aplica o reset diário (estamina cheia, poções do dia) e a estamina recuperada desde a última conta.
   // Fora da luta a vida está sempre cheia. Não chamar durante a batalha. Retorna true se algo mudou.
@@ -1341,6 +1351,7 @@ Tanka.regras = (function () {
     }
     if (!e.em || e.pts >= E.maximo || agora < e.em) { e.em = agora; return mudou; }
     var porMin = estaminaPorMinuto(p);
+    if (!porMin) { e.em = agora; return mudou; }
     var ganho = Math.floor((agora - e.em) / 60000 * porMin);
     if (ganho <= 0) return mudou;
     e.pts = Math.min(E.maximo, e.pts + ganho);
@@ -1352,7 +1363,9 @@ Tanka.regras = (function () {
   // Minutos até a estamina encher (0 se já está cheia).
   function minutosParaEstaminaCheia(p) {
     var falta = D.ESTAMINA.maximo - estamina(p).pts;
-    return falta > 0 ? Math.ceil(falta / estaminaPorMinuto(p)) : 0;
+    if (falta <= 0) return 0;
+    var porMin = estaminaPorMinuto(p);
+    return porMin ? Math.ceil(falta / porMin) : null;   // null: não enche sozinha (só acampado)
   }
 
   function acampar(p, agora, sim) {

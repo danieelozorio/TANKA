@@ -111,8 +111,8 @@ Tanka.dados = {
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
 
   atributos: {
-    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro, Caçador e Artesão), dano crítico' },
-    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Chance de crítico, evasão, precisão' },
+    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro e Artesão), dano crítico' },
+    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Ataque (Caçador), chance de crítico, evasão, precisão' },
     res: { nome: 'Resistência', sigla: 'RES', efeito: 'Defesa, defesa mágica, vida' },
     int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico (Mago)' },
     sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Crítico mágico, dano crítico mágico, craft e encantamento' },
@@ -130,8 +130,9 @@ Tanka.dados = {
       nome: 'Caçador', nomeF: 'Caçadora',
       descricao: 'Destreza e sorte elevadas. Arcos, bestas e golpes rápidos e certeiros.',
       atributos: { for: 15, des: 20, res: 10, int: 10, sor: 15 },
-      // Henri (nov/2026): o ataque do Caçador (e das segundas classes Arqueiro e Assassino) vem da Força, não mais da Destreza.
-      dano: 'fisico', atributoDano: 'for',
+      // Henri (nov/2026): o ataque do Caçador (e das segundas classes Arqueiro e Assassino) voltou para a Destreza
+      // (ficou na Força de 03/11 a 11/11/2026).
+      dano: 'fisico', atributoDano: 'des',
     },
     mago: {
       nome: 'Mago', nomeF: 'Maga',
@@ -494,10 +495,10 @@ Tanka.dados = {
   // Reset diário à meia-noite de Brasília (UTC-3): vida cheia e as poções do dia voltam.
   VIDA: { regenPorMinuto: 2, acampamento: 3, pocoesPorDia: 2, fusoReset: -3 },
   // Estamina (Daniel/Henri, nov/2026): o que limita a caçada. Barra igual para todos; cada luta gasta pelo monstro
-  // (1º, 2º, 3º da área e chefe). Enche sozinha em minutosSemAcampar, acampado em minutosAcampado, e à meia-noite.
+  // (1º, 2º, 3º da área e chefe). Acampado enche em minutosAcampado; sem acampar (minutosSemAcampar = 0) não recupera; à meia-noite enche.
   // A vida do herói começa cheia em toda luta (o dano dos monstros na caçada é o `danoCacada` de cada um).
   // pote: comprado com reputação (precos = 1º e 2º do dia), enche +240 (pode passar do máximo).
-  ESTAMINA: { maximo: 240, minutosAcampado: 30, minutosSemAcampar: 90, custo: [1, 2, 3], custoChefe: 5,
+  ESTAMINA: { maximo: 240, minutosAcampado: 120, minutosSemAcampar: 0, custo: [1, 2, 3], custoChefe: 5,
     pote: { enche: 240, precos: [40, 60] } },
   // Poção de vida: 2 de graça por dia (VIDA.pocoesPorDia); mais, só comprando com ouro (preço pelo level).
   // Guarda no máximo `maximo` (VIP: maximoVip). Só vale na caçada (Arena, masmorra e Chefe Mundial não usam).
@@ -862,7 +863,7 @@ Tanka.dados = {
   // (rastreio igual ao de referência: velocidade do level mínimo da região + `sorteBase`) a 100% (`faixaEvolucao`
   // = +60% acima da referência). Chance: o mais fraco pesa 1 + `pesoFraco` (3x o mais forte) no começo; com a
   // evolução os pesos se igualam.
-  CACADA: { tempoInicio: [3000, 5000], tempoFinal: [2000, 3000], sorteBase: 15, faixaEvolucao: 0.6, pesoFraco: 2,
+  CACADA: { tempoInicio: [2000, 2000], tempoFinal: [2000, 2000], sorteBase: 15, faixaEvolucao: 0.6, pesoFraco: 2,
     vidaMinima: 5, contagem: 3, pocaoAuto: [10, 5], historico: 10 },
 
   // Missões diárias (renovam às 00:00 de Brasília) e semanais (renovam na segunda às 00:00).

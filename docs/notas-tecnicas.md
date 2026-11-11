@@ -667,3 +667,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Agora cresce ~x3 por área, como a exp: Areias 150/300/600 (chefe 3.000), Vale 450/900/1.800 (9.000),
   Cume 1.350/2.700/5.400 (27.000). Prêmios do boss do clã e do Chefe Mundial (feitos do ouro dos chefes) caem junto.
 - Próximo passo combinado (parte 2, ainda não feito): gastos de ouro que crescem com o jogador (encanto custar ouro etc.).
+
+## Ajustes de 11/11/2026 (Henri)
+- Estamina: `minutosAcampado: 120`, `minutosSemAcampar: 0` (0 = sem acampar não recupera; `estaminaPorMinuto` devolve 0,
+  `atualizarTempo` só avança `e.em`, `minutosParaEstaminaCheia` devolve null). Meia-noite e pote continuam enchendo.
+- Caçador: `atributoDano` voltou para 'des' (estava 'for' desde 03/11). Presente de 1 Recomeço: `p.presenteDestrezaCacador`
+  (quem ainda não tinha visto o da Força ganha os 2 numa mensagem só). tanka_dados regenerado.
+- Caçada: `CACADA.tempoInicio`/`tempoFinal` = [2000, 2000] (monstro novo sempre em 2 s).

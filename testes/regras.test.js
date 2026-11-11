@@ -811,19 +811,19 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
   assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
 });
 
-teste('estamina: 240, enche em 90 min (30 acampado), não passa do máximo; vida sempre cheia fora da luta', () => {
+teste('estamina: 240, só recupera acampado (enche em 2 h), não passa do máximo; vida sempre cheia fora da luta', () => {
   const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');
   R.atualizarTempo(p, T0);
   assert.strictEqual(p.estamina.pts, 240);
   p.estamina.pts = 0; p.estamina.em = T0; p.hpAtual = 3;
   R.atualizarTempo(p, T0 + 9 * 60000);
-  assert.strictEqual(p.estamina.pts, 24);   // 240 / 90 por minuto
+  assert.strictEqual(p.estamina.pts, 0);    // sem acampar não volta
   assert.strictEqual(p.hpAtual, R.status(p).hpMax);
-  assert.strictEqual(R.minutosParaEstaminaCheia(p), 81);
-  R.acampar(p, T0 + 9 * 60000, true);
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), null);
+  R.acampar(p, T0 + 9 * 60000, true);       // o tempo sem acampar não conta depois
   R.atualizarTempo(p, T0 + 19 * 60000);
-  assert.strictEqual(p.estamina.pts, 104);  // +8 por minuto acampado
-  assert.strictEqual(R.minutosParaEstaminaCheia(p), 17);
+  assert.strictEqual(p.estamina.pts, 20);   // +2 por minuto acampado
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), 110);
   R.atualizarTempo(p, T0 + 600 * 60000);
   assert.strictEqual(p.estamina.pts, 240);
   // meia-noite: cheia de novo, potes do dia zerados, poções de volta
@@ -1098,11 +1098,10 @@ teste('bônus da aliança: +% de exp e de ouro na caçada', () => {
 
 teste('caçada contínua: tempo e chance por força do monstro e rastreio (velocidade + sorte) e poção automática', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
-  // tempo: 3 s o mais fraco, 4 s o do meio, 5 s o mais forte no começo da região
-  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [3000, 4000, 5000]);
-  // com Velocidade + Sorte bem acima da referência da região: 2 s, 2,5 s e 3 s
+  // tempo: 2 s para todos os monstros (Henri, 11/11/2026), com qualquer rastreio
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [2000, 2000, 2000]);
   p.atributos.sor = 200;
-  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [2000, 2500, 3000]);
+  assert.deepStrictEqual(['lobo', 'cobra', 'urso'].map(id => R.tempoBusca(p, id)), [2000, 2000, 2000]);
   // na região seguinte começa de novo (referência maior)
   const r = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(r, 4); r.atributos.sor = 25;
   assert.ok(R.evolucaoCacada(r, 'pantano') < R.evolucaoCacada(r, 'floresta'));
@@ -1238,19 +1237,19 @@ teste('fugir ou evitar o chefe zera a chance dele aparecer na área', () => {
   assert.strictEqual(p.presencaChefe.floresta, 12);
 });
 
-teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa Força desde nov/2026)', () => {
+teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa Destreza de novo, 11/11/2026)', () => {
   const c = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   assert.strictEqual(D.classes.arqueiro.nome, 'Caçador');
   assert.strictEqual(D.SEGUNDAS_CLASSES.cacador.nome, 'Arqueiro');
   const antes = R.status(c).dano[0], crit = R.status(c).chanceCritico;
-  c.atributos.des += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Destreza não dá mais dano ao Caçador');
+  c.atributos.for += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Força não dá dano ao Caçador');
+  c.atributos.des += 9; assert.strictEqual(R.status(c).dano[0], antes + 3, 'Destreza dá o dano do Caçador');
   assert.strictEqual(R.status(c).chanceCritico, crit + 4.5, 'Destreza continua dando crítico');
-  c.atributos.for += 3; assert.strictEqual(R.status(c).dano[0], antes + 1);
   // Caçador com level ganha 1 Recomeço de presente, uma vez só; outras classes não
-  const a = R.criarPersonagem('A', 'masculino', 'humano', 'arqueiro'); a.nivel = 15; a.recomecos = 0; a.recomecoPresente = 2; delete a.presenteForcaCacador;
+  const a = R.criarPersonagem('A', 'masculino', 'humano', 'arqueiro'); a.nivel = 15; a.recomecos = 0; a.recomecoPresente = 2; delete a.presenteForcaCacador; delete a.presenteDestrezaCacador;
   R.normalizar(a); R.normalizar(a);
-  assert.strictEqual(a.recomecos, 1);
-  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); m.nivel = 15; m.recomecos = 0; m.recomecoPresente = 2; delete m.presenteForcaCacador;
+  assert.strictEqual(a.recomecos, 2);   // um pela Força (03/11) e um pela volta da Destreza (11/11)
+  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); m.nivel = 15; m.recomecos = 0; m.recomecoPresente = 2; delete m.presenteForcaCacador; delete m.presenteDestrezaCacador;
   R.normalizar(m); assert.strictEqual(m.recomecos, 0);
   const k = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'), d0 = R.status(k).dano[0];
   k.atributos.for += 3; assert.strictEqual(R.status(k).dano[0], d0 + 1);

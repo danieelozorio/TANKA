@@ -472,11 +472,16 @@
     R.atualizarTempo(estado.personagem, C.agora());
     iniciarAtividade();
     var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
+    var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
+    if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
     salvar();   // também marca o personagem como online para os amigos
     if (presente) setTimeout(function () {
       avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
+    }, 800);
+    else if (presenteDes) setTimeout(function () {
+      avisar('🎁 O ataque do Caçador voltou a vir da Destreza. Você ganhou ' + qtdDes + ' ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
     }, 800);
     else if (presenteForca) setTimeout(function () {
       avisar('🎁 O ataque do Caçador agora vem da Força (a Destreza continua dando crítico, precisão e evasão). Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
@@ -508,7 +513,8 @@
   function textoEstamina(p) {
     var E = D.ESTAMINA;
     return 'Cada luta da caçada gasta estamina: ' + E.custo.join(', ') + ' (1º, 2º e 3º monstro da área) e ' + E.custoChefe
-      + ' o chefe. Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min, e fica cheia à meia-noite. '
+      + ' o chefe. ' + (E.minutosSemAcampar > 0 ? 'Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min'
+        : 'Só recupera acampado (enche em ' + (E.minutosAcampado / 60) + ' h)') + ', e fica cheia à meia-noite. '
       + 'Potes de estamina no Mercado (reputação).';
   }
   function estaminaHtml(p) {
@@ -524,10 +530,11 @@
   function vidaTempoHtml(p, s, emBatalha) {
     var min = R.minutosParaEstaminaCheia(p), cheia = R.estamina(p).pts >= D.ESTAMINA.maximo;
     var texto = emBatalha ? 'Em batalha: a estamina não volta.'
+      : min === null ? 'Sem acampar a estamina não volta (só à meia-noite).'
       : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado ? ' (acampado)' : '') : 'Estamina cheia';
     var acampar = p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
-      : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || cheia ? ' disabled' : '') + '>Acampar (estamina 3x mais rápido)</button>';
+      : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || cheia ? ' disabled' : '') + '>Acampar (recupera a estamina)</button>';
     return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar;
   }
 
@@ -4541,7 +4548,7 @@
       case 'acampar':
         R.acampar(p, C.agora(), true);
         salvar();
-        avisar(p.nome + ' monta acampamento junto à fogueira. A estamina volta 3x mais rápido.');
+        avisar(p.nome + ' monta acampamento junto à fogueira. A estamina enche em ' + (D.ESTAMINA.minutosAcampado / 60) + ' h.');
         telaJogo();
         break;
       case 'levantar':
