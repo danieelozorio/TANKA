@@ -2124,12 +2124,7 @@
   }
 
   // ----- Oficina (craft dos Anões; regras em regras.js, números em D.CRAFT) -----
-  function custoHtml(lista) {
-    return lista.map(function (c) {
-      var ok = c.tem >= c.precisa, fmt = function (v) { return Number(v).toLocaleString('pt-BR'); };
-      return '<span class="' + (ok ? 'mais' : 'menos') + '">' + (c.tipo === 'ouro' ? fmt(c.precisa) + ' de ouro' : fmt(Math.min(c.tem, c.precisa)) + '/' + fmt(c.precisa) + ' ' + esc(c.nome)) + '</span>';
-    }).join(' · ');
-  }
+
   // ----- Herói › Oficina: Forja do Ferreiro e Bancada do Coletor (Daniel, nov/2026: com retrato e passo a passo) -----
   var PECAS_FORJA = [['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']];
   // Escolhas da forja (região, classe, peça e reforços), com os mesmos padrões na tela e no botão Forjar.
@@ -2287,7 +2282,7 @@
   function nomeRacaCurto(x) { return x.raca === 'anao' ? (x.sexo === 'feminino' ? 'Anã' : 'Anão') : (D.racas[x.raca] || {}).nome || ''; }
   function textoPedido(x) {
     var o = x.opcoes || {}, it = x.item;
-    if (x.tipo === 'encantar') return 'Encantar ' + (it ? R.nomeItem(it) + ' +' + (it.encanto || 0) : '') + (o.protecao ? ' (com Proteção)' : '');
+    if (x.tipo === 'encantar') return 'Encantar ' + (it ? R.nomeItem(it) : '') + (o.protecao ? ' (com Proteção)' : '');
     if (x.tipo === 'forjar') return 'Forjar ' + ({ arma: 'arma', elmo: 'elmo', peitoral: 'peitoral', luvas: 'luvas', botas: 'botas', secundaria: 'mão esquerda' })[o.tipo] + ' de ' + (D.classes[o.classe] || {}).nome + ' (' + nomeArea(o.area) + ')';
     if (x.tipo === 'receita') return 'Receita: ' + nomeArea(o.area);
     if (x.tipo === 'protecao') return 'Pergaminho de Proteção ' + (D.raridades[o.raridade] || {}).nome;
@@ -2304,60 +2299,94 @@
     if (x.tipo === 'reliquia') return r.sucesso ? '<span class="cor-ouro">✨ RELÍQUIA FORJADA! ' + esc((R.runa(r.runa) || {}).nome || '') + '</span>' : '<span class="menos">a forja falhou (materiais perdidos)</span>';
     return '<span class="mais">pronto</span>';
   }
+  var ICONE_SERVICO = { encantar: '✨', forjar: '🔨', reliquia: '💠', receita: '📜', protecao: '🛡' };
+  // Situação de um pedido, como selo colorido.
+  function seloPedido(x) {
+    var r = x.resultado || {};
+    if (x.estado === 'pendente') return '<span class="selo-pedido espera">⏳ Esperando o artesão</span>';
+    if (x.estado !== 'feito') return '<span class="selo-pedido devolvido">↩ ' + (x.estado === 'cancelado' ? 'Cancelado' : 'Não feito a tempo') + ' · tudo devolvido</span>';
+    var ruim = (x.tipo === 'encantar' && !r.sucesso && !r.protegido) || (x.tipo === 'reliquia' && !r.sucesso);
+    return '<span class="selo-pedido ' + (ruim ? 'ruim' : 'bom') + '">' + textoResultado(x) + '</span>';
+  }
+  function retratoOficina(x) { return '<span class="loja-retrato">' + F.personagem(x.raca || 'anao', x.classe2 || 'ferreiro', x.sexo) + '</span>'; }
   function abaOficinas() {
     var p = estado.personagem, st = estado.oficinas;
     if (!st) { carregarOficinas(); return '<p class="suave">Carregando…</p>'; }
     if (st.local) return '<p class="suave">As Oficinas juntam vários jogadores e precisam do servidor.</p>';
     if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
-    var html = '<p class="suave">Contrate um Artesão: ele encanta, forja ou fabrica para você. Você entrega tudo (item, pergaminhos, materiais e o pagamento) '
-      + 'e o jogo guarda até ele fazer. A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você.</p>';
-    // Minha oficina
-    var meus = servicosDe(p);
-    if (meus.length) {
-      var precos = (st.minha && st.minha.servicos) || {}, eu = (st.lista || []).filter(function (x) { return x.id === p.id; })[0];
-      html += '<div class="caixa-interna"><h3>🏪 Minha oficina</h3><p class="suave pequeno">Deixe em branco o que não quer oferecer. Você recebe o preço menos '
-        + OF.taxa + '% de taxa, acertando ou não. Sua chance de encanto: +' + fmtDec(Math.round(R.bonusEncanto(p) * 10) / 10) + '% (Sorte' + (p.raca === 'anao' ? ' + Anão' : '') + ').</p>'
-        + '<div class="forja-opcoes">' + meus.map(function (k) {
-          var off = k === 'reliquia' && R.podeReliquia(p) !== true;
-          return '<label>' + OF.servicos[k].nome + (off ? ' <span class="suave pequeno">(' + R.podeReliquia(p) + ')</span>' : '')
-            + '<input type="number" min="0" step="1" inputmode="numeric" id="of-preco-' + k + '" value="' + (precos[k] || '') + '" placeholder="Preço em ouro"' + (off ? ' disabled' : '') + '></label>';
-        }).join('') + '</div><div class="botoes"><button class="btn" data-acao="of-salvar">' + (st.minha && Object.keys(precos).length ? 'Salvar preços' : 'Abrir minha oficina') + '</button>'
-        + (st.minha && Object.keys(precos).length ? '<button class="btn secundario" data-acao="of-fechar">Fechar oficina</button>' : '') + '</div>'
-        + (eu ? '<p class="pequeno">Seus números: ' + statsOficina(eu) + '</p>' : '');
-      html += '<h4>Pedidos para fazer</h4>' + ((st.fazer || []).length ? '<div class="itens">' + st.fazer.map(function (x) {
-        return '<div class="item"><div class="item-texto"><strong>' + esc(textoPedido(x)) + '</strong><div class="suave pequeno">Cliente: ' + esc(x.cliente) + ' · '
-          + ouroTxt(x.preco) + ' de ouro</div></div><div class="item-acoes"><button class="btn btn-pequeno" data-acao="of-fazer" data-id="' + x.id + '">'
-          + (x.tipo === 'encantar' || x.tipo === 'reliquia' ? 'Jogar a sorte' : 'Fazer') + '</button></div></div>';
-      }).join('') + '</div>' : '<p class="suave">Nenhum pedido esperando.</p>') + '</div>';
-    }
-    // Lista de oficinas
-    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; });
-    html += '<h3 class="subtitulo">Oficinas abertas</h3>';
-    html += lista.length ? '<div class="itens">' + lista.map(function (x) { return cartaOficina(x); }).join('') + '</div>' : '<p class="suave">Nenhuma oficina aberta agora.</p>';
-    // Meus pedidos
+    var html = '<div class="loja-topo"><span class="loja-retrato grande">' + F.personagem('anao', 'ferreiro', p.sexo) + '</span><div><h3>⚒ Oficinas dos Artesãos</h3>'
+      + '<p class="suave pequeno">Contrate um Ferreiro ou um Coletor de outro jogador. Você entrega o item, os materiais e o pagamento; o jogo guarda tudo até ele fazer. '
+      + 'A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você.</p></div></div>';
+    // Meus pedidos (primeiro: é o que o comprador quer acompanhar)
     if ((st.pedidos || []).length) {
-      html += '<h3 class="subtitulo">Meus pedidos</h3><div class="itens">' + st.pedidos.map(function (x) {
-        return '<div class="item"><div class="item-texto"><strong>' + esc(textoPedido(x)) + '</strong><div class="pequeno">' + esc(x.artesao) + ' · ' + ouroTxt(x.preco)
-          + ' · ' + textoResultado(x) + '</div></div>' + (x.estado === 'pendente' ? '<div class="item-acoes"><button class="btn secundario btn-pequeno" data-acao="of-cancelar" data-id="' + x.id + '">Cancelar</button></div>' : '') + '</div>';
+      var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length;
+      html += '<h3 class="subtitulo">🧾 Meus pedidos' + (pend ? ' <span class="contador-loja">' + pend + ' esperando</span>' : '') + '</h3><div class="loja-pedidos">' + st.pedidos.map(function (x) {
+        return '<div class="loja-pedido"><span class="loja-pedido-ico">' + (x.item ? '<span class="icone-pequeno borda-' + corItem(x.item) + '">' + F.icone(x.item) + '</span>' : ICONE_SERVICO[x.tipo] || '⚒') + '</span>'
+          + '<div class="loja-pedido-texto"><strong>' + esc(textoPedido(x)) + '</strong><small class="suave">' + esc(x.artesao) + ' · ' + ICONES.ouro + ' ' + ouroTxt(x.preco) + '</small>' + seloPedido(x) + '</div>'
+          + (x.estado === 'pendente' ? '<button class="btn secundario btn-pequeno" data-acao="of-cancelar" data-id="' + x.id + '">Cancelar</button>' : '') + '</div>';
       }).join('') + '</div>';
     }
+    // Minha oficina (para o artesão)
+    var meus = servicosDe(p);
+    if (meus.length) {
+      var precos = (st.minha && st.minha.servicos) || {}, aberta = st.minha && Object.keys(precos).length, eu = (st.lista || []).filter(function (x) { return x.id === p.id; })[0];
+      var c2p = R.ehFerreiro(p) ? 'ferreiro' : 'coletor';
+      html += '<div class="caixa-interna loja-minha"><div class="loja-minha-topo"><span class="loja-retrato grande">' + F.personagem(p.raca, c2p, p.sexo) + '</span><div>'
+        + '<h3>🏪 Minha oficina <span class="selo-pedido ' + (aberta ? 'bom' : 'devolvido') + '">' + (aberta ? '● Aberta' : '○ Fechada') + '</span></h3>'
+        + '<p class="suave pequeno">Você recebe o preço menos ' + OF.taxa + '% de taxa, acertando ou não. Sua chance de encanto: <strong>+' + fmtDec(Math.round(R.bonusEncanto(p) * 10) / 10) + '%</strong> (Sorte' + (p.raca === 'anao' ? ' + Anão' : '') + ').</p></div></div>'
+        + (eu ? statsLoja(eu) : '')
+        + '<h4>Seus preços <span class="suave pequeno">· deixe em branco o que não quer oferecer</span></h4><div class="loja-precos">' + meus.map(function (k) {
+          var off = k === 'reliquia' && R.podeReliquia(p) !== true;
+          return '<label class="loja-preco' + (off ? ' off' : '') + '"><span class="loja-preco-nome">' + ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome
+            + (off ? '<small class="suave">' + esc(R.podeReliquia(p)) + '</small>' : '') + '</span>'
+            + '<span class="loja-preco-campo">' + ICONES.ouro + '<input type="number" min="0" step="1" inputmode="numeric" id="of-preco-' + k + '" value="' + (precos[k] || '') + '" placeholder="Preço"' + (off ? ' disabled' : '') + '></span></label>';
+        }).join('') + '</div><div class="botoes"><button class="btn" data-acao="of-salvar">' + (aberta ? 'Salvar preços' : 'Abrir minha oficina') + '</button>'
+        + (aberta ? '<button class="btn secundario" data-acao="of-fechar">Fechar oficina</button>' : '') + '</div>';
+      var fazer = st.fazer || [];
+      html += '<h4>📥 Pedidos para fazer' + (fazer.length ? ' <span class="contador-loja">' + fazer.length + '</span>' : '') + '</h4>' + (fazer.length ? '<div class="loja-pedidos">' + fazer.map(function (x) {
+        return '<div class="loja-pedido"><span class="loja-pedido-ico">' + (x.item ? '<span class="icone-pequeno borda-' + corItem(x.item) + '">' + F.icone(x.item) + '</span>' : ICONE_SERVICO[x.tipo] || '⚒') + '</span>'
+          + '<div class="loja-pedido-texto"><strong>' + esc(textoPedido(x)) + '</strong><small class="suave">Cliente: ' + esc(x.cliente) + ' · você recebe ' + ICONES.ouro + ' '
+          + ouroTxt(Math.floor(x.preco * (100 - OF.taxa) / 100)) + '</small></div>'
+          + '<button class="btn btn-pequeno" data-acao="of-fazer" data-id="' + x.id + '">' + (x.tipo === 'encantar' || x.tipo === 'reliquia' ? '🎲 Jogar a sorte' : '⚒ Fazer') + '</button></div>';
+      }).join('') + '</div>' : '<p class="suave">Nenhum pedido esperando.</p>') + '</div>';
+    }
+    // Oficinas abertas (para o comprador), com filtro por serviço
+    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; }), filtro = estado.ofFiltro || 'todos';
+    var visiveis = lista.filter(function (x) { return filtro === 'todos' || x.servicos[filtro]; });
+    html += '<h3 class="subtitulo">⚒ Oficinas abertas <span class="suave pequeno">(' + lista.length + ')</span></h3>'
+      + '<div class="loja-filtros">' + [['todos', 'Todos']].concat(Object.keys(OF.servicos).map(function (k) { return [k, ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome.replace(/^Fabricar /, '')]; })).map(function (o) {
+        return '<button type="button" class="btn btn-pequeno' + (o[0] === filtro ? ' sel' : ' secundario') + '" data-acao="of-filtro" data-valor="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+    html += visiveis.length ? '<div class="loja-lista">' + visiveis.map(function (x) { return cartaOficina(x); }).join('') + '</div>'
+      : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
     return html;
   }
   function statsOficina(x) {
     var pct = x.encantos ? Math.round(100 * x.acertos / x.encantos) : 0;
     return 'Encantos: ' + x.encantos + ' · Acertos: ' + x.acertos + (x.encantos ? ' (' + pct + '%)' : '') + ' · Acertos no +10: ' + x.acertos10 + ' de ' + x.tent10 + ' · Serviços feitos: ' + x.feitos;
   }
+  // Números do artesão em quadrinhos (taxa de acerto, +10, serviços feitos, fila).
+  function statsLoja(x) {
+    var pct = x.encantos ? Math.round(100 * x.acertos / x.encantos) + '%' : '—', fer = x.classe2 === 'ferreiro';
+    return '<div class="loja-stats">'
+      + (fer ? '<span><b>' + pct + '</b><small>acerto no encanto' + (x.encantos ? ' (' + x.acertos + ' de ' + x.encantos + ')' : '') + '</small></span>'
+        + '<span><b>' + x.acertos10 + '/' + x.tent10 + '</b><small>acertos no +10</small></span>' : '')
+      + '<span><b>' + x.feitos + '</b><small>serviços feitos</small></span>'
+      + (x.fila != null ? '<span><b>' + (x.fila || 0) + '</b><small>na fila</small></span>' : '') + '</div>';
+  }
   function cartaOficina(x) {
     var c2 = D.SEGUNDAS_CLASSES[x.classe2] || {}, aberto = estado.contratar && estado.contratar.artesao === x.id;
-    var html = '<div class="item oficina-carta' + (aberto ? ' meu' : '') + '"><div class="item-texto"><div><strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em)
-      + ' <span class="suave pequeno">' + esc(nomeRacaCurto(x)) + ' · ' + esc(x.sexo === 'feminino' && c2.nomeF || c2.nome || '') + ' · Lv ' + x.nivel + '</span>'
-      + (x.raca === 'anao' ? ' <span class="selo-forja">⛰ Forja da Montanha</span>' : '') + (x.feitos >= 100 ? ' <span class="selo-forja">Mestre</span>' : '') + '</div>'
-      + '<div class="suave pequeno">' + statsOficina(x) + (x.fila ? ' · fila: ' + x.fila : '') + '</div>'
-      + '<div class="botoes oficina-servicos">' + Object.keys(x.servicos).map(function (k) {
-        return '<button class="btn btn-pequeno' + (aberto && estado.contratar.tipo === k ? '' : ' secundario') + '" data-acao="of-contratar" data-id="' + x.id + '" data-valor="' + k + '">'
-          + OF.servicos[k].nome + ' · ' + ouroTxt(x.servicos[k]) + '</button>';
+    var html = '<div class="loja-carta' + (aberto ? ' aberta' : '') + '"><div class="loja-carta-topo">' + retratoOficina(x) + '<div class="loja-carta-info">'
+      + '<div><strong>' + esc(x.nome) + '</strong> <span class="pequeno">' + vistoTexto(x.visto_em) + '</span></div>'
+      + '<div class="suave pequeno">' + esc(nomeRacaCurto(x)) + ' · ' + esc(x.sexo === 'feminino' && c2.nomeF || c2.nome || '') + ' · Lv ' + x.nivel + '</div>'
+      + '<div class="loja-selos">' + (x.raca === 'anao' ? '<span class="selo-forja">⛰ Forja da Montanha</span>' : '') + (x.feitos >= 100 ? '<span class="selo-forja">🏅 Mestre</span>' : '') + '</div>'
+      + '</div></div>' + statsLoja(x)
+      + '<div class="loja-servicos">' + Object.keys(x.servicos).map(function (k) {
+        var sel = aberto && estado.contratar.tipo === k;
+        return '<button type="button" class="loja-servico' + (sel ? ' sel' : '') + '" data-acao="of-contratar" data-id="' + x.id + '" data-valor="' + k + '">'
+          + '<span class="loja-servico-ico">' + ICONE_SERVICO[k] + '</span><span>' + OF.servicos[k].nome + '<b>' + ICONES.ouro + ' ' + ouroTxt(x.servicos[k]) + '</b></span></button>';
       }).join('') + '</div>'
-      + (aberto ? formContratar(x, estado.contratar.tipo) : '') + '</div></div>';
+      + (aberto ? formContratar(x, estado.contratar.tipo) : '') + '</div>';
     return html;
   }
   function formContratar(x, tipo) {
@@ -2373,7 +2402,7 @@
       var it = itens.filter(function (i) { return i.id === f.item; })[0] || itens[0];
       var chance = R.chanceEncantarCom(Number(x.bonus_encanto), it), risco = R.riscoEncantar(it);
       var temProt = R.qtdConsumivel(p, 'protecao', it.raridade) > 0, prot = !!f.protecao && temProt, temPerg = R.qtdPergaminho(p, it.raridade) > 0;
-      h += '<label>Item ' + sel('item', itens.map(function (i) { return [i.id, R.nomeItem(i) + ' +' + i.encanto + ' (' + D.raridades[i.raridade].nome + ')']; }), it.id) + '</label>'
+      h += '<label>Item ' + sel('item', itens.map(function (i) { return [i.id, R.nomeItem(i) + ' (' + D.raridades[i.raridade].nome + ')']; }), it.id) + '</label>'
         + '<label class="linha-check"><input type="checkbox" data-contratar="protecao"' + (prot ? ' checked' : '') + (temProt ? '' : ' disabled') + '> 🛡 Usar Pergaminho de Proteção '
         + '<span class="suave pequeno">(' + (temProt ? 'você tem ' + R.qtdConsumivel(p, 'protecao', it.raridade) : 'você não tem da raridade ' + D.raridades[it.raridade].nome) + ')</span></label>'
         + (temPerg ? '' : '<p class="menos pequeno">Você precisa de 1 Pergaminho ' + D.raridades[it.raridade].nome + ' para entregar.</p>');
@@ -2385,36 +2414,36 @@
       var comReceita = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; });
       if (!comReceita.length) return h + '<p class="suave">Você precisa de uma Receita (o Coletor fabrica; também tem no Mercado › Craft).</p></div>';
       var ar = comReceita.filter(function (a) { return a.id === f.area; })[0] || comReceita[0];
-      var cls = f.classe || p.classe, tp = f.tipo || 'arma', ch = Number(f.chefe) || 0, ge = Number(f.gemas) || 0, nums = [0, 1, 2, 3].map(function (n) { return [n, String(n)]; });
+      var cls = f.classe || p.classe, tp = f.peca || 'arma', ch = Number(f.chefe) || 0, ge = Number(f.gemas) || 0, nums = [0, 1, 2, 3].map(function (n) { return [n, String(n)]; });
       var mc = R.materialDoChefe(ar.chefe.id), custo = R.custoForja(p, ar.id).filter(function (c) { return c.tipo !== 'ouro'; });
-      if (ch) custo.push({ tipo: 'material', nome: D.CRAFT.materiais[mc].nome, tem: R.qtdMaterial(p, mc), precisa: ch });
-      if (ge) custo.push({ tipo: 'material', nome: 'Pedra Preciosa', tem: R.qtdMaterial(p, 'gema'), precisa: ge });
+      if (ch) custo.push({ tipo: 'material', id: mc, nome: D.CRAFT.materiais[mc].nome, tem: R.qtdMaterial(p, mc), precisa: ch });
+      if (ge) custo.push({ tipo: 'material', id: 'gema', nome: 'Pedra Preciosa', tem: R.qtdMaterial(p, 'gema'), precisa: ge });
       var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
       h += '<div class="forja-opcoes"><label>Receita ' + sel('area', comReceita.map(function (a) { return [a.id, a.nome]; }), ar.id) + '</label>'
         + '<label>Classe ' + sel('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</label>'
-        + '<label>Item ' + sel('tipo', [['arma', 'Arma'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'], ['secundaria', 'Mão esquerda']], tp) + '</label>'
+        + '<label>Peça ' + sel('peca', PECAS_FORJA, tp) + '</label>'
         + '<label>+ ' + esc(D.CRAFT.materiais[mc].nome) + ' ' + sel('chefe', nums, ch) + '</label><label>+ Pedra Preciosa ' + sel('gemas', nums, ge) + '</label></div>'
-        + '<p class="pequeno">Você entrega: ' + custoHtml(custo) + ' · + ' + ouroTxt(extra) + ' de ouro da forja</p>';
+        + '<h4>Você entrega</h4>' + custoChips(custo.concat([{ tipo: 'ouro', nome: 'ouro da forja', tem: p.ouro, precisa: extra }]));
       pode = !R.faltando(p, custo).length;
       preco += extra;
       aviso = 'Chances: Comum ' + pc(chs.comum) + ' · Rara ' + pc(chs.rara) + ' · Épica ' + pc(chs.epica) + ' · Lendária ' + pc(chs.lendaria) + ' · obra-prima ' + pc(chs.obraPrima) + '.';
     } else if (tipo === 'receita') {
       var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0], cr = R.custoReceita(p, ar2.id), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
-      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label><p class="pequeno">Você entrega: ' + custoHtml(mat) + ' · + ' + ouroTxt(cr[1].precisa) + ' de ouro</p>';
+      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label><h4>Você entrega</h4>' + custoChips(cr);
       pode = !R.faltando(p, mat).length; preco += cr[1].precisa;
     } else if (tipo === 'protecao') {
       var rr = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum', cp = R.custoProtecao(p, rr);
-      h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><p class="pequeno">Você entrega: ' + custoHtml(cp) + '</p>';
+      h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><h4>Você entrega</h4>' + custoChips(cp);
       pode = !R.faltando(p, cp).length;
     } else if (tipo === 'reliquia') {
       var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       if (!lend.length) return h + '<p class="suave">Você precisa de um item lendário +' + Q.encantoMin + ' ou mais na mochila (fora do corpo e destravado).</p></div>';
       var il = lend.filter(function (i) { return i.id === f.item; })[0] || lend[0];
-      var cm = Object.keys(Q.materiais).map(function (k) { return { tipo: 'material', nome: D.CRAFT.materiais[k].nome, tem: R.qtdMaterial(p, k), precisa: Q.materiais[k] }; });
+      var cm = Object.keys(Q.materiais).map(function (k) { return { tipo: 'material', id: k, nome: D.CRAFT.materiais[k].nome, tem: R.qtdMaterial(p, k), precisa: Q.materiais[k] }; });
       var chR = Math.min(Q.maxima, Q.base + Number(x.sorte) * Q.porSorte);
-      h += '<label>Item ' + sel('item', lend.map(function (i) { return [i.id, R.nomeItem(i) + ' +' + i.encanto]; }), il.id) + '</label>'
+      h += '<label>Item ' + sel('item', lend.map(function (i) { return [i.id, R.nomeItem(i)]; }), il.id) + '</label>'
         + '<label>Nome da relíquia <input type="text" maxlength="24" data-contratar="nome" value="' + esc(f.nome || '') + '" placeholder="Ex.: Fúria de Thorin"></label>'
-        + '<p class="pequeno">Você entrega: ' + custoHtml(cm) + '</p>'
+        + '<h4>Você entrega</h4>' + custoChips(cm)
         + (x.reliquia_semana ? '<p class="menos pequeno">Este Ferreiro já forjou a relíquia da semana.</p>' : '');
       pode = !R.faltando(p, cm).length && !x.reliquia_semana;
       aviso = 'Chance deste anão: <strong>' + fmtDec(Math.round(chR * 10) / 10) + '%</strong>. Se der certo, o item vira uma relíquia ÚNICA com o nome escolhido e uma runa sorteada '
@@ -2434,7 +2463,7 @@
     if (tipo === 'encantar') { var ie = livres.filter(function (i) { return i.encanto < D.encantamento.maximo && !i.runa; }); itemId = (ie.filter(function (i) { return i.id === f.item; })[0] || ie[0]).id;
       var itE = p.inventario.filter(function (i) { return i.id === itemId; })[0]; op.protecao = !!f.protecao && R.qtdConsumivel(p, 'protecao', itE.raridade) > 0; }
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
-      op.classe = f.classe || p.classe; op.tipo = f.tipo || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
+      op.classe = f.classe || p.classe; op.tipo = f.peca || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
     if (tipo === 'receita') op.area = f.area || D.areas[0].id;
     if (tipo === 'protecao') op.raridade = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum';
     if (tipo === 'reliquia') { var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
@@ -2466,6 +2495,7 @@
       case 'of-fechar': configurarOficina({}); return true;
       case 'of-contratar': estado.contratar = { artesao: el.dataset.id, tipo: el.dataset.valor }; telaJogo(); return true;
       case 'of-contratar-fechar': estado.contratar = null; telaJogo(); return true;
+      case 'of-filtro': estado.ofFiltro = el.dataset.valor; estado.contratar = null; telaJogo(); return true;
       case 'of-pedir': pedirOficina(); return true;
       case 'of-cancelar':
         C.oficina.cancelar(p.id, Number(el.dataset.id)).then(function () { avisar('Pedido cancelado: tudo volta para você.'); carregarArena(); carregarOficinas(); }, function (e) { avisar(e.message); });

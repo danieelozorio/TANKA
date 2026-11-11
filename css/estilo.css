@@ -1672,3 +1672,63 @@ html { overscroll-behavior-x: none; }
   .oficina-cartao-texto .selo-forja { align-self: center; }
   .oficina-retrato { width: 4.2rem; height: 4.8rem; }
 }
+
+/* ---- Mercado › Oficinas (Daniel, nov/2026): cartas com retrato do artesão, números em quadrinhos, serviços em botões ---- */
+.loja-topo { display: flex; gap: .8rem; align-items: center; margin-bottom: .8rem; }
+.loja-topo h3 { margin: 0 0 .25rem; }
+.loja-topo p { margin: 0; }
+.loja-retrato { width: 4.4rem; height: 5.2rem; flex: none; border-radius: 6px; overflow: hidden; border: 1px solid #8a6a3a; box-shadow: 0 2px 8px rgba(0, 0, 0, .5); }
+.loja-retrato.grande { width: 5rem; height: 6rem; }
+.loja-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; display: block; }
+.loja-filtros { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .7rem; }
+.loja-filtros .btn.sel, .loja-servico.sel { border-color: var(--ouro); box-shadow: 0 0 0 1px var(--ouro), 0 0 10px rgba(201, 162, 74, .45); color: #f4d499; }
+.loja-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: .7rem; margin-bottom: 1rem; }
+.loja-carta { display: flex; flex-direction: column; gap: .55rem; padding: .7rem; border-radius: 10px; border: 1px solid rgba(201, 162, 74, .3);
+  background: linear-gradient(rgba(201, 162, 74, .07), rgba(0, 0, 0, .35)); }
+.loja-carta.aberta { grid-column: 1 / -1; border-color: var(--ouro); }
+.loja-carta-topo { display: flex; gap: .7rem; align-items: center; }
+.loja-carta-info { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+.loja-carta-info strong { font-size: 1.1rem; }
+.loja-selos { display: flex; flex-wrap: wrap; gap: .3rem; }
+.loja-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: .35rem; }
+.loja-stats span { display: flex; flex-direction: column; align-items: center; padding: .35rem .3rem; border-radius: 6px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 255, 255, .08); text-align: center; }
+.loja-stats b { font-size: 1.1rem; color: #f4d499; }
+.loja-stats small { font-size: .7rem; opacity: .75; line-height: 1.15; }
+.loja-servicos { display: grid; grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr)); gap: .35rem; }
+.loja-servico { display: flex; align-items: center; gap: .45rem; padding: .45rem .55rem; border-radius: 8px; cursor: pointer; text-align: left;
+  border: 1px solid rgba(201, 162, 74, .35); background: rgba(0, 0, 0, .4); color: inherit; font: inherit; font-size: .85rem; }
+.loja-servico:hover { filter: brightness(1.2); }
+.loja-servico > span:last-child { display: flex; flex-direction: column; line-height: 1.2; }
+.loja-servico b { display: inline-flex; align-items: center; gap: .25rem; color: #f4d499; font-size: .95rem; }
+.loja-servico-ico { font-size: 1.3rem; flex: none; }
+.loja-servico b svg, .loja-servico b img, .loja-pedido small svg, .loja-preco-campo > svg, .loja-preco-campo > img { width: 1em; height: 1em; }
+.loja-carta .contratar { padding-top: .6rem; border-top: 1px dashed rgba(201, 162, 74, .35); }
+.loja-carta .contratar h4 { margin: .5rem 0 .3rem; }
+.loja-pedidos { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+.loja-pedido { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; padding: .5rem .6rem; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .1); background: rgba(0, 0, 0, .3); }
+.loja-pedido-ico { flex: none; width: 2.6rem; display: grid; place-items: center; font-size: 1.5rem; }
+.loja-pedido-ico .icone-pequeno { width: 2.6rem; height: 2.6rem; }
+.loja-pedido-texto { display: flex; flex-direction: column; gap: .2rem; flex: 1 1 11rem; min-width: 0; }
+.loja-pedido > .btn { margin-left: auto; }
+.loja-pedido-texto small { display: inline-flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+.selo-pedido { align-self: flex-start; display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .75rem; border: 1px solid rgba(255, 255, 255, .15); background: rgba(0, 0, 0, .35); }
+.selo-pedido.espera { border-color: rgba(242, 201, 76, .5); color: #f2c94c; }
+.selo-pedido.bom { border-color: rgba(127, 211, 138, .5); color: #7fd38a; }
+.selo-pedido.ruim { border-color: rgba(208, 100, 90, .6); color: #ef8a7e; }
+.selo-pedido.devolvido { opacity: .75; }
+h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; }
+.contador-loja { display: inline-block; min-width: 1.4rem; padding: 0 .45rem; border-radius: 999px; background: #a8322a; color: #fff; font-size: .75rem; text-align: center; vertical-align: middle; }
+.loja-minha-topo { display: flex; gap: .8rem; align-items: center; margin-bottom: .6rem; }
+.loja-minha-topo h3 { margin: 0 0 .25rem; }
+.loja-minha-topo p { margin: 0; }
+.loja-minha .loja-stats { margin-bottom: .6rem; }
+.loja-precos { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .5rem; }
+.loja-preco { display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .35rem .5rem; border-radius: 6px; background: rgba(0, 0, 0, .3); margin: 0; }
+.loja-preco.off { opacity: .6; }
+.loja-preco-nome { display: flex; flex-direction: column; font-size: .9rem; }
+.loja-preco-campo { display: inline-flex; align-items: center; gap: .3rem; flex: none; }
+.loja-preco-campo input { width: 7.5rem; }
+@media (max-width: 520px) {
+  .loja-lista { grid-template-columns: 1fr; }
+  .loja-retrato { width: 3.8rem; height: 4.6rem; }
+}

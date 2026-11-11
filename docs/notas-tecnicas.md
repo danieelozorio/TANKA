@@ -434,6 +434,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `forjaAtual(p)` dá as mesmas escolhas para a tela e para o botão Forjar (antes o botão usava a área das Minas quando o
   jogador não mexia na região, diferente da tela). Sem a classe: aviso + botão para Mercado › Oficinas.
 
+- **Mercado › Oficinas novo (Daniel, nov/2026):** `abaOficinas` com topo (retrato do anão ferreiro), "Meus pedidos" primeiro
+  (`seloPedido`: esperando/bom/ruim/devolvido), "Minha oficina" com o retrato do herói, selo Aberta/Fechada, números em
+  quadrinhos (`statsLoja`; acerto no encanto e +10 só para Ferreiro), preços em linhas e "Pedidos para fazer" com o que o
+  artesão recebe (preço − taxa). Lista com filtro por serviço (`estado.ofFiltro`, ação `of-filtro`) e cartas com retrato
+  (`retratoOficina`: raça/2ª classe/sexo do artesão) e serviços em botões (`ICONE_SERVICO`). Custos do formulário com
+  `custoChips`. **Correção:** a peça da forja contratada usava o campo `tipo` (o mesmo do serviço): escolher a peça
+  quebrava o formulário e o pedido ia com a peça "forjar". Agora é `estado.contratar.peca`. Nome do item sem o encanto
+  repetido ("+5 Espada +5").
+
 ## Arena: só o dado decide (Henri, nov/2026)
 - `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
   (`furtivo`) continua desviando do próximo golpe e garantindo o 20 no golpe seguinte (`critEm`) — Henri testou sem
