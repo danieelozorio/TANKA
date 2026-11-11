@@ -626,3 +626,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   com os da página aberta. Mudou = versão nova publicada: aviso "Saiu uma versão nova…" e recarrega em 4 s, esperando a
   luta na tela acabar (batalha, masmorra, Arena ou pedido de luta da caçada). Depende de subir o `?v=` a cada publicação
   (regra 5 do CLAUDE.md), o que já é feito.
+
+## Pergaminho da masmorra 90% (Henri, nov/2026)
+- `D.MASMORRA.pergaminho` = 90 (antes 50). O servidor (`masmorra_concluir`) agora lê a chance de
+  `tanka_dados() -> MASMORRA -> pergaminho` (antes era 0.5 fixo no SQL): mudar só em dados.js e rodar gerar_dados_sql.
+
+## Leilão: item que a classe não usa (Henri, nov/2026)
+- `abaLeilao`: com `R.podeUsar(p, item)` falso, o nome do lote ganha um ✖ vermelho e a linha "Sua classe não usa este
+  item" (igual ao Mercado). Pacotes de pergaminho nunca mostram.

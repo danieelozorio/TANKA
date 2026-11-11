@@ -2013,7 +2013,7 @@
       + '<div class="leilao-barra"><span>Seu ouro: <strong class="cor-ouro">' + ouroTxt(p.ouro) + '</strong></span>'
       + '<button class="btn secundario btn-pequeno" data-acao="leilao-atualizar">Atualizar</button></div>';
     var lotes = '<div class="leilao-lotes">' + r.lotes.map(function (l) {
-      var it = l.item, prox = l.proximo;
+      var it = l.item, prox = l.proximo, usa = it.consumivel || R.podeUsar(p, it);
       var lance = l.lance ? '<div>Lance atual: <strong class="cor-ouro">' + ouroTxt(l.lance) + '</strong>'
           + (l.sou_lider ? ' <span class="leilao-lider">Você lidera</span>' : ' <span class="suave">· ' + esc(l.lider_nome || '?') + '</span>') + '</div>'
         : '<div class="suave">Sem lances · mínimo <strong class="cor-ouro">' + ouroTxt(l.minimo) + '</strong></div>';
@@ -2024,10 +2024,12 @@
       return '<div class="leilao-lote carta-' + l.raridade + (l.sou_lider ? ' liderando' : '') + '">'
         + '<div class="leilao-cab"><button class="icone-pequeno borda-' + l.raridade + aura(it) + '" data-acao="leilao-ver" data-id="' + l.id + '" title="Ver o item">'
         + F.icone(it) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
-        + '<div><div class="leilao-nome raridade-' + l.raridade + '">' + esc(nomeLote(l)) + '</div>'
+        + '<div><div class="leilao-nome raridade-' + l.raridade + '">' + esc(nomeLote(l))
+          + (usa ? '' : ' <span class="menos" title="Sua classe não usa este item" aria-label="Sua classe não usa este item">✖</span>') + '</div>'
         + '<div class="suave pequeno">' + D.raridades[l.raridade].nome + (l.classe ? ' · ' + NOME_CLASSE_LOTE[l.classe] : '')
         + (it.nivel ? ' · nível ' + it.nivel : '') + '</div>'
-        + '<div class="suave pequeno">' + esc(resumoLote(l)) + '</div></div></div>'
+        + '<div class="suave pequeno">' + esc(resumoLote(l)) + '</div>'
+        + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>') + '</div></div>'
         + lance + '<div class="suave pequeno">Próximo lance: ' + ouroTxt(prox) + (l.lances ? ' · ' + l.lances + ' lance(s)' : '') + '</div>' + acao + '</div>';
     }).join('') + '</div>';
     return topo + lotes + leilaoZoomHtml();
