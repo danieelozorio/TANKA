@@ -725,7 +725,7 @@ Tanka.dados = {
       monstros: [
         { id: 'golem', dano: [30, 40], danoCacada: [37, 50], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
         { id: 'cultista', dano: [38, 52], danoCacada: [47, 65], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
-        { id: 'espectro', dano: [46, 63], danoCacada: [100, 138], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
+        { id: 'espectro', dano: [46, 63], danoCacada: [70, 97], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
       chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [86, 115], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
     },
@@ -736,7 +736,7 @@ Tanka.dados = {
       monstros: [
         { id: 'escorpiao', dano: [44, 59], danoCacada: [68, 91], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
         { id: 'lagarto', dano: [54, 74], danoCacada: [84, 115], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
-        { id: 'mumia', dano: [68, 92], danoCacada: [163, 220], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
+        { id: 'mumia', dano: [68, 92], danoCacada: [114, 154], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
       chefe: { id: 'farao', dano: [82, 110], danoCacada: [143, 193], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
     },
@@ -747,7 +747,7 @@ Tanka.dados = {
       monstros: [
         { id: 'drake', dano: [54, 74], danoCacada: [123, 168], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
         { id: 'wyvern', dano: [68, 92], danoCacada: [155, 209], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
-        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [261, 351], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
+        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [224, 301], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
       chefe: { id: 'vharkesh', dano: [103, 140], danoCacada: [225, 304], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
     },
@@ -758,7 +758,7 @@ Tanka.dados = {
       monstros: [
         { id: 'salamandra', dano: [82, 110], danoCacada: [233, 312], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
         { id: 'demonio', dano: [102, 138], danoCacada: [290, 392], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
-        { id: 'elemental', dano: [128, 173], danoCacada: [450, 610], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
+        { id: 'elemental', dano: [128, 173], danoCacada: [379, 513], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
       chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [612, 825], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
     },
