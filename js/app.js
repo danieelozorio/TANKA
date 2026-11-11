@@ -4943,15 +4943,26 @@
     lista = lista || (g && g.recompensas);
     if (!p || !lista || !lista.length || estado.resgatando) return;
     estado.resgatando = true;
+    // Entrega segura (nov/2026): antes o prêmio era marcado como recebido no servidor ANTES de o personagem ser gravado;
+    // se a gravação falhasse (ex.: "jogado em outra aba"), o item sumia. Agora: aplica no personagem, guarda o id em
+    // p.recebidas, grava, e só depois marca no servidor. Se a gravação falhar, o prêmio continua lá e volta depois;
+    // se a marcação falhar, p.recebidas impede de entregar duas vezes.
+    var entregues = [];
+    var pegar = async function (rec) {
+      entregues.push(rec.id);
+      p.recebidas = (p.recebidas || []).concat(rec.id).slice(-200);
+      return JSON.parse(JSON.stringify(rec.item));
+    };
     try {
       var avisouCheia = false;
       for (var i = 0; i < lista.length; i++) {
         var rec = lista[i];
+        if (p.recebidas && p.recebidas.indexOf(rec.id) >= 0) { entregues.push(rec.id); continue; }   // já entregue: só falta marcar
         // Lote ganho no leilão: o item é gerado da semente (igual ao que todos viram no leilão).
         if (rec.item && rec.item.leilao) {
           var ganho = R.itemDoLote(rec.item);
           if (ganho.consumivel) {
-            await C.grupo.resgatar(p.id, rec.id);
+            await pegar(rec);
             R.mudarPergaminho(p, ganho.raridade, ganho.qtd);
             salvar();
             avisarCaixa('Você venceu o leilão: ' + nomeDrop(ganho) + '! (Mochila › Consumíveis)', 'item');
@@ -4962,7 +4973,7 @@
             avisouCheia = true;
             continue;
           }
-          await C.grupo.resgatar(p.id, rec.id);
+          await pegar(rec);
           p.inventario.push(ganho);
           salvar();
           avisarCaixa('Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
@@ -4970,7 +4981,7 @@
         }
         // Chefe Mundial: ouro e exp (x ataques) e o título do golpe final.
         if (rec.item && rec.item.tipo === 'boss_premio') {
-          var bp = await C.grupo.resgatar(p.id, rec.id);
+          var bp = await pegar(rec);
           var ganhoBoss = R.premioChefeMundial(p, bp);
           salvar();
           avisarCaixa('🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + ganhoBoss.ouro.toLocaleString('pt-BR') + ' de ouro e +'
@@ -4979,7 +4990,7 @@
           continue;
         }
         if (rec.item && rec.item.tipo === 'titulo') {
-          var tit = await C.grupo.resgatar(p.id, rec.id);
+          var tit = await pegar(rec);
           p.titulos = p.titulos || [];
           if (p.titulos.indexOf(tit.nome) < 0) p.titulos.push(tit.nome);
           p.titulo = tit.nome;
@@ -4989,7 +5000,7 @@
         }
         // Pergaminho de encantamento: não ocupa a mochila.
         if (rec.item && rec.item.tipo === 'pergaminho') {
-          var perg = await C.grupo.resgatar(p.id, rec.id);
+          var perg = await pegar(rec);
           if (!D.raridades[perg.raridade]) continue;
           var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
           R.mudarPergaminho(p, perg.raridade, nPerg);
@@ -5001,13 +5012,13 @@
         // Item forjado na Oficina de um Ferreiro: o jogo monta o item com a semente do servidor.
         if (rec.item && rec.item.tipo === 'forjado') {
           if (R.mochilaCheia(p)) { if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item da Oficina está guardado: libere espaço.'); avisouCheia = true; continue; }
-          var rfo = await C.grupo.resgatar(p.id, rec.id), ifo = R.itemForjado(rfo.spec);
+          var rfo = await pegar(rec), ifo = R.itemForjado(rfo.spec);
           if (ifo) { p.inventario.push(ifo); salvar(); avisarCaixa((ifo.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'A Oficina entregou ' + R.nomeItem(ifo) + ' (' + nomeRaridadeItem(ifo) + ')!', 'item'); }
           continue;
         }
         // Craft (material, receita, proteção, cristal) do mercado ou da Oficina: vai para os Consumíveis.
         if (rec.item && (TIPOS_CRAFT.indexOf(rec.item.tipo) >= 0 || rec.item.tipo === 'cristal')) {
-          var rcf = await C.grupo.resgatar(p.id, rec.id);
+          var rcf = await pegar(rec);
           var ncf = Math.max(1, Math.floor(rcf.qtd || 1));
           R.mudarConsumivel(p, rcf.tipo, rcf.raridade, ncf);
           salvar();
@@ -5016,7 +5027,7 @@
         }
         // Boss da aliança: exp (limitada a uma parte da exp do level) e o item de quem deu mais dano.
         if (rec.item && rec.item.tipo === 'exp') {
-          var rx = await C.grupo.resgatar(p.id, rec.id);
+          var rx = await pegar(rec);
           var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
           var subiu = R.ganharExp(p, xp);
           salvar();
@@ -5029,7 +5040,7 @@
             avisouCheia = true;
             continue;
           }
-          var rb = await C.grupo.resgatar(p.id, rec.id);
+          var rb = await pegar(rec);
           var ib = R.itemBossAlianca(p, rb.raridade);
           p.inventario.push(ib);
           salvar();
@@ -5041,13 +5052,18 @@
           avisouCheia = true;
           continue;
         }
-        var bruto = await C.grupo.resgatar(p.id, rec.id);
+        var bruto = await pegar(rec);
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
         avisarCaixa((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
-    } catch (e) { avisarCaixa(e.message); }
+      if (entregues.length) {
+        p.poder = R.poder(p);
+        await C.salvarPersonagem(p);   // grava o personagem com os prêmios...
+        for (var k = 0; k < entregues.length; k++) await C.grupo.resgatar(p.id, entregues[k]).catch(function () {});   // ...e só então marca
+      }
+    } catch (e) { if (!e.conflito) avisarCaixa(e.message); }
     estado.resgatando = false;
     if (g && lista === g.recompensas) g.recompensas = [];
     if (!estado.luta && !estado.batalha && !estado.resultado && !estado.chefeAviso) telaJogo();

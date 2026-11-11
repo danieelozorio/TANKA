@@ -646,3 +646,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Leilão: item que a classe não usa (Henri, nov/2026)
 - `abaLeilao`: com `R.podeUsar(p, item)` falso, o nome do lote ganha um ✖ vermelho e a linha "Sua classe não usa este
   item" (igual ao Mercado). Pacotes de pergaminho nunca mostram.
+
+## Entrega segura dos prêmios (Henri, nov/2026)
+- Bug: `resgatarRecompensas` chamava `recompensa_resgatar` (marca no servidor) ANTES de gravar o personagem. Se a gravação
+  falhava (conflito "jogado em outra aba"), o jogo recarregava sem o item e o prêmio já estava marcado: sumia (caso do
+  anel lendário do Aladin no leilão, 11/11).
+- Agora: aplica o prêmio usando `rec.item` (o mesmo que o servidor devolveria), guarda o id em `p.recebidas` (últimos
+  200), grava (`await C.salvarPersonagem`) e só então marca no servidor. Gravação falhou = o prêmio volta na próxima
+  vez; marcação falhou = `p.recebidas` impede entrega dupla.
