@@ -623,3 +623,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Pergaminho da masmorra 90% (Henri, nov/2026)
 - `D.MASMORRA.pergaminho` = 90 (antes 50). O servidor (`masmorra_concluir`) agora lê a chance de
   `tanka_dados() -> MASMORRA -> pergaminho` (antes era 0.5 fixo no SQL): mudar só em dados.js e rodar gerar_dados_sql.
+
+## Leilão: item que a classe não usa (Henri, nov/2026)
+- `abaLeilao`: com `R.podeUsar(p, item)` falso, o nome do lote ganha um ✖ vermelho e a linha "Sua classe não usa este
+  item" (igual ao Mercado). Pacotes de pergaminho nunca mostram.
