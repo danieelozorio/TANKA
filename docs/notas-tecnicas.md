@@ -590,6 +590,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   não mudaram). 3º: urso 14–23, troll 15–20, gárgula 58–78, espectro 100–138, múmia 163–220, cavaleiro dracônico 261–351,
   elemental 450–610. Chefes: Velgrath 17–21, Morgath 17–19, Guardião 86–115, Faraó 143–193, Ignaroth 612–825.
 
+- **Caçada: poção e exp (Daniel, nov/2026).** Na caçada pelo servidor a luta já vem pronta (`b.replay`), então não dá para
+  beber poção na mão: o botão (`pocaoAutoBtn`, ação `pocao-auto`) troca a poção automática (desligada → 10% → 5%, mesma
+  `prefsCacada().pocao` das opções), que vale a partir da próxima luta. Botão menor (`.btn.cacada-pocao`). A exp continua
+  sendo aplicada pelo servidor no começo da luta, mas a barra da caçada mostra o herói de antes (`b.replay.antes`) até a
+  luta acabar. Barra fina de exp com o número (`.exp-fina > b`, 14px).
+
 ## Exp dos monstros (Henri, nov/2026)
 - `D.MONSTRO.expMonstros` = [1, 2.5, 5]: exp do 1º, 2º e 3º monstro = `base.exp` da área x isso (antes 1, 2, 4).
   Floresta 2/5/10, Pântano 10/25/50, Ruínas 30/75/150, Torre 90/225/450, Areias 270/675/1350, Vale 800/2000/4000,

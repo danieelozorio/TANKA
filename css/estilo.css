@@ -453,6 +453,10 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .secao.pocoes { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
 .icone-pocao { width: 1.25em; height: 1.25em; vertical-align: -.23em; }
 .btn-pocao { width: 100%; max-width: 240px; }
+/* Botão de poção da caçada: pequeno (antes ocupava a largura toda). */
+.btn.cacada-pocao, .lutador .btn.btn-pocao { width: auto; padding: .3em .7em; font-size: .78rem; gap: .3em; }
+.cacada-pocao .icone-pocao, .lutador .btn-pocao .icone-pocao { width: 1.1em; height: 1.1em; }
+.cacada-pocao.ligada { border-color: #c9a24a; color: #f4d499; }
 .registro .cura { color: #8fe0a0; }
 .carregando { text-align: center; padding: 4rem 1rem; color: var(--suave); font-family: var(--titulo); }
 
@@ -1231,7 +1235,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .cacada-opcoes label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; color: inherit; }
 .cacada-opcoes input[type="checkbox"] { width: auto; margin: 0; accent-color: #c9a24a; }
 .cacada-opcoes select { padding: .25em .4em; border: 1px solid var(--borda); border-radius: 6px; background: #0d1118; color: var(--texto); font: inherit; }
-.exp-fina { height: 4px; margin: 3px 0 .3rem; border-radius: 3px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.exp-fina { position: relative; height: 14px; margin: 3px 0 .3rem; border-radius: 4px; background: rgba(0, 0, 0, .55); overflow: hidden; }
+.exp-fina > b { position: absolute; inset: 0; font-size: .68rem; line-height: 14px; text-align: center; color: #fff; font-weight: 600; text-shadow: 0 1px 2px #000; white-space: nowrap; }
 .vit-fina { height: 3px; margin: -1px 0 .3rem; border-radius: 3px; background: rgba(0, 0, 0, .55); overflow: hidden; }
 .vit-fina > i { display: block; height: 100%; background: #8a8f98; opacity: .65; transition: width .4s ease; }
 .barra.vitalidade > i { background: linear-gradient(90deg, #5d626b, #7d828b); opacity: .75; box-shadow: none; }

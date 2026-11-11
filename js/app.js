@@ -2964,6 +2964,15 @@
     return '<div class="barra poder' + (b.jogador.poder >= D.PODER.maximo ? ' cheia' : '') + '"><i style="width:' + b.jogador.poder + '%"></i><b>Poder ' + b.jogador.poder + '</b></div>';
   }
 
+  // Caçada decidida no servidor: a luta já vem pronta, então não dá para beber na mão. O botão troca a poção
+  // automática (desligada → abaixo de 10% → abaixo de 5%), que vale a partir da próxima luta.
+  function pocaoAutoBtn(b) {
+    var v = prefsCacada().pocao || 0;
+    var titulo = 'Poção automática: ' + (v ? 'bebe sozinho abaixo de ' + v + '% da vida' : 'desligada')
+      + '. Toque para mudar (vale a partir da próxima luta).';
+    return '<button class="btn cacada-pocao' + (v ? ' ligada' : '') + '" data-acao="pocao-auto" title="' + titulo + '" aria-label="' + titulo + '">'
+      + ICONE_POCAO + ' ' + b.pocoes + ' · ' + (v ? 'auto ' + v + '%' : 'auto off') + '</button>';
+  }
   var ICONE_POCAO = '<svg class="icone-pocao" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
     + '<path d="M9 5V9C5.5 10.5 4 13 4 16a8 6 0 0 0 16 0c0-3-1.5-5.5-5-7V5Z" fill="#302026" stroke="#d5aa76" stroke-width="1.3"/>'
     + '<path d="M5.5 15c4 1.5 8-2 13-.5 1 4-2.5 6-6.5 6s-7-2-6.5-5.5Z" fill="#b83e48"/>'
@@ -2983,12 +2992,14 @@
           + '<span class="cacada-habilidade-simbolo" aria-hidden="true">✦</span>' + iconeHab(def)
           + '<small aria-hidden="true">' + (recarga || '✓') + '</small></span>';
       }).join('');
-      var podeBeber = !b.replay && !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
+      if (b.replay) return '<div class="cacada-acoes">' + habilidades + pocaoAutoBtn(b) + '</div>';
+      var podeBeber = !b.pocaoPendente && b.pocoes > 0 && b.jogador.hp < b.jogador.hpMax;
       return '<div class="cacada-acoes">' + habilidades
         + '<button class="btn cacada-pocao" data-acao="beber-pocao" title="Beber poção"'
         + (podeBeber ? '' : ' disabled') + '>' + ICONE_POCAO + ' Poção (' + b.pocoes + ')'
         + (b.pocaoPendente ? '…' : '') + '</button></div>';
     }
+    if (b.replay) return pocaoAutoBtn(b);
     var cheia = b.jogador.poder >= D.PODER.maximo;
     var nome = D.habilidades[b.classe].nome;
     var botao = b.habilidadePendente
@@ -3543,8 +3554,9 @@
       c.servProximo = r.proximo || null;
       c.servBusca = r.busca;
       c.servDiferenca = r.diferenca;
-      var b = R.iniciarBatalha(R.normalizar(antes), r.monstroId);
-      b.replay = { eventos: r.eventos || [], i: 0, res: r.res, extras: r.extras || {}, parou: r.parou };
+      antes = R.normalizar(antes);
+      var b = R.iniciarBatalha(antes, r.monstroId);
+      b.replay = { eventos: r.eventos || [], i: 0, res: r.res, extras: r.extras || {}, parou: r.parou, antes: antes };
       c.fase = 'lutando';
       estado.escolhido = r.normal;
       estado.batalha = b;
@@ -3594,8 +3606,9 @@
     var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
     var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
     var texto = maximo ? 'Level máximo' : 'Experiência: ' + p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR') + ' (' + Math.floor(pct) + '%)';
+    var numero = maximo ? 'Level máximo' : '✦ ' + p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR') + ' (' + Math.floor(pct) + '%)';
     return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
-      + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>';
+      + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i><b>' + numero + '</b></div>';
   }
   // Opções da caçada em botões de toque (antes eram listas que se fechavam sozinhas no celular a cada monstro achado).
   function opcoesCacadaHtml() {
@@ -3623,7 +3636,7 @@
     var emLuta = c.fase === 'lutando' && b;
     var hpJ = emLuta ? b.jogador.hp : p.hpAtual, hpMaxJ = emLuta ? b.jogador.hpMax : s.hpMax;
     var jogador = '<div class="lutador" id="lutador-jogador"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><h3>' + esc(p.nome) + '</h3>'
-      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + estaminaFinaHtml(p) + expFinaHtml(p) + vitFinaHtml(p)
+      + '<div id="hp-jogador">' + barra('hp', hpJ, hpMaxJ, hpJ + ' / ' + hpMaxJ, 'jogador') + '</div>' + estaminaFinaHtml(p) + expFinaHtml(emLuta && b.replay && b.replay.antes || p) + vitFinaHtml(p)
       + (emLuta ? '<div id="controle-habilidade">' + controleHabilidade(b) + '</div>' : '') + '</div>';
     var direita;
     if (c.fase === 'buscando' || c.fase === 'pausa') {
@@ -4380,6 +4393,16 @@
         var re = R.comprarPoteEstamina(p, C.agora());
         if (re === true) { salvar(); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
         telaJogo();
+        break;
+      }
+      case 'pocao-auto': {
+        var prefP = prefsCacada(), ops = [0].concat(D.CACADA.pocaoAuto);
+        prefP.pocao = ops[(ops.indexOf(prefP.pocao || 0) + 1) % ops.length];
+        salvar();
+        avisar(prefP.pocao ? 'Poção automática: abaixo de ' + prefP.pocao + '% da vida (a partir da próxima luta).' : 'Poção automática desligada.');
+        if (estado.batalha && document.getElementById('controle-habilidade')) document.getElementById('controle-habilidade').innerHTML = controleHabilidade(estado.batalha);
+        var blocoP = document.querySelector('.cacada-opcoes');
+        if (blocoP) { var tmpP = document.createElement('div'); tmpP.innerHTML = opcoesCacadaHtml(); blocoP.replaceWith(tmpP.firstChild); }
         break;
       }
       case 'beber-pocao':
