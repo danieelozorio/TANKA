@@ -571,6 +571,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`D.monstros[id].ataqueCacada`, em `b.ataque`); o `dano` antigo (`ataque`) continua valendo na masmorra, no boss do clã
   e no Chefe Mundial. Calibrado com `node ferramentas/simular_cacada.js`: herói típico da área perde ~60% da vida no 3º
   monstro e o forte ~55% no chefe; 1º e 2º são seguros; o típico precisa de poção para o chefe.
+- 11/11/2026: o 3º monstro de Torre, Areias, Vale e Cume estava forte demais (típico vencia 21–63%; a Múmia batia mais
+  que o Faraó). `danoCacada` baixado para o típico vencer ~88% como nas 3 primeiras áreas: Espectro 70–97, Múmia 114–154,
+  Cavaleiro Dracônico 224–301, Elemental 379–513. Ao recalibrar, mirar a % de vitórias do 3º, não só a vida perdida.
 - `concluirBatalha`: toda luta gasta `R.custoEstamina(monstro)` (vitória, derrota, fuga); derrota = perde a estamina da
   luta e 5% da exp (não fica mais sem vida). `servidor-cacada.js`: só sorteia monstro (e chefe) que a estamina paga;
   sem estamina a caçada para.
