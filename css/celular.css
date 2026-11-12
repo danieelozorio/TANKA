@@ -215,3 +215,37 @@ html[data-celular] .cacada-busca.parada .botoes .btn { min-height: 2.8rem; }
 html[data-celular] .jogo:has(.cacada-busca.parada) { padding-bottom: 4.4rem; }
 html[data-celular] .jogo:has(.cacada-escolha) > section.caixa { padding-bottom: 7.5rem; }
 html[data-celular] .monstro.chefe .corpo > p { font-size: .82rem; }
+
+/* ---- Masmorra ---- */
+/* grupo: as 3 vagas lado a lado, com retrato */
+html[data-celular] .mas-vagas { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: .4rem; }
+html[data-celular] .mas-vaga { padding: .45rem .3rem; gap: .2rem; font-size: .8rem; }
+html[data-celular] .mas-vaga .moldura { width: 100%; max-width: 5.2rem; }
+html[data-celular] .mas-vaga .suave.pequeno { font-size: .68rem; line-height: 1.2; }
+html[data-celular] .mas-vaga.vazia { min-height: 8rem; }
+html[data-celular] .mas-vaga .btn { min-height: 2rem; font-size: .72rem; padding-inline: .4rem; }
+html[data-celular] .entradas-masmorra { display: flex; justify-content: space-between; align-items: center; }
+html[data-celular] .mas-vagas + .botoes { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+html[data-celular] .mas-vagas + .botoes .btn { min-height: 2.8rem; }
+html[data-celular] .mas-vagas + .botoes [data-acao="grupo-sair"] { grid-column: 1 / -1; min-height: 2.3rem; }
+/* lista de masmorras: cartão mais baixo; botões largos */
+html[data-celular] .mas-card { gap: .2rem; padding: .55rem .65rem; }
+html[data-celular] .mas-card .suave.pequeno { font-size: .74rem; }
+html[data-celular] .mas-card .btn { width: 100%; min-height: 2.5rem; margin-top: .25rem; }
+html[data-celular] .mas-card.bloqueada .suave.pequeno, html[data-celular] .mas-card.bloqueada .pequeno:not(.suave) { display: none; }
+/* luta: heróis em cima, monstros embaixo, cada lado em linha de 3 */
+html[data-celular] .mas-arena { grid-template-columns: 1fr !important; gap: .35rem; }
+html[data-celular] .mas-arena > .vs { text-align: center; font-size: .9rem; margin: -.1rem 0; }
+html[data-celular] .mas-grupo { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: .35rem; }
+html[data-celular] .mas-lutador { grid-template-columns: 1fr !important; grid-template-rows: auto !important; justify-items: center; text-align: center; gap: .2rem; }
+html[data-celular] .mas-lutador .moldura { width: 100%; max-width: 6rem; aspect-ratio: 5 / 6; overflow: hidden; border-radius: 6px; }
+html[data-celular] .mas-lutador .mas-nome { font-size: .74rem; line-height: 1.15; }
+html[data-celular] .mas-lutador .barra { width: 100%; }
+html[data-celular] .mas-lutador .barra b { font-size: .6rem; }
+html[data-celular] .mas-arena + #registro, html[data-celular] .jogo .mas-arena ~ .registro { max-height: 8.5rem; overflow-y: auto; font-size: .8rem; }
+/* "Acelerar" na barra fixa de baixo (na luta a barra de abas não aparece) */
+html[data-celular] .mas-arena ~ .botoes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; margin: 0; padding: .45rem .6rem calc(.45rem + env(safe-area-inset-bottom));
+  background: linear-gradient(rgba(10, 9, 8, .85), #0a0908); border-top: 1px solid #4a3f33; }
+html[data-celular] .mas-arena ~ .botoes .btn { width: 100%; min-height: 2.8rem; }
+html[data-celular] .jogo:has(.mas-arena) > section.caixa { padding-bottom: 4.6rem; }
+html[data-celular] .resultado .botoes .btn { min-height: 2.8rem; flex: 1; }

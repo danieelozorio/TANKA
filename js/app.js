@@ -5505,9 +5505,9 @@
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
     var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
-    var html = '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
+    var html = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
       + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias, e tem ' + M.pergaminho
-      + '% de chance de ganhar um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>'
+      + '% de chance de ganhar um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>' + (CELULAR ? '</details>' : '')
       + '<div class="secao ouro entradas-masmorra"><span>Entradas hoje</span><strong>' + restam + '/' + M.entradasPorDia + '</strong></div>';
     if (g.convites.length) html += '<h3 class="subtitulo">Convites para grupo</h3><div class="itens">' + g.convites.map(function (c) {
       return '<div class="item"><div><strong>' + esc(c.de) + '</strong> convidou você <span class="suave">(' + c.membros + '/3 no grupo)</span></div>'

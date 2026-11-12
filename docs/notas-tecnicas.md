@@ -713,4 +713,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ouro, vida, dano) e a ficha completa em `.monstro-detalhes` ("Ver detalhes"). "Iniciar caçada" (`.cacada-escolha`)
   fixo logo acima da barra de baixo. Na luta o topo não gruda mais; registro mais baixo. Fim da caçada: "Continuar" e
   "Voltar à região" na barra fixa de baixo.
+- **Masmorra no celular:** explicação numa gaveta; as 3 vagas do grupo lado a lado com retrato; "Estou pronto" e
+  "Entrar" grandes; masmorras bloqueadas sem os detalhes. Luta: heróis em cima e monstros embaixo, 3 por linha, e
+  "Acelerar" na barra fixa de baixo (só CSS, em `css/celular.css`).
 
