@@ -1030,6 +1030,7 @@ Tanka.regras = (function () {
     });
     if (!p.presencaChefe) p.presencaChefe = {};
     if (typeof p.pocoes !== 'number') { p.pocoes = D.VIDA.pocoesPorDia; p.ultimoReset = null; p.vidaEm = null; p.acampado = false; }
+    if (D.ESTAMINA.acampar === false) p.acampado = false;   // acampar desligado
     estamina(p);
     p.inventario.forEach(function (i) { if (i.bonus && i.bonus.regen) delete i.bonus.regen; });   // anel: a regeneração saiu (nov/2026)
     if (p.abates.grakk) { p.abates.velgrath = (p.abates.velgrath || 0) + p.abates.grakk; delete p.abates.grakk; } // chefe renomeado
@@ -1370,7 +1371,7 @@ Tanka.regras = (function () {
 
   function acampar(p, agora, sim) {
     atualizarTempo(p, agora);
-    p.acampado = !!sim;
+    p.acampado = !!sim && D.ESTAMINA.acampar !== false;
   }
 
   // Tem estamina para caçar pelo menos um destes monstros? (sem lista: pelo menos 1 ponto)

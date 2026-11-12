@@ -681,3 +681,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   App: aba escondida/app no fundo = `cacadaParaFundo` (para os timers); ao voltar (`visibilitychange`) ou ao entrar no
   jogo com `cacadaAuto`, `retomarCacada` pede o `retomar`, avisa o resumo ("Enquanto você esteve fora…") e continua a
   caçada na tela (troca o objeto `estado.cacada` para respostas atrasadas não mexerem). Testes: cacada_servidor.test.ts.
+- Acampar desligado (Henri, 11/11/2026, noite): `ESTAMINA.acampar: false`, `minutosSemAcampar: 120` (enche sozinha em 2 h).
+  Sem botão Acampar; `R.acampar` não acampa e `normalizar` tira o `p.acampado` antigo. Para religar: `acampar: true` e
+  acertar `minutosSemAcampar`/`minutosAcampado`.

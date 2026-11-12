@@ -495,10 +495,11 @@ Tanka.dados = {
   // Reset diário à meia-noite de Brasília (UTC-3): vida cheia e as poções do dia voltam.
   VIDA: { regenPorMinuto: 2, acampamento: 3, pocoesPorDia: 2, fusoReset: -3 },
   // Estamina (Daniel/Henri, nov/2026): o que limita a caçada. Barra igual para todos; cada luta gasta pelo monstro
-  // (1º, 2º, 3º da área e chefe). Acampado enche em minutosAcampado; sem acampar (minutosSemAcampar = 0) não recupera; à meia-noite enche.
+  // (1º, 2º, 3º da área e chefe). Enche sozinha em minutosSemAcampar (0 = não recupera); acampado em minutosAcampado;
+  // à meia-noite enche. acampar: false desliga o botão Acampar (Henri, 11/11/2026; para religar: true e acertar os minutos).
   // A vida do herói começa cheia em toda luta (o dano dos monstros na caçada é o `danoCacada` de cada um).
   // pote: comprado com reputação (precos = 1º e 2º do dia), enche +240 (pode passar do máximo).
-  ESTAMINA: { maximo: 240, minutosAcampado: 120, minutosSemAcampar: 0, custo: [1, 2, 3], custoChefe: 5,
+  ESTAMINA: { maximo: 240, acampar: false, minutosAcampado: 120, minutosSemAcampar: 120, custo: [1, 2, 3], custoChefe: 5,
     pote: { enche: 240, precos: [40, 60] } },
   // Poção de vida: 2 de graça por dia (VIDA.pocoesPorDia); mais, só comprando com ouro (preço pelo level).
   // Guarda no máximo `maximo` (VIP: maximoVip). Só vale na caçada (Arena, masmorra e Chefe Mundial não usam).

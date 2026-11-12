@@ -515,7 +515,8 @@
   function textoEstamina(p) {
     var E = D.ESTAMINA;
     return 'Cada luta da caçada gasta estamina: ' + E.custo.join(', ') + ' (1º, 2º e 3º monstro da área) e ' + E.custoChefe
-      + ' o chefe. ' + (E.minutosSemAcampar > 0 ? 'Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min'
+      + ' o chefe. ' + (E.acampar === false ? 'Enche sozinha em ' + (E.minutosSemAcampar / 60) + ' h'
+        : E.minutosSemAcampar > 0 ? 'Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min'
         : 'Só recupera acampado (enche em ' + (E.minutosAcampado / 60) + ' h)') + ', e fica cheia à meia-noite. '
       + 'Potes de estamina no Mercado (reputação).';
   }
@@ -533,8 +534,8 @@
     var min = R.minutosParaEstaminaCheia(p), cheia = R.estamina(p).pts >= D.ESTAMINA.maximo;
     var texto = emBatalha ? 'Em batalha: a estamina não volta.'
       : min === null ? 'Sem acampar a estamina não volta (só à meia-noite).'
-      : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado ? ' (acampado)' : '') : 'Estamina cheia';
-    var acampar = p.acampado
+      : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado && D.ESTAMINA.acampar !== false ? ' (acampado)' : '') : 'Estamina cheia';
+    var acampar = D.ESTAMINA.acampar === false ? '' : p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
       : '<button class="btn secundario largo" data-acao="acampar"' + (emBatalha || cheia ? ' disabled' : '') + '>Acampar (recupera a estamina)</button>';
     return '<div class="suave pequeno vida-tempo">' + texto + '</div>' + acampar;
