@@ -49,7 +49,7 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
    - `git checkout main && git merge --ff-only origin/main && git merge --ff-only trabalho-local && git push origin main && git checkout trabalho-local`
 5. A cada mudança de JS/CSS, subir o `?v=N` em `jogar/index.html` e em `ferramentas/artifact.html` (cache do navegador).
    Se os dois mudarem o número ao mesmo tempo, na junção ficar com o maior + 1.
-6. Se mudar `supabase/schema.sql`, avisar que alguém com acesso ao Supabase (Daniel, ou o Henri se for convidado) precisa **rodar o schema de novo** no SQL Editor do Supabase
+6. Se mudar `supabase/schema.sql`, avisar que alguém com acesso ao Supabase (Daniel, ou o Henri se for convidado) precisa **rodar o schema de novo** no SQL Editor do Supabase, no projeto **cwlcdeqvwzpveduzhaol** (o do `js/config.js`; o Daniel tem outro projeto e já rodou lá por engano)
    (o arquivo é idempotente; o aviso de RLS pode ser aceito no botão verde).
 7. Segurança: nunca pedir, guardar ou mandar senha do banco nem a chave `service_role`/`sb_secret`.
    A URL e a chave *publishable* em `js/config.js` são públicas. Acesso ao Supabase é por convite (Team), nunca por senha.
