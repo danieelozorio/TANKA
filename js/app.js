@@ -894,7 +894,7 @@
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'oficinas'] },
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
-    { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
+    { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
   ];
   var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
@@ -934,7 +934,8 @@
     var prontas = R.missoesProntas(p, C.agora());
     return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
-      + '<span class="casca-nome"><strong>' + esc(p.nome) + '</strong><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
+      + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
+      + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
       + '<i class="casca-exp" title="' + (maximo ? 'Level máximo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
@@ -2824,14 +2825,20 @@
       carregarRanking(tipo);
       r = null;
     }
-    var botoes = [['nivel', 'Level'], ['poder', 'Poder']].map(function (t) {
+    var botoes = [['nivel', 'Level'], ['poder', 'Poder'], ['clas', 'Clãs']].map(function (t) {
       return '<button class="btn mini-opcao' + (t[0] === tipo ? '' : ' secundario') + '" data-acao="ranking-tipo" data-valor="' + t[0] + '">' + t[1] + '</button>';
     }).join('');
     var meus = (estado.conta.personagens || []).map(function (x) { return x.nome.toLowerCase(); });
     var corpo, eu = estado.personagem, possoAtacar = eu && eu.nivel >= 5;
     if (!r) corpo = '<p class="suave">Carregando…</p>';
-    else if (r.erro) corpo = '<p class="menos">' + esc(r.erro) + '</p>';
-    else if (!r.lista.length) corpo = '<p class="suave">Ninguém no ranking ainda.</p>';
+    else if (r.erro) corpo = '<p class="menos">' + esc(r.erro) + '</p>' + (tipo === 'clas' ? '<p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>' : '');
+    else if (!r.lista.length) corpo = '<p class="suave">' + (tipo === 'clas' ? 'Nenhum clã ainda.' : 'Ninguém no ranking ainda.') + '</p>';
+    else if (tipo === 'clas') corpo = rankingClasHtml(r.lista);
+    else if (CELULAR) corpo = '<div class="itens">' + r.lista.map(function (x, i) {   // celular: cartões com retrato, sem tabela
+      var meu = meus.indexOf(String(x.nome).toLowerCase()) >= 0;
+      return linhaRanking(Object.assign({}, x, { posicao: i + 1, id: meu ? eu.id : x.id }), possoAtacar && x.id && x.nivel >= 5 && !meu
+        ? '<button class="btn" data-acao="ranking-atacar" data-id="' + esc(x.id) + '">⚔ Atacar</button>' : '');
+    }).join('') + '</div>';
     else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar ? '<th></th>' : '') + '</tr></thead><tbody>'
       + r.lista.map(function (x, i) {
         var pos = i + 1;
@@ -2846,9 +2853,24 @@
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
       + '<button class="btn secundario mini-opcao" data-acao="ranking-atualizar">Atualizar</button></div>'
-      + '<p class="suave pequeno">Os 100 melhores de ' + D.NOME_JOGO + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
-      + ' Seus personagens aparecem destacados. Contas de administrador não entram.'
-      + (possoAtacar ? ' Em "Atacar" você luta com qualquer um da Arena (level 5+): gasta 1 entrada e não muda a posição.' : '') + '</p>' + corpo;
+      + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<p class="suave pequeno">' + (tipo === 'clas' ? 'Os 50 melhores clãs por level do clã (empate: exp do clã e o poder somado dos membros).'
+        : 'Os 100 melhores de ' + D.NOME_JOGO + (tipo === 'nivel' ? ' por level (empate: quem tem mais exp).' : ' por poder, a força calculada pelos status e equipamentos.')
+        + ' Seus personagens aparecem destacados. Contas de administrador não entram.'
+        + (possoAtacar ? ' Em "Atacar" você luta com qualquer um da Arena (level 5+): gasta 1 entrada e não muda a posição.' : '')) + '</p>'
+      + (CELULAR ? '</details>' : '') + corpo;
+  }
+  // Ranking dos clãs: brasão, sigla e nome, level, membros, poder somado e líder. O meu clã fica destacado.
+  function rankingClasHtml(lista) {
+    var meuCla = (aliancaAtual() || {}).alianca;
+    return '<div class="itens">' + lista.map(function (x, i) {
+      var meu = meuCla && Number(meuCla.id) === Number(x.id);
+      return '<div class="item arena-linha cla-linha' + (meu ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(i + 1) + '</div>'
+        + '<span class="cla-brasao">' + brasaoSvg(x.brasao || {}) + '</span>'
+        + '<div class="amigo-info"><strong>[' + esc(x.sigla) + '] ' + esc(x.nome) + '</strong><div class="suave pequeno">Lv ' + x.nivel + ' · ' + x.membros
+        + (x.membros === 1 ? ' membro' : ' membros') + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + (x.lider ? ' · 👑 ' + esc(x.lider) : '') + '</div></div>'
+        + '<div class="item-acoes"></div></div>';
+    }).join('') + '</div>';
   }
 
   // ---------------- Social: amigos ----------------
@@ -2999,7 +3021,7 @@
   function carregarRanking(tipo) {
     if (estado.rankingCarregando === tipo) return;
     estado.rankingCarregando = tipo;
-    C.ranking(tipo).then(function (lista) {
+    (tipo === 'clas' ? C.rankingClas() : C.ranking(tipo)).then(function (lista) {
       return { tipo: tipo, lista: lista };
     }, function (e) {
       return { tipo: tipo, erro: 'Não foi possível carregar o ranking: ' + e.message };
@@ -6616,8 +6638,9 @@
     }
     var doado = Number(st.doado_hoje || 0), resta = Math.max(0, AL.doacaoMaxDia - doado);
     html += '<div class="caixa-interna"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
+      + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave pequeno">Cada ouro doado vira exp do clã e conta como sua contribuição. O líder usa o tesouro para comprar as '
-      + '<strong>skills do clã</strong>, que valem para todos os membros para sempre.</p>'
+      + '<strong>skills do clã</strong>, que valem para todos os membros para sempre.</p>' + (CELULAR ? '</details>' : '')
       + '<p class="pequeno">Você doou hoje: <strong>' + doado.toLocaleString('pt-BR') + ' / ' + AL.doacaoMaxDia.toLocaleString('pt-BR') + '</strong> de ouro</p>'
       + (resta ? '<div class="linha-form"><input id="al-doar" type="number" min="' + AL.doacaoMinima + '" max="' + resta + '" step="100" inputmode="numeric" placeholder="Quanto doar (mín. ' + AL.doacaoMinima + ', até ' + resta.toLocaleString('pt-BR') + ')">'
         + '<button class="btn" data-acao="al-doar">Doar ouro</button></div>' : '<p class="suave pequeno">Limite de hoje atingido. Volte amanhã!</p>')
@@ -6648,7 +6671,8 @@
       }
       if (!eu && (chefe || (cargo === 'vice' && (x.cargo === 'oficial' || x.cargo === 'membro')) || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
       var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'vice' ? '🛡️ ' : x.cargo === 'oficial' ? '⭐ ' : '';
-      return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '"><div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
+      return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '">' + (CELULAR && x.raca ? '<span class="arena-retrato">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</span>' : '')
+        + '<div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
         + '<div class="suave pequeno">' + NOME_CARGO[x.cargo] + ' · ' + nomeClasseX(x)
         + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder).toLocaleString('pt-BR') + ' · Contribuição <span class="cor-ouro">' + Number(x.contribuicao).toLocaleString('pt-BR') + '</span></div></div>'
         + '<div class="item-acoes">' + acoes + '</div></div>';

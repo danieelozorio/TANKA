@@ -1114,4 +1114,14 @@ select pg_temp.como('a');
 select pg_temp.igual(public.cacada_bonus('pa') ->> 'exp', '0', 'cacada_bonus: sem clã, sem bônus');
 select pg_temp.falha($$select public.cacada_bonus('pb')$$, 'Personagem inválido');
 reset role;
+-- Ranking dos clãs: o clã de level maior vem primeiro; conta membros e soma o poder
+insert into public.aliancas (nome, sigla, nivel, exp) values ('Teste Alto', 'TALT', 9, 0), ('Teste Baixo', 'TBXO', 1, 0);
+insert into public.alianca_membros (personagem_id, alianca_id, cargo) select 'pa', id, 'lider' from public.aliancas where sigla = 'TBXO'
+  on conflict (personagem_id) do nothing;
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual((select sigla from public.ranking_clas() limit 1), 'TALT', 'ranking_clas: level maior primeiro');
+select pg_temp.igual((select (membros >= 1)::text from public.ranking_clas() where sigla = 'TBXO'), 'true', 'ranking_clas: conta os membros');
+reset role;
+delete from public.aliancas where sigla in ('TALT', 'TBXO');
 \echo TODOS OS TESTES DO BANCO PASSARAM

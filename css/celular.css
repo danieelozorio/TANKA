@@ -157,3 +157,31 @@ html[data-celular] .itens > .item.item-com-icone { display: flex !important; fle
 html[data-celular] .itens > .item.item-com-icone > .item-texto { flex: 1 1 10rem; min-width: 0; }
 html[data-celular] .itens > .item.item-com-icone > .item-acoes { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .4rem; }
 html[data-celular] .itens > .item.item-com-icone > .item-acoes > * { flex: 1 1 auto; }
+
+/* ---- Social ---- */
+html[data-celular] .casca-linha-nome { display: flex; align-items: baseline; gap: .4rem; min-width: 0; }
+html[data-celular] .casca-poder { flex: none; font-size: .78rem; color: #f2c94c; font-weight: 700; white-space: nowrap; }
+html[data-celular] .cla-brasao { width: 2.6rem; height: 2.9rem; flex: none; display: grid; place-items: center; }
+html[data-celular] .cla-brasao svg { width: 100%; height: 100%; }
+html[data-celular] .ranking-topo { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+html[data-celular] .ranking-topo .botoes { display: flex; gap: .3rem; flex: 1; }
+html[data-celular] .ranking-topo .botoes .btn { flex: 1; }
+html[data-celular] .ranking-topo .botoes .btn, html[data-celular] .ranking-topo > .btn { white-space: nowrap; padding-inline: .55rem; }
+/* Clã: topo com brasão, vistas deslizando de lado, membros com retrato, formulários numa linha */
+html[data-celular] .alianca-topo { display: flex; flex-wrap: wrap; align-items: center; gap: .7rem; }
+html[data-celular] .alianca-topo .alianca-titulo { flex: 1; min-width: 12rem; }
+html[data-celular] .alianca-topo h2 { font-size: 1.25rem; margin: 0 0 .2rem; }
+html[data-celular] .alianca-vistas { display: flex; flex-wrap: nowrap; gap: .3rem; overflow-x: auto; scrollbar-width: none; margin: .5rem 0; }
+html[data-celular] .alianca-vistas::-webkit-scrollbar { display: none; }
+html[data-celular] .alianca-vistas .btn { flex: 0 0 auto; border-radius: 999px; }
+html[data-celular] .itens > .alianca-membro { display: flex !important; flex-wrap: wrap; align-items: center; gap: .55rem; text-align: left; }
+html[data-celular] .alianca-membro > .item-texto { flex: 1 1 10rem; min-width: 0; }
+html[data-celular] .alianca-membro > .item-acoes:not(:empty) { flex-basis: 100%; display: flex; flex-wrap: wrap; gap: .35rem; }
+html[data-celular] .alianca-membro.meu .arena-retrato { border-color: #c9a24a; }
+html[data-celular] .linha-form { display: flex; gap: .4rem; }
+html[data-celular] .linha-form input { flex: 1; min-width: 0; min-height: 2.6rem; }
+html[data-celular] .itens > .alianca-membro { flex-direction: row !important; text-align: left !important; justify-content: flex-start; }
+html[data-celular] .alianca-membro > .item-texto { text-align: left; }
+html[data-celular] .alianca-topo > :first-child:not(.alianca-titulo) { width: 4.5rem; height: 5.2rem; flex: none; }
+html[data-celular] .alianca-topo > :first-child:not(.alianca-titulo) svg { width: 100%; height: 100%; }
+html[data-celular] .alianca-topo > .btn { flex-basis: 100%; }

@@ -242,6 +242,7 @@ Tanka.contas = (function () {
     mercado: mercado,
     amigos: amigos,
     ranking: ranking,
+    rankingClas: function () { return Promise.resolve([]); },   // clãs só existem no servidor
     chat: chat,
     privado: { listar: privadoSoServidor, enviar: privadoSoServidor },
     iniciar: async function () { return contaAtual(); },

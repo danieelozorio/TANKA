@@ -704,4 +704,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   desafiar") ficam numa gaveta `.regras-celular` ("ⓘ Como funciona"). Arena: retrato em cada linha (`.arena-retrato`,
   raça/sexo/2ª classe que o `arena_estado` já manda), linhas na horizontal, abas e categorias deslizando de lado.
   Linhas da Loja (`.item-com-icone`) com o botão largo embaixo.
+- **Social (Daniel, nov/2026):** ordem das abas Clã, Ranking, Amigos (no PC também). Ranking com a opção **Clãs**:
+  `public.ranking_clas()` (schema.sql; top 50 por level do clã, empate exp e poder somado; membros e líder), cliente
+  `C.rankingClas`, tela `rankingClasHtml` (brasão `.cla-brasao`, meu clã destacado). No celular o ranking de jogadores
+  vira cartões com retrato (`linhaRanking`). `alianca_estado` manda `raca` dos membros (retrato no celular). Topo da
+  casca mostra o Poder ao lado do nome (`.casca-poder`). Teste no banco.test.sql ("ranking_clas").
 

@@ -331,6 +331,23 @@ $$;
 revoke execute on function public.ranking(text) from public, anon;
 grant execute on function public.ranking(text) to authenticated;
 
+-- Ranking dos clãs (Daniel, nov/2026): os 50 melhores por level do clã (empate: exp do clã e o poder somado dos membros).
+create or replace function public.ranking_clas() returns table (id bigint, nome text, sigla text, brasao jsonb, nivel int, exp bigint, membros int, poder bigint, lider text)
+language sql stable security definer set search_path = public as $$
+  select a.id, a.nome, a.sigla, a.brasao, a.nivel, a.exp,
+         count(m.personagem_id)::int,
+         coalesce(sum(coalesce((p.dados ->> 'poder')::bigint, 0)), 0)::bigint,
+         max(case when m.cargo = 'lider' then p.nome end)
+  from public.aliancas a
+  left join public.alianca_membros m on m.alianca_id = a.id
+  left join public.personagens p on p.id = m.personagem_id
+  group by a.id
+  order by a.nivel desc, a.exp desc, 8 desc, a.criada_em
+  limit 50;
+$$;
+revoke execute on function public.ranking_clas() from public, anon;
+grant execute on function public.ranking_clas() to authenticated;
+
 -- ---------- Amigos ----------
 -- Amizade entre personagens. A tabela não é lida direto: tudo passa pelas funções abaixo,
 -- que conferem se o personagem "meu" é mesmo da conta logada.
@@ -2271,7 +2288,7 @@ begin
       'bonus_pct', pct, 'bonus_exp_ate', case when a.bonus_exp_ate > now() then a.bonus_exp_ate end,
       'bonus_ouro_ate', case when a.bonus_ouro_ate > now() then a.bonus_ouro_ate end),
     'meu_cargo', m.cargo,
-    'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cargo', x.cargo, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo',
+    'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'cargo', x.cargo, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca',
         'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'poder', coalesce((p.dados ->> 'poder')::bigint, 0),
         'contribuicao', x.contribuicao, 'visto_em', p.atualizado_em)
         order by case x.cargo when 'lider' then 0 when 'vice' then 1 when 'oficial' then 2 else 3 end, x.contribuicao desc, p.nome)

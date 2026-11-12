@@ -305,6 +305,11 @@ Tanka.contas = (function () {
     await sessaoValida();
     return rpc('ranking', { tipo: tipo });
   }
+  // Os 50 melhores clãs (level, exp, poder somado dos membros).
+  async function rankingClas() {
+    await sessaoValida();
+    return rpc('ranking_clas');
+  }
 
   // ---------- Amigos (sempre do ponto de vista do personagem "meu") ----------
   var amigos = {
@@ -432,6 +437,7 @@ Tanka.contas = (function () {
     mercado: mercado,
     amigos: amigos,
     ranking: ranking,
+    rankingClas: rankingClas,
     chat: chat,
     privado: {
       listar: function (meu, alvo) { return chamar('privado_listar', { meu: meu, alvo: alvo }); },
