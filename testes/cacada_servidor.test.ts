@@ -95,7 +95,8 @@ r = await pedir({ acao: 'retomar', personagem: p0.id });
 j = await r.json();
 const lutas2min = j.ausente.lutas;
 ok(lutas2min >= 8 && lutas2min <= 40, 'retomar depois de 2 min: ' + lutas2min + ' lutas, ' + j.ausente.vitorias + ' vitórias');
-ok(banco[p0.id].dados.estamina.pts === est0 - lutas2min, 'a estamina gastou 1 por lobo (' + banco[p0.id].dados.estamina.pts + ')');
+const regen2min = Math.round(2 * Tanka.dados.ESTAMINA.maximo / (Tanka.dados.ESTAMINA.minutosSemAcampar || Infinity));
+ok(Math.abs(banco[p0.id].dados.estamina.pts - (est0 - lutas2min + regen2min)) <= 1, 'a estamina gastou 1 por lobo e voltou sozinha (' + banco[p0.id].dados.estamina.pts + ')');
 ok(banco[p0.id].dados.nivel > niv0 || banco[p0.id].dados.exp > exp0, 'ganhou exp no banco');
 r = await pedir({ acao: 'retomar', personagem: p0.id });
 ok((await r.json()).ausente.lutas === 0, 'retomar de novo na hora: nenhuma luta a mais');
@@ -104,7 +105,7 @@ relogio += 6 * 60 * 60 * 1000;
 r = await pedir({ acao: 'retomar', personagem: p0.id });
 j = await r.json();
 ok(!banco[p0.id].dados.cacadaAuto && j.ausente.parou, 'horas fora: caçou até ' + (j.ausente.derrotas ? 'morrer' : 'acabar a estamina') + ' e desligou (' + j.ausente.lutas + ' lutas, estamina ' + banco[p0.id].dados.estamina.pts + ')');
-ok(j.ausente.lutas + lutas2min <= 240, 'nunca mais lutas do que a estamina paga');
+ok(j.ausente.lutas + lutas2min <= 240 + 6 * 60 * Tanka.dados.ESTAMINA.maximo / (Tanka.dados.ESTAMINA.minutosSemAcampar || Infinity) + regen2min, 'nunca mais lutas do que a estamina paga');
 // parar desliga
 banco[p0.id].dados.estamina.pts = 240;
 relogio += 10000;
