@@ -698,5 +698,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   left/top do `desenharFlutuante`, fundo escurecido). Mochila com 5 por linha; ordenar/filtrar numa gaveta
   (`.mochila-ferramentas`, `estado.mochilaFerramentas`, ação `mochila-ferramentas`) e "Vender vários" ao lado.
   Espaços do equipamento maiores (`--slot`).
-- Próximas telas do celular: Mercado e Arena.
+- **Mercado e Arena no celular:** a Loja foi separada em partes (`mercadoPartes`: jogadores, reino, pocoes, especiais,
+  troca, skins; no PC `mercadoPartesTudo` junta todas como antes); no celular uma parte por vez (`SECOES_LOJA`,
+  `estado.lojaSecao`, ação `loja-secao`). Textos longos de regra (mercado dos jogadores, Leilão, Arena e "quem posso
+  desafiar") ficam numa gaveta `.regras-celular` ("ⓘ Como funciona"). Arena: retrato em cada linha (`.arena-retrato`,
+  raça/sexo/2ª classe que o `arena_estado` já manda), linhas na horizontal, abas e categorias deslizando de lado.
+  Linhas da Loja (`.item-com-icone`) com o botão largo embaixo.
 

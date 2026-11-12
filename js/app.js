@@ -1747,35 +1747,54 @@
       + '<button class="btn" data-acao="recomeco-comprar"' + (falta > 0 ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
+  // Celular: a Loja vira seções (fichas no topo) em vez de uma página comprida.
+  var SECOES_LOJA = [['jogadores', '🤝 Jogadores'], ['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['skins', '🎲 Skins'], ['especiais', '📜 Especiais']];
   function abaMercado() {
     var p = estado.personagem;
+    if (CELULAR) {
+      var sec = estado.lojaSecao || 'jogadores', partes = mercadoPartes(p);
+      return '<div class="loja-secoes">' + SECOES_LOJA.map(function (x) {
+        return '<button class="btn btn-pequeno' + (x[0] === sec ? ' sel' : ' secundario') + '" data-acao="loja-secao" data-valor="' + x[0] + '">' + x[1] + '</button>';
+      }).join('') + '</div>' + '<p class="suave pequeno loja-ouro">' + ICONES.ouro + ' <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + '</strong> · mochila ' + R.mochila(p).length + '/' + D.MOCHILA_MAX + '</p>'
+        + partes[sec] + (sec === 'especiais' ? partes.troca : '');
+    }
+    return mercadoPartesTudo(p);
+  }
+  // A Loja em partes: no computador vão todas juntas; no celular, uma por vez (fichas no topo).
+  function mercadoPartes(p) {
+    var nivelTxt = '<strong>' + Math.max(1, p.nivel - D.ITEM_NIVEL.variacao) + ' e ' + Math.min(D.ITEM_NIVEL.maximo, p.nivel + D.ITEM_NIVEL.variacao) + '</strong>';
+    return {
+      jogadores: '<h3 class="subtitulo">Itens dos jogadores</h3><div id="mercado-jogadores">' + mercadoJogadoresHtml() + '</div>',
+      reino: '<p class="suave pequeno">Cada compra vem com nível sorteado entre ' + nivelTxt
+        + ' (o seu level ±' + D.ITEM_NIVEL.variacao + ') e qualidade <span class="raridade-comum">Comum</span> ou <span class="raridade-rara">Rara</span>. '
+        + 'Itens Épicos e Lendários só caem dos monstros (ou de outros jogadores).</p>'
+        + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3><div class="itens">'
+        + R.armasPermitidas(p).map(function (a) { return linhaMercadoNivel({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: 'rara', encanto: 0 }, a); }).join('') + '</div>'
+        + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).map(function (m) {
+          return linhaMercadoNivel({ tipo: 'secundaria', classe: null, mao: m, raridade: 'rara', encanto: 0 }, m);
+        }).join('') + '</div>' : '')
+        + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
+        + R.TIPOS_ARMADURA.map(function (tipo) { return linhaMercadoNivel({ tipo: tipo, classe: p.classe, raridade: 'rara', encanto: 0 }, ''); }).join('') + '</div>',
+      pocoes: '<h3 class="subtitulo">Poções</h3><div class="itens">' + linhaPocaoVida(p) + linhaPoteEstamina(p) + '</div>',
+      especiais: '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>',
+      troca: trocaPergaminhosHtml(p),
+      skins: '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
+        + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
+        + D.SKINS_DADO.map(function (k) {
+          var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
+          var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
+            : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
+            : k.historia ? '<span class="suave pequeno">Prêmio da História</span>'
+            : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
+          return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
+            + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
+        }).join('') + '</div>',
+    };
+  }
+  function mercadoPartesTudo(p) {
+    var x = mercadoPartes(p);
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>'
-      + '<p class="suave pequeno">Cada compra vem com nível sorteado entre <strong>' + Math.max(1, p.nivel - D.ITEM_NIVEL.variacao) + ' e ' + Math.min(D.ITEM_NIVEL.maximo, p.nivel + D.ITEM_NIVEL.variacao)
-      + '</strong> (o seu level ±' + D.ITEM_NIVEL.variacao + ') e qualidade <span class="raridade-comum">Comum</span> ou <span class="raridade-rara">Rara</span>. '
-      + 'Itens Épicos e Lendários só caem dos monstros (ou de outros jogadores, aqui embaixo).</p>'
-      + '<h3 class="subtitulo">Itens dos jogadores</h3><div id="mercado-jogadores">' + mercadoJogadoresHtml() + '</div>'
-      + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3><div class="itens">'
-      + R.armasPermitidas(p).map(function (a) { return linhaMercadoNivel({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: 'rara', encanto: 0 }, a); }).join('') + '</div>'
-      + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).map(function (m) {
-        return linhaMercadoNivel({ tipo: 'secundaria', classe: null, mao: m, raridade: 'rara', encanto: 0 }, m);
-      }).join('') + '</div>' : '')
-      + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
-      + R.TIPOS_ARMADURA.map(function (tipo) { return linhaMercadoNivel({ tipo: tipo, classe: p.classe, raridade: 'rara', encanto: 0 }, ''); }).join('') + '</div>'
-      + '<h3 class="subtitulo">Poções</h3><div class="itens">' + linhaPocaoVida(p) + linhaPoteEstamina(p) + '</div>'
-      + '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>'
-      + '<h3 class="subtitulo">Skins do Dado (Arena)</h3>'
-      + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin.</p><div class="skins">'
-      + D.SKINS_DADO.map(function (k) {
-        var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
-        var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
-          : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
-          : k.historia ? '<span class="suave pequeno">Prêmio da História</span>'
-          : '<button class="btn" data-acao="skin-comprar" data-valor="' + k.id + '"' + (p.ouro < k.preco ? ' disabled' : '') + '>Comprar · ' + k.preco.toLocaleString('pt-BR') + ' de ouro</button>';
-        return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
-          + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.preco ? k.preco.toLocaleString('pt-BR') + ' de ouro' : 'Grátis') + '</span>' + botao + '</div>';
-      }).join('') + '</div>'
-      + trocaPergaminhosHtml(p);
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.jogadores + x.reino + x.pocoes + x.especiais + x.skins + x.troca;
   }
 
   // ---------------- Mercado dos jogadores (Mercado > Loja) ----------------
@@ -1846,8 +1865,8 @@
     if (!r) { carregarMercado(); return '<p class="suave">Carregando os itens dos jogadores…</p>'; }
     if (r.local) return '<p class="suave">O mercado entre jogadores precisa do servidor: jogue pelo site do Eldrin.</p>';
     var taxa = r.cfg.taxa;
-    var h = '<p class="suave">Itens à venda por outros jogadores. Quem vende escolhe o preço e recebe o valor menos '
-      + taxa + '% de taxa do mercado. Anúncios ficam ' + r.cfg.dias + ' dias; se ninguém comprar, o item volta para a mochila.</p>'
+    var h = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Itens à venda por outros jogadores. Quem vende escolhe o preço e recebe o valor menos '
+      + taxa + '% de taxa do mercado. Anúncios ficam ' + r.cfg.dias + ' dias; se ninguém comprar, o item volta para a mochila.</p>' + (CELULAR ? '</details>' : '')
       + '<div class="mercado-filtros">'
       + '<div class="mercado-cats">' + CATEGORIAS_MERCADO.map(function (c) {
         return '<button class="btn secundario btn-pequeno" data-acao="mercado-categoria" data-valor="' + c[0] + '" aria-pressed="' + (f.categoria === c[0]) + '">' + c[1] + '</button>';
@@ -2043,9 +2062,10 @@
     var FX = L.faixas.filter(function (f) { return f.id === r.faixa; })[0] || {};
     var faixaTxt = FX.nivel ? (FX.nivel[1] > 100 ? 'level ' + FX.nivel[0] + '+' : 'level ' + FX.nivel[0] + ' a ' + FX.nivel[1]) : '';
     var topo = '<div class="leilao-topo"><div><h3>⚖ ' + esc(FX.nome || 'Leilão') + ' <span class="suave pequeno">(' + faixaTxt + ')</span></h3>'
+      + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave pequeno">O Reino leiloa 12 lotes por vez. Cada lance novo precisa ser pelo menos ' + L.incrementoPct + '% maior. '
       + 'O ouro do lance sai na hora; se alguém cobrir, ele volta para você. Quem tiver o maior lance no fim leva o item. '
-      + 'Quando acaba, outro leilão começa com itens novos.</p></div>'
+      + 'Quando acaba, outro leilão começa com itens novos.</p>' + (CELULAR ? '</details>' : '') + '</div>'
       + '<div class="leilao-tempo fase-' + r.fase.id + '" title="Tempo que falta (o fim exato é secreto: em Muito curto pode acabar a qualquer momento)">'
       + '<small>Tempo</small><strong>' + esc(r.fase.nome) + '</strong></div></div>'
       + '<div class="leilao-barra"><span>Seu ouro: <strong class="cor-ouro">' + ouroTxt(p.ouro) + '</strong></span>'
@@ -4755,6 +4775,10 @@
         estado.oficinaVista = el.dataset.valor;
         telaJogo();
         break;
+      case 'loja-secao':   // celular: qual parte da Loja aparece
+        estado.lojaSecao = el.dataset.valor;
+        telaJogo();
+        break;
       case 'mochila-ferramentas':   // celular: lembra se a gaveta de ordenar/filtrar está aberta
         estado.mochilaFerramentas = !el.parentNode.open;
         break;
@@ -5955,6 +5979,7 @@
 
   function linhaRanking(x, botao) {
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
+      + (CELULAR && x.raca ? '<span class="arena-retrato">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</span>' : '')
       + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x)
       + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
       + '<div class="item-acoes">' + (botao || '') + '</div></div>';
@@ -5974,15 +5999,16 @@
     var e = ar.entradas;
     html += '<div class="arena-topo"><div class="secao ouro"><span>Entradas</span><strong>' + e.valor + '/' + e.maximo + '</strong></div>'
       + '<div class="secao ouro"><span>🏆 Jackpot</span><strong>' + ar.jackpot.valor.toLocaleString('pt-BR') + '</strong></div></div>'
+      + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave pequeno">Derrote o Top 1 para levar o jackpot. Ele cresce a cada 10 minutos com o mesmo Top 1 e é entregue ao Top 1 às 00:00. '
-      + 'Na Arena só o D20 decide: 1 erra, 18 a 20 são críticos.</p>';
+      + 'Na Arena só o D20 decide: 1 erra, 18 a 20 são críticos.</p>' + (CELULAR ? '</details>' : '');
     html += '<h3 class="subtitulo">Top 5 · ' + esc(nomeArena(ar.arena)) + '</h3><div class="itens">'
       + (ar.top5.length ? ar.top5.map(function (x) { return linhaRanking(x); }).join('') : '<p class="suave">Ninguém nesta arena ainda.</p>') + '</div>';
     if (ar.arena === ar.minha_arena && ar.posicao) {
       var semEntrada = e.valor <= 0;
-      html += '<h3 class="subtitulo">Sua posição: #' + ar.posicao + ' de ' + ar.total + '</h3><p class="suave pequeno">Você pode desafiar os 5 logo acima de você. Vencendo, toma a posição dele e saqueia parte do ouro.'
+      html += '<h3 class="subtitulo">Sua posição: #' + ar.posicao + ' de ' + ar.total + '</h3>' + (CELULAR ? '<details class="regras-celular"><summary>Quem posso desafiar?</summary>' : '') + '<p class="suave pequeno">Você pode desafiar os 5 logo acima de você. Vencendo, toma a posição dele e saqueia parte do ouro.'
         + (ar.posicao < 5 ? ' No Top 5 você também ataca os de baixo até o 5º lugar: não muda a posição, vale o saque e metade da reputação.' : '')
-        + ' Pelo Ranking (Social) dá para atacar jogadores de qualquer arena.</p><div class="itens">'
+        + ' Pelo Ranking (Social) dá para atacar jogadores de qualquer arena.</p>' + (CELULAR ? '</details>' : '') + '<div class="itens">'
         + ar.alvos.map(function (x) {
           if (x.id === p.id) return linhaRanking(x, '<span class="suave pequeno">Você</span>');
           var bloq = semEntrada ? ' disabled title="Sem entradas"' : x.conta_minha ? ' disabled title="Personagem seu"' : '';
