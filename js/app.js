@@ -25,7 +25,10 @@
 
   // Avisos: selos que entram pelo canto e somem sozinhos (não empurram a tela).
   // tipo: '' (aviso), 'vitoria', 'nivel', 'item' ou 'ruim'.
+  // Vibração curta no celular (golpes fortes, level up). Navegadores sem suporte ignoram.
+  function vibrar(padrao) { try { if (navigator.vibrate) navigator.vibrate(padrao); } catch (e) { /* sem vibração */ } }
   function avisar(msg, tipo) {
+    if (tipo === 'nivel' && document.documentElement.hasAttribute('data-celular')) vibrar([40, 60, 90]);
     guardarNotificacao(msg, tipo);
     aviso.hidden = false;
     var selo = document.createElement('div');
@@ -894,6 +897,13 @@
     { id: 'social', nome: 'Social', abas: ['social', 'ranking', 'alianca'] },
   ];
   var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
+  // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
+  var CELULAR = document.documentElement.hasAttribute('data-celular');
+  if (CELULAR) {
+    GRUPOS = GRUPOS.filter(function (g) { return g.id !== 'leilao'; });
+    GRUPOS.filter(function (g) { return g.id === 'mercado'; })[0].abas.push('leilao');
+  }
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -916,6 +926,21 @@
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
   function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
   function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  // Topo da casca do celular: retrato (vai para o Herói), nome, level e exp; chat, missões e menu em ícones
+  // (no lugar dos botões que flutuavam por cima do jogo).
+  function cascaTopoHtml(menu) {
+    var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO;
+    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var prontas = R.missoesProntas(p, C.agora());
+    return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
+      + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
+      + '<span class="casca-nome"><strong>' + esc(p.nome) + '</strong><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
+      + '<i class="casca-exp" title="' + (maximo ? 'Level máximo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
+      + '<div class="casca-icones">'
+      + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
+      + '<button class="casca-ico" data-acao="casca-missoes" aria-label="Missões">📜<span class="casca-selo" id="casca-missoes-selo"' + (prontas ? '' : ' hidden') + '>' + (prontas || '') + '</span></button>'
+      + (menu || '') + '</div></header>';
+  }
   // Zealot no celular: a mesma barra de ícones da Clássica, embaixo da tela (o menu de cima fica só com Trocar/Som/Sair).
   function navBaixoHtml() {
     return navHtml().replace('id="abas-jogo"', 'id="abas-baixo"').replace('class="abas-jogo"', 'class="abas-jogo abas-baixo"');
@@ -2537,6 +2562,8 @@
     if (visivel === false || !p) { missoesUI.el.hidden = true; return; }
     missoesUI.el.hidden = false;
     var agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES, prontas = R.missoesProntas(p, agora);
+    var seloM = document.getElementById('casca-missoes-selo');
+    if (seloM) { seloM.hidden = !prontas; seloM.textContent = prontas || ''; }
     var aba = '<button class="missoes-aba" data-missao="painel" aria-expanded="' + missoesUI.aberto + '" title="Missões">'
       + '<span class="missoes-aba-ico">📜</span><span class="missoes-aba-txt">Missões</span>'
       + (prontas ? '<span class="selo-pedidos">' + prontas + '</span>' : '') + '</button>';
@@ -3163,7 +3190,7 @@
     } else {
       navegacao = navHtml();
       var subAbas = subAbasHtml();
-      if (zealot) abasTopo = subAbas;
+      if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
@@ -3188,7 +3215,8 @@
       }).join('') + '</div>' : '';
     mostrarCenario(false);
     atualizarMusica();
-    app.innerHTML = topo(zealot ? '' : trocar, abasTopo, menuTopo) + recursosHtml() + '<div id="boss-barra">' + bossBarraHtml() + '</div><div class="conteudo"><div class="jogo"'
+    app.innerHTML = (CELULAR ? cascaTopoHtml(menuTopo) : topo(zealot ? '' : trocar, abasTopo, menuTopo)) + recursosHtml()
+      + (CELULAR && navegacao ? '<div class="casca-subabas">' + subAbasHtml() + '</div>' : '') + '<div id="boss-barra">' + bossBarraHtml() + '</div><div class="conteudo"><div class="jogo"'
       + (personagemCompacto ? ' data-personagem-vista="' + vista + '"' : zealot && estado.cacada ? ' data-cacada-compacta' : '')
       + '>' + vistas + fichaHtml()
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
@@ -3260,6 +3288,7 @@
     el.classList.remove('golpeado', 'golpe-forte');
     void el.offsetWidth;
     el.classList.add(forte ? 'golpe-forte' : 'golpeado');
+    if (CELULAR && forte) vibrar(25);
   }
 
   function turno() {
@@ -4135,6 +4164,12 @@
           .then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
         break;
       case 'senha-gerada-fechar': estado.adminSenhaGerada = null; telaJogo(); break;
+      case 'casca-chat':   // casca do celular: o chat abre pelo ícone do topo
+        chat.aberto = true; chat.naoLidas = 0; desenharChat();
+        break;
+      case 'casca-missoes':
+        missoesUI.aberto = !missoesUI.aberto; desenharMissoes(true);
+        break;
       case 'menu-som':
         document.getElementById('menu-jogo').open = false;
         tocarMusica();
@@ -6913,6 +6948,8 @@
   function chatDaAlianca() { var st = aliancaAtual(); return !!(st && st.alianca); }
 
   function desenharChat() {
+    var seloC = document.getElementById('casca-chat-selo');
+    if (seloC) { seloC.hidden = !chat.naoLidas || chat.aberto; seloC.textContent = chat.naoLidas > 99 ? '99+' : chat.naoLidas; }
     if (!chat.aberto) {
       chat.el.innerHTML = '<button class="chat-botao" data-chat="abrir">💬 Chat'
         + (chat.naoLidas ? ' <span class="chat-badge">' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas) + '</span>' : '') + '</button>';
@@ -7152,6 +7189,16 @@
       if (t) t.textContent = !musica.ligada ? 'Música desligada' : musica.atual && !musica.atual.audio.paused ? '♪ ' + musica.atual.nome : '♪ —';
     }
   }
+  // Tela: Automática (celular quando é toque + tela pequena), Celular ou Computador. Guarda e recarrega.
+  function configTelaHtml() {
+    var atual = 'auto';
+    try { atual = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* automática */ }
+    return '<div class="config-faixa"><span>Tela</span><div class="config-interface" role="radiogroup" aria-label="Tela">'
+      + [['auto', 'Automática'], ['celular', 'Celular'], ['pc', 'Computador']].map(function (x) {
+        var ativa = atual === x[0];
+        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-tela="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
+      }).join('') + '</div></div>';
+  }
   function alternarPainel(fechar) {
     if (musica.painel || fechar) {
       if (musica.painel) { musica.painel.remove(); musica.painel = null; }
@@ -7167,14 +7214,21 @@
       + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
       + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
       + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
-      + '<div class="config-faixa"><span>Interface</span><div class="config-interface" role="radiogroup" aria-label="Interface">'
+      + configTelaHtml()
+      + (document.documentElement.hasAttribute('data-celular') ? '' : '<div class="config-faixa"><span>Interface</span><div class="config-interface" role="radiogroup" aria-label="Interface">'
       + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
         var ativa = interfaceAtual() === x[0];
         return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-      }).join('') + '</div></div>'
+      }).join('') + '</div></div>')
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     p.addEventListener('click', function (e) { e.stopPropagation(); });
     // Trocar a interface: guarda neste aparelho e recarrega a página (o tema entra antes de desenhar).
+    p.querySelectorAll('[data-tela]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        guardar('eldrin.tela', b.dataset.tela);
+        setTimeout(function () { location.reload(); }, 150);
+      });
+    });
     p.querySelectorAll('[data-interface]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (b.dataset.interface === interfaceAtual()) return;

@@ -10,10 +10,15 @@
     var m = document.cookie.match(/(?:^|; )eldrin_interface=(\w+)/);   // cookie primeiro (no iPhone o localStorage às vezes
       if (m) t = m[1];                                                  // não grava a tempo antes de recarregar)
       else try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
+    var tela = 'auto';   // casca do celular: ver jogar/index.html
+    try { tela = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* automática */ }
+    var cel = tela === 'celular' || (tela === 'auto' && window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820);
+    if (cel) { t = 'zealot'; document.documentElement.setAttribute('data-celular', ''); }
     document.documentElement.setAttribute('data-interface', t);
     if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=135">');
   })();
 </script>
+<link rel="stylesheet" href="css/celular.css?v=1">
 <main id="app" aria-live="polite"></main>
 <div id="aviso" role="status" hidden></div>
 <script src="js/dados.js?v=181"></script>
@@ -23,4 +28,4 @@
 <script src="js/contas-local.js?v=169"></script>
 <script src="js/retratos.js?v=120"></script>
 <script src="js/dado3d.js?v=121"></script>
-<script src="js/app.js?v=192"></script>
+<script src="js/app.js?v=193"></script>

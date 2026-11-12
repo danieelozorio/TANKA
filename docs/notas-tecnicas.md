@@ -684,3 +684,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Acampar desligado (Henri, 11/11/2026, noite): `ESTAMINA.acampar: false`, `minutosSemAcampar: 90` (enche sozinha em 1h30; era 2 h).
   Sem botão Acampar; `R.acampar` não acampa e `normalizar` tira o `p.acampado` antigo. Para religar: `acampar: true` e
   acertar `minutosSemAcampar`/`minutosAcampado`.
+
+## Casca do celular (Daniel, nov/2026)
+- Ligada no começo de `jogar/index.html` (e `ferramentas/artifact.html`): toque (`pointer: coarse`) + tela de até 820 px,
+  ou escolhido na ⚙ > **Tela** (Automática / Celular / Computador, `localStorage eldrin.tela`). Põe `html[data-celular]`
+  e força o tema Zealot (a opção Interface some no celular). Estilo só em `css/celular.css` (tudo com `html[data-celular]`).
+- `app.js`: `CELULAR`; no celular o Leilão entra no grupo Mercado (barra de baixo com 5). `telaJogo` usa `cascaTopoHtml`
+  (retrato → Herói, nome, Lv, exp; ícones 💬 `casca-chat`, 📜 `casca-missoes` com selos `#casca-chat-selo` /
+  `#casca-missoes-selo`, atualizados em `desenharChat` / `desenharMissoes`; menu com Trocar / Som(⚙) / Sair) e as
+  sub-abas em `.casca-subabas` acima do conteúdo. Chat, missões e ⚙ não flutuam mais (os botões deles somem; abrem
+  pelos ícones). Caçada: Velocidade e Parar numa barra fixa embaixo. Vibração (`vibrar`) em golpe forte e level up.
+- Ideia para as próximas telas do celular: Herói (grade grande + ficha que sobe de baixo), Mercado e Arena.
+

@@ -1,0 +1,85 @@
+/* Casca do celular (Daniel, nov/2026). Só vale com html[data-celular] (ligado no começo de jogar/index.html):
+   toque + tela pequena, ou escolhido na ⚙ > Tela. Fica por cima do tema Zealot. As regras do jogo são as mesmas. */
+
+/* ---- Topo: retrato, nome, level e exp; ícones de chat, missões e menu ---- */
+html[data-celular] #app > .casca-topo {
+  display: flex; align-items: center; gap: .5rem; padding: .4rem .55rem; padding-top: max(.4rem, env(safe-area-inset-top));
+  grid-template-columns: none; min-height: 3.4rem;
+}
+html[data-celular] .casca-eu { display: flex; align-items: center; gap: .55rem; flex: 1; min-width: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+html[data-celular] .casca-retrato { width: 2.7rem; height: 2.7rem; flex: none; border-radius: 50%; overflow: hidden; border: 2px solid #c9a24a; box-shadow: 0 0 8px rgba(201, 162, 74, .35); }
+html[data-celular] .casca-retrato img { width: 100%; height: 100%; object-fit: cover; object-position: center 12%; display: block; }
+html[data-celular] .casca-nome { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+html[data-celular] .casca-nome strong { font-size: 1rem; color: #ffe0a1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-celular] .casca-nome small { font-size: .72rem; opacity: .8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-celular] .casca-exp { display: block; width: 7.5rem; max-width: 100%; height: 4px; margin-top: .2rem; border-radius: 2px; background: rgba(0, 0, 0, .6); overflow: hidden; }
+html[data-celular] .casca-exp b { display: block; height: 100%; background: linear-gradient(90deg, #1f4f86, #7bb6ff); }
+html[data-celular] .casca-icones { display: flex; align-items: center; gap: .35rem; flex: none; }
+html[data-celular] .casca-ico { position: relative; width: 2.5rem; height: 2.5rem; display: grid; place-items: center; font-size: 1.25rem; cursor: pointer;
+  border: 1px solid #5a4528; border-radius: 8px; background: linear-gradient(#2a211a, #120e0b); color: inherit; }
+html[data-celular] .casca-ico:active { transform: scale(.94); }
+html[data-celular] .casca-selo { position: absolute; top: -5px; right: -5px; min-width: 1.15rem; height: 1.15rem; padding: 0 .25rem; border-radius: 999px;
+  background: #c0392b; color: #fff; font-size: .68rem; font-weight: 700; line-height: 1.15rem; text-align: center; }
+html[data-celular] .casca-selo[hidden] { display: none; }
+/* menu: só o ícone (o rótulo "Menu" ocupa espaço) */
+html[data-celular] .casca-topo .menu-jogo > summary { width: 2.5rem; height: 2.5rem; padding: 0; justify-content: center; }
+html[data-celular] .casca-topo .menu-rotulo { display: none; }
+html[data-celular] .casca-topo .menu-jogo-painel { right: 0; left: auto; }
+
+/* ---- Recursos numa linha só, sem os rótulos ---- */
+html[data-celular] .barra-recursos { padding: .25rem .4rem; }
+html[data-celular] .recursos-dentro { flex-wrap: nowrap; justify-content: space-between; gap: .25rem; overflow-x: auto; scrollbar-width: none; }
+html[data-celular] .recursos-dentro::-webkit-scrollbar { display: none; }
+html[data-celular] .recurso { flex: 0 0 auto; gap: .25rem; padding: .15rem .35rem; }
+html[data-celular] .recurso .rec-txt small { display: none; }
+html[data-celular] .recurso strong { font-size: .85rem; }
+html[data-celular] .rec-ico { width: 1.15rem; height: 1.15rem; }
+
+/* ---- Sub-abas: fichas que rolam de lado, logo acima do conteúdo ---- */
+html[data-celular] .casca-subabas { padding: .3rem .4rem 0; }
+html[data-celular] .casca-subabas .sub-abas { display: flex; flex-wrap: nowrap; gap: .3rem; overflow-x: auto; scrollbar-width: none; border: 0; background: none; box-shadow: none; }
+html[data-celular] .casca-subabas .sub-abas::-webkit-scrollbar { display: none; }
+html[data-celular] .casca-subabas .sub-abas button { flex: 0 0 auto; padding: .45rem .8rem; border-radius: 999px; font-size: .85rem;
+  border: 1px solid #4a3f33; background: rgba(10, 9, 8, .8); }
+html[data-celular] .casca-subabas .sub-abas button.ativa { border-color: #c9a24a; background: linear-gradient(#5a2c16, #2a140b); }
+
+/* ---- Barra de baixo: 5 botões grandes, sempre visível ---- */
+html[data-celular] #app > .abas-baixo { display: grid; grid-template-columns: repeat(5, 1fr); position: static; flex-shrink: 0; order: 10;
+  border-radius: 0; border-inline: 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom); }
+html[data-celular] #app > .abas-baixo button { min-height: 3.6rem; font-size: .72rem; gap: .15rem; }
+html[data-celular] #app > .abas-baixo .aba-ico svg { width: 1.6rem; height: 1.6rem; }
+html[data-celular] .menu-jogo .abas-jogo { display: none; }
+
+/* ---- Nada flutuando por cima do jogo: chat, missões e ⚙ abrem pelos ícones do topo ---- */
+html[data-celular] #botao-musica,
+html[data-celular] #chat .chat-botao,
+html[data-celular] #painel-missoes:not(.aberto) { display: none; }
+html[data-celular] #painel-missoes.aberto .missoes-aba { display: none; }
+/* chat e missões abertos: folha que sobe de baixo, em cima da barra */
+html[data-celular] #chat:has(.chat-janela) { left: 0; right: 0; bottom: 0; top: auto; z-index: 30; }
+html[data-celular] #chat .chat-janela { width: 100%; max-width: none; height: 70dvh; border-radius: 14px 14px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+html[data-celular] #painel-missoes.aberto { z-index: 30; }
+html[data-celular] #config-painel { top: 3.8rem; bottom: auto; right: .5rem; left: .5rem; width: auto; z-index: 31; }
+
+/* ---- Toque: botões e alvos maiores ---- */
+html[data-celular] .btn { min-height: 2.6rem; }
+html[data-celular] .btn.btn-pequeno { min-height: 2.25rem; }
+html[data-celular] button, html[data-celular] [data-acao] { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+/* ---- Caçada: luta grande; parar e velocidade fixos embaixo, perto do polegar ---- */
+html[data-celular] .cacada-topo { position: sticky; top: 0; z-index: 5; flex-wrap: wrap; gap: .35rem; padding: .35rem .2rem; background: rgba(10, 9, 8, .92); }
+html[data-celular] .cacada-topo h3 { font-size: .95rem; margin: 0; }
+html[data-celular] .cacada-topo .botoes { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
+html[data-celular] .cacada-topo .botoes .btn { min-height: 2.6rem; font-size: .9rem; }
+html[data-celular] .cacada-arena .lutador .moldura { max-width: min(42vw, 170px); }
+html[data-celular] .cacada-pocao, html[data-celular] .lutador .btn.btn-pocao { min-height: 2.5rem; font-size: .9rem; padding-inline: .9rem; }
+
+/* Caçada: "Velocidade" e "Parar caçada" numa barra fixa embaixo (na caçada a barra de abas não aparece). */
+html[data-celular] .cacada-topo .botoes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; width: auto; margin: 0;
+  padding: .45rem .6rem calc(.45rem + env(safe-area-inset-bottom)); background: linear-gradient(rgba(10, 9, 8, .85), #0a0908); border-top: 1px solid #4a3f33; }
+html[data-celular] .jogo[data-cacada-compacta] { padding-bottom: 4.2rem; }
+html[data-celular] .cacada-topo:not(:has(.botoes .btn)) .botoes { display: none; }
+/* Região: o "← Mapa" não pode virar uma coluna de letras */
+html[data-celular] .regiao-topo { flex-wrap: wrap; }
+html[data-celular] .regiao-topo > [data-acao="mapa"] { flex: none; white-space: nowrap; writing-mode: horizontal-tb; }
+html[data-celular] #config-painel .config-interface .btn { font-size: .8rem; padding-inline: .4rem; }
