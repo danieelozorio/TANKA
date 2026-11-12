@@ -723,4 +723,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   regiões numa fileira que desliza, classes 2 por linha, peças 3 por linha, "Forjar" grudado embaixo (sticky).
   `telaJogo` (celular) centraliza o item escolhido nas fileiras que deslizam (sub-abas, regiões da forja, seções da
   Loja, arenas, partes do clã, categorias do mercado).
+- **Encantar no celular:** pergaminhos em fichinhas com ícone (`.enc-chips`), explicação na gaveta, Proteção como chave
+  grande (`.enc-protecao`), lista `.enc-lista` sem os bônus do item (`.enc-desc` escondido) e botão Encantar à direita.
+  A forja (janela do encanto) já servia no celular.
 

@@ -2174,9 +2174,24 @@
       var equipado = !!R.slotDoItem(p, i.id);
       return '<div class="item item-com-icone' + (equipado ? ' equipado' : '') + '"><div class="icone-pequeno borda-' + corItem(i) + aura(i) + '">' + F.icone(i) + '</div>'
         + '<div class="item-texto"><div>' + nomeItemHtml(i) + (equipado ? ' <span class="suave">(equipado)</span>' : '') + '</div>'
-        + '<div class="suave">' + descricaoItem(i) + ' · ' + info + '</div></div>'
+        + '<div class="suave"><span class="enc-desc">' + descricaoItem(i) + ' · </span>' + info + '</div></div>'
         + '<div class="item-acoes">' + acao + '</div></div>';
     }).join('');
+    if (CELULAR) {   // celular: pergaminhos em fichinhas, explicação numa gaveta, Proteção como chave e itens compactos
+      var chips = Object.keys(D.raridades).map(function (k) {
+        return '<span class="enc-chip borda-' + k + '"><i>' + F.icone(itemConsumivel({ tipo: 'pergaminho', raridade: k })) + '</i><b class="raridade-' + k + '">' + R.qtdPergaminho(p, k) + '</b></span>';
+      }).join('');
+      var protC = Object.keys(D.raridades).filter(function (k) { return R.qtdConsumivel(p, 'protecao', k); }).map(function (k) {
+        return '<span class="raridade-' + k + '">' + D.raridades[k].nome + ' ' + R.qtdConsumivel(p, 'protecao', k) + '</span>';
+      });
+      return aviso + '<div class="enc-topo"><span class="suave pequeno">Pergaminhos</span><div class="enc-chips">' + chips + '</div></div>'
+        + '<details class="regras-celular"><summary>Como funciona</summary><p class="suave pequeno">Consiga pergaminhos nas caçadas (o 3º monstro de cada área dá mais), nas masmorras e nas missões. '
+        + 'Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +' + (E.seguroAte + 1)
+        + (p.raca === 'anao' ? ' e, por ser ' + (p.sexo === 'feminino' ? 'Anã' : 'Anão') + ', +' + E.anao + '%' : '') + ' (o +10 vai no máximo a ' + E.teto[10] + '%).</p></details>'
+        + '<label class="enc-protecao"><input type="checkbox" data-acao="usar-protecao"' + (estado.usarProtecao ? ' checked' : '') + '><span>🛡 Usar Pergaminho de Proteção'
+        + '<small class="suave">' + (protC.length ? 'Você tem: ' + protC.join(' · ') : 'Você não tem: o Coletor fabrica na Oficina') + '</small></span></label>'
+        + '<div class="itens enc-lista">' + lista + '</div>';
+    }
     var prot = Object.keys(D.raridades).map(function (k) { return R.qtdConsumivel(p, 'protecao', k) ? '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + R.qtdConsumivel(p, 'protecao', k) + '</span>' : ''; }).filter(Boolean);
     return aviso + '<p class="suave">Pergaminhos: ' + cont + '. Consiga mais nas caçadas (todos os monstros; o 3º de cada área dá mais), nas masmorras e nas missões. Sua Sorte soma +' + fmtDec(R.atributosTotais(p).sor * D.SORTE.encanto) + '% na chance a partir do +4'
       + (p.raca === 'anao' ? ' e, por ser ' + (p.sexo === 'feminino' ? 'Anã' : 'Anão') + ', +' + E.anao + '%' : '') + ' (cada nível tem um limite: o +10 vai no máximo a ' + E.teto[10] + '%).</p>'

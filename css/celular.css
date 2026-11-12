@@ -293,3 +293,22 @@ html[data-celular] .oficina-grade { grid-template-columns: 1fr; gap: .4rem; }
 html[data-celular] .oficina-receita { padding: .45rem .55rem; gap: .35rem; }
 html[data-celular] .oficina-receita .btn { align-self: stretch; min-height: 2.5rem; }
 html[data-celular] .forja-reforco strong { font-size: .85rem; }
+
+/* ---- Encantar ---- */
+html[data-celular] .enc-topo { display: flex; align-items: center; gap: .5rem; margin-bottom: .2rem; }
+html[data-celular] .enc-chips { display: flex; gap: .3rem; flex-wrap: wrap; }
+html[data-celular] .enc-chip { display: inline-flex; align-items: center; gap: .2rem; padding: .1rem .45rem .1rem .15rem; border-radius: 999px; }
+html[data-celular] .enc-chip i { width: 1.5rem; height: 1.5rem; display: grid; place-items: center; }
+html[data-celular] .enc-chip i img, html[data-celular] .enc-chip i svg { width: 100%; height: 100%; object-fit: contain; }
+html[data-celular] .enc-chip b { font-size: .9rem; }
+html[data-celular] .enc-protecao { display: flex; align-items: center; gap: .6rem; margin: .3rem 0 .6rem; padding: .5rem .65rem; border-radius: 8px; border: 1px solid #4a3f33; background: rgba(10, 9, 8, .7); }
+html[data-celular] .enc-protecao input { width: 1.4rem; height: 1.4rem; flex: none; accent-color: #c9a24a; margin: 0; }
+html[data-celular] .enc-protecao span { display: flex; flex-direction: column; font-size: .9rem; }
+html[data-celular] .enc-protecao small { font-size: .75rem; }
+/* itens: só o encanto (sem os bônus), botão à direita */
+html[data-celular] .enc-lista .enc-desc { display: none; }
+html[data-celular] .enc-lista > .item.item-com-icone { flex-wrap: nowrap; padding: .45rem .5rem; gap: .5rem; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes { flex-basis: auto; flex: none; flex-direction: column; align-items: stretch; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes .btn { min-width: 5.6rem; min-height: 2.5rem; }
+html[data-celular] .enc-lista > .item .item-texto > div:first-child { font-size: .92rem; }
+html[data-celular] .enc-lista > .item .item-texto .suave { font-size: .76rem; }
