@@ -1140,8 +1140,11 @@
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
     var fator = R.fatorExp(p, id);
+    // celular: carta deitada com o resumo (estamina, exp, ouro, vida, dano); a ficha completa fica em "Ver detalhes"
+    var resumo = CELULAR ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span>✦ ' + m.exp.toLocaleString('pt-BR') + ' exp</span>'
+      + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + dano(m.ataque) + '</span></div>' : '';
     return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
-      + '<h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
+      + '<h3>' + m.nome + '</h3>' + (CELULAR ? resumo + '<details class="monstro-detalhes"><summary>Ver detalhes</summary><p class="suave">' + m.descricao + '</p>' : '<p class="suave">' + m.descricao + '</p>')
       + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + dano(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
@@ -1150,7 +1153,7 @@
       + (m.chanceArma ? '<dt>Armas</dt><dd>' + m.chanceArma + '%</dd>' : '')
       + (m.chanceArmadura ? '<dt>Armaduras</dt><dd>' + m.chanceArmadura + '%</dd>' : '')
       + (m.pergaminho ? '<dt>Pergaminho</dt><dd>' + m.pergaminho.chance + '%</dd>' : '')
-      + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>'
+      + '<dt>Abatidos</dt><dd>' + (p.abates[id] || 0) + '</dd></dl>' + (CELULAR ? '</details>' : '')
       + (fator < 100 ? '<p class="menos pequeno">Esta área está abaixo do seu nível: exp e ouro a ' + fator + '% e nenhum drop.</p>' : '')
       + (R.monstroLiberado(p, id) ? '<button class="btn largo' + (selecionado ? '' : ' secundario') + '" data-acao="cacada-alvo" data-monstro="' + id + '">'
           + (selecionado ? '✔ Na caçada' : 'Adicionar à caçada') + '</button>'

@@ -185,3 +185,33 @@ html[data-celular] .alianca-membro > .item-texto { text-align: left; }
 html[data-celular] .alianca-topo > :first-child:not(.alianca-titulo) { width: 4.5rem; height: 5.2rem; flex: none; }
 html[data-celular] .alianca-topo > :first-child:not(.alianca-titulo) svg { width: 100%; height: 100%; }
 html[data-celular] .alianca-topo > .btn { flex-basis: 100%; }
+
+/* ---- Caçada: escolha dos monstros, luta e fim ---- */
+/* região: cartas deitadas (imagem à esquerda, resumo à direita); "Iniciar caçada" preso embaixo da tela */
+html[data-celular] .monstros { grid-template-columns: 1fr; gap: .5rem; }
+html[data-celular] .monstro { flex-direction: row; align-items: stretch; }
+html[data-celular] .monstro .moldura { width: 6.2rem; flex: none; aspect-ratio: auto; }
+html[data-celular] .monstro .corpo { padding: .55rem .65rem; gap: .3rem; min-width: 0; }
+html[data-celular] .monstro .corpo h3 { font-size: 1rem; margin: 0; }
+html[data-celular] .monstro-resumo { display: flex; flex-wrap: wrap; gap: .2rem .6rem; font-size: .8rem; }
+html[data-celular] .monstro-resumo span:first-child { color: #f2c94c; font-weight: 700; }
+html[data-celular] .monstro-detalhes > summary { font-size: .78rem; color: #c9a24a; cursor: pointer; }
+html[data-celular] .monstro-detalhes .ficha-monstro { font-size: .8rem; }
+html[data-celular] .monstro .corpo .btn { min-height: 2.4rem; }
+html[data-celular] .monstro.chefe .misterio { font-size: .82rem; }
+html[data-celular] .cacada-escolha { position: fixed; left: .5rem; right: .5rem; top: auto; bottom: calc(4rem + env(safe-area-inset-bottom)); z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0;
+  padding: .5rem .55rem; border-radius: 10px; border: 1px solid #c9a24a; background: rgba(12, 10, 8, .96); box-shadow: 0 -6px 18px rgba(0, 0, 0, .6); }
+html[data-celular] .cacada-escolha > span { flex: 1; font-size: .85rem; }
+html[data-celular] .cacada-escolha .btn-iniciar { flex-basis: 100%; min-height: 2.9rem; font-size: 1.05rem; order: 3; }
+html[data-celular] .regiao-topo p { font-size: .82rem; }
+/* luta: o topo não gruda (cobria o resto ao rolar); registro mais baixo */
+html[data-celular] .cacada-topo { position: static; }
+html[data-celular] .cacada-arena { gap: .4rem; }
+html[data-celular] #registro { max-height: 8.5rem; overflow-y: auto; font-size: .82rem; }
+/* fim da caçada: "Continuar" e "Voltar à região" na barra de baixo, grandes */
+html[data-celular] .cacada-busca.parada .botoes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin: 0;
+  padding: .45rem .6rem calc(.45rem + env(safe-area-inset-bottom)); background: linear-gradient(rgba(10, 9, 8, .85), #0a0908); border-top: 1px solid #4a3f33; }
+html[data-celular] .cacada-busca.parada .botoes .btn { min-height: 2.8rem; }
+html[data-celular] .jogo:has(.cacada-busca.parada) { padding-bottom: 4.4rem; }
+html[data-celular] .jogo:has(.cacada-escolha) > section.caixa { padding-bottom: 7.5rem; }
+html[data-celular] .monstro.chefe .corpo > p { font-size: .82rem; }

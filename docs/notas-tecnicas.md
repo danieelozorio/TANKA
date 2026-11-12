@@ -709,4 +709,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `C.rankingClas`, tela `rankingClasHtml` (brasão `.cla-brasao`, meu clã destacado). No celular o ranking de jogadores
   vira cartões com retrato (`linhaRanking`). `alianca_estado` manda `raca` dos membros (retrato no celular). Topo da
   casca mostra o Poder ao lado do nome (`.casca-poder`). Teste no banco.test.sql ("ranking_clas").
+- **Caçada no celular:** cartas de monstro deitadas (imagem à esquerda) com resumo `.monstro-resumo` (⚡ estamina, exp,
+  ouro, vida, dano) e a ficha completa em `.monstro-detalhes` ("Ver detalhes"). "Iniciar caçada" (`.cacada-escolha`)
+  fixo logo acima da barra de baixo. Na luta o topo não gruda mais; registro mais baixo. Fim da caçada: "Continuar" e
+  "Voltar à região" na barra fixa de baixo.
 
