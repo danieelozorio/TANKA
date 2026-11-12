@@ -729,9 +729,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Habilidades no celular:** escolha da 2ª classe em cartão deitado com "Ver as N habilidades" (gaveta
   `.classe2-habs`); textos de regra em gavetas; cartas numa coluna; "Confirmar pontos" grudado embaixo; ordem de uso
   numa coluna com botões maiores.
-- **Peça de conjunto em verde:** `aura(item)` põe `item-conjunto` (fundo verde, borda na cor da raridade) em todo ícone
-  que usa `aura`. **Avisos de item na cor da raridade:** `avisarItem(it)` (tipo `item raridade-<r>`, conjunto =
-  `raridade-conjunto`), também na forja e no pergaminho; o sino de notificações pinta o texto na mesma cor.
+- **Avisos de item na cor da raridade:** `avisarItem(it)` (tipo `item raridade-<r>`; peça de conjunto também pela
+  raridade, com "(conjunto)" no texto), também na forja e no pergaminho; o sino pinta o texto na mesma cor. (O fundo
+  verde nas peças de conjunto foi tirado: o conjunto pode vir em qualquer raridade.)
 - **Interface separada do Som:** `alternarPainel(fechar, 'interface')` abre a janela "🎨 Interface" (Tela e Tema;
   no celular só Tela); botão `menu-interface` no topo da Clássica e no menu da Zealot/celular. A ⚙ ficou só com o som.
+- **Entrada no celular:** lista de personagens em linhas (retrato, nome, Jogar e Excluir à direita). Criação: raças e
+  classes em fileiras que deslizam, história da raça na gaveta `.lore-celular`, "Criar personagem" fixo embaixo.
+  Login e cadastro já serviam.
 

@@ -1738,12 +1738,8 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .cla-brasao { width: 2.6rem; height: 2.9rem; display: grid; place-items: center; }
 .cla-brasao svg { width: 100%; height: 100%; }
 
-/* Peça de conjunto: fundo verde (Daniel, nov/2026), a borda continua na cor da raridade */
-.item-conjunto { background: radial-gradient(circle at 50% 45%, #2f7a45, #0c2014 78%) !important; box-shadow: inset 0 0 0 1px rgba(110, 220, 140, .55), 0 0 8px rgba(70, 190, 110, .35); }
 /* Avisos de item novo na cor da raridade (o mesmo tom no sino de notificações) */
 .selo-aviso.selo-item.raridade-comum { border-color: #9aa0a8; color: #e8e8e8; background: linear-gradient(#2a2c30, #16171a); }
 .selo-aviso.selo-item.raridade-rara { border-color: #4f94e0; color: #cfe3ff; background: linear-gradient(#173052, #0c1a2e); }
 .selo-aviso.selo-item.raridade-epica { border-color: #a46be0; color: #ecd9ff; background: linear-gradient(#36204f, #1b0f29); }
 .selo-aviso.selo-item.raridade-lendaria { border-color: #f2c94c; color: #fff1c4; background: linear-gradient(#4a3a10, #251b06); }
-.selo-aviso.selo-item.raridade-conjunto { border-color: #5cc97a; color: #d6ffe1; background: linear-gradient(#1d4a2b, #0d2416); }
-.raridade-conjunto { color: #6fdc8c; }

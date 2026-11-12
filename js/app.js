@@ -102,8 +102,7 @@
   function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
   function aura(item) {
     var e = item.encanto || 0;
-    // Peça de conjunto (Daniel, nov/2026): fundo verde para não confundir com os itens comuns.
-    return (e > 0 ? ' aura-e' + Math.min(10, e) : '') + (item.conjunto ? ' item-conjunto' : '');
+    return e > 0 ? ' aura-e' + Math.min(10, e) : '';
   }
 
   function brilho(item) {
@@ -376,7 +375,8 @@
       + '<input id="nome-personagem" maxlength="16" value="' + esc(c.nome) + '" placeholder="Ex.: Aldric"></label></section>'
       + '<section class="etapa"><h2>2. Sexo</h2><div class="opcoes">' + sexos + '</div></section>'
       + '<section class="etapa"><h2>3. Raça <small>— ' + esc(D.racas[c.raca].descricao) + '</small></h2><div class="grade">' + racas + '</div>'
-      + (D.racas[c.raca].lore ? '<p class="lore-raca"><strong>' + esc(D.racas[c.raca].lema) + '.</strong> ' + esc(D.racas[c.raca].lore) + '</p>' : '') + '</section>'
+      + (D.racas[c.raca].lore ? (CELULAR ? '<details class="lore-celular"><summary>📖 A história da raça</summary>' : '')
+        + '<p class="lore-raca"><strong>' + esc(D.racas[c.raca].lema) + '.</strong> ' + esc(D.racas[c.raca].lore) + '</p>' + (CELULAR ? '</details>' : '') : '') + '</section>'
       + '<section class="etapa"><h2>4. Classe <small>— ' + esc(D.classes[c.classe].descricao) + '</small></h2><div class="grade">' + classes + '</div></section>'
       + '</div><aside class="caixa previa"><div class="moldura">' + F.personagem(c.raca, c.classe, c.sexo) + '</div>'
       + '<h3 class="centro">' + nomeRaca(c.raca, c.sexo) + ' ' + nomeClasse(c.classe, c.sexo) + ' · ' + D.sexos[c.sexo].nome + '</h3>'
@@ -643,9 +643,10 @@
   function gravarNotificacoes() {
     try { localStorage.setItem(notificacoes.chave, JSON.stringify({ lista: notificacoes.lista, vista: notificacoes.vista })); } catch (e) { /* sem armazenamento */ }
   }
-  // Aviso de item novo na cor da raridade (roxo para épico, dourado para lendário...); conjunto em verde.
+  // Aviso de item novo na cor da raridade (roxo para épico, dourado para lendário...). Peça de conjunto também vai
+  // pela raridade (o conjunto pode vir em qualquer uma); o texto diz "(conjunto)".
   function avisarItem(it) {
-    avisar('Item novo: ' + R.nomeItem(it) + (it.conjunto ? ' (conjunto)' : ''), 'item raridade-' + (it.conjunto ? 'conjunto' : it.raridade));
+    avisar('Item novo: ' + R.nomeItem(it) + (it.conjunto ? ' (conjunto)' : ''), 'item raridade-' + it.raridade);
   }
   function guardarNotificacao(msg, tipo) {
     if (typeof estado === 'undefined' || !estado.personagem) return;
