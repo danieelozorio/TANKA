@@ -3287,6 +3287,11 @@
       // Sub-abas que rolam de lado (celular): a escolhida fica à vista.
       var sub = document.getElementById('sub-abas'), ativa = sub && sub.querySelector('.ativa');
       if (ativa && sub.scrollWidth > sub.clientWidth) sub.scrollLeft = Math.max(0, ativa.getBoundingClientRect().left - sub.getBoundingClientRect().left + sub.scrollLeft - (sub.clientWidth - ativa.offsetWidth) / 2);
+      // Celular: fileiras que deslizam de lado abrem mostrando o item escolhido.
+      if (CELULAR) document.querySelectorAll('.casca-subabas .sub-abas, .forja-passos > li:first-child .forja-botoes, .loja-secoes, .arena-abas, .alianca-vistas, .mercado-cats').forEach(function (fila) {
+        var esc2 = fila.querySelector('.ativa, .sel, .selecionada, [aria-pressed="true"]');
+        if (esc2 && fila.scrollWidth > fila.clientWidth) fila.scrollLeft = Math.max(0, esc2.offsetLeft - fila.offsetLeft - (fila.clientWidth - esc2.offsetWidth) / 2);
+      });
       // A caixa da caçada (procurando / monstro achado / luta) fica com a maior altura que já teve: nada abaixo dela pula.
       var c = estado.cacada, arena = c && document.querySelector('.cacada-arena');
       if (arena) {

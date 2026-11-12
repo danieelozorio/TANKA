@@ -719,4 +719,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Masmorra: acelerar é 2x** (era 4x; `L.atraso / 2`, botão "Acelerar 2x"). **Luta da Arena no celular:** lutadores
   em cartão baixo (retrato 3,6rem ao lado do nome e da vida), mesa do dado com 150px e registro com 7,2rem: vida, dado e
   narração cabem juntos na tela (só CSS).
+- **Herói › Oficina no celular:** cartões Forja/Bancada baixos (retrato ao lado), a fala sem o retrato repetido,
+  regiões numa fileira que desliza, classes 2 por linha, peças 3 por linha, "Forjar" grudado embaixo (sticky).
+  `telaJogo` (celular) centraliza o item escolhido nas fileiras que deslizam (sub-abas, regiões da forja, seções da
+  Loja, arenas, partes do clã, categorias do mercado).
 

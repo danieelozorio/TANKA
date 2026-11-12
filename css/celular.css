@@ -264,3 +264,32 @@ html[data-celular] .arena-pvp .dado-janela { gap: .3rem; }
 html[data-celular] .arena-pvp .dado-baixo { min-height: 4.2rem; gap: .25rem; }
 html[data-celular] .arena-pvp .res-numero { font-size: 2rem; }
 html[data-celular] .jogo:has(.arena-pvp) #registro { max-height: 7.2rem; overflow-y: auto; font-size: .8rem; margin-top: .3rem; }
+
+/* ---- Herói › Oficina ---- */
+/* Forja / Bancada: cartões baixos, retrato pequeno ao lado */
+html[data-celular] .oficina-cartoes { gap: .4rem; margin-bottom: .5rem; }
+html[data-celular] .oficina-cartao { flex-direction: row !important; text-align: left !important; align-items: center !important; gap: .45rem; padding: .4rem; }
+html[data-celular] .oficina-cartao .oficina-retrato { width: 2.8rem; height: 3.2rem; }
+html[data-celular] .oficina-cartao-texto strong { font-size: .92rem; }
+html[data-celular] .oficina-cartao-texto small { font-size: .68rem; }
+html[data-celular] .oficina-cartao-texto .selo-forja { align-self: flex-start !important; font-size: .62rem; }
+/* a fala do artesão sem o retrato repetido */
+html[data-celular] .oficina-fala .oficina-retrato { display: none; }
+html[data-celular] .oficina-fala p { font-size: .82rem; padding: .4rem .6rem; }
+/* passos da forja: regiões deslizando de lado, classes e peças em grade */
+html[data-celular] .forja-passos { gap: .55rem; }
+html[data-celular] .forja-passos > li { padding-left: 1.9rem; }
+html[data-celular] .forja-passos > li:first-child .forja-botoes { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: .2rem; }
+html[data-celular] .forja-passos > li:first-child .forja-botoes::-webkit-scrollbar { display: none; }
+html[data-celular] .forja-passos > li:first-child .forja-botoes .btn { flex: 0 0 auto; }
+html[data-celular] .forja-passos > li:nth-child(2) .forja-botoes { display: grid; grid-template-columns: 1fr 1fr; }
+html[data-celular] .forja-passos > li:nth-child(3) .forja-botoes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+html[data-celular] .forja-passos > li:nth-child(3) .forja-botoes .btn { flex-direction: column; gap: .15rem; padding: .35rem .2rem; font-size: .75rem; min-height: 3.6rem; }
+html[data-celular] .forja-passos > li:nth-child(3) .forja-botoes .icone-pequeno { width: 1.8rem; height: 1.8rem; }
+/* "Forjar" preso logo acima da barra de baixo enquanto a forja está na tela */
+html[data-celular] .forja-botao { position: sticky; bottom: .4rem; z-index: 5; min-height: 3rem; box-shadow: 0 -6px 16px rgba(0, 0, 0, .6); }
+/* bancada: receitas e proteções numa coluna, custos menores */
+html[data-celular] .oficina-grade { grid-template-columns: 1fr; gap: .4rem; }
+html[data-celular] .oficina-receita { padding: .45rem .55rem; gap: .35rem; }
+html[data-celular] .oficina-receita .btn { align-self: stretch; min-height: 2.5rem; }
+html[data-celular] .forja-reforco strong { font-size: .85rem; }
