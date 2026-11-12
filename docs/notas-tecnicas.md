@@ -716,4 +716,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Masmorra no celular:** explicação numa gaveta; as 3 vagas do grupo lado a lado com retrato; "Estou pronto" e
   "Entrar" grandes; masmorras bloqueadas sem os detalhes. Luta: heróis em cima e monstros embaixo, 3 por linha, e
   "Acelerar" na barra fixa de baixo (só CSS, em `css/celular.css`).
+- **Masmorra: acelerar é 2x** (era 4x; `L.atraso / 2`, botão "Acelerar 2x"). **Luta da Arena no celular:** lutadores
+  em cartão baixo (retrato 3,6rem ao lado do nome e da vida), mesa do dado com 150px e registro com 7,2rem: vida, dado e
+  narração cabem juntos na tela (só CSS).
 

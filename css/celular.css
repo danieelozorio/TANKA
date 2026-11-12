@@ -249,3 +249,18 @@ html[data-celular] .mas-arena ~ .botoes { position: fixed; left: 0; right: 0; bo
 html[data-celular] .mas-arena ~ .botoes .btn { width: 100%; min-height: 2.8rem; }
 html[data-celular] .jogo:has(.mas-arena) > section.caixa { padding-bottom: 4.6rem; }
 html[data-celular] .resultado .botoes .btn { min-height: 2.8rem; flex: 1; }
+
+/* ---- Luta da Arena: vida, dado e narração cabendo juntos na tela ---- */
+html[data-celular] .jogo:has(.arena-pvp) .subtitulo { display: none; }
+html[data-celular] .arena-pvp { gap: .4rem; margin-bottom: .35rem; }
+html[data-celular] .arena-pvp .arena-lutador { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); grid-template-rows: auto auto auto; column-gap: .45rem; align-items: center; text-align: left; }
+html[data-celular] .arena-pvp .arena-lutador .moldura { grid-row: 1 / 4; width: 3.6rem; height: 4.3rem; max-width: none; aspect-ratio: auto; }
+html[data-celular] .arena-pvp .arena-lutador .moldura img { object-position: center 12%; }
+html[data-celular] .arena-pvp .arena-lutador h3 { font-size: .9rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html[data-celular] .arena-pvp .arena-lutador .suave.pequeno { font-size: .68rem; }
+html[data-celular] .arena-pvp .arena-lutador .barra { margin: .15rem 0 0; }
+html[data-celular] .arena-pvp .mesa-madeira { height: 150px; }
+html[data-celular] .arena-pvp .dado-janela { gap: .3rem; }
+html[data-celular] .arena-pvp .dado-baixo { min-height: 4.2rem; gap: .25rem; }
+html[data-celular] .arena-pvp .res-numero { font-size: 2rem; }
+html[data-celular] .jogo:has(.arena-pvp) #registro { max-height: 7.2rem; overflow-y: auto; font-size: .8rem; margin-top: .3rem; }

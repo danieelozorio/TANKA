@@ -5291,7 +5291,7 @@
       passoLuta(false);
       redesenharLuta();
       agendarLuta();
-    }, L.rapido ? Math.max(10, Math.round(L.atraso / 4)) : L.atraso);
+    }, L.rapido ? Math.max(10, Math.round(L.atraso / 2)) : L.atraso);   // Daniel: acelerar é 2x (era 4x)
   }
 
   function passoLuta(silencioso) {
@@ -5390,7 +5390,7 @@
     return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss do clã · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
-      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar ×4') + '</button></div>');
+      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button></div>');
   }
 
   // ---------------- Guia do Aventureiro (tutorial dos personagens novos; regras em regras.js, texto em historia.js) ----------------
