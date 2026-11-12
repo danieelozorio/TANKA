@@ -515,7 +515,7 @@
   function textoEstamina(p) {
     var E = D.ESTAMINA;
     return 'Cada luta da caçada gasta estamina: ' + E.custo.join(', ') + ' (1º, 2º e 3º monstro da área) e ' + E.custoChefe
-      + ' o chefe. ' + (E.acampar === false ? 'Enche sozinha em ' + (E.minutosSemAcampar / 60) + ' h'
+      + ' o chefe. ' + (E.acampar === false ? 'Enche sozinha em ' + E.minutosSemAcampar + ' min'
         : E.minutosSemAcampar > 0 ? 'Enche sozinha em ' + E.minutosSemAcampar + ' min, acampado em ' + E.minutosAcampado + ' min'
         : 'Só recupera acampado (enche em ' + (E.minutosAcampado / 60) + ' h)') + ', e fica cheia à meia-noite. '
       + 'Potes de estamina no Mercado (reputação).';

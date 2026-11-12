@@ -811,20 +811,20 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
   assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
 });
 
-teste('estamina: 240, enche sozinha em 2 h (acampar desligado), não passa do máximo; vida sempre cheia fora da luta', () => {
+teste('estamina: 240, enche sozinha em 90 min (acampar desligado), não passa do máximo; vida sempre cheia fora da luta', () => {
   const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');
   R.atualizarTempo(p, T0);
   assert.strictEqual(p.estamina.pts, 240);
   p.estamina.pts = 0; p.estamina.em = T0; p.hpAtual = 3;
   R.atualizarTempo(p, T0 + 9 * 60000);
-  assert.strictEqual(p.estamina.pts, 18);   // +2 por minuto, sem acampar
+  assert.strictEqual(p.estamina.pts, 24);   // 240 / 90 por minuto, sem acampar
   assert.strictEqual(p.hpAtual, R.status(p).hpMax);
-  assert.strictEqual(R.minutosParaEstaminaCheia(p), 111);
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), 81);
   R.acampar(p, T0 + 9 * 60000, true);       // acampar desligado: não acampa
   assert.strictEqual(p.acampado, false);
   R.atualizarTempo(p, T0 + 19 * 60000);
-  assert.strictEqual(p.estamina.pts, 38);
-  assert.strictEqual(R.minutosParaEstaminaCheia(p), 101);
+  assert.strictEqual(p.estamina.pts, 50);
+  assert.strictEqual(R.minutosParaEstaminaCheia(p), 72);
   R.atualizarTempo(p, T0 + 600 * 60000);
   assert.strictEqual(p.estamina.pts, 240);
   // meia-noite: cheia de novo, potes do dia zerados, poções de volta
