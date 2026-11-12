@@ -83,3 +83,32 @@ html[data-celular] .cacada-topo:not(:has(.botoes .btn)) .botoes { display: none;
 html[data-celular] .regiao-topo { flex-wrap: wrap; }
 html[data-celular] .regiao-topo > [data-acao="mapa"] { flex: none; white-space: nowrap; writing-mode: horizontal-tb; }
 html[data-celular] #config-painel .config-interface .btn { font-size: .8rem; padding-inline: .4rem; }
+
+/* ---- Herói ---- */
+/* Equipado: espaços maiores, retrato menor no meio */
+html[data-celular] [data-personagem-vista] .boneco { --slot: clamp(50px, 14vw, 64px); max-width: 23rem; gap: .35rem; }
+html[data-celular] [data-personagem-vista] .retrato-central { max-height: 30dvh; }
+/* Mochila: sem título e dica (a aba já diz), 5 itens por linha, ordenar/filtrar numa gaveta */
+html[data-celular] .pg-mochila > h3.subtitulo, html[data-celular] .dica-mochila { display: none; }
+html[data-celular] [data-personagem-vista] .mochila { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+html[data-celular] .mochila-celular-topo { display: flex; flex-wrap: wrap; align-items: flex-start; gap: .4rem; }
+html[data-celular] .mochila-ferramentas[open] { flex-basis: 100%; order: 2; }
+html[data-celular] .mochila-ferramentas .mochila-linha { flex-wrap: wrap; gap: .4rem; }
+html[data-celular] .mochila-ferramentas .mochila-campo { white-space: nowrap; }
+html[data-celular] .mochila-ferramentas { flex: 1; min-width: 0; }
+html[data-celular] .mochila-ferramentas > summary { cursor: pointer; padding: .5rem .7rem; border-radius: 8px; border: 1px solid #4a3f33; background: rgba(10, 9, 8, .8); list-style: none; font-size: .9rem; }
+html[data-celular] .mochila-ferramentas > summary::-webkit-details-marker { display: none; }
+html[data-celular] .mochila-ferramentas[open] > summary { border-color: #c9a24a; margin-bottom: .4rem; }
+html[data-celular] .mochila-celular-topo > [data-acao="mochila-lote"] { flex: none; min-height: 2.45rem; }
+html[data-celular] .mochila-barra { border: 0; padding: 0; background: none; margin-bottom: .5rem; }
+/* Ficha do item: folha que sobe de baixo, com o fundo escurecido */
+html[data-celular] #ficha-flutuante { position: fixed; left: 0 !important; right: 0; top: auto !important; bottom: 0; width: auto; max-width: none;
+  max-height: 78dvh; overflow-y: auto; border-radius: 16px 16px 0 0; padding: 1.1rem 1rem calc(1rem + env(safe-area-inset-bottom)); z-index: 40;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, .8); animation: folhaSobe .18s ease-out; }
+html[data-celular] #ficha-flutuante::before { content: ''; display: block; width: 2.6rem; height: 4px; margin: -.5rem auto .6rem; border-radius: 2px; background: #6b5a44; }
+html[data-celular] body:has(#ficha-flutuante)::after { content: ''; position: fixed; inset: 0; z-index: 39; background: rgba(0, 0, 0, .55); }
+html[data-celular] #ficha-flutuante .botoes { display: flex; flex-wrap: wrap; gap: .45rem; }
+html[data-celular] #ficha-flutuante .botoes .btn { flex: 1 1 40%; min-height: 2.9rem; font-size: 1rem; }
+@keyframes folhaSobe { from { transform: translateY(40%); opacity: .4; } to { transform: none; opacity: 1; } }
+html[data-celular] #ficha-flutuante .item-acoes { display: flex; flex-wrap: wrap; gap: .45rem; }
+html[data-celular] #ficha-flutuante .item-acoes .btn { flex: 1 1 40%; min-height: 2.9rem; font-size: 1rem; }

@@ -1476,18 +1476,21 @@
   }
   function barraMochilaHtml() {
     var v = visaoMochila(), lote = estado.vendaLote;
-    var html = '<div class="mochila-barra"><div class="mochila-linha">'
+    var botaoLote = '<button class="btn btn-pequeno' + (lote ? ' perigo' : ' secundario') + '" data-acao="mochila-lote">' + (lote ? 'Sair da venda' : 'Vender vários') + '</button>';
+    var html = '<div class="mochila-barra">' + (CELULAR ? '<div class="mochila-celular-topo"><details class="mochila-ferramentas"' + (estado.mochilaFerramentas ? ' open' : '')
+      + '><summary data-acao="mochila-ferramentas">⚙ Ordenar e filtrar</summary>' : '') + '<div class="mochila-linha">'
       + '<label class="mochila-campo">Ordenar <select id="ordem-mochila">' + ORDENS.map(function (o) {
         return '<option value="' + o[0] + '"' + (v.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>'
       + '<button class="btn secundario btn-pequeno" data-acao="mochila-direcao"' + (v.ordem === 'mochila' ? ' disabled' : '') + '>'
       + (v.crescente ? '↑ Crescente' : '↓ Decrescente') + '</button>'
       + '<button class="btn secundario btn-pequeno" data-acao="mochila-organizar" title="Grava esta ordem na mochila">Organizar</button>'
-      + '<button class="btn btn-pequeno' + (lote ? ' perigo' : ' secundario') + '" data-acao="mochila-lote">' + (lote ? 'Sair da venda' : 'Vender vários') + '</button></div>'
+      + (CELULAR ? '' : botaoLote) + '</div>'
       + '<div class="mochila-linha"><span class="suave pequeno">Mostrar:</span>' + R.RARIDADES.map(function (k) {
         return '<button class="chip-raridade raridade-' + k + (v.raridades.indexOf(k) >= 0 ? ' ativa' : '') + '" data-acao="mochila-filtro" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
       }).join('')
-      + '<label class="mochila-campo">Força mín. <input id="forca-min" type="number" min="0" step="10" inputmode="numeric" value="' + (v.forcaMin || '') + '" placeholder="0"></label></div>';
+      + '<label class="mochila-campo">Força mín. <input id="forca-min" type="number" min="0" step="10" inputmode="numeric" value="' + (v.forcaMin || '') + '" placeholder="0"></label></div>'
+      + (CELULAR ? '</details>' + botaoLote + '</div>' : '');
     if (lote) {
       html += '<div class="venda-lote"><span class="suave pequeno">Selecionar:</span>'
         + [['comum', 'Comuns'], ['rara', 'Até Raras'], ['epica', 'Até Épicas']].map(function (x) {
@@ -4751,6 +4754,9 @@
       case 'oficina-vista':
         estado.oficinaVista = el.dataset.valor;
         telaJogo();
+        break;
+      case 'mochila-ferramentas':   // celular: lembra se a gaveta de ordenar/filtrar está aberta
+        estado.mochilaFerramentas = !el.parentNode.open;
         break;
       case 'oficina-materiais':
         estado.oficinaMateriais = !el.parentNode.open;   // o <details> abre sozinho; só lembra para o próximo redesenho

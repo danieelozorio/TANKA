@@ -694,5 +694,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `#casca-missoes-selo`, atualizados em `desenharChat` / `desenharMissoes`; menu com Trocar / Som(⚙) / Sair) e as
   sub-abas em `.casca-subabas` acima do conteúdo. Chat, missões e ⚙ não flutuam mais (os botões deles somem; abrem
   pelos ícones). Caçada: Velocidade e Parar numa barra fixa embaixo. Vibração (`vibrar`) em golpe forte e level up.
-- Ideia para as próximas telas do celular: Herói (grade grande + ficha que sobe de baixo), Mercado e Arena.
+- **Herói no celular:** ficha do item (`#ficha-flutuante`) vira folha que sobe de baixo (CSS com `!important` por cima do
+  left/top do `desenharFlutuante`, fundo escurecido). Mochila com 5 por linha; ordenar/filtrar numa gaveta
+  (`.mochila-ferramentas`, `estado.mochilaFerramentas`, ação `mochila-ferramentas`) e "Vender vários" ao lado.
+  Espaços do equipamento maiores (`--slot`).
+- Próximas telas do celular: Mercado e Arena.
 
