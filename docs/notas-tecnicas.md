@@ -726,4 +726,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Encantar no celular:** pergaminhos em fichinhas com ícone (`.enc-chips`), explicação na gaveta, Proteção como chave
   grande (`.enc-protecao`), lista `.enc-lista` sem os bônus do item (`.enc-desc` escondido) e botão Encantar à direita.
   A forja (janela do encanto) já servia no celular.
+- **Habilidades no celular:** escolha da 2ª classe em cartão deitado com "Ver as N habilidades" (gaveta
+  `.classe2-habs`); textos de regra em gavetas; cartas numa coluna; "Confirmar pontos" grudado embaixo; ordem de uso
+  numa coluna com botões maiores.
+- **Peça de conjunto em verde:** `aura(item)` põe `item-conjunto` (fundo verde, borda na cor da raridade) em todo ícone
+  que usa `aura`. **Avisos de item na cor da raridade:** `avisarItem(it)` (tipo `item raridade-<r>`, conjunto =
+  `raridade-conjunto`), também na forja e no pergaminho; o sino de notificações pinta o texto na mesma cor.
+- **Interface separada do Som:** `alternarPainel(fechar, 'interface')` abre a janela "🎨 Interface" (Tela e Tema;
+  no celular só Tela); botão `menu-interface` no topo da Clássica e no menu da Zealot/celular. A ⚙ ficou só com o som.
 

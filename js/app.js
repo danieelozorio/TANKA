@@ -102,7 +102,8 @@
   function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
   function aura(item) {
     var e = item.encanto || 0;
-    return e > 0 ? ' aura-e' + Math.min(10, e) : '';
+    // Peça de conjunto (Daniel, nov/2026): fundo verde para não confundir com os itens comuns.
+    return (e > 0 ? ' aura-e' + Math.min(10, e) : '') + (item.conjunto ? ' item-conjunto' : '');
   }
 
   function brilho(item) {
@@ -642,6 +643,10 @@
   function gravarNotificacoes() {
     try { localStorage.setItem(notificacoes.chave, JSON.stringify({ lista: notificacoes.lista, vista: notificacoes.vista })); } catch (e) { /* sem armazenamento */ }
   }
+  // Aviso de item novo na cor da raridade (roxo para épico, dourado para lendário...); conjunto em verde.
+  function avisarItem(it) {
+    avisar('Item novo: ' + R.nomeItem(it) + (it.conjunto ? ' (conjunto)' : ''), 'item raridade-' + (it.conjunto ? 'conjunto' : it.raridade));
+  }
   function guardarNotificacao(msg, tipo) {
     if (typeof estado === 'undefined' || !estado.personagem) return;
     var n = lerNotificacoes();
@@ -698,7 +703,9 @@
         + (n.lista.length ? '<button class="btn secundario btn-pequeno" data-acao="notificacoes-limpar">Limpar</button>' : '')
         + '<button class="btn-x" data-acao="painel-topo" data-valor="" aria-label="Fechar">✕</button></span></div>'
         + (n.lista.length ? '<ul class="painel-lista">' + n.lista.map(function (x) {
-          return '<li' + (x.t > (estado.sinoVistoAntes || 0) ? ' class="nova"' : '') + '><span class="pl-ico">•</span><div><small>' + quandoTexto(x.t) + '</small><div>' + esc(x.x) + '</div></div></li>';
+          var rar = /raridade-(\w+)/.exec(x.k || '');
+          return '<li' + (x.t > (estado.sinoVistoAntes || 0) ? ' class="nova"' : '') + '><span class="pl-ico">•</span><div><small>' + quandoTexto(x.t) + '</small><div'
+            + (rar ? ' class="raridade-' + rar[1] + '"' : '') + '>' + esc(x.x) + '</div></div></li>';
         }).join('') + '</ul>' : '<p class="suave">Nenhuma notificação.</p>');
     }
     el.innerHTML = '<div class="painel-topo-caixa" role="dialog">' + h + '</div>';
@@ -1686,21 +1693,21 @@
           var sc = D.SEGUNDAS_CLASSES[id];
           return '<div class="classe2"><div class="classe2-retrato moldura">' + F.personagem(p.raca, id, p.sexo) + '</div>'
             + '<h4>' + (fem && sc.nomeF || sc.nome) + '</h4><p class="suave">' + sc.descricao + '</p>'
-            + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span>' + (x.nivel ? ' <span class="suave pequeno">(level ' + x.nivel + ')</span>' : '') + '<br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>'
+            + (CELULAR ? '<details class="classe2-habs"><summary>Ver as ' + sc.habilidades.length + ' habilidades</summary>' : '') + '<ul>' + sc.habilidades.map(function (x) { return '<li><b>' + x.nome + '</b> <span class="hab-tipo">' + TIPO_HAB[x.tipo] + '</span>' + (x.nivel ? ' <span class="suave pequeno">(level ' + x.nivel + ')</span>' : '') + '<br><span class="suave pequeno">' + x.descricao + '</span></li>'; }).join('') + '</ul>' + (CELULAR ? '</details>' : '')
             + (pode ? '<button class="btn" data-acao="hab-classe" data-valor="' + id + '">Ser ' + (fem && sc.nomeF || sc.nome) + '</button>' : '') + '</div>';
         }).join('') + '</div>';
     } else {
       var livres = R.pontosHabilidadeLivres(p) - totalPendHab(), pd = pendHab();
       h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
-        + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
-        + 'As passivas ficam sempre ligadas e não recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>'
+        + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
+        + 'As passivas ficam sempre ligadas e não recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>' + (CELULAR ? '</details>' : '')
         + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
-      h += '<h3 class="subtitulo">Ordem de uso</h3><p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
+      h += '<h3 class="subtitulo">Ordem de uso</h3>' + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
-        + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p><div class="ordem-hab">'
+        + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p>' + (CELULAR ? '</details>' : '') + '<div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
@@ -3259,7 +3266,8 @@
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
-      + '<button class="btn secundario" data-acao="voltar-personagens">' + (zealot ? ICONES.trocarPersonagem : '') + 'Trocar personagem</button>';
+      + '<button class="btn secundario" data-acao="voltar-personagens">' + (zealot ? ICONES.trocarPersonagem : '') + 'Trocar personagem</button>'
+      + '<button class="btn secundario" data-acao="menu-interface">🎨 Interface</button>';
     var menuTopo = '';
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
@@ -3496,8 +3504,8 @@
       if (res.niveis) avisar('Level up! Level ' + estado.personagem.nivel, 'nivel');
       var proximo = primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
       if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
-      [res.drop, res.dropArmadura].forEach(function (it) { if (it) avisar('Item novo: ' + R.nomeItem(it), 'item'); });
-      if (res.pergaminho) avisar('Pergaminho ' + ITEM_RARIDADE[res.pergaminho] + '!', 'item');
+      [res.drop, res.dropArmadura].forEach(function (it) { if (it) avisarItem(it); });
+      if (res.pergaminho) avisar('Pergaminho ' + ITEM_RARIDADE[res.pergaminho] + '!', 'item raridade-' + res.pergaminho);
     } else if (res.resultado === 'derrota') avisar('Derrota…', 'ruim');
   }
 
@@ -3698,7 +3706,7 @@
     if (res.niveis) avisar('Level up! Level ' + p.nivel, 'nivel');
     var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
     if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
-    itens.forEach(function (it) { if (!it.consumivel) avisar('Item novo: ' + R.nomeItem(it), 'item'); });   // pergaminho tem aviso próprio
+    itens.forEach(function (it) { if (!it.consumivel) avisarItem(it); });   // pergaminho tem aviso próprio
     if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha: perdeu a estamina da luta' + (res.expPerdida ? ' e ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
     if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
     if (b.replay && b.replay.parou) { pararCacada(b.replay.parou); return; }
@@ -4237,6 +4245,10 @@
         break;
       case 'casca-missoes':
         missoesUI.aberto = !missoesUI.aberto; desenharMissoes(true);
+        break;
+      case 'menu-interface':
+        if (document.getElementById('menu-jogo')) document.getElementById('menu-jogo').open = false;
+        alternarPainel(musica.painel && musica.painelTipo === 'interface', 'interface');
         break;
       case 'menu-som':
         document.getElementById('menu-jogo').open = false;
@@ -4846,7 +4858,7 @@
         var fa = forjaAtual(p);   // as mesmas escolhas que a tela mostra
         var rf = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
         if (typeof rf === 'string') avisar(rf);
-        else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item'); }
+        else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item raridade-' + rf.item.raridade); }
         telaJogo();
         break;
       }
@@ -7268,40 +7280,9 @@
       if (t) t.textContent = !musica.ligada ? 'Música desligada' : musica.atual && !musica.atual.audio.paused ? '♪ ' + musica.atual.nome : '♪ —';
     }
   }
-  // Tela: Automática (celular quando é toque + tela pequena), Celular ou Computador. Guarda e recarrega.
-  function configTelaHtml() {
-    var atual = 'auto';
-    try { atual = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* automática */ }
-    return '<div class="config-faixa"><span>Tela</span><div class="config-interface" role="radiogroup" aria-label="Tela">'
-      + [['auto', 'Automática'], ['celular', 'Celular'], ['pc', 'Computador']].map(function (x) {
-        var ativa = atual === x[0];
-        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-tela="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-      }).join('') + '</div></div>';
-  }
-  function alternarPainel(fechar) {
-    if (musica.painel || fechar) {
-      if (musica.painel) { musica.painel.remove(); musica.painel = null; }
-      return;
-    }
-    var p = musica.painel = document.createElement('div');
-    p.id = 'config-painel';
-    p.setAttribute('role', 'dialog');
-    p.setAttribute('aria-label', 'Configurações');
-    p.innerHTML = '<div class="config-topo"><strong>Configurações</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
-      + '<label class="config-linha"><span>Música</span><input type="checkbox" id="config-musica"' + (musica.ligada ? ' checked' : '') + '></label>'
-      + '<label class="config-faixa"><span>Volume da música <b id="config-vol-txt">' + musica.volume + '%</b></span>'
-      + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
-      + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
-      + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
-      + configTelaHtml()
-      + (document.documentElement.hasAttribute('data-celular') ? '' : '<div class="config-faixa"><span>Interface</span><div class="config-interface" role="radiogroup" aria-label="Interface">'
-      + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
-        var ativa = interfaceAtual() === x[0];
-        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-      }).join('') + '</div></div>')
-      + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
-    p.addEventListener('click', function (e) { e.stopPropagation(); });
-    // Trocar a interface: guarda neste aparelho e recarrega a página (o tema entra antes de desenhar).
+  // Botões da tela de Interface: Tela (eldrin.tela) e Tema (eldrin.interface). Guardam neste aparelho e recarregam
+  // a página (o tema entra antes de desenhar).
+  function ligarPainelInterface(p) {
     p.querySelectorAll('[data-tela]').forEach(function (b) {
       b.addEventListener('click', function () {
         guardar('eldrin.tela', b.dataset.tela);
@@ -7316,6 +7297,54 @@
         setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
       });
     });
+  }
+  // Tela: Automática (celular quando é toque + tela pequena), Celular ou Computador. Guarda e recarrega.
+  function configTelaHtml() {
+    var atual = 'auto';
+    try { atual = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* automática */ }
+    return '<div class="config-faixa"><span>Tela</span><div class="config-interface" role="radiogroup" aria-label="Tela">'
+      + [['auto', 'Automática'], ['celular', 'Celular'], ['pc', 'Computador']].map(function (x) {
+        var ativa = atual === x[0];
+        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-tela="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
+      }).join('') + '</div></div>';
+  }
+  // tipo: 'interface' abre a tela de Interface (tema e tela); sem tipo, a de Som (música e efeitos).
+  function alternarPainel(fechar, tipo) {
+    tipo = tipo || 'som';
+    if (musica.painel || fechar) {
+      var outro = musica.painel && musica.painelTipo !== tipo && !fechar;
+      if (musica.painel) { musica.painel.remove(); musica.painel = null; }
+      if (!outro) return;
+    }
+    var p = musica.painel = document.createElement('div');
+    musica.painelTipo = tipo;
+    p.id = 'config-painel';
+    p.setAttribute('role', 'dialog');
+    if (tipo === 'interface') {
+      p.setAttribute('aria-label', 'Interface');
+      p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
+        + configTelaHtml()
+        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre o tema Zealot. Para trocar o tema, escolha Tela: Computador.</p>'
+          : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
+          + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
+            var ativa = interfaceAtual() === x[0];
+            return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
+          }).join('') + '</div></div>');
+      ligarPainelInterface(p);
+      p.addEventListener('click', function (e) { e.stopPropagation(); });
+      p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
+      document.body.appendChild(p);
+      return;
+    }
+    p.setAttribute('aria-label', 'Som');
+    p.innerHTML = '<div class="config-topo"><strong>Configurações</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
+      + '<label class="config-linha"><span>Música</span><input type="checkbox" id="config-musica"' + (musica.ligada ? ' checked' : '') + '></label>'
+      + '<label class="config-faixa"><span>Volume da música <b id="config-vol-txt">' + musica.volume + '%</b></span>'
+      + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
+      + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
+      + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
+      + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
+    p.addEventListener('click', function (e) { e.stopPropagation(); });
     p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
     p.querySelector('#config-musica').addEventListener('change', function (e) {
       musica.ligada = e.target.checked;
@@ -7340,7 +7369,7 @@
     desenharBotaoMusica();
   }
   document.addEventListener('click', function (e) {
-    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica, [data-acao="menu-som"]')) alternarPainel(true);
+    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica, [data-acao="menu-som"], [data-acao="menu-interface"]')) alternarPainel(true);
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && musica.painel) alternarPainel(true); });
   // Eventos que o navegador aceita como "o jogador interagiu" (no celular o toque conta no fim: touchend/click).
