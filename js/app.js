@@ -2733,7 +2733,7 @@
       + (m.bonus ? '<span class="mais">✔</span>' : todas ? '<button class="btn btn-pequeno" data-missao="bau">Abrir</button>' : '') + '</div></div></div>';
     var le = R.loginEstado(p, agora);
     var cartaoLogin = '<div class="missao-carta missao-login' + (le.pode ? ' pronta' : ' feita') + '"><span class="missao-bau-ico">🗓</span><div class="missao-bau-corpo">'
-      + '<div class="missao-topo"><strong>Prêmio de login</strong><span class="missao-num">Dia ' + (le.pode ? le.proxSemana : le.semana || 1) + '/7 · ' + (le.pode ? le.proxTrinta : le.trinta || 1) + '/30</span></div>'
+      + '<div class="missao-topo"><strong>Prêmio de login</strong><span class="missao-num">' + (le.boasVindas ? 'Boas-vindas ' + (le.pode ? le.proxSemana : le.semana) + '/7 · ' : '') + (le.pode ? le.proxTrinta : le.trinta || 1) + '/30</span></div>'
       + '<div class="missao-texto">' + (le.pode ? 'Seu prêmio de hoje está esperando!' : 'Pego hoje. Volte amanhã: os dias não precisam ser seguidos.') + '</div>'
       + '<div class="missao-pe"><span></span><button class="btn btn-pequeno' + (le.pode ? '' : ' secundario') + '" data-missao="login">' + (le.pode ? 'Pegar' : 'Ver') + '</button></div></div></div>';
     var dias = Math.floor(R.msAteSemana(agora) / 86400000);
@@ -4425,8 +4425,8 @@
         if (rl.erro) { avisar(rl.erro); break; }
         estado.loginResultado = rl;
         salvar(); atualizarFicha(); desenharMissoes();
-        if (rl.item) avisarItem(rl.item);
-        avisar('🎁 Prêmio de login: ' + rl.textoSemana + (rl.textoTrinta ? ' + marco de ' + rl.trinta + ' dias: ' + rl.textoTrinta : ''), 'item');
+        rl.itens.forEach(avisarItem);
+        avisar('🎁 Prêmio de login: ' + rl.partes.map(function (x) { return x.texto; }).join(' + '), 'item');
         telaJogo();
         break;
       }
@@ -5634,30 +5634,36 @@
     return topo + corpo + (lidos ? '<h3 class="subtitulo">Capítulos concluídos</h3><div class="hist-lidos">' + lidos + '</div>' : '')
       + '<p class="suave pequeno">A História não trava nada: as regiões continuam liberando pelo level. Os objetivos só contam no capítulo atual.</p>';
   }
-  // Prêmios de login (D.LOGIN): a roda da semana (7) e a trilha de 30 dias, com o botão de pegar o do dia.
+  // Prêmios de login (D.LOGIN): a semana de boas-vindas (7, só uma vez) e a trilha de 30 dias, com o botão de pegar o do dia.
   function loginHtml() {
     var p = estado.personagem, L = D.LOGIN, e = R.loginEstado(p, C.agora()), res = estado.loginResultado;
-    // a semana que aparece: a que vai receber o próximo (se o 7º já foi pego e hoje pode, é uma roda nova)
-    var feitosSemana = e.pode && e.semana === 7 ? 0 : e.semana, hojeSemana = e.pode ? e.proxSemana : 0;
-    var roda = L.semana.map(function (pr, i) {
-      var d = i + 1, cl = d <= feitosSemana && !(e.pode && d === hojeSemana) ? ' feito' : d === hojeSemana ? ' hoje' : '';
-      return '<div class="login-dia' + cl + (d === 7 ? ' grande' : '') + '"><small>Dia ' + d + '</small><span class="login-dia-ico">' + (cl === ' feito' ? '✔' : d === 7 ? '🎁' : pr.pergaminho ? '📜' : pr.reputacao ? '⭐' : '🪙') + '</span>'
-        + '<span class="login-dia-premio">' + esc(R.premioLoginTexto(p, pr)) + '</span></div>';
-    }).join('');
+    var icone = function (pr, d) { return pr.item ? '⚔' : d === 7 ? '🎁' : pr.pergaminho ? '📜' : pr.reputacao ? '⭐' : '🪙'; };
+    var semana = '';
+    if (e.boasVindas || (res && res.semana)) {
+      var hojeS = e.pode ? e.proxSemana : 0;
+      semana = '<h3>Semana de boas-vindas <span class="suave pequeno">' + e.semana + '/7 · só uma vez</span></h3><div class="login-roda">' + L.semana.map(function (pr, i) {
+        var d = i + 1, cl = d === hojeS ? ' hoje' : d <= e.semana ? ' feito' : '';
+        return '<div class="login-dia' + cl + (d === 7 ? ' grande' : '') + '"><small>Dia ' + d + '</small><span class="login-dia-ico">' + (cl === ' feito' ? '✔' : icone(pr, d)) + '</span>'
+          + '<span class="login-dia-premio">' + esc(R.premioLoginTexto(p, pr)) + '</span></div>';
+      }).join('') + '</div>';
+    } else semana = '<p class="suave pequeno">✔ Semana de boas-vindas concluída.</p>';
     var trinta = e.pode && e.trinta === 30 ? 0 : e.trinta, marcos = Object.keys(L.trinta).map(Number);
     var trilha = '<div class="login-trilha"><div class="login-trilha-barra"><i style="width:' + Math.round(trinta * 100 / 30) + '%"></i>'
       + marcos.map(function (d) {
         return '<span class="login-marco' + (d <= trinta ? ' feito' : '') + (e.pode && d === e.proxTrinta ? ' hoje' : '') + '" style="left:' + (d * 100 / 30) + '%">' + d + '</span>';
       }).join('') + '</div></div>';
     var prox = marcos.filter(function (d) { return d > trinta; })[0] || 30;
+    var rotulo = { semana: 'Boas-vindas · dia ', diario: 'Trilha · dia ', marco: 'Marco de ' };
     var h = '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela" role="dialog" aria-label="Prêmios de login">'
       + '<button class="zoom-x" data-acao="login-fechar" title="Fechar">✕</button>'
       + '<h2>🗓 Prêmios de login</h2><p class="suave pequeno">Entre um dia, ganhe um prêmio. Os dias não precisam ser seguidos: pulou um, continua de onde parou.</p>'
-      + '<h3>Semana <span class="suave pequeno">' + feitosSemana + '/7</span></h3><div class="login-roda">' + roda + '</div>'
-      + '<h3>30 dias <span class="suave pequeno">' + trinta + '/30</span></h3>' + trilha
-      + '<p class="login-prox">Próximo marco: <strong>dia ' + prox + '</strong> · ' + esc(R.premioLoginTexto(p, L.trinta[prox])) + '</p>';
-    if (res) h += '<div class="login-ganhou"><strong>Você recebeu:</strong> ' + esc(res.textoSemana) + (res.textoTrinta ? '<br><strong>Marco de ' + res.trinta + ' dias:</strong> ' + esc(res.textoTrinta) : '') + '</div>';
-    h += '<div class="botoes">' + (e.pode ? '<button class="btn btn-iniciar" data-acao="login-pegar">🎁 Pegar o prêmio do dia ' + e.proxSemana + '</button>'
+      + semana
+      + '<h3>Trilha de 30 dias <span class="suave pequeno">' + trinta + '/30 · recomeça no fim</span></h3>' + trilha
+      + '<p class="login-prox">Todo login: <strong>' + esc(R.premioLoginTexto(p, L.diario)) + '</strong><br>Próximo marco: <strong>dia ' + prox + '</strong> · ' + esc(R.premioLoginTexto(p, L.trinta[prox])) + '</p>';
+    if (res) h += '<div class="login-ganhou"><strong>Você recebeu:</strong>' + res.partes.map(function (x) {
+      return '<div>' + rotulo[x.de] + x.dia + (x.de === 'marco' ? ' dias' : '') + ': <b>' + esc(x.texto) + '</b></div>';
+    }).join('') + '</div>';
+    h += '<div class="botoes">' + (e.pode ? '<button class="btn btn-iniciar" data-acao="login-pegar">🎁 Pegar o prêmio de hoje</button>'
       : '<button class="btn secundario" data-acao="login-fechar">Volte em ' + tempoTexto(R.msAteReset(C.agora())) + '</button>') + '</div></div></div>';
     return h;
   }

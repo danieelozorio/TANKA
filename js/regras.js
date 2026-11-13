@@ -2006,19 +2006,20 @@ Tanka.regras = (function () {
   }
   // tipo 'diarias' ou 'semanais'. Retorna o texto do prêmio ou null.
   // ---------- Prêmios de login (D.LOGIN) ----------
-  // p.login = { dia: último dia em que pegou (diaReset), semana: 1..7 pego por último, trinta: 1..30 pego por último }.
+  // p.login = { dia: último dia em que pegou (diaReset), semana: 0..7 (boas-vindas; 7 = acabou, não volta),
+  //             trinta: 1..30 pego por último na trilha }.
   function loginEstado(p, agora) {
     var L = p.login || {}, semana = L.semana || 0, trinta = L.trinta || 0;
-    return { pode: L.dia !== diaReset(agora), semana: semana, trinta: trinta,
-      proxSemana: semana % 7 + 1, proxTrinta: trinta % 30 + 1 };
+    return { pode: L.dia !== diaReset(agora), semana: semana, trinta: trinta, boasVindas: semana < 7,
+      proxSemana: semana < 7 ? semana + 1 : null, proxTrinta: trinta % 30 + 1 };
   }
   function premioLoginTexto(p, pr) {
     var partes = [];
+    var m = function (r, n) { var t = (RARIDADE_M[r] || r).toLowerCase(); return n > 1 ? (t === 'comum' ? 'comuns' : t + 's') : t; };   // masculino: pergaminho raro
+    if (pr.item) partes.push('1 ' + (pr.item.tipo === 'armadura' ? 'armadura' : 'arma') + ' ' + D.raridades[pr.item.raridade].nome.toLowerCase() + ' do seu level');
+    if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's ' : ' ') + m(pr.pergaminho.raridade, pr.pergaminho.qtd));
     if (pr.ouroPorNivel) partes.push((pr.ouroPorNivel * p.nivel).toLocaleString('pt-BR') + ' de ouro');
     if (pr.reputacao) partes.push(pr.reputacao + ' de reputação');
-    var m = function (r, n) { var t = (RARIDADE_M[r] || r).toLowerCase(); return n > 1 ? (t === 'comum' ? 'comuns' : t + 's') : t; };   // masculino: pergaminho raro, item épico
-    if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's ' : ' ') + m(pr.pergaminho.raridade, pr.pergaminho.qtd));
-    if (pr.item) partes.push(pr.item.tipo === 'arma' ? '1 arma ' + D.raridades[pr.item.raridade].nome.toLowerCase() + ' do seu level' : '1 item ' + m(pr.item.raridade, 1) + ' da sua classe');
     return partes.join(' + ');
   }
   function darPremioLogin(p, pr, rng) {
@@ -2027,24 +2028,34 @@ Tanka.regras = (function () {
     if (pr.reputacao) p.reputacao = (p.reputacao || 0) + pr.reputacao;
     if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
     if (pr.item) {
-      var tipos = ['arma', 'elmo', 'peitoral', 'luvas', 'botas'], tipo = pr.item.tipo || tipos[Math.floor((rng || Math.random)() * tipos.length)];
+      var tipo = pr.item.tipo === 'armadura' ? ['elmo', 'peitoral', 'luvas', 'botas'][Math.floor((rng || Math.random)() * 4)] : 'arma';
       var atual = armaEquipada(p), esp = tipo === 'arma' && atual && atual.arma && podeUsar(p, atual) ? atual.arma : null;
       item = novoItem(tipo, p.classe, pr.item.raridade, rng, esp, p.nivel);
       p.inventario.push(item);
     }
     return item;
   }
-  // Pega o prêmio do dia: o próximo da semana e, se cair num marco, o dos 30 dias.
-  // Retorna { semana, trinta, textoSemana, textoTrinta, item } ou { erro } ou null (já pegou hoje).
+  // Junta os prêmios do dia: o da semana de boas-vindas (se ainda não acabou), o diário da trilha e o do marco.
+  function premiosLoginDoDia(e) {
+    var L = D.LOGIN, lista = [];
+    if (e.proxSemana) lista.push({ de: 'semana', dia: e.proxSemana, pr: L.semana[e.proxSemana - 1] || {} });
+    if (L.diario) lista.push({ de: 'diario', dia: e.proxTrinta, pr: L.diario });
+    if (L.trinta[e.proxTrinta]) lista.push({ de: 'marco', dia: e.proxTrinta, pr: L.trinta[e.proxTrinta] });
+    return lista;
+  }
+  // Pega os prêmios do dia. Retorna { semana, trinta, partes: [{ de, dia, texto }], itens } ou { erro } ou null (já pegou hoje).
   function pegarLogin(p, agora, rng) {
     var e = loginEstado(p, agora);
     if (!e.pode) return null;
-    var prS = D.LOGIN.semana[e.proxSemana - 1] || {}, prT = D.LOGIN.trinta[e.proxTrinta] || null;
-    if (prT && prT.item && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do dia ' + e.proxTrinta + '.' };
-    var r = { semana: e.proxSemana, trinta: e.proxTrinta, textoSemana: premioLoginTexto(p, prS), textoTrinta: prT ? premioLoginTexto(p, prT) : null };
-    darPremioLogin(p, prS, rng);
-    if (prT) r.item = darPremioLogin(p, prT, rng);
-    p.login = { dia: diaReset(agora), semana: e.proxSemana, trinta: e.proxTrinta };
+    var lista = premiosLoginDoDia(e), itens = lista.filter(function (x) { return x.pr.item; }).length;
+    if (itens && mochila(p).length + itens > D.MOCHILA_MAX) return { erro: 'Mochila cheia! Libere ' + itens + ' espaço' + (itens > 1 ? 's' : '') + ' para receber o prêmio de hoje.' };
+    var r = { semana: e.proxSemana, trinta: e.proxTrinta, partes: [], itens: [] };
+    lista.forEach(function (x) {
+      r.partes.push({ de: x.de, dia: x.dia, texto: premioLoginTexto(p, x.pr) });
+      var it = darPremioLogin(p, x.pr, rng);
+      if (it) r.itens.push(it);
+    });
+    p.login = { dia: diaReset(agora), semana: e.proxSemana || e.semana, trinta: e.proxTrinta };
     return r;
   }
 
@@ -2886,7 +2897,7 @@ Tanka.regras = (function () {
     guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
     resgatarMissao: resgatarMissao,
-    loginEstado: loginEstado, pegarLogin: pegarLogin, premioLoginTexto: premioLoginTexto,
+    loginEstado: loginEstado, pegarLogin: pegarLogin, premioLoginTexto: premioLoginTexto, premiosLoginDoDia: premiosLoginDoDia,
     resgatarBonusDiario: resgatarBonusDiario,
     missoesProntas: missoesProntas,
     sortearChefe: sortearChefe,

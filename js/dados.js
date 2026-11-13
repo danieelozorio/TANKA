@@ -868,24 +868,27 @@ Tanka.dados = {
     vidaMinima: 5, contagem: 3, pocaoAuto: [10, 5], historico: 10 },
 
   // Prêmios de login (Daniel, nov/2026): 1 vez por dia (vira às 00:00 de Brasília), os dias NÃO precisam ser seguidos.
-  // semana: 7 prêmios, um por dia em que entrou; depois do 7º recomeça. trinta: trilha de 30 dias de login com
-  // marcos (dia: prêmio); depois do 30º recomeça. Prêmio: ouroPorNivel (x level), reputacao, pergaminho {raridade, qtd},
-  // item {raridade, tipo?} (da classe do herói, do level dele; sem tipo, sorteia entre arma e armaduras).
+  // semana: boas-vindas, 7 prêmios, um por dia de login, SÓ UMA VEZ por herói (depois fica só a trilha dos 30).
+  // diario: o que todo login dá na trilha dos 30. trinta: marcos da trilha de 30 dias de login; depois do 30º recomeça.
+  // Ouro da trilha: diário 30 x 100 + marcos 3.700 = 6.700 x level por volta (uns 200 mil no level 30).
+  // Prêmio: ouroPorNivel (x level), reputacao, pergaminho {raridade, qtd}, item {raridade, tipo: 'arma' | 'armadura'}
+  // (da classe do herói, do level dele; armadura sorteia elmo, peitoral, luvas ou botas).
   LOGIN: {
     semana: [
       { ouroPorNivel: 200 },
       { reputacao: 40 },
-      { pergaminho: { raridade: 'epica', qtd: 1 } },
+      { item: { tipo: 'arma', raridade: 'epica' }, pergaminho: { raridade: 'epica', qtd: 1 } },
       { ouroPorNivel: 300 },
-      { reputacao: 60 },
+      { item: { tipo: 'armadura', raridade: 'epica' } },
       { ouroPorNivel: 400 },
-      { pergaminho: { raridade: 'lendaria', qtd: 2 }, reputacao: 100 },
+      { item: { tipo: 'arma', raridade: 'lendaria' }, pergaminho: { raridade: 'lendaria', qtd: 2 }, reputacao: 100 },
     ],
+    diario: { ouroPorNivel: 100 },
     trinta: {
-      7: { ouroPorNivel: 1100 },
-      14: { pergaminho: { raridade: 'epica', qtd: 2 } },
-      21: { ouroPorNivel: 1100, reputacao: 200 },
-      30: { item: { tipo: 'arma', raridade: 'lendaria' }, pergaminho: { raridade: 'epica', qtd: 2 } },
+      7: { ouroPorNivel: 800 },
+      14: { ouroPorNivel: 800, pergaminho: { raridade: 'epica', qtd: 2 } },
+      21: { ouroPorNivel: 800, reputacao: 200 },
+      30: { ouroPorNivel: 1300, item: { tipo: 'arma', raridade: 'lendaria' }, pergaminho: { raridade: 'epica', qtd: 2 } },
     },
   },
 

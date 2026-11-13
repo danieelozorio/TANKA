@@ -782,16 +782,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   diferenças). Passar o mouse continua mostrando só o item; clicar no item do hover redesenha já com a comparação.
 
 ## Prêmios de login (Daniel, nov/2026)
-- Números em `D.LOGIN`: `semana` (7 prêmios, um por dia de login; depois do 7º recomeça) e `trinta` (marcos 7/14/21/30
-  de uma trilha de 30 dias de login; depois do 30º recomeça; não é o calendário do mês, para fevereiro não travar).
+- Números em `D.LOGIN`: `semana` = **semana de boas-vindas** (7 prêmios, um por dia de login, **só uma vez** por herói:
+  com `p.login.semana === 7` não volta); `diario` = o que todo login dá na trilha; `trinta` = marcos 7/14/21/30 da trilha
+  de 30 dias de login (repete; não é o calendário do mês). Ouro da trilha: 6.700 × level por volta (~200 mil no level 30).
   Os dias **não precisam ser seguidos**; vale por personagem; 1 vez por dia (vira às 00:00 de Brasília, `diaReset`).
-- Regras: `R.loginEstado(p, agora)`, `R.pegarLogin(p, agora, rng)` (dá o da semana e, se cair num marco, o dos 30 dias;
-  com item e mochila cheia devolve `{ erro }` sem pegar), `R.premioLoginTexto`. Estado em `p.login = { dia, semana, trinta }`.
-  Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade, tipo?} (da classe, no level do herói; sem
-  tipo sorteia entre arma e armaduras). Ajuste do Daniel: dia 3 pergaminho épico, dia 7 2 lendários + 100 rep, dia 30
-  arma lendária + 2 pergaminhos épicos; ouro somado em 30 logins = 6.000 × level (semana 200/300/400, marcos 7 e 21: 1.100). Teste em regras.test.js ("login: ...").
-- Tela: `loginHtml()` (janela com a roda da semana e a trilha dos 30), abre sozinha ao entrar no jogo se o prêmio do dia
-  está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de login" no topo do painel
-  de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes` no app.js;
-  `R.missoesProntas` continua só com as missões).
-- É feito no jogo (como as missões), não no servidor.
+- Regras: `R.loginEstado(p, agora)` (`boasVindas`, `proxSemana` null depois do 7º), `R.premiosLoginDoDia(e)`,
+  `R.pegarLogin(p, agora, rng)` → `{ semana, trinta, partes: [{ de: 'semana'|'diario'|'marco', dia, texto }], itens }`
+  (com itens e sem espaço na mochila devolve `{ erro }` sem pegar), `R.premioLoginTexto`. Estado: `p.login = { dia, semana, trinta }`.
+  Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade, tipo: 'arma' | 'armadura'} (da classe, no
+  level do herói; armadura sorteia elmo/peitoral/luvas/botas; arma do mesmo tipo da equipada). Teste em regras.test.js ("login: ...").
+- Tela: `loginHtml()` (semana de boas-vindas enquanto existir, trilha, "todo login" e próximo marco), abre sozinha ao entrar
+  no jogo se o prêmio do dia está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de
+  login" no topo do painel de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes`).
+- É feito no jogo (como as missões), não no servidor. PDF do Daniel: gerado do D.LOGIN (script no scratchpad).
