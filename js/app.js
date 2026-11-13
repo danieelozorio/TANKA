@@ -1402,8 +1402,8 @@
       + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
-      + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
       + fichaPoderHtml(p, item, slot)
+      + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + (estado.compararSemEncanto && (item.encanto || alvo.encanto) ? ' <strong>(os dois sem encanto)</strong>' : '') + '</p>'
         + '<div class="item-acoes">' + botaoCompararEncanto(item, alvo) + '</div>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
