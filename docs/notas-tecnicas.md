@@ -780,3 +780,17 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as
   diferenças). Passar o mouse continua mostrando só o item; clicar no item do hover redesenha já com a comparação.
+
+## Prêmios de login (Daniel, nov/2026)
+- Números em `D.LOGIN`: `semana` (7 prêmios, um por dia de login; depois do 7º recomeça) e `trinta` (marcos 7/14/21/30
+  de uma trilha de 30 dias de login; depois do 30º recomeça; não é o calendário do mês, para fevereiro não travar).
+  Os dias **não precisam ser seguidos**; vale por personagem; 1 vez por dia (vira às 00:00 de Brasília, `diaReset`).
+- Regras: `R.loginEstado(p, agora)`, `R.pegarLogin(p, agora, rng)` (dá o da semana e, se cair num marco, o dos 30 dias;
+  com item e mochila cheia devolve `{ erro }` sem pegar), `R.premioLoginTexto`. Estado em `p.login = { dia, semana, trinta }`.
+  Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade} (peça sorteada entre arma e armaduras da
+  classe, no level do herói). Teste em regras.test.js ("login: ...").
+- Tela: `loginHtml()` (janela com a roda da semana e a trilha dos 30), abre sozinha ao entrar no jogo se o prêmio do dia
+  está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de login" no topo do painel
+  de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes` no app.js;
+  `R.missoesProntas` continua só com as missões).
+- É feito no jogo (como as missões), não no servidor.

@@ -1772,3 +1772,39 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 /* Clique num item desequipado: o equipado ao lado (Henri, 12/11/2026) */
 .comparar-rotulo { margin: 0 0 .35rem; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--suave, #9a8b74); }
 .comparar-equipado { opacity: .92; }
+
+/* ---------- Prêmios de login (semana de 7 e trilha de 30 dias) ---------- */
+.login-janela { max-width: 620px; text-align: left; }
+.login-janela h2 { margin: 0 0 .2rem; color: var(--ouro-claro, #f2c94c); }
+.login-janela h3 { margin: .9rem 0 .4rem; font-size: 1rem; }
+.login-roda { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
+.login-dia { display: grid; justify-items: center; align-content: start; gap: .15rem; padding: .45rem .2rem; border: 1px solid #3a322a; border-radius: 9px;
+  background: linear-gradient(#1e1913, #13100c); text-align: center; min-height: 6.4rem; }
+.login-dia small { font-size: .68rem; color: #a8987c; }
+.login-dia-ico { font-size: 1.35rem; line-height: 1.2; }
+.login-dia-premio { font-size: .66rem; line-height: 1.25; color: #d9c7a3; }
+.login-dia.feito { opacity: .5; }
+.login-dia.feito .login-dia-ico { color: #7fd17f; }
+.login-dia.hoje { border: 2px solid #f2c94c; background: radial-gradient(ellipse at 50% 0%, rgba(242, 201, 76, .3), transparent 70%), #211a10;
+  box-shadow: 0 0 14px rgba(242, 201, 76, .35); animation: bau-brilho 1.6s ease-in-out infinite; }
+.login-dia.grande { border-color: #8a6a3a; }
+.login-trilha { padding: 1.1rem .6rem .4rem; }
+.login-trilha-barra { position: relative; height: 10px; border-radius: 6px; background: #07090d; border: 1px solid rgba(201, 162, 74, .35); }
+.login-trilha-barra > i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #8a6a3a, #f2c94c); }
+.login-marco { position: absolute; top: 50%; transform: translate(-50%, -50%); display: grid; place-items: center; width: 1.9rem; height: 1.9rem; border-radius: 50%;
+  border: 2px solid #6a5638; background: #1b1610; color: #c9b89a; font-size: .72rem; font-weight: 700; }
+.login-marco:last-child { transform: translate(-85%, -50%); }
+.login-marco.feito { border-color: #f2c94c; background: #6a4d18; color: #fff3cc; }
+.login-marco.hoje { border-color: #ffd98a; box-shadow: 0 0 12px rgba(255, 210, 110, .7); }
+.login-prox { margin: .8rem 0 0; font-size: .85rem; color: #d9c7a3; }
+.login-ganhou { margin-top: .8rem; padding: .55rem .7rem; border: 1px solid #8a6a3a; border-radius: 8px; background: rgba(200, 140, 60, .12); color: #f0d9a0; font-size: .88rem; }
+.login-janela .botoes { margin-top: 1rem; }
+.missao-login { display: flex; align-items: center; gap: .65rem; margin-bottom: .6rem; padding: .6rem .7rem; border: 1px solid #8a6a3a; border-radius: 10px;
+  background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .18), transparent 65%), linear-gradient(180deg, #221c12, #15110b); }
+.missao-login .missao-bau-ico { font-size: 2rem; filter: none; }
+.missao-login .missao-topo strong { color: #f2c94c; }
+.missao-login.pronta { border-color: #f2c94c; animation: bau-brilho 1.6s ease-in-out infinite; }
+.missao-login.feita { opacity: .75; }
+@media (prefers-reduced-motion: reduce) { .login-dia.hoje, .missao-login.pronta { animation: none; } }
+.login-janela .btn-iniciar { width: 100%; color: #2a1704; border: 1px solid #ffd98a; border-radius: 8px; font-weight: 700;
+  background: linear-gradient(180deg, #ffe39a, #e9b450 45%, #b9801f 55%, #d8a13c); box-shadow: 0 0 14px rgba(255, 180, 60, .45); }

@@ -2213,3 +2213,31 @@ teste('Vitalidade desligada: sem x2 e sem gastar pontos', () => {
   const r = R.concluirBatalha(p, b, Date.now());
   assert.ok(!r.vitalidade); assert.strictEqual(r.exp, D.monstros.lobo.exp);
 });
+
+teste('login: 1 vez por dia, dias não seguidos, semana de 7 e trilha de 30 com item no fim', () => {
+  const p = R.criarPersonagem('L', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 9);
+  const dia = 86400000, t0 = Date.UTC(2026, 10, 10, 15);
+  const ouro0 = p.ouro;
+  const r1 = R.pegarLogin(p, t0, rng);
+  assert.strictEqual(r1.semana, 1); assert.strictEqual(r1.trinta, 1); assert.strictEqual(p.ouro, ouro0 + 20 * p.nivel);
+  assert.strictEqual(R.pegarLogin(p, t0 + 3600000, rng), null);          // mesmo dia: não pega de novo
+  assert.ok(R.loginEstado(p, t0 + 5 * dia).pode);                       // pulou dias: não perde nada
+  let t = t0;
+  for (let k = 2; k <= 30; k++) {
+    t += (k % 3 ? 1 : 2) * dia;                                            // às vezes pula um dia
+    const itens = p.inventario.length;
+    const r = R.pegarLogin(p, t, rng);
+    assert.strictEqual(r.trinta, k); assert.strictEqual(r.semana, (k - 1) % 7 + 1);
+    if (k === 30) { assert.ok(r.item && r.item.raridade === 'epica' && r.item.classe === 'cavaleiro'); assert.strictEqual(p.inventario.length, itens + 1); }
+    else assert.ok(!r.item);
+    if ([7, 14, 21, 30].includes(k)) assert.ok(r.textoTrinta); else assert.strictEqual(r.textoTrinta, null);
+  }
+  const r31 = R.pegarLogin(p, t + dia, rng);
+  assert.strictEqual(r31.trinta, 1); assert.strictEqual(r31.semana, 3);  // a trilha recomeça; a semana segue a roda
+  // mochila cheia no dia 30: não pega (fica para depois)
+  const q = R.criarPersonagem('M', 'feminino', 'elfo', 'mago');
+  q.login = { dia: '2000-01-01', semana: 1, trinta: 29 };
+  while (!R.mochilaCheia(q)) q.inventario.push(Object.assign({}, q.inventario[0] || R.criarPersonagem('x', 'masculino', 'humano', 'mago').inventario[0], { id: 'x' + q.inventario.length }));
+  assert.ok(R.pegarLogin(q, t0, rng).erro); assert.strictEqual(q.login.trinta, 29);
+});

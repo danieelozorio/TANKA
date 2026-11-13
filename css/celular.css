@@ -557,3 +557,10 @@ html[data-celular] .menu-cel-grade .menu-cel-seta { display: none; }
 html[data-celular] .menu-cel-grade .selo-num { position: absolute; top: .3rem; right: .35rem; }
 html[data-celular] .menu-cel-item { min-height: 2.6rem; font-size: .9rem; }
 html[data-celular] #painel-topo > * { background: #14110d; }
+/* Prêmios de login no celular: a semana em 4 + 3, letra menor */
+html[data-celular] .login-roda { grid-template-columns: repeat(4, 1fr); }
+html[data-celular] .login-dia { min-height: 5.6rem; }
+html[data-celular] .login-dia.grande { grid-column: span 1; }
+html[data-celular] .login-janela h2 { font-size: 1.15rem; }
+html[data-celular] .login-janela .botoes .btn { width: 100%; min-height: 2.7rem; }
+html[data-celular] .missao-login { padding: .5rem .6rem; }

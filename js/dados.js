@@ -867,6 +867,28 @@ Tanka.dados = {
   CACADA: { tempoInicio: [2000, 2000], tempoFinal: [2000, 2000], sorteBase: 15, faixaEvolucao: 0.6, pesoFraco: 2,
     vidaMinima: 5, contagem: 3, pocaoAuto: [10, 5], historico: 10 },
 
+  // Prêmios de login (Daniel, nov/2026): 1 vez por dia (vira às 00:00 de Brasília), os dias NÃO precisam ser seguidos.
+  // semana: 7 prêmios, um por dia em que entrou; depois do 7º recomeça. trinta: trilha de 30 dias de login com
+  // marcos (dia: prêmio); depois do 30º recomeça. Prêmio: ouroPorNivel (x level), reputacao, pergaminho {raridade, qtd},
+  // item {raridade} (uma peça da classe do herói, sorteada entre arma e armaduras, do level dele).
+  LOGIN: {
+    semana: [
+      { ouroPorNivel: 20 },
+      { reputacao: 20 },
+      { pergaminho: { raridade: 'comum', qtd: 1 } },
+      { ouroPorNivel: 30 },
+      { reputacao: 30 },
+      { ouroPorNivel: 40 },
+      { pergaminho: { raridade: 'rara', qtd: 1 }, reputacao: 50 },
+    ],
+    trinta: {
+      7: { ouroPorNivel: 100 },
+      14: { pergaminho: { raridade: 'rara', qtd: 2 } },
+      21: { ouroPorNivel: 100, reputacao: 100 },
+      30: { item: { raridade: 'epica' }, pergaminho: { raridade: 'epica', qtd: 1 } },
+    },
+  },
+
   // Missões diárias (renovam às 00:00 de Brasília) e semanais (renovam na segunda às 00:00).
   // evento: o que conta progresso | prêmio: ouroPorNivel (x level), reputacao, pergaminhoArma (da raridade da arma equipada).
   MISSOES: {

@@ -474,6 +474,8 @@
     estado.mercadoRaridade = 'comum';
     estado.resultado = null;
     R.atualizarTempo(estado.personagem, C.agora());
+    estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
+    estado.loginResultado = null;
     iniciarAtividade();
     var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
@@ -679,7 +681,7 @@
     trocar(bc, estado.painelTopo === 'caixa' ? 0 : caixaNaoLidas(p));
     trocar(bs, estado.painelTopo === 'sino' ? 0 : n.lista.filter(function (x) { return x.t > n.vista; }).length);
     var ponto = document.getElementById('menu-cel-ponto');
-    if (ponto) ponto.hidden = !((bc && bc.querySelector('.selo-num')) || (bs && bs.querySelector('.selo-num')) || chat.naoLidas || R.missoesProntas(p, C.agora()));
+    if (ponto) ponto.hidden = !((bc && bc.querySelector('.selo-num')) || (bs && bs.querySelector('.selo-num')) || chat.naoLidas || avisosMissoes(p, C.agora()));
     if (estado.painelTopo) desenharPainelTopo();
   }
   function quandoTexto(t) {
@@ -982,7 +984,7 @@
   function cascaTopoHtml(menu) {
     var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO;
     var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
-    var prontas = R.missoesProntas(p, C.agora());
+    var prontas = avisosMissoes(p, C.agora());
     return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
       + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
@@ -997,7 +999,7 @@
   // (Jogo, Configurações, Conta). Caixa de entrada e Avisos saíram da barra de recursos e vieram para cá
   // (mesmos ids btn-caixa/btn-sino, então os números continuam se atualizando sozinhos).
   function menuCelularHtml(livre) {
-    var p = estado.personagem, n = lerNotificacoes(), prontas = R.missoesProntas(p, C.agora());
+    var p = estado.personagem, n = lerNotificacoes(), prontas = avisosMissoes(p, C.agora());
     var nn = n.lista.filter(function (x) { return x.t > n.vista; }).length, cx = caixaNaoLidas(p);
     var item = function (attrs, ico, nome, selo, extra) {
       return '<button class="menu-cel-item' + (extra || '') + '" ' + attrs + '><span class="menu-cel-ico">' + ico + '</span><span class="menu-cel-nome">' + nome + '</span>'
@@ -1023,6 +1025,8 @@
         + item('data-acao="sair"', ICONES.sair, 'Sair', '', ' perigo') + '</div>' : '')
       + '</div></details>';
   }
+  // Número no ícone de Missões: missões prontas para resgatar + o prêmio de login do dia, se ainda não pego.
+  function avisosMissoes(p, agora) { return R.missoesProntas(p, agora) + (R.loginEstado(p, agora).pode ? 1 : 0); }
   function fecharMenuJogo() { var m = document.getElementById('menu-jogo'); if (m) m.open = false; }
   // Zealot no celular: a mesma barra de ícones da Clássica, embaixo da tela (o menu de cima fica só com Trocar/Som/Sair).
   function navBaixoHtml() {
@@ -2694,7 +2698,7 @@
     }
     if (visivel === false || !p) { missoesUI.el.hidden = true; return; }
     missoesUI.el.hidden = false;
-    var agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES, prontas = R.missoesProntas(p, agora);
+    var agora = C.agora(), m = R.garantirMissoes(p, agora), M = D.MISSOES, prontas = avisosMissoes(p, agora);
     var seloM = document.getElementById('casca-missoes-selo');
     if (seloM) { seloM.hidden = !prontas; seloM.textContent = prontas || ''; }
     var aba = '<button class="missoes-aba" data-missao="painel" aria-expanded="' + missoesUI.aberto + '" title="Missões">'
@@ -2727,10 +2731,15 @@
       + '<div class="missao-barra"><i style="width:' + Math.round(feitas * 100 / M.diarias.length) + '%"></i></div>'
       + '<div class="missao-pe"><span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span>'
       + (m.bonus ? '<span class="mais">✔</span>' : todas ? '<button class="btn btn-pequeno" data-missao="bau">Abrir</button>' : '') + '</div></div></div>';
+    var le = R.loginEstado(p, agora);
+    var cartaoLogin = '<div class="missao-carta missao-login' + (le.pode ? ' pronta' : ' feita') + '"><span class="missao-bau-ico">🗓</span><div class="missao-bau-corpo">'
+      + '<div class="missao-topo"><strong>Prêmio de login</strong><span class="missao-num">Dia ' + (le.pode ? le.proxSemana : le.semana || 1) + '/7 · ' + (le.pode ? le.proxTrinta : le.trinta || 1) + '/30</span></div>'
+      + '<div class="missao-texto">' + (le.pode ? 'Seu prêmio de hoje está esperando!' : 'Pego hoje. Volte amanhã: os dias não precisam ser seguidos.') + '</div>'
+      + '<div class="missao-pe"><span></span><button class="btn btn-pequeno' + (le.pode ? '' : ' secundario') + '" data-missao="login">' + (le.pode ? 'Pegar' : 'Ver') + '</button></div></div></div>';
     var dias = Math.floor(R.msAteSemana(agora) / 86400000);
     missoesUI.el.className = 'aberto';
     missoesUI.el.innerHTML = aba + '<div class="missoes-painel" role="dialog" aria-label="Missões"><div class="missoes-titulo"><span>📜 Missões</span>'
-      + '<button data-missao="painel" title="Fechar">✕</button></div>'
+      + '<button data-missao="painel" title="Fechar">✕</button></div>' + cartaoLogin
       + secao('diarias', 'Diárias', 'renova em ' + tempoTexto(R.msAteReset(agora)), M.diarias, bau)
       + secao('semanais', 'Semanais', 'renova em ' + (dias ? dias + 'd ' : '') + tempoTexto(R.msAteSemana(agora) % 86400000), M.semanais) + '</div>';
   }
@@ -2739,6 +2748,7 @@
     if (!el || !p) return;
     var acao = el.dataset.missao;
     if (acao === 'painel') missoesUI.aberto = !missoesUI.aberto;
+    else if (acao === 'login') { missoesUI.aberto = false; estado.loginAberto = true; estado.loginResultado = null; telaJogo(); }
     else if (acao === 'secao') missoesUI[el.dataset.tipo] = !missoesUI[el.dataset.tipo];
     else if (acao === 'resgatar' || acao === 'bau') {
       var premio = acao === 'bau' ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
@@ -3384,6 +3394,7 @@
       + (zealot && navegacao ? navBaixoHtml() : '')
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
+      + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
@@ -4407,6 +4418,18 @@
         break;
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
+      case 'login-fechar': estado.loginAberto = false; estado.loginResultado = null; telaJogo(); break;
+      case 'login-pegar': {
+        var rl = R.pegarLogin(estado.personagem, C.agora());
+        if (!rl) break;
+        if (rl.erro) { avisar(rl.erro); break; }
+        estado.loginResultado = rl;
+        salvar(); atualizarFicha(); desenharMissoes();
+        if (rl.item) avisarItem(rl.item);
+        avisar('🎁 Prêmio de login: ' + rl.textoSemana + (rl.textoTrinta ? ' + marco de ' + rl.trinta + ' dias: ' + rl.textoTrinta : ''), 'item');
+        telaJogo();
+        break;
+      }
       case 'aba': abrirAba(el.dataset.aba); break;
       case 'personagem-vista':
         estado.vistaPersonagem = el.dataset.valor;
@@ -5610,6 +5633,33 @@
     }).join('');
     return topo + corpo + (lidos ? '<h3 class="subtitulo">Capítulos concluídos</h3><div class="hist-lidos">' + lidos + '</div>' : '')
       + '<p class="suave pequeno">A História não trava nada: as regiões continuam liberando pelo level. Os objetivos só contam no capítulo atual.</p>';
+  }
+  // Prêmios de login (D.LOGIN): a roda da semana (7) e a trilha de 30 dias, com o botão de pegar o do dia.
+  function loginHtml() {
+    var p = estado.personagem, L = D.LOGIN, e = R.loginEstado(p, C.agora()), res = estado.loginResultado;
+    // a semana que aparece: a que vai receber o próximo (se o 7º já foi pego e hoje pode, é uma roda nova)
+    var feitosSemana = e.pode && e.semana === 7 ? 0 : e.semana, hojeSemana = e.pode ? e.proxSemana : 0;
+    var roda = L.semana.map(function (pr, i) {
+      var d = i + 1, cl = d <= feitosSemana && !(e.pode && d === hojeSemana) ? ' feito' : d === hojeSemana ? ' hoje' : '';
+      return '<div class="login-dia' + cl + (d === 7 ? ' grande' : '') + '"><small>Dia ' + d + '</small><span class="login-dia-ico">' + (cl === ' feito' ? '✔' : d === 7 ? '🎁' : pr.pergaminho ? '📜' : pr.reputacao ? '⭐' : '🪙') + '</span>'
+        + '<span class="login-dia-premio">' + esc(R.premioLoginTexto(p, pr)) + '</span></div>';
+    }).join('');
+    var trinta = e.pode && e.trinta === 30 ? 0 : e.trinta, marcos = Object.keys(L.trinta).map(Number);
+    var trilha = '<div class="login-trilha"><div class="login-trilha-barra"><i style="width:' + Math.round(trinta * 100 / 30) + '%"></i>'
+      + marcos.map(function (d) {
+        return '<span class="login-marco' + (d <= trinta ? ' feito' : '') + (e.pode && d === e.proxTrinta ? ' hoje' : '') + '" style="left:' + (d * 100 / 30) + '%">' + d + '</span>';
+      }).join('') + '</div></div>';
+    var prox = marcos.filter(function (d) { return d > trinta; })[0] || 30;
+    var h = '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela" role="dialog" aria-label="Prêmios de login">'
+      + '<button class="zoom-x" data-acao="login-fechar" title="Fechar">✕</button>'
+      + '<h2>🗓 Prêmios de login</h2><p class="suave pequeno">Entre um dia, ganhe um prêmio. Os dias não precisam ser seguidos: pulou um, continua de onde parou.</p>'
+      + '<h3>Semana <span class="suave pequeno">' + feitosSemana + '/7</span></h3><div class="login-roda">' + roda + '</div>'
+      + '<h3>30 dias <span class="suave pequeno">' + trinta + '/30</span></h3>' + trilha
+      + '<p class="login-prox">Próximo marco: <strong>dia ' + prox + '</strong> · ' + esc(R.premioLoginTexto(p, L.trinta[prox])) + '</p>';
+    if (res) h += '<div class="login-ganhou"><strong>Você recebeu:</strong> ' + esc(res.textoSemana) + (res.textoTrinta ? '<br><strong>Marco de ' + res.trinta + ' dias:</strong> ' + esc(res.textoTrinta) : '') + '</div>';
+    h += '<div class="botoes">' + (e.pode ? '<button class="btn btn-iniciar" data-acao="login-pegar">🎁 Pegar o prêmio do dia ' + e.proxSemana + '</button>'
+      : '<button class="btn secundario" data-acao="login-fechar">Volte em ' + tempoTexto(R.msAteReset(C.agora())) + '</button>') + '</div></div></div>';
+    return h;
   }
   function historiaCenaHtml() {
     var c = estado.historiaCena;
