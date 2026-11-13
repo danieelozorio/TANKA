@@ -759,6 +759,13 @@
     if (!it) return null;
     var cmp = estado.comparando && estado.comparando[1] === it.id && p.inventario.find(function (i) { return i.id === estado.comparando[0]; });
     if (cmp) return '<div class="comparar-duas"><div class="comparar-lado">' + fichaItemHtml(cmp) + '</div><div class="comparar-lado">' + fichaItemHtml(it) + '</div></div>';
+    // Clique num item desequipado (Henri, 12/11/2026): a ficha abre com o equipado do mesmo lugar ao lado, para comparar.
+    var eq = !estado.fichaHover && !R.slotDoItem(p, it.id) && (it.tipo === 'anel'
+      ? (R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2')) : (it.tipo in p.equipados ? R.itemNoSlot(p, it.tipo) : null));
+    if (eq) return '<div class="comparar-duas"><div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">Equipado</p>' + fichaItemHtml(eq, true)
+      + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>'
+      + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button>'
+      + '<button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
     return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button>'
       + '<button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
   }
@@ -4377,7 +4384,7 @@
           desenharFlutuante(el);
           break;
         }
-        if (estado.fichaHover && estado.itemFoco === alvoId) { fixarFichaHover(); break; }   // vinha do mouse por cima: fixa
+        if (estado.fichaHover && estado.itemFoco === alvoId) { fixarFichaHover(); desenharFlutuante(el); break; }   // vinha do mouse por cima: fixa (e abre a comparação)
         if (estado.itemFoco === alvoId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
         estado.comparando = null;
         estado.itemFoco = alvoId;

@@ -750,3 +750,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ficha (`estado.compararCom`), o próximo item tocado abre os dois lado a lado (`estado.comparando`, `.comparar-duas`).
 - "💰 Vender vários" (já existia; só ficou mais visível).
 
+- **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
+  lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as
+  diferenças). Passar o mouse continua mostrando só o item; clicar no item do hover redesenha já com a comparação.
