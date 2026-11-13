@@ -820,9 +820,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `dados.minas` novo e ativo) e, pela RPC `na_fila(meu)`, o `encontro`/`retomar` da Edge Function `cacada`;
   `fila_entrar` recusa com `dados.minas` ativo ou `dados.cacadaAuto`. Testes no banco.test.sql e cacada_servidor.test.ts.
 - **Celular, caçando (Daniel, nov/2026):** o menu do escudo mostra o grupo Conta (Trocar personagem / Sair) também com a
-  caçada ligada (`cacandoAfk` em `menuCelularHtml`), com a dica "a caçada continua sozinha". `voltar-personagens` para só
+  caçada ligada (`cacandoAfk` em `menuCelularHtml`), sem aviso. `voltar-personagens` para só
   os relógios da tela (`pararTimersCacada`, `estado.cacada = null`); no servidor `p.cacadaAuto` segue e, ao entrar de novo
   no herói, `abrirJogo` chama `retomarCacada` (o servidor faz as lutas do tempo fora). `sair` já fazia o mesmo.
 - **Comparar sempre sem encanto (Daniel, nov/2026):** `semEncanto` tira o encanto dos dois itens na comparação da ficha e
   da janela ampliada (mostra "(sem encanto)"); o botão "Comparar sem/com encanto" e `estado.compararSemEncanto` saíram.
   O "⚔ Poder do item" e a seta verde continuam com o encanto (é o poder de verdade).
+- Ficha do item: saiu o botão "🔍 Ampliar e comparar" (repetia a comparação com o equipado); fica só "⚖ Comparar com outro".

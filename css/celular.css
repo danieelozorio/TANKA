@@ -564,4 +564,3 @@ html[data-celular] .login-dia.grande { grid-column: span 1; }
 html[data-celular] .login-janela h2 { font-size: 1.15rem; }
 html[data-celular] .login-janela .botoes .btn { width: 100%; min-height: 2.7rem; }
 html[data-celular] .missao-login { padding: .5rem .6rem; }
-html[data-celular] .menu-cel-dica { margin: 0 .2rem .15rem; font-size: .76rem; color: #c9b89a; }

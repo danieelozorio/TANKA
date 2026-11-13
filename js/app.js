@@ -799,10 +799,8 @@
       ? (R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2')) : (it.tipo in p.equipados ? R.itemNoSlot(p, it.tipo) : null));
     if (eq) return '<div class="comparar-duas"><div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">Equipado</p>' + fichaItemHtml(eq, true)
       + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>'
-      + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button>'
-      + '<button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
-    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button>'
-      + '<button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
+      + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
+    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
   }
   function fecharFlutuante() {
     var f = document.getElementById('ficha-flutuante');
@@ -1053,7 +1051,6 @@
       + item('data-acao="menu-interface"', '🎨', 'Interface') + item('data-acao="menu-som"', ICONES.som, 'Som e música') + '</div>'
       // Caçando dá para trocar de herói ou sair: a caçada segue sozinha no servidor (farm AFK) e volta ao entrar de novo.
       + (livre || cacandoAfk ? '<div class="menu-cel-grupo"><small>Conta</small>'
-        + (cacandoAfk ? '<p class="menu-cel-dica">⚔ A caçada continua sozinha enquanto você joga com outro herói.</p>' : '')
         + (livre && ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
         + item('data-acao="voltar-personagens"', ICONES.trocarPersonagem, 'Trocar personagem')
         + item('data-acao="sair"', ICONES.sair, 'Sair', '', ' perigo') + '</div>' : '')
