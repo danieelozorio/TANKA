@@ -827,3 +827,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   da janela ampliada (mostra "(sem encanto)"); o botão "Comparar sem/com encanto" e `estado.compararSemEncanto` saíram.
   O "⚔ Poder do item" e a seta verde continuam com o encanto (é o poder de verdade).
 - Ficha do item: saiu o botão "🔍 Ampliar e comparar" (repetia a comparação com o equipado); fica só "⚖ Comparar com outro".
+- Boss do clã, hora (Henri, 13/11/2026): select com o estilo do filtro do Mercado (`.mercado-ordem`); a hora escolhida fica em `estado.bossHoraEscolhida` até salvar (a tela se redesenha e voltava para a hora salva) e `b.hora` é comparado como número.

@@ -1474,8 +1474,7 @@ html { overscroll-behavior-x: none; }
 .boss-al-info { flex: 1; min-width: 0; }
 .boss-al-info h3 { margin: .1rem 0 .4rem; }
 .boss-al-info p { margin: .4rem 0 0; }
-.boss-al-hora { margin-top: .6rem; align-items: center; }
-.boss-al-hora select { margin-left: .4rem; }
+.boss-al-hora { margin-top: .6rem; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 @media (max-width: 520px) { .boss-al-topo .moldura { width: 84px; } }
 .itens .item.meu { border-color: rgba(201, 162, 74, .6); }
 /* ---------- Chefe Mundial (Ignaroth) ---------- */

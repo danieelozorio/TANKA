@@ -4310,6 +4310,7 @@
   });
 
   app.addEventListener('change', function (e) {
+    if (e.target.id === 'al-boss-hora') estado.bossHoraEscolhida = parseInt(e.target.value, 10);
     if (e.target.id === 'mercado-ordem') { var fo = filtroMercado(); fo.ordem = e.target.value; fo.pagina = 0; carregarMercado(); }
     if (e.target.dataset && e.target.dataset.contratar && estado.contratar) {
       estado.contratar[e.target.dataset.contratar] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
@@ -6999,6 +7000,7 @@
       case 'al-skill': acaoAlianca(A2.skillComprar(p.id, el.dataset.id), 'Skill do clã comprada! Já vale para todos os membros.', 'nivel'); return true;
       case 'al-boss-hora': {
         var h = parseInt(valor('al-boss-hora'), 10);
+        estado.bossHoraEscolhida = null;
         acaoBossAl(A2.boss.hora(p.id, h), 'Boss marcado para as ' + h + 'h (horário de Brasília), todos os dias.');
         return true;
       }
@@ -7128,9 +7130,11 @@
         + BA.limiteAtaques + ' ataques do boss. Em grupo de até ' + BA.grupoMax + ' o dano é muito maior.</p>';
     }
     if (lider) {
+      // a tela do boss se redesenha sozinha: a hora escolhida (ainda sem salvar) fica guardada para não voltar
+      var horaEsc = estado.bossHoraEscolhida != null ? estado.bossHoraEscolhida : Number(b.hora) || 0;
       var opcoes = '';
-      for (var h = 0; h < 24; h++) opcoes += '<option value="' + h + '"' + (b.hora === h ? ' selected' : '') + '>' + h + 'h</option>';
-      html += '<div class="linha-form boss-al-hora"><label>Hora do boss (Brasília) <select id="al-boss-hora"' + (aberto ? ' disabled' : '') + '>' + opcoes + '</select></label>'
+      for (var h = 0; h < 24; h++) opcoes += '<option value="' + h + '"' + (horaEsc === h ? ' selected' : '') + '>' + h + 'h</option>';
+      html += '<div class="boss-al-hora"><label class="mercado-ordem">Hora do boss (Brasília) <select id="al-boss-hora"' + (aberto ? ' disabled' : '') + '>' + opcoes + '</select></label>'
         + '<button class="btn secundario btn-pequeno" data-acao="al-boss-hora"' + (aberto ? ' disabled' : '') + '>Salvar</button></div>';
     }
     html += '</div>';
