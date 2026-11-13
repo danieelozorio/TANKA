@@ -202,7 +202,10 @@ html[data-celular] .monstro.chefe .misterio { font-size: .82rem; }
 html[data-celular] .cacada-escolha { position: fixed; left: .5rem; right: .5rem; top: auto; bottom: calc(4rem + env(safe-area-inset-bottom)); z-index: 12; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin: .5rem 0;
   padding: .5rem .55rem; border-radius: 10px; border: 1px solid #c9a24a; background: rgba(12, 10, 8, .96); box-shadow: 0 -6px 18px rgba(0, 0, 0, .6); }
 html[data-celular] .cacada-escolha > span { flex: 1; font-size: .85rem; }
-html[data-celular] .cacada-escolha .btn-iniciar { flex-basis: 100%; min-height: 2.9rem; font-size: 1.05rem; order: 3; }
+html[data-celular] .cacada-escolha .btn-iniciar { flex-basis: 100%; min-height: 2.3rem; padding: .3em 1em; font-size: .9rem; order: 3; color: #2a1704; border: 1px solid #ffd98a; border-radius: 8px;
+  background: linear-gradient(180deg, #ffe39a, #e9b450 45%, #b9801f 55%, #d8a13c); box-shadow: 0 0 12px rgba(255, 180, 60, .4); font-weight: 700; }
+html[data-celular] .cacada-escolha .btn-iniciar:disabled { filter: grayscale(.6) brightness(.7); box-shadow: none; }
+html[data-celular] .leilao-zoom .zoom-x { z-index: 2; font-size: 1.5rem; padding: .2rem .5rem; color: #f2c94c; }
 html[data-celular] .regiao-topo p { font-size: .82rem; }
 /* luta: o topo não gruda (cobria o resto ao rolar); registro mais baixo */
 html[data-celular] .cacada-topo { position: static; }
@@ -371,3 +374,8 @@ html[data-celular] .previa [data-acao="criar-personagem"] { position: fixed; lef
 html[data-celular] .comparar-duas { grid-template-columns: 1fr; }
 html[data-celular] .comparar-duas .comparar-lado + .comparar-lado { padding: .7rem 0 0; border-left: 0; border-top: 1px solid #4a3f33; }
 html[data-celular] .mercado-so-classe { flex-basis: 100%; }
+/* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
+html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
+/* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */
+html[data-celular] .conteudo:has(.zoom-fundo) { z-index: 60; }
+html[data-celular] .zoom-janela { max-height: calc(100dvh - 1.2rem); padding: 1.6rem .8rem .8rem; }

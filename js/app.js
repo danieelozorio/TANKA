@@ -1991,6 +1991,7 @@
     if (!a || a.item.tipo === 'pergaminho' || TIPOS_CRAFT.indexOf(a.item.tipo) >= 0) return '';
     var p = estado.personagem, it = a.item, outro = R.podeUsar(p, it) ? itemParaComparar(p, it) : null;
     return '<div class="zoom-fundo leilao-zoom" data-acao="mercado-fechar"><div class="zoom-janela" role="dialog" aria-label="Item à venda">'
+      + '<button class="zoom-x" data-acao="mercado-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas">' + cartaZoom(it, outro, 'À venda por ' + (a.vendedor || 'você')) + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
       + '<div class="botoes"><button class="btn secundario" data-acao="mercado-fechar">Fechar</button></div></div></div>';
   }
@@ -2149,6 +2150,7 @@
     if (!l || l.item.consumivel) return '';
     var p = estado.personagem, outro = l.classe && l.classe !== p.classe ? null : itemParaComparar(p, l.item);
     return '<div class="zoom-fundo leilao-zoom" data-acao="leilao-fechar"><div class="zoom-janela" role="dialog" aria-label="Lote do leilão">'
+      + '<button class="zoom-x" data-acao="leilao-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas">' + cartaZoom(l.item, outro, 'Lote do leilão') + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
       + (l.classe && l.classe !== p.classe ? '<p class="menos pequeno">Item de ' + NOME_CLASSE_LOTE[l.classe] + ': só essa classe usa.</p>' : '')
       + '<div class="botoes"><button class="btn secundario" data-acao="leilao-fechar">Fechar</button></div></div></div>';
@@ -4484,12 +4486,12 @@
       case 'mercado-cancelar': cancelarMercado(el.dataset.id); break;
       case 'mercado-ver': estado.mercadoVer = el.dataset.id; redesenharMercado(); break;
       case 'mercado-fechar':
-        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="mercado-fechar"].btn')) break;
+        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="mercado-fechar"].btn, .zoom-x')) break;
         estado.mercadoVer = null; redesenharMercado(); break;
       case 'leilao-atualizar': estado.leilao = null; carregarLeilao(); telaJogo(); break;
       case 'leilao-ver': estado.leilaoVer = el.dataset.id; telaJogo(); break;
       case 'leilao-fechar':
-        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn')) break;
+        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn, .zoom-x')) break;
         estado.leilaoVer = null; telaJogo(); break;
       case 'guia-comecar': R.comecarGuia(estado.personagem); salvar(); telaJogo(); break;
       case 'guia-pular':

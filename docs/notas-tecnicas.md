@@ -749,4 +749,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mais (o `dblclick` saiu). **Comparar dois itens:** botão "⚖ Comparar com outro" na
   ficha (`estado.compararCom`), o próximo item tocado abre os dois lado a lado (`estado.comparando`, `.comparar-duas`).
 - "💰 Vender vários" (já existia; só ficou mais visível).
+- Celular: "⚔ INICIAR CAÇADA" menor e dourado (`.cacada-escolha .btn-iniciar` no celular.css). Janelas de item da
+  loja e do leilão ganharam ✕ (`.zoom-x`); no celular o `.conteudo` (z-index 1) ficava abaixo da barra de cima e a
+  escondia o topo da janela: `.conteudo:has(.zoom-fundo)` sobe para z-index 60.
 
