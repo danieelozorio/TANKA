@@ -1456,7 +1456,7 @@
       + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
-      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; clique para fixar e equipar.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
+      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
       + baixo + '</div></div>';
   }
 
@@ -5084,20 +5084,23 @@
     atividade.desdeSalvar = 0;
     salvar();
   });
-  // Dentro do jogo o botão direito não abre o menu do navegador: num item ele abre a ficha (fixa). Equipar é só pelo
-  // botão da ficha (Daniel, nov/2026: o botão direito e os dois cliques equipavam sem querer).
+  // Dentro do jogo o botão direito não abre o menu do navegador: num item da mochila ele equipa (Daniel, nov/2026).
+  // Os dois cliques não equipam mais (equipavam sem querer); passar o mouse mostra a ficha.
   // (Nos campos de texto, como o chat, o menu continua para copiar e colar.)
   document.addEventListener('contextmenu', function (e) {
     if (!estado.personagem || !document.querySelector('.jogo')) return;
     if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
     var el = e.target.closest && e.target.closest('[data-acao="item"]');
-    if (!el || estado.vendaLote) return;
-    estado.consumivelFoco = estado.dropFoco = null;
-    estado.comparando = null;
-    estado.itemFoco = el.dataset.id;
-    estado.fichaHover = false;
-    desenharFlutuante(el);
+    var p = estado.personagem;
+    if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
+    var it = p.inventario.find(function (i) { return i.id === el.dataset.id; });
+    if (!R.equipar(p, el.dataset.id)) { avisar(R.motivoNaoEquipa(p, it) || 'Não foi possível equipar (mochila cheia?).'); return; }
+    fecharFlutuante();
+    estado.zoom = null;
+    estado.vendaPendente = null;
+    salvar();
+    telaJogo();
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && document.getElementById('ficha-flutuante')) fecharFlutuante();

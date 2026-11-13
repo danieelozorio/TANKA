@@ -745,8 +745,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   filtro a chamada é igual à antiga) e o servidor filtra com `mercado_serve(item, filtro)`. Testes no banco.test.sql.
 - Loja dos jogadores e Leilão: "▲ Melhor que o seu equipado" (`dropMelhor`).
 - Mochila: passar o mouse num item mostra a ficha (`estado.fichaHover`, classe `.hover`; sai do item e da ficha =
-  fecha; clicar fixa com `fixarFichaHover`). Botão direito abre a ficha (não equipa mais) e dois cliques não equipam
-  mais (o `dblclick` saiu): equipar só pelo botão da ficha. **Comparar dois itens:** botão "⚖ Comparar com outro" na
+  fecha; clicar fixa com `fixarFichaHover`). Botão direito continua equipando (pedido do Daniel); dois cliques não equipam
+  mais (o `dblclick` saiu). **Comparar dois itens:** botão "⚖ Comparar com outro" na
   ficha (`estado.compararCom`), o próximo item tocado abre os dois lado a lado (`estado.comparando`, `.comparar-duas`).
 - "💰 Vender vários" (já existia; só ficou mais visível).
 
