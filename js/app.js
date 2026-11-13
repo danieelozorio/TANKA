@@ -202,9 +202,40 @@
   // Outra aba ou aparelho salvou este personagem depois desta aba: em vez de gravar a cópia velha por cima,
   // avisa e recarrega a página, que busca o progresso mais novo no servidor.
   if (C.aoConflito) C.aoConflito(function () {
-    avisar('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
-    setTimeout(function () { location.reload(); }, 2500);
+    var recarregar = function () {
+      avisar('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
+      setTimeout(function () { location.reload(); }, 2500);
+    };
+    if (!C.sessaoVale) return recarregar();
+    C.sessaoVale().then(function (vale) {   // a conta foi aberta em outro aparelho: logout em vez de recarregar
+      if (vale) recarregar(); else sairDaConta('Sua conta foi aberta em outro dispositivo. Entre de novo para jogar aqui.');
+    }, recarregar);
   });
+
+  // ---------------- Uma sessão por conta (Henri, 13/11/2026) ----------------
+  // Entrar com a senha num aparelho tira a conta dos outros: a cada 30 s (e ao voltar para a aba) o jogo pergunta ao
+  // servidor se este navegador ainda é o da conta; se não for, faz logout e volta para o login.
+  function sairDaConta(motivo) {
+    clearTimeout(estado.timer);
+    if (estado.cacada) { pararTimersCacada(); estado.cacada = null; }
+    encerrarAtividade();
+    C.sair();
+    estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
+    guardarJogo();
+    telaAuth('entrar', motivo);
+  }
+  var conferindoSessao = false;
+  function conferirSessao() {
+    if (!C.sessaoVale || !estado.conta || conferindoSessao || document.visibilityState === 'hidden') return;
+    conferindoSessao = true;
+    C.sessaoVale().then(function (vale) {
+      conferindoSessao = false;
+      if (!vale && estado.conta) sairDaConta('Sua conta foi aberta em outro dispositivo. Entre de novo para jogar aqui.');
+    }, function () { conferindoSessao = false; });
+  }
+  setInterval(conferirSessao, 30000);
+  setTimeout(conferirSessao, 4000);   // ao abrir a página com a sessão guardada
+  document.addEventListener('visibilitychange', conferirSessao);
 
   // ---------------- Login / cadastro ----------------
 
@@ -4328,6 +4359,9 @@
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
       case 'fila-entrar':
+        if (estado.cacada && estado.cacada.ativa) { avisar('Pare a caçada antes de entrar na fila da masmorra.'); break; }
+        if (estado.lutaArena) { avisar('Termine a luta na Arena antes de entrar na fila da masmorra.'); break; }
+        if (R.minerando(p, C.agora())) { avisar('⛏ Pare a mineração (Aventura › Mineração) antes de entrar na fila da masmorra.'); break; }
         acaoGrupo(function () { return C.grupo.filaEntrar(p.id, el.dataset.valor); }, 'Você entrou na fila de ' + R.masmorra(el.dataset.valor).nome + '.');
         break;
       case 'fila-sair':
@@ -4368,12 +4402,7 @@
         alternarPainel();
         break;
       case 'sair':
-        clearTimeout(estado.timer);
-        encerrarAtividade();
-        C.sair();
-        estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
-        guardarJogo();
-        telaAuth('entrar');
+        sairDaConta();
         break;
       case 'voltar-personagens':
         encerrarAtividade();
@@ -4935,6 +4964,7 @@
       case 'minas-fechar': estado.minasArea = null; telaJogo(); break;
       case 'minas-iniciar': {
         if (estado.cacada || estado.batalha || estado.lutaArena) { avisar('Termine a caçada ou a luta antes de minerar.'); break; }
+        if (naFilaMasmorra('minerar')) break;
         var rm = R.iniciarMinas(p, estado.minasTempo == null ? 1 : estado.minasTempo, C.agora(), estado.minasArea);
         if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
         telaJogo();
@@ -5775,8 +5805,18 @@
   function tempoMinas(min) { return min >= 60 ? (min / 60) + ' h' : min + ' min'; }
   function bloqueadoMinerando(acao) {
     var p = estado.personagem;
-    if (!p || !R.minerando(p, C.agora())) return false;
+    if (!p) return false;
+    if (naFilaMasmorra(acao)) return true;
+    if (!R.minerando(p, C.agora())) return false;
     avisar('⛏ Seu herói está minerando: pare a mineração (Aventura › Mineração) para ' + acao + '.');
+    return true;
+  }
+  // Na fila da masmorra não dá para caçar, minerar nem lutar na Arena: tem que sair da fila antes (Henri, 13/11/2026).
+  function naFilaMasmorra(acao) {
+    var f = estado.gm && estado.gm.fila;
+    if (!f) return false;
+    var m = R.masmorra(f.masmorra);
+    avisar('⏳ Você está na fila' + (m ? ' de ' + m.nome : ' da masmorra') + ': saia da fila (Aventura › Masmorra) para ' + acao + '.');
     return true;
   }
   function janelaMinaHtml(area, e) {

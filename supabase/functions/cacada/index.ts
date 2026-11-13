@@ -59,6 +59,12 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
     }
   }
 
+  // 3b. na fila da masmorra não caça (Henri, 13/11/2026)
+  if (acao === 'encontro' || (acao === 'retomar' && p.cacadaAuto)) {
+    const f = await fetch(base + '/rest/v1/rpc/na_fila', { method: 'POST', headers: cab, body: JSON.stringify({ meu: id }) });
+    if (f.ok && (await f.json()) === true) return responder({ erro: 'Você está na fila da masmorra: saia da fila para caçar.' });
+  }
+
   // 4. a regra, com o relógio e o sorteio do servidor
   const t = agora();
   let saida: Record<string, unknown>;

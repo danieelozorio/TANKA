@@ -806,3 +806,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ganhoPoder). Ficha do item: `fichaPoderHtml` ("⚔ Poder do item: X (+Y)", Y = ganho; equipado mostra só X). A seta
   verde (`itemMelhor`) é o ganho > 0. Teste em regras.test.js ("poder: ...").
 - O poder salvo (`p.poder`, rankings) atualiza quando cada jogador joga/salva de novo.
+
+## Uma sessão por conta (Henri, 13/11/2026)
+- Entrar com a senha chama `sessao_assumir(ap)`: grava em `contas.aparelho` o código do navegador (`localStorage
+  eldrin.aparelho`, igual em todas as abas, então várias contas no mesmo PC seguem juntas). O jogo pergunta
+  `sessao_vale(ap)` a cada 30 s, ao voltar para a aba, 4 s depois de abrir e num conflito de salvamento; se for false,
+  `sairDaConta(motivo)` faz logout e mostra "Sua conta foi aberta em outro dispositivo". Sem a função no banco (schema
+  antigo) ou sem resposta, considera válida. Conta sem aparelho gravado vale. Testes no banco.test.sql.
+- **Na fila não faz outra coisa** (Henri, 13/11/2026): com `estado.gm.fila`, `naFilaMasmorra(acao)` (chamada por
+  `bloqueadoMinerando` e por `minas-iniciar`) bloqueia caçar, minerar e lutar na Arena com o aviso "saia da fila". E
+  `fila-entrar` não deixa entrar caçando, lutando na Arena ou minerando. **O servidor também confere** (13/11):
+  `esta_na_fila(id)` (ping nos últimos 20 s) bloqueia `arena_comecar_tipo`, o gatilho `validar_personagem` (gravar
+  `dados.minas` novo e ativo) e, pela RPC `na_fila(meu)`, o `encontro`/`retomar` da Edge Function `cacada`;
+  `fila_entrar` recusa com `dados.minas` ativo ou `dados.cacadaAuto`. Testes no banco.test.sql e cacada_servidor.test.ts.

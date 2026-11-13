@@ -157,7 +157,26 @@ Tanka.contas = (function () {
     await sincronizarRelogio();
     var c = await carregarConta();
     if (!c) throw new Error('Conta não encontrada. Fale com o administrador.');
+    // Uma sessão por conta (Henri, 13/11/2026): este aparelho passa a ser o da conta; o outro sai sozinho.
+    try { await rpc('sessao_assumir', { ap: idAparelho() }); } catch (e) { /* schema antigo: segue sem a regra */ }
     return c;
+  }
+
+  // Código deste navegador (o mesmo em todas as abas: várias contas no mesmo PC continuam juntas).
+  var aparelhoMemoria = null;
+  function idAparelho() {
+    try {
+      var id = localStorage.getItem('eldrin.aparelho');
+      if (!id) { id = Date.now().toString(36) + Math.random().toString(36).slice(2, 12); localStorage.setItem('eldrin.aparelho', id); }
+      return id;
+    } catch (e) {
+      return aparelhoMemoria || (aparelhoMemoria = Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+    }
+  }
+  // false = a conta foi aberta em outro aparelho depois deste (o jogo faz logout). Sem resposta: considera válida.
+  async function sessaoVale() {
+    if (!sessao) return true;
+    try { return (await rpc('sessao_vale', { ap: idAparelho() })) !== false; } catch (e) { return true; }
   }
 
   function sair() {
@@ -459,6 +478,7 @@ Tanka.contas = (function () {
     excluirPersonagem: excluirPersonagem,
     salvarPersonagem: salvarPersonagem,
     cacada: cacada,
+    sessaoVale: sessaoVale,
     aoConflito: function (f) { aoConflito = f; },
   };
 })();

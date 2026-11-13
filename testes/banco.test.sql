@@ -664,6 +664,28 @@ select pg_temp.como('d'); select public.fila_sair('pd');
 reset role;
 update public.personagens set dados = jsonb_set(dados, '{nivel}', '4') where id = 'pc';
 delete from public.masmorra_fila;
+-- Na fila não caça, não minera e não luta na Arena; minerando ou caçando não entra na fila (tudo no servidor)
+delete from public.masmorra_entradas;
+set role authenticated;
+select pg_temp.como('d'); select public.fila_entrar('pd', 'toca');
+select pg_temp.igual(public.na_fila('pd')::text, 'true', 'na_fila: está na fila');
+select pg_temp.como('a'); select pg_temp.falha($$select public.na_fila('pd')$$, 'Personagem inválido');
+reset role;
+select pg_temp.falha($$select public.arena_comecar_tipo('pd', 'pa', null, 'livre')$$, 'fila da masmorra');
+select pg_temp.falha($$update public.personagens set dados = dados || jsonb_build_object('minas', jsonb_build_object('fim', extract(epoch from now()) * 1000 + 600000)) where id = 'pd'$$, 'saia da fila para minerar');
+update public.masmorra_fila set visto_em = now() - interval '25 seconds';
+select pg_temp.igual(public.esta_na_fila('pd')::text, 'false', 'na_fila: sem ping há 20 s não conta mais');
+delete from public.masmorra_fila;
+update public.personagens set dados = dados || jsonb_build_object('minas', jsonb_build_object('fim', extract(epoch from now()) * 1000 + 600000)) where id = 'pd';
+set role authenticated;
+select pg_temp.como('d'); select pg_temp.falha($$select public.fila_entrar('pd', 'toca')$$, 'minerando');
+reset role;
+update public.personagens set dados = (dados - 'minas') || '{"cacadaAuto": {"alvos": ["lobo"]}}'::jsonb where id = 'pd';
+set role authenticated;
+select pg_temp.como('d'); select pg_temp.falha($$select public.fila_entrar('pd', 'toca')$$, 'caçando');
+reset role;
+update public.personagens set dados = dados - 'cacadaAuto' where id = 'pd';
+delete from public.masmorra_fila;
 
 -- Masmorra: 5 entradas por dia (antes 2).
 reset role;
@@ -1130,4 +1152,18 @@ select pg_temp.igual(public.mercado_serve('{"tipo":"arma","classe":"cavaleiro"}'
 select pg_temp.igual(public.mercado_serve('{"tipo":"elmo","classe":"mago"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'false', 'mercado_serve: elmo de mago não');
 select pg_temp.igual(public.mercado_serve('{"tipo":"colar"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'true', 'mercado_serve: joia serve a todos');
 select pg_temp.igual(public.mercado_serve('{"tipo":"arma","arma":"arco"}'::jsonb, null)::text, 'true', 'mercado_serve: sem filtro passa tudo');
+-- Uma sessão por conta: o último navegador que entrou é o que vale; outra conta não é afetada
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'true', 'sessao_vale: conta sem aparelho gravado vale');
+select public.sessao_assumir('pc');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'true', 'sessao_vale: o PC que entrou vale');
+select public.sessao_assumir('celular');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'false', 'sessao_vale: entrou no celular, o PC cai');
+select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: o celular vale');
+select pg_temp.como('b');
+select public.sessao_assumir('pc');
+select pg_temp.como('a');
+select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: outra conta no PC não derruba o celular');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

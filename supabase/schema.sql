@@ -65,6 +65,13 @@ begin
     raise exception 'Limite de 3 personagens por conta.';
   end if;
   if tg_op = 'UPDATE' then new.nome := old.nome; end if;
+  -- começou a minerar estando na fila da masmorra: não grava (Henri, 13/11/2026)
+  if tg_op = 'UPDATE' and new.dados -> 'minas' is distinct from old.dados -> 'minas'
+     and jsonb_typeof(new.dados -> 'minas' -> 'fim') = 'number'
+     and (new.dados -> 'minas' ->> 'fim')::numeric > extract(epoch from now()) * 1000
+     and to_regprocedure('public.esta_na_fila(text)') is not null and public.esta_na_fila(new.id) then
+    raise exception 'Você está na fila da masmorra: saia da fila para minerar.';
+  end if;
   -- conversões feitas pelo próprio schema não contam como "jogou agora"
   if tg_op = 'UPDATE' and current_setting('tanka.migracao', true) = '1' then new.atualizado_em := old.atualizado_em; return new; end if;
   new.atualizado_em := now();
@@ -147,6 +154,20 @@ language sql stable as $$ select now(); $$;
 
 grant execute on function public.usuario_livre(text), public.email_livre(text),
   public.nome_personagem_livre(text), public.agora() to anon, authenticated;
+
+-- Uma sessão por conta (Henri, 13/11/2026): entrar com a senha grava o código do navegador; os outros aparelhos
+-- perguntam a cada 30 s se ainda são o da conta e, se não forem, fazem logout. Abas do mesmo navegador têm o mesmo código.
+alter table public.contas add column if not exists aparelho text;
+create or replace function public.sessao_assumir(ap text) returns void
+language sql security definer set search_path = public as $$
+  update public.contas set aparelho = left(ap, 64) where id = auth.uid();
+$$;
+create or replace function public.sessao_vale(ap text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select aparelho is null or aparelho = ap from public.contas where id = auth.uid()), true);
+$$;
+revoke all on function public.sessao_assumir(text), public.sessao_vale(text) from public, anon;
+grant execute on function public.sessao_assumir(text), public.sessao_vale(text) to authenticated;
 
 -- ---------- Chat global ----------
 alter table public.contas add column if not exists silenciado_ate timestamptz;  -- moderação do chat
@@ -806,6 +827,14 @@ begin
   select coalesce((dados ->> 'nivel')::int, 1) into nivel from public.personagens where id = meu;
   if nivel < public.masmorra_nivel_min(masmorra) then raise exception 'Level mínimo %.', public.masmorra_nivel_min(masmorra); end if;
   if public.entradas_usadas(meu) >= public.masmorra_entradas_dia() then raise exception 'Sem entradas hoje.'; end if;
+  -- ocupado em outra coisa: não entra na fila (Henri, 13/11/2026)
+  if exists (select 1 from public.personagens where id = meu and jsonb_typeof(dados -> 'minas' -> 'fim') = 'number'
+      and (dados -> 'minas' ->> 'fim')::numeric > extract(epoch from now()) * 1000) then
+    raise exception 'Seu herói está minerando: pare a mineração para entrar na fila da masmorra.';
+  end if;
+  if exists (select 1 from public.personagens where id = meu and jsonb_typeof(dados -> 'cacadaAuto') = 'object') then
+    raise exception 'Seu herói está caçando: pare a caçada para entrar na fila da masmorra.';
+  end if;
   insert into public.masmorra_fila (personagem_id, masmorra) values (meu, fila_entrar.masmorra)
     on conflict (personagem_id) do update set masmorra = excluded.masmorra, entrou_em = now(), visto_em = now();
   perform public.fila_casar(fila_entrar.masmorra);
@@ -827,8 +856,22 @@ begin
   perform public.conferir_dono(meu);
   delete from public.masmorra_fila where personagem_id = meu;
 end $$;
-revoke execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) from public, anon;
-grant execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text) to authenticated;
+-- Na fila da masmorra (com ping nos últimos 20 s) o herói não caça, não minera e não luta na Arena (Henri, 13/11/2026).
+-- A Edge Function da caçada pergunta por aqui; a Arena e o salvamento do personagem conferem direto.
+create or replace function public.na_fila(meu text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  return public.esta_na_fila(meu);
+end $$;
+create or replace function public.esta_na_fila(meu text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.masmorra_fila where personagem_id = meu and visto_em > now() - interval '20 seconds');
+$$;
+revoke execute on function public.esta_na_fila(text) from public, anon;
+grant execute on function public.esta_na_fila(text) to authenticated;   -- o gatilho do salvamento roda como o jogador
+revoke execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text), public.na_fila(text) from public, anon;
+grant execute on function public.fila_entrar(text, text), public.fila_ping(text), public.fila_sair(text), public.na_fila(text) to authenticated;
 
 -- ---------- Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026) ----------
 -- Todo dia às 20h (Brasília) Ignaroth desperta por 1 hora, com uma vida só para o reino inteiro.
@@ -1982,6 +2025,7 @@ begin
       and (dados -> 'minas' ->> 'fim')::numeric > extract(epoch from now()) * 1000) then
     raise exception 'Seu herói está minerando: pare a mineração para lutar na Arena.';
   end if;
+  if public.esta_na_fila(meu) then raise exception 'Você está na fila da masmorra: saia da fila para lutar na Arena.'; end if;
   perform public.arena_encerrar_abandonadas(meu);
   perform public.arena_gastar_entrada(meu);
   select arena into ar from public.arena_posicoes where personagem_id = meu;
