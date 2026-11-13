@@ -1037,6 +1037,7 @@
         + (selo != null ? selo : '') + '<span class="menu-cel-seta">›</span></button>';
     };
     var anterior = document.getElementById('menu-jogo'), aviso = cx || nn || prontas || chat.naoLidas;
+    var cacandoAfk = !livre && CACA_SERVIDOR && !!estado.cacada && !estado.lutaArena && !estado.luta;
     return '<details class="menu-jogo menu-cel" id="menu-jogo"' + (anterior && anterior.open ? ' open' : '') + '>'
       + '<summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu
       + '<span class="menu-cel-ponto" id="menu-cel-ponto"' + (aviso ? '' : ' hidden') + '></span></summary>'
@@ -1050,8 +1051,10 @@
       + item('id="btn-sino" data-acao="painel-topo" data-valor="sino"', ICONE_SINO, 'Avisos', seloNumero(nn)) + '</div>'
       + '<div class="menu-cel-grupo menu-cel-grade"><small>Configurações</small>'
       + item('data-acao="menu-interface"', '🎨', 'Interface') + item('data-acao="menu-som"', ICONES.som, 'Som e música') + '</div>'
-      + (livre ? '<div class="menu-cel-grupo"><small>Conta</small>'
-        + (ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
+      // Caçando dá para trocar de herói ou sair: a caçada segue sozinha no servidor (farm AFK) e volta ao entrar de novo.
+      + (livre || cacandoAfk ? '<div class="menu-cel-grupo"><small>Conta</small>'
+        + (cacandoAfk ? '<p class="menu-cel-dica">⚔ A caçada continua sozinha enquanto você joga com outro herói.</p>' : '')
+        + (livre && ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
         + item('data-acao="voltar-personagens"', ICONES.trocarPersonagem, 'Trocar personagem')
         + item('data-acao="sair"', ICONES.sair, 'Sair', '', ' perigo') + '</div>' : '')
       + '</div></details>';
@@ -4405,6 +4408,9 @@
         sairDaConta();
         break;
       case 'voltar-personagens':
+        // Caçando: só para os relógios desta tela; no servidor a caçada continua (farm AFK) e volta ao entrar de novo.
+        clearTimeout(estado.timer);
+        if (estado.cacada) { pararTimersCacada(); estado.cacada = null; estado.batalha = null; }
         encerrarAtividade();
         estado.conta = C.contaAtual();
         estado.personagem = null;
