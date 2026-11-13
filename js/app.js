@@ -4337,6 +4337,9 @@
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
       case 'fila-entrar':
+        if (estado.cacada && estado.cacada.ativa) { avisar('Pare a caçada antes de entrar na fila da masmorra.'); break; }
+        if (estado.lutaArena) { avisar('Termine a luta na Arena antes de entrar na fila da masmorra.'); break; }
+        if (R.minerando(p, C.agora())) { avisar('⛏ Pare a mineração (Aventura › Mineração) antes de entrar na fila da masmorra.'); break; }
         acaoGrupo(function () { return C.grupo.filaEntrar(p.id, el.dataset.valor); }, 'Você entrou na fila de ' + R.masmorra(el.dataset.valor).nome + '.');
         break;
       case 'fila-sair':
@@ -4927,6 +4930,7 @@
       case 'minas-fechar': estado.minasArea = null; telaJogo(); break;
       case 'minas-iniciar': {
         if (estado.cacada || estado.batalha || estado.lutaArena) { avisar('Termine a caçada ou a luta antes de minerar.'); break; }
+        if (naFilaMasmorra('minerar')) break;
         var rm = R.iniciarMinas(p, estado.minasTempo == null ? 1 : estado.minasTempo, C.agora(), estado.minasArea);
         if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
         telaJogo();
@@ -5734,8 +5738,18 @@
   function tempoMinas(min) { return min >= 60 ? (min / 60) + ' h' : min + ' min'; }
   function bloqueadoMinerando(acao) {
     var p = estado.personagem;
-    if (!p || !R.minerando(p, C.agora())) return false;
+    if (!p) return false;
+    if (naFilaMasmorra(acao)) return true;
+    if (!R.minerando(p, C.agora())) return false;
     avisar('⛏ Seu herói está minerando: pare a mineração (Aventura › Mineração) para ' + acao + '.');
+    return true;
+  }
+  // Na fila da masmorra não dá para caçar, minerar nem lutar na Arena: tem que sair da fila antes (Henri, 13/11/2026).
+  function naFilaMasmorra(acao) {
+    var f = estado.gm && estado.gm.fila;
+    if (!f) return false;
+    var m = R.masmorra(f.masmorra);
+    avisar('⏳ Você está na fila' + (m ? ' de ' + m.nome : ' da masmorra') + ': saia da fila (Aventura › Masmorra) para ' + acao + '.');
     return true;
   }
   function janelaMinaHtml(area, e) {

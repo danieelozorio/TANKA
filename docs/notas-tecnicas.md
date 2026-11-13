@@ -787,3 +787,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `sessao_vale(ap)` a cada 30 s, ao voltar para a aba, 4 s depois de abrir e num conflito de salvamento; se for false,
   `sairDaConta(motivo)` faz logout e mostra "Sua conta foi aberta em outro dispositivo". Sem a função no banco (schema
   antigo) ou sem resposta, considera válida. Conta sem aparelho gravado vale. Testes no banco.test.sql.
+- **Na fila não faz outra coisa** (Henri, 13/11/2026): com `estado.gm.fila`, `naFilaMasmorra(acao)` (chamada por
+  `bloqueadoMinerando` e por `minas-iniciar`) bloqueia caçar, minerar e lutar na Arena com o aviso "saia da fila". E
+  `fila-entrar` não deixa entrar caçando, lutando na Arena ou minerando. Só no jogo (o servidor não confere).
