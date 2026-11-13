@@ -202,9 +202,40 @@
   // Outra aba ou aparelho salvou este personagem depois desta aba: em vez de gravar a cópia velha por cima,
   // avisa e recarrega a página, que busca o progresso mais novo no servidor.
   if (C.aoConflito) C.aoConflito(function () {
-    avisar('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
-    setTimeout(function () { location.reload(); }, 2500);
+    var recarregar = function () {
+      avisar('Este personagem foi jogado em outra aba ou aparelho. Carregando o progresso mais novo...');
+      setTimeout(function () { location.reload(); }, 2500);
+    };
+    if (!C.sessaoVale) return recarregar();
+    C.sessaoVale().then(function (vale) {   // a conta foi aberta em outro aparelho: logout em vez de recarregar
+      if (vale) recarregar(); else sairDaConta('Sua conta foi aberta em outro dispositivo. Entre de novo para jogar aqui.');
+    }, recarregar);
   });
+
+  // ---------------- Uma sessão por conta (Henri, 13/11/2026) ----------------
+  // Entrar com a senha num aparelho tira a conta dos outros: a cada 30 s (e ao voltar para a aba) o jogo pergunta ao
+  // servidor se este navegador ainda é o da conta; se não for, faz logout e volta para o login.
+  function sairDaConta(motivo) {
+    clearTimeout(estado.timer);
+    if (estado.cacada) { pararTimersCacada(); estado.cacada = null; }
+    encerrarAtividade();
+    C.sair();
+    estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
+    guardarJogo();
+    telaAuth('entrar', motivo);
+  }
+  var conferindoSessao = false;
+  function conferirSessao() {
+    if (!C.sessaoVale || !estado.conta || conferindoSessao || document.visibilityState === 'hidden') return;
+    conferindoSessao = true;
+    C.sessaoVale().then(function (vale) {
+      conferindoSessao = false;
+      if (!vale && estado.conta) sairDaConta('Sua conta foi aberta em outro dispositivo. Entre de novo para jogar aqui.');
+    }, function () { conferindoSessao = false; });
+  }
+  setInterval(conferirSessao, 30000);
+  setTimeout(conferirSessao, 4000);   // ao abrir a página com a sessão guardada
+  document.addEventListener('visibilitychange', conferirSessao);
 
   // ---------------- Login / cadastro ----------------
 
@@ -4346,12 +4377,7 @@
         alternarPainel();
         break;
       case 'sair':
-        clearTimeout(estado.timer);
-        encerrarAtividade();
-        C.sair();
-        estado = Object.assign(estado, { conta: null, personagem: null, batalha: null, resultado: null });
-        guardarJogo();
-        telaAuth('entrar');
+        sairDaConta();
         break;
       case 'voltar-personagens':
         encerrarAtividade();

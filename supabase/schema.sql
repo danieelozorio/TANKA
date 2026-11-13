@@ -148,6 +148,20 @@ language sql stable as $$ select now(); $$;
 grant execute on function public.usuario_livre(text), public.email_livre(text),
   public.nome_personagem_livre(text), public.agora() to anon, authenticated;
 
+-- Uma sessão por conta (Henri, 13/11/2026): entrar com a senha grava o código do navegador; os outros aparelhos
+-- perguntam a cada 30 s se ainda são o da conta e, se não forem, fazem logout. Abas do mesmo navegador têm o mesmo código.
+alter table public.contas add column if not exists aparelho text;
+create or replace function public.sessao_assumir(ap text) returns void
+language sql security definer set search_path = public as $$
+  update public.contas set aparelho = left(ap, 64) where id = auth.uid();
+$$;
+create or replace function public.sessao_vale(ap text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select aparelho is null or aparelho = ap from public.contas where id = auth.uid()), true);
+$$;
+revoke all on function public.sessao_assumir(text), public.sessao_vale(text) from public, anon;
+grant execute on function public.sessao_assumir(text), public.sessao_vale(text) to authenticated;
+
 -- ---------- Chat global ----------
 alter table public.contas add column if not exists silenciado_ate timestamptz;  -- moderação do chat
 

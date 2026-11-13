@@ -780,3 +780,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as
   diferenças). Passar o mouse continua mostrando só o item; clicar no item do hover redesenha já com a comparação.
+
+## Uma sessão por conta (Henri, 13/11/2026)
+- Entrar com a senha chama `sessao_assumir(ap)`: grava em `contas.aparelho` o código do navegador (`localStorage
+  eldrin.aparelho`, igual em todas as abas, então várias contas no mesmo PC seguem juntas). O jogo pergunta
+  `sessao_vale(ap)` a cada 30 s, ao voltar para a aba, 4 s depois de abrir e num conflito de salvamento; se for false,
+  `sairDaConta(motivo)` faz logout e mostra "Sua conta foi aberta em outro dispositivo". Sem a função no banco (schema
+  antigo) ou sem resposta, considera válida. Conta sem aparelho gravado vale. Testes no banco.test.sql.

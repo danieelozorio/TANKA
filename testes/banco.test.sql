@@ -1130,4 +1130,18 @@ select pg_temp.igual(public.mercado_serve('{"tipo":"arma","classe":"cavaleiro"}'
 select pg_temp.igual(public.mercado_serve('{"tipo":"elmo","classe":"mago"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'false', 'mercado_serve: elmo de mago não');
 select pg_temp.igual(public.mercado_serve('{"tipo":"colar"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'true', 'mercado_serve: joia serve a todos');
 select pg_temp.igual(public.mercado_serve('{"tipo":"arma","arma":"arco"}'::jsonb, null)::text, 'true', 'mercado_serve: sem filtro passa tudo');
+-- Uma sessão por conta: o último navegador que entrou é o que vale; outra conta não é afetada
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'true', 'sessao_vale: conta sem aparelho gravado vale');
+select public.sessao_assumir('pc');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'true', 'sessao_vale: o PC que entrou vale');
+select public.sessao_assumir('celular');
+select pg_temp.igual(public.sessao_vale('pc')::text, 'false', 'sessao_vale: entrou no celular, o PC cai');
+select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: o celular vale');
+select pg_temp.como('b');
+select public.sessao_assumir('pc');
+select pg_temp.como('a');
+select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: outra conta no PC não derruba o celular');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM
