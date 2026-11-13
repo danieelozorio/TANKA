@@ -823,3 +823,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   caçada ligada (`cacandoAfk` em `menuCelularHtml`), com a dica "a caçada continua sozinha". `voltar-personagens` para só
   os relógios da tela (`pararTimersCacada`, `estado.cacada = null`); no servidor `p.cacadaAuto` segue e, ao entrar de novo
   no herói, `abrirJogo` chama `retomarCacada` (o servidor faz as lutas do tempo fora). `sair` já fazia o mesmo.
+- **Comparar sempre sem encanto (Daniel, nov/2026):** `semEncanto` tira o encanto dos dois itens na comparação da ficha e
+  da janela ampliada (mostra "(sem encanto)"); o botão "Comparar sem/com encanto" e `estado.compararSemEncanto` saíram.
+  O "⚔ Poder do item" e a seta verde continuam com o encanto (é o poder de verdade).

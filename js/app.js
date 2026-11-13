@@ -1354,12 +1354,9 @@
 
   // Ficha do item em foco, com comparação ao que está equipado no mesmo espaço.
   // Comparar sem encanto: os dois itens viram +0 só na conta (para ver qual é melhor de base).
-  function semEncanto(item) { return item && estado.compararSemEncanto && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
-  function botaoCompararEncanto(a, b) {
-    if (!(a.encanto || (b && b.encanto))) return '';
-    return '<button class="btn secundario btn-pequeno" data-acao="comparar-encanto">'
-      + (estado.compararSemEncanto ? 'Comparar com encanto' : 'Comparar sem encanto') + '</button>';
-  }
+  // A comparação é sempre sem encanto (Daniel, nov/2026): mostra a diferença das peças em si; o botão saiu.
+  function semEncanto(item) { return item && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
+
 
   function fichaItemHtml(item, soVer) {
     var p = estado.personagem;
@@ -1407,8 +1404,8 @@
       + (slot ? ' · equipado' : '') + '</div></div></div>'
       + fichaPoderHtml(p, item, slot)
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
-      + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + (estado.compararSemEncanto && (item.encanto || alvo.encanto) ? ' <strong>(os dois sem encanto)</strong>' : '') + '</p>'
-        + '<div class="item-acoes">' + botaoCompararEncanto(item, alvo) + '</div>' : '')
+      + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + ((item.encanto || alvo.encanto) ? ' <span class="suave">(sem encanto)</span>' : '') + '</p>'
+ : '')
       + '<div class="item-acoes">' + acoes + '</div>';
   }
 
@@ -1488,7 +1485,7 @@
     var item = estado.zoom && p.inventario.find(function (i) { return i.id === estado.zoom; });
     if (!item) return '';
     var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
-    var semEnc = outro && estado.compararSemEncanto && (item.encanto || outro.encanto);
+    var semEnc = outro && (item.encanto || outro.encanto);
     var acoes = '';
     if (soVer) acoes = '';
     else if (slot) {
@@ -1506,7 +1503,7 @@
       + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
       + cartaZoom(outro ? semEncanto(item) : item, semEncanto(outro), (slot ? 'Equipado' : 'Este item') + (semEnc ? ' · sem encanto' : ''), item)
       + (outro ? cartaZoom(semEncanto(outro), null, 'Equipado agora' + (semEnc ? ' · sem encanto' : ''), outro) : '')
-      + '</div><div class="botoes">' + (outro ? botaoCompararEncanto(item, outro) : '') + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
+      + '</div><div class="botoes">' + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
   }
 
   function abaPersonagem() {
@@ -4370,7 +4367,6 @@
       case 'fila-sair':
         acaoGrupo(function () { return C.grupo.filaSair(p.id); }, 'Você saiu da fila.');
         break;
-      case 'comparar-encanto': estado.compararSemEncanto = !estado.compararSemEncanto; telaJogo(); break;
       case 'senha-pedidos':
         C.senha.adminPedidos().then(function (l) { estado.adminSenhas = l; telaJogo(); }, function (e2) { avisar(e2.message); });
         break;
