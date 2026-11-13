@@ -5813,9 +5813,10 @@
     var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
     var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
     var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
-      + '<h2>O Despertar de Ignaroth</h2><p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
+      + '<h2>O Despertar de Ignaroth</h2>' + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
       + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
-      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção.</p></div></div>';
+      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
     if (ativo) {
       var podeAtacar = !estado.cacada && usadas < entradasBoss;
       h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
@@ -5829,29 +5830,41 @@
     } else if (b && b.estado === 'dormindo') {
       h += '<div class="resultado derrota"><h3>Ignaroth voltou a dormir</h3><p>O reino não conseguiu derrubá-lo a tempo. Quem atacou ganhou o prêmio de consolação.</p></div>';
     }
-    if (!ativo && e.proximo) h += '<p class="destaque">Próximo despertar em <strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong>.</p>';
+    if (CELULAR && !ativo && e.proximo) h += '<div class="boss-proximo"><small>Próximo despertar em</small><strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong></div>';
+    else if (!ativo && e.proximo) h += '<p class="destaque">Próximo despertar em <strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong>.</p>';
     if (estado.bossUltimo) {
       var u = estado.bossUltimo;
       h += '<p class="' + (u.erro ? 'menos' : 'destaque') + '">' + (u.erro ? esc(u.erro) : 'Seu último ataque: <strong>' + Number(u.dano).toLocaleString('pt-BR') + '</strong> de dano'
         + (u.golpeFinal ? ' — <strong>GOLPE FINAL!</strong> Você é o novo "' + esc(cfg.titulo) + '"!' : '.')) + '</p>';
     }
-    if (e.eu) h += '<p>Seu dano: <strong>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</strong> em ' + e.eu.ataques + ' ataque(s) · ' + e.eu.posicao + 'º lugar</p>';
+    if (CELULAR && e.eu) h += '<div class="boss-eu"><span><b>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</b><small>seu dano</small></span><span><b>' + e.eu.posicao + 'º</b><small>lugar</small></span>'
+      + '<span><b>' + e.eu.ataques + '/' + entradasBoss + '</b><small>ataques</small></span></div>';
+    else if (e.eu) h += '<p>Seu dano: <strong>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</strong> em ' + e.eu.ataques + ' ataque(s) · ' + e.eu.posicao + 'º lugar</p>';
     var linhas = (e.top || []).map(function (t, i) {
       return '<tr' + (t.eu ? ' class="eu"' : '') + '><td>' + (i + 1) + 'º</td><td>' + siglaHtml(t.sigla) + esc(t.nome) + '</td><td>'
         + Number(t.dano).toLocaleString('pt-BR') + '</td><td>' + t.ataques + '</td></tr>';
     }).join('');
-    h += '<h3>Ranking de dano (top 10)</h3>' + (linhas ? '<table class="boss-rank"><tr><th></th><th>Herói</th><th>Dano</th><th>Ataques</th></tr>' + linhas + '</table>'
+    if (CELULAR) linhas = (e.top || []).map(function (t, i) {
+      return '<div class="boss-linha' + (t.eu ? ' eu' : '') + (i < 3 ? ' top' + (i + 1) : '') + '"><span class="boss-pos">' + (i + 1) + 'º</span><span class="boss-nome"><span>' + siglaHtml(t.sigla) + esc(t.nome) + '</span>'
+        + '<small class="suave">' + t.ataques + ' ataque(s)</small></span><b>' + Number(t.dano).toLocaleString('pt-BR') + '</b></div>';
+    }).join('');
+    if (CELULAR) h += '<h3>Ranking de dano (top 10)</h3>' + (linhas ? '<div class="boss-lista">' + linhas + '</div>' : '<p class="suave">Ninguém atacou ainda.</p>');
+    else h += '<h3>Ranking de dano (top 10)</h3>' + (linhas ? '<table class="boss-rank"><tr><th></th><th>Herói</th><th>Dano</th><th>Ataques</th></tr>' + linhas + '</table>'
       : '<p class="suave">Ninguém atacou ainda.</p>');
     var al = (e.aliancas || []).map(function (a, i) {
       return '<tr><td>' + (i + 1) + 'º</td><td>' + siglaHtml(a.sigla) + esc(a.nome) + '</td><td>' + Number(a.dano).toLocaleString('pt-BR') + '</td></tr>';
     }).join('');
-    if (al) h += '<h3>Clãs</h3><table class="boss-rank"><tr><th></th><th>Clã</th><th>Dano</th></tr>' + al + '</table>';
-    h += '<h3>Prêmios</h3><ul class="boss-premios">'
+    if (CELULAR) al = (e.aliancas || []).map(function (a, i) {
+      return '<div class="boss-linha"><span class="boss-pos">' + (i + 1) + 'º</span><span class="boss-nome"><span>' + siglaHtml(a.sigla) + esc(a.nome) + '</span></span><b>' + Number(a.dano).toLocaleString('pt-BR') + '</b></div>';
+    }).join('');
+    if (CELULAR && al) h += '<h3>Clãs</h3><div class="boss-lista">' + al + '</div>';
+    else if (al) h += '<h3>Clãs</h3><table class="boss-rank"><tr><th></th><th>Clã</th><th>Dano</th></tr>' + al + '</table>';
+    h += (CELULAR ? '<details class="regras-celular boss-premios-gaveta"><summary>🏆 Prêmios</summary>' : '<h3>Prêmios</h3>') + '<ul class="boss-premios">'
       + '<li>Se cair a tempo: todos que atacaram ganham o ouro e a exp de ' + esc(chefe.nome) + ' × número de ataques.</li>'
       + '<li>Top 10 de dano: ' + cfg.epica + '% de chance de item épico ou ' + cfg.lendaria + '% de lendário, e 1 pergaminho.</li>'
       + '<li>Golpe final: o título "' + esc(cfg.titulo) + '".</li>'
       + '<li>Clã com mais dano: ' + cfg.aliancaPct + '% do dano dele em ouro no tesouro.</li>'
-      + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>';
+      + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>' + (CELULAR ? '</details>' : '');
     return h;
   }
   function atacarMundial() {

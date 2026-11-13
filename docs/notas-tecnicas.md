@@ -756,6 +756,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   "Onde minerar", 6 tempos numa linha, minas em cartões baixos e a `mina-janela` logo abaixo da mina escolhida (não
   solta no mapa). "Minerar" dourado preso embaixo (`.minas-acoes` fixo). Minerando (`soAndamento`): só o andamento e
   "Parar de Minerar". Histórico em cartões (`.minas-hist`) em vez da tabela.
+- Celular › Chefe Mundial (`bossPainelHtml`, só com `CELULAR`): topo deitado com arte pequena e `.boss-hora`
+  (hora, duração, ataques); regras e prêmios em gavetas; "Próximo despertar" em destaque (`.boss-proximo`); meu dano,
+  lugar e ataques em quadrinhos (`.boss-eu`); rankings de heróis e clãs em linhas (`.boss-linha`, 1º/2º/3º em
+  ouro/prata/bronze, a minha em dourado). "Atacar Ignaroth" preso embaixo (`#boss-painel > .botoes` fixo).
 
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as

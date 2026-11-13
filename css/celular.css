@@ -406,8 +406,45 @@ html[data-celular] .minas-hist-linha img, html[data-celular] .minas-hist-linha .
 html[data-celular] .minas-hist-linha > div { display: grid; min-width: 0; }
 html[data-celular] .minas-hist-ganho { text-align: right; }
 html[data-celular] .minas-hist-ganho span { color: #f2c94c; font-weight: 700; }
+/* ---- Aventura › Chefe Mundial ---- */
+/* topo deitado (arte pequena), regras e prêmios em gavetas, números em quadrinhos, rankings em linhas, "Atacar" preso embaixo */
+html[data-celular] .boss-cabeca { flex-direction: row; text-align: left; gap: .7rem; align-items: center; }
+html[data-celular] .boss-arte { width: 5.2rem; border-radius: 10px; }
+html[data-celular] .boss-cabeca h2 { font-size: 1.1rem; margin: 0 0 .2rem; }
+html[data-celular] .boss-hora { font-size: .78rem; color: #f2c94c; }
+html[data-celular] .boss-cabeca .regras-celular p { font-size: .82rem; }
+html[data-celular] .boss-vida { margin: .6rem 0; }
+html[data-celular] .boss-vida .suave { font-size: .8rem; margin-top: .25rem; text-align: center; }
+html[data-celular] #boss-painel > .botoes { position: fixed; left: .5rem; right: .5rem; bottom: calc(4rem + env(safe-area-inset-bottom)); z-index: 12; margin: 0; padding: .45rem;
+  border-radius: 10px; border: 1px solid #c94a3a; background: rgba(12, 10, 8, .96); box-shadow: 0 -6px 18px rgba(0, 0, 0, .6); }
+html[data-celular] #boss-painel > .botoes .btn { width: 100%; min-height: 2.6rem; font-size: .95rem; }
+html[data-celular] .jogo:has(#boss-painel > .botoes) > section.caixa { padding-bottom: 4.6rem; }
+html[data-celular] .boss-proximo { display: grid; justify-items: center; gap: .1rem; margin: .7rem 0; padding: .6rem; border: 1px solid #c9a24a; border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(201, 74, 58, .25), transparent 70%), rgba(0, 0, 0, .3); }
+html[data-celular] .boss-proximo small { font-size: .78rem; color: #c9b89a; }
+html[data-celular] .boss-proximo strong { font-size: 1.5rem; color: #f2c94c; font-variant-numeric: tabular-nums; }
+html[data-celular] .boss-eu { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; margin: .5rem 0; }
+html[data-celular] .boss-eu span { display: grid; justify-items: center; padding: .4rem .2rem; border: 1px solid #4a3f33; border-radius: 9px; background: rgba(0, 0, 0, .3); }
+html[data-celular] .boss-eu b { font-size: 1rem; color: #f2c94c; }
+html[data-celular] .boss-eu small { font-size: .7rem; color: #c9b89a; }
+html[data-celular] #boss-painel h3 { font-size: .95rem; margin: .8rem 0 .35rem; }
+html[data-celular] .boss-lista { display: grid; gap: .3rem; }
+html[data-celular] .boss-linha { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .4rem; padding: .4rem .6rem;
+  border: 1px solid #4a3f33; border-radius: 9px; background: rgba(0, 0, 0, .25); font-size: .85rem; }
+html[data-celular] .boss-linha.eu { border-color: #f2c94c; background: rgba(242, 201, 76, .1); }
+html[data-celular] .boss-pos { font-weight: 700; color: #c9b89a; }
+html[data-celular] .boss-linha.top1 .boss-pos { color: #f2c94c; }
+html[data-celular] .boss-linha.top2 .boss-pos { color: #d7dde6; }
+html[data-celular] .boss-linha.top3 .boss-pos { color: #d08a4a; }
+html[data-celular] .boss-nome { display: grid; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-celular] .boss-nome small { font-size: .72rem; }
+html[data-celular] .boss-linha > b { color: #f2c94c; font-variant-numeric: tabular-nums; }
+html[data-celular] .boss-premios-gaveta { margin-top: .8rem; }
+html[data-celular] .boss-premios-gaveta .boss-premios { font-size: .82rem; margin: .4rem 0 0 1rem; }
 /* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
 html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
 /* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */
 html[data-celular] .conteudo:has(.zoom-fundo) { z-index: 60; }
 html[data-celular] .zoom-janela { max-height: calc(100dvh - 1.2rem); padding: 1.6rem .8rem .8rem; }
+html[data-celular] .boss-nome > span { overflow: hidden; text-overflow: ellipsis; }
+html[data-celular] .boss-nome > span > * { display: inline; margin-right: .25rem; font-size: .75rem; }
