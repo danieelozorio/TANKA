@@ -374,6 +374,38 @@ html[data-celular] .previa [data-acao="criar-personagem"] { position: fixed; lef
 html[data-celular] .comparar-duas { grid-template-columns: 1fr; }
 html[data-celular] .comparar-duas .comparar-lado + .comparar-lado { padding: .7rem 0 0; border-left: 0; border-top: 1px solid #4a3f33; }
 html[data-celular] .mercado-so-classe { flex-basis: 100%; }
+/* ---- Aventura › Mineração ---- */
+/* tempos numa linha só; minas em cartões baixos; a janelinha da mina abre logo abaixo dela; "Minerar" preso embaixo */
+html[data-celular] .minas-rotulo { margin: .55rem 0 .3rem; font-size: .8rem; font-weight: 700; color: #c9a24a; letter-spacing: .03em; }
+html[data-celular] .minas-tempos { display: grid; grid-template-columns: repeat(6, 1fr); gap: .3rem; margin: 0 0 .3rem; }
+html[data-celular] .minas-tempos .btn { min-height: 2.4rem; padding: 0; font-size: .8rem; white-space: nowrap; }
+html[data-celular] .mapa-minas { gap: .35rem; padding: .4rem; border-radius: 10px; }
+html[data-celular] .mapa-minas .mapa-no { padding: .3rem .5rem; row-gap: .1rem; }
+html[data-celular] .mapa-minas .mapa-icone { width: 44px; height: 44px; font-size: 1.2rem; }
+html[data-celular] .mapa-minas .mapa-icone .arte { width: 50px; height: 50px; margin: -3px; }
+html[data-celular] .mapa-minas .mapa-nome { font-size: .85rem; }
+html[data-celular] .mapa-minas .mapa-nivel { font-size: .74rem; }
+html[data-celular] .mapa-minas .mapa-no.escolhida { border-color: #f2c94c; background: rgba(242, 201, 76, .1); }
+html[data-celular] .mapa-minas .mapa-no.escolhida .mapa-icone { box-shadow: 0 0 0 2px #f2c94c, 0 0 12px var(--cor); }
+html[data-celular] .mapa-minas .mina-janela { position: static; transform: none; width: auto; margin: -.2rem 0 .15rem; padding: .5rem .65rem; font-size: .8rem;
+  border-radius: 0 0 10px 10px; border-top: 0; box-shadow: none; }
+html[data-celular] .mapa-minas .mina-janela .mina-titulo, html[data-celular] .mapa-minas .mina-fechar { display: none; }
+html[data-celular] .minas-acoes { position: fixed; left: .5rem; right: .5rem; bottom: calc(4rem + env(safe-area-inset-bottom)); z-index: 12; display: flex; gap: .4rem; margin: 0;
+  padding: .45rem; border-radius: 10px; border: 1px solid #c9a24a; background: rgba(12, 10, 8, .96); box-shadow: 0 -6px 18px rgba(0, 0, 0, .6); }
+html[data-celular] .minas-acoes .btn { flex: 1; min-height: 2.3rem; padding: .3em .6em; font-size: .85rem; }
+html[data-celular] .minas-acoes .btn-iniciar { color: #2a1704; border: 1px solid #ffd98a; border-radius: 8px; font-weight: 700;
+  background: linear-gradient(180deg, #ffe39a, #e9b450 45%, #b9801f 55%, #d8a13c); box-shadow: 0 0 12px rgba(255, 180, 60, .4); }
+html[data-celular] .minas-acoes .btn-iniciar:disabled { filter: grayscale(.6) brightness(.7); box-shadow: none; }
+html[data-celular] .minas-acoes .btn-iniciar:disabled + .btn, html[data-celular] .minas-acoes .btn-iniciar:has(+ .btn) { flex: 1; }
+html[data-celular] .jogo:has(.minas-acoes) > section.caixa { padding-bottom: 4.4rem; }
+html[data-celular] .mina-andamento { padding: .6rem .7rem; font-size: .85rem; }
+html[data-celular] .minas-hist { display: grid; gap: .35rem; }
+html[data-celular] .minas-hist-linha { display: grid; grid-template-columns: 2rem 1fr auto; align-items: center; gap: .55rem; padding: .4rem .6rem;
+  border: 1px solid #4a3f33; border-radius: 9px; background: rgba(0, 0, 0, .25); font-size: .82rem; }
+html[data-celular] .minas-hist-linha img, html[data-celular] .minas-hist-linha .icone-consumivel { width: 2rem; height: 2rem; }
+html[data-celular] .minas-hist-linha > div { display: grid; min-width: 0; }
+html[data-celular] .minas-hist-ganho { text-align: right; }
+html[data-celular] .minas-hist-ganho span { color: #f2c94c; font-weight: 700; }
 /* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
 html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
 /* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */

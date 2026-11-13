@@ -752,6 +752,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Celular: "⚔ INICIAR CAÇADA" menor e dourado (`.cacada-escolha .btn-iniciar` no celular.css). Janelas de item da
   loja e do leilão ganharam ✕ (`.zoom-x`); no celular o `.conteudo` (z-index 1) ficava abaixo da barra de cima e a
   escondia o topo da janela: `.conteudo:has(.zoom-fundo)` sobe para z-index 60.
+- Celular › Mineração (`abaMineracao`, só com `CELULAR`): texto na gaveta "Como funciona", rótulos "Quanto tempo" /
+  "Onde minerar", 6 tempos numa linha, minas em cartões baixos e a `mina-janela` logo abaixo da mina escolhida (não
+  solta no mapa). "Minerar" dourado preso embaixo (`.minas-acoes` fixo). Minerando (`soAndamento`): só o andamento e
+  "Parar de Minerar". Histórico em cartões (`.minas-hist`) em vez da tabela.
 
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as

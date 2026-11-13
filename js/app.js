@@ -5686,9 +5686,10 @@
   function abaMineracao() {
     var p = estado.personagem, CR = D.CRAFT, agora = C.agora(), mi = p.minas;
     if (estado.minasTempo == null) estado.minasTempo = 1;
-    var h = '<h3 class="subtitulo">⛏ Mineração</h3><p class="suave pequeno">Escolha quanto tempo minerar e a mina no mapa. '
+    var h = '<h3 class="subtitulo">⛏ Mineração</h3>' + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<p class="suave pequeno">Escolha quanto tempo minerar e a mina no mapa. '
       + 'Enquanto minera, seu herói não pode caçar nem lutar na Arena. Parar antes do fim: com ' + CR.minas.metadeDesde
-      + '% do tempo ou mais, você leva metade do prêmio; antes disso, nada.</p>';
+      + '% do tempo ou mais, você leva metade do prêmio; antes disso, nada.</p>' + (CELULAR ? '</details>' : '');
     if (mi) {
       var area = D.areas.filter(function (a) { return a.id === mi.area; })[0], mat = CR.materiais[R.materialDaArea(mi.area)];
       var total = mi.fim - mi.inicio, feito = Math.min(total, Math.max(0, agora - mi.inicio)), pct = Math.round(feito * 100 / total);
@@ -5700,7 +5701,8 @@
           + (pct >= CR.minas.metadeDesde ? 'Se parar agora, leva metade do prêmio.' : 'Se parar agora, não leva nada (ainda não chegou a ' + CR.minas.metadeDesde + '% do tempo).') + '</p>')
         + (acabou ? '<div class="botoes"><button class="btn" data-acao="minas-recolher">Recolher</button></div>' : '') + '</div>';
     }
-    h += '<div class="minas-tempos">' + CR.minas.opcoes.map(function (o, i) {
+    var soAndamento = CELULAR && mi;   // no celular, minerando: só o andamento e o "Parar" (o resto fica apagado mesmo)
+    if (!soAndamento) h += (CELULAR ? '<div class="minas-rotulo">⏳ Quanto tempo</div>' : '') + '<div class="minas-tempos">' + CR.minas.opcoes.map(function (o, i) {
       return '<button class="btn secundario btn-pequeno" data-acao="minas-tempo" data-valor="' + i + '" aria-pressed="' + (estado.minasTempo === i) + '"'
         + (mi ? ' disabled' : '') + '>' + tempoMinas(o.minutos) + '</button>';
     }).join('') + '</div>';
@@ -5708,23 +5710,30 @@
     var nos = D.areas.map(function (a, i) {
       var e = estiloArea(a, i), livre = p.nivel >= a.nivelMin, esc_ = estado.minasArea === a.id;
       if (esc_ && livre) janela = janelaMinaHtml(a, e);
+      var depois = CELULAR && esc_ && livre ? janela : '';
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + (esc_ ? ' escolhida' : '') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
         + (livre ? ' data-acao="minas-area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(CR.materiais[R.materialDaArea(a.id)].nome) + '">'
         + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
-        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? esc(CR.materiais[R.materialDaArea(a.id)].nome) : 'Libera no level ' + a.nivelMin) + '</span></button>';
+        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? esc(CR.materiais[R.materialDaArea(a.id)].nome) : 'Libera no level ' + a.nivelMin) + '</span></button>' + depois;
     }).join('');
-    h += '<div class="mapa-mundo mapa-minas">' + nos + janela + '</div>';
+    if (!soAndamento) h += (CELULAR ? '<div class="minas-rotulo">⛰ Onde minerar</div>' : '') + '<div class="mapa-mundo mapa-minas">' + nos + (CELULAR ? '' : janela) + '</div>';
     var escolhida = D.areas.filter(function (a) { return a.id === estado.minasArea && p.nivel >= a.nivelMin; })[0];
-    h += '<div class="botoes minas-acoes"><button class="btn btn-iniciar" data-acao="minas-iniciar"' + (mi || !escolhida ? ' disabled' : '') + '>⛏ Minerar'
-      + (escolhida ? ' em ' + esc(escolhida.nome) + ' (' + tempoMinas(CR.minas.opcoes[estado.minasTempo].minutos) + ')' : '') + '</button>'
-      + '<button class="btn perigo" data-acao="minas-parar"' + (mi && agora < mi.fim ? '' : ' disabled') + '>Parar de Minerar</button></div>'
-      + (escolhida || mi ? '' : '<p class="suave pequeno">Clique numa mina do mapa para escolher onde minerar.</p>');
+    if (!(soAndamento && agora >= mi.fim)) h += '<div class="botoes minas-acoes">' + (soAndamento ? '' : '<button class="btn btn-iniciar" data-acao="minas-iniciar"' + (mi || !escolhida ? ' disabled' : '') + '>⛏ Minerar'
+      + (escolhida ? ' em ' + esc(escolhida.nome) + ' (' + tempoMinas(CR.minas.opcoes[estado.minasTempo].minutos) + ')' : '') + '</button>')
+      + (CELULAR && !(mi && agora < mi.fim) ? '' : '<button class="btn perigo" data-acao="minas-parar"' + (mi && agora < mi.fim ? '' : ' disabled') + '>Parar de Minerar</button>') + '</div>'
+      + (escolhida || mi ? '' : '<p class="suave pequeno">' + (CELULAR ? 'Toque' : 'Clique') + ' numa mina do mapa para escolher onde minerar.</p>');
     var hist = p.historicoMinas || {}, linhas = D.areas.filter(function (a) { return hist[a.id]; }).map(function (a) {
       var r = hist[a.id];
       return '<tr><td>' + esc(a.nome) + '</td><td>' + (r.minutos / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' h</td><td>'
         + r.qtd.toLocaleString('pt-BR') + ' ' + esc(CR.materiais[R.materialDaArea(a.id)].nome) + '</td><td>' + r.gemas.toLocaleString('pt-BR') + '</td><td>' + r.vezes + '</td></tr>';
     }).join('');
-    h += '<h3 class="subtitulo">Histórico de mineração</h3>' + (linhas
+    if (CELULAR && linhas) linhas = '<div class="minas-hist">' + D.areas.filter(function (a) { return hist[a.id]; }).map(function (a) {
+      var r = hist[a.id], m = CR.materiais[R.materialDaArea(a.id)];
+      return '<div class="minas-hist-linha">' + iconeConsumivel({ tipo: 'material', raridade: R.materialDaArea(a.id) }) + '<div><strong>' + esc(a.nome) + '</strong>'
+        + '<small class="suave">' + (r.minutos / 60).toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + ' h · ' + r.vezes + (r.vezes === 1 ? ' vez' : ' vezes') + '</small></div>'
+        + '<div class="minas-hist-ganho"><span>' + r.qtd.toLocaleString('pt-BR') + ' ' + esc(m.nome) + '</span><small>💎 ' + r.gemas.toLocaleString('pt-BR') + ' Pedra(s)</small></div></div>';
+    }).join('') + '</div>';
+    h += '<h3 class="subtitulo">Histórico de mineração</h3>' + (CELULAR && linhas ? linhas : linhas
       ? '<table class="boss-rank"><tr><th>Mina</th><th>Tempo minerado</th><th>Minério recebido</th><th>Pedras Preciosas</th><th>Vezes</th></tr>' + linhas + '</table>'
       : '<p class="suave">Você ainda não minerou.</p>');
     return h;
