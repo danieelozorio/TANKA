@@ -664,6 +664,28 @@ select pg_temp.como('d'); select public.fila_sair('pd');
 reset role;
 update public.personagens set dados = jsonb_set(dados, '{nivel}', '4') where id = 'pc';
 delete from public.masmorra_fila;
+-- Na fila não caça, não minera e não luta na Arena; minerando ou caçando não entra na fila (tudo no servidor)
+delete from public.masmorra_entradas;
+set role authenticated;
+select pg_temp.como('d'); select public.fila_entrar('pd', 'toca');
+select pg_temp.igual(public.na_fila('pd')::text, 'true', 'na_fila: está na fila');
+select pg_temp.como('a'); select pg_temp.falha($$select public.na_fila('pd')$$, 'Personagem inválido');
+reset role;
+select pg_temp.falha($$select public.arena_comecar_tipo('pd', 'pa', null, 'livre')$$, 'fila da masmorra');
+select pg_temp.falha($$update public.personagens set dados = dados || jsonb_build_object('minas', jsonb_build_object('fim', extract(epoch from now()) * 1000 + 600000)) where id = 'pd'$$, 'saia da fila para minerar');
+update public.masmorra_fila set visto_em = now() - interval '25 seconds';
+select pg_temp.igual(public.esta_na_fila('pd')::text, 'false', 'na_fila: sem ping há 20 s não conta mais');
+delete from public.masmorra_fila;
+update public.personagens set dados = dados || jsonb_build_object('minas', jsonb_build_object('fim', extract(epoch from now()) * 1000 + 600000)) where id = 'pd';
+set role authenticated;
+select pg_temp.como('d'); select pg_temp.falha($$select public.fila_entrar('pd', 'toca')$$, 'minerando');
+reset role;
+update public.personagens set dados = (dados - 'minas') || '{"cacadaAuto": {"alvos": ["lobo"]}}'::jsonb where id = 'pd';
+set role authenticated;
+select pg_temp.como('d'); select pg_temp.falha($$select public.fila_entrar('pd', 'toca')$$, 'caçando');
+reset role;
+update public.personagens set dados = dados - 'cacadaAuto' where id = 'pd';
+delete from public.masmorra_fila;
 
 -- Masmorra: 5 entradas por dia (antes 2).
 reset role;

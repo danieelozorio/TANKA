@@ -15,6 +15,7 @@ const banco: Record<string, { conta_id: string; dados: any }> = {
 };
 let bonusCla: any = { cla: null, exp: 0, ouro: 0 };
 let gravacoes = 0;
+let naFila = false;           // simula o herói na fila da masmorra
 let outraAbaNoMeio = false;   // simula outra aba gravando entre a leitura e a gravação
 globalThis.fetch = (async (url: string, init: any = {}) => {
   const u = new URL(url), h = init.headers || {};
@@ -22,6 +23,7 @@ globalThis.fetch = (async (url: string, init: any = {}) => {
   const json = (x: unknown, st = 200) => new Response(JSON.stringify(x), { status: st });
   if (u.pathname === '/auth/v1/user') return token === 'tok-u1' ? json({ id: 'u1' }) : json({ msg: 'bad' }, 401);
   if (u.pathname === '/rest/v1/rpc/cacada_bonus') return json(bonusCla);
+  if (u.pathname === '/rest/v1/rpc/na_fila') return json(naFila);
   if (u.pathname === '/rest/v1/personagens') {
     const id = (u.searchParams.get('id') || '').replace('eq.', '');
     const linha = banco[id];
@@ -116,5 +118,12 @@ ok(!banco[p0.id].dados.cacadaAuto, 'parar: desligou');
 relogio += 60 * 60 * 1000;
 r = await pedir({ acao: 'retomar', personagem: p0.id });
 ok((await r.json()).ausente.lutas === 0, 'depois de parar, fechar o jogo não caça');
+// Na fila da masmorra não caça (13/11/2026)
+naFila = true;
+relogio += 60000;
+r = await pedir({ acao: 'encontro', personagem: p0.id, alvos: ['lobo'] });
+j = await r.json();
+ok(j.erro && /fila da masmorra/.test(j.erro), 'na fila da masmorra: não acha monstro (' + j.erro + ')');
+naFila = false;
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA CAÇADA NO SERVIDOR PASSARAM', '· gravações:', gravacoes);
 if (falhas) Deno.exit(1);

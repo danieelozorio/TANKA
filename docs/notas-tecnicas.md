@@ -789,4 +789,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   antigo) ou sem resposta, considera válida. Conta sem aparelho gravado vale. Testes no banco.test.sql.
 - **Na fila não faz outra coisa** (Henri, 13/11/2026): com `estado.gm.fila`, `naFilaMasmorra(acao)` (chamada por
   `bloqueadoMinerando` e por `minas-iniciar`) bloqueia caçar, minerar e lutar na Arena com o aviso "saia da fila". E
-  `fila-entrar` não deixa entrar caçando, lutando na Arena ou minerando. Só no jogo (o servidor não confere).
+  `fila-entrar` não deixa entrar caçando, lutando na Arena ou minerando. **O servidor também confere** (13/11):
+  `esta_na_fila(id)` (ping nos últimos 20 s) bloqueia `arena_comecar_tipo`, o gatilho `validar_personagem` (gravar
+  `dados.minas` novo e ativo) e, pela RPC `na_fila(meu)`, o `encontro`/`retomar` da Edge Function `cacada`;
+  `fila_entrar` recusa com `dados.minas` ativo ou `dados.cacadaAuto`. Testes no banco.test.sql e cacada_servidor.test.ts.
