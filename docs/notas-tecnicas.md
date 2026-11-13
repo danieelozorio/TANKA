@@ -789,7 +789,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   com item e mochila cheia devolve `{ erro }` sem pegar), `R.premioLoginTexto`. Estado em `p.login = { dia, semana, trinta }`.
   Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade, tipo?} (da classe, no level do herói; sem
   tipo sorteia entre arma e armaduras). Ajuste do Daniel: dia 3 pergaminho épico, dia 7 2 lendários + 100 rep, dia 30
-  arma lendária + 2 pergaminhos épicos; ouro somado em 30 logins = 3.000 × level (semana 100/150/200, marcos 7 e 21: 550). Teste em regras.test.js ("login: ...").
+  arma lendária + 2 pergaminhos épicos; ouro somado em 30 logins = 6.000 × level (semana 200/300/400, marcos 7 e 21: 1.100). Teste em regras.test.js ("login: ...").
 - Tela: `loginHtml()` (janela com a roda da semana e a trilha dos 30), abre sozinha ao entrar no jogo se o prêmio do dia
   está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de login" no topo do painel
   de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes` no app.js;

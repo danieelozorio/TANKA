@@ -873,18 +873,18 @@ Tanka.dados = {
   // item {raridade, tipo?} (da classe do herói, do level dele; sem tipo, sorteia entre arma e armaduras).
   LOGIN: {
     semana: [
-      { ouroPorNivel: 100 },
+      { ouroPorNivel: 200 },
       { reputacao: 40 },
       { pergaminho: { raridade: 'epica', qtd: 1 } },
-      { ouroPorNivel: 150 },
+      { ouroPorNivel: 300 },
       { reputacao: 60 },
-      { ouroPorNivel: 200 },
+      { ouroPorNivel: 400 },
       { pergaminho: { raridade: 'lendaria', qtd: 2 }, reputacao: 100 },
     ],
     trinta: {
-      7: { ouroPorNivel: 550 },
+      7: { ouroPorNivel: 1100 },
       14: { pergaminho: { raridade: 'epica', qtd: 2 } },
-      21: { ouroPorNivel: 550, reputacao: 200 },
+      21: { ouroPorNivel: 1100, reputacao: 200 },
       30: { item: { tipo: 'arma', raridade: 'lendaria' }, pergaminho: { raridade: 'epica', qtd: 2 } },
     },
   },
