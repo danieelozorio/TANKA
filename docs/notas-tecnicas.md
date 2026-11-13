@@ -767,6 +767,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Celular › Missões: folha de baixo (82dvh, fundo cheio, alça), fundo escurecido, cartões mais baixos.
 - Baú do dia (celular e computador): cartão em destaque (`.missao-bau`: borda dourada, brilho, 🎁 grande), com
   quantas diárias já foram feitas (x/4) e barra; pronto para abrir ele pulsa (`bau-brilho`/`bau-pula`).
+- Artes novas (folha 3x2 do Daniel, Gemini): `assets/itens/bau-diario`, `bau-diario-aberto` (Baú do dia; aberto depois
+  de resgatar), `pocao-vida`, `pote-estamina`, `recomeco`, `recomeco-habilidades` (.jpg 256 + .webp sem fundo). Na Loja
+  via `arteLoja(nome)`; na luta e no registro a poção continua o `ICONE_POCAO` (SVG pequeno).
 
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as

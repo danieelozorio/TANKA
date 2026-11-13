@@ -1614,9 +1614,11 @@
       + (faltas.length ? ' disabled' : '') + '>Comprar</button></div></div>';
   }
 
+  // Arte dos itens da Loja que não são equipamento (Daniel, Gemini, nov/2026): assets/itens/<nome>.webp
+  function arteLoja(nome) { return '<img class="icone-arte-loja" src="assets/itens/' + nome + '.webp" alt="">'; }
   function linhaRecomecoHab(p) {
     var R2 = D.RECOMECO_HABILIDADES, falta = R2.precoOuro - (p.ouro || 0);
-    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📘</div>'
+    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">' + arteLoja('recomeco-habilidades') + '</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + R2.nome + '</span></div>'
       + '<div class="suave">Devolve os pontos de habilidade e deixa escolher a segunda classe de novo · '
       + R2.precoOuro.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecosHab || 0) + '</div></div>'
@@ -1773,7 +1775,7 @@
   // Poção de vida (ouro, preço pelo level) e pote de estamina (reputação, 2 por dia).
   function linhaPocaoVida(p) {
     var preco = R.precoPocao(p), max = R.maxPocoes(p), cheio = (p.pocoes || 0) >= max, falta = preco - (p.ouro || 0);
-    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">' + ICONE_POCAO + '</div>'
+    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">' + arteLoja('pocao-vida') + '</div>'
       + '<div class="item-texto"><div><strong>Poção de vida</strong></div>'
       + '<div class="suave">Enche a vida no meio de uma luta da caçada (não vale na Arena, masmorra nem Chefe Mundial) · '
       + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.pocoes || 0) + '/' + max + ' (2 de graça todo dia)</div></div>'
@@ -1782,7 +1784,7 @@
   }
   function linhaPoteEstamina(p) {
     var preco = R.precoPoteEstamina(p), E = D.ESTAMINA, usados = R.estamina(p).potes || 0, falta = preco == null ? 0 : preco - (p.reputacao || 0);
-    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">⚡</div>'
+    return '<div class="item item-com-icone"><div class="icone-pequeno icone-recomeco">' + arteLoja('pote-estamina') + '</div>'
       + '<div class="item-texto"><div><strong>Pote de estamina</strong></div>'
       + '<div class="suave">+' + E.pote.enche + ' de estamina na hora · ' + (preco == null ? 'os ' + E.pote.precos.length + ' de hoje já foram' : preco + ' de reputação')
       + ' · ' + usados + '/' + E.pote.precos.length + ' hoje (1º ' + E.pote.precos[0] + ', 2º ' + E.pote.precos[1] + ' de reputação) · você tem '
@@ -1792,7 +1794,7 @@
   }
   function linhaRecomeco(p) {
     var preco = D.RECOMECO.precoOuro, falta = preco - (p.ouro || 0);
-    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">📜</div>'
+    return '<div class="item item-com-icone carta-lendaria"><div class="icone-pequeno borda-lendaria icone-recomeco">' + arteLoja('recomeco') + '</div>'
       + '<div class="item-texto"><div><span class="raridade-lendaria">' + D.RECOMECO.nome + '</span></div>'
       + '<div class="suave">Devolve todos os pontos de atributo para você distribuir de novo · '
       + preco.toLocaleString('pt-BR') + ' de ouro · você tem ' + (p.recomecos || 0) + '</div></div>'
@@ -2686,7 +2688,7 @@
     var todas = M.diarias.every(function (x) { return m.dOk[x.id]; });
     // Baú do dia: a missão final das diárias, em destaque (baú grande, quantas faltam e barra)
     var feitas = M.diarias.filter(function (x) { return m.dOk[x.id]; }).length;
-    var bau = '<div class="missao-carta missao-bau' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><span class="missao-bau-ico">🎁</span><div class="missao-bau-corpo">'
+    var bau = '<div class="missao-carta missao-bau' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><span class="missao-bau-ico"><img src="assets/itens/' + (m.bonus ? 'bau-diario-aberto' : 'bau-diario') + '.webp" alt=""></span><div class="missao-bau-corpo">'
       + '<div class="missao-topo"><strong>Baú do dia</strong><span class="missao-num">' + feitas + '/' + M.diarias.length + '</span></div>'
       + '<div class="missao-texto">' + (m.bonus ? 'Aberto! Volta amanhã.' : todas ? 'Todas as diárias feitas: abra o baú!' : 'Resgate todas as diárias para abrir') + '</div>'
       + '<div class="missao-barra"><i style="width:' + Math.round(feitas * 100 / M.diarias.length) + '%"></i></div>'

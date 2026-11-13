@@ -941,6 +941,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .recomeco-ficha { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-top: .6rem; padding: .45rem .6rem;
   border: 1px dashed rgba(242, 201, 76, .5); border-radius: 8px; font-size: .9rem; }
 .icone-recomeco { display: grid; place-items: center; font-size: 2rem; }
+.icone-arte-loja { width: 100%; height: 100%; object-fit: contain; display: block; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, .6)); }
 
 /* Alianças */
 .sigla { font-family: var(--titulo); font-size: .85em; color: #e6c66a; letter-spacing: .04em; }
@@ -1169,6 +1170,7 @@ html { scrollbar-gutter: stable; }
   background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .28), transparent 65%), linear-gradient(180deg, #2a2213, #17130c);
   box-shadow: 0 0 14px rgba(242, 201, 76, .25), inset 0 0 18px rgba(242, 201, 76, .08); }
 .missao-bau-ico { flex: none; font-size: 2.3rem; line-height: 1; filter: drop-shadow(0 0 8px rgba(242, 201, 76, .55)); }
+.missao-bau-ico img { display: block; width: 3.4rem; height: 3.4rem; object-fit: contain; }
 .missao-bau-corpo { flex: 1; min-width: 0; }
 .missao-bau .missao-topo strong { color: #f2c94c; font-size: 1.05rem; letter-spacing: .02em; }
 .missao-bau .missao-num { color: #f2c94c; font-weight: 700; }
