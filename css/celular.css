@@ -506,6 +506,38 @@ html[data-celular] .missao-barra { height: 5px; }
 html[data-celular] .missao-pe { margin-top: .3rem; font-size: .76rem; }
 html[data-celular] .missao-pe .btn { min-height: 2rem; padding: 0 .8rem; }
 html[data-celular] .missao-bau { padding: .6rem; border-color: #c9a24a; background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .28), transparent 65%), linear-gradient(180deg, #2a2213, #17130c); }
+/* ---- Menu do escudo: painel que desce do topo (herói em cima; grupos Jogo, Configurações e Conta) ---- */
+html[data-celular] .menu-cel > summary { position: relative; }
+html[data-celular] .menu-cel-ponto { position: absolute; top: -3px; right: -3px; width: .7rem; height: .7rem; border-radius: 50%; background: #c0392b; border: 2px solid #120e0b; }
+html[data-celular] .menu-cel-ponto[hidden] { display: none; }
+html[data-celular] body:has(.menu-cel[open])::after { content: ''; position: fixed; inset: 0; z-index: 14; background: rgba(0, 0, 0, .55); pointer-events: none; }
+html[data-celular] .casca-topo .menu-cel-painel { position: fixed; top: calc(3.9rem + env(safe-area-inset-top)); left: .5rem; right: .5rem; width: auto; max-height: calc(100dvh - 9rem);
+  overflow-y: auto; z-index: 32; display: block; padding: .3rem .6rem .7rem; border: 1px solid #8a6a3a; border-radius: 12px;
+  background: radial-gradient(ellipse at 50% 0%, rgba(201, 162, 74, .14), transparent 60%), linear-gradient(#1c1712, #0f0c09);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, .8), inset 0 0 0 1px rgba(242, 201, 76, .08); animation: menu-cel-desce .18s ease-out; }
+@keyframes menu-cel-desce { from { opacity: 0; transform: translateY(-8px); } }
+html[data-celular] .menu-cel-cab { display: flex; align-items: center; gap: .65rem; padding: .55rem .2rem .65rem; border-bottom: 1px solid rgba(201, 162, 74, .3); }
+html[data-celular] .menu-cel-retrato { flex: none; width: 3rem; height: 3rem; border-radius: 50%; overflow: hidden; border: 2px solid #c9a24a; box-shadow: 0 0 10px rgba(242, 201, 76, .3); }
+html[data-celular] .menu-cel-retrato img, html[data-celular] .menu-cel-retrato svg { width: 100%; height: 100%; object-fit: cover; object-position: 50% 15%; }
+html[data-celular] .menu-cel-cab > div { display: grid; line-height: 1.2; }
+html[data-celular] .menu-cel-cab strong { font-family: var(--titulo, serif); color: #f2c94c; font-size: 1.05rem; }
+html[data-celular] .menu-cel-cab small { color: #c9b89a; font-size: .78rem; }
+html[data-celular] .menu-cel-cab b { color: #e9b450; font-size: .8rem; }
+html[data-celular] .menu-cel-grupo { display: grid; gap: .25rem; margin-top: .55rem; }
+html[data-celular] .menu-cel-grupo > small { padding: 0 .3rem; font-size: .68rem; letter-spacing: .12em; text-transform: uppercase; color: #8f7a55; }
+html[data-celular] .menu-cel-item { display: flex; align-items: center; gap: .65rem; width: 100%; min-height: 2.8rem; padding: 0 .7rem; text-align: left; cursor: pointer;
+  border: 1px solid #3a2f24; border-radius: 9px; background: linear-gradient(#211b15, #16120e); color: #e6d6b8; font-size: .95rem; }
+html[data-celular] .menu-cel-item:active { transform: scale(.98); border-color: #c9a24a; }
+html[data-celular] .menu-cel-ico { flex: none; display: grid; place-items: center; width: 1.6rem; font-size: 1.1rem; color: #d7aa70; }
+html[data-celular] .menu-cel-ico svg { width: 1.2rem; height: 1.2rem; }
+html[data-celular] .menu-cel-nome { flex: 1; }
+html[data-celular] .menu-cel-item .selo-num { position: static; min-width: 1.3rem; height: 1.3rem; padding: 0 .35rem; border-radius: 999px; background: #c0392b; color: #fff;
+  font-size: .72rem; font-weight: 700; line-height: 1.3rem; text-align: center; }
+html[data-celular] .menu-cel-seta { color: #6a5638; font-size: 1.2rem; }
+html[data-celular] .menu-cel-item.perigo { border-color: #5a2a22; color: #e88a7a; }
+html[data-celular] .menu-cel-item.perigo .menu-cel-ico { color: #e88a7a; }
+/* Caixa de entrada e Avisos abertos pelo menu: painel embaixo do topo, na largura da tela */
+html[data-celular] #painel-topo { position: fixed; top: calc(3.9rem + env(safe-area-inset-top)); left: .5rem; right: .5rem; width: auto; max-height: calc(100dvh - 9rem); z-index: 33; }
 /* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
 html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
 /* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */
@@ -513,3 +545,15 @@ html[data-celular] .conteudo:has(.zoom-fundo) { z-index: 60; }
 html[data-celular] .zoom-janela { max-height: calc(100dvh - 1.2rem); padding: 1.6rem .8rem .8rem; }
 html[data-celular] .boss-nome > span { overflow: hidden; text-overflow: ellipsis; }
 html[data-celular] .boss-nome > span > * { display: inline; margin-right: .25rem; font-size: .75rem; }
+/* Jogo e Configurações em quadradinhos (2 por linha): o menu inteiro cabe sem rolar */
+html[data-celular] .menu-cel-grade { grid-template-columns: 1fr 1fr; }
+html[data-celular] .menu-cel-grade > small { grid-column: 1 / -1; }
+html[data-celular] .menu-cel-grade .menu-cel-item { position: relative; flex-direction: column; justify-content: center; gap: .2rem; min-height: 4.2rem; padding: .45rem .3rem;
+  text-align: center; font-size: .85rem; }
+html[data-celular] .menu-cel-grade .menu-cel-ico { width: auto; font-size: 1.45rem; }
+html[data-celular] .menu-cel-grade .menu-cel-ico svg { width: 1.5rem; height: 1.5rem; }
+html[data-celular] .menu-cel-grade .menu-cel-nome { flex: none; }
+html[data-celular] .menu-cel-grade .menu-cel-seta { display: none; }
+html[data-celular] .menu-cel-grade .selo-num { position: absolute; top: .3rem; right: .35rem; }
+html[data-celular] .menu-cel-item { min-height: 2.6rem; font-size: .9rem; }
+html[data-celular] #painel-topo > * { background: #14110d; }

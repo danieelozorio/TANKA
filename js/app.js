@@ -600,7 +600,7 @@
       + recurso('r-pocao', 'Poções de vida (só na caçada) · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (estamina cheia e 2 poções). Mais poções no Mercado.', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
         '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + R.maxPocoes(p) + '</span>')
       + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)
-      + botoesAvisosHtml()
+      + (CELULAR ? '' : botoesAvisosHtml())
       + '</div></div>';
   }
 
@@ -678,6 +678,8 @@
     };
     trocar(bc, estado.painelTopo === 'caixa' ? 0 : caixaNaoLidas(p));
     trocar(bs, estado.painelTopo === 'sino' ? 0 : n.lista.filter(function (x) { return x.t > n.vista; }).length);
+    var ponto = document.getElementById('menu-cel-ponto');
+    if (ponto) ponto.hidden = !((bc && bc.querySelector('.selo-num')) || (bs && bs.querySelector('.selo-num')) || chat.naoLidas || R.missoesProntas(p, C.agora()));
     if (estado.painelTopo) desenharPainelTopo();
   }
   function quandoTexto(t) {
@@ -736,7 +738,7 @@
       else abrirPainelTopo(null);
       return;
     }
-    if (estado.painelTopo && !(t.closest && (t.closest('#painel-topo') || t.closest('.avisos-topo')))) abrirPainelTopo(null);
+    if (estado.painelTopo && !(t.closest && (t.closest('#painel-topo') || t.closest('.avisos-topo') || t.closest('.menu-cel')))) abrirPainelTopo(null);
   });
 
   // ---------------- Ficha flutuante do item (Henri, nov/2026) ----------------
@@ -991,6 +993,37 @@
       + '<button class="casca-ico" data-acao="casca-missoes" aria-label="Missões">📜<span class="casca-selo" id="casca-missoes-selo"' + (prontas ? '' : ' hidden') + '>' + (prontas || '') + '</span></button>'
       + (menu || '') + '</div></header>';
   }
+  // Menu do escudo no celular (Daniel, nov/2026): painel que desce do topo com o herói em cima e três grupos
+  // (Jogo, Configurações, Conta). Caixa de entrada e Avisos saíram da barra de recursos e vieram para cá
+  // (mesmos ids btn-caixa/btn-sino, então os números continuam se atualizando sozinhos).
+  function menuCelularHtml(livre) {
+    var p = estado.personagem, n = lerNotificacoes(), prontas = R.missoesProntas(p, C.agora());
+    var nn = n.lista.filter(function (x) { return x.t > n.vista; }).length, cx = caixaNaoLidas(p);
+    var item = function (attrs, ico, nome, selo, extra) {
+      return '<button class="menu-cel-item' + (extra || '') + '" ' + attrs + '><span class="menu-cel-ico">' + ico + '</span><span class="menu-cel-nome">' + nome + '</span>'
+        + (selo != null ? selo : '') + '<span class="menu-cel-seta">›</span></button>';
+    };
+    var anterior = document.getElementById('menu-jogo'), aviso = cx || nn || prontas || chat.naoLidas;
+    return '<details class="menu-jogo menu-cel" id="menu-jogo"' + (anterior && anterior.open ? ' open' : '') + '>'
+      + '<summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu
+      + '<span class="menu-cel-ponto" id="menu-cel-ponto"' + (aviso ? '' : ' hidden') + '></span></summary>'
+      + '<div class="menu-jogo-painel menu-cel-painel">'
+      + '<div class="menu-cel-cab"><span class="menu-cel-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span><div><strong>' + esc(p.nome) + '</strong>'
+      + '<small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small><b>⚔ ' + R.poder(p).toLocaleString('pt-BR') + '</b></div></div>'
+      + '<div class="menu-cel-grupo menu-cel-grade"><small>Jogo</small>'
+      + item('data-acao="casca-missoes"', '📜', 'Missões', prontas ? seloNumero(prontas) : '')
+      + item('data-acao="casca-chat"', '💬', 'Chat', chat.naoLidas ? seloNumero(chat.naoLidas) : '')
+      + item('id="btn-caixa" data-acao="painel-topo" data-valor="caixa"', ICONE_CARTA, 'Caixa de entrada', seloNumero(cx))
+      + item('id="btn-sino" data-acao="painel-topo" data-valor="sino"', ICONE_SINO, 'Avisos', seloNumero(nn)) + '</div>'
+      + '<div class="menu-cel-grupo menu-cel-grade"><small>Configurações</small>'
+      + item('data-acao="menu-interface"', '🎨', 'Interface') + item('data-acao="menu-som"', ICONES.som, 'Som e música') + '</div>'
+      + (livre ? '<div class="menu-cel-grupo"><small>Conta</small>'
+        + (ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
+        + item('data-acao="voltar-personagens"', ICONES.trocarPersonagem, 'Trocar personagem')
+        + item('data-acao="sair"', ICONES.sair, 'Sair', '', ' perigo') + '</div>' : '')
+      + '</div></details>';
+  }
+  function fecharMenuJogo() { var m = document.getElementById('menu-jogo'); if (m) m.open = false; }
   // Zealot no celular: a mesma barra de ícones da Clássica, embaixo da tela (o menu de cima fica só com Trocar/Som/Sair).
   function navBaixoHtml() {
     return navHtml().replace('id="abas-jogo"', 'id="abas-baixo"').replace('class="abas-jogo"', 'class="abas-jogo abas-baixo"');
@@ -3333,6 +3366,7 @@
         + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
     }
+    if (CELULAR) menuTopo = menuCelularHtml(livre);
     var personagemCompacto = zealot && estado.aba === 'personagem' && !!navegacao;
     var vista = estado.vistaPersonagem || 'equipamento';
     var vistas = personagemCompacto ? '<div class="personagem-vistas" aria-label="Painéis do personagem">'
@@ -4297,10 +4331,10 @@
         break;
       case 'senha-gerada-fechar': estado.adminSenhaGerada = null; telaJogo(); break;
       case 'casca-chat':   // casca do celular: o chat abre pelo ícone do topo
-        chat.aberto = true; chat.naoLidas = 0; desenharChat();
+        fecharMenuJogo(); chat.aberto = true; chat.naoLidas = 0; desenharChat();
         break;
       case 'casca-missoes':
-        missoesUI.aberto = !missoesUI.aberto; desenharMissoes(true);
+        fecharMenuJogo(); missoesUI.aberto = !missoesUI.aberto; desenharMissoes(true);
         break;
       case 'menu-interface':
         if (document.getElementById('menu-jogo')) document.getElementById('menu-jogo').open = false;
@@ -5028,7 +5062,7 @@
         break;
       case 'fugir': encerrar(); break;
       case 'ficha-fechar': fecharFlutuante(); break;
-      case 'painel-topo': abrirPainelTopo(el.dataset.valor); break;
+      case 'painel-topo': fecharMenuJogo(); abrirPainelTopo(el.dataset.valor); break;
       case 'boss-atacar': atacarMundial(); break;
       case 'boss-invocar':
         C.boss.adminInvocar(estado.personagem.id, Number(el.dataset.valor) || null, 60)

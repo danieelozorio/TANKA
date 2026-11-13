@@ -770,6 +770,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Artes novas (folha 3x2 do Daniel, Gemini): `assets/itens/bau-diario`, `bau-diario-aberto` (Baú do dia; aberto depois
   de resgatar), `pocao-vida`, `pote-estamina`, `recomeco`, `recomeco-habilidades` (.jpg 256 + .webp sem fundo). Na Loja
   via `arteLoja(nome)`; na luta e no registro a poção continua o `ICONE_POCAO` (SVG pequeno).
+- Celular › menu do escudo (`menuCelularHtml`, troca o `menuTopo` quando `CELULAR`): painel que desce do topo com o
+  herói (retrato, nome, level, poder) e grupos Jogo (Missões, Chat, Caixa de entrada, Avisos, em quadradinhos 2x2),
+  Configurações (Interface, Som) e Conta (Admin, Trocar personagem, Sair em vermelho; só fora de luta). Caixa e sino
+  saíram da barra de recursos no celular (`recursosHtml`) e usam os mesmos ids `btn-caixa`/`btn-sino`
+  (`atualizarSelos` continua contando). Ponto vermelho no escudo (`#menu-cel-ponto`) quando há algo novo.
 
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as
