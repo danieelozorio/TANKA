@@ -760,6 +760,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (hora, duração, ataques); regras e prêmios em gavetas; "Próximo despertar" em destaque (`.boss-proximo`); meu dano,
   lugar e ataques em quadrinhos (`.boss-eu`); rankings de heróis e clãs em linhas (`.boss-linha`, 1º/2º/3º em
   ouro/prata/bronze, a minha em dourado). "Atacar Ignaroth" preso embaixo (`#boss-painel > .botoes` fixo).
+- Celular › História: falas com retrato menor e letra de leitura; selos espalhados na largura; capítulos lidos numa
+  fileira que desliza; na cena (`.hist-janela`) o botão fica preso no pé da janela.
+- Celular › Chat: folha de baixo com fundo escurecido e "alça"; mensagens em balões (`linhaChat`/`linhaChatAlianca`
+  com `CELULAR` → `.chat-balao`, a minha `.minha` à direita em dourado); campo com 16px (o iPhone não dá zoom).
+- Celular › Missões: folha de baixo (82dvh, fundo cheio, alça), fundo escurecido, cartões mais baixos.
 
 - **Clique num item desequipado** (Henri, 12/11/2026): a ficha fixa abre em duas colunas, "Equipado" (o item do mesmo
   lugar, `fichaItemHtml(eq, true)`, sem botões; anel: anel1 ou anel2) e "Na mochila" (com Equipar/Vender e as

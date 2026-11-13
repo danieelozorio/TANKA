@@ -7095,6 +7095,10 @@
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'
       : '';
+    // celular: balão de conversa (o meu à direita), com nome e hora em cima
+    if (CELULAR) return '<div class="chat-msg chat-balao' + (estado.personagem && m.personagem === estado.personagem.nome ? ' minha' : '') + '"><div class="chat-cab">'
+      + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '">' + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>'
+      + '<span class="chat-hora">' + hora + '</span></div><div class="chat-texto">' + esc(m.texto) + '</div>' + acoes + '</div>';
     return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '">'
       + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
       + esc(m.texto) + acoes + '</p>';
@@ -7102,6 +7106,9 @@
 
   function linhaChatAlianca(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    var cargo = m.cargo === 'lider' ? '👑 ' : m.cargo === 'vice' ? '🛡️ ' : m.cargo === 'oficial' ? '⭐ ' : '';
+    if (CELULAR) return '<div class="chat-msg chat-balao' + (estado.personagem && m.personagem === estado.personagem.nome ? ' minha' : '') + '"><div class="chat-cab">' + cargo
+      + '<strong class="chat-nome">' + esc(m.personagem) + '</strong><span class="chat-hora">' + hora + '</span></div><div class="chat-texto">' + esc(m.texto) + '</div></div>';
     return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + (m.cargo === 'lider' ? '👑 ' : m.cargo === 'vice' ? '🛡️ ' : m.cargo === 'oficial' ? '⭐ ' : '')
       + '<strong class="chat-nome">' + esc(m.personagem) + '</strong>: ' + esc(m.texto) + '</p>';
   }

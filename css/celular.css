@@ -441,6 +441,71 @@ html[data-celular] .boss-nome small { font-size: .72rem; }
 html[data-celular] .boss-linha > b { color: #f2c94c; font-variant-numeric: tabular-nums; }
 html[data-celular] .boss-premios-gaveta { margin-top: .8rem; }
 html[data-celular] .boss-premios-gaveta .boss-premios { font-size: .82rem; margin: .4rem 0 0 1rem; }
+/* ---- Aventura › História ---- */
+/* título e selos numa linha; falas com retrato menor e letra de leitura; na cena, o botão fica preso no pé da janela */
+html[data-celular] .hist-topo { gap: .4rem; margin-bottom: .6rem; }
+html[data-celular] .hist-topo h2 { font-size: 1.15rem; }
+html[data-celular] .hist-topo p { font-size: .82rem; }
+html[data-celular] .hist-marcas { width: 100%; justify-content: space-between; }
+html[data-celular] .hist-marca { width: 2rem; height: 2rem; font-size: .85rem; }
+html[data-celular] .hist-capitulo { padding: .7rem .75rem; }
+html[data-celular] .hist-capitulo h3 { font-size: 1.1rem; margin-bottom: .5rem; }
+html[data-celular] .fala { grid-template-columns: 2.6rem 1fr; gap: .55rem; margin: .45rem 0; }
+html[data-celular] .fala-retrato { width: 2.6rem; height: 2.6rem; }
+html[data-celular] .fala-livro { font-size: 1.2rem; }
+html[data-celular] .fala-inicial { font-size: 1.2rem; }
+html[data-celular] .fala-texto strong { font-size: .85rem; }
+html[data-celular] .fala-texto p { font-size: .9rem; line-height: 1.45; }
+html[data-celular] .hist-objetivos li { font-size: .85rem; }
+html[data-celular] .hist-capitulo .botoes .btn { width: 100%; }
+html[data-celular] .hist-lidos { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: .2rem; }
+html[data-celular] .hist-lidos .btn { flex: none; }
+html[data-celular] .hist-janela { padding: 1rem .8rem 0; }
+html[data-celular] .hist-janela h2 { font-size: 1.15rem; }
+html[data-celular] .hist-janela > .botoes { position: sticky; bottom: 0; margin: .6rem -.8rem 0; padding: .55rem .8rem calc(.55rem + env(safe-area-inset-bottom));
+  background: linear-gradient(rgba(18, 16, 14, 0), #12100e 35%); }
+html[data-celular] .hist-janela > .botoes .btn { width: 100%; min-height: 2.6rem; }
+
+/* ---- Chat: folha que sobe de baixo, fundo escurecido, mensagens em balões (as minhas à direita) ---- */
+html[data-celular] body:has(#chat .chat-janela)::after { content: ''; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, .55); }
+html[data-celular] #chat .chat-janela { height: 78dvh; background: #12100e; border: 1px solid #4a3f33; border-bottom: 0; }
+html[data-celular] #chat .chat-topo { position: relative; padding: 1rem .9rem .55rem; font-size: 1rem; }
+html[data-celular] #chat .chat-topo::before { content: ''; position: absolute; top: .4rem; left: 50%; width: 2.6rem; height: 4px; margin-left: -1.3rem; border-radius: 2px; background: #4a3f33; }
+html[data-celular] #chat .chat-topo button { font-size: 1.3rem; padding: .1rem .4rem; }
+html[data-celular] #chat .chat-canais button { min-height: 2.1rem; padding: 0 .9rem; }
+html[data-celular] #chat .chat-lista { display: flex; flex-direction: column; gap: .4rem; padding: .6rem .7rem; }
+html[data-celular] .chat-balao { align-self: flex-start; max-width: 85%; margin: 0; padding: .4rem .6rem .45rem; border-radius: 4px 12px 12px 12px;
+  border: 1px solid #3a322a; background: #1e1a16; font-size: .9rem; }
+html[data-celular] .chat-balao.minha { align-self: flex-end; border-radius: 12px 4px 12px 12px; border-color: #6a5430; background: #2c2416; }
+html[data-celular] .chat-cab { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .35rem; font-size: .74rem; }
+html[data-celular] .chat-cab .chat-nome { font-size: .8rem; }
+html[data-celular] .chat-cab .chat-info { color: #8f8372; }
+html[data-celular] .chat-cab .chat-hora { margin-left: auto; color: #8f8372; }
+html[data-celular] .chat-balao.minha .chat-cab .chat-info { display: none; }
+html[data-celular] .chat-texto { margin-top: .1rem; line-height: 1.35; overflow-wrap: anywhere; }
+html[data-celular] .chat-sistema { align-self: center; text-align: center; font-size: .8rem; }
+html[data-celular] #chat .chat-envio { padding: .5rem .6rem calc(.5rem + env(safe-area-inset-bottom)); }
+html[data-celular] #chat .chat-envio input { font-size: 16px; min-height: 2.6rem; border-radius: 20px; padding: 0 .9rem; }   /* 16px: o iPhone não dá zoom */
+html[data-celular] #chat .chat-envio .btn { min-height: 2.6rem; border-radius: 20px; padding: 0 1rem; }
+
+/* ---- Missões: folha que sobe de baixo (fundo cheio), fundo escurecido, cartões mais baixos ---- */
+html[data-celular] body:has(#painel-missoes.aberto)::after { content: ''; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, .55); }
+html[data-celular] #painel-missoes.aberto .missoes-painel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 82dvh; z-index: 31;
+  padding: 1.1rem .7rem calc(1rem + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; border: 1px solid #4a3f33; border-bottom: 0; background: #12100e;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, .7); animation: none; }
+html[data-celular] #painel-missoes.aberto .missoes-painel::before { content: ''; position: absolute; top: .4rem; left: 50%; width: 2.6rem; height: 4px; margin-left: -1.3rem; border-radius: 2px; background: #4a3f33; }
+html[data-celular] .missoes-titulo { margin-bottom: .5rem; font-size: 1rem; }
+html[data-celular] .missoes-titulo button { font-size: 1.3rem; padding: .1rem .4rem; }
+html[data-celular] .missoes-cabeca { padding: .55rem .65rem; font-size: .9rem; }
+html[data-celular] .missoes-cabeca span:last-of-type { font-size: .75rem; }
+html[data-celular] .missoes-lista { gap: .35rem; padding: .45rem; }
+html[data-celular] .missao-carta { padding: .45rem .55rem; background: #1b1814; border-color: #3a322a; }
+html[data-celular] .missao-topo { font-size: .85rem; }
+html[data-celular] .missao-texto { font-size: .76rem; margin: 0 0 .3rem; }
+html[data-celular] .missao-barra { height: 5px; }
+html[data-celular] .missao-pe { margin-top: .3rem; font-size: .76rem; }
+html[data-celular] .missao-pe .btn { min-height: 2rem; padding: 0 .8rem; }
+html[data-celular] .missao-bau { background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .14), transparent 60%), #1b1814; }
 /* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
 html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
 /* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */
