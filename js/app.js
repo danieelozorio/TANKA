@@ -7397,15 +7397,9 @@
       if (t) t.textContent = !musica.ligada ? 'Música desligada' : musica.atual && !musica.atual.audio.paused ? '♪ ' + musica.atual.nome : '♪ —';
     }
   }
-  // Botões da tela de Interface: Tela (eldrin.tela) e Tema (eldrin.interface). Guardam neste aparelho e recarregam
-  // a página (o tema entra antes de desenhar).
+  // Botões da tela de Interface: Tema (eldrin.interface), só no computador; no celular é sempre a casca
+  // (Daniel, nov/2026). Guarda neste aparelho e recarrega a página (o tema entra antes de desenhar).
   function ligarPainelInterface(p) {
-    p.querySelectorAll('[data-tela]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        guardar('eldrin.tela', b.dataset.tela);
-        setTimeout(function () { location.reload(); }, 150);
-      });
-    });
     p.querySelectorAll('[data-interface]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (b.dataset.interface === interfaceAtual()) return;
@@ -7414,16 +7408,6 @@
         setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
       });
     });
-  }
-  // Tela: Automática (celular quando é toque + tela pequena), Celular ou Computador. Guarda e recarrega.
-  function configTelaHtml() {
-    var atual = 'auto';
-    try { atual = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* automática */ }
-    return '<div class="config-faixa"><span>Tela</span><div class="config-interface" role="radiogroup" aria-label="Tela">'
-      + [['auto', 'Automática'], ['celular', 'Celular'], ['pc', 'Computador']].map(function (x) {
-        var ativa = atual === x[0];
-        return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-tela="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-      }).join('') + '</div></div>';
   }
   // tipo: 'interface' abre a tela de Interface (tema e tela); sem tipo, a de Som (música e efeitos).
   function alternarPainel(fechar, tipo) {
@@ -7440,8 +7424,7 @@
     if (tipo === 'interface') {
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
-        + configTelaHtml()
-        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre o tema Zealot. Para trocar o tema, escolha Tela: Computador.</p>'
+        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre a tela própria do celular. As interfaces Clássica e Zealot são para o computador.</p>'
           : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
           + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
             var ativa = interfaceAtual() === x[0];

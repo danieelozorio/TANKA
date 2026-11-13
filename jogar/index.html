@@ -25,10 +25,8 @@
       if (m) t = m[1];                                                  // não grava a tempo antes de recarregar)
       else try { t = localStorage.getItem('eldrin.interface') || 'classica'; } catch (e) { /* sem armazenamento: Clássica */ }
       // Casca do celular (Daniel, nov/2026): no celular (toque + tela pequena) o jogo usa telas próprias, sobre o
-      // tema Zealot. A ⚙ escolhe Automática / Celular / Computador (eldrin.tela).
-      var tela = 'auto';
-      try { tela = localStorage.getItem('eldrin.tela') || 'auto'; } catch (e) { /* sem armazenamento: automática */ }
-      var cel = tela === 'celular' || (tela === 'auto' && window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820);
+      // tema Zealot. Celular usa sempre a casca; Clássica e Zealot são só para o computador.
+      var cel = window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820;   // celular: sempre a casca (Daniel, nov/2026)
       if (cel) { t = 'zealot'; document.documentElement.setAttribute('data-celular', ''); }
       document.documentElement.setAttribute('data-interface', t);
       if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=135">');
@@ -48,7 +46,7 @@
   <script src="js/contas.js?v=173"></script>
   <script src="js/retratos.js?v=120"></script>
   <script src="js/dado3d.js?v=121"></script>
-  <script src="js/app.js?v=212"></script>
+  <script src="js/app.js?v=213"></script>
   <script>
     // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});

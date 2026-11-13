@@ -686,8 +686,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   acertar `minutosSemAcampar`/`minutosAcampado`.
 
 ## Casca do celular (Daniel, nov/2026)
-- Ligada no começo de `jogar/index.html` (e `ferramentas/artifact.html`): toque (`pointer: coarse`) + tela de até 820 px,
-  ou escolhido na ⚙ > **Tela** (Automática / Celular / Computador, `localStorage eldrin.tela`). Põe `html[data-celular]`
+- Ligada no começo de `jogar/index.html` (e `ferramentas/artifact.html`): toque (`pointer: coarse`) + tela de até 820 px.
+  **Não tem escolha** (Daniel, nov/2026): celular é sempre a casca; Clássica e Zealot só no computador (a opção Tela e o
+  `eldrin.tela` saíram; a ⚙ > Interface do celular só explica isso). Põe `html[data-celular]`
   e força o tema Zealot (a opção Interface some no celular). Estilo só em `css/celular.css` (tudo com `html[data-celular]`).
 - `app.js`: `CELULAR`; no celular o Leilão entra no grupo Mercado (barra de baixo com 5). `telaJogo` usa `cascaTopoHtml`
   (retrato → Herói, nome, Lv, exp; ícones 💬 `casca-chat`, 📜 `casca-missoes` com selos `#casca-chat-selo` /
