@@ -870,22 +870,22 @@ Tanka.dados = {
   // Prêmios de login (Daniel, nov/2026): 1 vez por dia (vira às 00:00 de Brasília), os dias NÃO precisam ser seguidos.
   // semana: 7 prêmios, um por dia em que entrou; depois do 7º recomeça. trinta: trilha de 30 dias de login com
   // marcos (dia: prêmio); depois do 30º recomeça. Prêmio: ouroPorNivel (x level), reputacao, pergaminho {raridade, qtd},
-  // item {raridade} (uma peça da classe do herói, sorteada entre arma e armaduras, do level dele).
+  // item {raridade, tipo?} (da classe do herói, do level dele; sem tipo, sorteia entre arma e armaduras).
   LOGIN: {
     semana: [
-      { ouroPorNivel: 20 },
-      { reputacao: 20 },
-      { pergaminho: { raridade: 'comum', qtd: 1 } },
-      { ouroPorNivel: 30 },
-      { reputacao: 30 },
       { ouroPorNivel: 40 },
-      { pergaminho: { raridade: 'rara', qtd: 1 }, reputacao: 50 },
+      { reputacao: 40 },
+      { pergaminho: { raridade: 'epica', qtd: 1 } },
+      { ouroPorNivel: 60 },
+      { reputacao: 60 },
+      { ouroPorNivel: 80 },
+      { pergaminho: { raridade: 'lendaria', qtd: 3 }, reputacao: 100 },
     ],
     trinta: {
-      7: { ouroPorNivel: 100 },
-      14: { pergaminho: { raridade: 'rara', qtd: 2 } },
-      21: { ouroPorNivel: 100, reputacao: 100 },
-      30: { item: { raridade: 'epica' }, pergaminho: { raridade: 'epica', qtd: 1 } },
+      7: { ouroPorNivel: 200 },
+      14: { pergaminho: { raridade: 'epica', qtd: 2 } },
+      21: { ouroPorNivel: 200, reputacao: 200 },
+      30: { item: { tipo: 'arma', raridade: 'lendaria' }, pergaminho: { raridade: 'epica', qtd: 2 } },
     },
   },
 

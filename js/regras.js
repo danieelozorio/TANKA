@@ -2018,7 +2018,7 @@ Tanka.regras = (function () {
     if (pr.reputacao) partes.push(pr.reputacao + ' de reputação');
     var m = function (r, n) { var t = (RARIDADE_M[r] || r).toLowerCase(); return n > 1 ? (t === 'comum' ? 'comuns' : t + 's') : t; };   // masculino: pergaminho raro, item épico
     if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's ' : ' ') + m(pr.pergaminho.raridade, pr.pergaminho.qtd));
-    if (pr.item) partes.push('1 item ' + m(pr.item.raridade, 1) + ' da sua classe');
+    if (pr.item) partes.push(pr.item.tipo === 'arma' ? '1 arma ' + D.raridades[pr.item.raridade].nome.toLowerCase() + ' do seu level' : '1 item ' + m(pr.item.raridade, 1) + ' da sua classe');
     return partes.join(' + ');
   }
   function darPremioLogin(p, pr, rng) {
@@ -2027,7 +2027,7 @@ Tanka.regras = (function () {
     if (pr.reputacao) p.reputacao = (p.reputacao || 0) + pr.reputacao;
     if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
     if (pr.item) {
-      var tipos = ['arma', 'elmo', 'peitoral', 'luvas', 'botas'], tipo = tipos[Math.floor((rng || Math.random)() * tipos.length)];
+      var tipos = ['arma', 'elmo', 'peitoral', 'luvas', 'botas'], tipo = pr.item.tipo || tipos[Math.floor((rng || Math.random)() * tipos.length)];
       var atual = armaEquipada(p), esp = tipo === 'arma' && atual && atual.arma && podeUsar(p, atual) ? atual.arma : null;
       item = novoItem(tipo, p.classe, pr.item.raridade, rng, esp, p.nivel);
       p.inventario.push(item);

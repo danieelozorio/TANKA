@@ -2220,7 +2220,7 @@ teste('login: 1 vez por dia, dias não seguidos, semana de 7 e trilha de 30 com 
   const dia = 86400000, t0 = Date.UTC(2026, 10, 10, 15);
   const ouro0 = p.ouro;
   const r1 = R.pegarLogin(p, t0, rng);
-  assert.strictEqual(r1.semana, 1); assert.strictEqual(r1.trinta, 1); assert.strictEqual(p.ouro, ouro0 + 20 * p.nivel);
+  assert.strictEqual(r1.semana, 1); assert.strictEqual(r1.trinta, 1); assert.strictEqual(p.ouro, ouro0 + D.LOGIN.semana[0].ouroPorNivel * p.nivel);
   assert.strictEqual(R.pegarLogin(p, t0 + 3600000, rng), null);          // mesmo dia: não pega de novo
   assert.ok(R.loginEstado(p, t0 + 5 * dia).pode);                       // pulou dias: não perde nada
   let t = t0;
@@ -2229,7 +2229,7 @@ teste('login: 1 vez por dia, dias não seguidos, semana de 7 e trilha de 30 com 
     const itens = p.inventario.length;
     const r = R.pegarLogin(p, t, rng);
     assert.strictEqual(r.trinta, k); assert.strictEqual(r.semana, (k - 1) % 7 + 1);
-    if (k === 30) { assert.ok(r.item && r.item.raridade === 'epica' && r.item.classe === 'cavaleiro'); assert.strictEqual(p.inventario.length, itens + 1); }
+    if (k === 30) { assert.ok(r.item && r.item.raridade === 'lendaria' && r.item.tipo === 'arma' && r.item.classe === 'cavaleiro' && r.item.nivel === p.nivel); assert.strictEqual(p.inventario.length, itens + 1); }
     else assert.ok(!r.item);
     if ([7, 14, 21, 30].includes(k)) assert.ok(r.textoTrinta); else assert.strictEqual(r.textoTrinta, null);
   }

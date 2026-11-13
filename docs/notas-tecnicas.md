@@ -787,8 +787,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Os dias **não precisam ser seguidos**; vale por personagem; 1 vez por dia (vira às 00:00 de Brasília, `diaReset`).
 - Regras: `R.loginEstado(p, agora)`, `R.pegarLogin(p, agora, rng)` (dá o da semana e, se cair num marco, o dos 30 dias;
   com item e mochila cheia devolve `{ erro }` sem pegar), `R.premioLoginTexto`. Estado em `p.login = { dia, semana, trinta }`.
-  Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade} (peça sorteada entre arma e armaduras da
-  classe, no level do herói). Teste em regras.test.js ("login: ...").
+  Prêmio: ouroPorNivel, reputacao, pergaminho {raridade, qtd}, item {raridade, tipo?} (da classe, no level do herói; sem
+  tipo sorteia entre arma e armaduras). Ajuste do Daniel: dia 3 pergaminho épico, dia 7 3 lendários + 100 rep, dia 30
+  arma lendária + 2 pergaminhos épicos, ouro e reputação em dobro. Teste em regras.test.js ("login: ...").
 - Tela: `loginHtml()` (janela com a roda da semana e a trilha dos 30), abre sozinha ao entrar no jogo se o prêmio do dia
   está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de login" no topo do painel
   de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes` no app.js;
