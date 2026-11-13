@@ -406,7 +406,12 @@ Tanka.contas = (function () {
 
   // Mercado entre jogadores: anunciar (item da mochila ou pergaminhos), comprar, cancelar.
   var mercado = {
-    estado: function (meu, categoria, ordem, pagina) { return chamar('mercado_estado', { meu: meu, categoria: categoria || null, ordem: ordem || null, pagina: pagina || 0 }); },
+    // filtro (só o que a classe usa) vai só quando ligado: sem ele a chamada é igual à antiga.
+    estado: function (meu, categoria, ordem, pagina, filtro) {
+      var a = { meu: meu, categoria: categoria || null, ordem: ordem || null, pagina: pagina || 0 };
+      if (filtro) a.filtro = filtro;
+      return chamar('mercado_estado', a);
+    },
     anunciar: function (meu, itemId, pergaminho, qtd, preco) { return chamar('mercado_anunciar', { meu: meu, item_id: itemId, pergaminho: pergaminho, qtd: qtd, preco: preco }); },
     comprar: function (meu, id) { return chamar('mercado_comprar', { meu: meu, anuncio: Number(id) }); },
     cancelar: function (meu, id) { return chamar('mercado_cancelar', { meu: meu, anuncio: Number(id) }); },

@@ -1743,3 +1743,14 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .selo-aviso.selo-item.raridade-rara { border-color: #4f94e0; color: #cfe3ff; background: linear-gradient(#173052, #0c1a2e); }
 .selo-aviso.selo-item.raridade-epica { border-color: #a46be0; color: #ecd9ff; background: linear-gradient(#36204f, #1b0f29); }
 .selo-aviso.selo-item.raridade-lendaria { border-color: #f2c94c; color: #fff1c4; background: linear-gradient(#4a3a10, #251b06); }
+
+/* Beta (nov/2026): "Ordenar por" da loja com o estilo do jogo; filtro da classe; comparar dois itens */
+.mercado-ordem { display: inline-flex; align-items: center; gap: .35rem; margin: 0; font-size: .85rem; color: var(--suave); }
+.mercado-ordem select { width: auto; margin: 0; padding: .3em .5em; border: 1px solid var(--borda); border-radius: 6px; background: #0d1118; color: var(--texto); font: inherit; }
+.mercado-so-classe { display: inline-flex; align-items: center; gap: .35rem; margin: 0; font-size: .85rem; color: var(--suave); cursor: pointer; }
+.mercado-so-classe input { width: auto; margin: 0; accent-color: var(--ouro); }
+#ficha-flutuante.comparando { width: min(720px, 96vw); max-width: none; }
+.comparar-duas { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+.comparar-duas .comparar-lado { min-width: 0; padding-right: .6rem; }
+.comparar-duas .comparar-lado + .comparar-lado { padding: 0 0 0 .8rem; border-left: 1px solid var(--borda); }
+#ficha-flutuante.hover { pointer-events: auto; }

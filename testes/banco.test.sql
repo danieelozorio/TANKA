@@ -1124,4 +1124,10 @@ select pg_temp.igual((select sigla from public.ranking_clas() limit 1), 'TALT', 
 select pg_temp.igual((select (membros >= 1)::text from public.ranking_clas() where sigla = 'TBXO'), 'true', 'ranking_clas: conta os membros');
 reset role;
 delete from public.aliancas where sigla in ('TALT', 'TBXO');
+-- Mercado: filtro "só o que a minha classe usa"
+select pg_temp.igual(public.mercado_serve('{"tipo":"arma","arma":"arco"}'::jsonb, '{"classe":"cavaleiro","armas":["espada"],"maos":["escudo"],"padrao":{}}'::jsonb)::text, 'false', 'mercado_serve: arco não serve ao cavaleiro');
+select pg_temp.igual(public.mercado_serve('{"tipo":"arma","classe":"cavaleiro"}'::jsonb, '{"classe":"cavaleiro","armas":["espada"],"maos":[],"padrao":{"cavaleiro":"espada"}}'::jsonb)::text, 'true', 'mercado_serve: arma sem tipo usa a padrão');
+select pg_temp.igual(public.mercado_serve('{"tipo":"elmo","classe":"mago"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'false', 'mercado_serve: elmo de mago não');
+select pg_temp.igual(public.mercado_serve('{"tipo":"colar"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'true', 'mercado_serve: joia serve a todos');
+select pg_temp.igual(public.mercado_serve('{"tipo":"arma","arma":"arco"}'::jsonb, null)::text, 'true', 'mercado_serve: sem filtro passa tudo');
 \echo TODOS OS TESTES DO BANCO PASSARAM

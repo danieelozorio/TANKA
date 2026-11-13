@@ -738,3 +738,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   classes em fileiras que deslizam, história da raça na gaveta `.lore-celular`, "Criar personagem" fixo embaixo.
   Login e cadastro já serviam.
 
+## Pedidos do beta tester (Daniel, nov/2026)
+- Loja: "Ordenar por" com o estilo dos outros campos (`.mercado-ordem`). Filtro **"Só o que a minha classe usa"**
+  (`filtroMercado().soClasse`, ação `mercado-so-classe`): o jogo manda `filtro` { classe, armas, maos, padrao } para
+  `mercado_estado(meu, categoria, ordem, pagina, filtro jsonb default null)` (o de 4 parâmetros foi apagado; sem o
+  filtro a chamada é igual à antiga) e o servidor filtra com `mercado_serve(item, filtro)`. Testes no banco.test.sql.
+- Loja dos jogadores e Leilão: "▲ Melhor que o seu equipado" (`dropMelhor`).
+- Mochila: passar o mouse num item mostra a ficha (`estado.fichaHover`, classe `.hover`; sai do item e da ficha =
+  fecha; clicar fixa com `fixarFichaHover`). Botão direito abre a ficha (não equipa mais) e dois cliques não equipam
+  mais (o `dblclick` saiu): equipar só pelo botão da ficha. **Comparar dois itens:** botão "⚖ Comparar com outro" na
+  ficha (`estado.compararCom`), o próximo item tocado abre os dois lado a lado (`estado.comparando`, `.comparar-duas`).
+- "💰 Vender vários" (já existia; só ficou mais visível).
+

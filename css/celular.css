@@ -368,3 +368,6 @@ html[data-celular] .previa .moldura { max-width: 11rem; margin: 0 auto .6rem; }
 html[data-celular] .previa h3 { font-size: 1rem; }
 html[data-celular] .previa [data-acao="criar-personagem"] { position: fixed; left: .6rem; right: .6rem; bottom: calc(.6rem + env(safe-area-inset-bottom)); z-index: 20;
   width: auto; min-height: 3.1rem; font-size: 1.05rem; box-shadow: 0 -4px 18px rgba(0, 0, 0, .8); }
+html[data-celular] .comparar-duas { grid-template-columns: 1fr; }
+html[data-celular] .comparar-duas .comparar-lado + .comparar-lado { padding: .7rem 0 0; border-left: 0; border-top: 1px solid #4a3f33; }
+html[data-celular] .mercado-so-classe { flex-basis: 100%; }

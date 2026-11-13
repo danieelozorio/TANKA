@@ -2883,14 +2883,28 @@ begin
 end $$;
 
 -- Lista: categoria (null = todas) e ordem (recentes | nivel | raridade | preco | preco_desc), 30 por página.
-create or replace function public.mercado_estado(meu text, categoria text, ordem text, pagina int) returns jsonb
+-- Filtro "só o que a minha classe usa" (Daniel, nov/2026): o jogo manda { classe, armas: [...], maos: [...],
+-- padrao: { classe: arma } } (as regras de quem usa o quê vivem em regras.js). Consumíveis e craft passam sempre.
+create or replace function public.mercado_serve(item jsonb, filtro jsonb) returns boolean
+language sql immutable as $$
+  select filtro is null or case item ->> 'tipo'
+    when 'arma' then coalesce(item ->> 'arma', filtro -> 'padrao' ->> (item ->> 'classe'), 'espada') in (select jsonb_array_elements_text(filtro -> 'armas'))
+    when 'secundaria' then (item ->> 'mao') in (select jsonb_array_elements_text(filtro -> 'maos'))
+    when 'elmo' then coalesce(item ->> 'classe', '') in ('', filtro ->> 'classe')
+    when 'peitoral' then coalesce(item ->> 'classe', '') in ('', filtro ->> 'classe')
+    when 'luvas' then coalesce(item ->> 'classe', '') in ('', filtro ->> 'classe')
+    when 'botas' then coalesce(item ->> 'classe', '') in ('', filtro ->> 'classe')
+    else true end;
+$$;
+drop function if exists public.mercado_estado(text, text, text, int);
+create or replace function public.mercado_estado(meu text, categoria text, ordem text, pagina int, filtro jsonb default null) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare cfg jsonb := public.mercado_cfg(); pp int := (cfg ->> 'porPagina')::int; cat text := nullif(categoria, 'todos');
 begin
   perform public.conferir_dono(meu);
   perform public.mercado_expirar();
   return jsonb_build_object('cfg', cfg,
-    'total', (select count(*) from public.mercado_anuncios a where a.estado = 'ativo' and (cat is null or a.categoria = cat)),
+    'total', (select count(*) from public.mercado_anuncios a where a.estado = 'ativo' and (cat is null or a.categoria = cat) and public.mercado_serve(a.item, filtro)),
     'anuncios', coalesce((select jsonb_agg(x.j order by x.n) from (
       select row_number() over (order by
           case when ordem = 'nivel' then a.nivel end desc nulls last,
@@ -2901,7 +2915,7 @@ begin
         jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd, 'preco', a.preco,
           'vendedor', p.nome, 'meu', a.vendedor = meu, 'expira_em', a.expira_em) as j
       from public.mercado_anuncios a join public.personagens p on p.id = a.vendedor
-      where a.estado = 'ativo' and (cat is null or a.categoria = cat)
+      where a.estado = 'ativo' and (cat is null or a.categoria = cat) and public.mercado_serve(a.item, filtro)
       order by n limit pp offset greatest(0, coalesce(pagina, 0)) * pp) x), '[]'::jsonb),
     'meus', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'item', a.item, 'categoria', a.categoria, 'qtd', a.qtd,
         'preco', a.preco, 'expira_em', a.expira_em) order by a.criado_em desc)
@@ -2919,9 +2933,9 @@ end $$;
 revoke execute on function public.mercado_cfg(), public.mercado_raridade_ordem(text), public.mercado_devolver(public.mercado_anuncios, text),
   public.mercado_expirar() from public, anon, authenticated;
 revoke execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
-  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) from public, anon;
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int, jsonb) from public, anon;
 grant execute on function public.mercado_anunciar(text, text, text, int, bigint), public.mercado_cancelar(text, bigint),
-  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int) to authenticated;
+  public.mercado_comprar(text, bigint), public.mercado_estado(text, text, text, int, jsonb) to authenticated;
 
 notify pgrst, 'reload schema';
 

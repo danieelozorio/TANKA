@@ -757,7 +757,10 @@
     }
     var it = estado.itemFoco && p.inventario.find(function (i) { return i.id === estado.itemFoco; });
     if (!it) return null;
-    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
+    var cmp = estado.comparando && estado.comparando[1] === it.id && p.inventario.find(function (i) { return i.id === estado.comparando[0]; });
+    if (cmp) return '<div class="comparar-duas"><div class="comparar-lado">' + fichaItemHtml(cmp) + '</div><div class="comparar-lado">' + fichaItemHtml(it) + '</div></div>';
+    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button>'
+      + '<button class="btn secundario btn-pequeno" data-acao="item-ampliar" data-id="' + it.id + '">🔍 Ampliar e comparar</button></div>';
   }
   function fecharFlutuante() {
     var f = document.getElementById('ficha-flutuante');
@@ -766,6 +769,9 @@
     estado.consumivelFoco = null;
     estado.dropFoco = null;
     estado.vendaPendente = null;
+    estado.comparando = null;
+    estado.compararCom = null;
+    estado.fichaHover = false;
     document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"], .focado[data-acao="drop-ver"]').forEach(function (x) { x.classList.remove('focado'); });
   }
   function desenharFlutuante(ancora) {
@@ -779,6 +785,8 @@
     if (!ancora) { if (f) f.remove(); return; }
     if (!f) { f = document.createElement('div'); f.id = 'ficha-flutuante'; f.setAttribute('role', 'dialog'); app.appendChild(f); }
     f.innerHTML = '<button class="btn-x ficha-flutuante-x" data-acao="ficha-fechar" aria-label="Fechar">✕</button>' + html;
+    f.classList.toggle('comparando', html.indexOf('comparar-duas') >= 0);
+    f.classList.toggle('hover', !!estado.fichaHover);
     document.querySelectorAll('.focado[data-acao="item"], .focado[data-acao="consumivel"], .focado[data-acao="drop-ver"]').forEach(function (x) { x.classList.remove('focado'); });
     ancora.classList.add('focado');
     // posição: ao lado do item (direita; se não couber, esquerda), dentro da tela
@@ -788,6 +796,32 @@
     var y = Math.min(Math.max(m, r.top), Math.max(m, window.innerHeight - alt - m));
     f.style.left = x + 'px';
     f.style.top = y + 'px';
+  }
+  // Computador: passar o mouse num item da mochila/equipamento mostra a ficha na hora (sem clicar). Clicar fixa.
+  function fixarFichaHover() {
+    estado.fichaHover = false;
+    var f = document.getElementById('ficha-flutuante');
+    if (f) f.classList.remove('hover');
+  }
+  if (temMouse) {
+    app.addEventListener('mouseover', function (e) {
+      var el = e.target.closest && e.target.closest('[data-acao="item"]');
+      if (!el || estado.vendaLote || estado.compararCom) return;
+      var f = document.getElementById('ficha-flutuante');
+      if (f && !estado.fichaHover) return;   // há uma ficha fixa: não troca sozinha
+      if (estado.itemFoco === el.dataset.id && f) return;
+      estado.itemFoco = el.dataset.id;
+      estado.consumivelFoco = estado.dropFoco = null;
+      estado.comparando = null;
+      estado.fichaHover = true;
+      desenharFlutuante(el);
+    });
+    app.addEventListener('mouseout', function (e) {
+      if (!estado.fichaHover) return;
+      var para = e.relatedTarget;
+      if (para && para.closest && (para.closest('#ficha-flutuante') || para.closest('[data-acao="item"][data-id="' + estado.itemFoco + '"]'))) return;
+      if (e.target.closest && (e.target.closest('[data-acao="item"]') || e.target.closest('#ficha-flutuante'))) fecharFlutuante();
+    });
   }
   document.addEventListener('mousedown', function (e) {
     var f = document.getElementById('ficha-flutuante');
@@ -1422,7 +1456,7 @@
       + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
-      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Clique num item para ver a ficha; dois cliques ou o botão direito equipam.' : 'Toque num item para ver a ficha; dois toques equipam.') + '</p>'
+      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; clique para fixar e equipar.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
       + baixo + '</div></div>';
   }
 
@@ -1488,7 +1522,7 @@
   }
   function barraMochilaHtml() {
     var v = visaoMochila(), lote = estado.vendaLote;
-    var botaoLote = '<button class="btn btn-pequeno' + (lote ? ' perigo' : ' secundario') + '" data-acao="mochila-lote">' + (lote ? 'Sair da venda' : 'Vender vários') + '</button>';
+    var botaoLote = '<button class="btn btn-pequeno' + (lote ? ' perigo' : ' secundario') + '" data-acao="mochila-lote">' + (lote ? 'Sair da venda' : '💰 Vender vários') + '</button>';
     var html = '<div class="mochila-barra">' + (CELULAR ? '<div class="mochila-celular-topo"><details class="mochila-ferramentas"' + (estado.mochilaFerramentas ? ' open' : '')
       + '><summary data-acao="mochila-ferramentas">⚙ Ordenar e filtrar</summary>' : '') + '<div class="mochila-linha">'
       + '<label class="mochila-campo">Ordenar <select id="ordem-mochila">' + ORDENS.map(function (o) {
@@ -1829,7 +1863,9 @@
     if (!p || estado.mercadoCarregando) return;
     var f = filtroMercado();
     estado.mercadoCarregando = true;
-    C.mercado.estado(p.id, f.categoria, f.ordem, f.pagina).then(function (r) {
+    // Só o que a minha classe usa: o servidor filtra com as regras daqui (armas, mão esquerda e armaduras da classe).
+    var filtro = f.soClasse ? { classe: p.classe, armas: R.armasPermitidas(p), maos: R.maoPermitida(p), padrao: D.ARMA_PADRAO } : null;
+    C.mercado.estado(p.id, f.categoria, f.ordem, f.pagina, filtro).then(function (r) {
       estado.mercadoCarregando = false;
       if (estado.personagem !== p) return;
       receberMercado(r);
@@ -1862,7 +1898,8 @@
       + '<div><div class="leilao-nome raridade-' + r + '">' + esc(nome) + '</div>'
       + '<div class="suave pequeno">' + D.raridades[r].nome + (it.nivel ? ' · nível ' + it.nivel : '') + (it.encanto ? ' · +' + it.encanto : '') + '</div>'
       + '<div class="suave pequeno">' + esc(resumo || '') + '</div>'
-      + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>') + '</div></div>'
+      + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>')
+      + (!meu && !it.consumivel && usa && dropMelhor(it) ? '<div class="mais pequeno">▲ Melhor que o seu equipado</div>' : '') + '</div></div>'
       + '<div>Preço: <strong class="cor-ouro">' + ouroTxt(a.preco) + '</strong></div>'
       + (a.vendedor ? '<div class="suave pequeno">Vendedor: <strong>' + esc(a.vendedor) + '</strong></div>' : '')
       + '<div class="suave pequeno">Sai do mercado em ' + tempoAnuncio(Date.parse(a.expira_em) - Date.now()) + '</div>'
@@ -1886,6 +1923,7 @@
       + '<label class="mercado-ordem">Ordenar por <select id="mercado-ordem">' + ORDENS_MERCADO.map(function (o) {
         return '<option value="' + o[0] + '"' + (f.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>'
+      + '<label class="mercado-so-classe"><input type="checkbox" data-acao="mercado-so-classe"' + (f.soClasse ? ' checked' : '') + '> Só o que a minha classe usa</label>'
       + '<button class="btn secundario btn-pequeno" data-acao="mercado-atualizar">Atualizar</button>'
       + '<button class="btn" data-acao="mercado-vender-abrir">Vender</button></div>';
     if (estado.mercadoErro) h += '<p class="menos">' + esc(estado.mercadoErro) + '</p>';
@@ -2099,7 +2137,8 @@
         + '<div class="suave pequeno">' + D.raridades[l.raridade].nome + (l.classe ? ' · ' + NOME_CLASSE_LOTE[l.classe] : '')
         + (it.nivel ? ' · nível ' + it.nivel : '') + '</div>'
         + '<div class="suave pequeno">' + esc(resumoLote(l)) + '</div>'
-        + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>') + '</div></div>'
+        + (usa ? '' : '<div class="menos pequeno">Sua classe não usa este item</div>')
+          + (!it.consumivel && usa && dropMelhor(it) ? '<div class="mais pequeno">▲ Melhor que o seu equipado</div>' : '') + '</div></div>'
         + lance + '<div class="suave pequeno">Próximo lance: ' + ouroTxt(prox) + (l.lances ? ' · ' + l.lances + ' lance(s)' : '') + '</div>' + acao + '</div>';
     }).join('') + '</div>';
     return topo + lotes + leilaoZoomHtml();
@@ -4325,19 +4364,32 @@
         app.querySelector('.personagem-vistas [aria-pressed="true"]').focus();
         break;
       case 'item': {
-        // Um clique: amplia e compara (espera um instante para ver se é clique duplo).
+        // Um clique abre a ficha (equipar só pelo botão da ficha: dois cliques e o botão direito não equipam mais).
         var alvoId = el.dataset.id;
-        clearTimeout(estado.timerZoom);
-        estado.timerZoom = setTimeout(function () {
-          estado.vendaPendente = null;
-          estado.consumivelFoco = null;
-          estado.dropFoco = null;
-          if (estado.itemFoco === alvoId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); return; }
+        estado.vendaPendente = null;
+        estado.consumivelFoco = null;
+        estado.dropFoco = null;
+        if (estado.compararCom && estado.compararCom !== alvoId) {   // segundo item da comparação
+          estado.comparando = [estado.compararCom, alvoId];
+          estado.compararCom = null;
           estado.itemFoco = alvoId;
+          estado.fichaHover = false;
           desenharFlutuante(el);
-        }, 260);
+          break;
+        }
+        if (estado.fichaHover && estado.itemFoco === alvoId) { fixarFichaHover(); break; }   // vinha do mouse por cima: fixa
+        if (estado.itemFoco === alvoId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
+        estado.comparando = null;
+        estado.itemFoco = alvoId;
+        estado.fichaHover = false;
+        desenharFlutuante(el);
         break;
       }
+      case 'item-comparar':   // "Comparar com outro": o próximo item tocado abre lado a lado
+        fecharFlutuante();
+        estado.compararCom = el.dataset.id;
+        avisar('Agora toque no outro item para comparar os dois lado a lado.');
+        break;
       case 'drop-ver': {
         var dropId = el.dataset.id;
         if (estado.dropFoco === dropId && document.getElementById('ficha-flutuante')) { fecharFlutuante(); break; }
@@ -4424,6 +4476,7 @@
       case 'mercado-categoria': filtroMercado().categoria = el.dataset.valor; filtroMercado().pagina = 0; carregarMercado(); redesenharMercado(); break;
       case 'mercado-pagina': filtroMercado().pagina = Math.max(0, filtroMercado().pagina + Number(el.dataset.valor)); carregarMercado(); break;
       case 'mercado-atualizar': carregarMercado(); break;
+      case 'mercado-so-classe': filtroMercado().soClasse = !!el.checked; filtroMercado().pagina = 0; carregarMercado(); break;
       case 'mercado-vender-abrir': estado.mercadoVender = true; redesenharMercado(); break;
       case 'mercado-vender-fechar': estado.mercadoVender = false; redesenharMercado(); break;
       case 'mercado-anunciar': anunciarMercado(el); break;
@@ -5019,24 +5072,6 @@
     }
   });
 
-  // Dois cliques (ou dois toques) num item: equipa ou desequipa direto.
-  app.addEventListener('dblclick', function (e) {
-    var el = e.target.closest('[data-acao="item"]');
-    var p = estado.personagem;
-    if (!el || !p) return;
-    clearTimeout(estado.timerZoom);
-    var id = el.dataset.id, slot = R.slotDoItem(p, id);
-    estado.zoom = null;
-    estado.vendaPendente = null;
-    if (slot) {
-      if (!R.desequipar(p, slot)) avisar('Mochila cheia! Venda algo antes de desequipar.');
-    } else {
-      var it = p.inventario.find(function (i) { return i.id === id; });
-      if (!R.equipar(p, id)) avisar(R.motivoNaoEquipa(p, it) || 'Não foi possível equipar (mochila cheia?).');
-    }
-    salvar();
-    telaJogo();
-  });
   // Caçada com a aba escondida / app no fundo: para de pedir lutas e, ao voltar, o servidor faz as que faltaram.
   document.addEventListener('visibilitychange', function () {
     if (!estado.personagem) return;
@@ -5049,21 +5084,20 @@
     atividade.desdeSalvar = 0;
     salvar();
   });
-  // Dentro do jogo o botão direito não abre o menu do navegador: a única função dele é equipar um item da mochila.
+  // Dentro do jogo o botão direito não abre o menu do navegador: num item ele abre a ficha (fixa). Equipar é só pelo
+  // botão da ficha (Daniel, nov/2026: o botão direito e os dois cliques equipavam sem querer).
   // (Nos campos de texto, como o chat, o menu continua para copiar e colar.)
   document.addEventListener('contextmenu', function (e) {
     if (!estado.personagem || !document.querySelector('.jogo')) return;
     if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
     var el = e.target.closest && e.target.closest('[data-acao="item"]');
-    var p = estado.personagem;
-    if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
-    var it = p.inventario.find(function (i) { return i.id === el.dataset.id; });
-    if (!R.equipar(p, el.dataset.id)) { avisar(R.motivoNaoEquipa(p, it) || 'Não foi possível equipar (mochila cheia?).'); return; }
-    estado.zoom = null;
-    estado.vendaPendente = null;
-    salvar();
-    telaJogo();
+    if (!el || estado.vendaLote) return;
+    estado.consumivelFoco = estado.dropFoco = null;
+    estado.comparando = null;
+    estado.itemFoco = el.dataset.id;
+    estado.fichaHover = false;
+    desenharFlutuante(el);
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' && document.getElementById('ficha-flutuante')) fecharFlutuante();
