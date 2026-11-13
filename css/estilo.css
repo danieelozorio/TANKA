@@ -1165,7 +1165,20 @@ html { scrollbar-gutter: stable; }
 .missao-barra i { display: block; height: 100%; background: linear-gradient(90deg, #2a5f99, #5aa0ec); }
 .missao-carta.pronta .missao-barra i, .missao-carta.feita .missao-barra i { background: linear-gradient(90deg, #c9a24a, #f2c94c); }
 .missao-pe { display: flex; justify-content: space-between; align-items: center; gap: .4rem; margin-top: .4rem; font-size: .8rem; }
-.missao-bau { background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .14), transparent 60%), linear-gradient(180deg, #1b2331, #141b26); }
+.missao-bau { display: flex; align-items: center; gap: .65rem; margin-top: .25rem; padding: .7rem .7rem; border: 2px solid #c9a24a; border-radius: 10px;
+  background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .28), transparent 65%), linear-gradient(180deg, #2a2213, #17130c);
+  box-shadow: 0 0 14px rgba(242, 201, 76, .25), inset 0 0 18px rgba(242, 201, 76, .08); }
+.missao-bau-ico { flex: none; font-size: 2.3rem; line-height: 1; filter: drop-shadow(0 0 8px rgba(242, 201, 76, .55)); }
+.missao-bau-corpo { flex: 1; min-width: 0; }
+.missao-bau .missao-topo strong { color: #f2c94c; font-size: 1.05rem; letter-spacing: .02em; }
+.missao-bau .missao-num { color: #f2c94c; font-weight: 700; }
+.missao-bau .missao-barra i { background: linear-gradient(90deg, #c9a24a, #f2c94c); }
+.missao-bau.pronta { border-color: #ffd98a; animation: bau-brilho 1.6s ease-in-out infinite; }
+.missao-bau.pronta .missao-bau-ico { animation: bau-pula 1.2s ease-in-out infinite; }
+.missao-bau.feita { opacity: .6; box-shadow: none; }
+@keyframes bau-brilho { 50% { box-shadow: 0 0 26px rgba(255, 200, 80, .6), inset 0 0 22px rgba(242, 201, 76, .18); } }
+@keyframes bau-pula { 50% { transform: translateY(-3px) rotate(-6deg); } }
+@media (prefers-reduced-motion: reduce) { .missao-bau.pronta, .missao-bau.pronta .missao-bau-ico { animation: none; } }
 @media (max-width: 700px) { .missoes-aba { top: auto; bottom: 140px; } #painel-missoes.aberto .missoes-aba { display: none; } .missoes-painel { width: 100vw; padding-bottom: 90px; } }
 @media (prefers-reduced-motion: reduce) { .missoes-painel { animation: none; } }
 /* Com o painel de missões aberto, os avisos vão para a esquerda para não cobrir o painel */

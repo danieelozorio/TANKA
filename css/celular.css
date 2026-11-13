@@ -505,7 +505,7 @@ html[data-celular] .missao-texto { font-size: .76rem; margin: 0 0 .3rem; }
 html[data-celular] .missao-barra { height: 5px; }
 html[data-celular] .missao-pe { margin-top: .3rem; font-size: .76rem; }
 html[data-celular] .missao-pe .btn { min-height: 2rem; padding: 0 .8rem; }
-html[data-celular] .missao-bau { background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .14), transparent 60%), #1b1814; }
+html[data-celular] .missao-bau { padding: .6rem; border-color: #c9a24a; background: radial-gradient(ellipse at 0% 50%, rgba(242, 201, 76, .28), transparent 65%), linear-gradient(180deg, #2a2213, #17130c); }
 /* janelas de item (loja/leilão): acima das barras do celular, cabendo na tela */
 html[data-celular] .zoom-fundo { z-index: 50; padding: .6rem; }
 /* o .conteudo tem z-index próprio: com uma janela aberta ele sobe acima da barra de cima e da de baixo */

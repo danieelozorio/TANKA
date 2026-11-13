@@ -2684,9 +2684,14 @@
         + (aberta ? '<div class="missoes-lista">' + lista.map(function (x) { return carta(tipo, x); }).join('') + (extra || '') + '</div>' : '') + '</section>';
     }
     var todas = M.diarias.every(function (x) { return m.dOk[x.id]; });
-    var bau = '<div class="missao-carta missao-bau' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><div class="missao-topo"><strong>🎁 Baú do dia</strong></div>'
-      + '<div class="missao-texto">Resgate todas as diárias</div><div class="missao-pe"><span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span>'
-      + (m.bonus ? '<span class="mais">✔</span>' : todas ? '<button class="btn btn-pequeno" data-missao="bau">Abrir</button>' : '') + '</div></div>';
+    // Baú do dia: a missão final das diárias, em destaque (baú grande, quantas faltam e barra)
+    var feitas = M.diarias.filter(function (x) { return m.dOk[x.id]; }).length;
+    var bau = '<div class="missao-carta missao-bau' + (m.bonus ? ' feita' : todas ? ' pronta' : '') + '"><span class="missao-bau-ico">🎁</span><div class="missao-bau-corpo">'
+      + '<div class="missao-topo"><strong>Baú do dia</strong><span class="missao-num">' + feitas + '/' + M.diarias.length + '</span></div>'
+      + '<div class="missao-texto">' + (m.bonus ? 'Aberto! Volta amanhã.' : todas ? 'Todas as diárias feitas: abra o baú!' : 'Resgate todas as diárias para abrir') + '</div>'
+      + '<div class="missao-barra"><i style="width:' + Math.round(feitas * 100 / M.diarias.length) + '%"></i></div>'
+      + '<div class="missao-pe"><span class="cor-ouro">' + R.premioTexto(p, M.bonusDiario) + '</span>'
+      + (m.bonus ? '<span class="mais">✔</span>' : todas ? '<button class="btn btn-pequeno" data-missao="bau">Abrir</button>' : '') + '</div></div></div>';
     var dias = Math.floor(R.msAteSemana(agora) / 86400000);
     missoesUI.el.className = 'aberto';
     missoesUI.el.innerHTML = aba + '<div class="missoes-painel" role="dialog" aria-label="Missões"><div class="missoes-titulo"><span>📜 Missões</span>'
