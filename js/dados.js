@@ -489,6 +489,9 @@ Tanka.dados = {
   // Derrota: perde este % da exp do level atual (não desce de level).
   PERDA_EXP_DERROTA: 5,
   PODER: { maximo: 100, porAcerto: 25, porGolpeRecebido: 10 },
+  // Número ⚔ Poder (só para mostrar e para os rankings; não muda nenhuma luta): ataque + PESO x defesa.
+  // 1,5 escolhido nas simulações (duelos e caçada) de nov/2026: acerta ~94% de quem é mais forte (Daniel).
+  PODER_PESO_DEFESA: 1.5,
 
   // Vida com o tempo: % da vida máxima por minuto fora da batalha (também com o jogo fechado).
   // Acampado, multiplica pela velocidade do acampamento, mas não pode caçar.

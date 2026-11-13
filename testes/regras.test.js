@@ -2243,3 +2243,26 @@ teste('login: 1 vez por dia, dias não seguidos, semana de boas-vindas só uma v
   while (!R.mochilaCheia(q)) q.inventario.push({ id: 'x' + q.inventario.length, tipo: 'elmo', classe: 'mago', raridade: 'comum', encanto: 0 });
   assert.ok(R.pegarLogin(q, t0, rng).erro); assert.strictEqual(q.login.semana, 2);
 });
+
+teste('poder: defesa com peso 1,5 e ganhoPoder bate com o poder depois de equipar', () => {
+  const p = R.criarPersonagem('G', 'masculino', 'humano', 'mago');
+  R.admin.subirNivel(p, 19);
+  R.admin.conjunto(p, 'rara');
+  p.inventario.slice().forEach((it) => R.equipar(p, it.id));
+  R.admin.conjunto(p, 'epica');
+  const novos = p.inventario.filter((it) => !R.slotDoItem(p, it.id));
+  assert.ok(novos.length > 0);
+  for (const it of novos) {
+    const g = R.ganhoPoder(p, it);
+    if (g === null) continue;
+    assert.strictEqual(g > 0, R.itemMelhor(p, it));                           // a seta verde segue o mesmo número
+    if (it.tipo === 'anel') continue;
+    const q = JSON.parse(JSON.stringify(p)), antes = R.poder(q);
+    R.equipar(q, it.id);
+    assert.strictEqual(R.poder(q) - antes, g);
+  }
+  // item de fora da mochila (loja/leilão) também tem conta
+  const fora = Object.assign({}, novos[0], { id: 'loja-1' });
+  assert.notStrictEqual(R.ganhoPoder(p, fora), null);
+  assert.strictEqual(D.PODER_PESO_DEFESA, 1.5);
+});

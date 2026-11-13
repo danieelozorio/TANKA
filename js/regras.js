@@ -1195,7 +1195,7 @@ Tanka.regras = (function () {
     var ataque = (s.dano[0] + s.dano[1]) / 2 * (1 + chanceCrit * (multCrit - 1))
       * Math.min(95, s.precisao) / 100 * s.velocidade / 10;
     var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / (20 * D.DEFESA.fator)) * (1 + Math.min(50, s.evasao) / 100);
-    return Math.round(ataque * 10 + resistencia / 2);
+    return Math.round(ataque * 10 + resistencia / 2 * (D.PODER_PESO_DEFESA || 1));
   }
 
   function distribuirPonto(p, atributo) {
@@ -2741,6 +2741,22 @@ Tanka.regras = (function () {
     });
   }
 
+  // Quanto o Poder muda se equipar este item (no lugar do atual; anel: o melhor dos dois espaços).
+  // Serve também para item que não está na mochila (loja, leilão, drop). null: não dá para usar.
+  function ganhoPoder(p, item) {
+    if (!item || motivoNaoEquipa(p, item) || slotDoItem(p, item.id)) return null;
+    var slots = item.tipo === 'anel' ? ['anel1', 'anel2'] : [item.tipo];
+    if (!(slots[0] in p.equipados)) return null;
+    var naMochila = p.inventario.some(function (i) { return i.id === item.id; }), base = poder(p), melhor = null;
+    slots.forEach(function (slot) {
+      var q = Object.assign({}, p, { equipados: Object.assign({}, p.equipados), inventario: naMochila ? p.inventario : p.inventario.concat([item]) });
+      q.equipados[slot] = item.id;
+      var d = poder(q) - base;
+      if (melhor === null || d > melhor) melhor = d;
+    });
+    return melhor;
+  }
+
   // Desequipa e manda para a mochila (precisa de espaço).
   function desequipar(p, slot) {
     if (!p.equipados[slot] || mochilaCheia(p)) return false;
@@ -2897,6 +2913,7 @@ Tanka.regras = (function () {
     guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
     resgatarMissao: resgatarMissao,
+    ganhoPoder: ganhoPoder,
     loginEstado: loginEstado, pegarLogin: pegarLogin, premioLoginTexto: premioLoginTexto, premiosLoginDoDia: premiosLoginDoDia,
     resgatarBonusDiario: resgatarBonusDiario,
     missoesProntas: missoesProntas,

@@ -795,3 +795,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   no jogo se o prêmio do dia está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de
   login" no topo do painel de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes`).
 - É feito no jogo (como as missões), não no servidor. PDF do Daniel: gerado do D.LOGIN (script no scratchpad).
+
+## Poder ⚔: peso da defesa e ganho na ficha (Daniel, nov/2026)
+- `R.poder` = ataque × 10 + resistência ÷ 2 × `D.PODER_PESO_DEFESA` (1,5). Só para mostrar e para rankings/seta verde;
+  não entra em nenhuma luta. Escolhido com simulação (72 heróis: 4 classes × 3 jeitos de pontos × 2 equipamentos, levels
+  10/20/30; duelos justos e caçada contra chefe/3º monstro): peso 1 acertava 92,5% duelo / 98,1% caçada, peso 1,5 acerta
+  94,3% / 93,6%. Com equipamento, o ataque fica ~65–70% do poder.
+- `R.ganhoPoder(p, item)`: quanto o poder muda se equipar (anel: melhor dos 2 espaços; funciona para item fora da
+  mochila). Ficha do item: `fichaPoderHtml` ("⚔ Poder se equipar: +X (antes → depois)"). A seta verde (`itemMelhor`)
+  é o mesmo número > 0. Teste em regras.test.js ("poder: ...").
+- O poder salvo (`p.poder`, rankings) atualiza quando cada jogador joga/salva de novo.

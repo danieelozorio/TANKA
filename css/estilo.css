@@ -1808,3 +1808,7 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 @media (prefers-reduced-motion: reduce) { .login-dia.hoje, .missao-login.pronta { animation: none; } }
 .login-janela .btn-iniciar { width: 100%; color: #2a1704; border: 1px solid #ffd98a; border-radius: 8px; font-weight: 700;
   background: linear-gradient(180deg, #ffe39a, #e9b450 45%, #b9801f 55%, #d8a13c); box-shadow: 0 0 14px rgba(255, 180, 60, .45); }
+/* Ficha do item: quanto o Poder muda se equipar */
+.ficha-poder { margin: .45rem 0 .2rem; padding: .3rem .55rem; border-radius: 6px; background: rgba(0, 0, 0, .28); border: 1px solid rgba(201, 162, 74, .25); font-size: .9rem; }
+.ficha-poder.mais { border-color: rgba(90, 200, 110, .45); }
+.ficha-poder.menos { border-color: rgba(220, 90, 80, .45); }

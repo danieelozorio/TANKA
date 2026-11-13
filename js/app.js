@@ -1372,6 +1372,7 @@
       + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
       + (slot ? ' · equipado' : '') + '</div></div></div>'
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
+      + fichaPoderHtml(p, item, slot)
       + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + (estado.compararSemEncanto && (item.encanto || alvo.encanto) ? ' <strong>(os dois sem encanto)</strong>' : '') + '</p>'
         + '<div class="item-acoes">' + botaoCompararEncanto(item, alvo) + '</div>' : '')
       + '<div class="item-acoes">' + acoes + '</div>';
@@ -1400,6 +1401,16 @@
   }
 
   // ---------- Zoom do item: o item ampliado, lado a lado com o equipado no mesmo espaço ----------
+  // Quanto o ⚔ Poder muda se equipar o item (Daniel, nov/2026): a seta verde é por isso, não por cada número.
+  function fichaPoderHtml(p, item, slot) {
+    if (slot || !item || item.consumivel) return '';
+    var g;
+    try { g = R.ganhoPoder(p, item); } catch (e) { g = null; }
+    if (g === null || g === undefined) return '';
+    var cl = g > 0 ? 'mais' : g < 0 ? 'menos' : 'suave';
+    return '<p class="ficha-poder ' + cl + '">⚔ Poder se equipar: <strong>' + (g > 0 ? '+' : g < 0 ? '−' : '') + Math.abs(g).toLocaleString('pt-BR') + '</strong>'
+      + ' <span class="suave">(' + R.poder(p).toLocaleString('pt-BR') + ' → ' + (R.poder(p) + g).toLocaleString('pt-BR') + ')</span></p>';
+  }
   function itemParaComparar(p, item) {
     if (R.slotDoItem(p, item.id)) return null;
     if (item.tipo === 'anel') return R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2');
