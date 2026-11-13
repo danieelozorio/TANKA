@@ -2266,3 +2266,16 @@ teste('poder: defesa com peso 1,5 e ganhoPoder bate com o poder depois de equipa
   assert.notStrictEqual(R.ganhoPoder(p, fora), null);
   assert.strictEqual(D.PODER_PESO_DEFESA, 1.5);
 });
+
+teste('poder do item: diferença entre o novo e o equipado é igual ao ganho', () => {
+  const p = R.criarPersonagem('H', 'feminino', 'elfo', 'arqueiro');
+  R.admin.subirNivel(p, 14);
+  R.admin.conjunto(p, 'rara');
+  p.inventario.slice().forEach((it) => R.equipar(p, it.id));
+  R.admin.conjunto(p, 'epica');
+  for (const it of p.inventario.filter((x) => !R.slotDoItem(p, x.id) && x.tipo !== 'anel' && x.tipo !== 'secundaria')) {
+    const atual = R.itemNoSlot(p, it.tipo);
+    assert.strictEqual(R.poderItem(p, it) - R.poderItem(p, atual), R.ganhoPoder(p, it));
+    assert.ok(R.poderItem(p, atual) > 0);
+  }
+});

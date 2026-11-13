@@ -2757,6 +2757,24 @@ Tanka.regras = (function () {
     return melhor;
   }
 
+  // Poder do próprio item: quanto ele soma ao herói naquele espaço (poder com ele menos o poder com o espaço vazio).
+  // Com o mesmo espaço, "poder do item novo - poder do item atual" = ganhoPoder. Anel fora do corpo: o espaço em que
+  // ele rende mais. null: não dá para usar.
+  function poderItem(p, item) {
+    if (!item || motivoNaoEquipa(p, item)) return null;
+    var slot = slotDoItem(p, item.id), slots = slot ? [slot] : item.tipo === 'anel' ? ['anel1', 'anel2'] : [item.tipo];
+    if (!(slots[0] in p.equipados)) return null;
+    var naMochila = p.inventario.some(function (i) { return i.id === item.id; }), inv = naMochila ? p.inventario : p.inventario.concat([item]);
+    var melhor = null;
+    slots.forEach(function (sl) {
+      var com = Object.assign({}, p, { equipados: Object.assign({}, p.equipados), inventario: inv }), sem = Object.assign({}, com, { equipados: Object.assign({}, p.equipados) });
+      com.equipados[sl] = item.id; sem.equipados[sl] = null;
+      var v = { valor: poder(com) - poder(sem), ganho: poder(com) - poder(p) };
+      if (!melhor || v.ganho > melhor.ganho) melhor = v;
+    });
+    return melhor.valor;
+  }
+
   // Desequipa e manda para a mochila (precisa de espaço).
   function desequipar(p, slot) {
     if (!p.equipados[slot] || mochilaCheia(p)) return false;
@@ -2913,7 +2931,7 @@ Tanka.regras = (function () {
     guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
     resgatarMissao: resgatarMissao,
-    ganhoPoder: ganhoPoder,
+    ganhoPoder: ganhoPoder, poderItem: poderItem,
     loginEstado: loginEstado, pegarLogin: pegarLogin, premioLoginTexto: premioLoginTexto, premiosLoginDoDia: premiosLoginDoDia,
     resgatarBonusDiario: resgatarBonusDiario,
     missoesProntas: missoesProntas,

@@ -1401,15 +1401,15 @@
   }
 
   // ---------- Zoom do item: o item ampliado, lado a lado com o equipado no mesmo espaço ----------
-  // Quanto o ⚔ Poder muda se equipar o item (Daniel, nov/2026): a seta verde é por isso, não por cada número.
+  // Poder do item e, do lado, quanto o ⚔ Poder do herói muda se equipar (Daniel, nov/2026). A seta verde é por isso.
   function fichaPoderHtml(p, item, slot) {
-    if (slot || !item || item.consumivel) return '';
-    var g;
-    try { g = R.ganhoPoder(p, item); } catch (e) { g = null; }
-    if (g === null || g === undefined) return '';
-    var cl = g > 0 ? 'mais' : g < 0 ? 'menos' : 'suave';
-    return '<p class="ficha-poder ' + cl + '">⚔ Poder se equipar: <strong>' + (g > 0 ? '+' : g < 0 ? '−' : '') + Math.abs(g).toLocaleString('pt-BR') + '</strong>'
-      + ' <span class="suave">(' + R.poder(p).toLocaleString('pt-BR') + ' → ' + (R.poder(p) + g).toLocaleString('pt-BR') + ')</span></p>';
+    if (!item || item.consumivel) return '';
+    var v, g = null;
+    try { v = R.poderItem(p, item); if (!slot) g = R.ganhoPoder(p, item); } catch (e) { v = null; }
+    if (v === null || v === undefined) return '';
+    var dif = g === null ? '' : ' <span class="' + (g > 0 ? 'mais' : g < 0 ? 'menos' : 'suave') + '">(' + (g > 0 ? '+' : g < 0 ? '−' : '±') + Math.abs(g).toLocaleString('pt-BR') + ')</span>';
+    return '<p class="ficha-poder' + (g > 0 ? ' mais' : g < 0 ? ' menos' : '') + '">⚔ Poder do item: <strong>' + v.toLocaleString('pt-BR') + '</strong>' + dif
+      + (slot ? ' <span class="suave">· equipado</span>' : '') + '</p>';
   }
   function itemParaComparar(p, item) {
     if (R.slotDoItem(p, item.id)) return null;

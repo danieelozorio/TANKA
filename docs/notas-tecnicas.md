@@ -802,6 +802,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   10/20/30; duelos justos e caçada contra chefe/3º monstro): peso 1 acertava 92,5% duelo / 98,1% caçada, peso 1,5 acerta
   94,3% / 93,6%. Com equipamento, o ataque fica ~65–70% do poder.
 - `R.ganhoPoder(p, item)`: quanto o poder muda se equipar (anel: melhor dos 2 espaços; funciona para item fora da
-  mochila). Ficha do item: `fichaPoderHtml` ("⚔ Poder se equipar: +X (antes → depois)"). A seta verde (`itemMelhor`)
-  é o mesmo número > 0. Teste em regras.test.js ("poder: ...").
+  mochila). `R.poderItem(p, item)`: o poder do próprio item (poder com ele no espaço − com o espaço vazio; novo − atual =
+  ganhoPoder). Ficha do item: `fichaPoderHtml` ("⚔ Poder do item: X (+Y)", Y = ganho; equipado mostra só X). A seta
+  verde (`itemMelhor`) é o ganho > 0. Teste em regras.test.js ("poder: ...").
 - O poder salvo (`p.poder`, rankings) atualiza quando cada jogador joga/salva de novo.
