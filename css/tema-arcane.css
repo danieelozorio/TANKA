@@ -1020,3 +1020,17 @@ html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .7
   html[data-interface="arcane"] .lista-personagens .carta.nova { padding: .7rem; min-height: 0; }
   html[data-interface="arcane"] .lista-personagens .carta.nova span { font-size: 1.6rem; line-height: 1; }
 }
+
+/* ---------- 21. Celular: Chat e ⚙ no fim da página (não flutuam), Missões no menu em cascata ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] body { position: relative; padding-bottom: 64px; }
+  html[data-interface="arcane"] #chat:not(:has(.chat-janela)) { position: absolute; left: 10px; bottom: 10px; }
+  html[data-interface="arcane"] #botao-musica { position: absolute; right: 10px; bottom: 10px; }
+  html[data-interface="arcane"] #config-painel { bottom: 16px; }
+  html[data-interface="arcane"] .chat-botao { font-size: .85rem; padding: .5em 1em; }
+  /* aba flutuante de Missões só aparece com o painel aberto (para poder fechar) */
+  html[data-interface="arcane"] #painel-missoes:not(.aberto) .missoes-aba { display: none; }
+  html[data-interface="arcane"] .cascata-missoes { margin-top: .3rem; border-top: 1px solid rgba(155, 122, 60, .35); border-radius: 0 0 5px 5px; }
+  html[data-interface="arcane"] .cascata-missoes .cascata-ico { font-size: .95rem; }
+  html[data-interface="arcane"] .cascata .selo-num { position: static; margin-left: auto; }
+}

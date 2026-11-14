@@ -1115,7 +1115,12 @@
             + '<span class="sub-ico">' + (ICONES_SUB[a] || '') + '</span><span class="cascata-nome">' + NOME_ABA[a] + '</span>' + seloDaAba(a) + '</button>';
         }).join('') + '</div>' : '';
         return botao + subs;
-      }).join('') + '</div>';
+      }).join('')
+        // Missões por último (Henri, nov/2026): no celular a aba flutuante some e o painel abre por aqui
+        + (function () { var pr = avisosMissoes(estado.personagem, C.agora());
+          return '<button type="button" role="menuitem" class="cascata-grupo cascata-missoes" data-acao="cascata-missoes"><span class="cascata-ico">📜</span>'
+            + '<span class="cascata-nome">Missões</span>' + (pr ? seloNumero(pr) : '') + '</button>'; })()
+        + '</div>';
     }
     return h + '</div>';
   }
@@ -4592,6 +4597,7 @@
       case 'aba': estado.cascata = false; estado.cascataGrupo = null; abrirAba(el.dataset.aba); break;
       case 'cascata': estado.cascata = !estado.cascata; estado.cascataGrupo = null; telaJogo(); break;
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
+      case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
       case 'personagem-vista':
         estado.vistaPersonagem = el.dataset.valor;
         telaJogo();
@@ -7773,6 +7779,18 @@
     if (p && p.then) p.then(function () { desenharBotaoMusica(); }, function () { desenharBotaoMusica(); /* sem toque ainda: tenta no próximo */ });
     desenharBotaoMusica();
   }
+  // Trocar de app ou esconder a aba (Henri, nov/2026): a música para na hora e volta quando o jogo aparecer de novo.
+  // Pausa direto (sem sumir aos poucos): com o app no fundo os relógios do navegador quase não rodam.
+  function musicaParaFundo() {
+    var a = musica.atual;
+    if (a && a.audio && !a.audio.paused) { a.audio.pause(); musica.pausadaNoFundo = true; desenharBotaoMusica(); }
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { musicaParaFundo(); return; }
+    if (musica.pausadaNoFundo) { musica.pausadaNoFundo = false; tocarMusica(); }
+  });
+  window.addEventListener('pagehide', musicaParaFundo);
+  window.addEventListener('blur', function () { if (document.hidden) musicaParaFundo(); });
   function cenaMusica(cena) {
     if (musica.cena === cena) return;
     musica.cena = cena;
