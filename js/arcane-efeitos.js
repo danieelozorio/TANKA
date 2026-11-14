@@ -84,7 +84,7 @@
     else if (d < r.width + r.height) { x = r.right; y = r.top + d - r.width; }
     else if (d < 2 * r.width + r.height) { x = r.right - (d - r.width - r.height); y = r.bottom; }
     else { x = r.left; y = r.bottom - (d - 2 * r.width - r.height); }
-    parts.push({ tipo: 'faisca', x: x + rnd(-4, 4), y: y + rnd(-4, 4), vx: rnd(-6, 6), vy: rnd(-14, -2), vida: 0, max: rnd(.7, 1.6), tam: rnd(1.2, 3.2) });
+    parts.push({ tipo: 'faisca', x: x + rnd(-4, 4), y: y + rnd(-4, 4), vx: rnd(-6, 6), vy: rnd(-14, -2), vida: 0, max: rnd(.6, 1.1), tam: rnd(1.1, 2.8) });
   }
   // pó dourado fininho grudado na borda do quadro do nome (mais denso em cima e embaixo)
   function poeira(r) {
@@ -92,14 +92,14 @@
     if (lado < .4) { x = rnd(r.left, r.right); y = r.top + rnd(-6, 8); }
     else if (lado < .8) { x = rnd(r.left, r.right); y = r.bottom + rnd(-8, 10); }
     else { x = Math.random() < .5 ? r.left + rnd(-6, 6) : r.right + rnd(-6, 6); y = rnd(r.top, r.bottom); }
-    parts.push({ tipo: 'poeira', x: x, y: y, vx: rnd(-4, 4), vy: rnd(-8, 3), vida: 0, max: rnd(.9, 2.2), tam: rnd(.5, 1.3), fase: rnd(0, 6.28) });
+    parts.push({ tipo: 'poeira', x: x, y: y, vx: rnd(-4, 4), vy: rnd(-8, 3), vida: 0, max: rnd(.6, 1.2), tam: rnd(.5, 1.2), fase: rnd(0, 6.28) });
   }
   var CORES_PO = { verde: [74, 222, 128], azul: [96, 165, 250], roxo: [192, 132, 252] };
   function po(r, onde) {
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2, a = Math.random() * Math.PI * 2;
     var rx = r.width * rnd(.5, .75), ry = r.height * rnd(.5, .7), x = cx + Math.cos(a) * rx, y = cy + Math.sin(a) * ry;
     var cor = onde === 'mochila' ? CORES_PO.roxo : x < cx - r.width * .15 ? CORES_PO.verde : y > cy + r.height * .2 && x > cx ? CORES_PO.roxo : CORES_PO.azul;
-    parts.push({ tipo: 'po', x: x, y: y, vx: rnd(-5, 5), vy: rnd(-18, -6), fase: rnd(0, 6.28), vida: 0, max: rnd(2.2, 4.5), tam: rnd(1, 2.6), cor: cor });
+    parts.push({ tipo: 'po', x: x, y: y, vx: rnd(-6, 6), vy: rnd(-30, -12), fase: rnd(0, 6.28), vida: 0, max: rnd(.9, 1.7), tam: rnd(1, 2.4), cor: cor });
   }
   function brasa(x, y, tam) {
     parts.push({ tipo: 'brasa', x: x + rnd(-3, 3) * tam, y: y, vx: rnd(-6, 6), vy: rnd(-40, -18) * tam, fase: rnd(0, 6.28), vida: 0, max: rnd(.8, 1.8), tam: rnd(.8, 1.8) * tam });
@@ -116,7 +116,7 @@
     CHAMAS.forEach(function (c, i) {
       var p = posChama(c);
       if (r && p.x > r.left - 10 && p.x < r.right + 10) return;   // atrás dos painéis: não desenha
-      var tremor = .75 + .25 * Math.sin(t * 9.1 + i * 2) * Math.sin(t * 5.3 + i) + .12 * Math.sin(t * 23 + i * 5);
+      var tremor = .86 + .09 * Math.sin(t * 2.7 + i * 2) + .05 * Math.sin(t * 4.3 + i * 3) * Math.sin(t * 1.3 + i);
       var raio = (c.tocha ? 46 : 26) * c.tam * p.esc / 6 * tremor;
       var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, raio * 2.4);
       g.addColorStop(0, 'rgba(255, 210, 120, ' + (.55 * tremor) + ')');
@@ -129,7 +129,7 @@
       nucleo.addColorStop(0, 'rgba(255, 250, 220, ' + (.7 * tremor) + ')');
       nucleo.addColorStop(1, 'rgba(255, 190, 80, 0)');
       ctx.fillStyle = nucleo;
-      ctx.beginPath(); ctx.ellipse(p.x + Math.sin(t * 7 + i) * 1.2, p.y - raio * .1, raio * .35, raio * .6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(p.x + Math.sin(t * 2.2 + i) * 1, p.y - raio * .1, raio * .35, raio * .6, 0, 0, Math.PI * 2); ctx.fill();
       if (c.tocha && Math.random() < dt * 9) brasa(p.x, p.y - raio * .3, c.tam * .8);
       else if (!c.tocha && Math.random() < dt * 1.5) brasa(p.x, p.y - raio * .3, .5);
     });
@@ -157,8 +157,8 @@
     ctx.globalCompositeOperation = 'lighter';
 
     if (alvos.nome) {
-      if (Math.random() < dt * 26) faisca(alvos.nome);
-      for (var q = 0; q < 3; q++) if (Math.random() < dt * 30) poeira(alvos.nome);
+      if (Math.random() < dt * 12) faisca(alvos.nome);
+      for (var q = 0; q < 2; q++) if (Math.random() < dt * 22) poeira(alvos.nome);
     }
     if (alvos.retrato && Math.random() < dt * 22) po(alvos.retrato, 'retrato');
     if (alvos.mochila && Math.random() < dt * 5) {
@@ -174,7 +174,7 @@
       var k = p.vida / p.max, a = Math.sin(Math.PI * k);
       if (p.tipo === 'faisca') {
         p.x += p.vx * dt; p.y += p.vy * dt;
-        estrela(p.x, p.y, p.tam * (.6 + .4 * Math.sin(k * Math.PI)), a * (.6 + .4 * Math.sin(t * 20 + i)));
+        estrela(p.x, p.y, p.tam * (.6 + .4 * Math.sin(k * Math.PI)), a * (.8 + .2 * Math.sin(t * 3 + i)));
       } else if (p.tipo === 'po') {
         p.x += (p.vx + Math.sin(t * 1.5 + p.fase) * 8) * dt; p.y += p.vy * dt;
         var c = p.cor, g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.tam * 4);
@@ -191,7 +191,7 @@
         ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * .035, p.y - p.vy * .035); ctx.stroke();
       } else if (p.tipo === 'poeira') {
         p.x += p.vx * dt; p.y += p.vy * dt;
-        ctx.globalAlpha = a * (.55 + .45 * Math.sin(t * 9 + p.fase));
+        ctx.globalAlpha = a * (.75 + .25 * Math.sin(t * 2.5 + p.fase));
         ctx.fillStyle = 'rgba(255, 214, 120, 1)';
         ctx.beginPath(); ctx.arc(p.x, p.y, p.tam, 0, Math.PI * 2); ctx.fill();
       } else {

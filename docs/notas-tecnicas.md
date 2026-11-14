@@ -915,3 +915,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   grupos com ícone, cada um abrindo as abas dele. Ficha compacta (Arma e Atividades escondidas), imagens menores, mochila em 6 colunas.
 - **Lutas da caçada** (seção 15 do CSS): cartas com moldura dourada (herói com brilho arcano, monstro em vermelho, chefe pulsando), VS dourado pulsando, relato da luta em pergaminho escuro. O `arcane-efeitos.js` olha a barra de vida dos lutadores (`#lutador-jogador`/`#lutador-monstro`): quando cai, a carta treme (`.arcane-golpe`) e soltam faíscas.
 - **Números curtos** (`numCurto`/`numRecurso` no app.js): na barra de recursos da Arcane, ouro e reputação aparecem como 52.4k, 2.495M, 1.25B (corta, não arredonda). O número inteiro fica no `title`. Clássica e Zealot continuam com o número inteiro.
+- **Ajustes depois do teste no jogo** (seção 16 do CSS): barras redesenhadas (trilho de vidro escuro arredondado, preenchimento
+  com reflexo e um brilho que passa a cada 6 s; sem as pontas de metal), brilho do encanto sem o quadrado colorido (só luz suave,
+  2,6x mais lenta), tudo que pisca mais devagar, brasão da mochila recortado (sem o fundo retangular), nomes do pergaminho de
+  bônus legíveis. No `arcane-efeitos.js`: pó e faíscas somem mais rápido, piscam devagar, e o fogo tremula com calma.
