@@ -1717,13 +1717,14 @@
     if (def.dotPct) x.push((def.curaDot ? 'sangramento' : 'veneno') + ' de <b>' + v('dotPct') + '%</b> do seu dano por turno, por ' + def.turnos + ' turnos'
       + (def.curaDot ? '; você recupera ' + def.curaDot + '% do que ele tira' : '') + (def.pula ? '; pula para outro monstro; cada monstro morto pelo veneno cura ' + def.curaMorte + '%' : ''));
     if (def.escudoPct) x.push('escudo que segura <b>' + v('escudoPct') + '%</b> da vida por ' + def.turnos + ' turnos; quem bate tem ' + def.congelaChance + '% de chance de congelar');
-    if (def.mult) x.push('golpe de <b>' + v('mult') + '%</b>' + (def.ignoraDefesaPct ? ' que ignora ' + def.ignoraDefesaPct + '% da defesa' : ''));
+    if (def.mult) x.push('golpe de <b>' + v('mult') + '%</b>' + (def.ignoraDefesaPct ? (def.ignoraDefesaPct >= 100 ? ' que ignora a defesa' : ' que ignora ' + def.ignoraDefesaPct + '% da defesa') : ''));
     if (def.vidaFaltando) x.push('+' + String(def.vidaFaltando).replace('.', ',') + '% de dano para cada 1% de vida que falta');
     if (def.silencia) x.push('o oponente fica ' + def.silencia + ' vez sem habilidades');
     if (def.garantido) x.push('sempre vale o 20 do dado e não pode ser esquivado');
     if (def.executa) x.push('<b>+' + def.executa.bonus + '%</b> se o oponente tiver menos de ' + def.executa.abaixo + '% da vida');
     if (def.queima) x.push('queima por ' + def.queima.turnos + ' vezes (<b>' + String(R.valorNivel(def.queima.pct, n)).replace('.', ',') + '%</b> do seu dano) e corta as curas pela metade');
-    if (def.quebraDefesaPct) x.push('prende por ' + def.atordoa + ' vez e tira ' + def.quebraDefesaPct + '% da defesa até o fim da luta');
+    if (def.quebraDefesaPct) x.push((def.atordoa ? 'prende por ' + def.atordoa + ' vez e ' : '') + 'tira <b>' + v('quebraDefesaPct') + '%</b> da defesa '
+      + (def.quebraTurnos ? 'por ' + def.quebraTurnos + ' turnos' : 'até o fim da luta'));
     if (def.erroPct) x.push('por ' + def.turnos + ' vezes, o oponente tem <b>' + v('erroPct') + '%</b> de chance de errar');
     if (def.milagrePct) x.push('uma vez por luta, se cair, volta com <b>' + v('milagrePct') + '%</b> da vida');
     if (Array.isArray(def.defesaPct)) x.push('<b>+' + v('defesaPct') + '%</b> de defesa por ' + def.turnos + ' vezes e devolve ' + def.reflete + '% do dano recebido');
@@ -1775,8 +1776,8 @@
   function cartaHabilidade(def, pts, pend, editavel, arma) {
     var dist = pts + (pend || 0), total = dist + (arma || 0), max = D.TALENTOS.maxPorHabilidade;
     var trancada = def.nivel && !R.habLiberada(estado.personagem, def);
-    // passivas fixas (nov/2026): sempre ligadas com o valor de 1 ponto, sem botões
-    if (def.tipo === 'passiva') { total = trancada ? 0 : 1; editavel = false; }
+    // passivas: sempre ligadas (1 ponto de graça) + os pontos colocados (Henri, 13/11/2026)
+    if (def.tipo === 'passiva') total = trancada ? 0 : 1 + total;
     return '<div class="carta-hab' + (def.tipo === 'passiva' ? ' passiva' : '') + (total ? '' : ' sem-ponto') + (trancada ? ' trancada' : '') + '">'
       + '<div class="hab-topo"><span class="hab-titulo">' + iconeHab(def) + '<strong>' + def.nome + '</strong></span><span class="hab-tipo">' + TIPO_HAB[def.tipo] + '</span></div>'
       + (def.nivel ? '<p class="hab-nivel">' + (trancada ? '🔒 Libera no level ' + def.nivel : 'Level ' + def.nivel) + ' · ' + (def.foco === 'cacada' ? 'mais forte na caçada' : 'mais forte na Arena') + '</p>' : '')
@@ -1821,7 +1822,7 @@
       h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
         + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
-        + 'As passivas ficam sempre ligadas e não recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>' + (CELULAR ? '</details>' : '')
+        + 'As passivas ficam sempre ligadas (com 1 ponto de graça) e também recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>' + (CELULAR ? '</details>' : '')
         + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
@@ -2134,14 +2135,14 @@
   function trocaPergaminhosHtml(p) {
     var q = D.TROCA_PERGAMINHO.quantidade;
     return '<h3 class="subtitulo">Troca de Pergaminhos de Encantamento</h3>'
-      + '<p class="suave">Junte ' + q + ' pergaminhos de uma raridade e troque por 1 da raridade seguinte.</p><div class="itens">'
+      + '<p class="suave">Junte ' + q + ' pergaminhos de uma raridade e pague o ouro para trocar por 1 da raridade seguinte.</p><div class="itens">'
       + R.RARIDADES.filter(function (k) { return R.proximaRaridade(k); }).map(function (k) {
-        var para = R.proximaRaridade(k), tem = R.qtdPergaminho(p, k), falta = q - tem;
+        var para = R.proximaRaridade(k), tem = R.qtdPergaminho(p, k), falta = q - tem, preco = R.precoTrocaPergaminho(k), semOuro = (p.ouro || 0) < preco;
         return '<div class="item"><div>'
-          + '<div>' + q + ' <span class="raridade-' + k + '">' + D.raridades[k].nome + '</span> → 1 <span class="raridade-' + para + '">' + D.raridades[para].nome + '</span></div>'
+          + '<div>' + q + ' <span class="raridade-' + k + '">' + D.raridades[k].nome + '</span> + ' + preco.toLocaleString('pt-BR') + ' de ouro → 1 <span class="raridade-' + para + '">' + D.raridades[para].nome + '</span></div>'
           + '<div class="suave">Pergaminhos para item ' + ITEM_RARIDADE[k] + ': você tem ' + tem + ' · para item ' + ITEM_RARIDADE[para] + ': ' + R.qtdPergaminho(p, para) + '</div></div>'
-          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta + '</span>' : '')
-          + '<button class="btn" data-acao="trocar-pergaminho" data-raridade="' + k + '"' + (falta > 0 ? ' disabled' : '') + '>Trocar</button></div></div>';
+          + '<div class="item-acoes">' + (falta > 0 ? '<span class="suave">Faltam ' + falta + '</span>' : semOuro ? '<span class="suave">Falta ouro</span>' : '')
+          + '<button class="btn" data-acao="trocar-pergaminho" data-raridade="' + k + '"' + (falta > 0 || semOuro ? ' disabled' : '') + '>Trocar</button></div></div>';
       }).join('') + '</div>';
   }
 
@@ -6519,7 +6520,8 @@
     if (ev.devolvido) L.registro.push('<p class="dano-recebido">🛡️ ' + esc(alvo.nome) + ' devolve <strong>' + ev.devolvido + '</strong> de dano.</p>');
     if (ev.calou) L.registro.push('<p class="destaque">🤐 ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
     if (ev.curou) L.registro.push('<p class="cura">💚 ' + esc(atk.nome) + ' recupera <strong>' + ev.curou + '</strong> de vida com a luz.</p>');
-    if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−30%).</p>');
+    if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−' + (ev.quebraPct || 30) + '%'
+      + (ev.quebraTurnos ? ' por ' + ev.quebraTurnos + ' turnos' : '') + ').</p>');
     if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + esc(alvo.nome) + ' está queimando e as curas dele caem pela metade.</p>');
     if (ev.envenenou) L.registro.push('<p class="destaque">☠️ ' + esc(alvo.nome) + ' foi envenenado.</p>');
     if (ev.escudo) L.registro.push('<p class="destaque">🧊 ' + esc(atk.nome) + ' levanta um escudo de gelo.</p>');

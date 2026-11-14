@@ -266,7 +266,7 @@ select pg_temp.igual((public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2"
 select pg_temp.igual(jsonb_array_length(public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"golpe-fatal":9},"ordem":{"arena":["golpe-fatal"]}}'))),
   0, 'arena: pontos acima do level não valem');
 select pg_temp.igual((public.tanka_status(pg_temp.heroi('cavaleiro', 11, '{"classe2":"paladino","pontos":{"pele-de-ferro":1},"ordem":{}}')) ->> 'hpMax')::numeric,
-  round((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric * 1.11), 'arena: passiva Pele de Ferro +11% de vida');
+  round((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric * 1.12), 'arena: passiva Pele de Ferro com 1 ponto (1 de graça + 1) = +12% de vida');
 select pg_temp.igual((select string_agg(x ->> 'nome', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 11,
   '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2},"ordem":{"arena":["golpe-fatal","sombra"],"defesa":["sombra"]}}'), 'defesa')) x),
   'Sombra', 'arena: ordem própria de defesa');
@@ -287,7 +287,11 @@ begin
   raise notice 'ok   arena: Sombra faz errar e o golpe seguinte vale o 20 do dado';
   -- Flecha na Perna atordoa: o outro perde a vez sem dado (a 1ª flecha foi gasta na Sombra)
   d := jsonb_set(d, '{pronto}', '{}');
-  r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
+  -- atordoar de 2 depende do dado: 3 = só dano, 10 = 1 turno, 19 = 2 turnos
+  if (public.arena_vez(d, a, 3) -> 'outro' ->> 'atordoado')::int <> 0 then raise exception 'FALHA arena: com 3 não atordoa'; end if;
+  if (public.arena_vez(d, a, 10) -> 'outro' ->> 'atordoado')::int <> 1 then raise exception 'FALHA arena: com 10 atordoa 1'; end if;
+  raise notice 'ok   arena: atordoar de 2 turnos depende do dado (3 = nada, 10 = 1, 19 = 2)';
+  r := public.arena_vez(d, a, 19); d := r -> 'eu'; a := r -> 'outro';
   if (a ->> 'atordoado')::int <> 2 then raise exception 'FALHA arena: devia atordoar 2: %', r -> 'ev'; end if;
   r := public.arena_vez(a, d, null); a := r -> 'eu'; d := r -> 'outro';
   if not (r -> 'ev' ? 'atordoado') then raise exception 'FALHA arena: devia perder a vez: %', r -> 'ev'; end if;
@@ -1025,9 +1029,10 @@ select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elemen
 select pg_temp.igual((select string_agg(x ->> 'id', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 29,
   '{"classe2":"cacador","pontos":{"tiro-silenciador":1,"saraivada":1},"ordem":{"arena":["tiro-silenciador","saraivada"]}}'))) x),
   'saraivada', 'arena: o level 30 não vale antes do 30');
-select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro"}')), 21::numeric, 'arena: Milagre fixo = 21%');
+select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro"}')), 21::numeric, 'arena: Milagre sem pontos (1 de graça) = 21%');
+select pg_temp.igual(public.arena_milagre(pg_temp.heroi('mago', 30, '{"classe2":"curandeiro","pontos":{"milagre":10}}')), 31::numeric, 'arena: Milagre com 10 pontos = 31%');
 select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 20, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":10}}')),
-  '{"reducaoDano":11,"danoExtraPct":21.5}'::jsonb, 'arena: Têmpera de Fogo vale na Arena (fixa)');
+  '{"reducaoDano":21,"danoExtraPct":36.5}'::jsonb, 'arena: Têmpera de Fogo com 10 pontos (1 + 10) vale na Arena');
 select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 19, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":1}}')),
   '{}'::jsonb, 'arena: passiva do level 20 só a partir do 20');
 do $$
@@ -1048,6 +1053,12 @@ begin
   r := public.arena_vez(a, base, 10);
   if (r -> 'outro' ->> 'defQuebra')::numeric <> 30 or (r -> 'outro' ->> 'atordoado')::int <> 1 then raise exception 'FALHA martelo: %', r -> 'outro'; end if;
   raise notice 'ok   arena: Martelo das Correntes prende e quebra a defesa';
+  -- Quebra-Ossos (13/11/2026): ignora a defesa e quebra 25% + 1 por ponto só pelas próximas 2 vezes do outro
+  a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('cavaleiro', 30, '{"classe2":"destruidor","pontos":{"quebra-ossos":4},"ordem":{"arena":["quebra-ossos"]}}')));
+  r := public.arena_vez(a, base, 10); d := r -> 'outro';
+  if (d ->> 'quebraPct')::numeric <> 29 or (d ->> 'quebraAte')::int <> coalesce((base ->> 'turno')::int, 0) + 2 or coalesce((d ->> 'defQuebra')::numeric, 0) <> 0 then
+    raise exception 'FALHA quebra-ossos: %', d; end if;
+  raise notice 'ok   arena: Quebra-Ossos quebra a defesa por 2 vezes (29%% com 4 pontos)';
   -- Maldição: queima por 3 vezes e corta a cura
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 30, '{"classe2":"bruxo","pontos":{"maldicao-de-ignaroth":1},"ordem":{"arena":["maldicao-de-ignaroth"]}}')));
   r := public.arena_vez(a, base, 10); d := r -> 'outro';

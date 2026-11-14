@@ -401,10 +401,7 @@ Tanka.regras = (function () {
     if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [], defesa: [] };
     if (!t.ordem.defesa) t.ordem.defesa = (t.ordem.arena || []).slice();   // personagens de antes: copia a da Arena
     trocarHabilidadesAntigas(p);
-    // Passivas fixas (nov/2026): os pontos que estavam nelas voltam a ficar livres.
-    if (t.classe2 && D.SEGUNDAS_CLASSES[t.classe2]) {
-      D.SEGUNDAS_CLASSES[t.classe2].habilidades.forEach(function (h) { if (h.tipo === 'passiva' && t.pontos[h.id]) delete t.pontos[h.id]; });
-    }
+    // (13/11/2026: as passivas voltaram a receber pontos; antes, de 11/2026 até aqui, eram fixas e os pontos voltavam livres)
     // Habilidades do level 20/30 (nov/2026): entram uma vez no começo da ordem de todos os modos (valem em todo lugar).
     if (t.classe2 && !t.ordemNiveis2 && D.SEGUNDAS_CLASSES[t.classe2]) {
       D.SEGUNDAS_CLASSES[t.classe2].habilidades.forEach(function (h) {
@@ -434,7 +431,7 @@ Tanka.regras = (function () {
     if (!c) return x;
     c.habilidades.forEach(function (h) {
       if (h.tipo !== 'passiva' || !h.nivel || !habLiberada(p, h)) return;
-      var n = PTS_PASSIVA;   // passivas fixas
+      var n = PTS_PASSIVA + pontosEm(p, h.id);   // sempre ligada (1 ponto de graça) + os pontos colocados
       ['regenPct', 'rouboVida', 'reducaoDano', 'danoExtraPct', 'curaEmergencia', 'milagrePct'].forEach(function (k) { if (h[k]) x[k] = (x[k] || 0) + valorNivel(h[k], n); });
       if (h.limiar) x.limiar = h.limiar;
     });
@@ -448,13 +445,14 @@ Tanka.regras = (function () {
   // Pontos numa habilidade: os distribuídos + os da arma equipada (que passam do limite de 10).
   function pontosEm(p, id) { return ((p.talentos && p.talentos.pontos[id]) || 0) + (pontosDaArma(p)[id] || 0); }
   function pontosDistribuidos(p, id) { return (p.talentos && p.talentos.pontos[id]) || 0; }
-  // A passiva da segunda classe: fixa (Daniel, nov/2026), sempre ligada com o valor de 1 ponto; não recebe pontos.
+  // Passivas: sempre ligadas com o valor de 1 ponto de graça; desde 13/11/2026 (Henri) recebem pontos como as outras
+  // (valor = 1 + pontos colocados).
   var PTS_PASSIVA = 1;
   function passiva(p) {
     var c = segundaClasse(p);
     if (!c) return null;
     var def = c.habilidades.filter(function (h) { return h.tipo === 'passiva' && !h.nivel; })[0];
-    return def ? { def: def, pts: PTS_PASSIVA } : null;
+    return def ? { def: def, pts: PTS_PASSIVA + pontosEm(p, def.id) } : null;
   }
   // Valor de um campo em % de um reforço/cura/passiva com N pontos.
   function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
@@ -485,7 +483,7 @@ Tanka.regras = (function () {
     return true;
   }
   // Habilidades trocadas: os pontos voltam livres e a ordem passa a usar a nova (Henri, 13/11/2026).
-  var HAB_TROCADAS = { bencao: 'luz-punitiva' };
+  var HAB_TROCADAS = { bencao: 'luz-punitiva', 'golpe-apocaliptico': 'quebra-ossos' };
   function trocarHabilidadesAntigas(p) {
     var t = p.talentos;
     if (!t) return;
@@ -504,7 +502,6 @@ Tanka.regras = (function () {
     var c = segundaClasse(p), t = talentos(p);
     if (!c || !c.habilidades.some(function (h) { return h.id === id; })) return 'Escolha a segunda classe primeiro.';
     var hd = c.habilidades.filter(function (h) { return h.id === id; })[0];
-    if (delta > 0 && hd.tipo === 'passiva') return 'Passiva: sempre ligada, não recebe pontos.';
     if (delta > 0 && !habLiberada(p, hd)) return 'Libera no level ' + hd.nivel + '.';
     // (o limite de 10 vale só para os pontos distribuídos; a arma soma por fora)
     var atual = t.pontos[id] || 0, novo = atual + delta;
@@ -610,11 +607,14 @@ Tanka.regras = (function () {
   // Depois de acertar um golpe do level 30: quebra a defesa e queima (dano médio do herói x pct, no começo da vez do monstro).
   function depoisDoGolpeNivel(def, alvo, s, pts) {
     if (!def || !alvo || alvo.hp <= 0) return;
-    if (def.quebraDefesaPct) alvo.defQuebra = Math.max(alvo.defQuebra || 0, def.quebraDefesaPct);
+    // Martelo das Correntes: até o fim da luta. Quebra-Ossos (quebraTurnos): só pelas próximas vezes do alvo.
+    if (def.quebraDefesaPct && def.quebraTurnos) alvo.quebraTemp = { pct: valorNivel(def.quebraDefesaPct, pts || 0), vezes: def.quebraTurnos };
+    else if (def.quebraDefesaPct) alvo.defQuebra = Math.max(alvo.defQuebra || 0, valorNivel(def.quebraDefesaPct, pts || 0));
     if (def.queima) alvo.queima = { turnos: def.queima.turnos, dano: Math.max(1, Math.round((s.dano[0] + s.dano[1]) / 2 * valorNivel(def.queima.pct, pts || 0) / 100)) };
   }
   // Queimadura no começo da vez do monstro. Retorna o dano (0 se não queimou).
   function tickQueima(m) {
+    if (m.quebraTemp && --m.quebraTemp.vezes < 0) m.quebraTemp = null;   // Quebra-Ossos: conta as vezes do monstro
     if (!m.queima || m.queima.turnos <= 0 || m.hp <= 0) return 0;
     var d = Math.min(m.hp, m.queima.dano);
     m.hp -= d; m.queima.turnos--;
@@ -715,7 +715,7 @@ Tanka.regras = (function () {
     var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
     var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1);
     // level 30: a defesa quebrada (Martelo das Correntes) e o golpe que ignora parte dela (Tiro Silenciador)
-    defesa = defesa * (1 - (alvo.defQuebra || 0) / 100) * (1 - (opcoes.ignoraDefesaPct || 0) / 100);
+    defesa = defesa * (1 - Math.max(alvo.defQuebra || 0, alvo.quebraTemp ? alvo.quebraTemp.pct : 0) / 100) * (1 - (opcoes.ignoraDefesaPct || 0) / 100);
     dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
     var chance = (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0) + somaBuff(L, 'critico');
     var garantido = (L && L.critEm === L.turno) || opcoes.critGarantido;
@@ -2268,10 +2268,14 @@ Tanka.regras = (function () {
     var i = RARIDADES.indexOf(raridade);
     return i >= 0 && i < RARIDADES.length - 1 ? RARIDADES[i + 1] : null;
   }
+  function precoTrocaPergaminho(de) { var para = proximaRaridade(de), o = D.TROCA_PERGAMINHO.ouro || {}; return (para && o[para]) || 0; }
   function trocarPergaminho(p, de) {
     var para = proximaRaridade(de), q = D.TROCA_PERGAMINHO.quantidade;
     if (!para) return { erro: 'Esse pergaminho não pode ser trocado.' };
     if (qtdPergaminho(p, de) < q) return { erro: 'São precisos ' + q + ' pergaminhos para trocar.' };
+    var preco = precoTrocaPergaminho(de);
+    if ((p.ouro || 0) < preco) return { erro: 'Faltam ' + (preco - (p.ouro || 0)).toLocaleString('pt-BR') + ' de ouro para trocar.' };
+    p.ouro -= preco;
     mudarPergaminho(p, de, -q);
     mudarPergaminho(p, para, 1);
     return { para: para };
@@ -2880,7 +2884,7 @@ Tanka.regras = (function () {
     pontosDaArma: pontosDaArma,
     pontosDistribuidos: pontosDistribuidos,
     sortearExtrasArma: sortearExtrasArma,
-    nivelDoDrop: nivelDoDrop,
+    depoisDoGolpeNivel: depoisDoGolpeNivel, tickQueima: tickQueima, nivelDoDrop: nivelDoDrop, precoTrocaPergaminho: precoTrocaPergaminho,
     nivelDoMercado: nivelDoMercado,
     danoDoNivel: danoDoNivel,
     bonusDoNivel: bonusDoNivel,

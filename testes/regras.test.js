@@ -31,7 +31,7 @@ teste('raças: não mudam os atributos; traços em % (Humano equilibrado)', () =
   assert.deepStrictEqual({ ...R.atributosIniciais('elfo', 'mago') }, { ...D.classes.mago.atributos });
   const s = (raca) => { const p = R.criarPersonagem('T', 'masculino', raca, 'cavaleiro'); p.nivel = 20; p.atributos.des = 30; return R.status(p); };
   const h = s('humano'), el = s('elfo'), en = s('elfoNegro'), o = s('orc'), an = s('anao');
-  assert.ok(el.chanceCritico > h.chanceCritico && el.velocidade > h.velocidade && el.hpMax < h.hpMax && el.dano[1] < h.dano[1], 'elfo');
+  assert.ok(el.chanceCritico > h.chanceCritico && el.velocidade > h.velocidade && el.hpMax < h.hpMax && el.dano[1] <= h.dano[1], 'elfo');
   assert.ok(en.danoCritico > h.danoCritico && en.dano[1] > h.dano[1] && en.hpMax < h.hpMax, 'elfo negro');
   assert.ok(o.hpMax > h.hpMax && o.dano[1] > h.dano[1] && o.chanceCritico < h.chanceCritico && o.velocidade < h.velocidade && o.evasao < h.evasao, 'orc');
   assert.ok(an.hpMax > h.hpMax && an.hpMax < o.hpMax && an.dano[1] >= h.dano[1] && an.dano[1] <= o.dano[1]
@@ -1169,7 +1169,10 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   assert.strictEqual(R.kitHabilidades(p, 'cacada').length, 0, 'sem ponto, nenhuma ativa');
   // passiva fixa (nov/2026): já liga com o valor de 1 ponto e não recebe pontos
   assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva fixa: 10% + 1%');
-  assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), 'Passiva: sempre ligada, não recebe pontos.');
+  // passivas recebem pontos (13/11/2026): 1 de graça + os colocados
+  assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), true);
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.12), 'passiva com 1 ponto: 10% + 2%');
+  R.mudarPontoHabilidade(p, 'pele-de-ferro', -1);
   for (let i = 0; i < 4; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
   assert.strictEqual(R.pontosHabilidadeLivres(p), 0);
   assert.notStrictEqual(R.mudarPontoHabilidade(p, 'golpe-justo', 1), true, 'sem pontos');
@@ -1554,13 +1557,18 @@ teste('área abaixo do nível: exp e ouro reduzidos juntos e nenhum drop (item, 
   assert.deepStrictEqual({ ...R.pergaminhos(p) }, perg);
 });
 
-teste('troca de pergaminhos: 10 comuns = 1 raro, 10 raros = 1 épico, 10 épicos = 1 lendário', () => {
+teste('troca de pergaminhos: 10 comuns + 1.000 de ouro = 1 raro, 10 raros + 10.000 = 1 épico, 10 épicos + 100.000 = 1 lendário', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   p.pergaminhos = { comum: 25, rara: 9, epica: 10, lendaria: 0 };
+  p.ouro = 500;
+  assert.ok(R.trocarPergaminho(p, 'comum').erro, 'sem ouro não troca');
+  p.ouro = 111000;
   assert.strictEqual(R.trocarPergaminho(p, 'comum').para, 'rara');
+  assert.strictEqual(p.ouro, 110000);
   assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 15, rara: 10, epica: 10, lendaria: 0 });
   assert.strictEqual(R.trocarPergaminho(p, 'rara').para, 'epica');
   assert.strictEqual(R.trocarPergaminho(p, 'epica').para, 'lendaria');
+  assert.strictEqual(p.ouro, 0);
   assert.deepStrictEqual({ ...R.pergaminhos(p) }, { comum: 15, rara: 0, epica: 1, lendaria: 1 });
   assert.ok(R.trocarPergaminho(p, 'rara').erro, 'sem 10 não troca');
   assert.ok(R.trocarPergaminho(p, 'lendaria').erro, 'lendário não sobe');
@@ -2024,18 +2032,18 @@ teste('habilidades do level 20/30: pontos +2 do 21, liberam no level e valem em 
 teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, veneno e Bolso de Poções', () => {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
-    R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);   // (passivas: fixas, os pontos não entram)
+    R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);   // (passivas: 1 de graça + 10 colocados = 11)
     for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, hab, 1);
     p.hpAtual = R.status(p).hpMax; return p;
   };
   const x = (c, c2, h) => R.extrasNivel(mk(c, c2, h));
-  // passivas fixas: valor de 1 ponto; Sede de Sangue 5%
-  assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 0.66 });
-  assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 5 });
-  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 11, danoExtraPct: 21.5 });
-  assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 37, limiar: 40 });
+  // passivas: 1 ponto de graça + 10 colocados = 11
+  assert.deepStrictEqual({ ...x('cavaleiro', 'paladino', 'aura-sagrada') }, { regenPct: 1.26 });
+  assert.deepStrictEqual({ ...x('cavaleiro', 'destruidor', 'sede-de-sangue') }, { rouboVida: 15 });
+  assert.deepStrictEqual({ ...x('artesao', 'ferreiro', 'tempera-de-fogo') }, { reducaoDano: 21, danoExtraPct: 36.5 });
+  assert.deepStrictEqual({ ...x('artesao', 'coletor', 'bolso-de-pocoes') }, { curaEmergencia: 57, limiar: 40 });
   // vale em todo lugar (o lutador da Arena também leva)
-  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').ex }, { regenPct: 1.1 });
+  assert.deepStrictEqual({ ...R.novoLutador(mk('mago', 'curandeiro', 'regeneracao'), 'arena').ex }, { regenPct: 2.1 });
   // luta de verdade: o veneno do Arqueiro tira vida a cada vez e o Bolso cura uma vez
   let s = 3; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
   const a = mk('arqueiro', 'cacador', 'flecha-envenenada');
@@ -2068,7 +2076,7 @@ teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó
   const cu = mk('mago', 'curandeiro', 'milagre');
   const L = R.novoLutador(cu, 'cacada'), h = { hp: 0, hpMax: 1000 };
   assert.strictEqual(R.depoisDeReceber(L, h), 'milagre');
-  assert.strictEqual(h.hp, 210, 'Milagre fixo: 21%');
+  assert.strictEqual(h.hp, 310, 'Milagre com 10 pontos: 20% + 11 x 1% = 31%');
   h.hp = 0; assert.strictEqual(R.depoisDeReceber(L, h), false, 'só uma vez');
   // Martelo das Correntes e Maldição: golpe com quebra de defesa / queimadura no monstro
   let s = 5; const rnd = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
@@ -2290,4 +2298,20 @@ teste('poder do item: diferença entre o novo e o equipado é igual ao ganho', (
     assert.strictEqual(R.poderItem(p, it) - R.poderItem(p, atual), R.ganhoPoder(p, it));
     assert.ok(R.poderItem(p, atual) > 0);
   }
+});
+
+teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% por 2 vezes do monstro; Golpe Apocalíptico some', () => {
+  const p = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, 'destruidor');
+  p.talentos.pontos['golpe-apocaliptico'] = 3; p.talentos.ordem.arena.unshift('golpe-apocaliptico');
+  R.normalizar(p);
+  assert.strictEqual(p.talentos.pontos['golpe-apocaliptico'], undefined, 'pontos do Apocalíptico voltam livres');
+  assert.ok(p.talentos.ordem.arena.indexOf('quebra-ossos') >= 0 && p.talentos.ordem.arena.indexOf('golpe-apocaliptico') < 0);
+  const def = D.SEGUNDAS_CLASSES.destruidor.habilidades.filter(h => h.id === 'quebra-ossos')[0];
+  const m = { hp: 1000, hpMax: 1000, defesa: 100, defesaMagica: 0, indiceArea: 0 };
+  R.depoisDoGolpeNivel(def, m, R.status(p), 10);
+  assert.strictEqual(m.quebraTemp.pct, 35, '10 pontos: −35%');
+  R.tickQueima(m); assert.ok(m.quebraTemp, 'vale na 1ª vez do monstro');
+  R.tickQueima(m); assert.ok(m.quebraTemp, 'e na 2ª');
+  R.tickQueima(m); assert.strictEqual(m.quebraTemp, null, 'depois acaba');
 });

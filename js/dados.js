@@ -166,7 +166,7 @@ Tanka.dados = {
       descricao: 'Ágeis e certeiros: mais críticos e mais ataques, mas corpo frágil e golpes mais leves.',
       lema: 'A vida',
       lore: 'Os Elfos guardavam o selo da Floresta Sombria. Esconderam-no entre as raízes de Velgrath, a árvore mais antiga do reino, e cantaram parte da própria vida para dentro dela, para que ela despertasse e o protegesse. Quando o Espinho Negro feriu Velgrath, foi como ferir um parente dos Elfos.',
-      elevados: [], reduzidos: [], tracos: { critico: 5, velocidadePct: 10, vidaPct: -10, danoPct: -10 },
+      elevados: [], reduzidos: [], tracos: { critico: 5, velocidadePct: 10, vidaPct: -5, danoPct: -5 },   // Henri, 13/11/2026: vida e dano −5% (eram −10%)
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     elfoNegro: {
@@ -557,7 +557,7 @@ Tanka.dados = {
         { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre.' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
-          descricao: 'Recupera 0,66% da vida máxima a cada turno. Mais forte na caçada.' },
+          descricao: 'Recupera 0,66% a 1,26% da vida máxima a cada turno. Mais forte na caçada.' },
         { id: 'defesa-suprema', nome: 'Defesa Suprema', tipo: 'reforco', nivel: 30, foco: 'arena', turnos: 2, recarga: 5,
           defesaPct: [30, 2], reflete: 15, descricao: '+30% a +50% de defesa por 2 turnos e devolve 15% do dano recebido. Mais forte na Arena.' },
       ] },
@@ -568,9 +568,11 @@ Tanka.dados = {
         { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
         { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
         { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, foco: 'cacada', rouboVida: [4, 1],
-          descricao: '5% do dano que você causa vira vida. Mais forte na caçada.' },
-        { id: 'golpe-apocaliptico', nome: 'Golpe Apocalíptico', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 5],
-          vidaFaltando: 0.5, descricao: 'Golpe de 200% a 250%, +0,5% de dano para cada 1% de vida que falta. Mais forte na Arena.' },
+          descricao: '5% a 15% do dano que você causa vira vida. Mais forte na caçada.' },
+        // Henri (13/11/2026): no lugar do Golpe Apocalíptico. quebraTurnos: a defesa quebrada dura essas vezes do alvo.
+        { id: 'quebra-ossos', nome: 'Quebra-Ossos', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 0],
+          ignoraDefesaPct: 100, quebraDefesaPct: [25, 1], quebraTurnos: 2,
+          descricao: 'Golpe de 200% que ignora a defesa do alvo e deixa o inimigo com −25% a −35% de defesa por 2 turnos. Mais forte na Arena.' },
       ] },
     // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
     cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',
@@ -621,9 +623,9 @@ Tanka.dados = {
         { id: 'luz-punitiva', nome: 'Luz Punitiva', tipo: 'unico', recarga: 3, curaDano: 50, descricao: 'Golpe de luz num inimigo: você se cura com parte do dano causado.' },
         { id: 'fe-profunda', nome: 'Fé Profunda', tipo: 'passiva', atributos: { int: 5 }, danoCriticoMagico: 10, descricao: '+5 de Inteligência e mais dano crítico mágico, sempre.' },
         { id: 'regeneracao', nome: 'Regeneração', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [1, 0.1],
-          descricao: 'Recupera 1,1% da vida máxima a cada turno. Mais forte na caçada.' },
+          descricao: 'Recupera 1,1% a 2,1% da vida máxima a cada turno. Mais forte na caçada.' },
         { id: 'milagre', nome: 'Milagre', tipo: 'passiva', nivel: 30, foco: 'arena', milagrePct: [20, 1],
-          descricao: 'Uma vez por luta, se cair, volta com 21% da vida. Mais forte na Arena.' },
+          descricao: 'Uma vez por luta, se cair, volta com 21% a 31% da vida. Mais forte na Arena.' },
       ] },
     ferreiro: { de: 'artesao', nome: 'Ferreiro', nomeF: 'Ferreira', descricao: 'Mão pesada e couro grosso.',
       habilidades: [
@@ -632,7 +634,7 @@ Tanka.dados = {
         { id: 'pancada-tonta', nome: 'Pancada Tonta', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Acerta um inimigo e ele fica tonto.' },
         { id: 'couro-grosso', nome: 'Couro Grosso', tipo: 'passiva', atributos: { sor: 5 }, defesaPct: 20, descricao: '+5 de Sorte e mais defesa, sempre.' },
         { id: 'tempera-de-fogo', nome: 'Têmpera de Fogo', tipo: 'passiva', nivel: 20, foco: 'cacada', reducaoDano: [10, 1], danoExtraPct: [20, 1.5],
-          descricao: 'Recebe 11% menos dano e causa 21,5% mais dano. Mais forte na caçada.' },
+          descricao: 'Recebe 11% a 21% menos dano e causa 21,5% a 36,5% mais dano. Mais forte na caçada.' },
         { id: 'martelo-das-correntes', nome: 'Martelo das Correntes', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [220, 5],
           atordoa: 1, quebraDefesaPct: 30,
           descricao: 'Golpe de 220% a 270% que prende o oponente por 1 turno e tira 30% da defesa dele até o fim da luta. Mais forte na Arena.' },
@@ -644,7 +646,7 @@ Tanka.dados = {
         { id: 'rede', nome: 'Rede', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Joga a rede em um inimigo e ele fica preso.' },
         { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada.' },
         { id: 'bolso-de-pocoes', nome: 'Bolso de Poções', tipo: 'passiva', nivel: 20, foco: 'cacada', curaEmergencia: [35, 2], limiar: 40,
-          descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 37% da vida. Mais forte na caçada.' },
+          descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 37% a 57% da vida. Mais forte na caçada.' },
         { id: 'po-nos-olhos', nome: 'Pó nos Olhos', tipo: 'cegar', nivel: 30, foco: 'arena', recarga: 6, turnos: 2, erroPct: [30, 1],
           descricao: 'Por 2 turnos, o oponente tem 30% a 40% de chance de errar cada ataque. Mais forte na Arena.' },
       ] },
@@ -1025,7 +1027,8 @@ Tanka.dados = {
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
   // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).
-  TROCA_PERGAMINHO: { quantidade: 10 },
+  // ouro: preço para receber 1 da raridade (Henri, 13/11/2026).
+  TROCA_PERGAMINHO: { quantidade: 10, ouro: { rara: 1000, epica: 10000, lendaria: 100000 } },
   // ---------- Leilão do servidor (Mercado > Leilão) ----------
   // Uma rodada por faixa de level, sempre rodando: dura `duracaoMin` e, quando acaba, outra começa com itens novos.
   // 12 lotes: 1 arma e 1 armadura de cada classe base, 2 joias (colar/anel) e 2 pacotes de pergaminho.
