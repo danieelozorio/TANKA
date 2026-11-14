@@ -639,7 +639,11 @@ select pg_temp.igual((select array_length(membros, 1) || '/' || jsonb_array_leng
   from public.masmorra_runs order by id desc limit 1), '1/3', 'fila: depois de 30 s, 2 bots completam o grupo');
 select pg_temp.igual((select (herois -> 1 -> 'dados' -> 'atributos') = (herois -> 0 -> 'dados' -> 'atributos') and (herois -> 1 ->> 'bot')::boolean
     and herois -> 1 -> 'dados' ->> 'nome' <> 'Duda'
-  from public.masmorra_runs order by id desc limit 1), true, 'fila: bot é cópia do jogador (mesmo poder), com outro nome');
+  from public.masmorra_runs order by id desc limit 1), true, 'fila: bot tem o poder do jogador, com outro nome');
+select pg_temp.igual((select (herois -> 1 -> 'dados' ->> 'botClasse2') || '/' || ((herois -> 2 -> 'dados' ->> 'botClasse2') in ('cacador', 'bruxo'))::text
+  from public.masmorra_runs order by id desc limit 1), 'curandeiro/true', 'fila: Duda (Artesão = guerreiro) ganha um healer e um Arqueiro ou Bruxo');
+select pg_temp.igual(public.fila_papel('{"classe":"mago","talentos":{"classe2":"curandeiro"}}') || ',' || public.fila_papel('{"classe":"mago","talentos":{"classe2":"bruxo"}}')
+  || ',' || public.fila_papel('{"classe":"cavaleiro"}') || ',' || public.fila_papel('{"classe":"arqueiro"}'), 'healer,dps,guerreiro,dps', 'fila: papéis');
 select max(id) as run_fila from public.masmorra_runs \gset
 set role authenticated;
 select pg_temp.como('d');

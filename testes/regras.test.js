@@ -2334,3 +2334,19 @@ teste('Colar em escada: comum vida; rara + defesa; épica + roubo de vida 3%; le
   p.inventario.push(velho); R.normalizar(p);
   assert.ok(velho.colarV2 && velho.bonus.rouboVida === 3 && velho.bonus.defesa > 0);
 });
+
+teste('fila da masmorra: o bot vira a classe que falta (mesmo poder), e a luta usa a classe nova', () => {
+  const p = R.criarPersonagem('Duda', 'feminino', 'anao', 'artesao'); R.admin.subirNivel(p, 24); R.escolherSegundaClasse(p, 'ferreiro');
+  p.inventario = []; Object.keys(p.equipados).forEach(x => p.equipados[x] = null); R.admin.conjunto(p, 'epica');
+  p.inventario.forEach(i => R.equipar(p, i.id));
+  for (let i = 0; i < 6; i++) { R.mudarPontoHabilidade(p, 'martelada', 1); R.mudarPontoHabilidade(p, 'marretada-no-chao', 1); }
+  const bot = (c2) => Object.assign(JSON.parse(JSON.stringify(p)), { id: 'bot-x', nome: 'Mercenária Brisa', bot: true, botClasse2: c2 });
+  const cura = R.converterBot(R.normalizar(bot('curandeiro')));
+  assert.strictEqual(cura.classe, 'mago');
+  assert.strictEqual(cura.talentos.classe2, 'curandeiro');
+  assert.ok(R.kitHabilidades(cura, 'masmorra').length > 0, 'tem habilidades com pontos');
+  assert.strictEqual(R.status(cura).tipoDano, 'magico');
+  assert.strictEqual(cura.atributos.int, p.atributos.for, 'o atributo de ataque passa para a Inteligência');
+  const sim = R.simularMasmorra([p, bot('curandeiro'), bot('cacador')], 'toca', 123);
+  assert.deepStrictEqual(sim.inicio.herois.map(h => h.classe2).join(), 'ferreiro,curandeiro,cacador');
+});

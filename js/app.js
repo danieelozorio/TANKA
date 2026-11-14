@@ -592,6 +592,7 @@
     ranking: svg('<path d="M8 4h8v5a4 4 0 0 1-8 0Z"/><path d="M8 6H5a3 3 0 0 0 3 4m8-4h3a3 3 0 0 1-3 4M12 13v4m-4 4h8m-6-4h4"/>'),
     alianca: svg('<path d="M6 3v18M6 4h11l-3 4 3 4H6"/>'),
     oficina: svg('<path d="M3 21h18M6 21v-4h12v4M9 17V9l-4-4 3-2 5 5h2v9"/><path d="m14 8 5-5 2 2-5 5"/>'),
+    mercadoNegro: svg('<path d="M4 10c0-3 3.6-6 8-6s8 3 8 6v1H4Z"/><path d="M6 11v9h12v-9M10 20v-5h4v5"/>'),
   };
   var ICONES = {
     menu: svg('<path d="M12 2 21 6v5c0 5-3.5 8.5-9 11-5.5-2.5-9-6-9-11V6Z" fill="#302014"/><path d="M7.5 8h9m-9 4h9m-7 4h5"/><path d="m12 4 1 1-1 1-1-1Z" fill="currentColor" stroke="none"/>'),
@@ -974,11 +975,11 @@
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades'] },
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mineracao', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
-    { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'oficinas'] },
+    { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
   ];
-  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1880,11 +1881,11 @@
   }
 
   // Celular: a Loja vira seções (fichas no topo) em vez de uma página comprida.
-  var SECOES_LOJA = [['jogadores', '🤝 Jogadores'], ['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['skins', '🎲 Skins'], ['especiais', '📜 Especiais']];
+  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['skins', '🎲 Skins'], ['especiais', '📜 Especiais']];
   function abaMercado() {
     var p = estado.personagem;
     if (CELULAR) {
-      var sec = estado.lojaSecao || 'jogadores', partes = mercadoPartes(p);
+      var sec = estado.lojaSecao && estado.lojaSecao !== 'jogadores' ? estado.lojaSecao : 'reino', partes = mercadoPartes(p);
       return '<div class="loja-secoes">' + SECOES_LOJA.map(function (x) {
         return '<button class="btn btn-pequeno' + (x[0] === sec ? ' sel' : ' secundario') + '" data-acao="loja-secao" data-valor="' + x[0] + '">' + x[1] + '</button>';
       }).join('') + '</div>' + '<p class="suave pequeno loja-ouro">' + ICONES.ouro + ' <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + '</strong> · mochila ' + R.mochila(p).length + '/' + D.MOCHILA_MAX + '</p>'
@@ -1926,10 +1927,25 @@
   function mercadoPartesTudo(p) {
     var x = mercadoPartes(p);
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.jogadores + x.reino + x.pocoes + x.especiais + x.skins + x.troca;
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.skins + x.troca;
   }
 
-  // ---------------- Mercado dos jogadores (Mercado > Loja) ----------------
+  // ---------------- Mercado Negro (Mercado > Mercado Negro): comércio entre jogadores ----------------
+  // Faixa de nível igual à do Leilão (Henri, 13/11/2026): cada herói só vê e compra itens até o nível máximo da faixa dele.
+  function nivelMaxMercadoNegro(nivel) {
+    var L = D.LEILAO, f = R.faixaLeilao(nivel), ult = L.faixas[L.faixas.length - 1];
+    if (!f) return L.nivelMin + 2;           // antes do level do Leilão: itens até o nível 12
+    return f === ult ? null : f.itemNivel[1];   // última faixa: sem limite
+  }
+  function abaMercadoNegro() {
+    var p = estado.personagem, lim = nivelMaxMercadoNegro(p.nivel);
+    return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '. '
+      + (lim ? 'No seu level você vê e compra itens até o <strong>nível ' + lim + '</strong> (a faixa sobe com o seu level, como no Leilão).' : 'No seu level não há limite de nível dos itens.') + '</p>'
+      + '<h3 class="subtitulo">Itens dos jogadores</h3><div id="mercado-jogadores">' + mercadoJogadoresHtml() + '</div>';
+  }
+
+  // ---------------- Mercado dos jogadores (agora no Mercado Negro) ----------------
   // O vendedor escolhe o preço; quem compra paga e o vendedor recebe o preço menos a taxa (10%). Tudo no servidor.
   var CATEGORIAS_MERCADO = [['todos', 'Tudo'], ['arma', 'Armas'], ['armadura', 'Armaduras'], ['joia', 'Joias'], ['pergaminho', 'Pergaminhos'], ['craft', 'Craft']];
   var TIPOS_CRAFT = ['material', 'receita', 'protecao'];
@@ -1968,7 +1984,7 @@
   }
   function redesenharMercado() {
     var el = document.getElementById('mercado-jogadores');
-    if (el && estado.aba === 'mercado') el.innerHTML = mercadoJogadoresHtml();
+    if (el && estado.aba === 'mercadoNegro') el.innerHTML = mercadoJogadoresHtml();
   }
   function cartaAnuncio(a, meu) {
     var p = estado.personagem, it = itemAnuncio(a), r = it.cor || it.raridade;
@@ -3409,7 +3425,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     var trocar = !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
@@ -4216,7 +4232,7 @@
     if (aba === 'arena') { carregarArena(); marcarAtaquesVistos(); }
     if (aba === 'alianca') carregarAlianca();
     if (aba === 'mundial') carregarBoss();
-    if (aba === 'mercado') carregarMercado();
+    if (aba === 'mercadoNegro') carregarMercado();
     if (aba === 'oficinas') carregarOficinas();
   }
 
@@ -6608,6 +6624,57 @@
     } else tocarEventosArena();
   }
 
+  // Relatório do fim da luta (Henri, 13/11/2026): dano, cura e dados de cada lado, a partir dos eventos da luta.
+  function relatorioArenaHtml(luta) {
+    var est = luta.estado, evs = luta.eventos || [];
+    var R0 = function () { return { golpes: 0, efeitos: 0, devolvido: 0, cura: 0, maior: 0, turnos: 0, dados: 0, somaDado: 0, criticos: 0, erros: 0, atordoou: 0, segurou: 0 }; };
+    var r = { a: R0(), d: R0() }, hp = { a: est.a.hpMax, d: est.d.hpMax };
+    var outro = function (x) { return x === 'a' ? 'd' : 'a'; };
+    evs.forEach(function (ev) {
+      var x = ev.de, o = outro(x);
+      if (!r[x]) return;
+      var eu = r[x], ele = r[o], tomou = { a: 0, d: 0 };
+      eu.turnos++;
+      if (ev.dado) { eu.dados++; eu.somaDado += ev.dado; if (ev.dado >= 18) eu.criticos++; if (ev.dado === 1) eu.erros++; }
+      var d = Number(ev.dano) || 0;
+      if (d) { eu.golpes += d; eu.maior = Math.max(eu.maior, d); tomou[o] += d; }
+      var dot = (Number(ev.queimou) || 0) + (Number(ev.envenenado) || 0);
+      if (dot) { ele.efeitos += dot; tomou[x] += dot; }
+      if (ev.devolvido) { ele.devolvido += Number(ev.devolvido); tomou[x] += Number(ev.devolvido); }
+      if (ev.escudoSegurou) ele.segurou += Number(ev.escudoSegurou);
+      if (ev.atordoou) eu.atordoou += Number(ev.atordoou);
+      // cura = o quanto a vida subiu além do dano que levou (cura, Luz Punitiva, roubo de vida, regeneração, Milagre)
+      ['a', 'd'].forEach(function (k) {
+        var agora = Number(ev['hp' + k.toUpperCase()]);
+        if (isNaN(agora)) return;
+        var subiu = agora - hp[k] + tomou[k];
+        if (subiu > 0) r[k].cura += subiu;
+        hp[k] = agora;
+      });
+    });
+    var f = function (v) { return Math.round(v).toLocaleString('pt-BR'); };
+    var linha = function (rot, va, vd, dica) {
+      return '<tr' + (dica ? ' title="' + dica + '"' : '') + '><th>' + rot + '</th><td>' + va + '</td><td>' + vd + '</td></tr>';
+    };
+    var A = r.a, Dd = r.d;
+    return '<details class="relatorio-arena" open><summary>📜 Relatório da batalha</summary><table class="tabela-relatorio">'
+      + '<tr><th></th><th>' + esc(est.a.nome) + '</th><th>' + esc(est.d.nome) + '</th></tr>'
+      + linha('Dano total causado', '<b>' + f(A.golpes + A.efeitos + A.devolvido) + '</b>', '<b>' + f(Dd.golpes + Dd.efeitos + Dd.devolvido) + '</b>')
+      + linha('· em golpes', f(A.golpes), f(Dd.golpes))
+      + ((A.efeitos || Dd.efeitos) ? linha('· queimadura / veneno', f(A.efeitos), f(Dd.efeitos)) : '')
+      + ((A.devolvido || Dd.devolvido) ? linha('· dano devolvido', f(A.devolvido), f(Dd.devolvido)) : '')
+      + linha('Maior golpe', f(A.maior), f(Dd.maior))
+      + linha('Vida recuperada', f(A.cura), f(Dd.cura), 'Cura, roubo de vida, regeneração e Milagre')
+      + ((A.segurou || Dd.segurou) ? linha('Dano segurado pelo escudo', f(A.segurou), f(Dd.segurou)) : '')
+      + ((A.atordoou || Dd.atordoou) ? linha('Turnos de atordoamento causados', f(A.atordoou), f(Dd.atordoou)) : '')
+      + linha('Vezes que agiu', A.turnos, Dd.turnos)
+      + linha('Média do dado', A.dados ? (A.somaDado / A.dados).toFixed(1).replace('.', ',') : '—', Dd.dados ? (Dd.somaDado / Dd.dados).toFixed(1).replace('.', ',') : '—')
+      + linha('Críticos (18 a 20)', A.criticos, Dd.criticos)
+      + linha('Erros (1)', A.erros, Dd.erros)
+      + linha('Vida no fim', f(Math.max(0, hp.a)) + ' / ' + f(est.a.hpMax), f(Math.max(0, hp.d)) + ' / ' + f(est.d.hpMax))
+      + '</table></details>';
+  }
+
   function lutaArenaHtml() {
     var L = estado.lutaArena, est = L.luta.estado, a = est.a, d = est.d;
     function lutador(x, hp, lado) {
@@ -6628,6 +6695,7 @@
       } else {
         fim = '<div class="resultado derrota"><h2>Derrota</h2><p>' + esc(d.nome) + ' venceu. Você continua na mesma posição e não perde nada.</p>';
       }
+      fim += relatorioArenaHtml(L.luta);
       fim += '<div class="botoes"><button class="btn" data-acao="arena-fechar">Voltar à Arena</button></div></div>';
     }
     return fim + '<h3 class="subtitulo">' + esc(nomeArena(L.luta.arena)) + (L.luta.revanche ? ' · Revanche' : '') + '</h3>'
@@ -6935,6 +7003,12 @@
         acoes += x.cargo === 'oficial' ? bt('membro', 'Rebaixar') : bt('oficial', 'Promover a oficial');
       }
       if (!eu && (chefe || (cargo === 'vice' && (x.cargo === 'oficial' || x.cargo === 'membro')) || (cargo === 'oficial' && x.cargo === 'membro'))) acoes += confirmar('expulsar:' + x.id, 'Expulsar', 'Confirmar: expulsar');
+      // Menu em cascata (Henri, 13/11/2026): Adicionar amigo + as ações do cargo, num botão só.
+      if (!eu) {
+        var abertoMenu = estado.aliancaConfirmar && estado.aliancaConfirmar.split(':')[1] === x.id;
+        acoes = '<details class="menu-cascata"' + (abertoMenu ? ' open' : '') + '><summary class="btn secundario btn-pequeno">Ações ▾</summary><div class="menu-cascata-itens">'
+          + '<button class="btn secundario btn-pequeno" data-acao="al-amigo" data-nome="' + esc(x.nome) + '">➕ Adicionar amigo</button>' + acoes + '</div></details>';
+      }
       var icone = x.cargo === 'lider' ? '👑 ' : x.cargo === 'vice' ? '🛡️ ' : x.cargo === 'oficial' ? '⭐ ' : '';
       return '<div class="item alianca-membro' + (eu ? ' meu' : '') + '">' + (CELULAR && x.raca ? '<span class="arena-retrato">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</span>' : '')
         + '<div class="item-texto"><div>' + icone + '<strong>' + esc(x.nome) + '</strong> ' + vistoTexto(x.visto_em) + '</div>'
@@ -7017,6 +7091,9 @@
         acaoBossAl(A2.boss.hora(p.id, h), 'Boss marcado para as ' + h + 'h (horário de Brasília), todos os dias.');
         return true;
       }
+      case 'al-amigo':
+        C.amigos.pedir(p.id, el.dataset.nome).then(function () { avisar('Pedido de amizade enviado para ' + el.dataset.nome + '.'); }, function (e) { avisar(e.message); });
+        return true;
       case 'al-boss-sala-criar': acaoBossAl(A2.boss.salaCriar(p.id), 'Grupo criado. Chame até ' + (D.BOSS_ALIANCA.grupoMax - 1) + ' membros para entrar.'); return true;
       case 'al-boss-sala-entrar': acaoBossAl(A2.boss.salaEntrar(p.id, Number(el.dataset.id)), 'Você entrou no grupo.'); return true;
       case 'al-boss-sala-sair': acaoBossAl(A2.boss.salaSair(p.id), 'Você saiu do grupo.'); return true;
@@ -7226,7 +7303,16 @@
   // Fica fora do #app para não sumir quando a tela é redesenhada.
   // Atualiza a cada 4 s com a janela aberta e a cada 20 s fechada (para o contador de novas).
   var chat = { el: null, aberto: false, mensagens: [], ultimoId: 0, naoLidas: 0, timer: null, ativo: false, ultimaCompleta: 0,
-    canal: 'global', al: { pid: null, mensagens: [], ultimoId: 0 } };   // canal 'alianca': chat só dos membros
+    canal: 'global', al: { pid: null, mensagens: [], ultimoId: 0 },   // canal 'alianca': chat só dos membros
+    // Sussurro (Henri, 13/11/2026): uma aba por jogador ({ nome, mensagens, ultimo, naoLidas, fechadoAte }); canal 'sus:<chave>'.
+    sus: {}, susPid: null };
+  function chaveSus(nome) { return String(nome || '').toLowerCase(); }
+  function abaSus(nome) {
+    var k = chaveSus(nome);
+    if (!chat.sus[k]) chat.sus[k] = { nome: nome, mensagens: [], ultimo: 0, naoLidas: 0, fechadoAte: 0, aberta: true };
+    chat.sus[k].aberta = true;
+    return chat.sus[k];
+  }
 
   function chatVisivel(sim) {
     if (!chat.el) {
@@ -7260,10 +7346,11 @@
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'
       : '';
     // celular: balão de conversa (o meu à direita), com nome e hora em cima
+    var nomeAttr = estado.personagem && m.personagem === estado.personagem.nome ? '' : ' data-chat-nome="' + esc(m.personagem) + '" title="Botão direito: amigo, clã, sussurrar"';
     if (CELULAR) return '<div class="chat-msg chat-balao' + (estado.personagem && m.personagem === estado.personagem.nome ? ' minha' : '') + '"><div class="chat-cab">'
-      + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '">' + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>'
+      + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '"' + nomeAttr + '>' + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>'
       + '<span class="chat-hora">' + hora + '</span></div><div class="chat-texto">' + esc(m.texto) + '</div>' + acoes + '</div>';
-    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '">'
+    return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '"' + nomeAttr + '>'
       + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
       + esc(m.texto) + acoes + '</p>';
   }
@@ -7277,6 +7364,12 @@
       + '<strong class="chat-nome">' + esc(m.personagem) + '</strong>: ' + esc(m.texto) + '</p>';
   }
   function chatDaAlianca() { var st = aliancaAtual(); return !!(st && st.alianca); }
+  function linhaSussurro(nome, m) {
+    var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    if (CELULAR) return '<div class="chat-msg chat-balao' + (m.minha ? ' minha' : '') + '"><div class="chat-cab"><strong class="chat-nome">' + (m.minha ? 'Você' : esc(nome))
+      + '</strong><span class="chat-hora">' + hora + '</span></div><div class="chat-texto">' + esc(m.texto) + '</div></div>';
+    return '<p class="chat-msg chat-sussurro"><span class="chat-hora">' + hora + '</span> <strong class="chat-nome">' + (m.minha ? 'Você' : esc(nome)) + '</strong>: ' + esc(m.texto) + '</p>';
+  }
 
   function desenharChat() {
     var seloC = document.getElementById('casca-chat-selo');
@@ -7290,16 +7383,24 @@
     var rascunho = texto ? texto.value : '';
     var focado = texto && document.activeElement === texto;
     if (chat.canal === 'alianca' && !chatDaAlianca()) chat.canal = 'global';
-    var daAlianca = chat.canal === 'alianca', lista = daAlianca ? chat.al.mensagens : chat.mensagens;
-    var titulo = chatDaAlianca()
-      ? '<span class="chat-canais"><button data-chat="canal" data-canal="global" class="' + (daAlianca ? '' : 'ativo') + '">Global</button>'
-        + '<button data-chat="canal" data-canal="alianca" class="' + (daAlianca ? 'ativo' : '') + '">Clã</button></span>'
+    var susAtual = chat.canal.indexOf('sus:') === 0 ? chat.sus[chat.canal.slice(4)] : null;
+    if (chat.canal.indexOf('sus:') === 0 && (!susAtual || !susAtual.aberta)) { chat.canal = 'global'; susAtual = null; }
+    var daAlianca = chat.canal === 'alianca', lista = susAtual ? susAtual.mensagens : daAlianca ? chat.al.mensagens : chat.mensagens;
+    var abasSus = Object.keys(chat.sus).filter(function (k) { return chat.sus[k].aberta; });
+    var titulo = chatDaAlianca() || abasSus.length
+      ? '<span class="chat-canais"><button data-chat="canal" data-canal="global" class="' + (chat.canal === 'global' ? 'ativo' : '') + '">Global</button>'
+        + (chatDaAlianca() ? '<button data-chat="canal" data-canal="alianca" class="' + (daAlianca ? 'ativo' : '') + '">Clã</button>' : '')
+        + abasSus.map(function (k) {
+          var t = chat.sus[k];
+          return '<span class="chat-aba-sus' + (chat.canal === 'sus:' + k ? ' ativo' : '') + '"><button data-chat="canal" data-canal="sus:' + esc(k) + '" title="Sussurro com ' + esc(t.nome) + '">🤫 ' + esc(t.nome)
+            + (t.naoLidas ? ' <span class="chat-badge">' + t.naoLidas + '</span>' : '') + '</button><button data-chat="sus-fechar" data-chave="' + esc(k) + '" title="Fechar a conversa" aria-label="Fechar a conversa com ' + esc(t.nome) + '">×</button></span>';
+        }).join('') + '</span>'
       : '<strong>Chat Global</strong>';
     chat.el.innerHTML = '<div class="chat-janela"><div class="chat-topo">' + titulo
       + '<button data-chat="fechar" title="Fechar">✕</button></div>'
-      + '<div class="chat-lista" id="chat-lista">' + (lista.length ? lista.map(daAlianca ? linhaChatAlianca : linhaChat).join('')
-        : '<p class="suave pequeno">Nenhuma mensagem ainda. Diga olá!</p>') + '</div>'
-      + '<div class="chat-envio"><input id="chat-texto" maxlength="200" placeholder="Escreva como ' + esc(estado.personagem ? estado.personagem.nome : '') + '…" autocomplete="off">'
+      + '<div class="chat-lista" id="chat-lista">' + (lista.length ? lista.map(susAtual ? function (m) { return linhaSussurro(susAtual.nome, m); } : daAlianca ? linhaChatAlianca : linhaChat).join('')
+        : '<p class="suave pequeno">' + (susAtual ? 'Conversa só entre você e ' + esc(susAtual.nome) + '.' : 'Nenhuma mensagem ainda. Diga olá!') + '</p>') + '</div>'
+      + '<div class="chat-envio"><input id="chat-texto" maxlength="200" placeholder="' + (susAtual ? 'Sussurrar para ' + esc(susAtual.nome) : 'Escreva como ' + esc(estado.personagem ? estado.personagem.nome : '')) + '…" autocomplete="off">'
       + '<button class="btn" data-chat="enviar">Enviar</button></div></div>';
     var novo = document.getElementById('chat-texto');
     novo.value = rascunho;
@@ -7325,6 +7426,7 @@
         chat.mensagens = chat.mensagens.concat(novas).slice(-100);
       }
       if (chat.mensagens.length) chat.ultimoId = Math.max(chat.ultimoId, chat.mensagens[chat.mensagens.length - 1].id);
+      if (C.sussurro && estado.personagem) await buscarSussurros();
       if (chat.aberto && chat.canal === 'alianca' && chatDaAlianca()) {
         var pid = estado.personagem.id;
         if (chat.al.pid !== pid) chat.al = { pid: pid, mensagens: [], ultimoId: 0 };
@@ -7337,12 +7439,71 @@
     if (chat.ativo) chat.timer = setTimeout(buscarChat, document.hidden ? 60000 : chat.aberto ? 4000 : 20000);
   }
 
+  // Sussurros: abre a aba de quem mandou mensagem nova (24 h) e atualiza a conversa aberta.
+  async function buscarSussurros() {
+    var pid = estado.personagem.id;
+    if (chat.susPid !== pid) { chat.sus = {}; chat.susPid = pid; if (chat.canal.indexOf('sus:') === 0) chat.canal = 'global'; }
+    var conversas = await C.sussurro.conversas(pid);
+    (conversas || []).forEach(function (c) {
+      var k = chaveSus(c.nome), t = chat.sus[k], vendo = chat.aberto && chat.canal === 'sus:' + k;
+      if (!t) {
+        if (!c.dele) return;
+        t = chat.sus[k] = { nome: c.nome, mensagens: [], ultimo: Number(c.ultimo), naoLidas: vendo ? 0 : 1, fechadoAte: 0, aberta: true };
+        if (!vendo) chat.naoLidas++;
+        return;
+      }
+      if (Number(c.ultimo) > t.ultimo) {
+        if (c.dele && !vendo) { t.naoLidas++; if (!chat.aberto) chat.naoLidas++; }
+        if (c.dele && !t.aberta && Number(c.ultimo) > t.fechadoAte) t.aberta = true;
+        t.ultimo = Number(c.ultimo);
+      }
+    });
+    if (chat.aberto && chat.canal.indexOf('sus:') === 0) {
+      var tab = chat.sus[chat.canal.slice(4)];
+      if (tab) {
+        tab.mensagens = await C.sussurro.listar(pid, tab.nome) || [];
+        if (tab.mensagens.length) tab.ultimo = Math.max(tab.ultimo, Number(tab.mensagens[tab.mensagens.length - 1].id));
+        tab.naoLidas = 0;
+      }
+    }
+  }
+  // Menu do nome no chat global (botão direito; no celular, toque): amigo, convidar para o clã, sussurrar.
+  function abrirMenuChat(nome, x, y) {
+    fecharMenuChat();
+    var m = document.createElement('div');
+    m.className = 'chat-menu';
+    m.setAttribute('role', 'menu');
+    m.innerHTML = '<p class="chat-menu-nome">' + esc(nome) + '</p>'
+      + '<button role="menuitem" data-chat="m-amigo" data-nome="' + esc(nome) + '">➕ Adicionar como amigo</button>'
+      + (chatDaAlianca() ? '<button role="menuitem" data-chat="m-cla" data-nome="' + esc(nome) + '">🛡️ Convidar para o clã</button>' : '')
+      + '<button role="menuitem" data-chat="m-sussurrar" data-nome="' + esc(nome) + '">🤫 Sussurrar</button>';
+    document.body.appendChild(m);
+    var w = m.offsetWidth, h = m.offsetHeight;
+    m.style.left = Math.max(8, Math.min(x, window.innerWidth - w - 8)) + 'px';
+    m.style.top = Math.max(8, Math.min(y, window.innerHeight - h - 8)) + 'px';
+    m.addEventListener('click', cliqueChat);
+    var b = m.querySelector('button'); if (b) b.focus();
+    chat.menu = m;
+  }
+  function fecharMenuChat() { if (chat.menu) { chat.menu.remove(); chat.menu = null; } }
+  document.addEventListener('click', function (e) { if (chat.menu && !chat.menu.contains(e.target)) fecharMenuChat(); }, true);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fecharMenuChat(); });
+  document.addEventListener('contextmenu', function (e) {
+    var n = e.target.closest && e.target.closest('#chat [data-chat-nome]');
+    if (!n) return;
+    e.preventDefault();
+    abrirMenuChat(n.dataset.chatNome, e.clientX, e.clientY);
+  });
+
   async function enviarChat() {
     var campo = document.getElementById('chat-texto');
     var texto = campo.value.trim();
     if (!texto || !estado.personagem) return;
     try {
-      if (chat.canal === 'alianca') await C.alianca.chatEnviar(estado.personagem.id, texto);
+      if (chat.canal.indexOf('sus:') === 0 && C.sussurro) {
+        var tabE = chat.sus[chat.canal.slice(4)];
+        if (tabE) await C.sussurro.enviar(estado.personagem.id, tabE.nome, texto);
+      } else if (chat.canal === 'alianca') await C.alianca.chatEnviar(estado.personagem.id, texto);
       else await C.chat.enviar(estado.personagem.nome, texto);
       campo.value = '';
       buscarChat();
@@ -7350,9 +7511,38 @@
   }
 
   async function cliqueChat(e) {
+    var nomeEl = CELULAR && e.target.closest('[data-chat-nome]');
+    if (nomeEl) { var r0 = nomeEl.getBoundingClientRect(); abrirMenuChat(nomeEl.dataset.chatNome, r0.left, r0.bottom + 4); return; }
     var el = e.target.closest('[data-chat]');
     if (!el) return;
     var acao = el.dataset.chat;
+    if (acao.indexOf('m-') === 0) fecharMenuChat();
+    if (acao === 'm-amigo') {
+      try { await C.amigos.pedir(estado.personagem.id, el.dataset.nome); avisar('Pedido de amizade enviado para ' + el.dataset.nome + '.'); } catch (erro) { avisar(erro.message); }
+      return;
+    }
+    if (acao === 'm-cla') {
+      try { await C.alianca.convidar(estado.personagem.id, el.dataset.nome); avisar('Convite do clã enviado para ' + el.dataset.nome + '.'); } catch (erro) { avisar(erro.message); }
+      return;
+    }
+    if (acao === 'm-sussurrar') {
+      if (!C.sussurro) { avisar('O sussurro precisa do servidor.'); return; }
+      var t = abaSus(el.dataset.nome);
+      t.naoLidas = 0;
+      chat.canal = 'sus:' + chaveSus(el.dataset.nome);
+      chat.aberto = true;
+      desenharChat();
+      var cx = document.getElementById('chat-texto'); if (cx) cx.focus();
+      buscarChat();
+      return;
+    }
+    if (acao === 'sus-fechar') {
+      var tf = chat.sus[el.dataset.chave];
+      if (tf) { tf.aberta = false; tf.fechadoAte = tf.ultimo; tf.naoLidas = 0; }
+      if (chat.canal === 'sus:' + el.dataset.chave) chat.canal = 'global';
+      desenharChat();
+      return;
+    }
     if (acao === 'abrir' || acao === 'fechar') {
       chat.aberto = acao === 'abrir';
       chat.naoLidas = 0;

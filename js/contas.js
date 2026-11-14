@@ -463,6 +463,11 @@ Tanka.contas = (function () {
     ranking: ranking,
     rankingClas: rankingClas,
     chat: chat,
+    sussurro: {
+      listar: function (meu, nome) { return chamar('sussurro_listar', { meu: meu, nome_alvo: nome }); },
+      enviar: function (meu, nome, texto) { return chamar('sussurro_enviar', { meu: meu, nome_alvo: nome, mensagem: texto }); },
+      conversas: function (meu) { return chamar('sussurro_conversas', { meu: meu }); },
+    },
     privado: {
       listar: function (meu, alvo) { return chamar('privado_listar', { meu: meu, alvo: alvo }); },
       enviar: function (meu, alvo, texto) { return chamar('privado_enviar', { meu: meu, alvo: alvo, mensagem: texto }); },

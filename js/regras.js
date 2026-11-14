@@ -2465,6 +2465,39 @@ Tanka.regras = (function () {
     return simularSalas(herois, salasMasmorra(masmorraId), semente);
   }
 
+  // ---- Bots da fila da masmorra (Henri, 13/11/2026) ----
+  // O servidor manda a cópia de um jogador (mesmo poder) com botClasse2 = a classe que falta no grupo. Aqui ela vira um
+  // herói dessa classe: troca o atributo de ataque, as habilidades (mesmos pontos), a arma (o tipo padrão da classe nova,
+  // mesmo dano) e as armaduras (mesmos bônus, da classe nova). Igual em todos os aparelhos (sem sorteio).
+  function converterBot(p) {
+    var c2 = p.botClasse2, sc = D.SEGUNDAS_CLASSES[c2];
+    if (!sc) return p;
+    var de = p.classe, para = sc.de, aDe = D.classes[de].atributoDano, aPara = D.classes[para].atributoDano;
+    if (aDe !== aPara) { var t = p.atributos[aDe]; p.atributos[aDe] = p.atributos[aPara]; p.atributos[aPara] = t; }
+    var total = 0;
+    Object.keys((p.talentos && p.talentos.pontos) || {}).forEach(function (k) { total += p.talentos.pontos[k] || 0; });
+    p.classe = para;
+    var ativas = sc.habilidades.filter(function (h) { return h.tipo !== 'passiva' && habLiberada(p, h); }).map(function (h) { return h.id; });
+    var pontos = {}, i = 0;
+    while (total > 0 && ativas.length && i < 1000) {   // os mesmos pontos, um por vez em cada ativa (máximo 10 cada)
+      var id = ativas[i % ativas.length];
+      if ((pontos[id] || 0) < T.maxPorHabilidade) { pontos[id] = (pontos[id] || 0) + 1; total--; }
+      i++;
+    }
+    p.talentos = { classe2: c2, pontos: pontos, ordem: { cacada: ativas.slice(), masmorra: ativas.slice(), arena: ativas.slice(), defesa: ativas.slice() }, ordemNiveis2: true };
+    var mao = maoPermitida(p);
+    Object.keys(p.equipados || {}).forEach(function (slot) {
+      var it = itemNoSlot(p, slot);
+      if (!it) return;
+      if (it.tipo === 'arma') { it.classe = para; it.arma = D.ARMA_PADRAO[para]; }
+      else if (TIPOS_ARMADURA.indexOf(it.tipo) >= 0) {
+        it.classe = para;
+        if (it.conjunto) it.conjunto = c2 + '-' + it.conjunto.split('-')[1];
+      } else if (it.tipo === 'secundaria' && mao.indexOf(it.mao) < 0) p.equipados[slot] = null;
+    });
+    return p;
+  }
+
   // Motor da luta em grupo (masmorra e boss da aliança). salas: listas de monstros (hp, ataque, velocidade,
   // defesa, defesaMagica, indiceArea, chefe). opc.limiteAtaques: a luta acaba quando os monstros atacarem
   // esse número de vezes (boss da aliança: o "fôlego" de cada investida); o resultado vem com `tempo: true`.
@@ -2473,6 +2506,7 @@ Tanka.regras = (function () {
     var rng = rngSemente(semente);
     var hs = herois.map(function (dados) {
       var p = normalizar(JSON.parse(JSON.stringify(dados)));
+      if (p.bot && p.botClasse2) p = converterBot(p);   // bot da fila: vira a classe que falta no grupo
       var s = status(p, true);   // com as skills do clã
       return { nome: p.nome, classe: p.classe, classe2: p.talentos && p.talentos.classe2 || null, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
@@ -2911,7 +2945,7 @@ Tanka.regras = (function () {
     pontosDaArma: pontosDaArma,
     pontosDistribuidos: pontosDistribuidos,
     sortearExtrasArma: sortearExtrasArma,
-    depoisDoGolpeNivel: depoisDoGolpeNivel, tickQueima: tickQueima, nivelDoDrop: nivelDoDrop, precoTrocaPergaminho: precoTrocaPergaminho,
+    depoisDoGolpeNivel: depoisDoGolpeNivel, converterBot: converterBot, tickQueima: tickQueima, nivelDoDrop: nivelDoDrop, precoTrocaPergaminho: precoTrocaPergaminho,
     nivelDoMercado: nivelDoMercado,
     danoDoNivel: danoDoNivel,
     bonusDoNivel: bonusDoNivel,

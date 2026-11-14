@@ -836,3 +836,30 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Arena usa o dado:** cura x 0 (1), (d−1)/18 até 10 (10 = metade), 0,5 + (d−10)/20 acima (20 = cheia); atordoado/sem dado = cheia.
 - **Level 30 sobem com pontos** (Henri, 13/11/2026): Tiro Silenciador `mult [180,5]`, Execução `[250,3]`, Maldição `[200,5]` + `queima.pct [15,1]`, Martelo `[220,5]`, Pó nos Olhos `erroPct [30,1]` (antes por ponto 0). `depoisDoGolpeNivel(def, alvo, s, pts)` e `aplicarReforco` usam `valorNivel`; `arena_kit` converte `queima.pct`/`erroPct` em array.
 - **Drop sempre ±3** (Henri, 13/11/2026): `ITEM_NIVEL.altoDesde: null` (antes 35: do level 35 em diante caía de 35 a 60). Herói 40 tira de 37 a 43. O último mapa (Cume) aparece como "Lv 30–40" (até `NIVEL_MAXIMO`).
+
+## Leva de 13/11/2026 (Henri)
+- **Arena, atordoar de 2 turnos pelo dado** (`arena_vez`): 18–20 = 2, 4–17 = 1, 2–3 = só o dano (1 erra). Atordoar de 1 não muda.
+- **Elfo:** `tracos { critico 5, velocidadePct 10, vidaPct -5, danoPct -5 }`.
+- **Troca de pergaminho com ouro:** `TROCA_PERGAMINHO.ouro { rara 1000, epica 10000, lendaria 100000 }` (`R.precoTrocaPergaminho`).
+- **Passivas recebem pontos:** valor = 1 de graça + pontos (`PTS_PASSIVA + pontosEm`), em `passiva`, `extrasNivel`, `arena_passiva`,
+  `arena_milagre`, `arena_extras`. Descrições com a faixa (1 a 11 pontos).
+- **Quebra-Ossos** (Destruidor, level 30, no lugar do Golpe Apocalíptico): `mult [200,0]`, `ignoraDefesaPct 100`,
+  `quebraDefesaPct [25,1]`, `quebraTurnos 2`. Monstro: `alvo.quebraTemp {pct, vezes}` (conta em `tickQueima`); Arena: `quebraPct`/
+  `quebraAte` no outro. `HAB_TROCADAS['golpe-apocaliptico'] = 'quebra-ossos'` (pontos voltam livres).
+- **Colar em escada** (`D.COLAR`, `sortearBonusColar`, `item.colarV2`): comum vida; rara + defesa e defesa mágica; épica + `rouboVida` 3;
+  lendária + `velocidadePct` 6. Colares antigos convertem no `normalizar`. Roubo vai para `extrasNivel` (e `arena_lutador.ex`);
+  velocidade % no `statusBase` e no `tanka_status`. Encanto do colar agora sobe a vida (`bonusPorNivel.colar = 'vida'`).
+- **Magia dos monstros da caçada** (`D.MAGIA_MONSTROS { cada 4, mult 1, nomes }`, `D.monstros[id].magia`): no `ataqueMonstro`, a cada 4
+  ataques o golpe é mágico e a defesa mágica segura (`ev.magia`). Só na caçada (masmorra não). Simulação: vitórias quase iguais.
+- **Relatório da Arena** (`relatorioArenaHtml`): dano (golpes, queimadura/veneno, devolvido), maior golpe, vida recuperada (pela
+  vida que subiu além do dano levado), escudo, atordoamento, média do dado, críticos, erros.
+- **Chat: menu do nome + sussurro:** botão direito (celular: toque) no nome → Adicionar amigo / Convidar para o clã / Sussurrar.
+  Sussurro = abas `sus:<nome>` no chat, servidor `sussurro_listar/enviar/conversas` (tabela `mensagens_privadas`, sem precisar ser
+  amigo; silenciado não sussurra). Quem recebe vê a aba aparecer (conversas das últimas 24 h).
+- **Clã › Membros:** ações num menu em cascata (`details.menu-cascata`) com "Adicionar amigo" (`al-amigo`).
+- **Mercado Negro:** aba `mercadoNegro` no grupo Mercado com o comércio entre jogadores (saiu da Loja). Faixa de nível como o Leilão:
+  `mercado_nivel_max(meu)` (antes do 10: até 12; 10–19: 22; 20–29: 32; 30+: sem limite) filtra `mercado_estado` (os seus anúncios
+  sempre aparecem) e trava `mercado_comprar`.
+- **Fila da masmorra com bots de classe:** `fila_papel` (healer/guerreiro/dps) e `fila_bot_classe`; o bot é o 1º jogador com
+  `botClasse2` = papel que falta (guerreiro → healer + Arqueiro/Bruxo; dps → guerreiro + healer; healer → guerreiro + Arqueiro).
+  `R.converterBot` (em `simularSalas`) troca classe, atributo de ataque, habilidades (mesmos pontos), arma (tipo padrão) e armaduras.
