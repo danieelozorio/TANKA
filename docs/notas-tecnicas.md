@@ -885,3 +885,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   10% com 10 pontos); sem esquiva. `extrasNivel` (regras.js) e `arena_extras` (schema) passaram a somar também a passiva
   sem `nivel`.
 - Flecha Envenenada: `dotPct [10, 5]` (até 60%, era 140%), sem `curaMorte`, recarga 5 (era 4).
+
+## Interface Arcane (Henri, nov/2026)
+- Terceira opção de tema na ⚙ (Clássica, Zealot, **Arcane**), só no computador (no celular continua a casca Zealot).
+- Usa as **telas da Clássica** (`interfaceAtual()` continua devolvendo `'classica'`); só muda o visual. O tema escolhido
+  de verdade sai de `temaAtual()` (usado no painel de Interface).
+- `jogar/index.html` e `ferramentas/artifact.html` carregam `css/tema-arcane.css` só quando o tema é `arcane`. Todo o CSS
+  é preso a `html[data-interface="arcane"]`: não mexe na Clássica nem no Zealot.
+- Base: CSS do Gemini (paleta castelo/ferro/ouro velho/arcano, Cinzel + Inter), aplicado nas classes reais (`.caixa`,
+  `.abas-jogo`, `.sub-abas`, `.barra.*`, `.poder-destaque`, `.btn`, `.slot`/`.celula`, `.ranking`, `.leilao-lote`...).
+- Molduras dos itens: `assets/interface/arcane/slot-<comum|rara|conjunto|epica|lendaria|vazio>.webp`, recortadas da
+  referência do Henri (`--arcane-slot` em cada `.borda-*`). Bônus dos equipamentos vira pergaminho.

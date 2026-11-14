@@ -7658,6 +7658,8 @@
   // ---------------- Música de fundo e configurações ----------------
   // Interface escolhida (index.html já carregou o tema certo antes de desenhar): 'classica' ou 'zealot'.
   function interfaceAtual() { return document.documentElement.getAttribute('data-interface') === 'zealot' ? 'zealot' : 'classica'; }
+  // Tema escolhido na ⚙ (classica, zealot ou arcane). A Arcane usa as telas da Clássica, só muda o visual (css/tema-arcane.css).
+  function temaAtual() { var t = document.documentElement.getAttribute('data-interface'); return t === 'zealot' || t === 'arcane' ? t : 'classica'; }
   // Cada cena tem a sua música: entrada (login, personagens, criação), jogo (as duas célticas se revezando),
   // masmorra, arena e chefe. Ao trocar de cena uma música some aos poucos e a outra entra.
   // Os navegadores não deixam tocar som sozinho: a música começa no primeiro clique ou tecla.
@@ -7766,7 +7768,7 @@
   function ligarPainelInterface(p) {
     p.querySelectorAll('[data-interface]').forEach(function (b) {
       b.addEventListener('click', function () {
-        if (b.dataset.interface === interfaceAtual()) return;
+        if (b.dataset.interface === temaAtual()) return;
         guardar('eldrin.interface', b.dataset.interface);
         try { document.cookie = 'eldrin_interface=' + b.dataset.interface + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
         setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
@@ -7788,10 +7790,10 @@
     if (tipo === 'interface') {
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
-        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre a tela própria do celular. As interfaces Clássica e Zealot são para o computador.</p>'
+        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre a tela própria do celular. As interfaces Clássica, Zealot e Arcane são para o computador.</p>'
           : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['classica', 'Clássica'], ['zealot', 'Zealot']].map(function (x) {
-            var ativa = interfaceAtual() === x[0];
+          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
+            var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>');
       ligarPainelInterface(p);
