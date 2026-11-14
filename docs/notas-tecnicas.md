@@ -900,3 +900,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   castelo nas laterais (`lateral-esq/dir`), torres no topo, escudos nos espaços vazios (`escudo-<espaço>`, via `--arcane-escudo`),
   moldura de runas no retrato (`moldura-runas`, em `.retrato-central::before`), brasão/castelo/dragão em cima da mochila e
   dragões no rodapé. Trocar pelas versões em alta do Gemini quando chegarem (mesmos nomes de arquivo).
+- Artes recortadas de novo da maquete em alta (1952x2174): escudos, laterais, topo, runas, brasão, dragões, enfeites dos
+  cantos da ficha (`canto-escudo-esq/dir`, `canto-lobo`, `canto-leao`) e leão da placa de Poder (`brasao-leao`).
+- **Efeitos animados** (`js/arcane-efeitos.js`, carregado só no tema Arcane junto com o CSS): um canvas fixo por cima
+  (sem cliques, `#arcane-efeitos`) desenha faíscas douradas em volta de `.ficha .cabeca`, pó arcano em volta de
+  `.retrato-central` e da mochila, e o fogo das tochas/velas das laterais (posições em `CHAMAS`, % da arte) com brasas.
+  Só lê posições (a cada 200 ms); para com a aba escondida e não roda com "reduzir movimento". No CSS: névoa girando atrás
+  do retrato e brilho que respira no quadro do nome e na placa de Poder.
+

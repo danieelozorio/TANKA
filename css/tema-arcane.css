@@ -425,8 +425,8 @@ html[data-interface="arcane"] .personagem-tela {
 html[data-interface="arcane"] .retrato-central { border: 0; box-shadow: none; overflow: visible; }
 html[data-interface="arcane"] .retrato-central::before {
   content: ""; position: absolute; z-index: 2; pointer-events: none; filter: none; animation: arcane-aura 6s ease-in-out infinite;
-  /* janela interna da moldura: 7% / 11% / 8,5% / 10,4% da imagem */
-  left: -8.4%; right: -10.2%; top: -13.6%; bottom: -12.8%; border-radius: 0;
+  /* janela interna da moldura: 8,6% / 12,3% / 10,2% / 11,6% da imagem (esq/topo/dir/baixo) */
+  left: -10.6%; right: -12.5%; top: -16.2%; bottom: -15.3%; border-radius: 0;
   background: url("../assets/interface/arcane/moldura-runas.webp") center / 100% 100% no-repeat;
 }
 html[data-interface="arcane"] .retrato-central::after { border-radius: 4px; }
@@ -467,3 +467,59 @@ html[data-interface="arcane"] .rodape {
 /* escudos por cima da moldura de runas (como na maquete) */
 html[data-interface="arcane"] .boneco .espaco { position: relative; z-index: 3; }
 html[data-interface="arcane"] .rodape { display: block; width: 100%; box-sizing: border-box; }
+
+/* ---------- 12. Enfeites dos cantos e brilhos lentos (artes da maquete em alta) ---------- */
+/* Escudos no alto da ficha, lobo e leão embaixo */
+html[data-interface="arcane"] .ficha { overflow: visible; }
+html[data-interface="arcane"] .ficha .cabeca { position: relative; }
+html[data-interface="arcane"] .ficha .cabeca::before, html[data-interface="arcane"] .ficha .cabeca::after {
+  content: ""; position: absolute; top: -44px; width: 46px; height: 60px; pointer-events: none; z-index: 2;
+  background: center / contain no-repeat; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .8));
+}
+html[data-interface="arcane"] .ficha .cabeca::before { left: -34px; background-image: url("../assets/interface/arcane/canto-escudo-esq.webp"); }
+html[data-interface="arcane"] .ficha .cabeca::after { right: -34px; background-image: url("../assets/interface/arcane/canto-escudo-dir.webp"); }
+html[data-interface="arcane"] .ficha .atividades { position: relative; }
+html[data-interface="arcane"] .ficha .atividades::before, html[data-interface="arcane"] .ficha .atividades::after {
+  content: ""; position: absolute; bottom: -62px; width: 48px; height: 54px; pointer-events: none; z-index: 2;
+  background: center / contain no-repeat; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .8));
+}
+html[data-interface="arcane"] .ficha .atividades::before { left: -40px; background-image: url("../assets/interface/arcane/canto-lobo.webp"); }
+html[data-interface="arcane"] .ficha .atividades::after { right: -40px; background-image: url("../assets/interface/arcane/canto-leao.webp"); }
+/* Leão dourado em cima da placa de Poder */
+html[data-interface="arcane"] .poder-destaque { margin-top: 2.1rem; overflow: visible; }
+html[data-interface="arcane"] .poder-ico::before {
+  content: ""; position: absolute; left: 50%; top: -34px; width: 40px; height: 40px; transform: translateX(-50%); pointer-events: none;
+  background: url("../assets/interface/arcane/brasao-leao.webp") center / contain no-repeat;
+  filter: drop-shadow(0 0 6px rgba(240, 190, 90, .55));
+}
+html[data-interface="arcane"] .poder-ico { position: relative; }
+/* Brilhos que respiram devagar: placa de Poder, quadro do nome e moldura de runas */
+html[data-interface="arcane"] .poder-destaque { animation: arcane-respira-ouro 4.5s ease-in-out infinite; }
+html[data-interface="arcane"] .ficha .cabeca { animation: arcane-respira-nome 3.2s ease-in-out infinite; }
+@keyframes arcane-respira-ouro {
+  0%, 100% { box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .35), inset 0 0 18px rgba(0, 0, 0, .6), 0 0 8px rgba(240, 190, 90, .15); }
+  50% { box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .55), inset 0 0 22px rgba(240, 190, 90, .18), 0 0 18px rgba(240, 190, 90, .45); }
+}
+@keyframes arcane-respira-nome {
+  0%, 100% { box-shadow: 0 0 12px rgba(240, 190, 90, .45), inset 0 0 16px rgba(240, 190, 90, .14); }
+  50% { box-shadow: 0 0 22px rgba(255, 205, 110, .8), inset 0 0 22px rgba(240, 190, 90, .28); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-interface="arcane"] .poder-destaque, html[data-interface="arcane"] .ficha .cabeca { animation: none; }
+}
+/* Névoa arcana atrás do retrato, girando devagar (verde à esquerda, azul à direita, roxo embaixo) */
+html[data-interface="arcane"] .personagem-tela { position: relative; isolation: isolate; }
+html[data-interface="arcane"] .personagem-tela::before {
+  content: ""; position: absolute; inset: -4% 30% -6% -4%; z-index: -1; pointer-events: none; border-radius: 40%;
+  background:
+    radial-gradient(ellipse 38% 45% at 22% 62%, rgba(34, 197, 94, .38), transparent 70%),
+    radial-gradient(ellipse 34% 42% at 80% 40%, rgba(59, 130, 246, .34), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 78% 92%, rgba(168, 85, 247, .32), transparent 70%);
+  filter: blur(14px); animation: arcane-nevoa 14s ease-in-out infinite alternate;
+}
+@keyframes arcane-nevoa {
+  0% { transform: rotate(-4deg) scale(1); opacity: .8; }
+  50% { transform: rotate(3deg) scale(1.05); opacity: 1; }
+  100% { transform: rotate(-2deg) scale(.97); opacity: .85; }
+}
+@media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .personagem-tela::before { animation: none; } }
