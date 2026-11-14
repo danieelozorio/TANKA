@@ -895,4 +895,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Base: CSS do Gemini (paleta castelo/ferro/ouro velho/arcano, Cinzel + Inter), aplicado nas classes reais (`.caixa`,
   `.abas-jogo`, `.sub-abas`, `.barra.*`, `.poder-destaque`, `.btn`, `.slot`/`.celula`, `.ranking`, `.leilao-lote`...).
 - Molduras dos itens: `assets/interface/arcane/slot-<comum|rara|conjunto|epica|lendaria|vazio>.webp`, recortadas da
-  referência do Henri (`--arcane-slot` em cada `.borda-*`). Bônus dos equipamentos vira pergaminho.
+  referência do Henri (`--arcane-slot` em cada `.borda-*`), com a cor da raridade suavizada. Bônus dos equipamentos vira pergaminho.
+- Camada "maquete" (seção 11 do CSS): artes **provisórias** recortadas da maquete do Henri (baixa resolução): paredes do
+  castelo nas laterais (`lateral-esq/dir`), torres no topo, escudos nos espaços vazios (`escudo-<espaço>`, via `--arcane-escudo`),
+  moldura de runas no retrato (`moldura-runas`, em `.retrato-central::before`), brasão/castelo/dragão em cima da mochila e
+  dragões no rodapé. Trocar pelas versões em alta do Gemini quando chegarem (mesmos nomes de arquivo).

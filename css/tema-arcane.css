@@ -325,3 +325,145 @@ html[data-interface="arcane"] .ranking tr.meu td {
 
 /* ---------- 10. Rodapé ---------- */
 html[data-interface="arcane"] .rodape { border-top: 2px solid var(--ferro-borda); background: linear-gradient(180deg, #12151b, #0b0d11); color: var(--texto-secundario); }
+
+/* ==========================================================================
+   11. Camada "maquete" (Henri, nov/2026): aproxima da imagem de referência.
+   Artes recortadas da maquete em assets/interface/arcane/ (provisórias até
+   chegarem as artes em alta do Gemini).
+   ========================================================================== */
+html[data-interface="arcane"] {
+  --navy: linear-gradient(180deg, #161d2c 0%, #0f1420 100%);
+  --madeira: linear-gradient(180deg, #2b1d13 0%, #1a110b 100%);
+  --ouro-moldura: #9b7a3c;
+}
+/* Fundo: paredes do castelo nas laterais (vitrais, velas e tochas) */
+html[data-interface="arcane"] body {
+  background:
+    url("../assets/interface/arcane/lateral-esq.webp") left top / auto 100vh no-repeat fixed,
+    url("../assets/interface/arcane/lateral-dir.webp") right top / auto 100vh no-repeat fixed,
+    radial-gradient(ellipse at 50% 0%, rgba(217, 172, 84, .07), transparent 55%) fixed,
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .25) 0 2px, transparent 2px 44px) fixed,
+    linear-gradient(180deg, #14161c, #0b0c10) fixed;
+}
+/* Topo: ameias e torres do castelo atrás do nome */
+html[data-interface="arcane"] .topo {
+  background: url("../assets/interface/arcane/topo-castelo.webp") center bottom / auto 100% no-repeat, linear-gradient(180deg, #0f1218, #0b0d11);
+  border-bottom: 1px solid #000;
+}
+html[data-interface="arcane"] .barra-recursos {
+  background: linear-gradient(180deg, #2a2116 0%, #17120c 100%);
+  border-top: 2px solid var(--ouro-moldura); border-bottom: 2px solid var(--ouro-moldura);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, .25), 0 6px 18px rgba(0, 0, 0, .7);
+}
+html[data-interface="arcane"] .recurso { background: linear-gradient(180deg, #1a1d27, #0f1118); border-color: var(--ouro-moldura); }
+
+/* Painéis: azul-noite com moldura dourada dupla */
+html[data-interface="arcane"] .caixa {
+  background: var(--navy);
+  border: 2px solid var(--ouro-moldura);
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 0 5px rgba(155, 122, 60, .55),
+    inset 0 0 0 1px rgba(255, 220, 150, .12), inset 0 0 40px rgba(0, 0, 0, .7), 0 14px 30px rgba(0, 0, 0, .8);
+}
+html[data-interface="arcane"] .caixa::before { --t: 26px; --g: 3px; inset: -6px; }
+
+/* Ficha: retrato pequeno com moldura dourada brilhante */
+html[data-interface="arcane"] .ficha .cabeca {
+  padding: .5rem; border: 2px solid #c9a14e; border-radius: 6px;
+  background: linear-gradient(180deg, #1d1a14, #12100c);
+  box-shadow: 0 0 14px rgba(240, 190, 90, .55), inset 0 0 18px rgba(240, 190, 90, .18);
+}
+html[data-interface="arcane"] .ficha .cabeca .moldura { border-color: #e2bb63; box-shadow: 0 0 10px rgba(240, 190, 90, .6); }
+/* Barras com pontas de flecha (Vida e Estamina) */
+html[data-interface="arcane"] .ficha .barra.hp, html[data-interface="arcane"] .ficha .barra.estamina {
+  border-radius: 2px; border-color: #6a5430;
+  clip-path: polygon(9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%, 0 50%);
+}
+html[data-interface="arcane"] .ficha .barra.hp > i, html[data-interface="arcane"] .ficha .barra.estamina > i { border-radius: 0; }
+html[data-interface="arcane"] .barra.estamina > i { background: linear-gradient(180deg, #ffe08a, #e0a52a 55%, #a86d12); }
+html[data-interface="arcane"] .barra.hp > i { background: linear-gradient(180deg, #ff8a7a, #d22f22 55%, #8a1610); }
+/* Brasão de Poder: placa dourada ornamentada */
+html[data-interface="arcane"] .poder-destaque {
+  background: radial-gradient(ellipse at center, rgba(240, 200, 110, .35), transparent 70%), linear-gradient(180deg, #3a2c16, #1c150b);
+  border: 2px solid #c9a14e; border-radius: 4px;
+  box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .35), inset 0 0 18px rgba(0, 0, 0, .6), 0 6px 14px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .poder-ico { border-width: 2px; background: radial-gradient(circle, #5a4320, #1c150b); }
+/* Carta da arma: vinho escuro com fio dourado */
+html[data-interface="arcane"] .arma-carta {
+  background: linear-gradient(180deg, #2a1418, #160b0d); border: 1px solid #8a6a36; border-left-width: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 150, .1), inset 0 0 20px rgba(120, 20, 30, .35);
+}
+html[data-interface="arcane"] .arma-stat { background: rgba(10, 6, 7, .55); border-color: rgba(138, 106, 54, .45); }
+
+/* Abas: faixa de couro/ouro */
+html[data-interface="arcane"] .abas-jogo { background: linear-gradient(180deg, #2a2116, #15100a); border: 2px solid var(--ouro-moldura); }
+html[data-interface="arcane"] .abas-jogo button.ativa { background: linear-gradient(180deg, #4a3a20, #241b0e); border-color: #e2bb63; }
+
+/* Personagem: escudos nos espaços vazios e moldura de runas no retrato */
+html[data-interface="arcane"] .boneco { --slot: 72px; }
+html[data-interface="arcane"] .slot.vazio {
+  height: calc(var(--slot) * 1.15); padding: 0; border: 0; opacity: 1; box-shadow: none;
+  background: var(--arcane-escudo, none) center / contain no-repeat;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .7));
+}
+html[data-interface="arcane"] .slot.vazio > * { visibility: hidden; }
+html[data-interface="arcane"] .espaco-elmo { --arcane-escudo: url("../assets/interface/arcane/escudo-elmo.webp"); }
+html[data-interface="arcane"] .espaco-colar { --arcane-escudo: url("../assets/interface/arcane/escudo-colar.webp"); }
+html[data-interface="arcane"] .espaco-peitoral { --arcane-escudo: url("../assets/interface/arcane/escudo-peitoral.webp"); }
+html[data-interface="arcane"] .espaco-luvas { --arcane-escudo: url("../assets/interface/arcane/escudo-luvas.webp"); }
+html[data-interface="arcane"] .espaco-arma { --arcane-escudo: url("../assets/interface/arcane/escudo-arma.webp"); }
+html[data-interface="arcane"] .espaco-anel1 { --arcane-escudo: url("../assets/interface/arcane/escudo-anel1.webp"); }
+html[data-interface="arcane"] .espaco-secundaria { --arcane-escudo: url("../assets/interface/arcane/escudo-secundaria.webp"); }
+html[data-interface="arcane"] .espaco-anel2 { --arcane-escudo: url("../assets/interface/arcane/escudo-anel2.webp"); }
+html[data-interface="arcane"] .espaco-botas { --arcane-escudo: url("../assets/interface/arcane/escudo-botas.webp"); }
+html[data-interface="arcane"] .personagem-tela {
+  padding: 1rem .6rem; border-radius: 6px;
+  background: radial-gradient(ellipse at 15% 75%, rgba(34, 197, 94, .18), transparent 45%),
+    radial-gradient(ellipse at 60% 30%, rgba(59, 130, 246, .14), transparent 45%),
+    radial-gradient(ellipse at 90% 95%, rgba(168, 85, 247, .2), transparent 45%);
+}
+html[data-interface="arcane"] .retrato-central { border: 0; box-shadow: none; overflow: visible; }
+html[data-interface="arcane"] .retrato-central::before {
+  content: ""; position: absolute; z-index: 2; pointer-events: none; filter: none; animation: arcane-aura 6s ease-in-out infinite;
+  /* janela interna da moldura: 7% / 11% / 8,5% / 10,4% da imagem */
+  left: -8.4%; right: -10.2%; top: -13.6%; bottom: -12.8%; border-radius: 0;
+  background: url("../assets/interface/arcane/moldura-runas.webp") center / 100% 100% no-repeat;
+}
+html[data-interface="arcane"] .retrato-central::after { border-radius: 4px; }
+/* Bônus dos equipamentos: pergaminho alto com cantos dourados */
+html[data-interface="arcane"] .personagem-tela .lateral { align-self: stretch; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna {
+  min-height: 100%; padding: 1rem 1.1rem;
+  background: radial-gradient(ellipse at 50% 40%, #e3d2ad, #c7ae83 70%, #a98d60 100%);
+  border: 2px solid #7a5a2c; border-radius: 3px;
+  box-shadow: 0 0 0 1px #2a1c0c, inset 0 0 0 4px rgba(122, 90, 44, .25), inset 0 0 30px rgba(80, 50, 20, .45), 0 8px 18px rgba(0, 0, 0, .7);
+  font-family: Georgia, 'EB Garamond', serif;
+}
+
+/* Mochila: painel de madeira com o brasão, o castelo e o dragão em cima */
+html[data-interface="arcane"] .pg-mochila {
+  position: relative; margin-top: 2.6rem; padding: .8rem; border-radius: 4px;
+  background: var(--madeira); border: 2px solid var(--ouro-moldura);
+  box-shadow: 0 0 0 1px #000, inset 0 0 30px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .pg-mochila::before {
+  content: ""; position: absolute; right: -8px; top: -62px; width: 66%; height: 72px; pointer-events: none;
+  background: url("../assets/interface/arcane/mochila-brasao.webp") right bottom / contain no-repeat;
+}
+html[data-interface="arcane"] .pg-mochila > h3.subtitulo { position: absolute; top: -2.2rem; left: 0; margin: 0; }
+html[data-interface="arcane"] .mochila-abas { border-bottom-color: var(--ouro-moldura); }
+html[data-interface="arcane"] .mochila-abas button { background: linear-gradient(180deg, #2a1d13, #1a110b); border: 1px solid #5a4326; border-bottom: 0; color: var(--texto-secundario); }
+html[data-interface="arcane"] .mochila-abas button.ativa { color: #ffe0a0; background: linear-gradient(180deg, #6a2a1a, #3a160d); border-color: #c9a14e; }
+html[data-interface="arcane"] .mochila-barra { background: rgba(10, 6, 3, .55); border-color: rgba(155, 122, 60, .45); }
+
+/* Rodapé de ferro com dragões */
+html[data-interface="arcane"] .rodape {
+  position: relative; padding: 1.4rem 16px; font-family: var(--fonte-titulo); color: #c9bfa8;
+  background: url("../assets/interface/arcane/rodape-dragao-esq.webp") calc(50% - 175px) center / auto 100% no-repeat,
+    url("../assets/interface/arcane/rodape-dragao-dir.webp") calc(50% + 180px) center / auto 100% no-repeat,
+    linear-gradient(180deg, #1a1c22, #0b0c10);
+  border-top: 2px solid #4a4f5a;
+}
+/* escudos por cima da moldura de runas (como na maquete) */
+html[data-interface="arcane"] .boneco .espaco { position: relative; z-index: 3; }
+html[data-interface="arcane"] .rodape { display: block; width: 100%; box-sizing: border-box; }
