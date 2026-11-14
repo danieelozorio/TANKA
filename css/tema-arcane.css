@@ -737,4 +737,14 @@ html[data-interface="arcane"] .cacada-num strong { font-family: var(--fonte-titu
   html[data-interface="arcane"] .vs { font-size: 1.5rem; }
   html[data-interface="arcane"] .registro { height: 160px; font-size: .92rem; }
   html[data-interface="arcane"] .cacada-arena { min-height: 0; }
+  /* Duas colunas iguais: o "Caçada em andamento…" não aperta a carta do herói */
+  html[data-interface="arcane"] .cacada-arena { position: relative; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .6rem; padding: .7rem .5rem; }
+  html[data-interface="arcane"] .cacada-arena > .vs { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); z-index: 2; pointer-events: none; }
+  html[data-interface="arcane"] .cacada-arena > .vs:empty { display: none; }
+  html[data-interface="arcane"] .cacada-busca { min-width: 0; gap: .3rem; padding: .4rem .2rem; }
+  html[data-interface="arcane"] .busca-txt { font-size: .78rem; line-height: 1.2; }
+  html[data-interface="arcane"] .busca-passos { height: 2rem; gap: .5rem; }
+  html[data-interface="arcane"] .busca-passos .passo { width: .8rem; }
+  html[data-interface="arcane"] .busca-barra { width: 100%; height: 7px; }
+  html[data-interface="arcane"] .cacada-busca .busca-icone { max-width: 54px; max-height: 54px; }
 }
