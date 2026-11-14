@@ -1080,6 +1080,33 @@
       return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + (a === abaDoGuia() && estado.aba !== a ? ' guia-alvo' : '') + '">' + (ICONES_SUB[a] ? '<span class="sub-ico">' + ICONES_SUB[a] + '</span>' : '') + NOME_ABA[a] + seloDaAba(a) + '</button>';
     }).join('') + '</nav>' : '';
   }
+  // Menu em cascata da Arcane no celular (Henri, nov/2026): um botão mostra onde o jogador está (grupo › aba) e abre a
+  // lista dos grupos, cada um com ícone e nome; tocar num grupo abre as abas dele embaixo (ícone + nome).
+  // Só existe no tema Arcane; o css/tema-arcane.css mostra a cascata nas telas estreitas e esconde as abas normais.
+  function cascataHtml() {
+    if (temaAtual() !== 'arcane') return '';
+    var g0 = grupoDaAba(estado.aba) || GRUPOS[0], aberto = !!estado.cascata, exp = estado.cascataGrupo || g0.id;
+    var selos = function (g) { return g.abas.map(seloDaAba).join(''); };
+    var h = '<div class="cascata' + (aberto ? ' aberta' : '') + '"><button type="button" class="cascata-botao" data-acao="cascata" aria-expanded="' + aberto + '">'
+      + '<span class="cascata-ico">' + ICONES[g0.id] + '</span><span class="cascata-onde"><b>' + g0.nome + '</b>'
+      + (g0.abas.length > 1 && NOME_ABA[estado.aba] ? '<small>' + (ICONES_SUB[estado.aba] ? '<span class="sub-ico">' + ICONES_SUB[estado.aba] + '</span>' : '') + NOME_ABA[estado.aba] + '</small>' : '')
+      + '</span><span class="cascata-seta" aria-hidden="true">▾</span></button>';
+    if (aberto) {
+      h += '<div class="cascata-painel" role="menu">' + GRUPOS.map(function (g) {
+        var varias = g.abas.length > 1, expandido = varias && exp === g.id;
+        var botao = '<button type="button" role="menuitem" class="cascata-grupo' + (g === g0 ? ' atual' : '') + (expandido ? ' expandido' : '') + '" '
+          + (varias ? 'data-acao="cascata-grupo" data-valor="' + g.id + '" aria-expanded="' + expandido + '"' : 'data-acao="aba" data-aba="' + g.abas[0] + '"') + '>'
+          + '<span class="cascata-ico">' + ICONES[g.id] + '</span><span class="cascata-nome">' + g.nome + '</span>' + selos(g)
+          + (varias ? '<span class="cascata-seta" aria-hidden="true">›</span>' : '') + '</button>';
+        var subs = expandido ? '<div class="cascata-subs">' + g.abas.map(function (a) {
+          return '<button type="button" role="menuitem" class="cascata-sub' + (estado.aba === a ? ' atual' : '') + '" data-acao="aba" data-aba="' + a + '">'
+            + '<span class="sub-ico">' + (ICONES_SUB[a] || '') + '</span><span class="cascata-nome">' + NOME_ABA[a] + '</span>' + seloDaAba(a) + '</button>';
+        }).join('') + '</div>' : '';
+        return botao + subs;
+      }).join('') + '</div>';
+    }
+    return h + '</div>';
+  }
   // Atualiza só os selos das abas (pedidos de amizade, convites, ataques na Arena).
   function atualizarNav() {
     var nav = document.getElementById('abas-jogo');
@@ -3471,7 +3498,7 @@
       navegacao = navHtml();
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
-      painel = (zealot ? '' : navegacao + subAbas)
+      painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
@@ -4544,7 +4571,9 @@
         telaJogo();
         break;
       }
-      case 'aba': abrirAba(el.dataset.aba); break;
+      case 'aba': estado.cascata = false; estado.cascataGrupo = null; abrirAba(el.dataset.aba); break;
+      case 'cascata': estado.cascata = !estado.cascata; estado.cascataGrupo = null; telaJogo(); break;
+      case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'personagem-vista':
         estado.vistaPersonagem = el.dataset.valor;
         telaJogo();
@@ -7659,6 +7688,8 @@
   // Interface escolhida (index.html já carregou o tema certo antes de desenhar): 'classica' ou 'zealot'.
   function interfaceAtual() { return document.documentElement.getAttribute('data-interface') === 'zealot' ? 'zealot' : 'classica'; }
   // Tema escolhido na ⚙ (classica, zealot ou arcane). A Arcane usa as telas da Clássica, só muda o visual (css/tema-arcane.css).
+  // Aparelho de toque com tela pequena (o mesmo teste do jogar/index.html), mesmo quando o jogador escolheu a Arcane.
+  function ehCelularAparelho() { return !!(window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820); }
   function temaAtual() { var t = document.documentElement.getAttribute('data-interface'); return t === 'zealot' || t === 'arcane' ? t : 'classica'; }
   // Cada cena tem a sua música: entrada (login, personagens, criação), jogo (as duas célticas se revezando),
   // masmorra, arena e chefe. Ao trocar de cena uma música some aos poucos e a outra entra.
@@ -7790,7 +7821,11 @@
     if (tipo === 'interface') {
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
-        + (document.documentElement.hasAttribute('data-celular') ? '<p class="suave pequeno">No celular o jogo usa sempre a tela própria do celular. As interfaces Clássica, Zealot e Arcane são para o computador.</p>'
+        + (ehCelularAparelho() ? '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
+          + [['zealot', 'Padrão do celular'], ['arcane', 'Arcane (teste)']].map(function (x) {
+            var ativa = temaAtual() === x[0];
+            return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
+          }).join('') + '</div></div>'
           : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
           + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];

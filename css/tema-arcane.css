@@ -580,3 +580,107 @@ html[data-interface="arcane"] .poder-txt small { font-family: var(--fonte-titulo
 html[data-interface="arcane"] .poder-txt strong { font-family: 'EB Garamond', Georgia, serif; font-weight: 700; font-size: 2.3rem; color: #ffd98a; text-shadow: 0 0 12px rgba(255, 200, 100, .55), 0 2px 2px #000; }
 @keyframes arcane-respira-placa { 0%, 100% { filter: drop-shadow(0 0 4px rgba(240, 190, 90, .2)); } 50% { filter: drop-shadow(0 0 14px rgba(240, 190, 90, .55)); } }
 @media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .poder-destaque { animation: none; } }
+
+/* ==========================================================================
+   14. Arcane no celular (Henri, nov/2026): tela estreita, jeito de app.
+   Abas viram menu em cascata (ícone + nome), imagens menores, ficha compacta.
+   ========================================================================== */
+html[data-interface="arcane"] .cascata { display: none; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] body {
+    font-size: 15px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(217, 172, 84, .08), transparent 60%) fixed,
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, .25) 0 2px, transparent 2px 40px) fixed, linear-gradient(180deg, #14161c, #0b0c10) fixed;
+  }
+  /* Topo enxuto: nome à esquerda, botões pequenos; recursos em 2 colunas */
+  html[data-interface="arcane"] .topo { padding: .45rem .7rem; background: url("../assets/interface/arcane/topo-castelo.webp") center bottom / auto 100% no-repeat, linear-gradient(180deg, #0f1218, #0b0d11); }
+  html[data-interface="arcane"] .topo .logo { font-size: 1.1rem; }
+  html[data-interface="arcane"] .topo .acoes { gap: .3rem; }
+  html[data-interface="arcane"] .topo .acoes > .suave { display: none; }
+  html[data-interface="arcane"] .topo .acoes .btn { padding: .35em .6em; font-size: .72rem; }
+  html[data-interface="arcane"] .recursos-dentro { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; gap: .35rem; padding: .4rem .6rem; }
+  html[data-interface="arcane"] .recurso { min-width: 0; padding: .15rem .5rem .15rem .2rem; gap: .35rem; }
+  html[data-interface="arcane"] .rec-ico { width: 26px; height: 26px; }
+  html[data-interface="arcane"] .rec-ico svg { width: 15px; height: 15px; }
+  html[data-interface="arcane"] .rec-txt small { font-size: .58rem; }
+  html[data-interface="arcane"] .rec-txt strong { font-size: .9rem; }
+  html[data-interface="arcane"] .avisos-topo { grid-column: 3; grid-row: 1 / span 2; display: grid; gap: .3rem; }
+  html[data-interface="arcane"] .conteudo { padding: .7rem .55rem 2rem; }
+  html[data-interface="arcane"] .jogo { grid-template-columns: 1fr; gap: .9rem; }
+  html[data-interface="arcane"] .caixa { padding: .8rem; box-shadow: 0 0 0 1px #000, 0 0 0 3px #2a2116, inset 0 0 30px rgba(0, 0, 0, .6), 0 8px 18px rgba(0, 0, 0, .7); }
+
+  /* Ficha compacta: retrato pequeno, barras e Poder; Arma e Atividades ficam na aba Personagem */
+  html[data-interface="arcane"] .ficha .cabeca { grid-template-columns: 64px 1fr; gap: .7rem; padding: .5rem .6rem; }
+  html[data-interface="arcane"] .ficha .cabeca h2 { font-size: 1.25rem; }
+  html[data-interface="arcane"] .ficha .cabeca .suave, html[data-interface="arcane"] .ficha .cabeca .nivel { font-size: 1rem; }
+  html[data-interface="arcane"] .ficha .cabeca::before, html[data-interface="arcane"] .ficha .cabeca::after { width: 30px; height: 40px; top: -28px; }
+  html[data-interface="arcane"] .ficha .cabeca::before { left: -20px; } html[data-interface="arcane"] .ficha .cabeca::after { right: -20px; }
+  html[data-interface="arcane"] .ficha > .suave, html[data-interface="arcane"] .ficha .dica { font-size: .95rem; margin-top: .15rem; }
+  html[data-interface="arcane"] .ficha .barra.hp, html[data-interface="arcane"] .ficha .barra.estamina, html[data-interface="arcane"] .ficha .barra.exp { height: 20px; margin: .15rem 0 .35rem; }
+  html[data-interface="arcane"] .ficha .barra > b { line-height: 18px; font-size: .9rem; }
+  html[data-interface="arcane"] .poder-destaque { max-width: 300px; margin: 1.1rem auto .2rem; }
+  html[data-interface="arcane"] .poder-txt strong { font-size: 1.8rem; }
+  html[data-interface="arcane"] .poder-txt small { font-size: .66rem; }
+  html[data-interface="arcane"] .ficha > .secao, html[data-interface="arcane"] .ficha .ficha-sanfona,
+  html[data-interface="arcane"] .ficha .atividades, html[data-interface="arcane"] .ficha .vida-tempo { display: none; }
+
+  /* Abas normais escondidas; no lugar, o menu em cascata */
+  html[data-interface="arcane"] .abas-jogo, html[data-interface="arcane"] .sub-abas { display: none; }
+  html[data-interface="arcane"] .cascata { display: block; position: relative; z-index: 7; margin: 0 0 .8rem; }
+  html[data-interface="arcane"] .cascata-botao {
+    width: 100%; display: flex; align-items: center; gap: .6rem; padding: .55rem .8rem; cursor: pointer; text-align: left;
+    color: var(--ouro-texto); font-family: var(--fonte-titulo); border: 2px solid var(--ouro-moldura); border-radius: 6px;
+    background: linear-gradient(180deg, #3a2c18, #1d160c); box-shadow: inset 0 1px 0 rgba(255, 230, 160, .25), 0 4px 10px rgba(0, 0, 0, .6);
+  }
+  html[data-interface="arcane"] .cascata-onde { flex: 1; display: grid; line-height: 1.15; }
+  html[data-interface="arcane"] .cascata-onde b { font-size: 1rem; letter-spacing: .04em; }
+  html[data-interface="arcane"] .cascata-onde small { display: flex; align-items: center; gap: .3rem; font-family: var(--fonte-corpo); font-size: .78rem; color: var(--texto-secundario); }
+  html[data-interface="arcane"] .cascata-ico { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%;
+    border: 1px solid var(--ouro-moldura); background: radial-gradient(circle, #4a3a1e, #17110a); color: var(--ouro-brilho); }
+  html[data-interface="arcane"] .cascata-ico svg { width: 18px; height: 18px; }
+  html[data-interface="arcane"] .cascata .sub-ico svg { width: 14px; height: 14px; }
+  html[data-interface="arcane"] .cascata-seta { font-size: 1.1rem; color: var(--ouro-brilho); transition: transform .2s; }
+  html[data-interface="arcane"] .cascata.aberta .cascata-botao .cascata-seta { transform: rotate(180deg); }
+  html[data-interface="arcane"] .cascata-painel {
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px); display: grid; gap: 2px; padding: .4rem;
+    border: 2px solid var(--ouro-moldura); border-radius: 6px; background: linear-gradient(180deg, #171d2b, #0e121b);
+    box-shadow: 0 0 0 1px #000, 0 14px 30px rgba(0, 0, 0, .85); animation: cascata-desce .18s ease-out;
+  }
+  @keyframes cascata-desce { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  html[data-interface="arcane"] .cascata-grupo, html[data-interface="arcane"] .cascata-sub {
+    display: flex; align-items: center; gap: .65rem; width: 100%; padding: .5rem .6rem; cursor: pointer; text-align: left;
+    border: 1px solid transparent; border-radius: 5px; background: none; color: var(--texto-principal); font-family: var(--fonte-titulo); font-size: .95rem;
+  }
+  html[data-interface="arcane"] .cascata-grupo .cascata-nome, html[data-interface="arcane"] .cascata-sub .cascata-nome { flex: 1; }
+  html[data-interface="arcane"] .cascata-grupo.atual { color: var(--ouro-texto); background: linear-gradient(90deg, rgba(217, 172, 84, .16), transparent); border-color: rgba(217, 172, 84, .35); }
+  html[data-interface="arcane"] .cascata-grupo.expandido .cascata-seta { transform: rotate(90deg); }
+  html[data-interface="arcane"] .cascata-subs { display: grid; gap: 2px; margin: 0 0 .3rem 1.4rem; padding-left: .7rem; border-left: 2px solid var(--ouro-moldura); }
+  html[data-interface="arcane"] .cascata-sub { font-family: var(--fonte-corpo); font-size: .9rem; padding: .42rem .55rem; color: var(--texto-secundario); }
+  html[data-interface="arcane"] .cascata-sub .sub-ico { display: inline-grid; place-items: center; width: 22px; color: var(--ouro-brilho); }
+  html[data-interface="arcane"] .cascata-sub.atual { color: #1a1207; font-weight: 700; background: linear-gradient(180deg, #e5be6b, #b58938); }
+  html[data-interface="arcane"] .cascata-sub.atual .sub-ico { color: #1a1207; }
+
+  /* Personagem: imagens menores */
+  html[data-interface="arcane"] .personagem-tela { grid-template-columns: 1fr; padding: .6rem .2rem; }
+  html[data-interface="arcane"] .personagem-tela::before { inset: -2% -2% 30% -2%; }
+  html[data-interface="arcane"] .boneco { --slot: 50px; max-width: 330px; gap: .35rem; }
+  html[data-interface="arcane"] .retrato-central { max-width: 170px; }
+  html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna { min-height: 0; }
+  html[data-interface="arcane"] .pg-mochila { margin-top: 2rem; padding: .55rem; }
+  html[data-interface="arcane"] .pg-mochila::before { width: 78%; height: 52px; top: -46px; }
+  html[data-interface="arcane"] .pg-mochila > h3.subtitulo { top: -1.7rem; font-size: .95rem; }
+  html[data-interface="arcane"] .mochila { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  html[data-interface="arcane"] .slot, html[data-interface="arcane"] .celula { padding: 8px; }
+  html[data-interface="arcane"] .mochila-barra { padding: .45rem .5rem; }
+  html[data-interface="arcane"] .dica-mochila { display: none; }
+
+  /* Outras telas: mapa, cartas e tabelas no tamanho da tela */
+  html[data-interface="arcane"] .mapa-icone { width: 40px; height: 40px; font-size: 1.2rem; }
+  html[data-interface="arcane"] .mapa-nome { font-size: .66rem; }
+  html[data-interface="arcane"] .mapa-nivel { font-size: .6rem; }
+  html[data-interface="arcane"] .ranking { font-size: .82rem; }
+  html[data-interface="arcane"] h2 { font-size: 1.1rem; } html[data-interface="arcane"] h3 { font-size: .95rem; }
+  html[data-interface="arcane"] .rodape { padding: .9rem 10px; font-size: .78rem;
+    background: url("../assets/interface/arcane/rodape-dragao-esq.webp") calc(50% - 115px) center / auto 80% no-repeat,
+      url("../assets/interface/arcane/rodape-dragao-dir.webp") calc(50% + 120px) center / auto 80% no-repeat, linear-gradient(180deg, #1a1c22, #0b0c10); }
+}
