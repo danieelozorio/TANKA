@@ -1722,9 +1722,9 @@
     if (def.silencia) x.push('o oponente fica ' + def.silencia + ' vez sem habilidades');
     if (def.garantido) x.push('sempre vale o 20 do dado e não pode ser esquivado');
     if (def.executa) x.push('<b>+' + def.executa.bonus + '%</b> se o oponente tiver menos de ' + def.executa.abaixo + '% da vida');
-    if (def.queima) x.push('queima por ' + def.queima.turnos + ' vezes (' + def.queima.pct + '% do seu dano) e corta as curas pela metade');
+    if (def.queima) x.push('queima por ' + def.queima.turnos + ' vezes (<b>' + String(R.valorNivel(def.queima.pct, n)).replace('.', ',') + '%</b> do seu dano) e corta as curas pela metade');
     if (def.quebraDefesaPct) x.push('prende por ' + def.atordoa + ' vez e tira ' + def.quebraDefesaPct + '% da defesa até o fim da luta');
-    if (def.erroPct) x.push('por ' + def.turnos + ' vezes, o oponente tem ' + def.erroPct + '% de chance de errar');
+    if (def.erroPct) x.push('por ' + def.turnos + ' vezes, o oponente tem <b>' + v('erroPct') + '%</b> de chance de errar');
     if (def.milagrePct) x.push('uma vez por luta, se cair, volta com <b>' + v('milagrePct') + '%</b> da vida');
     if (Array.isArray(def.defesaPct)) x.push('<b>+' + v('defesaPct') + '%</b> de defesa por ' + def.turnos + ' vezes e devolve ' + def.reflete + '% do dano recebido');
     var t = x.join('; ');

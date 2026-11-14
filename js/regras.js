@@ -608,10 +608,10 @@ Tanka.regras = (function () {
     return o;
   }
   // Depois de acertar um golpe do level 30: quebra a defesa e queima (dano médio do herói x pct, no começo da vez do monstro).
-  function depoisDoGolpeNivel(def, alvo, s) {
+  function depoisDoGolpeNivel(def, alvo, s, pts) {
     if (!def || !alvo || alvo.hp <= 0) return;
     if (def.quebraDefesaPct) alvo.defQuebra = Math.max(alvo.defQuebra || 0, def.quebraDefesaPct);
-    if (def.queima) alvo.queima = { turnos: def.queima.turnos, dano: Math.max(1, Math.round((s.dano[0] + s.dano[1]) / 2 * def.queima.pct / 100)) };
+    if (def.queima) alvo.queima = { turnos: def.queima.turnos, dano: Math.max(1, Math.round((s.dano[0] + s.dano[1]) / 2 * valorNivel(def.queima.pct, pts || 0) / 100)) };
   }
   // Queimadura no começo da vez do monstro. Retorna o dano (0 se não queimou).
   function tickQueima(m) {
@@ -673,7 +673,7 @@ Tanka.regras = (function () {
       return;
     }
     if (def.tipo === 'cegar') {
-      if (dono.alvo) { dono.alvo.cego = def.turnos || 2; dono.alvo.cegoPct = def.erroPct || 0; }
+      if (dono.alvo) { dono.alvo.cego = def.turnos || 2; dono.alvo.cegoPct = valorNivel(def.erroPct, pts); }
       return;
     }
     if (def.tipo === 'escudo') {
@@ -1683,7 +1683,7 @@ Tanka.regras = (function () {
         b.jogador.hp = Math.min(b.jogador.hpMax, b.jogador.hp + cd);
         hab.curou = cd;
       }
-      if (g.acerto && def.nivel) depoisDoGolpeNivel(def, b.monstro, b.s);
+      if (g.acerto && def.nivel) depoisDoGolpeNivel(def, b.monstro, b.s, k.pts);
       if (g.acerto && def.atordoa && !b.fim) {
         var t = b.chefe ? Math.min(def.atordoa, T.atordoarChefeMax) : def.atordoa;
         b.monstro.atordoado = Math.max(b.monstro.atordoado, t);
@@ -2513,7 +2513,7 @@ Tanka.regras = (function () {
               alvo.hp = Math.max(0, alvo.hp - g.dano);
               aoCausar(L, H, g.dano);
               if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100));
-              if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s);
+              if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s, k.pts);
               e.caiu = alvo.hp === 0;
               if (k && k.def.atordoa && alvo.hp > 0) {
                 var t = alvo.chefe ? Math.min(k.def.atordoa, T.atordoarChefeMax) : k.def.atordoa;

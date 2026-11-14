@@ -1053,7 +1053,7 @@ begin
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
   if (d -> 'queima' ->> 'turnos')::int <> 3 or (d ->> 'cortaCura')::int <> 3 then raise exception 'FALHA maldição: %', d; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'queimou')::int <> 15 then raise exception 'FALHA maldição: queimadura de 15%% do dano: %', r -> 'ev'; end if;
+  if (r -> 'ev' ->> 'queimou')::int <> 16 then raise exception 'FALHA maldição: queimadura de 16%% do dano (15 + 1 ponto): %', r -> 'ev'; end if;
   raise notice 'ok   arena: Maldição de Ignaroth queima e corta a cura';
   -- Milagre: volta uma vez
   d := base || jsonb_build_object('hp', 1, 'milagre', 25, 'defesa', 0);
@@ -1072,7 +1072,7 @@ begin
   -- Pó nos Olhos: o outro fica cego por 2 vezes
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('artesao', 30, '{"classe2":"coletor","pontos":{"po-nos-olhos":1},"ordem":{"arena":["po-nos-olhos"]}}')));
   r := public.arena_vez(a, base, 10);
-  if (r -> 'outro' ->> 'cego')::int <> 2 or (r -> 'outro' ->> 'cegoPct')::numeric <> 30 then raise exception 'FALHA pó nos olhos: %', r -> 'outro'; end if;
+  if (r -> 'outro' ->> 'cego')::int <> 2 or (r -> 'outro' ->> 'cegoPct')::numeric <> 31 then raise exception 'FALHA pó nos olhos: %', r -> 'outro'; end if;
   raise notice 'ok   arena: Pó nos Olhos cega o oponente';
   -- Execução: sempre o 20 do dado e +50% abaixo de 30% da vida
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 30, '{"classe2":"assassino","pontos":{"execucao":1},"ordem":{"arena":["execucao"]}}')));
