@@ -819,8 +819,10 @@ Tanka.dados = {
   // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem
   // habilidades. Batalha automática com semente do servidor (todos calculam a mesma luta).
   // Salas: 1) os 3 monstros da área; 2) 2x o 3º monstro + Elite; 3) Chefe da Masmorra.
-  // forca: multiplica vida e ataque de todos os monstros da masmorra (calibrado por simulação:
-  // grupo no level mínimo, itens da raridade da área +3, vence cerca de 2 em 3 vezes).
+  // forca: multiplica vida e ataque de todos os monstros da masmorra. Calibrado por simulação (nov/2026,
+  // pedido do Henri): 3 heróis 5 levels ACIMA do mínimo, com itens épicos +5, vencem ~60%; no level
+  // mínimo quase ninguém vence (ex.: Catacumbas lv15 pede 3 heróis lv20 bem equipados).
+  // poderRecomendado: poder de cada herói desse grupo (só para mostrar na tela).
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
   // pergaminho: % de chance de cada herói ganhar 1 pergaminho de encantamento na vitória (qualidade de
   // DROPS_CACADA). O sorteio é do servidor: mudar também em supabase/schema.sql (masmorra_concluir).
@@ -828,25 +830,25 @@ Tanka.dados = {
      tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 90 },
   masmorras: [
     { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
-      forca: { vida: 4, ataque: 8 },   // ataque 8 (era 4): o dano da Floresta caiu pela metade e a masmorra continua igual
+      forca: { vida: 15.86, ataque: 31.72 }, poderRecomendado: 2300,
       joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
     { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 10, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
-      forca: { vida: 3, ataque: 1.15 },
+      forca: { vida: 35.92, ataque: 13.77 }, poderRecomendado: 3800,
       joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
     { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 15, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
-      forca: { vida: 1.25, ataque: 1.15 },
+      forca: { vida: 13.99, ataque: 12.87 }, poderRecomendado: 6200,
       joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
     { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 20, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
-      forca: { vida: 1.5, ataque: 0.7 },
+      forca: { vida: 26.21, ataque: 12.23 }, poderRecomendado: 9600,
       joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
     { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 25, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
-      forca: { vida: 1.5, ataque: 0.6 },
+      forca: { vida: 32.14, ataque: 12.85 }, poderRecomendado: 15000,
       joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
     { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 30, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
-      forca: { vida: 0.6, ataque: 0.6 },
+      forca: { vida: 15.95, ataque: 15.95 }, poderRecomendado: 24000,
       joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
     { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 35, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
-      forca: { vida: 1, ataque: 0.5 },
+      forca: { vida: 29.75, ataque: 14.88 }, poderRecomendado: 39000,
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 

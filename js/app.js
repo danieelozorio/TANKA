@@ -5804,6 +5804,7 @@
       return '<div class="mas-card' + (mm.id === escolhida ? ' selecionada' : '') + (bloqueada ? ' bloqueada' : '') + '">'
         + '<div class="mas-card-topo"><strong>' + (bloqueada ? '🔒 ' : '') + esc(mm.nome) + '</strong><span class="suave">Level ' + mm.nivelMin + '+</span></div>'
         + '<div class="suave pequeno">' + area.monstros.map(function (m) { return m.nome; }).join(', ') + ' · Elite: ' + esc(mm.elite) + ' · Chefe: ' + esc(mm.chefe) + '</div>'
+        + (mm.poderRecomendado ? '<div class="pequeno">⚔ Poder recomendado: <strong>' + mm.poderRecomendado.toLocaleString('pt-BR') + '</strong> por herói' + (R.poder(p) < mm.poderRecomendado ? ' <span class="suave">(o seu: ' + R.poder(p).toLocaleString('pt-BR') + ')</span>' : '') + '</div>' : '')
         + '<div class="pequeno">Joia: ' + textoDrops(mm.joias) + ' · Pergaminho: ' + D.MASMORRA.pergaminho + '%</div>'
         + (souLider ? (mm.id === escolhida ? '<div class="online pequeno">✔ Escolhida</div>'
           : '<button class="btn secundario mini-opcao" data-acao="grupo-escolher" data-valor="' + mm.id + '">Escolher</button>') : '')

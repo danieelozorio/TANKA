@@ -1152,7 +1152,8 @@ teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', (
   // Floresta com metade do dano; a masmorra da Floresta continua com o mesmo dano de antes
   assert.deepStrictEqual([...D.monstros.lobo.ataque], [3, 5]);
   const chefeToca = R.salasMasmorra('toca')[2][0];
-  assert.deepStrictEqual([...chefeToca.ataque, chefeToca.velocidade], [80, 100, 14], 'masmorra: mesmo dano, mais lenta (velocidade era 18)');
+  const fT = R.masmorra('toca').forca.ataque;   // ataque do chefe = 10~12,5 × força da masmorra
+  assert.deepStrictEqual([...chefeToca.ataque, chefeToca.velocidade], [Math.round(10 * fT), Math.round(12.5 * fT), 14], 'masmorra: dano pela força, mais lenta (velocidade era 18)');
 });
 
 teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), passiva no status e recomeço', () => {

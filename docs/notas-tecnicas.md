@@ -868,3 +868,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (caíam no meio da tela por cima do texto); Encantar com o nome do item na largura toda e "Sem pergaminho" pequeno;
   Amigos com o campo na largura toda; abas da mochila, "Ordenar e filtrar" e "Pergaminhos" sem quebrar palavra no 360 px;
   missões: "pergaminho épico" no masculino (`premioTexto` usa `RARIDADE_M`).
+
+### Masmorras mais difíceis (Henri, 14/11/2026)
+- `forca` de cada masmorra em `dados.js` recalibrada por simulação: 3 heróis com level = mínimo + 5 e itens épicos +5
+  vencem ~60%; no level mínimo (ou +3 com épico +3) quase 0%. Ex.: Catacumbas (lv15) pede 3 heróis lv20 bem equipados.
+- Novo campo `poderRecomendado` (poder por herói desse grupo), mostrado no cartão da masmorra com o poder do jogador.
+- Não mexe no schema. A função `cacada` é publicada sozinha (mudou dados.js).
