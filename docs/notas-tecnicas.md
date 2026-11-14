@@ -442,6 +442,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `custoChips`. **Correção:** a peça da forja contratada usava o campo `tipo` (o mesmo do serviço): escolher a peça
   quebrava o formulário e o pedido ia com a peça "forjar". Agora é `estado.contratar.peca`. Nome do item sem o encanto
   repetido ("+5 Espada +5").
+- **Balão "onde conseguir" (Henri, nov/2026):** em `custoChips`, todo chip que falta (exceto ouro) vira `.dica-custo`
+  com um `.dica-balao` montado por `ondeConseguir(c)` (material da região: drop + Mineração; do chefe: chefe e `dropChefe`;
+  gema: Mineração; fragmento: boss do clã; cristal: quebra na Forja com `CRISTAIS_QUEBRA`; receita: Coletor/Mercado).
+  Números lidos de `D.CRAFT`. Toque/clique abre e fecha (classe `aberta`, listener global logo abaixo de `custoChips`);
+  hover só em telas com mouse (`@media (hover: hover)`). O balão é empurrado para dentro da tela se passar da borda.
 
 ## Arena: só o dado decide (Henri, nov/2026)
 - `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
