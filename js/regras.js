@@ -442,7 +442,7 @@ Tanka.regras = (function () {
   function extrasNivel(p) {
     var c = segundaClasse(p), x = {};
     if (c) c.habilidades.forEach(function (h) {
-      if (h.tipo !== 'passiva' || !h.nivel || !habLiberada(p, h)) return;
+      if (h.tipo !== 'passiva' || !habLiberada(p, h)) return;   // também a passiva de sempre (Sede de Caça: rouboVida)
       var n = PTS_PASSIVA + pontosEm(p, h.id);   // sempre ligada (1 ponto de graça) + os pontos colocados
       ['regenPct', 'rouboVida', 'reducaoDano', 'danoExtraPct', 'curaEmergencia', 'milagrePct'].forEach(function (k) { if (h[k]) x[k] = (x[k] || 0) + valorNivel(h[k], n); });
       if (h.limiar) x.limiar = h.limiar;

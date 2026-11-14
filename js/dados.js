@@ -587,10 +587,12 @@ Tanka.dados = {
         // id antigo 'pes-ligeiros' mantido: os pontos e a ordem já salvos passam para o Double Shot.
         { id: 'pes-ligeiros', nome: 'Double Shot', tipo: 'multiplo', flechas: 2, recarga: 3,
           descricao: 'Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico.' },
-        { id: 'reflexo-rapido', nome: 'Reflexo Rápido', tipo: 'passiva', atributos: { des: 5 }, evasao: 5, descricao: '+5 de Destreza e mais esquiva, sempre.' },
-        { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 4, turnos: 3,
-          dotPct: [90, 5], curaMorte: 5, pula: true,
-          descricao: 'Veneno de 90% a 140% de um ataque por turno, por 3 turnos. Pula para outro monstro; cada monstro morto pelo veneno cura 5%.' },
+        // 'reflexo-rapido' (id antigo mantido): era esquiva; desde 14/11/2026 (Henri) é roubo de vida, 1% a 10% (1 de graça + 10 pontos).
+        { id: 'reflexo-rapido', nome: 'Sede de Caça', tipo: 'passiva', atributos: { des: 5 }, rouboVida: [0.1, 0.9],
+          descricao: '+5 de Destreza e parte do dano que você causa vira vida (até 10%), sempre.' },
+        { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 5, turnos: 3,
+          dotPct: [10, 5], pula: true,   // era [90, 5] com cura de 5% por monstro morto (Henri, 14/11/2026: até 60%, sem cura)
+          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro.' },
         { id: 'tiro-silenciador', nome: 'Tiro Silenciador', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 6, mult: [180, 5],
           ignoraDefesaPct: 50, silencia: 1, descricao: 'Golpe de 180% a 230% que ignora metade da defesa e cala o oponente por 1 turno. Mais forte na Arena.' },
       ] },

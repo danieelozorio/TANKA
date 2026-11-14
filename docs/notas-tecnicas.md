@@ -874,3 +874,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   vencem ~60%; no level mínimo (ou +3 com épico +3) quase 0%. Ex.: Catacumbas (lv15) pede 3 heróis lv20 bem equipados.
 - Novo campo `poderRecomendado` (poder por herói desse grupo), mostrado no cartão da masmorra com o poder do jogador.
 - Não mexe no schema. A função `cacada` é publicada sozinha (mudou dados.js).
+
+### Arqueiro (Caçador): passiva e veneno (Henri, 14/11/2026)
+- Passiva `reflexo-rapido` agora se chama **Sede de Caça**: +5 DES e `rouboVida [0.1, 0.9]` (1% com o ponto de graça,
+  10% com 10 pontos); sem esquiva. `extrasNivel` (regras.js) e `arena_extras` (schema) passaram a somar também a passiva
+  sem `nivel`.
+- Flecha Envenenada: `dotPct [10, 5]` (até 60%, era 140%), sem `curaMorte`, recarga 5 (era 4).

@@ -1716,7 +1716,7 @@
     if (def.danoExtraPct) x.push('causa <b>+' + v('danoExtraPct') + '%</b> de dano');
     if (def.curaEmergencia) x.push('uma vez por luta, abaixo de ' + def.limiar + '% da vida, recupera <b>' + v('curaEmergencia') + '%</b>');
     if (def.dotPct) x.push((def.curaDot ? 'sangramento' : 'veneno') + ' de <b>' + v('dotPct') + '%</b> do seu dano por turno, por ' + def.turnos + ' turnos'
-      + (def.curaDot ? '; você recupera ' + def.curaDot + '% do que ele tira' : '') + (def.pula ? '; pula para outro monstro; cada monstro morto pelo veneno cura ' + def.curaMorte + '%' : ''));
+      + (def.curaDot ? '; você recupera ' + def.curaDot + '% do que ele tira' : '') + (def.pula ? '; pula para outro monstro' + (def.curaMorte ? '; cada monstro morto pelo veneno cura ' + def.curaMorte + '%' : '') : ''));
     if (def.escudoPct) x.push('escudo que segura <b>' + v('escudoPct') + '%</b> da vida por ' + def.turnos + ' turnos; quem bate tem ' + def.congelaChance + '% de chance de congelar');
     if (def.mult) x.push('golpe de <b>' + v('mult') + '%</b>' + (def.ignoraDefesaPct ? (def.ignoraDefesaPct >= 100 ? ' que ignora a defesa' : ' que ignora ' + def.ignoraDefesaPct + '% da defesa') : ''));
     if (def.vidaFaltando) x.push('+' + String(def.vidaFaltando).replace('.', ',') + '% de dano para cada 1% de vida que falta');

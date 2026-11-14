@@ -2351,3 +2351,17 @@ teste('fila da masmorra: o bot vira a classe que falta (mesmo poder), e a luta u
   const sim = R.simularMasmorra([p, bot('curandeiro'), bot('cacador')], 'toca', 123);
   assert.deepStrictEqual(sim.inicio.herois.map(h => h.classe2).join(), 'ferreiro,curandeiro,cacador');
 });
+
+teste('arqueiro: Sede de Caça dá roubo de vida (1% a 10%) e a Flecha Envenenada vai até 60%, sem cura, recarga 5', () => {
+  const p = R.criarPersonagem('Arq', 'masculino', 'humano', 'arqueiro');
+  R.admin.subirNivel(p, 29);
+  R.talentos(p).classe2 = D.SEGUNDAS_CLASSES ? Object.keys(D.SEGUNDAS_CLASSES).find((k) => D.SEGUNDAS_CLASSES[k].habilidades.some((h) => h.id === 'reflexo-rapido')) : null;
+  assert.strictEqual(R.extrasNivel(p).rouboVida, 1, '1 ponto de graça = 1%');
+  R.talentos(p).pontos['reflexo-rapido'] = 10;
+  assert.strictEqual(R.extrasNivel(p).rouboVida, 10, 'no máximo = 10%');
+  const def = Object.values(D.SEGUNDAS_CLASSES).flatMap((c) => c.habilidades).find((h) => h.id === 'flecha-envenenada');
+  assert.ok(!def.curaMorte && def.recarga === 5);
+  assert.strictEqual(def.dotPct[0] + def.dotPct[1] * 10, 60);
+  const pas = Object.values(D.SEGUNDAS_CLASSES).flatMap((c) => c.habilidades).find((h) => h.id === 'reflexo-rapido');
+  assert.ok(!pas.evasao, 'sem esquiva');
+});
