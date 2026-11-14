@@ -829,3 +829,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Ficha do item: saiu o botão "🔍 Ampliar e comparar" (repetia a comparação com o equipado); fica só "⚖ Comparar com outro".
 - Boss do clã, hora (Henri, 13/11/2026): select com o estilo do filtro do Mercado (`.mercado-ordem`); a hora escolhida fica em `estado.bossHoraEscolhida` até salvar (a tela se redesenha e voltava para a hora salva) e `b.hora` é comparado como número.
 - Forja do encanto (Henri, 13/11/2026): a barra só aparece no primeiro Encantar; o botão +1 chama `tentarEncantar(id, true)` → `abrirForja(..., rapido)`, que põe a barra já onde parou e mostra o sucesso/falha na hora (com o som).
+- **Curandeiro (Henri, 13/11/2026):** a Bênção saiu; no lugar, **Luz Punitiva** (`luz-punitiva`, `unico` 150% +5/pt,
+  recarga 3, `curaDano` 50 +1/pt = % do dano que vira vida) na caçada (`vezComHabilidades`, `ev.curou`), na masmorra e na
+  Arena (`arena_kit` leva `v.curaDano`; `arena_vez` cura depois do golpe, `ev.curou`). `R.trocarHabilidadesAntigas`
+  (`HAB_TROCADAS`, em `normalizar` e `talentos`) devolve os pontos da Bênção e troca o id na ordem. **Luz que Cura na
+  Arena usa o dado:** cura x 0 (1), (d−1)/18 até 10 (10 = metade), 0,5 + (d−10)/20 acima (20 = cheia); atordoado/sem dado = cheia.

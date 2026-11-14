@@ -127,19 +127,31 @@ teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do
   for (let n = 15; n < D.NIVEL_MAXIMO; n++) assert.ok(R.expNecessaria(n) / D.monstros[area(n).monstros[1].id].exp < 420, 'level ' + n);
 });
 
-teste('caçada: Curandeiro com Bênção (reforço de grupo) não trava a luta e vale só para ele', () => {
+teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem trocada); o golpe cura parte do dano', () => {
   const p = R.criarPersonagem('C', 'feminino', 'humano', 'mago'); p.nivel = 16; p.atributos.int += 45;
-  p.talentos = { classe2: 'curandeiro', pontos: { bencao: 4, 'explosao-de-luz': 10 }, ordem: { cacada: ['bencao', 'explosao-de-luz'], masmorra: [], arena: [], defesa: [] } };
-  let vitorias = 0, bencao = 0;
+  p.talentos = { classe2: 'curandeiro', pontos: { bencao: 4, 'explosao-de-luz': 6 }, ordem: { cacada: ['bencao', 'explosao-de-luz'], masmorra: ['bencao'], arena: [], defesa: [] } };
+  R.normalizar(p);
+  assert.strictEqual(p.talentos.pontos.bencao, undefined, 'os pontos da Bênção voltam livres');
+  assert.strictEqual(p.talentos.ordem.cacada.join(), 'luz-punitiva,explosao-de-luz');
+  assert.strictEqual(p.talentos.ordem.masmorra.join(), 'luz-punitiva');
+  R.mudarPontoHabilidade(p, 'luz-punitiva', 1); R.mudarPontoHabilidade(p, 'luz-punitiva', 1); R.mudarPontoHabilidade(p, 'luz-punitiva', 1); R.mudarPontoHabilidade(p, 'luz-punitiva', 1);
+  let vitorias = 0, curas = 0, certas = 0;
   for (let i = 0; i < 50; i++) {
     p.hpAtual = R.status(p).hpMax;
     const b = R.iniciarBatalha(p, 'golem', rng); b.auto = true;
     let g = 0;
-    while (!b.fim && g < 3000) { const ev = R.passo(b); if (ev && ev.reforco === 'Bênção') bencao++; g++; }
+    while (!b.fim && g < 3000) {
+      const antes = b.jogador.hp, ev = R.passo(b);
+      if (ev && ev.habilidade === 'Luz Punitiva' && ev.curou) {
+        curas++;
+        if (ev.curou === Math.round(ev.dano * 54 / 100)) certas++;   // 50% + 4 pontos
+      }
+      g++;
+    }
     assert.ok(b.fim, 'a luta termina');
     if (b.fim === 'vitoria') vitorias++;
   }
-  assert.ok(bencao > 0, 'usou a Bênção');
+  assert.ok(curas > 0 && certas === curas, 'a Luz Punitiva cura 54% do dano (' + certas + '/' + curas + ')');
   assert.ok(vitorias > 40, 'vence o Golem: ' + vitorias);
 });
 

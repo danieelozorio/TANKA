@@ -400,6 +400,7 @@ Tanka.regras = (function () {
     if (!t.pontos) t.pontos = {};
     if (!t.ordem) t.ordem = { cacada: [], masmorra: [], arena: [], defesa: [] };
     if (!t.ordem.defesa) t.ordem.defesa = (t.ordem.arena || []).slice();   // personagens de antes: copia a da Arena
+    trocarHabilidadesAntigas(p);
     // Passivas fixas (nov/2026): os pontos que estavam nelas voltam a ficar livres.
     if (t.classe2 && D.SEGUNDAS_CLASSES[t.classe2]) {
       D.SEGUNDAS_CLASSES[t.classe2].habilidades.forEach(function (h) { if (h.tipo === 'passiva' && t.pontos[h.id]) delete t.pontos[h.id]; });
@@ -482,6 +483,21 @@ Tanka.regras = (function () {
     t.ordemNiveis2 = true;
     ajustarVida(p, hpAntes);
     return true;
+  }
+  // Habilidades trocadas: os pontos voltam livres e a ordem passa a usar a nova (Henri, 13/11/2026).
+  var HAB_TROCADAS = { bencao: 'luz-punitiva' };
+  function trocarHabilidadesAntigas(p) {
+    var t = p.talentos;
+    if (!t) return;
+    Object.keys(HAB_TROCADAS).forEach(function (velha) {
+      if (t.pontos && t.pontos[velha]) delete t.pontos[velha];
+      Object.keys(t.ordem || {}).forEach(function (m) {
+        var l = t.ordem[m];
+        if (!Array.isArray(l)) return;
+        var i = l.indexOf(velha);
+        if (i >= 0) { if (l.indexOf(HAB_TROCADAS[velha]) < 0) l[i] = HAB_TROCADAS[velha]; else l.splice(i, 1); }
+      });
+    });
   }
   // Põe (+1) ou tira (-1) um ponto. Retorna true ou o motivo.
   function mudarPontoHabilidade(p, id, delta) {
@@ -987,6 +1003,7 @@ Tanka.regras = (function () {
   // Atualiza personagens salvos em versões antigas do jogo.
   function normalizar(p) {
     if (!p.sexo) p.sexo = 'masculino';
+    trocarHabilidadesAntigas(p);
     // Atributos rebalanceados (3 pontos = +1 de dano, Destreza para o Caçador): quem já tinha level ganha
     // 1 Pergaminho do Recomeço de presente, uma vez só (1 = ainda não avisou o jogador; 2 = avisado).
     if (!p.recomecoPresente) {
@@ -1660,6 +1677,12 @@ Tanka.regras = (function () {
     } else {
       var g = golpeJogador(b, Object.assign({ mult: multHabilidade(def, k.pts) / 100 }, def.nivel ? opcoesNivel(def, b.jogador, b.monstro) : {}));
       hab.golpes.push(g);
+      // Luz Punitiva: parte do dano vira vida.
+      if (g.acerto && g.dano > 0 && def.curaDano && b.jogador.hp > 0) {
+        var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
+        b.jogador.hp = Math.min(b.jogador.hpMax, b.jogador.hp + cd);
+        hab.curou = cd;
+      }
       if (g.acerto && def.nivel) depoisDoGolpeNivel(def, b.monstro, b.s);
       if (g.acerto && def.atordoa && !b.fim) {
         var t = b.chefe ? Math.min(def.atordoa, T.atordoarChefeMax) : def.atordoa;
@@ -2489,6 +2512,7 @@ Tanka.regras = (function () {
               e.acerto = true; e.critico = g.critico; e.dano = g.dano;
               alvo.hp = Math.max(0, alvo.hp - g.dano);
               aoCausar(L, H, g.dano);
+              if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100));
               if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s);
               e.caiu = alvo.hp === 0;
               if (k && k.def.atordoa && alvo.hp > 0) {

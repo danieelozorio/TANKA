@@ -1152,6 +1152,19 @@ select pg_temp.igual(public.mercado_serve('{"tipo":"arma","classe":"cavaleiro"}'
 select pg_temp.igual(public.mercado_serve('{"tipo":"elmo","classe":"mago"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'false', 'mercado_serve: elmo de mago não');
 select pg_temp.igual(public.mercado_serve('{"tipo":"colar"}'::jsonb, '{"classe":"cavaleiro","armas":[],"maos":[]}'::jsonb)::text, 'true', 'mercado_serve: joia serve a todos');
 select pg_temp.igual(public.mercado_serve('{"tipo":"arma","arma":"arco"}'::jsonb, null)::text, 'true', 'mercado_serve: sem filtro passa tudo');
+-- Arena (13/11/2026): a Luz que Cura usa o dado (1 = nada, 10 = metade, 20 = tudo); a Luz Punitiva cura parte do dano
+reset role;
+select pg_temp.igual((select string_agg(((public.arena_vez(
+  '{"hp":100,"hpMax":1000,"velBase":10,"dano":[50,50],"magico":true,"buffs":[],"pronto":{},"kit":[{"id":"luz-que-cura","nome":"Luz que Cura","tipo":"cura","recarga":4,"v":{"vidaPct":20}}]}'::jsonb,
+  '{"hp":1000,"hpMax":1000,"defesa":0,"defesaMagica":0,"buffs":[]}'::jsonb, d) -> 'eu' ->> 'hp')), ',' order by d) from unnest(array[1, 10, 20]) d),
+  '100,200,300', 'arena: Luz que Cura com o dado 1/10/20 cura 0/metade/tudo');
+select pg_temp.igual((select (r -> 'eu' ->> 'hp') || '/' || (r -> 'outro' ->> 'hp') || '/' || (r -> 'ev' ->> 'curou') from (select public.arena_vez(
+  '{"hp":100,"hpMax":1000,"velBase":10,"dano":[50,50],"magico":true,"buffs":[],"pronto":{},"kit":[{"id":"luz-punitiva","nome":"Luz Punitiva","tipo":"unico","mult":150,"recarga":3,"v":{"curaDano":50}}]}'::jsonb,
+  '{"hp":1000,"hpMax":1000,"defesa":0,"defesaMagica":0,"buffs":[]}'::jsonb, 20) r) x),
+  '175/850/75', 'arena: Luz Punitiva com o 20 tira 150 e cura 75');
+select pg_temp.igual((select public.arena_kit('{"classe":"mago","nivel":20,"talentos":{"classe2":"curandeiro","pontos":{"luz-punitiva":4},"ordem":{"arena":["luz-punitiva"]}}}'::jsonb) -> 0 -> 'v' ->> 'curaDano'),
+  '54', 'arena: Luz Punitiva com 4 pontos cura 54% do dano');
+
 -- Uma sessão por conta: o último navegador que entrou é o que vale; outra conta não é afetada
 set role authenticated;
 select pg_temp.como('a');

@@ -613,9 +613,10 @@ Tanka.dados = {
       ] },
     curandeiro: { de: 'mago', nome: 'Curandeiro', nomeF: 'Curandeira', descricao: 'Cuida do grupo: cura, fortalece e ainda castiga.',
       habilidades: [
-        { id: 'luz-que-cura', nome: 'Luz que Cura', tipo: 'cura', vidaPct: 20, recarga: 4, descricao: 'Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro.' },
+        { id: 'luz-que-cura', nome: 'Luz que Cura', tipo: 'cura', vidaPct: 20, recarga: 4, descricao: 'Cura todo o grupo (% da vida máxima). Na caçada, vira dano no monstro. Na Arena, o dado decide: 1 não cura, 10 cura metade, 20 cura tudo.' },
         { id: 'explosao-de-luz', nome: 'Explosão de Luz', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
-        { id: 'bencao', nome: 'Bênção', tipo: 'reforco', grupo: true, turnos: 2, vidaPct: 20, precisao: 5, recarga: 4, descricao: 'Mais vida máxima e precisão para você e o grupo.' },
+        // Henri (13/11/2026): no lugar da Bênção. curaDano = % do dano causado que vira vida (+1 por ponto).
+        { id: 'luz-punitiva', nome: 'Luz Punitiva', tipo: 'unico', recarga: 3, curaDano: 50, descricao: 'Golpe de luz num inimigo: você se cura com parte do dano causado.' },
         { id: 'fe-profunda', nome: 'Fé Profunda', tipo: 'passiva', atributos: { int: 5 }, danoCriticoMagico: 10, descricao: '+5 de Inteligência e mais dano crítico mágico, sempre.' },
         { id: 'regeneracao', nome: 'Regeneração', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [1, 0.1],
           descricao: 'Recupera 1,1% da vida máxima a cada turno. Mais forte na caçada.' },

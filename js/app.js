@@ -3548,6 +3548,7 @@
           + (ev.critico ? ' (com crítico!)' : '') + '.');
         if (ev.atordoou) linha('destaque', nomeM + (ev.congelou ? ' está congelado!' : ' está atordoado!'));
         if (ev.quebrouArmadura) linha('destaque', 'A armadura de ' + nomeM + ' rachou! Ele recebe +25% de dano.');
+        if (ev.curou) linha('cura', '💚 ' + nomeJ + ' recupera <strong>' + ev.curou + '</strong> de vida com a luz.');
         golpe('lutador-monstro', true);
       }
     } else if (ev.cego) {
@@ -6517,6 +6518,7 @@
     if (ev.executou) L.registro.push('<p class="critico">💀 Execução! ' + esc(alvo.nome) + ' estava fraco.</p>');
     if (ev.devolvido) L.registro.push('<p class="dano-recebido">🛡️ ' + esc(alvo.nome) + ' devolve <strong>' + ev.devolvido + '</strong> de dano.</p>');
     if (ev.calou) L.registro.push('<p class="destaque">🤐 ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
+    if (ev.curou) L.registro.push('<p class="cura">💚 ' + esc(atk.nome) + ' recupera <strong>' + ev.curou + '</strong> de vida com a luz.</p>');
     if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−30%).</p>');
     if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + esc(alvo.nome) + ' está queimando e as curas dele caem pela metade.</p>');
     if (ev.envenenou) L.registro.push('<p class="destaque">☠️ ' + esc(alvo.nome) + ' foi envenenado.</p>');
