@@ -975,3 +975,29 @@ html[data-interface="arcane"] .personagem-tela::before { display: none; }
   html[data-interface="arcane"] .cacada-escolha .btn { padding: .35em .55em; font-size: .7rem; min-height: 0; white-space: nowrap; }
   html[data-interface="arcane"] .regiao-topo p { font-size: .8rem; }
 }
+
+/* ---------- 19. Ficha e comparação de itens mais enxutas (Henri, nov/2026) ---------- */
+/* tipo e raridade já aparecem na imagem/cor; "equipado" já está no rótulo; "Comparado com…" é repetido */
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-tipo,
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-eq,
+html[data-interface="arcane"] #ficha-flutuante .ficha-comparado { display: none; }
+/* "nível 10 · qualidade 32%" em letra pequena */
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .78rem; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] #ficha-flutuante { font-size: .82rem; padding: .6rem .65rem; }
+  html[data-interface="arcane"] #ficha-flutuante.comparando { width: calc(100vw - 16px); }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas { gap: .5rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas .comparar-lado { padding-right: .35rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas .comparar-lado + .comparar-lado { padding: 0 0 0 .5rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-rotulo { font-size: .62rem; margin: 0 0 .3rem; letter-spacing: .12em; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-topo { grid-template-columns: 40px minmax(0, 1fr); gap: .45rem; margin-bottom: .35rem; padding-right: 14px; }
+  html[data-interface="arcane"] #ficha-flutuante .icone-grande { width: 40px; height: 40px; padding: 5px; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-nome { font-size: .82rem; line-height: 1.2; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .66rem; line-height: 1.2; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-poder { font-size: .76rem; padding: .25rem .4rem; margin: .25rem 0; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-bonus { font-size: .8rem; margin-bottom: .35rem; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-bonus li { padding: 0; }
+  html[data-interface="arcane"] #ficha-flutuante .item-acoes { gap: .3rem; }
+  html[data-interface="arcane"] #ficha-flutuante .item-acoes .btn { padding: .3em .6em; font-size: .72rem; min-height: 0; }
+  html[data-interface="arcane"] #ficha-flutuante .botoes .btn { padding: .3em .7em; font-size: .72rem; }
+}

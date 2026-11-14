@@ -1438,12 +1438,12 @@
     }
     return '<div class="ficha-item-topo"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
-      + '<div class="suave">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>'
-      + (item.nivel ? ' · nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') : '')
-      + (slot ? ' · equipado' : '') + '</div></div></div>'
+      + '<div class="suave"><span class="ficha-item-tipo">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>' + (item.nivel ? ' · ' : '') + '</span>'
+      + (item.nivel ? '<span class="ficha-item-nivel">nível ' + item.nivel + (item.qualidade !== undefined ? ' · qualidade ' + Math.round(item.qualidade * 100) + '%' : '') + '</span>' : '')
+      + (slot ? '<span class="ficha-item-eq"> · equipado</span>' : '') + '</div></div></div>'
       + fichaPoderHtml(p, item, slot)
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
-      + (alvo ? '<p class="suave">Comparado com ' + nomeItemHtml(alvo) + ((item.encanto || alvo.encanto) ? ' <span class="suave">(sem encanto)</span>' : '') + '</p>'
+      + (alvo ? '<p class="suave ficha-comparado">Comparado com ' + nomeItemHtml(alvo) + ((item.encanto || alvo.encanto) ? ' <span class="suave">(sem encanto)</span>' : '') + '</p>'
  : '')
       + '<div class="item-acoes">' + acoes + '</div>';
   }
@@ -1479,7 +1479,7 @@
     if (v === null || v === undefined) return '';
     var dif = g === null ? '' : ' <span class="' + (g > 0 ? 'mais' : g < 0 ? 'menos' : 'suave') + '">(' + (g > 0 ? '+' : g < 0 ? '−' : '±') + Math.abs(g).toLocaleString('pt-BR') + ')</span>';
     return '<p class="ficha-poder' + (g > 0 ? ' mais' : g < 0 ? ' menos' : '') + '">⚔ Poder do item: <strong>' + v.toLocaleString('pt-BR') + '</strong>' + dif
-      + (slot ? ' <span class="suave">· equipado</span>' : '') + '</p>';
+      + (slot ? ' <span class="suave ficha-item-eq">· equipado</span>' : '') + '</p>';
   }
   function itemParaComparar(p, item) {
     if (R.slotDoItem(p, item.id)) return null;
