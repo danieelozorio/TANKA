@@ -1612,7 +1612,10 @@ begin
   return jsonb_build_object(
     'hpMax', hp, 'dano', jsonb_build_array(dmin, dmax), 'magico', magico, 'defesa', dfs, 'defesaMagica', dfm,
     'esquiva', coalesce((pv ->> 'evasao')::numeric, 0) + coalesce((cj ->> 'evasao')::numeric, 0),
-    'velocidade', greatest(1, round(greatest(1, round(round((T -> 'VELOCIDADE' ->> 'inicial')::numeric * power((T -> 'VELOCIDADE' ->> 'porNivel')::numeric, nivel - 1)) * velarma))
+    -- colar épico/lendário (13/11/2026): roubo de vida (vai para os extras da Arena) e velocidade %
+    'rouboVida', coalesce((eq ->> 'rouboVida')::numeric, 0),
+    'velocidade', greatest(1, round(greatest(1, round(round((T -> 'VELOCIDADE' ->> 'inicial')::numeric * power((T -> 'VELOCIDADE' ->> 'porNivel')::numeric, nivel - 1)) * velarma
+      * (1 + coalesce((eq ->> 'velocidadePct')::numeric, 0) / 100)))
       * (1 + coalesce((rc ->> 'velocidadePct')::numeric, 0) / 100))) + coalesce((cj ->> 'velocidade')::numeric, 0));
 end $$;
 
@@ -1866,7 +1869,9 @@ begin
     'velBase', greatest(1, (s ->> 'velocidade')::numeric), 'esquiva', coalesce(s -> 'esquiva', '0'::jsonb),
     'classe2', case when public.arena_pontos_ok(p.dados) then p.dados -> 'talentos' -> 'classe2' else 'null'::jsonb end,
     'kit', public.arena_kit(p.dados, modo), 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1,
-    'milagre', public.arena_milagre(p.dados), 'ex', public.arena_extras(p.dados));
+    'milagre', public.arena_milagre(p.dados), 'ex', public.arena_extras(p.dados)
+      || case when coalesce((s ->> 'rouboVida')::numeric, 0) > 0 then jsonb_build_object('rouboVida',
+        coalesce((public.arena_extras(p.dados) ->> 'rouboVida')::numeric, 0) + (s ->> 'rouboVida')::numeric) else '{}'::jsonb end);
 end $$;
 create or replace function public.arena_lutador(pid text) returns jsonb
 language sql stable as $$ select public.arena_lutador(pid, 'arena'); $$;

@@ -223,6 +223,7 @@ Tanka.dados = {
     defesa: 'Defesa', defesaMagica: 'Defesa Mágica', vida: 'Vida',
     for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte',
     dano: 'Dano', danoPct: 'Dano %', vidaPct: 'Vida %', defesaPct: 'Defesa %', regen: 'Regeneração de vida %/min', precisao: 'Precisão %', critico: 'Chance de crítico %', danoMagico: 'Dano mágico %', danoCriticoMagico: 'Dano crítico mágico %',
+    rouboVida: 'Roubo de vida %', velocidadePct: 'Velocidade %',
   },
 
   // Armaduras de cada classe. Valores dos bônus na ordem: comum, rara, épica, lendária.
@@ -284,6 +285,10 @@ Tanka.dados = {
   // atributos: quantos atributos diferentes sorteados (valores de VARIACAO_ITEM.extra); regen: % da vida por minuto
   // (soma aos VIDA.regenPorMinuto, fora da luta; 2 anéis somam).
   // nov/2026: a regeneração de vida do anel saiu (a vida começa cheia em toda luta).
+  // Colar em escada (Henri, 13/11/2026): comum = vida; rara + defesa (física e mágica); épica + roubo de vida;
+  // lendária + velocidade %. vida/defesa: valor de base por nível (como as armaduras); roubo e velocidade fixos.
+  COLAR: { vida: 25, defesa: 3, rouboVida: 3, velocidadePct: 6,
+    desde: { defesa: 'rara', rouboVida: 'epica', velocidadePct: 'lendaria' } },
   ANEL: { danoPctArma: 15, defesaMagica: 2, vida: 15,
     desde: { defesaMagica: 'rara', atributos: 'epica', vida: 'lendaria' }, atributos: { epica: 1, lendaria: 2 } },
 
@@ -302,7 +307,7 @@ Tanka.dados = {
     precoPergaminho: { comum: 100, rara: 1000, epica: 5000, lendaria: 10000 },
     vendaPorNivel: 0.2,        // +20% do valor de venda por nível
     // Bônus por nível em armaduras e joias
-    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'defesaMagica', anel: 'dano' },   // mão esquerda: MAO_ESQUERDA[x].encanto
+    bonusPorNivel: { elmo: 'defesa', peitoral: 'defesa', luvas: 'defesa', botas: 'defesa', colar: 'vida', anel: 'dano' },   // mão esquerda: MAO_ESQUERDA[x].encanto
   },
 
   sexos: {
@@ -1067,6 +1072,18 @@ Tanka.dados = {
 
   // Preenchido abaixo a partir das áreas.
   monstros: {},
+  // Magia dos monstros da caçada (Henri, 13/11/2026): a cada `cada` ataques o monstro usa a magia dele, com `mult` do
+  // ataque, e quem defende é a DEFESA MÁGICA do herói (não a física). Só na caçada.
+  MAGIA_MONSTROS: { cada: 4, mult: 1,
+    nomes: {
+      lobo: 'Uivo Sombrio', cobra: 'Veneno Encantado', urso: 'Fúria dos Espíritos', velgrath: 'Raízes Malditas',
+      sapo: 'Bolha de Névoa', aranha: 'Teia Amaldiçoada', troll: 'Lodo Arcano', morgath: 'Feitiço do Brejo',
+      esqueleto: 'Toque Necrótico', goblin: 'Pó Rúnico Explosivo', gargula: 'Olhar Petrificante', varnok: 'Toque do Lich',
+      golem: 'Pulso Rúnico', cultista: 'Chama Sombria', espectro: 'Grito Espectral', guardiao: 'Selo Carmesim',
+      escorpiao: 'Ferrão Arcano', lagarto: 'Maldição da Areia', mumia: 'Maldição do Sarcófago', farao: 'Julgamento do Sol',
+      drake: 'Sopro de Fogo', wyvern: 'Relâmpago do Céu', cavaleiroDraconico: 'Lâmina Flamejante', vharkesh: 'Sopro do Dragão Ancião',
+      salamandra: 'Língua de Fogo', demonio: 'Explosão de Lava', elemental: 'Tempestade de Chamas', ignaroth: 'Inferno de Ignaroth',
+    } },
 };
 
 // Monta os monstros e chefes a partir das áreas (regra do dobro dentro de cada área).
@@ -1117,6 +1134,8 @@ Tanka.dados = {
       imagem: arquivo(c.nome),
     };
   });
+  // Magia de cada monstro da caçada (MAGIA_MONSTROS).
+  Object.keys(D.MAGIA_MONSTROS.nomes).forEach(function (id) { if (D.monstros[id]) D.monstros[id].magia = { nome: D.MAGIA_MONSTROS.nomes[id] }; });
   // Bosses da aliança ("Os Libertos"): números do chefe da caçada de cada fase, com nome, descrição e imagem próprios.
   D.BOSS_ALIANCA.bosses.forEach(function (b, i) {
     var base = D.monstros[D.BOSS_ALIANCA.chefes[i]];

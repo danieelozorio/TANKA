@@ -2315,3 +2315,22 @@ teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% p
   R.tickQueima(m); assert.ok(m.quebraTemp, 'e na 2ª');
   R.tickQueima(m); assert.strictEqual(m.quebraTemp, null, 'depois acaba');
 });
+
+teste('Colar em escada: comum vida; rara + defesa; épica + roubo de vida 3%; lendária + velocidade 6%; colar antigo converte', () => {
+  const p = R.criarPersonagem('K', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 19);
+  const colar = (rar) => R.novoItem('colar', null, rar, Math.random, null, 20);
+  const c = colar('comum'), r = colar('rara'), e = colar('epica'), l = colar('lendaria');
+  assert.deepStrictEqual(Object.keys(c.bonus).sort().join(), 'vida');
+  assert.deepStrictEqual(Object.keys(r.bonus).sort().join(), 'defesa,defesaMagica,vida');
+  assert.deepStrictEqual(Object.keys(e.bonus).sort().join(), 'defesa,defesaMagica,rouboVida,vida');
+  assert.strictEqual(e.bonus.rouboVida, 3);
+  assert.strictEqual(l.bonus.velocidadePct, 6);
+  const vel0 = R.status(p).velocidade;
+  p.inventario.push(l); R.equipar(p, l.id);
+  assert.strictEqual(R.status(p).velocidade, Math.round(vel0 * 1.06), 'lendário: +6% de velocidade');
+  assert.strictEqual(R.extrasNivel(p).rouboVida, 3, 'roubo de vida vai para a luta');
+  // colar antigo (defesa mágica + vida) ganha os bônus novos
+  const velho = { id: 'velho', tipo: 'colar', classe: null, raridade: 'epica', encanto: 0, nivel: 20, bonus: { defesaMagica: 6, vida: 40 } };
+  p.inventario.push(velho); R.normalizar(p);
+  assert.ok(velho.colarV2 && velho.bonus.rouboVida === 3 && velho.bonus.defesa > 0);
+});

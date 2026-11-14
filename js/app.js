@@ -3567,9 +3567,10 @@
         golpe('lutador-monstro');
       }
     } else {
-      if (!ev.acerto) linha('errou', nomeM + ' ataca, mas ' + nomeJ + ' se esquiva.');
+      var magiaM = ev.magia ? '🔮 ' + nomeM + ' usa <strong>' + esc(ev.magia) + '</strong>' : '';
+      if (!ev.acerto) linha('errou', (magiaM ? magiaM + ', mas ' : nomeM + ' ataca, mas ') + nomeJ + ' se esquiva.');
       else {
-        linha('dano-recebido', nomeM + ' ataca e causa <strong>' + ev.dano + '</strong> de dano.');
+        linha('dano-recebido', magiaM ? magiaM + ' e causa <strong>' + ev.dano + '</strong> de dano mágico.' : nomeM + ' ataca e causa <strong>' + ev.dano + '</strong> de dano.');
         if (ev.bolso) linha('cura', '🧪 Bolso de Poções! ' + nomeJ + ' bebe um gole e recupera vida.');
         if (ev.milagre) linha('cura', '✨ Milagre! ' + nomeJ + ' volta à luta.');
         golpe('lutador-jogador');

@@ -208,12 +208,25 @@ Tanka.regras = (function () {
     }
     return b;
   }
+  // Colar em escada (COLAR): vida; rara + defesa e defesa mágica; épica + roubo de vida; lendária + velocidade %.
+  function sortearBonusColar(item, rng) {
+    var C = D.COLAR, idx = RARIDADES.indexOf(item.raridade), n = item.nivel || 1, b = {};
+    var q = item.qualidade != null ? item.qualidade : (item.qualidade = sortearQualidade(item.raridade, rng));
+    var tem = function (k) { return idx >= RARIDADES.indexOf(C.desde[k]); };
+    b.vida = bonusDoNivel(C.vida, n, q);
+    if (tem('defesa')) { b.defesa = bonusDoNivel(C.defesa, n, q); b.defesaMagica = bonusDoNivel(C.defesa, n, q); }
+    if (tem('rouboVida')) b.rouboVida = C.rouboVida;
+    if (tem('velocidadePct')) b.velocidadePct = C.velocidadePct;
+    return b;
+  }
+  function colarAntigo(item) { return item.tipo === 'colar' && !item.colarV2; }
   // Anel antigo (dava Sorte): ganha os bônus novos da raridade e do nível dele.
   function anelAntigo(item) { return item.tipo === 'anel' && !(item.bonus && item.bonus.dano); }
   function sortearBonus(item, rng) {
     var def = definicao(item), idx = RARIDADES.indexOf(item.raridade), b = {};
     if (!def) return b;
     if (item.tipo === 'anel') return sortearBonusAnel(item, rng);
+    if (item.tipo === 'colar') { item.colarV2 = true; return sortearBonusColar(item, rng); }
     // bônus em `fixos` (mão esquerda em %) valem pela raridade e não crescem com o nível do item
     if (item.nivel) Object.keys(def.bonus).forEach(function (k) {
       b[k] = (def.fixos || []).indexOf(k) >= 0 ? def.bonus[k][idx] : bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade);
@@ -428,13 +441,14 @@ Tanka.regras = (function () {
   // Passivas do level 20/30 somadas: regenPct, rouboVida, reducaoDano, danoExtraPct, curaEmergencia, limiar, milagrePct.
   function extrasNivel(p) {
     var c = segundaClasse(p), x = {};
-    if (!c) return x;
-    c.habilidades.forEach(function (h) {
+    if (c) c.habilidades.forEach(function (h) {
       if (h.tipo !== 'passiva' || !h.nivel || !habLiberada(p, h)) return;
       var n = PTS_PASSIVA + pontosEm(p, h.id);   // sempre ligada (1 ponto de graça) + os pontos colocados
       ['regenPct', 'rouboVida', 'reducaoDano', 'danoExtraPct', 'curaEmergencia', 'milagrePct'].forEach(function (k) { if (h[k]) x[k] = (x[k] || 0) + valorNivel(h[k], n); });
       if (h.limiar) x.limiar = h.limiar;
     });
+    var rv = bonusEquipamentos(p).rouboVida;   // colar épico/lendário
+    if (rv) x.rouboVida = (x.rouboVida || 0) + rv;
     return x;
   }
   function pontosHabilidadeLivres(p) {
@@ -1064,6 +1078,13 @@ Tanka.regras = (function () {
       if (i.qualidade == null) i.qualidade = sortearQualidade(i.raridade);
       i.bonus = sortearBonusAnel(i, Math.random);
     });
+    // Colares de antes da escada (13/11/2026): ganham os bônus novos da raridade e do nível deles.
+    p.inventario.forEach(function (i) {
+      if (!colarAntigo(i)) return;
+      if (!i.nivel) i.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, p.nivel || 1));
+      i.colarV2 = true;
+      i.bonus = sortearBonusColar(i, Math.random);
+    });
     // Chapéu do mago de antes da defesa (nov/2026): ganha a defesa pela raridade e nível dele.
     p.inventario.forEach(function (i) {
       if (i.tipo !== 'elmo' || i.classe !== 'mago' || !i.bonus || i.bonus.defesa) return;
@@ -1127,7 +1148,7 @@ Tanka.regras = (function () {
       precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
       evasao: a.des * 0.5,                           // DES (%)
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
-      velocidade: Math.max(1, Math.round(velocidadeDoNivel(p.nivel) * (ta ? D.VELOCIDADE_ARMA[ta.vel] : 1))),
+      velocidade: Math.max(1, Math.round(velocidadeDoNivel(p.nivel) * (ta ? D.VELOCIDADE_ARMA[ta.vel] : 1) * (1 + (eq.velocidadePct || 0) / 100))),
       chanceCritico: a.des * 0.5 + (eq.critico || 0),   // DES (0,5% por ponto) + mão esquerda (a Sorte não conta mais)
       danoCritico: 150 + a.for,                      // FOR (% do dano)
       chanceCriticoMagico: a.sor + (eq.critico || 0),   // SOR (1% por ponto)
@@ -1609,9 +1630,15 @@ Tanka.regras = (function () {
     }
     // Sombra (Assassino): o próximo ataque erra.
     if (b.lutador && b.lutador.furtivo) { b.lutador.furtivo = false; ev.sombra = true; return ev; }
+    // Magia (13/11/2026): a cada MAGIA_MONSTROS.cada ataques, o golpe é mágico e a defesa mágica é quem segura.
+    var MG = D.MAGIA_MONSTROS, magia = !!(m.magia && MG && (b.monstro.nAtq = (b.monstro.nAtq || 0) + 1) % MG.cada === 0);
+    if (magia) ev.magia = m.magia.nome;
     // Acerto do monstro: 80% + 2% por área, menos a evasão do jogador.
     if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
-    var dano = aoReceber(b.lutador, danoComDefesa(rolar(b.ataque || m.ataque, rng), defesaHeroi(s, b.lutador)), b.monstro, rng);
+    var bruto = rolar(b.ataque || m.ataque, rng);
+    var dano = aoReceber(b.lutador, magia
+      ? danoComDefesa(Math.round(bruto * MG.mult), Math.round(s.defesaMagica * (1 + somaBuff(b.lutador, 'defesaPct') / 100)))
+      : danoComDefesa(bruto, defesaHeroi(s, b.lutador)), b.monstro, rng);
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
