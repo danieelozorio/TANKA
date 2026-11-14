@@ -65,6 +65,14 @@
     else { x = r.left; y = r.bottom - (d - 2 * r.width - r.height); }
     parts.push({ tipo: 'faisca', x: x + rnd(-4, 4), y: y + rnd(-4, 4), vx: rnd(-6, 6), vy: rnd(-14, -2), vida: 0, max: rnd(.7, 1.6), tam: rnd(1.2, 3.2) });
   }
+  // pó dourado fininho grudado na borda do quadro do nome (mais denso em cima e embaixo)
+  function poeira(r) {
+    var lado = Math.random(), x, y;
+    if (lado < .4) { x = rnd(r.left, r.right); y = r.top + rnd(-6, 8); }
+    else if (lado < .8) { x = rnd(r.left, r.right); y = r.bottom + rnd(-8, 10); }
+    else { x = Math.random() < .5 ? r.left + rnd(-6, 6) : r.right + rnd(-6, 6); y = rnd(r.top, r.bottom); }
+    parts.push({ tipo: 'poeira', x: x, y: y, vx: rnd(-4, 4), vy: rnd(-8, 3), vida: 0, max: rnd(.9, 2.2), tam: rnd(.5, 1.3), fase: rnd(0, 6.28) });
+  }
   var CORES_PO = { verde: [74, 222, 128], azul: [96, 165, 250], roxo: [192, 132, 252] };
   function po(r, onde) {
     var cx = r.left + r.width / 2, cy = r.top + r.height / 2, a = Math.random() * Math.PI * 2;
@@ -127,7 +135,10 @@
     ctx.clearRect(0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
 
-    if (alvos.nome && Math.random() < dt * 30) faisca(alvos.nome);
+    if (alvos.nome) {
+      if (Math.random() < dt * 26) faisca(alvos.nome);
+      for (var q = 0; q < 3; q++) if (Math.random() < dt * 30) poeira(alvos.nome);
+    }
     if (alvos.retrato && Math.random() < dt * 22) po(alvos.retrato, 'retrato');
     if (alvos.mochila && Math.random() < dt * 5) {
       var m = alvos.mochila;
@@ -151,6 +162,11 @@
         g.addColorStop(.3, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',.45)');
         g.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.tam * 4, 0, Math.PI * 2); ctx.fill();
+      } else if (p.tipo === 'poeira') {
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        ctx.globalAlpha = a * (.55 + .45 * Math.sin(t * 9 + p.fase));
+        ctx.fillStyle = 'rgba(255, 214, 120, 1)';
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.tam, 0, Math.PI * 2); ctx.fill();
       } else {
         p.x += (p.vx + Math.sin(t * 6 + p.fase) * 10) * dt; p.y += p.vy * dt;
         ctx.globalAlpha = a;
