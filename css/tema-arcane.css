@@ -646,9 +646,11 @@ html[data-interface="arcane"] .cascata { display: none; }
   html[data-interface="arcane"] .dica-mochila { display: none; }
 
   /* Outras telas: mapa, cartas e tabelas no tamanho da tela */
-  html[data-interface="arcane"] .mapa-icone { width: 40px; height: 40px; font-size: 1.2rem; }
-  html[data-interface="arcane"] .mapa-nome { font-size: .66rem; }
-  html[data-interface="arcane"] .mapa-nivel { font-size: .6rem; }
+  html[data-interface="arcane"] .mapa-icone { width: 42px; height: 42px; font-size: 1.1rem; }
+  /* bola com a arte da área: do tamanho da linha (antes passava por cima da linha de baixo) */
+  html[data-interface="arcane"] .mapa-icone .arte { width: 46px; height: 46px; margin: -2px; }
+  html[data-interface="arcane"] .mapa-nome { font-size: .72rem; }
+  html[data-interface="arcane"] .mapa-nivel { font-size: .64rem; }
   html[data-interface="arcane"] .ranking { font-size: .82rem; }
   html[data-interface="arcane"] h2 { font-size: 1.1rem; } html[data-interface="arcane"] h3 { font-size: .95rem; }
   html[data-interface="arcane"] .rodape { padding: .9rem 10px; font-size: .78rem;
