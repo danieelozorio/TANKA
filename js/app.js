@@ -614,6 +614,16 @@
   };
 
   // Barra fixa no alto: ouro, reputação, poções do dia e entradas da Arena.
+  // Números curtos (Henri, nov/2026): 52.459 → 52.4k · 2.495.382 → 2.495M · 1.250.000.000 → 1.25B (corta, não arredonda).
+  // Na barra de recursos da Arcane; o número inteiro aparece ao passar o mouse (title).
+  function numCurto(n) {
+    n = Math.floor(Number(n) || 0);
+    var a = Math.abs(n), corta = function (v, casas) { var f = Math.pow(10, casas); return String(Math.floor(v * f) / f); };
+    if (a < 1000) return String(n);
+    var t = a >= 1e9 ? corta(a / 1e9, 3) + 'B' : a >= 1e6 ? corta(a / 1e6, 3) + 'M' : corta(a / 1e3, 1) + 'k';
+    return (n < 0 ? '-' : '') + t;
+  }
+  function numRecurso(n) { return temaAtual() === 'arcane' ? numCurto(n) : Number(n || 0).toLocaleString('pt-BR'); }
   function recursosHtml() {
     var p = estado.personagem, s = R.status(p), emBatalha = !!estado.batalha;
     var e = estado.arena && estado.arena.entradas, arena, arenaRotulo = 'Arena';
@@ -629,8 +639,8 @@
     }
     return '<div class="barra-recursos" id="recursos"><div class="recursos-dentro">'
       + recurso('r-vida r-estamina', 'Estamina: cada luta da caçada gasta. Enche com o tempo, acampando ou com potes (Mercado)', '⚡', 'Estamina', '<span id="rec-estamina">' + R.estamina(p).pts + '</span>/' + D.ESTAMINA.maximo)
-      + recurso('r-ouro', 'Ouro', ICONES.ouro, 'Ouro', p.ouro.toLocaleString('pt-BR'))
-      + recurso('r-reputacao', 'Reputação', ICONES.reputacao, 'Reputação', (p.reputacao || 0).toLocaleString('pt-BR'))
+      + recurso('r-ouro', 'Ouro: ' + p.ouro.toLocaleString('pt-BR'), ICONES.ouro, 'Ouro', numRecurso(p.ouro))
+      + recurso('r-reputacao', 'Reputação: ' + (p.reputacao || 0).toLocaleString('pt-BR'), ICONES.reputacao, 'Reputação', numRecurso(p.reputacao || 0))
       + recurso('r-pocao', 'Poções de vida (só na caçada) · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (estamina cheia e 2 poções). Mais poções no Mercado.', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
         '<span id="ficha-pocoes">' + (emBatalha ? estado.batalha.pocoes : p.pocoes) + '/' + R.maxPocoes(p) + '</span>')
       + recurso('r-arena', 'Entradas da Arena', ICONES.arena, arenaRotulo, arena)

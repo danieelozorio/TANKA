@@ -914,3 +914,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Arcane; ações `cascata` e `cascata-grupo`; `estado.cascata`/`estado.cascataGrupo`): botão com grupo › aba e lista dos
   grupos com ícone, cada um abrindo as abas dele. Ficha compacta (Arma e Atividades escondidas), imagens menores, mochila em 6 colunas.
 - **Lutas da caçada** (seção 15 do CSS): cartas com moldura dourada (herói com brilho arcano, monstro em vermelho, chefe pulsando), VS dourado pulsando, relato da luta em pergaminho escuro. O `arcane-efeitos.js` olha a barra de vida dos lutadores (`#lutador-jogador`/`#lutador-monstro`): quando cai, a carta treme (`.arcane-golpe`) e soltam faíscas.
+- **Números curtos** (`numCurto`/`numRecurso` no app.js): na barra de recursos da Arcane, ouro e reputação aparecem como 52.4k, 2.495M, 1.25B (corta, não arredonda). O número inteiro fica no `title`. Clássica e Zealot continuam com o número inteiro.
