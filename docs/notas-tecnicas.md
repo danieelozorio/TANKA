@@ -863,3 +863,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Fila da masmorra com bots de classe:** `fila_papel` (healer/guerreiro/dps) e `fila_bot_classe`; o bot é o 1º jogador com
   `botClasse2` = papel que falta (guerreiro → healer + Arqueiro/Bruxo; dps → guerreiro + healer; healer → guerreiro + Arqueiro).
   `R.converterBot` (em `simularSalas`) troca classe, atributo de ataque, habilidades (mesmos pontos), arma (tipo padrão) e armaduras.
+- **Varredura do celular (Daniel, 14/11/2026)** com script no scratchpad (iPhone 13 e Galaxy S8, todas as abas, procura
+  conteúdo saindo da tela / cortado / coberto por barra fixa e fotos): no celular sem os cantos dourados da `.caixa`
+  (caíam no meio da tela por cima do texto); Encantar com o nome do item na largura toda e "Sem pergaminho" pequeno;
+  Amigos com o campo na largura toda; abas da mochila, "Ordenar e filtrar" e "Pergaminhos" sem quebrar palavra no 360 px;
+  missões: "pergaminho épico" no masculino (`premioTexto` usa `RARIDADE_M`).

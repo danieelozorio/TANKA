@@ -2045,7 +2045,8 @@ Tanka.regras = (function () {
     if (pr.reputacao) partes.push(pr.reputacao + ' de reputação');
     if (pr.pergaminhoArma) {
       var arma = armaEquipada(p), r = arma ? arma.raridade : 'comum';
-      partes.push(pr.pergaminhoArma + ' pergaminho' + (pr.pergaminhoArma > 1 ? 's' : '') + ' ' + D.raridades[r].nome.toLowerCase());
+      var rm = (RARIDADE_M[r] || r).toLowerCase();   // masculino: pergaminho épico (não "épica")
+      partes.push(pr.pergaminhoArma + ' pergaminho' + (pr.pergaminhoArma > 1 ? 's ' + (rm === 'comum' ? 'comuns' : rm + 's') : ' ' + rm));
     }
     return partes.join(' + ');
   }

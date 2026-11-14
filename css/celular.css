@@ -564,3 +564,22 @@ html[data-celular] .login-dia.grande { grid-column: span 1; }
 html[data-celular] .login-janela h2 { font-size: 1.15rem; }
 html[data-celular] .login-janela .botoes .btn { width: 100%; min-height: 2.7rem; }
 html[data-celular] .missao-login { padding: .5rem .6rem; }
+/* Os cantos dourados de enfeite das caixas (tema escuro) caíam no meio da tela, por cima do texto: fora no celular */
+html[data-celular] .caixa::before { display: none; }
+/* Encantar: o nome do item usa a largura toda; "Sem pergaminho" pequeno em cima do botão */
+html[data-celular] .enc-lista > .item.item-com-icone > .item-texto { flex: 1; min-width: 0; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes { width: 6.2rem; gap: .2rem; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes > .suave { font-size: .7rem; line-height: 1.2; text-align: center; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes .btn { min-width: 0; width: 100%; }
+/* Amigos: campo do nome na largura toda, botão embaixo */
+html[data-celular] .form-amigo .linha-form { flex-wrap: wrap; }
+html[data-celular] .form-amigo .linha-form input { flex: 1 1 100%; min-width: 0; font-size: 16px; }
+html[data-celular] .form-amigo .linha-form .btn { flex: 1 1 100%; }
+html[data-celular] .enc-lista > .item.item-com-icone > .item-acoes .btn { padding: 0 .3rem; font-size: .82rem; letter-spacing: .02em; white-space: nowrap; }
+/* Celular pequeno (360 px): abas da mochila e topo do Encantar sem quebrar palavras */
+html[data-celular] .mochila-abas button { white-space: nowrap; font-size: clamp(.82rem, 3.6vw, 1rem); padding-inline: .4rem; }
+html[data-celular] .enc-topo > .suave { white-space: nowrap; }
+html[data-celular] .enc-chips { flex-wrap: nowrap; }
+html[data-celular] .enc-chip { padding-right: .3rem; }
+html[data-celular] .enc-chip i { width: 1.3rem; height: 1.3rem; }
+html[data-celular] [data-acao="mochila-ferramentas"], html[data-celular] [data-acao="mochila-lote"] { white-space: nowrap; font-size: clamp(.8rem, 3.6vw, .95rem); padding-inline: .5rem; }
