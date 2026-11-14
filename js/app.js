@@ -2368,14 +2368,61 @@
     return iconeConsumivel({ tipo: c.tipo, raridade: c.id });
   }
   // Custos como fichinhas: ícone, quanto tem / quanto precisa (verde quando dá, vermelho quando falta).
+  // Onde conseguir um ingrediente da Oficina (Henri, nov/2026): texto do balão que abre ao tocar/clicar num item que falta.
+  // Os números vêm de D.CRAFT, então o balão acompanha qualquer mudança de chance.
+  function ondeConseguir(c) {
+    var C = D.CRAFT, pct = function (v) { return fmtDec(v) + '%'; }, linhas = [];
+    var areaDe = function (id) { return D.areas.filter(function (a) { return a.id === id; })[0]; };
+    if (c.tipo === 'material') {
+      var m = C.materiais[c.id] || {};
+      if (m.area) {
+        var a = areaDe(m.area), dm = C.dropMaterial;
+        linhas.push('<b>Drop:</b> monstros de ' + esc(a ? a.nome : m.area) + ' (' + pct(dm[0]) + ', ' + pct(dm[1]) + ' e ' + pct(dm[2]) + ' de chance)');
+        linhas.push('<b>Mineração:</b> em ' + esc(a ? a.nome : m.area));
+      } else if (m.chefe) {
+        var ac = D.areas.filter(function (x) { return x.chefe && x.chefe.id === m.chefe; })[0];
+        linhas.push('<b>Drop:</b> ' + esc(ac ? ac.chefe.nome : m.chefe) + ' ' + pct(C.dropChefe) + ' de chance' + (ac ? ' (' + esc(ac.nome) + ')' : ''));
+      } else if (m.minas) {
+        linhas.push('<b>Mineração:</b> em qualquer região, ' + pct(C.minas.gemaPct) + ' de chance a cada unidade minerada');
+      } else if (m.boss) {
+        linhas.push('<b>Boss do clã:</b> quem dá mais dano no dia ganha 1');
+      }
+      if (m.area || m.chefe || m.minas) linhas.push('<em>Coletor: +' + C.coletorBonus + '% de chance' + (m.chefe ? '' : ' e +' + C.coletorBonus + '% na Mineração') + '.</em>');
+    } else if (c.tipo === 'cristal') {
+      var Q = D.CRISTAIS_QUEBRA;
+      linhas.push('<b>Forja:</b> quando um item de raridade ' + esc((D.raridades[c.id] || {}).nome || '') + ' quebra ao encantar, ele vira cristais da mesma raridade');
+      linhas.push('<em>' + Object.keys(Q).map(function (k) { return '+' + k + ' = ' + Q[k]; }).join(' · ') + ' cristais</em>');
+    } else if (c.tipo === 'receita') {
+      var ar = areaDe(c.id), mr = ar && C.materiais[R.materialDaArea(ar.id)];
+      linhas.push('<b>Coletor:</b> fabrica na Oficina' + (mr ? ' com ' + C.receita.material + ' ' + esc(mr.nome) + ' + ouro' : ''));
+      linhas.push('<b>Mercado:</b> aba Craft');
+    }
+    return linhas.length ? '<strong>' + esc(c.nome) + '</strong><span>' + linhas.join('<br>') + '</span>' : '';
+  }
   function custoChips(lista) {
     return '<div class="custo-chips">' + lista.map(function (c) {
       var ok = c.tem >= c.precisa, fmt = function (v) { return Number(v).toLocaleString('pt-BR'); };
       var txt = c.tipo === 'ouro' ? fmt(c.precisa) : fmt(Math.min(c.tem, c.precisa)) + '/' + fmt(c.precisa);
-      return '<span class="custo-chip ' + (ok ? 'ok' : 'falta') + '" title="' + esc(c.nome + ': você tem ' + fmt(c.tem) + ', precisa de ' + fmt(c.precisa)) + '">'
-        + '<i>' + iconeCusto(c) + '</i><b>' + txt + '</b><small>' + esc(c.tipo === 'ouro' ? 'ouro' : c.nome) + '</small></span>';
+      var onde = ok ? '' : ondeConseguir(c);
+      var corpo = '<i>' + iconeCusto(c) + '</i><b>' + txt + '</b><small>' + esc(c.tipo === 'ouro' ? 'ouro' : c.nome) + '</small>';
+      if (onde) return '<span class="custo-chip falta dica dica-custo" tabindex="0" role="button" aria-label="' + esc(c.nome + ': onde conseguir') + '">'
+        + corpo + '<span class="dica-balao" role="tooltip">' + onde + '<em>Você tem ' + fmt(c.tem) + ', precisa de ' + fmt(c.precisa) + '.</em></span></span>';
+      return '<span class="custo-chip ' + (ok ? 'ok' : 'falta') + '" title="' + esc(c.nome + ': você tem ' + fmt(c.tem) + ', precisa de ' + fmt(c.precisa)) + '">' + corpo + '</span>';
     }).join('') + '</div>';
   }
+  // Toque/clique abre e fecha o balão do item que falta (no celular o :hover não existe); clicar fora fecha.
+  document.addEventListener('click', function (e) {
+    var chip = e.target.closest && e.target.closest('.dica-custo');
+    if (chip && e.target.closest('.dica-balao')) return;
+    document.querySelectorAll('.dica-custo.aberta').forEach(function (el) { if (el !== chip) { el.classList.remove('aberta'); el.blur(); } });
+    if (!chip) return;
+    if (!chip.classList.toggle('aberta')) { chip.blur(); return; }
+    chip.focus();
+    // não deixar o balão sair pela borda da tela (item no canto direito, celular)
+    var bal = chip.querySelector('.dica-balao'); bal.style.left = '';
+    var r = bal.getBoundingClientRect(), sobra = r.right - (window.innerWidth - 8);
+    if (sobra > 0) bal.style.left = -Math.min(sobra, r.left - 8) + 'px';
+  });
   // Retrato do artesão: o do próprio herói quando ele é dessa classe; senão o mestre anão dela.
   function retratoArtesao(p, c2) {
     var meu = (p.talentos && p.talentos.classe2) === c2;

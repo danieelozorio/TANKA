@@ -1652,6 +1652,14 @@ html { overscroll-behavior-x: none; }
 .custo-chip.ok b { color: #7fd38a; }
 .custo-chip.falta { border-color: rgba(208, 100, 90, .55); }
 .custo-chip.falta b { color: #ef8a7e; }
+/* Balão "onde conseguir" no item que falta (Oficina) */
+.custo-chip.dica-custo { cursor: pointer; }
+.custo-chip.dica-custo small { text-decoration: underline dotted; text-underline-offset: 2px; }
+.dica-custo .dica-balao { width: min(240px, 72vw); font-size: .8rem; white-space: normal; text-align: left; }
+.dica-custo .dica-balao b { color: var(--ouro-claro); }
+.dica-custo:focus .dica-balao, .dica-custo:hover .dica-balao { display: none; }
+.dica-custo.aberta .dica-balao { display: block; }
+@media (hover: hover) { .dica-custo:hover .dica-balao { display: block; } }
 .forja-passos { counter-reset: passo; list-style: none; margin: .4rem 0 .8rem; padding: 0; display: flex; flex-direction: column; gap: .7rem; }
 .forja-passos > li { counter-increment: passo; position: relative; padding-left: 2.1rem; }
 .forja-passos > li::before { content: counter(passo); position: absolute; left: 0; top: .05rem; width: 1.5rem; height: 1.5rem; border-radius: 50%;
