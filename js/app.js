@@ -6515,8 +6515,11 @@
     if (ev.hpMaxA) est.a.hpMax = ev.hpMaxA;   // a Bênção aumenta a vida máxima por 2 turnos
     if (ev.hpMaxD) est.d.hpMax = ev.hpMaxD;
     // Habilidades: o nome antes do dado; atordoado e cura não têm golpe.
-    if (ev.hab) L.registro.push('<p class="habilidade-usada">' + (ev.cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + esc(atk.nome) + ' usa <strong>' + esc(ev.hab) + '</strong>'
-      + (ev.cura ? ' e recupera <strong>' + ev.cura + '</strong> de vida' : '') + '!</p>');
+    // Cura (Luz que Cura): o dado decide quanto cura, então ele aparece no histórico (Henri, 14/11/2026). Com 1, cura 0.
+    var cura = ev.hab && ev.cura !== undefined && ev.cura !== null && !ev.dano;
+    if (ev.hab) L.registro.push('<p class="habilidade-usada">' + (cura ? '💚 ' : ev.reforco ? '✨ ' : '⚡ ') + (cura && ev.dado ? '🎲 <strong>' + ev.dado + '</strong> ' : '')
+      + esc(atk.nome) + ' usa <strong>' + esc(ev.hab) + '</strong>'
+      + (cura ? (ev.cura > 0 ? ' e recupera <strong>' + ev.cura + '</strong> de vida' : ' e não cura nada') : '') + '!</p>');
     // Level 30 (nov/2026): queimadura, cala, cegueira, Milagre e dano devolvido.
     if (ev.queimou) L.registro.push('<p class="dano-recebido">🔥 ' + esc(atk.nome) + ' queima e perde <strong>' + ev.queimou + '</strong>.</p>');
     if (ev.envenenado) L.registro.push('<p class="dano-recebido">☠️ ' + esc(atk.nome) + ' sangra/está envenenado e perde <strong>' + ev.envenenado + '</strong>.</p>');
@@ -6527,7 +6530,7 @@
       if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
       return;
     }
-    if (ev.cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; return; }
+    if (cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60); return; }
     L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20)' : '') + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
