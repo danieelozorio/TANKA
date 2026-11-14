@@ -908,7 +908,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Só lê posições (a cada 200 ms); para com a aba escondida e não roda com "reduzir movimento". No CSS: névoa girando atrás
   do retrato e brilho que respira no quadro do nome e na placa de Poder.
 
-- **Arcane no celular (teste):** no celular a ⚙ › Interface oferece "Padrão do celular" (casca Zealot) ou "Arcane (teste)".
+- **Arcane no celular (teste):** no celular a ⚙ › Interface oferece "Zealot" (a casca do celular, padrão) ou "Arcane".
   Com Arcane, o `jogar/index.html` não liga a casca (`data-celular`): o jogo usa as telas da Clássica e a seção 14 do
   `css/tema-arcane.css` (até 760 px) as adapta. As abas viram o **menu em cascata** (`cascataHtml()` no app.js, só no tema
   Arcane; ações `cascata` e `cascata-grupo`; `estado.cascata`/`estado.cascataGrupo`): botão com grupo › aba e lista dos

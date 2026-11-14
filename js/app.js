@@ -7832,7 +7832,7 @@
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
         + (ehCelularAparelho() ? '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['zealot', 'Padrão do celular'], ['arcane', 'Arcane (teste)']].map(function (x) {
+          + [['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>'
