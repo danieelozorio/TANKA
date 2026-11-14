@@ -684,3 +684,57 @@ html[data-interface="arcane"] .cascata { display: none; }
     background: url("../assets/interface/arcane/rodape-dragao-esq.webp") calc(50% - 115px) center / auto 80% no-repeat,
       url("../assets/interface/arcane/rodape-dragao-dir.webp") calc(50% + 120px) center / auto 80% no-repeat, linear-gradient(180deg, #1a1c22, #0b0c10); }
 }
+
+/* ---------- 15. Lutas da caçada (Henri, nov/2026) ---------- */
+html[data-interface="arcane"] .cacada-topo {
+  padding: .55rem .8rem; border: 2px solid var(--ouro-moldura); border-radius: 5px;
+  background: linear-gradient(180deg, #33261a, #1a120b); box-shadow: inset 0 1px 0 rgba(255, 220, 150, .2), 0 4px 10px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .cacada-arena {
+  border: 2px solid var(--ouro-moldura); border-radius: 4px;
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 0 5px rgba(155, 122, 60, .5), inset 0 0 60px rgba(0, 0, 0, .85);
+}
+/* Cartas dos lutadores: moldura dourada; o herói brilha em arcano, o monstro em vermelho */
+html[data-interface="arcane"] .lutador .moldura { border: 3px solid #c9a14e; border-radius: 3px; position: relative;
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] #lutador-jogador .moldura { box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 18px rgba(34, 197, 94, .35), 0 0 30px rgba(59, 130, 246, .25), 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] #lutador-monstro .moldura { border-color: #a8452f; box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a1612, 0 0 20px rgba(220, 60, 40, .35), 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] .cacada-encontro.chefe .moldura { border-color: #ff7a55; animation: arcane-chefe 1.6s ease-in-out infinite; }
+@keyframes arcane-chefe { 50% { box-shadow: 0 0 0 1px #000, 0 0 0 4px #3a1208, 0 0 34px rgba(255, 90, 50, .75), 0 10px 22px rgba(0, 0, 0, .8); } }
+html[data-interface="arcane"] .lutador h3 { font-family: var(--fonte-titulo); color: var(--ouro-texto); letter-spacing: .06em; }
+html[data-interface="arcane"] .lutador .barra { height: 20px; border-radius: 2px; border: 1px solid #8a6a34; box-shadow: 0 0 0 1px #1a1208, inset 0 2px 4px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] #lutador-monstro .barra.hp > i { background: linear-gradient(180deg, #c85a3a, #8e2a14 55%, #5a160a); }
+html[data-interface="arcane"] .lutador .barra > b { font-family: 'EB Garamond', Georgia, serif; font-weight: 700; font-size: .95rem; }
+/* VS dourado com brilho que pulsa */
+html[data-interface="arcane"] .vs {
+  font-family: var(--fonte-titulo); font-weight: 800; font-size: 2.3rem; color: #f0c975;
+  text-shadow: 0 0 10px rgba(255, 190, 80, .8), 0 0 24px rgba(255, 150, 40, .45), 0 3px 3px #000; animation: arcane-vs 2s ease-in-out infinite;
+}
+@keyframes arcane-vs { 50% { transform: scale(1.08); text-shadow: 0 0 16px rgba(255, 210, 110, 1), 0 0 36px rgba(255, 150, 40, .7), 0 3px 3px #000; } }
+/* Golpe: a carta treme (classe posta pelo arcane-efeitos.js) */
+html[data-interface="arcane"] .arcane-golpe { animation: arcane-treme .32s ease-out; }
+@keyframes arcane-treme { 20% { transform: translateX(-5px) rotate(-1deg); } 45% { transform: translateX(4px) rotate(1deg); } 70% { transform: translateX(-2px); } }
+/* Relato da luta: pergaminho escuro com fio dourado */
+html[data-interface="arcane"] .registro {
+  font-family: 'EB Garamond', Georgia, serif; font-size: 1.02rem; line-height: 1.5; color: #e6d6b5;
+  background: linear-gradient(180deg, rgba(42, 30, 18, .92), rgba(22, 15, 9, .95)); border: 2px solid var(--ouro-moldura); border-radius: 4px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, .7), 0 0 0 1px #000;
+}
+html[data-interface="arcane"] .registro p { padding: .1rem 0; border-bottom: 1px solid rgba(155, 122, 60, .12); }
+html[data-interface="arcane"] .registro .destaque { color: #f0c975; }
+html[data-interface="arcane"] .registro .critico, html[data-interface="arcane"] .registro .habilidade-usada { color: #ffd862; }
+html[data-interface="arcane"] .registro .dano-recebido { color: #f2a090; }
+/* Opções, resumo e histórico da caçada */
+html[data-interface="arcane"] .cacada-opcoes { border: 1px solid rgba(155, 122, 60, .45); border-radius: 5px; background: rgba(10, 8, 6, .5); }
+html[data-interface="arcane"] .cacada-num {
+  border: 1px solid #6a5430; border-radius: 4px; background: linear-gradient(180deg, #2a2116, #15100a);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, .15);
+}
+html[data-interface="arcane"] .cacada-num strong { font-family: var(--fonte-titulo); color: var(--ouro-texto); }
+@media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .vs, html[data-interface="arcane"] .arcane-golpe { animation: none; } }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .lutador .moldura { max-width: 120px; }
+  html[data-interface="arcane"] .vs { font-size: 1.5rem; }
+  html[data-interface="arcane"] .registro { height: 160px; font-size: .92rem; }
+  html[data-interface="arcane"] .cacada-arena { min-height: 0; }
+}

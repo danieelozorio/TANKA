@@ -52,6 +52,27 @@
     alvos.retrato = retangulo('.retrato-central');
     alvos.mochila = retangulo('.pg-mochila');
     alvos.conteudo = retangulo('.conteudo .jogo') || retangulo('.conteudo');
+    golpes();
+  }
+  // Golpes na caçada: quando a barra de vida de um lutador diminui, a carta treme e soltam faíscas.
+  var vidaAntes = {};
+  function golpes() {
+    ['jogador', 'monstro'].forEach(function (quem) {
+      var el = document.getElementById('lutador-' + quem), fill = el && el.querySelector('.barra > i');
+      if (!fill) { delete vidaAntes[quem]; return; }
+      var w = parseFloat(fill.style.width) || 0, antes = vidaAntes[quem];
+      vidaAntes[quem] = w;
+      if (antes === undefined || w >= antes - .01) return;
+      var mold = el.querySelector('.moldura'), r = mold && mold.getBoundingClientRect();
+      if (!r || !r.width) return;
+      mold.classList.remove('arcane-golpe'); void mold.offsetWidth; mold.classList.add('arcane-golpe');
+      var forte = antes - w > 25, n = forte ? 40 : 22;
+      for (var i = 0; i < n; i++) {
+        var ang = Math.random() * Math.PI * 2, vel = rnd(60, forte ? 260 : 170);
+        parts.push({ tipo: 'golpe', x: r.left + r.width / 2 + rnd(-r.width * .2, r.width * .2), y: r.top + r.height * .45 + rnd(-r.height * .15, r.height * .15),
+          vx: Math.cos(ang) * vel, vy: Math.sin(ang) * vel - 30, vida: 0, max: rnd(.35, .8), tam: rnd(1.2, 2.8), herói: quem === 'jogador' });
+      }
+    });
   }
   var rnd = function (a, b) { return a + Math.random() * (b - a); };
 
@@ -162,6 +183,12 @@
         g.addColorStop(.3, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',.45)');
         g.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.tam * 4, 0, Math.PI * 2); ctx.fill();
+      } else if (p.tipo === 'golpe') {
+        p.vy += 260 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .96;
+        ctx.globalAlpha = 1 - k;
+        ctx.strokeStyle = p['herói'] ? 'rgba(255, 90, 70, 1)' : 'rgba(255, ' + Math.round(220 - 120 * k) + ', 80, 1)';
+        ctx.lineWidth = p.tam; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * .035, p.y - p.vy * .035); ctx.stroke();
       } else if (p.tipo === 'poeira') {
         p.x += p.vx * dt; p.y += p.vy * dt;
         ctx.globalAlpha = a * (.55 + .45 * Math.sin(t * 9 + p.fase));
