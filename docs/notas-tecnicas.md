@@ -835,3 +835,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`HAB_TROCADAS`, em `normalizar` e `talentos`) devolve os pontos da Bênção e troca o id na ordem. **Luz que Cura na
   Arena usa o dado:** cura x 0 (1), (d−1)/18 até 10 (10 = metade), 0,5 + (d−10)/20 acima (20 = cheia); atordoado/sem dado = cheia.
 - **Level 30 sobem com pontos** (Henri, 13/11/2026): Tiro Silenciador `mult [180,5]`, Execução `[250,3]`, Maldição `[200,5]` + `queima.pct [15,1]`, Martelo `[220,5]`, Pó nos Olhos `erroPct [30,1]` (antes por ponto 0). `depoisDoGolpeNivel(def, alvo, s, pts)` e `aplicarReforco` usam `valorNivel`; `arena_kit` converte `queima.pct`/`erroPct` em array.
+- **Drop sempre ±3** (Henri, 13/11/2026): `ITEM_NIVEL.altoDesde: null` (antes 35: do level 35 em diante caía de 35 a 60). Herói 40 tira de 37 a 43. O último mapa (Cume) aparece como "Lv 30–40" (até `NIVEL_MAXIMO`).

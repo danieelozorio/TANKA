@@ -1310,7 +1310,7 @@
     var p = estado.personagem;
     var nos = D.areas.map(function (a, i) {
       var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
-      var faixa = proxima ? 'Lv ' + a.nivelMin + '–' + proxima.nivelMin : 'Lv ' + a.nivelMin + '+';
+      var faixa = 'Lv ' + a.nivelMin + '–' + (proxima ? proxima.nivelMin : D.NIVEL_MAXIMO);   // o último mapa vai até o level máximo
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
         + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
         + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'

@@ -411,7 +411,9 @@ Tanka.dados = {
   // nível: sorteada com as chances de sempre e convertida numa qualidade de 0 a 1 (faixaQualidade); com a mesma
   // qualidade, um item de nível maior é mais forte.
   ITEM_NIVEL: {
-    maximo: 60, variacao: 3, altoDesde: 35, altoMin: 35,
+    // Drop: sempre o nível do herói ±3 (Henri, 13/11/2026; antes, do level 35 em diante caía entre 35 e 60).
+    // Para voltar a regra antiga: altoDesde: 35, altoMin: 35.
+    maximo: 60, variacao: 3, altoDesde: null, altoMin: 35,
     faixaQualidade: { comum: [0, 0.4], rara: [0.4, 0.7], epica: [0.7, 0.9], lendaria: [0.9, 1] },
     // Força pela raridade (o mais fraco e o mais forte de cada uma): cada raridade ~25% acima da anterior.
     multRaridade: { comum: [0.7, 0.8], rara: [0.95, 1.05], epica: [1.27, 1.37], lendaria: [1.6, 1.7] },

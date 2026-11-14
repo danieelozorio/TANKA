@@ -1337,13 +1337,13 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
   assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, Math.round(5 * D.DEFESA.fator));
 });
 
-teste('itens por nível: drop ±3 (35+ vai de 35 a 60), qualidade pela raridade, Mercado comum/rara e venda a 10%', () => {
+teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela raridade, Mercado comum/rara e venda a 10%', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 19);   // level 20
   for (let i = 0; i < 300; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 17 && n <= 23, n); }
   R.admin.subirNivel(p, 20);   // level 40
-  const vistos = new Set(); for (let i = 0; i < 2000; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 35 && n <= 60); vistos.add(n); }
-  assert.strictEqual(vistos.size, 26);
+  const vistos = new Set(); for (let i = 0; i < 2000; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 37 && n <= 43, n); vistos.add(n); }
+  assert.strictEqual(vistos.size, 7);   // 37 a 43
   // mesmo nível: lendária mais forte que comum; nível maior mais forte
   const m = (n, q) => { const d = R.danoDoNivel(n, q); return (d[0] + d[1]) / 2; };
   assert.ok(m(10, 1) > m(10, 0.6) && m(10, 0.1) < m(10, 0.55) && m(30, 0.5) > m(10, 0.5));

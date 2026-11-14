@@ -70,10 +70,10 @@ Tanka.regras = (function () {
   // ---------- Nível e qualidade dos itens ----------
   var N_ = D.ITEM_NIVEL;
   function limitarNivel(n) { return Math.max(1, Math.min(N_.maximo, n)); }
-  // Nível de um drop: o do herói ±3; do level 35 em diante, entre 35 e 60.
+  // Nível de um drop: o do herói ±3 (com altoDesde ligado: daquele level em diante, entre altoMin e o máximo).
   function nivelDoDrop(p, rng) {
     rng = rng || Math.random;
-    if (p.nivel >= N_.altoDesde) return N_.altoMin + Math.floor(rng() * (N_.maximo - N_.altoMin + 1));
+    if (N_.altoDesde && p.nivel >= N_.altoDesde) return N_.altoMin + Math.floor(rng() * (N_.maximo - N_.altoMin + 1));
     return limitarNivel(p.nivel - N_.variacao + Math.floor(rng() * (2 * N_.variacao + 1)));
   }
   function nivelDoMercado(p, rng) {
