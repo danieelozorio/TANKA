@@ -949,3 +949,29 @@ html[data-interface="arcane"] .exp-fina > i { background: linear-gradient(180deg
 /* Sem o retângulo colorido atrás do equipamento (Henri): fica só o fundo do painel */
 html[data-interface="arcane"] .personagem-tela { background: none; }
 html[data-interface="arcane"] .personagem-tela::before { display: none; }
+
+/* ---------- 18. Celular: monstros da área em carta deitada e compacta (inspirado no Zealot) ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .monstros { grid-template-columns: 1fr; gap: .5rem; }
+  html[data-interface="arcane"] .monstro { flex-direction: row; align-items: stretch; border: 1px solid #6a5430; border-radius: 6px;
+    background: linear-gradient(180deg, #1c1f27, #12141a); box-shadow: inset 0 1px 0 rgba(255, 220, 150, .08), 0 4px 10px rgba(0, 0, 0, .5); }
+  html[data-interface="arcane"] .monstro.monstro-escolhido { border-color: #e2bb63; box-shadow: 0 0 0 1px rgba(226, 187, 99, .4), 0 0 14px rgba(242, 201, 76, .25); }
+  html[data-interface="arcane"] .monstro .moldura { width: 5.6rem; flex: none; aspect-ratio: auto; border-right: 1px solid #6a5430; }
+  html[data-interface="arcane"] .monstro .corpo { padding: .5rem .6rem; gap: .3rem; min-width: 0; }
+  html[data-interface="arcane"] .monstro .corpo h3 { font-size: .95rem; margin: 0; }
+  html[data-interface="arcane"] .monstro-resumo { display: flex; flex-wrap: wrap; gap: .15rem .55rem; font-size: .78rem; color: var(--texto-principal); }
+  html[data-interface="arcane"] .monstro-resumo span:first-child { color: #f2c94c; font-weight: 700; }
+  html[data-interface="arcane"] .monstro-detalhes > summary { font-size: .76rem; color: var(--ouro-brilho); cursor: pointer; }
+  html[data-interface="arcane"] .monstro-detalhes .ficha-monstro { font-size: .78rem; margin-top: .3rem; }
+  html[data-interface="arcane"] .monstro-detalhes p { font-size: .78rem; margin: .3rem 0; }
+  html[data-interface="arcane"] .monstro .corpo .btn { min-height: 2.2rem; padding: .3em .6em; font-size: .74rem; white-space: normal; line-height: 1.2; }
+  html[data-interface="arcane"] .monstro .corpo .menos.pequeno { font-size: .72rem; margin: 0; }
+  html[data-interface="arcane"] .monstro.chefe .corpo > p { font-size: .78rem; }
+  html[data-interface="arcane"] .monstro.chefe .misterio { font-size: .78rem; }
+  /* barra "Monstros da caçada" numa linha só, presa no alto embaixo dos recursos */
+  html[data-interface="arcane"] .cacada-escolha { top: 40px; display: flex; flex-wrap: nowrap; align-items: center; gap: .35rem; padding: .4rem .45rem; margin: 0 0 .6rem;
+    border: 1px solid var(--ouro-moldura); border-radius: 6px; background: rgba(14, 12, 9, .96); box-shadow: 0 6px 14px rgba(0, 0, 0, .6); }
+  html[data-interface="arcane"] .cacada-escolha > span { flex: 1; min-width: 0; font-size: .74rem; line-height: 1.2; }
+  html[data-interface="arcane"] .cacada-escolha .btn { padding: .35em .55em; font-size: .7rem; min-height: 0; white-space: nowrap; }
+  html[data-interface="arcane"] .regiao-topo p { font-size: .8rem; }
+}
