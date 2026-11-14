@@ -919,3 +919,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   com reflexo e um brilho que passa a cada 6 s; sem as pontas de metal), brilho do encanto sem o quadrado colorido (só luz suave,
   2,6x mais lenta), tudo que pisca mais devagar, brasão da mochila recortado (sem o fundo retangular), nomes do pergaminho de
   bônus legíveis. No `arcane-efeitos.js`: pó e faíscas somem mais rápido, piscam devagar, e o fogo tremula com calma.
+- **HUD dark fantasy** (seção 17 do CSS; pedido do Henri com `INSTRUCOES_PARA_CLAUDE.md` + `referencia-hud.png`): as barras
+  continuam vindo da função `barra()` do app.js (sem barras novas). A `barra()` agora põe `levou-dano` quando o valor CAI em
+  relação ao anterior (mesma comparação do rastro `<s>`; cura e valor igual não piscam) e `vida-baixa` na vida do herói até 25%
+  (não no monstro). A Experiência da ficha ganhou o embrulho `#ficha-exp` e, no nível máximo, a classe `maximo`. Só a Arcane
+  estiliza essas classes: moldura dourada, medalhão com ícone SVG (coração/raio/estrela, em `--ic-*`), ponta dourada,
+  clarão de dano, borda pulsando com vida baixa, Exp roxa, nome do lutador numa faixa dourada e VS em ouro com risco de fogo.

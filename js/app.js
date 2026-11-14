@@ -84,13 +84,15 @@
   var larguras = {};
   function barra(classe, atual, max, texto, chave) {
     var pct = max > 0 ? Math.max(0, Math.min(100, (atual / max) * 100)) : 0;
-    var rastro = '';
+    var rastro = '', extra = '';
     if (chave) {
       var antes = larguras[chave];
       larguras[chave] = pct;
-      if (antes !== undefined && antes > pct) rastro = '<s style="--de:' + antes + '%;--ate:' + pct + '%"></s>';
+      if (antes !== undefined && antes > pct) { rastro = '<s style="--de:' + antes + '%;--ate:' + pct + '%"></s>'; extra += ' levou-dano'; }
     }
-    return '<div class="barra ' + classe + '">' + rastro + '<i style="width:' + pct + '%"></i><b>' + texto + '</b></div>';
+    // Vida baixa (até 25%) do herói: o visual Arcane pisca a barra em vermelho. Só a classe; cada tema decide o estilo.
+    if (classe === 'hp' && chave !== 'monstro' && max > 0 && atual > 0 && pct <= 25) extra += ' vida-baixa';
+    return '<div class="barra ' + classe + extra + '">' + rastro + '<i style="width:' + pct + '%"></i><b>' + texto + '</b></div>';
   }
   function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
@@ -1187,9 +1189,9 @@
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : s.hpMax, emBatalha ? estado.batalha.jogador.hpMax : s.hpMax, (emBatalha ? estado.batalha.jogador.hp : s.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : s.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
-      + '<div class="suave">Experiência</div>' + (p.nivel >= D.NIVEL_MAXIMO
-        ? barra('exp', 1, 1, 'Level máximo')
-        : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR')))
+      + '<div class="suave">Experiência</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
+        ? barra('exp maximo', 1, 1, 'Level máximo')
+        : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR'))) + '</div>'
       + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
       + poderHtml(p) + bonusFichaHtml()
