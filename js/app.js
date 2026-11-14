@@ -2798,7 +2798,8 @@
 
   // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
   // Uma tentativa de encantar: sorteia, salva e abre a Forja.
-  function tentarEncantar(id) {
+  // rapido = veio do botão +1 da Forja: sem a barra, já mostra o sucesso ou a falha (Henri, 13/11/2026).
+  function tentarEncantar(id, rapido) {
     var p = estado.personagem;
     var alvoEnc = p.inventario.find(function (i) { return i.id === id; });
     var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
@@ -2812,11 +2813,11 @@
       missaoCla('encantar', 1);
       if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
       salvar();
-      abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc);
+      abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc, rapido);
     }
   }
 
-  function abrirForja(item, res, chance, risco) {
+  function abrirForja(item, res, chance, risco, rapido) {
     var tipo = res.sucesso ? 'sucesso' : res.quebrou ? 'quebra' : risco === 'zera' ? 'zera' : 'falha';
     var parada = res.sucesso ? 100 : 18 + Math.random() * 74;          // onde a barra para na falha
     var duracao = 2600 * parada / 100 + 300;
@@ -2833,6 +2834,12 @@
       + '<div class="botoes"><button class="btn" data-forja="ok" disabled>Continuar</button></div></div>';
     document.body.appendChild(ov);
     var barra = ov.querySelector('.forja-barra'), fill = barra.querySelector('i'), pct = barra.querySelector('.forja-pct');
+    if (rapido) {   // +1: a barra já aparece onde parou e o resultado vem na hora
+      fill.style.transition = 'none';
+      fill.style.width = parada + '%';
+      pct.textContent = Math.floor(parada) + '%';
+      terminar();
+    } else {
     var parar = Sons.carregar(duracao / 1000);
     var inicio = performance.now();
     (function passo(agora) {
@@ -2845,6 +2852,7 @@
       parar();
       terminar();
     })(inicio);
+    }
     function terminar() {
       var r = ov.querySelector('.forja-resultado');
       barra.classList.add(res.sucesso ? 'cheia' : 'rachou');
@@ -2888,7 +2896,7 @@
           telaJogo();
           return;
         }
-        tentarEncantar(item.id);
+        tentarEncantar(item.id, true);
         return;
       }
       telaJogo();
