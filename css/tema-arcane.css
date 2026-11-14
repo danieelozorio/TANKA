@@ -944,3 +944,6 @@ html[data-interface="arcane"] .vs:empty::before { display: none; }
 html[data-interface="arcane"] .ficha > .suave:not(.vida-tempo):not(.pequeno), html[data-interface="arcane"] .ficha > .dica { padding-left: 36px; margin-bottom: .1rem; }
 /* barrinha fina de exp da luta também em roxo */
 html[data-interface="arcane"] .exp-fina > i { background: linear-gradient(180deg, #c69aff, #8735e8 50%, #5014a4); }
+/* Sem o retângulo colorido atrás do equipamento (Henri): fica só o fundo do painel */
+html[data-interface="arcane"] .personagem-tela { background: none; }
+html[data-interface="arcane"] .personagem-tela::before { display: none; }
