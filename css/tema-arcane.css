@@ -1001,3 +1001,22 @@ html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .7
   html[data-interface="arcane"] #ficha-flutuante .item-acoes .btn { padding: .3em .6em; font-size: .72rem; min-height: 0; }
   html[data-interface="arcane"] #ficha-flutuante .botoes .btn { padding: .3em .7em; font-size: .72rem; }
 }
+
+/* ---------- 20. Celular: escolha de personagem compacta (cabem os 3 na tela) ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .lista-personagens { grid-template-columns: 1fr; gap: .55rem; }
+  html[data-interface="arcane"] .lista-personagens .carta:not(.nova) {
+    display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; grid-template-areas: "foto nome jogar" "foto detalhe excluir";
+    column-gap: .65rem; row-gap: .15rem; align-items: center; text-align: left; padding: .5rem .6rem;
+  }
+  html[data-interface="arcane"] .lista-personagens .carta .moldura { grid-area: foto; width: 76px; height: 92px; aspect-ratio: auto; margin: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta .moldura img { object-position: 50% 18%; }
+  html[data-interface="arcane"] .lista-personagens .carta .nome { grid-area: nome; align-self: end; margin: 0; font-size: 1.05rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .detalhe { grid-area: detalhe; align-self: start; margin: 0; font-size: .78rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .btn { width: auto; margin: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta [data-acao="jogar"] { grid-area: jogar; align-self: end; padding: .45em 1.1em; font-size: .82rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .btn-excluir { grid-area: excluir; align-self: start; padding: .2em .5em; font-size: .7rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .excluir-confirma { grid-column: 1 / -1; }
+  html[data-interface="arcane"] .lista-personagens .carta.nova { padding: .7rem; min-height: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta.nova span { font-size: 1.6rem; line-height: 1; }
+}
