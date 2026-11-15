@@ -2129,6 +2129,7 @@ begin
         or (pos <= 5 and ap.posicao > pos and ap.posicao <= 5))), '[]'::jsonb) end,
     'historico', coalesce((select jsonb_agg(h order by (h ->> 'id')::bigint desc) from (
         select jsonb_build_object('id', l.id, 'ataquei', l.atacante = meu, 'oponente', case when l.atacante = meu then l.nome_defensor else l.nome_atacante end,
+          'oponente_id', case when l.atacante = meu then l.defensor else l.atacante end,   -- perfil na confirmação da revanche
           'venceu_atacante', l.situacao = 'vitoria', 'saque', l.saque, 'revanche', l.revanche_de is not null, 'quando', l.concluido_em,
           'tipo', l.tipo, 'reputacao', l.reputacao,
           'pode_revanche', l.defensor = meu and l.revanche_de is null and not l.revanche_usada and l.atacante is not null) as h

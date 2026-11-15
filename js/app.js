@@ -4758,7 +4758,14 @@
         break;
       case 'desafio-confirmar': {
         var alvoDesafio = estado.desafio && estado.desafio.id, livre = estado.desafio && estado.desafio.tipo === 'livre';
+        var lutaRevanche = estado.desafio && estado.desafio.tipo === 'revanche' ? estado.desafio.luta : null;
         if (!alvoDesafio) break;
+        if (lutaRevanche) {
+          if (bloqueadoMinerando('lutar na Arena')) { estado.desafio = null; telaJogo(); break; }
+          estado.desafio = null; telaJogo();
+          comecarLutaArena(function () { return C.arena.revanche(p.id, lutaRevanche); });
+          break;
+        }
         if (bloqueadoMinerando('lutar na Arena')) { estado.desafio = null; telaJogo(); break; }
         estado.desafio = null;
         if (livre) estado.aba = 'arena';   // a luta e o resultado aparecem na Arena
@@ -4773,6 +4780,8 @@
         break;
       case 'arena-revanche':
         if (bloqueadoMinerando('lutar na Arena')) break;
+        // Revanche (Henri, nov/2026): primeiro a tela de confirmação com o perfil do adversário, como no Desafiar.
+        if (el.dataset.id) { abrirDesafio(el.dataset.id, 'revanche'); estado.desafio.luta = Number(el.dataset.luta); break; }
         comecarLutaArena(function () { return C.arena.revanche(p.id, Number(el.dataset.luta)); }, el);
         break;
       case 'marcar': {
@@ -6396,7 +6405,7 @@
     var ar = estado.arena, rep = A.reputacaoVitoria, minha = ar && ar.minha_arena, minhaPos = ar && ar.posicao;
     var ia = A.arenas.map(function (a) { return a.id; }).indexOf(minha), id = A.arenas.map(function (a) { return a.id; }).indexOf(pf.arena);
     var mesma = minha && pf.arena === minha, abaixo = mesma && minhaPos && pf.posicao > minhaPos;
-    var escada = tipo !== 'livre' && mesma && !abaixo;
+    var escada = tipo !== 'livre' && tipo !== 'revanche' && mesma && !abaixo;
     var nada = !escada && minha && id >= 0 && ia >= 0 && id < ia;
     var repTxt = nada ? 0 : abaixo ? Math.floor(rep / 2) : rep;
     var linhas = [];
@@ -6407,8 +6416,8 @@
         + (escada && pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.');
       linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua).</span>');
     }
-    linhas.push('<span class="suave pequeno">' + (escada ? 'Vencendo, você toma a posição dele.' : 'Este ataque não muda a sua posição na Arena.')
-      + ' Ele poderá revidar com uma revanche.</span>');
+    linhas.push('<span class="suave pequeno">' + (tipo === 'revanche' ? 'Revanche: não muda a sua posição na Arena e ele não pode revidar.'
+      : (escada ? 'Vencendo, você toma a posição dele.' : 'Este ataque não muda a sua posição na Arena.') + ' Ele poderá revidar com uma revanche.') + '</span>');
     return '<p class="desafio-ouro">' + linhas.join('<br>') + '</p>';
   }
 
@@ -6456,8 +6465,8 @@
     var semEntrada = entradas && entradas.valor <= 0;
     return '<div class="zoom-fundo" data-acao="desafio-cancelar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Perfil do adversário">'
       + '<button class="zoom-x" data-acao="desafio-cancelar" title="Fechar">✕</button>'
-      + '<div class="zoom-rotulo">' + (d.tipo === 'livre' ? 'Atacar pelo Ranking?' : 'Desafiar na Arena?') + '</div>' + corpo
-      + '<div class="botoes"><button class="btn btn-rolar" data-acao="desafio-confirmar"' + (!pf || semEntrada ? ' disabled' : '') + '>' + (d.tipo === 'livre' ? '⚔ Atacar' : '⚔ Desafiar')
+      + '<div class="zoom-rotulo">' + (d.tipo === 'revanche' ? 'Revanche?' : d.tipo === 'livre' ? 'Atacar pelo Ranking?' : 'Desafiar na Arena?') + '</div>' + corpo
+      + '<div class="botoes"><button class="btn btn-rolar" data-acao="desafio-confirmar"' + (!pf || semEntrada ? ' disabled' : '') + '>' + (d.tipo === 'revanche' ? '⚔ Revanche' : d.tipo === 'livre' ? '⚔ Atacar' : '⚔ Desafiar')
       + (entradas ? ' <small>(gasta 1 de ' + entradas.valor + ' entradas)</small>' : '') + '</button>'
       + '<button class="btn secundario" data-acao="desafio-cancelar">Cancelar</button></div></div></div>';
   }
@@ -6509,7 +6518,7 @@
         ? (h.venceu_atacante ? 'Você venceu <strong>' + esc(h.oponente) + '</strong>' : 'Você perdeu para <strong>' + esc(h.oponente) + '</strong>')
         : (h.venceu_atacante ? '<strong>' + esc(h.oponente) + '</strong> te atacou e venceu' : '<strong>' + esc(h.oponente) + '</strong> te atacou e perdeu');
       var ouro = h.saque ? ' <span class="' + (h.ataquei === h.venceu_atacante ? 'mais' : 'menos') + '">(' + (h.ataquei === h.venceu_atacante ? '+' : '−') + h.saque.toLocaleString('pt-BR') + ' de ouro)</span>' : '';
-      var botao = h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '';
+      var botao = h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '" data-id="' + esc(h.oponente_id || '') + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '';
       var rep = h.ataquei && h.venceu_atacante && h.reputacao ? ' <span class="mais">(+' + h.reputacao + ' de reputação)</span>' : '';
       var tipo = h.revanche ? 'Revanche · ' : h.tipo === 'livre' ? 'Pelo Ranking · ' : h.tipo === 'top5' ? 'Top 5 · ' : '';
       return '<div class="item"><div>' + (tipo ? '<span class="suave pequeno">' + tipo + '</span>' : '') + texto + ouro + rep

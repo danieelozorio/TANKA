@@ -948,3 +948,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Servidor: `novoEncontro` com alvo `*-pesadelo` faz o encontro direto (chefe: false, para a caçada automática lutar).
 - Tela: portal no Mapa do Reino (`reino-pesadelo`), mapa `assets/mapa-pesadelo.webp` (x/y em `D.PESADELO.chefes`), ficha do
   chefe e ⚔ ENFRENTAR (caçada contínua só com esse chefe).
+- **Revanche com confirmação (Henri, nov/2026):** o histórico da Arena traz `oponente_id`; o botão Revanche abre a mesma janela do Desafiar (`abrirDesafio(id, 'revanche')`, `estado.desafio.luta`) e o ⚔ Revanche chama `arena_revanche`. Sem `oponente_id` (schema antigo) luta direto como antes.
