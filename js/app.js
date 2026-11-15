@@ -1851,7 +1851,9 @@
       case 'cura': return 'Cura <b>' + R.valorBonus(def, 'vidaPct', n) + '%</b> da vida máxima de todo o grupo. Na caçada vira dano no monstro.';
       case 'passiva': {
         var atr = def.atributos ? Object.keys(def.atributos).map(function (k) { return '+' + def.atributos[k] + ' de ' + NOME_ATR[k]; }) : [];
-        return 'Sempre: <b>' + atr.concat(bonus()).join(', ') + '</b>.';
+        // passivas de sempre com efeito por ponto (Sede de Caça: roubo de vida 1% a 10%) também aparecem
+        var ext = ['regenPct', 'rouboVida', 'reducaoDano', 'danoExtraPct'].some(function (c) { return def[c]; }) ? ' ' + efeitoNivel(def, n) : '';
+        return 'Sempre: <b>' + atr.concat(bonus()).join(', ') + '</b>.' + ext;
       }
     }
     return def.descricao || '';
