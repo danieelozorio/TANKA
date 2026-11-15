@@ -871,7 +871,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   amigo; silenciado não sussurra). Quem recebe vê a aba aparecer (conversas das últimas 24 h).
 - **Clã › Membros:** ações num menu em cascata (`details.menu-cascata`) com "Adicionar amigo" (`al-amigo`).
 - **Mercado Negro:** aba `mercadoNegro` no grupo Mercado com o comércio entre jogadores (saiu da Loja). Faixa de nível como o Leilão:
-  `mercado_nivel_max(meu)` (antes do 10: até 12; 10–19: 22; 20–29: 32; 30+: sem limite) filtra `mercado_estado` (os seus anúncios
+  `mercado_nivel_max(meu)` (antes do 10: até 12; 10–19: 22; 20–29: 32; 30–39: 50; 40+: sem limite, `LEILAO.mercadoSemLimite`) filtra `mercado_estado` (os seus anúncios
   sempre aparecem) e trava `mercado_comprar`.
 - **Fila da masmorra com bots de classe:** `fila_papel` (healer/guerreiro/dps) e `fila_bot_classe`; o bot é o 1º jogador com
   `botClasse2` = papel que falta (guerreiro → healer + Arqueiro/Bruxo; dps → guerreiro + healer; healer → guerreiro + Arqueiro).

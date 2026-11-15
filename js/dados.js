@@ -1082,6 +1082,8 @@ Tanka.dados = {
     fases: [{ id: 'muitoLongo', nome: 'Muito longo', acimaMin: 180 }, { id: 'longo', nome: 'Longo', acimaMin: 60 },
       { id: 'medio', nome: 'Médio', acimaMin: 20 }, { id: 'curto', nome: 'Curto', acimaMin: 0 }],
     nomeMuitoCurto: 'Muito curto',
+    // Mercado Negro: na última faixa (30+) o limite é o item mais alto dela (50); do level 40 (Reino do Pesadelo) em diante, sem limite.
+    mercadoSemLimite: 40,
     minimo: { comum: 1000, rara: 5000, epica: 10000, lendaria: 50000 },
     pacotePergaminho: { comum: 10, rara: 5, epica: 3, lendaria: 1 },
     faixas: [
