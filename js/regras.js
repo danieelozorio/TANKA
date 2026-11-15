@@ -71,13 +71,18 @@ Tanka.regras = (function () {
   var N_ = D.ITEM_NIVEL;
   function limitarNivel(n) { return Math.max(1, Math.min(N_.maximo, n)); }
   // Nível de um drop: o do herói ±3 (com altoDesde ligado: daquele level em diante, entre altoMin e o máximo).
+  // Reino do Pesadelo (Henri, nov/2026): itens acima do level `mapaNivelItem` (40) só caem lá, do level do chefe até
+  // +nivelDropExtra. Enquanto o prêmio de um chefe do Pesadelo é sorteado, `dropPesadelo` guarda o level dele.
+  var dropPesadelo = null;
+  function tetoNivelItem() { return dropPesadelo ? N_.maximo : Math.min(N_.maximo, D.PESADELO.mapaNivelItem); }
   function nivelDoDrop(p, rng) {
     rng = rng || Math.random;
-    if (N_.altoDesde && p.nivel >= N_.altoDesde) return N_.altoMin + Math.floor(rng() * (N_.maximo - N_.altoMin + 1));
-    return limitarNivel(p.nivel - N_.variacao + Math.floor(rng() * (2 * N_.variacao + 1)));
+    if (dropPesadelo) return limitarNivel(dropPesadelo + Math.floor(rng() * (D.PESADELO.nivelDropExtra + 1)));
+    if (N_.altoDesde && p.nivel >= N_.altoDesde) return Math.min(tetoNivelItem(), N_.altoMin + Math.floor(rng() * (N_.maximo - N_.altoMin + 1)));
+    return Math.min(tetoNivelItem(), limitarNivel(p.nivel - N_.variacao + Math.floor(rng() * (2 * N_.variacao + 1))));
   }
   function nivelDoMercado(p, rng) {
-    return limitarNivel(p.nivel - N_.variacao + Math.floor((rng || Math.random)() * (2 * N_.variacao + 1)));
+    return Math.min(tetoNivelItem(), limitarNivel(p.nivel - N_.variacao + Math.floor((rng || Math.random)() * (2 * N_.variacao + 1))));
   }
   function sortearQualidade(raridade, rng) {
     var f = N_.faixaQualidade[raridade] || [0, 1];
@@ -432,7 +437,9 @@ Tanka.regras = (function () {
   function pontosHabilidadeTotal(p) {
     if (p.nivel < T.nivelSegunda) return 0;
     var dp = T.pontosDepois, ate = dp ? Math.min(p.nivel, dp.nivel) : p.nivel;
-    return T.pontosIniciais + (ate - T.nivelSegunda) * T.pontosPorNivel + (dp ? Math.max(0, p.nivel - dp.nivel) * dp.porNivel : 0);
+    var d2 = T.pontosDepois2, ate2 = d2 ? Math.min(p.nivel, d2.nivel) : p.nivel;
+    return T.pontosIniciais + (ate - T.nivelSegunda) * T.pontosPorNivel + (dp ? Math.max(0, ate2 - dp.nivel) * dp.porNivel : 0)
+      + (d2 ? Math.max(0, p.nivel - d2.nivel) * d2.porNivel : 0);
   }
   // Habilidades do level 20 (foco: caçada) e do level 30 (foco: Arena); valem em todo lugar. Sem `nivel`: as de sempre.
   function habLiberada(p, def) { return !def.nivel || (p.nivel || 1) >= def.nivel; }
@@ -819,7 +826,7 @@ Tanka.regras = (function () {
     var m = D.monstros[monstroId], area = areaDoMonstro(monstroId), C = D.CRAFT;
     if (!m || !area) return null;
     var extra = ehColetor(p) ? 1 + C.coletorBonus / 100 : 1;
-    if (m.chefe) { var mc = materialDoChefe(monstroId); return mc && rng() * 100 < C.dropChefe * extra ? { id: mc, qtd: 1 } : null; }
+    if (m.chefe) { var mc = materialDoChefe(m.base || monstroId); return mc && rng() * 100 < C.dropChefe * extra ? { id: mc, qtd: 1 } : null; }
     var pos = area.monstros.map(function (x) { return x.id; }).indexOf(monstroId);
     var id = materialDaArea(area.id);
     return id && rng() * 100 < (C.dropMaterial[pos] || 0) * extra ? { id: id, qtd: 1 } : null;
@@ -1334,9 +1341,14 @@ Tanka.regras = (function () {
     var m = D.monstros[monstroId];
     return !!m && !m.chefe && areaLiberada(p, areaDoMonstro(monstroId)) && monstroLiberado(p, monstroId);
   }
+  // Reino do Pesadelo: o chefe abre no level dele.
+  function ehPesadelo(monstroId) { var m = D.monstros[monstroId]; return !!(m && m.pesadelo); }
+  function podePesadelo(p, monstroId) { var m = D.monstros[monstroId]; return !!(m && m.pesadelo && p.nivel >= m.nivel); }
+  function reinoPesadeloAberto(p) { return p.nivel >= D.PESADELO.chefes[0].nivel; }
 
   // % da exp (e do ouro) que o personagem ganha na área do monstro (100, 50 ou 10). Abaixo de 100: sem drops.
   function fatorExp(p, monstroId) {
+    if (ehPesadelo(monstroId)) return 100;
     var area = areaDoMonstro(monstroId);
     // mapas depois desta área que o herói já liberou pelo level
     var aFrente = D.areas.slice(D.areas.indexOf(area) + 1).filter(function (a) { return p.nivel >= a.nivelMin; }).length;
@@ -1362,6 +1374,7 @@ Tanka.regras = (function () {
   function custoEstamina(monstroId) {
     var m = D.monstros[monstroId], E = D.ESTAMINA;
     if (!m || !m.area) return 0;
+    if (m.pesadelo) return D.PESADELO.estamina;
     if (m.chefe) return E.custoChefe;
     var area = areaDoMonstro(monstroId);
     var i = area.monstros.findIndex(function (x) { return x.id === monstroId; });
@@ -1760,7 +1773,9 @@ Tanka.regras = (function () {
       var m = D.monstros[b.monstroId];
       var area = areaDoMonstro(b.monstroId);
       p.abates[b.monstroId] = (p.abates[b.monstroId] || 0) + 1;
-      if (m.chefe) {
+      if (m.pesadelo) {
+        // Reino do Pesadelo: não mexe na presença do chefe da caçada
+      } else if (m.chefe) {
         p.presencaChefe[area.id] = 0;
       } else {
         var presenca = (p.presencaChefe[area.id] || 0) + area.chanceChefe;
@@ -1768,6 +1783,8 @@ Tanka.regras = (function () {
       }
       res.fatorExp = fatorExp(p, b.monstroId);
       res.exp = res.fatorExp < 100 ? Math.max(1, Math.floor(m.exp * res.fatorExp / 100)) : m.exp;
+      // Level 40+ no Mapa do Reino: só 10% da exp (a exp de verdade é no Reino do Pesadelo); ouro e drops continuam.
+      if (!m.pesadelo && p.nivel >= D.PESADELO.mapaNivelExp) { res.exp = Math.max(1, Math.floor(res.exp * D.PESADELO.mapaExpPct / 100)); res.expReino = true; }
       // Área abaixo do nível do herói: o ouro cai na mesma proporção da exp e não cai nenhum drop.
       res.penalizado = res.fatorExp < 100;
       res.ouro = res.penalizado ? Math.max(1, Math.floor(m.ouro * res.fatorExp / 100)) : m.ouro;
@@ -1789,7 +1806,9 @@ Tanka.regras = (function () {
       if (res.penalizado) {
         // sem itens nem pergaminhos
       } else if (m.chefe) {
-        var premio = dropChefe(p, m, b.rng);
+        dropPesadelo = m.pesadelo ? m.nivel : null;
+        var premio;
+        try { premio = dropChefe(p, m, b.rng); } finally { dropPesadelo = null; }
         if (premio && premio.tipo === 'arma') res.drop = premio; else if (premio) res.dropArmadura = premio;
         // 20% de chance de 1 pergaminho, raridade pela qualidade da caçada (não depende da arma)
         if (b.rng() * 100 < D.chefe.pergaminho) {
@@ -3006,7 +3025,7 @@ Tanka.regras = (function () {
     prepararHabilidade: prepararHabilidade,
     areaDoMonstro: areaDoMonstro,
     areaLiberada: areaLiberada,
-    podeCacar: podeCacar,
+    podeCacar: podeCacar, ehPesadelo: ehPesadelo, podePesadelo: podePesadelo, reinoPesadeloAberto: reinoPesadeloAberto,
     tempoBusca: tempoBusca,
     rastreio: rastreio,
     evolucaoCacada: evolucaoCacada,

@@ -933,3 +933,18 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (não no monstro). A Experiência da ficha ganhou o embrulho `#ficha-exp` e, no nível máximo, a classe `maximo`. Só a Arcane
   estiliza essas classes: moldura dourada, medalhão com ícone SVG (coração/raio/estrela, em `--ic-*`), ponta dourada,
   clarão de dano, borda pulsando com vida baixa, Exp roxa, nome do lutador numa faixa dourada e VS em ouro com risco de fogo.
+
+## Reino do Pesadelo e level 60 (Henri, nov/2026)
+- `D.NIVEL_MAXIMO` = 60. Pontos de habilidade: +1 por level depois do 40 (`TALENTOS.pontosDepois2`; 54 no 40, 74 no 60),
+  também no SQL `arena_pontos_ok`. Arena 30+ vai até o 60 (`a4.nivel [31, 60]`).
+- `D.PESADELO`: 7 chefes (`<base>-pesadelo`, montados no fim do dados.js a partir do Ignaroth da caçada × `vida`/`dano`).
+  Abrem no level do chefe (40, 43, 46, 50, 53, 56, 60), custam 20 de estamina, não mexem na presença do chefe da caçada,
+  material = o do chefe base. Exp por vitória = exp do level do chefe até o do próximo / `vitoriasPorFaixa` (100 ≈ 1 semana).
+- Força calibrada com `node ferramentas/simular_pesadelo.js` (herói no level do chefe, tudo épico +5 do mesmo level):
+  ~5 de 10 na média das 4 segundas classes do meio. A diferença entre classes é grande (Assassino/Caçador ganham quase
+  sempre; Destruidor/Coletor quase nunca).
+- Level 40+: o Mapa do Reino dá 10% da exp (`mapaExpPct`), ouro e drops normais. Itens acima do 40 só caem no Pesadelo
+  (level do chefe até +3, `dropPesadelo` em regras.js); no mapa e no Mercado o teto é 40.
+- Servidor: `novoEncontro` com alvo `*-pesadelo` faz o encontro direto (chefe: false, para a caçada automática lutar).
+- Tela: portal no Mapa do Reino (`reino-pesadelo`), mapa `assets/mapa-pesadelo.webp` (x/y em `D.PESADELO.chefes`), ficha do
+  chefe e ⚔ ENFRENTAR (caçada contínua só com esse chefe).

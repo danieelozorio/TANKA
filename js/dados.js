@@ -544,6 +544,7 @@ Tanka.dados = {
     nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
     // Passivas são fixas (valor de 1 ponto, sem receber pontos). Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
     pontosDepois: { nivel: 20, porNivel: 2 },
+    pontosDepois2: { nivel: 40, porNivel: 1 },   // do level 41 ao 60: +1 por level (Henri, nov/2026): 54 pontos no 60
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
     atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
@@ -705,7 +706,27 @@ Tanka.dados = {
       { raridade: 'comum', chance: 70 },
     ],
   },
-  NIVEL_MAXIMO: 40,
+  NIVEL_MAXIMO: 60,   // era 40; do 41 ao 60 só o Reino do Pesadelo dá exp de verdade (Henri, nov/2026)
+  // ---------- Reino do Pesadelo (Henri, nov/2026): conteúdo final, do level 40 ao 60 ----------
+  // Em Aventura › Caçar, um mapa à parte só com os 7 chefes em versão Pesadelo (sem monstros comuns). Cada luta gasta
+  // `estamina`. Drop igual ao dos chefes (D.chefe.drop / D.chefe.pergaminho), com itens do level do chefe até +`nivelDropExtra`.
+  // Itens acima do level `mapaNivelItem` só caem aqui. No Mapa do Reino, herói level `mapaNivelExp`+ ganha `mapaExpPct`% da exp
+  // (o ouro e os drops continuam; os itens de lá vão só até o level `mapaNivelItem`).
+  // `forca`: vida e dano do chefe calibrados por simulação (ferramentas/simular_pesadelo.js): herói no level do chefe,
+  // com tudo épico +5 do mesmo level, vence ~5 de 10 lutas. `exp`: ~1 semana em cada chefe (ver o comentário lá).
+  // vitoriasPorFaixa: vitórias para ir do level de um chefe ao do próximo (~1 semana: ~20 lutas por dia, ~3 de 4 ganhas).
+  // ouro: do 1º ao último chefe (por estamina rende menos que o Cume do Fogo Eterno: o ouro é farmado no Mapa do Reino).
+  PESADELO: { estamina: 20, mapaNivelExp: 40, mapaExpPct: 10, mapaNivelItem: 40, nivelDropExtra: 3, vitoriasPorFaixa: 100,
+    ouro: [14000, 26000],
+    chefes: [
+      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.62, dano: 1.62, nivel: 40, x: 17, y: 82 },
+      { id: 'morgath-pesadelo', base: 'morgath', vida: 1.77, dano: 1.77, nivel: 43, x: 26, y: 33 },
+      { id: 'varnok-pesadelo', base: 'varnok', vida: 1.88, dano: 1.88, nivel: 46, x: 43, y: 64 },
+      { id: 'guardiao-pesadelo', base: 'guardiao', vida: 2.13, dano: 2.13, nivel: 50, x: 49, y: 22 },
+      { id: 'farao-pesadelo', base: 'farao', vida: 2.18, dano: 2.18, nivel: 53, x: 73, y: 63 },
+      { id: 'vharkesh-pesadelo', base: 'vharkesh', vida: 2.3, dano: 2.3, nivel: 56, x: 75, y: 21 },
+      { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.42, dano: 2.42, nivel: 60, x: 91, y: 40 },
+    ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
   CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
 
@@ -877,7 +898,7 @@ Tanka.dados = {
       { id: 'a1', nome: 'Arena 5~10', nivel: [5, 10], jackpotPor10min: 50 },
       { id: 'a2', nome: 'Arena 11~20', nivel: [11, 20], jackpotPor10min: 100 },
       { id: 'a3', nome: 'Arena 21~30', nivel: [21, 30], jackpotPor10min: 150 },
-      { id: 'a4', nome: 'Arena 30+', nivel: [31, 40], jackpotPor10min: 200 },
+      { id: 'a4', nome: 'Arena 30+', nivel: [31, 60], jackpotPor10min: 200 },   // até o 60 (Reino do Pesadelo)
     ],
   },
 
@@ -1147,8 +1168,41 @@ Tanka.dados = {
       imagem: arquivo(c.nome),
     };
   });
+  // Reino do Pesadelo: os 7 chefes em versão Pesadelo (level 40 a 60). Números a partir do Ignaroth da caçada:
+  // vida e dano x `vida`/`dano` de cada um (calibrados por simulação), velocidade de um herói do level do chefe (90%),
+  // defesa crescendo com o level. Exp por vitória: a exp do level do chefe até o do próximo / `vitoriasPorFaixa`.
+  (function () {
+    var P = D.PESADELO, ig = D.monstros.ignaroth;
+    function expFaixa(de, ate) {   // igual a R.expNecessaria (regras.js), que ainda não existe aqui
+      var t = 0;
+      for (var n = de; n < ate; n++) {
+        var v = D.EXP_BASE * 16;
+        if (n <= 5) v = D.EXP_BASE * Math.pow(2, n - 1);
+        else for (var k = 6; k <= n; k++) { var f = D.EXP_FAIXAS.filter(function (x) { return k <= x.ate; })[0]; v *= f ? f.crescimento : D.EXP_CRESCIMENTO; }
+        t += Math.round(v);
+      }
+      return t;
+    }
+    P.chefes.forEach(function (c, i) {
+      var b = D.monstros[c.base], prox = P.chefes[i + 1], vel = D.VELOCIDADE.inicial * Math.pow(D.VELOCIDADE.porNivel, c.nivel - 1);
+      var exp = prox ? Math.round(expFaixa(c.nivel, prox.nivel) / P.vitoriasPorFaixa) : Math.round(expFaixa(c.nivel - 4, c.nivel) / P.vitoriasPorFaixa);
+      D.monstros[c.id] = {
+        nome: b.nome.split(',')[0].replace(/^O /, '') + ' · Pesadelo', descricao: c.descricao || b.descricao, area: b.area, indiceArea: b.indiceArea,
+        chefe: true, pesadelo: true, base: c.base, nivel: c.nivel,
+        hp: Math.round(ig.hp * c.vida), ataque: [Math.round(ig.ataqueCacada[0] * c.dano), Math.round(ig.ataqueCacada[1] * c.dano)],
+        ataqueCacada: [Math.round(ig.ataqueCacada[0] * c.dano), Math.round(ig.ataqueCacada[1] * c.dano)],
+        velocidade: Math.max(1, Math.round(vel * 0.9)),
+        defesa: Math.round(ig.defesa * Math.pow(1.04, c.nivel - 30)), defesaMagica: Math.round(ig.defesa * Math.pow(1.04, c.nivel - 30)),
+        exp: exp, ouro: Math.round(P.ouro[0] + (P.ouro[1] - P.ouro[0]) * i / (P.chefes.length - 1)),
+        drops: [], dropsArmadura: [], dropsItem: [],
+        imagem: b.imagem.replace(/\.jpg$/, '-pesadelo.jpg'),
+        magia: b.magia ? { nome: b.magia.nome } : null,
+      };
+    });
+  })();
   // Magia de cada monstro da caçada (MAGIA_MONSTROS).
   Object.keys(D.MAGIA_MONSTROS.nomes).forEach(function (id) { if (D.monstros[id]) D.monstros[id].magia = { nome: D.MAGIA_MONSTROS.nomes[id] }; });
+  D.PESADELO.chefes.forEach(function (c) { var m = D.MAGIA_MONSTROS.nomes[c.base]; if (m) D.monstros[c.id].magia = { nome: m }; });
   // Bosses da aliança ("Os Libertos"): números do chefe da caçada de cada fase, com nome, descrição e imagem próprios.
   D.BOSS_ALIANCA.bosses.forEach(function (b, i) {
     var base = D.monstros[D.BOSS_ALIANCA.chefes[i]];

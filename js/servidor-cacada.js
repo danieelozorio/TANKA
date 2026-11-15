@@ -64,6 +64,16 @@ Tanka.servidorCacada = (function () {
   }
   // Sorteia o encontro a partir de `desde` (sem mexer no relógio da vida).
   function novoEncontro(p, alvos, desde, rng) {
+    // Reino do Pesadelo: o alvo é o próprio chefe (abre no level dele; custa D.PESADELO.estamina).
+    var pes = (Array.isArray(alvos) ? alvos : []).filter(function (id) { return R.ehPesadelo(id); });
+    if (pes.length) {
+      var idp = pes[0];
+      if (!R.podePesadelo(p, idp)) return erro('Esse chefe do Pesadelo abre no level ' + D.monstros[idp].nivel + '.');
+      if (R.custoEstamina(idp) > R.estamina(p).pts) return erro(SEM_ESTAMINA);
+      var bp = R.tempoBusca(p, idp);
+      p.encontro = { monstro: idp, normal: idp, chefe: false, em: desde, prontoEm: desde + Math.round(bp / 2) };
+      return { encontro: copiaEncontro(p.encontro), busca: bp };
+    }
     var lista = (Array.isArray(alvos) ? alvos : []).filter(function (id) {
       return D.monstros[id] && !D.monstros[id].chefe && R.podeCacar(p, id) && R.monstroLiberado(p, id);
     });

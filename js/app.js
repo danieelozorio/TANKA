@@ -1350,6 +1350,7 @@
   function estiloArea(a, i) { return ESTILO_AREA[a.id] || { icone: '⚔', cor: '#555', x: 10 + i * 13, y: i % 2 ? 40 : 70 }; }
   function abaCacar() {
     var p = estado.personagem;
+    if (estado.reinoPesadelo && R.reinoPesadeloAberto(p)) return estado.pesadeloChefe && R.ehPesadelo(estado.pesadeloChefe) ? pesadeloChefeHtml(estado.pesadeloChefe) : pesadeloMapaHtml();
     var area = estado.areaAberta && D.areas.find(function (a) { return a.id === estado.areaAberta; });
     return area && R.areaLiberada(p, area) ? regiaoHtml(area) : mapaHtml();
   }
@@ -1357,14 +1358,61 @@
     var p = estado.personagem;
     var nos = D.areas.map(function (a, i) {
       var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
-      var faixa = 'Lv ' + a.nivelMin + '–' + (proxima ? proxima.nivelMin : D.NIVEL_MAXIMO);   // o último mapa vai até o level máximo
+      var faixa = 'Lv ' + a.nivelMin + '–' + (proxima ? proxima.nivelMin : D.PESADELO.mapaNivelExp);   // o último mapa vai até o 40 (depois: Reino do Pesadelo)
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
         + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
         + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
         + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
-    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.</p>'
-      + '<div class="mapa-mundo">' + nos + '</div>';
+    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.'
+      + (p.nivel >= D.PESADELO.mapaNivelExp ? ' <strong class="menos">No level ' + D.PESADELO.mapaNivelExp + '+ o Mapa do Reino dá só ' + D.PESADELO.mapaExpPct + '% da exp (o ouro continua). Itens só até o level ' + D.PESADELO.mapaNivelItem + '.</strong>' : '') + '</p>'
+      + portalPesadeloHtml(p) + '<div class="mapa-mundo">' + nos + '</div>';
+  }
+
+  // ---------------- Reino do Pesadelo (Henri, nov/2026): os 7 chefes em versão Pesadelo, level 40 a 60 ----------------
+  // Cada região tem só o chefe dela. A exp para subir do 40 ao 60 e os itens 40+ vêm daqui.
+  function portalPesadeloHtml(p) {
+    var aberto = R.reinoPesadeloAberto(p), n1 = D.PESADELO.chefes[0].nivel;
+    return '<button class="portal-pesadelo' + (aberto ? '' : ' bloqueada') + '"' + (aberto ? ' data-acao="reino-pesadelo"' : ' disabled') + '>'
+      + '<span class="portal-icone">' + (aberto ? '🌑' : '🔒') + '</span><span><strong>Reino do Pesadelo</strong>'
+      + '<small>' + (aberto ? 'Os chefes do reino, mais fortes do que nunca. Level ' + n1 + ' a ' + D.NIVEL_MAXIMO + '.' : 'Abre no level ' + n1 + '.') + '</small></span>'
+      + (aberto ? '<span class="portal-seta">Entrar →</span>' : '') + '</button>';
+  }
+  function pesadeloMapaHtml() {
+    var p = estado.personagem;
+    var nos = D.PESADELO.chefes.map(function (c) {
+      var m = D.monstros[c.id], livre = R.podePesadelo(p, c.id), v = p.abates[c.id] || 0;
+      return '<button class="mapa-no no-pesadelo' + (livre ? '' : ' bloqueada') + '" style="left:' + c.x + '%;top:' + c.y + '%"'
+        + (livre ? ' data-acao="pesadelo-chefe" data-valor="' + c.id + '"' : ' disabled') + ' title="' + esc(m.nome) + '">'
+        + '<span class="mapa-icone com-arte"><img class="arte" src="' + m.imagem + '" alt=""></span>'
+        + '<span class="mapa-nome">' + esc(m.nome.replace(' · Pesadelo', '')) + '</span>'
+        + '<span class="mapa-nivel">' + (livre ? 'Lv ' + m.nivel + (v ? ' · ✔ ' + v : '') : '🔒 Libera no level ' + m.nivel) + '</span></button>';
+    }).join('');
+    return '<div class="regiao-topo topo-pesadelo"><button class="btn secundario btn-pequeno" data-acao="reino-normal">← Mapa do Reino</button>'
+      + '<div><h3>🌑 Reino do Pesadelo</h3><p class="suave pequeno">Cada região tem só o seu chefe, agora muito mais forte. Cada luta custa '
+      + D.PESADELO.estamina + ' de estamina. Daqui vem a exp para chegar ao level ' + D.NIVEL_MAXIMO + ' e os itens acima do level ' + D.PESADELO.mapaNivelItem + '.</p></div></div>'
+      + '<div class="mapa-mundo mapa-pesadelo">' + nos + '</div>';
+  }
+  function pesadeloChefeHtml(id) {
+    var p = estado.personagem, m = D.monstros[id], livre = R.podePesadelo(p, id), custo = R.custoEstamina(id);
+    var mat = R.materialDoChefe(m.base), nomeMat = mat && D.CRAFT.materiais[mat] ? D.CRAFT.materiais[mat].nome : null;
+    var tem = R.estamina(p).pts >= custo, v = p.abates[id] || 0;
+    var linhas = [
+      ['Level', m.nivel], ['Vida', m.hp.toLocaleString('pt-BR')], ['Dano', dano(m.ataqueCacada || m.ataque)],
+      ['Estamina', custo + ' por luta'], ['Exp', '+' + m.exp.toLocaleString('pt-BR')], ['Ouro', '+' + m.ouro.toLocaleString('pt-BR')],
+    ].map(function (x) { return '<li><span>' + x[0] + '</span><strong>' + x[1] + '</strong></li>'; }).join('');
+    return '<div class="regiao-topo topo-pesadelo"><button class="btn secundario btn-pequeno" data-acao="pesadelo-mapa">← Reino do Pesadelo</button>'
+      + '<div><h3>🌑 ' + esc(m.nome) + '</h3><p class="suave pequeno">' + esc(m.descricao) + '</p></div></div>'
+      + '<article class="chefe-pesadelo"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+      + '<div class="selo-chefe">Chefe do Pesadelo</div><ul class="pesadelo-numeros">' + linhas + '</ul>'
+      + '<p class="pequeno"><strong>Prêmios:</strong> o mesmo dos chefes da caçada: chance de arma ou armadura <span class="raridade-epica">épica</span> ou '
+      + '<span class="raridade-lendaria">lendária</span> da sua classe (level ' + m.nivel + ' a ' + Math.min(D.NIVEL_MAXIMO, m.nivel + D.PESADELO.nivelDropExtra) + '), pergaminho'
+      + (nomeMat ? ' e ' + esc(nomeMat) : '') + '.</p>'
+      + (m.magia ? '<p class="suave pequeno">Magia: ' + esc(m.magia.nome) + '</p>' : '')
+      + (v ? '<p class="mais pequeno">Derrotado ' + v + ' vez(es).</p>' : '')
+      + '<div class="botoes"><button class="btn perigo btn-iniciar" data-acao="pesadelo-lutar" data-valor="' + id + '"' + (livre && tem ? '' : ' disabled') + '>⚔ ENFRENTAR</button></div>'
+      + (!livre ? '<p class="menos pequeno">Abre no level ' + m.nivel + '.</p>' : !tem ? '<p class="menos pequeno">Precisa de ' + custo + ' de estamina: acampe, espere ou use um pote de estamina (Mercado).</p>' : '')
+      + '</div></article>';
   }
   function selecaoArea(area) {
     var p = estado.personagem, sel = estado.cacaSel || (estado.cacaSel = {});
@@ -3819,7 +3867,7 @@
     pararTimersCacada();
     estado.resultado = null;
     estado.ultimaBatalha = null;
-    estado.cacada = { area: areaId, alvos: alvos, ativa: true, fase: 'buscando', inicio: Date.now(), mortos: 0, exp: 0, ouro: 0,
+    estado.cacada = { area: areaId, alvos: alvos, pesadelo: R.ehPesadelo(alvos[0]), ativa: true, fase: 'buscando', inicio: Date.now(), mortos: 0, exp: 0, ouro: 0,
       itens: [], historico: [], encontro: null, motivo: '', timer: null, relogio: null };
     estado.cacada.relogio = setInterval(tiqueCacada, 250);
     procurarMonstro();
@@ -3854,7 +3902,8 @@
     c.prazo = null;
     if (CACA_SERVIDOR) { procurarNoServidor(); return; }
     // O monstro é sorteado já no começo: o mais forte demora mais para ser achado.
-    c.proximo = R.escolherMonstroCacada(p, c.alvos.filter(function (id) { return R.custoEstamina(id) <= R.estamina(p).pts; }));
+    c.proximo = c.pesadelo ? (R.podePesadelo(p, c.alvos[0]) && R.custoEstamina(c.alvos[0]) <= R.estamina(p).pts ? c.alvos[0] : null)
+      : R.escolherMonstroCacada(p, c.alvos.filter(function (id) { return R.custoEstamina(id) <= R.estamina(p).pts; }));
     if (!c.proximo) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
     c.busca = Math.round(R.tempoBusca(p, c.proximo) / (estado.rapido ? 2 : 1));
     telaJogo();
@@ -3870,10 +3919,10 @@
       c.encontro = { monstro: c.servEncontro.monstro, normal: c.servEncontro.normal, chefe: !!c.servEncontro.chefe };
       chefe = c.encontro.chefe;
     } else {
-    var id = c.proximo && R.podeCacar(p, c.proximo) ? c.proximo : R.escolherMonstroCacada(p, c.alvos);
+    var id = c.proximo && (R.podeCacar(p, c.proximo) || R.podePesadelo(p, c.proximo)) ? c.proximo : R.escolherMonstroCacada(p, c.alvos);
     if (!id) { pararCacada('Nenhum dos monstros escolhidos pode ser caçado agora.'); return; }
     var areaCh = D.areas[D.monstros[id].indiceArea];   // o chefe só aparece se a estamina paga a luta contra ele
-    chefe = areaCh && R.custoEstamina(areaCh.chefe.id) <= R.estamina(p).pts ? R.sortearChefe(p, id) : null;
+    chefe = !R.ehPesadelo(id) && areaCh && R.custoEstamina(areaCh.chefe.id) <= R.estamina(p).pts ? R.sortearChefe(p, id) : null;
     c.encontro = { monstro: chefe || id, normal: id, chefe: !!chefe };
     }
     c.fase = 'encontrou';
@@ -4296,11 +4345,11 @@
     } else {
       direita = '<div class="cacada-busca parada"><div class="busca-icone">' + ICONE_ACAMPAMENTO + '</div><div class="busca-txt">Caçada encerrada</div><p class="suave">' + c.motivo + '</p>'
         + '<div class="botoes"><button class="btn" data-acao="cacada-continuar"' + (R.estaminaParaCacar(p, c.alvos) ? '' : ' disabled') + '>Continuar caçada</button>'
-        + '<button class="btn secundario" data-acao="cacada-fechar">Voltar à região</button></div>'
+        + '<button class="btn secundario" data-acao="cacada-fechar">' + (c.pesadelo ? 'Voltar ao Pesadelo' : 'Voltar à região') + '</button></div>'
         + (R.estaminaParaCacar(p, c.alvos) ? '' : '<p class="suave pequeno">Sem estamina para estes monstros. Acampe, espere ou use um pote de estamina (Mercado).</p>') + '</div>';
     }
     var ativa = c.ativa;
-    var topo = '<div class="cacada-topo" style="--cor:' + e.cor + '"><div><h3>' + iconeArea(area) + ' Caçada · ' + area.nome + '</h3>'
+    var topo = '<div class="cacada-topo" style="--cor:' + (c.pesadelo ? '#5b1a2e' : e.cor) + '"><div><h3>' + (c.pesadelo ? '🌑 Reino do Pesadelo' : iconeArea(area) + ' Caçada · ' + area.nome) + '</h3>'
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
       + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
@@ -5313,7 +5362,12 @@
       case 'cacada-lutar': lutarCacada(); break;
       case 'cacada-fugir': fugirEncontro(); break;
       case 'cacada-parar': pararCacada(); break;
-      case 'cacada-continuar': if (estado.cacada) { var areaC = estado.cacada.area; iniciarCacada(areaC); } break;
+      case 'cacada-continuar': if (estado.cacada) { var areaC = estado.cacada.area; iniciarCacada(areaC, estado.cacada.pesadelo ? estado.cacada.alvos : null); } break;
+      case 'reino-pesadelo': estado.reinoPesadelo = true; estado.pesadeloChefe = null; estado.areaAberta = null; telaJogo(); break;
+      case 'reino-normal': estado.reinoPesadelo = false; estado.pesadeloChefe = null; telaJogo(); break;
+      case 'pesadelo-chefe': estado.pesadeloChefe = el.dataset.valor; telaJogo(); break;
+      case 'pesadelo-mapa': estado.pesadeloChefe = null; telaJogo(); break;
+      case 'pesadelo-lutar': iniciarCacada(areaDoAlvo(el.dataset.valor), [el.dataset.valor]); break;
       case 'cacada-fechar': fecharCacada(); break;
       case 'cacada-opcao': {
         var prefO = prefsCacada();
