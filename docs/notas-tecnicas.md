@@ -868,3 +868,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (caíam no meio da tela por cima do texto); Encantar com o nome do item na largura toda e "Sem pergaminho" pequeno;
   Amigos com o campo na largura toda; abas da mochila, "Ordenar e filtrar" e "Pergaminhos" sem quebrar palavra no 360 px;
   missões: "pergaminho épico" no masculino (`premioTexto` usa `RARIDADE_M`).
+- **Ascensão / Os Sete Selos (proposta, NÃO está no jogo):** depois do level 40, pontos numa árvore de 7 ramos (um por
+  região/selo). PDF e números de sugestão com o Daniel (scratchpad). Arte guardada em `assets/ascensao/arvore-sete-selos.webp`
+  (461x468, do Daniel; para o computador pode precisar de uma versão maior).
