@@ -2365,3 +2365,11 @@ teste('arqueiro: Sede de Caça dá roubo de vida (1% a 10%) e a Flecha Envenenad
   const pas = Object.values(D.SEGUNDAS_CLASSES).flatMap((c) => c.habilidades).find((h) => h.id === 'reflexo-rapido');
   assert.ok(!pas.evasao, 'sem esquiva');
 });
+
+teste('oficinas: quebrar item dá cristais pelo level e cobra o preço x level (Henri, nov/2026)', () => {
+  const n = (lv) => R.cristaisQuebrar({ nivel: lv }), igual = assert.strictEqual;
+  igual(n(1), 2); igual(n(5), 2); igual(n(9), 3); igual(n(30), 10); igual(n(45), 20); igual(n(60), 30);
+  igual(R.precoServico('quebrar', 50, { nivel: 30 }), 1500);
+  igual(R.precoServico('encantar', 50, { nivel: 30 }), 50);
+  igual(D.CRAFT.oficina.servicos.quebrar.de, 'ferreiro');
+});

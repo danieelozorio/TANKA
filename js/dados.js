@@ -83,7 +83,16 @@ Tanka.dados = {
         encantar: { nome: 'Encantar item', de: 'ferreiro' }, forjar: { nome: 'Forjar arma ou armadura', de: 'ferreiro' },
         reliquia: { nome: 'Relíquia Rúnica', de: 'ferreiro' },
         receita: { nome: 'Fabricar Receita', de: 'coletor' }, protecao: { nome: 'Fabricar Pergaminho de Proteção', de: 'coletor' },
-      } },
+        quebrar: { nome: 'Quebrar item', de: 'ferreiro', porNivel: true },   // preço do Ferreiro x level do item (Henri, nov/2026)
+      },
+      // Artesão na lista de amigos do cliente: o pedido é feito na hora, sem o artesão precisar aceitar (Henri, nov/2026).
+      amigoNaHora: true,
+      // Artesão sem entrar no jogo há mais de `sumirHoras` sai da lista de Oficinas abertas (Henri, nov/2026).
+      sumirHoras: 24 },
+    // Quebrar item (Ferreiro, Mercado › Oficinas): a arma/armadura vira cristais da raridade dela, mais quanto maior o level.
+    // Até o level `corte`: level x porNivel; depois, mais porNivelDepois por level. Mínimo `minimo`.
+    // Level 1–9: 2 · 15: 5 · 30: 10 · 45: 20 · 60: 30.
+    quebrar: { minimo: 2, corte: 30, porNivel: 1 / 3, porNivelDepois: 2 / 3 },
     // Relíquia Rúnica (etapa 5): só Anão Ferreiro level 30+, 1 tentativa por semana. Item lendário +7 ou mais vira uma
     // relíquia ÚNICA no jogo (nome escolhido pelo cliente, assinatura do anão) com uma runa sorteada (bônus só contra
     // monstros). Chance = base + Sorte x porSorte, até `maxima`. Falhou: os materiais se perdem, o item volta igual.

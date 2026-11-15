@@ -1846,3 +1846,5 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .menu-cascata-itens { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 12rem; display: flex; flex-direction: column; gap: 4px;
   padding: 6px; border: 1px solid var(--borda); border-radius: 8px; background: #11151d; box-shadow: 0 8px 20px rgba(0, 0, 0, .5); }
 .menu-cascata-itens .btn { width: 100%; text-align: left; margin: 0; }
+.quebrar-recebe { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .5rem; }
+.quebrar-recebe .icone-pequeno { width: 2.2rem; height: 2.2rem; flex: none; }

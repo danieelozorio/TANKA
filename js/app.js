@@ -2608,6 +2608,7 @@
     if (x.tipo === 'receita') return 'Receita: ' + nomeArea(o.area);
     if (x.tipo === 'protecao') return 'Pergaminho de Proteção ' + (D.raridades[o.raridade] || {}).nome;
     if (x.tipo === 'reliquia') return 'Relíquia Rúnica "' + (o.nome || '') + '"' + (it ? ' (' + R.nomeItem(it) + ')' : '');
+    if (x.tipo === 'quebrar') return 'Quebrar ' + (it ? R.nomeItem(it) + ' (Lv ' + (it.nivel || 1) + ')' : 'item');
     return x.tipo;
   }
   function textoResultado(x) {
@@ -2617,10 +2618,14 @@
     if (x.tipo === 'encantar') return r.sucesso ? '<span class="mais">SUCESSO! foi para +' + r.alvo + '</span>'
       : r.protegido ? '<span class="suave">falhou, a Proteção segurou</span>' : r.zerou ? '<span class="menos">falhou: voltou a +0</span>' : '<span class="menos">QUEBROU (' + (r.cristais || 0) + ' cristais)</span>';
     if (x.tipo === 'forjar') return '<span class="raridade-' + r.raridade + '">' + (r.obraPrima ? '✨ obra-prima ' : '') + (D.raridades[r.raridade] || {}).nome + '</span>';
+    if (x.tipo === 'quebrar') return '<span class="mais">virou ' + (r.cristais || 0) + ' cristais ' + (CRISTAIS_NOME[r.raridade] || '') + '</span>';
     if (x.tipo === 'reliquia') return r.sucesso ? '<span class="cor-ouro">✨ RELÍQUIA FORJADA! ' + esc((R.runa(r.runa) || {}).nome || '') + '</span>' : '<span class="menos">a forja falhou (materiais perdidos)</span>';
     return '<span class="mais">pronto</span>';
   }
-  var ICONE_SERVICO = { encantar: '✨', forjar: '🔨', reliquia: '💠', receita: '📜', protecao: '🛡' };
+  var CRISTAIS_NOME = { comum: 'comuns', rara: 'raros', epica: 'épicos', lendaria: 'lendários' };   // "10 cristais raros"
+  var ICONE_SERVICO = { encantar: '✨', forjar: '🔨', reliquia: '💠', receita: '📜', protecao: '🛡', quebrar: '⚒' };
+  // preço mostrado do serviço: o de "quebrar" é por level do item
+  function precoServicoTxt(k, v) { return ouroTxt(v) + (OF.servicos[k] && OF.servicos[k].porNivel ? ' por level' : ''); }
   // Situação de um pedido, como selo colorido.
   function seloPedido(x) {
     var r = x.resultado || {};
@@ -2637,7 +2642,8 @@
     if (st.erro) return '<p class="menos">' + esc(st.erro) + '</p><p class="suave pequeno">Se for a primeira vez, rode o supabase/schema.sql de novo no Supabase.</p>';
     var html = '<div class="loja-topo"><span class="loja-retrato grande">' + F.personagem('anao', 'ferreiro', p.sexo) + '</span><div><h3>⚒ Oficinas dos Artesãos</h3>'
       + '<p class="suave pequeno">Contrate um Ferreiro ou um Coletor de outro jogador. Você entrega o item, os materiais e o pagamento; o jogo guarda tudo até ele fazer. '
-      + 'A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você.</p></div></div>';
+      + 'A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você. '
+      + '🤝 Artesão que é seu <strong>amigo</strong> faz <strong>na hora</strong>, sem precisar aceitar. Quem não entra no jogo há ' + (OF.sumirHoras || 24) + ' h sai da lista.</p></div></div>';
     // Meus pedidos (primeiro: é o que o comprador quer acompanhar)
     if ((st.pedidos || []).length) {
       var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length;
@@ -2660,7 +2666,8 @@
           var off = k === 'reliquia' && R.podeReliquia(p) !== true;
           return '<label class="loja-preco' + (off ? ' off' : '') + '"><span class="loja-preco-nome">' + ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome
             + (off ? '<small class="suave">' + esc(R.podeReliquia(p)) + '</small>' : '') + '</span>'
-            + '<span class="loja-preco-campo">' + ICONES.ouro + '<input type="number" min="0" step="1" inputmode="numeric" id="of-preco-' + k + '" value="' + (precos[k] || '') + '" placeholder="Preço"' + (off ? ' disabled' : '') + '></span></label>';
+            + (OF.servicos[k].porNivel ? '<small class="suave">por level do item (um item level 30 custa 30x)</small>' : '')
+            + '<span class="loja-preco-campo">' + ICONES.ouro + '<input type="number" min="0" step="1" inputmode="numeric" id="of-preco-' + k + '" value="' + (precos[k] || '') + '" placeholder="' + (OF.servicos[k].porNivel ? 'Por level' : 'Preço') + '"' + (off ? ' disabled' : '') + '></span></label>';
         }).join('') + '</div><div class="botoes"><button class="btn" data-acao="of-salvar">' + (aberta ? 'Salvar preços' : 'Abrir minha oficina') + '</button>'
         + (aberta ? '<button class="btn secundario" data-acao="of-fechar">Fechar oficina</button>' : '') + '</div>';
       var fazer = st.fazer || [];
@@ -2700,12 +2707,12 @@
     var html = '<div class="loja-carta' + (aberto ? ' aberta' : '') + '"><div class="loja-carta-topo">' + retratoOficina(x) + '<div class="loja-carta-info">'
       + '<div><strong>' + esc(x.nome) + '</strong> <span class="pequeno">' + vistoTexto(x.visto_em) + '</span></div>'
       + '<div class="suave pequeno">' + esc(nomeRacaCurto(x)) + ' · ' + esc(x.sexo === 'feminino' && c2.nomeF || c2.nome || '') + ' · Lv ' + x.nivel + '</div>'
-      + '<div class="loja-selos">' + (x.raca === 'anao' ? '<span class="selo-forja">⛰ Forja da Montanha</span>' : '') + (x.feitos >= 100 ? '<span class="selo-forja">🏅 Mestre</span>' : '') + '</div>'
+      + '<div class="loja-selos">' + (x.amigo ? '<span class="selo-forja selo-amigo">🤝 Amigo · faz na hora</span>' : '') + (x.raca === 'anao' ? '<span class="selo-forja">⛰ Forja da Montanha</span>' : '') + (x.feitos >= 100 ? '<span class="selo-forja">🏅 Mestre</span>' : '') + '</div>'
       + '</div></div>' + statsLoja(x)
       + '<div class="loja-servicos">' + Object.keys(x.servicos).map(function (k) {
         var sel = aberto && estado.contratar.tipo === k;
         return '<button type="button" class="loja-servico' + (sel ? ' sel' : '') + '" data-acao="of-contratar" data-id="' + x.id + '" data-valor="' + k + '">'
-          + '<span class="loja-servico-ico">' + ICONE_SERVICO[k] + '</span><span>' + OF.servicos[k].nome + '<b>' + ICONES.ouro + ' ' + ouroTxt(x.servicos[k]) + '</b></span></button>';
+          + '<span class="loja-servico-ico">' + ICONE_SERVICO[k] + '</span><span>' + OF.servicos[k].nome + '<b>' + ICONES.ouro + ' ' + precoServicoTxt(k, x.servicos[k]) + '</b></span></button>';
       }).join('') + '</div>'
       + (aberto ? formContratar(x, estado.contratar.tipo) : '') + '</div>';
     return html;
@@ -2756,6 +2763,16 @@
       var rr = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum', cp = R.custoProtecao(p, rr);
       h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><h4>Você entrega</h4>' + custoChips(cp);
       pode = !R.faltando(p, cp).length;
+    } else if (tipo === 'quebrar') {
+      var qb = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; });
+      if (!qb.length) return h + '<p class="suave">Nenhum item na mochila para quebrar (tire do corpo e destrave antes).</p></div>';
+      var iq = qb.filter(function (i) { return i.id === f.item; })[0] || qb[0], nq = R.cristaisQuebrar(iq);
+      h += '<label>Item ' + sel('item', qb.map(function (i) { return [i.id, R.nomeItem(i) + ' · Lv ' + (i.nivel || 1) + ' (' + D.raridades[i.raridade].nome + ')']; }), iq.id) + '</label>'
+        + '<h4>Você recebe</h4><p class="quebrar-recebe"><span class="icone-pequeno borda-' + iq.raridade + '">' + iconeCusto({ tipo: 'cristal', id: iq.raridade }) + '</span> <strong>'
+        + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong></p>';
+      preco = R.precoServico('quebrar', preco, iq);
+      aviso = 'O item <strong>some</strong> e vira <strong>' + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong> (quanto maior o level, mais cristais). '
+        + 'Preço: ' + ouroTxt(x.servicos[tipo]) + ' x level ' + (iq.nivel || 1) + '.';
     } else if (tipo === 'reliquia') {
       var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       if (!lend.length) return h + '<p class="suave">Você precisa de um item lendário +' + Q.encantoMin + ' ou mais na mochila (fora do corpo e destravado).</p></div>';
@@ -2772,7 +2789,8 @@
         + Math.round(R.forcaRuna(il) * 100) + '%</strong> da força; só contra monstros). Depois disso o item <strong>não pode mais ser encantado</strong>. Se falhar, os materiais se perdem e o item volta igual.';
     }
     h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
-      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
+      + (x.amigo ? '<p class="mais pequeno">🤝 ' + esc(x.nome) + ' é seu amigo: o serviço é feito <strong>na hora</strong>.</p>' : '')
+      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
       + ' · ' + ouroTxt(preco) + '</button><button class="btn secundario" data-acao="of-contratar-fechar">Fechar</button></div></div>';
     return h;
   }
@@ -2786,6 +2804,7 @@
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
       op.classe = f.classe || p.classe; op.tipo = f.peca || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
     if (tipo === 'receita') op.area = f.area || D.areas[0].id;
+    if (tipo === 'quebrar') { var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; }); itemId = (iqs.filter(function (i) { return i.id === f.item; })[0] || iqs[0]).id; }
     if (tipo === 'protecao') op.raridade = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum';
     if (tipo === 'reliquia') { var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
@@ -2798,11 +2817,20 @@
       (r.insumos || []).forEach(function (i) { R.mudarConsumivel(p, i.tipo, i.raridade, -i.qtd); });
       salvar();
       estado.contratar = null;
-      avisar('Pedido enviado para ' + x.nome + '! Você vê o resultado em "Meus pedidos".', 'item');
+      if (r.feito) avisar('🤝 ' + x.nome + ' fez na hora: ' + resultadoCurto(tipo, r.resultado || {}) + ' Chega já já na mochila.', (r.resultado || {}).sucesso === false ? '' : 'item');
+      else avisar('Pedido enviado para ' + x.nome + '! Você vê o resultado em "Meus pedidos".', 'item');
       carregarArena();   // ouro gasto (créditos)
       carregarOficinas();
     } catch (e) { avisar(e.message); }
     estado.oficinaOcupado = false;
+  }
+  // Resultado em uma frase (pedido feito na hora por um amigo).
+  function resultadoCurto(tipo, r) {
+    if (tipo === 'quebrar') return 'virou ' + r.cristais + ' cristais ' + (CRISTAIS_NOME[r.raridade] || '') + '.';
+    if (tipo === 'encantar') return r.sucesso ? 'SUCESSO! foi para +' + r.alvo + '.' : r.protegido ? 'falhou, a Proteção segurou.' : r.zerou ? 'falhou, voltou a +0.' : 'QUEBROU (' + (r.cristais || 0) + ' cristais).';
+    if (tipo === 'forjar') return (r.obraPrima ? 'obra-prima ' : '') + ((D.raridades[r.raridade] || {}).nome || '') + '!';
+    if (tipo === 'reliquia') return r.sucesso ? 'RELÍQUIA FORJADA!' : 'a forja falhou.';
+    return 'pronto!';
   }
   function cliqueOficinas(acao, el) {
     var p = estado.personagem;
@@ -2824,7 +2852,7 @@
       case 'of-fazer':
         el.disabled = true;
         C.oficina.fazer(p.id, Number(el.dataset.id)).then(function (r) {
-          var t = r.sucesso === true ? 'SUCESSO!' : r.raridade ? 'Forjado: ' + D.raridades[r.raridade].nome + (r.obraPrima ? ' (obra-prima!)' : '') : r.sucesso === false ? 'Falhou…' : 'Pronto!';
+          var t = r.cristais && r.sucesso ? 'Quebrado: ' + r.cristais + ' cristais.' : r.sucesso === true ? 'SUCESSO!' : r.raridade ? 'Forjado: ' + D.raridades[r.raridade].nome + (r.obraPrima ? ' (obra-prima!)' : '') : r.sucesso === false ? 'Falhou…' : 'Pronto!';
           avisar('🔨 ' + t + ' O pagamento chega já já.', r.sucesso === false ? '' : 'item');
           carregarArena(); carregarOficinas();
         }, function (e) { avisar(e.message); el.disabled = false; });

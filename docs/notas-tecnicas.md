@@ -448,6 +448,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Números lidos de `D.CRAFT`. Toque/clique abre e fecha (classe `aberta`, listener global logo abaixo de `custoChips`);
   hover só em telas com mouse (`@media (hover: hover)`). O balão é empurrado para dentro da tela se passar da borda.
 
+- **Quebrar item, amigo na hora e oficina parada (Henri, nov/2026):** serviço `quebrar` do Ferreiro
+  (`CRAFT.oficina.servicos.quebrar`, `porNivel: true`): o preço do Ferreiro vale **por level do item** (`R.precoServico`;
+  no servidor, `oficina_pedir` multiplica). O item vira cristais da raridade dele: `CRAFT.quebrar` (`R.cristaisQuebrar` e
+  `oficina_cristais_quebrar` no SQL; Lv 1–9: 2, 30: 10, 45: 20, 60: 30). Relíquias não quebram.
+  **Amigo:** se o artesão é amigo (amizade aceita, `sao_amigos`), `oficina_pedir` já chama `oficina_fazer_pedido` (a parte de
+  `oficina_fazer` sem conferir o dono) e devolve `{feito, resultado}`; a lista marca `amigo` (selo "🤝 Amigo · faz na hora").
+  **24 h:** artesão que não salva o jogo há `CRAFT.oficina.sumirHoras` (24) sai da lista e `oficina_pedir` recusa (`oficina_ativa`).
+
 ## Arena: só o dado decide (Henri, nov/2026)
 - `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
   (`furtivo`) continua desviando do próximo golpe e garantindo o 20 no golpe seguinte (`critEm`) — Henri testou sem

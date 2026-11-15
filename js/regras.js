@@ -2354,6 +2354,17 @@ Tanka.regras = (function () {
   // Chance de encantar: chance do nível + Sorte de quem encanta + bônus do Anão, nunca acima do teto do nível.
   function chanceEncantar(p, item) { return chanceEncantarCom(bonusEncanto(p), item); }
   // Quanto quem encanta soma na chance (Sorte + Anão). As Oficinas guardam isto do artesão.
+  // Quebrar item na oficina (Henri, nov/2026): quantos cristais (da raridade do item) ele vira, pelo level do item.
+  function cristaisQuebrar(item) {
+    var Q = D.CRAFT.quebrar, n = Math.max(1, Number(item && item.nivel) || 1);
+    var v = n <= Q.corte ? n * Q.porNivel : Q.corte * Q.porNivel + (n - Q.corte) * Q.porNivelDepois;
+    return Math.max(Q.minimo, Math.round(v));
+  }
+  // Preço do serviço para este item: o "porNivel" (quebrar) multiplica pelo level do item.
+  function precoServico(tipo, preco, item) {
+    var s = D.CRAFT.oficina.servicos[tipo];
+    return s && s.porNivel ? Number(preco) * Math.max(1, Number(item && item.nivel) || 1) : Number(preco);
+  }
   function bonusEncanto(p) { return atributosTotais(p).sor * D.SORTE.encanto + (p.raca === 'anao' ? (D.encantamento.anao || 0) : 0); }
   function chanceEncantarCom(bonus, item) {
     var E = D.encantamento, alvo = item.encanto + 1;
@@ -3047,7 +3058,7 @@ Tanka.regras = (function () {
     pararMinas: pararMinas, minerando: minerando, mediaMinas: mediaMinas,
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
     fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
-    bonusEncanto: bonusEncanto, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
+    bonusEncanto: bonusEncanto, cristaisQuebrar: cristaisQuebrar, precoServico: precoServico, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
     runa: runa, itemForjado: itemForjado, forcaRuna: forcaRuna, bonusRuna: bonusRuna, textoRuna: textoRuna,
     tabelaBossAlianca: tabelaBossAlianca,
     itemBossAlianca: itemBossAlianca,
