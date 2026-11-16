@@ -1118,3 +1118,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (16/11/2026) Replay de destaques: `R.quadrosLuta` guarda até `MASMORRA.quadros` (18) lances por luta (críticos, habilidades, curas, quedas, maiores golpes) com a vida de todos; cada luta tem `inicio`/`dur` (relógio do servidor) e a votação abre quando o replay acaba. A tela (`replayMas`/`arenaReplayHtml`) mostra um lance a cada `quadroMs` (0,7 s), sem acelerar; F5 continua do ponto certo.
   mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`). Já aberto, troca só o conteúdo de
   `.missoes-painel` (recriar a caixa repetia a animação de abrir e parecia fechar e abrir).
+- (16/11/2026) Replay: cada lance leva `dh` (dano acumulado de cada herói); a luta guarda classe/raça já convertidas (bot da fila mostra o retrato da classe que faltava). Tela mostra o dano por herói no replay, no diário e no fim.

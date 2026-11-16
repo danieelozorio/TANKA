@@ -1935,3 +1935,5 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .mas-lances { max-height: none; min-height: 7.5em; }
 .mas-lances p { margin: .1rem 0; opacity: .6; }
 .mas-lances p.mas-lance-atual { opacity: 1; animation: mas-linha .35s both; }
+.mas-dano-total { font-size: .78rem; color: #e8b97a; white-space: nowrap; }
+.mas-dano-total.top { color: #ffd34d; font-weight: 700; }

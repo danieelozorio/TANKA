@@ -2733,7 +2733,9 @@ Tanka.regras = (function () {
     linhas.push(sim.vitoria ? (mon.length > 1 ? 'Todos os inimigos caíram!' : mon[0].nome + ' caiu!') : 'O grupo foi derrotado.');
     return { tipo: 'luta', sala: tipo || sala, vitoria: !!sim.vitoria, quadros: quadrosLuta(sim, hpAntes),
       monstros: mon.map(function (m) { return { id: m.id, nome: m.nome, elite: !!m.elite, chefe: !!m.chefe, hpMax: m.hpMax }; }),
-      herois: her.map(function (h, i) { return { nome: h.nome, hpAntes: hpAntes ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax, hp: sim.hp[i], hpMax: h.hpMax }; }),
+      // classe/raça já convertidas (bots da fila viram a classe que falta): a tela usa para o retrato
+      herois: her.map(function (h, i) { return { nome: h.nome, classe: h.classe, classe2: h.classe2, raca: h.raca, sexo: h.sexo,
+        hpAntes: hpAntes ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax, hp: sim.hp[i], hpMax: h.hpMax }; }),
       linhas: linhas.slice(0, 5) };
   }
   // Replay de destaques (16/11/2026): os melhores lances da luta (críticos, habilidades, curas, quem caiu e os maiores
@@ -2744,11 +2746,11 @@ Tanka.regras = (function () {
     var mh = mon.map(function (m) { return m.hp != null ? m.hp : m.hpMax; });
     var hh = her.map(function (h, i) { return hpAntes && hpAntes[i] != null ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax; });
     var nH = function (i) { return her[i] ? her[i].nome : '?'; }, nM = function (i) { return mon[i] ? mon[i].nome : '?'; };
-    var todos = [];
+    var todos = [], dh = her.map(function () { return 0; });   // dano que cada herói já causou
     sim.eventos.forEach(function (e) {
       var q = null, pts = 0;
       if (e.tipo === 'golpe' && e.de === 'h' && e.alvo != null) {
-        if (e.acerto) mh[e.alvo] = Math.max(0, mh[e.alvo] - e.dano);
+        if (e.acerto) { mh[e.alvo] = Math.max(0, mh[e.alvo] - e.dano); if (!e.queima && dh[e.i] != null) dh[e.i] += e.dano; }
         if (e.acerto) {
           q = { t: e.queima ? '🔥 ' + nM(e.alvo) + ' queima: ' + e.dano : e.dot ? '☠️ ' + nM(e.alvo) + ' sofre o veneno: ' + e.dano
             : (e.critico ? 'CRÍTICO! ' : '') + nH(e.i) + ' acerta ' + nM(e.alvo) + ': ' + e.dano.toLocaleString('pt-BR'), a: 'm' + e.alvo, d: e.dano, c: !!e.critico };
@@ -2768,9 +2770,10 @@ Tanka.regras = (function () {
         pts = e.cura ? 70 : 45;
       } else if (e.tipo === 'habM') { q = { t: '💥 ' + nM(e.i) + ' usa ' + e.nome + '!', a: 'm' + e.i, x: 'hab' }; pts = 90; }
       if (e.hp) hh = e.hp.slice();
-      if (q) { q.hh = hh.slice(); q.mh = mh.slice(); todos.push({ q: q, pts: pts }); }
+      if (q) { q.hh = hh.slice(); q.mh = mh.slice(); q.dh = dh.slice(); todos.push({ q: q, pts: pts }); }
     });
     if (!todos.length) return [];
+    todos[todos.length - 1].q.dh = dh.slice();   // o último lance leva o total da luta
     var ultimo = todos[todos.length - 1];
     var escolhidos = todos.slice(0, -1).map(function (x, i) { return { x: x, i: i }; })
       .sort(function (a, b) { return b.x.pts - a.x.pts; }).slice(0, max - 1)

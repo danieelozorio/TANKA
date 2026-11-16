@@ -5722,8 +5722,9 @@
     };
     var herois = run.herois.map(function (h, i) {
       var d = h.dados, max = (l.herois[i] || {}).hpMax || 1, v = q.hh[i] != null ? q.hh[i] : max;
-      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + (alvo === 'h' + i && !r.fimLuta ? ' mas-alvo' : '') + '"><div class="moldura">' + F.personagem(d.raca, classeRetrato(d), d.sexo) + dano('h', i) + '</div>'
-        + '<div class="mas-nome">' + esc(d.nome) + '</div>' + barra('hp', v, max, v + ' / ' + max, 'masr-h' + i) + '</div>';
+      var dh = q.dh ? q.dh[i] : 0, top = q.dh && dh > 0 && dh === Math.max.apply(null, q.dh);
+      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + (alvo === 'h' + i && !r.fimLuta ? ' mas-alvo' : '') + '"><div class="moldura">' + retratoMas(i) + dano('h', i) + '</div>'
+        + '<div class="mas-nome">' + esc(d.nome) + ' <span class="mas-dano-total' + (top ? ' top' : '') + '">' + fmtDano(dh) + '</span></div>' + barra('hp', v, max, v + ' / ' + max, 'masr-h' + i) + '</div>';
     }).join('');
     var monstros = l.monstros.map(function (x, i) {
       var max = x.hpMax || 1, v = q.mh[i] != null ? q.mh[i] : max;
@@ -5781,6 +5782,22 @@
     resgatarRecompensas();   // os prêmios vão para a mochila
     carregarGrupo();
   }
+  // Retrato de um herói da masmorra: a classe que lutou (o bot da fila vira a classe que faltava no grupo).
+  function retratoMas(i) {
+    var m = estado.mas, log = (m.etapa && m.etapa.log) || [], d = m.run.herois[i].dados, x = null;
+    for (var k = log.length - 1; k >= 0 && !x; k--) if (log[k].tipo === 'luta' && log[k].herois && log[k].herois[i] && log[k].herois[i].classe) x = log[k].herois[i];
+    if (!x && d.bot && d.botClasse2 && D.SEGUNDAS_CLASSES[d.botClasse2]) x = { raca: d.raca, sexo: d.sexo, classe: D.SEGUNDAS_CLASSES[d.botClasse2].de, classe2: d.botClasse2 };
+    x = x || d;
+    return F.personagem(x.raca || d.raca, classeRetrato(x), x.sexo || d.sexo);
+  }
+  // Dano de cada herói: numa luta (último lance) ou somado nas lutas já mostradas.
+  function danoLuta(l) { var q = l && l.quadros && l.quadros[l.quadros.length - 1]; return q && q.dh ? q.dh : null; }
+  function danoTotalMas(lutas) {
+    var t = null;
+    lutas.forEach(function (l) { var d = l.tipo === 'luta' && danoLuta(l); if (d) { t = t || d.map(function () { return 0; }); d.forEach(function (v, i) { t[i] += v; }); } });
+    return t;
+  }
+  function fmtDano(v) { return '⚔ ' + Math.round(v || 0).toLocaleString('pt-BR'); }
   function nomeHeroiRun(run, pid) { var h = run.herois.filter(function (x) { return x.id === pid; })[0]; return h ? h.dados.nome : '?'; }
   function masmorraCaminhosHtml() {
     var m = estado.mas, e = m.etapa || {}, run = m.run, M = D.MASMORRA, agora = agoraMas(), meu = estado.personagem.id;
@@ -5794,10 +5811,12 @@
     }).join('<span class="mas-seta">›</span>');
     // vida atual de cada herói
     var hpMax = e.hpMax || [], hp = e.hp || hpMax;
+    var totalDano = danoTotalMas(logVisivel);
     var herois = run.herois.map(function (h, i) {
       var d = h.dados, max = hpMax[i] || 1, v = hp[i] != null ? hp[i] : max;
-      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + '"><div class="moldura">' + F.personagem(d.raca, classeRetrato(d), d.sexo) + '</div>'
-        + '<div class="mas-nome">' + esc(d.nome) + (h.bot ? ' <span class="suave pequeno">(bot)</span>' : '') + (h.id === run.lider ? ' 👑' : '') + '</div>'
+      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + '"><div class="moldura">' + retratoMas(i) + '</div>'
+        + '<div class="mas-nome">' + esc(d.nome) + (h.bot ? ' <span class="suave pequeno">(bot)</span>' : '') + (h.id === run.lider ? ' 👑' : '')
+        + (totalDano ? ' <span class="mas-dano-total">' + fmtDano(totalDano[i]) + '</span>' : '') + '</div>'
         + (hpMax[i] ? barra('hp', v, max, v + ' / ' + max, 'masc' + i) : '') + '</div>';
     }).join('');
     // diário: lutas e caminhos (o mais novo em cima)
@@ -5806,7 +5825,8 @@
         var mons = l.monstros.map(function (x) { return (x.chefe ? '<span class="selo-chefe">Chefe</span> ' : x.elite ? '<span class="selo-elite">Elite</span> ' : '') + esc(x.nome); }).join(', ');
         var nova = !m.vistas[i]; m.vistas[i] = true;
         return '<div class="mas-diario-luta' + (l.vitoria ? '' : ' derrota') + (nova ? ' nova' : '') + '"><h4>⚔ ' + (NOMES_PASSO[l.sala] || 'Luta') + ' <span class="suave pequeno">' + mons + '</span></h4>'
-          + l.linhas.map(function (t, k) { return '<p style="animation-delay:' + (k * 0.6) + 's">' + esc(t) + '</p>'; }).join('') + '</div>';
+          + l.linhas.map(function (t, k) { return '<p style="animation-delay:' + (k * 0.6) + 's">' + esc(t) + '</p>'; }).join('')
+          + (danoLuta(l) ? '<p class="suave pequeno">Dano: ' + danoLuta(l).map(function (v, k) { return esc((run.herois[k] || {}).dados ? run.herois[k].dados.nome : '?') + ' ' + Math.round(v).toLocaleString('pt-BR'); }).join(' · ') + '</p>' : '') + '</div>';
       }
       var C = M.caminhos[l.escolha] || {}, quem = Object.keys(l.votos || {}).map(function (k) { return esc(nomeHeroiRun(run, k)) + ': ' + (M.caminhos[l.votos[k]] || {}).nome; }).join(' · ');
       var res = l.escolha === 'porta' ? (l.bau ? '🎁 Um baú! Cada um vai levar uma joia e um pergaminho.' : '💥 Armadilha! Todos perderam ' + M.caminhos.porta.armadilhaVidaPct + '% da vida.')
@@ -5842,6 +5862,7 @@
       var ef = e.efeitos || {};
       fim = e.fim === 'vitoria'
         ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(m.mm.nome) + '.'
+          + (totalDano ? '</p><p class="suave">Dano na masmorra: ' + run.herois.map(function (h, k) { return esc(h.dados.nome) + ' ' + Math.round(totalDano[k] || 0).toLocaleString('pt-BR'); }).join(' · ') + '.' : '')
           + (ef.corredores ? ' Corredores vencidos: ' + ef.corredores + '.' : '') + (ef.baus ? ' Baús: ' + ef.baus + '.' : '') + (ef.fontes ? ' Fontes: ' + ef.fontes + ' (−' + ef.fontes * -M.caminhos.fonte.dropPct + '% nos drops).' : '') + '</p>'
           + (meus.length ? '<h3>Seus prêmios</h3><div class="mas-premios">' + itens + '</div>' + (lp ? '<p>📜 ' + lp + '</p>' : '') : '<p class="suave">Sem prêmios desta vez.</p>')
           + '<p class="suave pequeno">Ao fechar, os itens vão para a mochila e os pergaminhos para os Consumíveis.</p>'
