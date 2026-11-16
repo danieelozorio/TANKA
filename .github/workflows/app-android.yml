@@ -62,6 +62,10 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx cap add android
+          grep -rq adjustMarginsForEdgeToEdge node_modules/@capacitor/android/capacitor/src && echo 'margem da barra do celular: ok' || { echo '::error::Capacitor sem adjustMarginsForEdgeToEdge'; exit 1; }
+          # Faixas da barra de notificações e da barra de baixo: pretas, com ícones claros.
+          sed -i '/name="AppTheme.NoActionBar"/a\        <item name="android:windowBackground">@android:color/black</item>\n        <item name="android:windowLightStatusBar">false</item>\n        <item name="android:windowLightNavigationBar">false</item>' android/app/src/main/res/values/styles.xml
+          cat android/app/src/main/res/values/styles.xml
           npx capacitor-assets generate --android --assetPath assets --iconBackgroundColor '#0a0c12' --splashBackgroundColor '#010302' --splashBackgroundColorDark '#010302'
           sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"1.0.$N\"/" android/app/build.gradle
           grep -E 'versionCode|versionName' android/app/build.gradle
@@ -111,3 +115,33 @@ jobs:
           node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', tamanhoMB: $MB, apk: $APK_NUM, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
           cat versao.json
           gh release upload app-web versao.json --clobber
+
+      # Teste num celular virtual (só nos branches de teste): instala o APK, abre e tira prints da tela.
+      # Os prints ficam no release "app-teste" (pré-lançamento, só para conferir).
+      - name: Liberar o celular virtual (KVM)
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Testar no celular virtual (Android 15)
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r Eldrin-app.apk
+            adb shell am start -n br.com.eldrinonline.app/.MainActivity
+            sleep 30
+            adb exec-out screencap -p > tela-1.png
+            sleep 20
+            adb exec-out screencap -p > tela-2.png
+            adb logcat -d -s Capacitor:* chromium:* Capacitor/Console:* > logcat.txt || true
+      - name: Guardar os prints do teste
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        run: |
+          gh release view app-teste >/dev/null 2>&1 || gh release create app-teste --prerelease --latest=false --title "App Android: prints do teste" --notes "Prints do celular virtual (branch de teste)."
+          gh release upload app-teste tela-1.png tela-2.png logcat.txt --clobber
