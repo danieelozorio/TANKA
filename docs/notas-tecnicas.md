@@ -1040,3 +1040,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `arena_finalizar`) e `alianca_missao_servidor` (encanto pela `acao`, monstros pela `cacada` = abates novos).
   `alianca_missao_registrar` ficou sem efeito; o navegador não manda mais.
 - `anotar_gravacao()` anota o papel da sessão (não aceita texto de fora); `meu_grupo`/`entradas_usadas` só internos.
+- (nov/2026) Velgrath · Pesadelo (1º chefe, lv 40) mais fácil: vida/dano 1.62 → 1.2 (hp 5346, dano 734-990). Alvo do
+  Henri: mago e arqueiro lv 40, tudo épico lv 40 +3, vencem com 1 poção (1000 lutas: caçador 97%, assassino 100%,
+  bruxo 91%, curandeiro 81%). Os outros chefes do Pesadelo não mudaram.

@@ -719,7 +719,7 @@ Tanka.dados = {
   PESADELO: { estamina: 20, mapaNivelExp: 40, mapaExpPct: 10, mapaNivelItem: 40, nivelDropExtra: 3, vitoriasPorFaixa: 100,
     ouro: [14000, 26000],
     chefes: [
-      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.62, dano: 1.62, nivel: 40, x: 17, y: 82 },
+      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.2, dano: 1.2, nivel: 40, x: 17, y: 82 },
       { id: 'morgath-pesadelo', base: 'morgath', vida: 1.77, dano: 1.77, nivel: 43, x: 26, y: 33 },
       { id: 'varnok-pesadelo', base: 'varnok', vida: 1.88, dano: 1.88, nivel: 46, x: 43, y: 64 },
       { id: 'guardiao-pesadelo', base: 'guardiao', vida: 2.13, dano: 2.13, nivel: 50, x: 49, y: 22 },
