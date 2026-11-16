@@ -29,7 +29,7 @@ function cabecalhoServidor(): Record<string, string> | null {
 }
 
 // Lutas que o servidor refaz sozinho (Henri, nov/2026): o navegador só mostra; quem diz o resultado é o servidor.
-const LUTAS = ['masmorraConcluir', 'bossClaConcluir', 'bossMundial'];
+const LUTAS = ['masmorraConcluir', 'bossClaConcluir', 'bossMundial', 'masmorraAvancar'];
 const MAX_PASSOS_MUNDIAL = 5000;
 
 // Chama uma função do banco com a chave do servidor. Se o banco ainda não tem a função nova (schema não rodado),
@@ -57,9 +57,37 @@ async function lerServidor(base: string, cab: Record<string, string>, caminho: s
 // deno-lint-ignore no-explicit-any
 async function luta(acao: string, id: string, p: any, args: any, base: string, cab: Record<string, string>, sorteio: () => number) {
   args = args || {};
+  if (acao === 'masmorraAvancar') {
+    // Masmorra com caminhos (Henri, 16/11/2026): avança lutas e votações pelo relógio do servidor; no fim, sorteia e guarda os prêmios.
+    for (let tentativa = 0; tentativa < 3; tentativa++) {
+      const run = (await lerServidor(base, cab, 'masmorra_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
+      if (!run || !run.etapa) return { erro: 'Masmorra não encontrada.' };
+      if (!(run.membros || []).includes(id)) return { erro: 'Você não está nessa masmorra.' };
+      const pronto = (r: typeof run) => ({ resultado: { etapa: r.etapa, versao: r.versao, estado: r.estado, agora: Date.now() } });
+      let etapa = run.etapa;
+      if (run.estado === 'andamento' && !etapa.fim) etapa = R.avancarMasmorra(run, run.etapa, Date.now());
+      if (etapa.fim && !etapa.premios) etapa.premios = etapa.fim === 'vitoria' ? R.lootMasmorra(run, etapa) : [];
+      if (JSON.stringify(etapa) !== JSON.stringify(run.etapa)) {
+        const srv = cabecalhoServidor();
+        if (!srv) return { erro: 'Servidor sem chave.' };
+        const w = await fetch(base + '/rest/v1/masmorra_runs?id=eq.' + run.id + '&versao=eq.' + run.versao, {
+          method: 'PATCH', headers: { ...srv, Prefer: 'return=representation' }, body: JSON.stringify({ etapa, versao: run.versao + 1 }) });
+        const linhas = w.ok ? await w.json() : [];
+        if (!linhas.length) continue;   // outro jogador avançou ao mesmo tempo: lê de novo
+        run.etapa = etapa; run.versao++;
+      }
+      if (etapa.fim && run.estado === 'andamento') {   // guarda os prêmios (uma vez só; repetir não faz nada)
+        const f = await rpcServidor(base, cab, 'masmorra_finalizar', { run_id: run.id, vitoria: etapa.fim === 'vitoria', premios: etapa.premios || [] });
+        if (f.ok) run.estado = etapa.fim;
+      }
+      return pronto(run);
+    }
+    return { erro: 'A masmorra está ocupada; tente de novo.' };
+  }
   if (acao === 'masmorraConcluir') {
     const run = (await lerServidor(base, cab, 'masmorra_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
     if (!run) return { erro: 'Masmorra não encontrada.' };
+    if (run.etapa) return { erro: 'Atualize a página (F5) para jogar a masmorra nova.' };
     const sim = R.simularMasmorra(run.herois.map((h: { dados: unknown }) => h.dados), run.masmorra, run.semente);
     const r = await rpcServidor(base, cab, 'masmorra_registrar', { meu: id, run_id: run.id, vitoria: !!sim.vitoria }, 'masmorra_concluir');
     return r.ok ? { resultado: { vitoria: !!sim.vitoria } } : { erro: r.erro };

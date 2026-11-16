@@ -2574,6 +2574,9 @@ Tanka.regras = (function () {
       return { nome: p.nome, classe: p.classe, classe2: p.talentos && p.talentos.classe2 || null, raca: p.raca, sexo: p.sexo, s: s, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade),
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
+    // opc.hpInicial: a vida com que cada herói entra (masmorra com caminhos: a vida passa de uma luta para a outra)
+    if (opc.hpInicial) hs.forEach(function (h, i) { if (opc.hpInicial[i] != null) h.hp = Math.max(0, Math.min(h.hpMax, Math.round(opc.hpInicial[i]))); });
+    var fimDe = function (r) { r.hp = hs.map(function (h) { return h.hp; }); r.hpMax = hs.map(function (h) { return h.hpMax; }); return r; };
     var ataquesMonstro = 0;
     var inicio = {
       herois: hs.map(function (h) { return { nome: h.nome, classe: h.classe, classe2: h.classe2, raca: h.raca, sexo: h.sexo, hpMax: h.hpMax }; }),
@@ -2588,7 +2591,7 @@ Tanka.regras = (function () {
       var ms = salas[si].map(function (m) { return Object.assign({}, m, { hpMax: m.hpMax || m.hp, vel: Math.max(1, m.velocidade), barra: 100, atordoado: 0 }); });
       var tiques = 0;
       while (vivos(ms).length && vivos(hs).length) {
-        if (++tiques > 200000) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
+        if (++tiques > 200000) return fimDe({ vitoria: false, sala: si, inicio: inicio, eventos: eventos });
         // Quem tiver a barra cheia age (monstros primeiro no empate); senão todos enchem a barra.
         var ator = null, ehHeroi = false;
         ms.forEach(function (m) { if (m.hp > 0 && m.barra >= 100 && (!ator || m.barra > ator.barra)) ator = m; });
@@ -2654,7 +2657,7 @@ Tanka.regras = (function () {
           ev = null;
         } else {
           if (opc.limiteAtaques && ++ataquesMonstro > opc.limiteAtaques) {
-            return { vitoria: false, tempo: true, sala: si, inicio: inicio, eventos: eventos };
+            return fimDe({ vitoria: false, tempo: true, sala: si, inicio: inicio, eventos: eventos });
           }
           var qm = tickQueima(ator);
           if (qm) { registrar({ tipo: 'golpe', sala: si, de: 'h', i: 0, alvo: ms.indexOf(ator), acerto: true, critico: false, dano: qm, caiu: ator.hp <= 0, queima: true }); if (ator.hp <= 0) continue; }
@@ -2697,9 +2700,145 @@ Tanka.regras = (function () {
         }
         if (ev) registrar(ev);
       }
-      if (!vivos(hs).length) return { vitoria: false, sala: si, inicio: inicio, eventos: eventos };
+      if (!vivos(hs).length) return fimDe({ vitoria: false, sala: si, inicio: inicio, eventos: eventos });
     }
-    return { vitoria: true, sala: salas.length - 1, inicio: inicio, eventos: eventos };
+    return fimDe({ vitoria: true, sala: salas.length - 1, inicio: inicio, eventos: eventos });
+  }
+
+  // ---------- Masmorra com caminhos (Henri, 16/11/2026) ----------
+  // Monstros de cada luta: luta1 (os 3 da área), luta2 (2º, 3º, 3º), elite (3º, 3º, elite), chefe, corredor (3º, 3º).
+  function salaMasmorra(id, tipo) {
+    var salas = salasMasmorra(id), base = salas[1].slice(0, 2);   // 3º monstro com a força da masmorra
+    if (tipo === 'luta1') return salas[0];
+    if (tipo === 'luta2') return [salas[0][1]].concat(base);
+    if (tipo === 'elite') return salas[1];
+    if (tipo === 'chefe') return salas[2];
+    return base;   // corredor
+  }
+  // Resumo de uma luta para a tela (curto e narrado): vida antes/depois, quem caiu, maior golpe, curas e habilidades.
+  function resumoLuta(sim, sala, hpAntes, tipo) {
+    var ini = sim.inicio, her = ini.herois, mon = ini.salas[0], maior = null, curas = 0, habs = {}, caidos = [], abates = 0;
+    sim.eventos.forEach(function (e) {
+      if (e.tipo === 'hab') { if (e.cura) curas++; habs[e.i + ':' + e.nome] = (habs[e.i + ':' + e.nome] || 0) + 1; }
+      if (e.tipo === 'golpe' && e.de === 'h' && e.acerto && (!maior || e.dano > maior.dano)) maior = { i: e.i, dano: e.dano, critico: e.critico, alvo: e.alvo };
+      if (e.tipo === 'golpe' && e.de === 'h' && e.caiu) abates++;
+      if (e.tipo === 'golpe' && e.de === 'm' && e.caiu && caidos.indexOf(e.alvo) < 0) caidos.push(e.alvo);
+    });
+    var linhas = [], nome = function (i) { return her[i] ? her[i].nome : '?'; };
+    if (maior) linhas.push((maior.critico ? 'CRÍTICO! ' : '') + nome(maior.i) + ' acerta ' + (mon[maior.alvo] ? mon[maior.alvo].nome : 'o inimigo') + ' com ' + maior.dano.toLocaleString('pt-BR') + ' de dano.');
+    var hk = Object.keys(habs).sort(function (a, b) { return habs[b] - habs[a]; })[0];
+    if (hk) { var pt = hk.split(':'); linhas.push(nome(+pt[0]) + ' usa ' + pt.slice(1).join(':') + (habs[hk] > 1 ? ' ' + habs[hk] + ' vezes' : '') + '.'); }
+    if (curas) linhas.push('O grupo é curado ' + curas + (curas > 1 ? ' vezes.' : ' vez.'));
+    caidos.forEach(function (i) { if (sim.hp[i] === 0) linhas.push(nome(i) + ' caiu!'); });
+    linhas.push(sim.vitoria ? (mon.length > 1 ? 'Todos os inimigos caíram!' : mon[0].nome + ' caiu!') : 'O grupo foi derrotado.');
+    return { tipo: 'luta', sala: tipo || sala, vitoria: !!sim.vitoria,
+      monstros: mon.map(function (m) { return { id: m.id, nome: m.nome, elite: !!m.elite, chefe: !!m.chefe }; }),
+      herois: her.map(function (h, i) { return { nome: h.nome, hpAntes: hpAntes ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax, hp: sim.hp[i], hpMax: h.hpMax }; }),
+      linhas: linhas.slice(0, 5) };
+  }
+  // Avança a masmorra do ponto onde parou (o servidor chama; nada aqui depende do navegador). run: { semente, masmorra,
+  // herois, membros, lider }; e: run.etapa (estado da masmorra). agora em ms. Devolve o estado novo (cópia).
+  // Para numa votação aberta ou no fim (e.fim = 'vitoria' | 'derrota').
+  function avancarMasmorra(run, etapa, agora) {
+    var M = D.MASMORRA, C = M.caminhos, e = JSON.parse(JSON.stringify(etapa || {}));
+    e.fase = e.fase || 0; e.log = e.log || []; e.efeitos = e.efeitos || { fontes: 0, corredores: 0, baus: 0, armadilhas: 0 };
+    var herois = run.herois.map(function (h) { return h.dados; });
+    var humanos = run.membros || [];
+    function lutar(tipo, n) {
+      var sim = simularSalas(herois, [salaMasmorra(run.masmorra, tipo)], (Number(run.semente) + 7919 * (n + 1)) >>> 0, { hpInicial: e.hp });
+      var r = resumoLuta(sim, n, e.hp, tipo);
+      e.hpMax = sim.hpMax; e.hp = sim.hp;
+      e.log.push(r);
+      e.ultima = agora;
+      return sim.vitoria;
+    }
+    for (var guarda = 0; guarda < 20 && !e.fim; guarda++) {
+      var passo = M.roteiro[e.fase];
+      if (!passo) { e.fim = 'vitoria'; break; }
+      if (passo !== 'voto') {
+        if (!lutar(passo, e.log.length)) { e.fim = 'derrota'; break; }
+        e.fase++;
+        if (passo === 'chefe') { e.fim = 'vitoria'; break; }
+        continue;
+      }
+      if (!e.prazo) {   // abre a votação (depois do resumo da luta)
+        e.abre = agora + M.resumoSeg * 1000; e.prazo = e.abre + M.votoSeg * 1000; e.votos = {};
+        break;
+      }
+      var votos = e.votos || {}, quem = Object.keys(votos).filter(function (k) { return humanos.indexOf(k) >= 0 && C[votos[k]]; });
+      if (agora < e.prazo && quem.length < humanos.length) break;   // esperando os votos
+      var rng = rngSemente((Number(run.semente) + 104729 * (e.fase + 1)) >>> 0);
+      var cont = { porta: 0, corredor: 0, fonte: 0 };
+      quem.forEach(function (k) { cont[votos[k]]++; });
+      var max = Math.max(cont.porta, cont.corredor, cont.fonte);
+      var empatados = Object.keys(cont).filter(function (k) { return cont[k] === max; });
+      var escolha = empatados.length === 1 ? empatados[0]
+        : votos[run.lider] && empatados.indexOf(votos[run.lider]) >= 0 ? votos[run.lider]
+        : empatados[Math.floor(rng() * empatados.length)];
+      var reg = { tipo: 'caminho', escolha: escolha, votos: votos, empate: empatados.length > 1, lider: run.lider };
+      if (escolha === 'porta') {
+        if (rng() * 100 < C.porta.bauPct) { reg.bau = true; e.efeitos.baus++; }
+        else {
+          reg.armadilha = true; e.efeitos.armadilhas++;
+          e.hp = (e.hp || e.hpMax || []).map(function (v, i) { return v > 0 ? Math.max(1, v - Math.round(e.hpMax[i] * C.porta.armadilhaVidaPct / 100)) : 0; });
+        }
+      } else if (escolha === 'fonte') {
+        e.efeitos.fontes++;
+        e.hp = (e.hpMax || []).slice();
+      }
+      e.log.push(reg);
+      e.prazo = null; e.abre = null; e.votos = {};
+      if (escolha === 'corredor') {
+        var venceu = lutar('corredor', e.log.length);
+        e.log[e.log.length - 1].corredor = true;
+        if (!venceu) { e.fim = 'derrota'; break; }
+        e.efeitos.corredores++;
+      }
+      e.fase++;
+    }
+    return e;
+  }
+  // Prêmios de quem venceu (só jogadores; bots não ganham), sorteados com a semente da masmorra: item = joia, colar
+  // ou anel, com nível do herói −3 a +10; pergaminho = { tipo: 'pergaminho', raridade }. Devolve [{ pid, item }].
+  function lootMasmorra(run, etapa) {
+    var M = D.MASMORRA, C = M.caminhos, ef = (etapa && etapa.efeitos) || {}, mm = masmorra(run.masmorra);
+    var rng = rngSemente((Number(run.semente) + 15485863) >>> 0), menos = (ef.fontes || 0) * -C.fonte.dropPct;
+    var sorte = function (pct) { return rng() * 100 < pct - menos; };
+    var Q = D.DROPS_CACADA.qualidade;
+    function rarDe(tabela, extraLendaria) {
+      var t = tabela.map(function (x) { return { raridade: x.raridade, chance: x.chance }; });
+      if (extraLendaria) {
+        var l = t.filter(function (x) { return x.raridade === 'lendaria'; })[0];
+        if (!l) { l = { raridade: 'lendaria', chance: 0 }; t.unshift(l); }
+        l.chance += extraLendaria;
+        var tira = extraLendaria;
+        for (var i = t.length - 1; i >= 0 && tira > 0; i--) { if (t[i] === l) continue; var q = Math.min(t[i].chance, tira); t[i].chance -= q; tira -= q; }
+      }
+      var r = rng() * 100, acc = 0;
+      for (var j = 0; j < t.length; j++) { acc += t[j].chance; if (r < acc) return t[j].raridade; }
+      return t[t.length - 1].raridade;
+    }
+    function perg() { var r = rng() * 100, acc = 0; for (var i = Q.length - 1; i >= 0; i--) { acc += Q[i].chance; if (r < acc) return Q[i].raridade; } return 'comum'; }
+    function joia(p, rar) {
+      var n = p.nivel + M.nivelDrop[0] + Math.floor(rng() * (M.nivelDrop[1] - M.nivelDrop[0] + 1));
+      var it = novoItem(rng() < 0.5 ? 'colar' : 'anel', null, rar, rng, null, Math.max(1, Math.min(D.ITEM_NIVEL.maximo, n)));
+      it.id = 'mas' + run.id + '-' + Math.floor(rng() * 1e9).toString(36);
+      return it;
+    }
+    var premios = [];
+    (run.membros || []).forEach(function (pid) {
+      var h = run.herois.filter(function (x) { return x.id === pid; })[0];
+      if (!h) return;
+      var p = h.dados;
+      if (sorte(100)) premios.push({ pid: pid, item: joia(p, rarDe(mm.joias, (ef.corredores || 0) * C.corredor.lendarioPct)) });
+      if (sorte(M.pergaminho)) premios.push({ pid: pid, item: { tipo: 'pergaminho', raridade: perg() } });
+      for (var b = 0; b < (ef.baus || 0); b++) {
+        if (sorte(100)) premios.push({ pid: pid, item: joia(p, rarDe(M.bau, 0)), bau: true });
+        if (sorte(100)) premios.push({ pid: pid, item: { tipo: 'pergaminho', raridade: perg() }, bau: true });
+      }
+      for (var c = 0; c < (ef.corredores || 0) * C.corredor.pergaminhos; c++) premios.push({ pid: pid, item: { tipo: 'pergaminho', raridade: perg() }, corredor: true });
+    });
+    return premios;
   }
 
   // ---------- Boss da aliança ----------
@@ -3101,6 +3240,10 @@ Tanka.regras = (function () {
     usarSkin: usarSkin,
     masmorra: masmorra,
     salasMasmorra: salasMasmorra,
+    salaMasmorra: salaMasmorra,
+    resumoLuta: resumoLuta,
+    avancarMasmorra: avancarMasmorra,
+    lootMasmorra: lootMasmorra,
     simularMasmorra: simularMasmorra,
     habLiberada: habLiberada, valorNivel: valorNivel, extrasNivel: extrasNivel, aoReceber: aoReceber, depoisDeReceber: depoisDeReceber,
     novoLutador: novoLutador, kitHabilidades: kitHabilidades, passiva: passiva,

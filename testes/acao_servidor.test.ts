@@ -42,7 +42,18 @@ g.fetch = (async (url: string, init: any = {}) => {
     }
   }
   // lutas que o servidor refaz (masmorra, boss do clã, Ignaroth)
-  if (u.pathname === '/rest/v1/masmorra_runs') return json(Number((u.searchParams.get('id') || '').replace('eq.', '')) === 5 ? [runMasmorra] : []);
+  if (u.pathname === '/rest/v1/masmorra_runs') {
+    const rid = Number((u.searchParams.get('id') || '').replace('eq.', ''));
+    if (rid === 8) {   // masmorra com caminhos (gravação com a versão)
+      if (init.method === 'PATCH') {
+        if ('eq.' + runCam.versao !== u.searchParams.get('versao')) return json([]);
+        Object.assign(runCam, JSON.parse(init.body)); return json([runCam]);
+      }
+      return json([JSON.parse(JSON.stringify(runCam))]);
+    }
+    return json(rid === 5 ? [runMasmorra] : []);
+  }
+  if (u.pathname === '/rest/v1/rpc/masmorra_finalizar') { finalizados.push(JSON.parse(init.body)); runCam.estado = JSON.parse(init.body).vitoria ? 'vitoria' : 'derrota'; return json(null); }
   if (u.pathname === '/rest/v1/alianca_boss_runs') return json([runBoss]);
   if (u.pathname === '/rest/v1/rpc/masmorra_concluir' || u.pathname === '/rest/v1/rpc/alianca_boss_concluir' || u.pathname === '/rest/v1/rpc/boss_atacar') {
     lutasRegistradas.push({ rota: u.pathname, corpo: JSON.parse(init.body) });
@@ -52,8 +63,10 @@ g.fetch = (async (url: string, init: any = {}) => {
   return json({ erro: 'rota ' + u.pathname }, 404);
 }) as typeof fetch;
 const lutasRegistradas: any[] = [];
+const finalizados: any[] = [];
 const heroi = { id: p0.id, dados: JSON.parse(JSON.stringify(p0)) };
 const runMasmorra = { id: 5, lider: p0.id, membros: [p0.id], grupo_id: 1, estado: 'andamento', masmorra: Tanka.dados.masmorras[0].id, herois: [heroi], semente: 12345 };
+const runCam: any = { id: 8, lider: p0.id, membros: [p0.id], estado: 'andamento', masmorra: 'toca', herois: [heroi], semente: 99, etapa: { fase: 0 }, versao: 0 };
 const runBoss = { id: 9, lider: p0.id, membros: [p0.id], estado: 'andamento', nivel: 1, hp_inicio: 49140, semente: 777, buff: 0, herois: [heroi] };
 
 const base = 'https://x.supabase.co';
@@ -200,6 +213,20 @@ ok(x.j.eventos && x.j.eventos.length > 0 && ultimo.dano === 5_000_000 - x.j.even
 const acoesJ = x.j.eventos.filter((e: any) => e.ev.ator === 'jogador' || e.ev.habilidade).length;
 ok(acoesJ <= Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque, 'Ignaroth: no máximo ' + Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque + ' ações (' + acoesJ + ')');
 ok(d().versao === v, 'lutas do servidor não mexem na ficha');
+
+// Masmorra com caminhos (16/11/2026): o servidor luta, abre a votação, resolve pelo relógio e guarda os prêmios uma vez
+g.Deno.env.get = (k: string) => k === 'SUPABASE_SERVICE_ROLE_KEY' ? 'chave-teste' : '';
+x = await pedir({ personagem: p0.id, acao: 'masmorraAvancar', args: { run: 8 } });
+ok(x.j.resultado && x.j.resultado.etapa.log.length === 1 && (x.j.resultado.etapa.prazo || x.j.resultado.etapa.fim) && runCam.versao === 1, 'masmorra: 1ª luta e votação aberta ou fim (versão 1)');
+x = await pedir({ personagem: p0.id, acao: 'masmorraAvancar', args: { run: 8 } });
+ok(runCam.versao === 1, 'masmorra: antes do prazo não muda nada');
+const real = Date.now; let falso = real() + 60_000; Date.now = () => (falso += 60_000);
+for (let i = 0; i < 12 && runCam.estado === 'andamento'; i++) await pedir({ personagem: p0.id, acao: 'masmorraAvancar', args: { run: 8 } });
+Date.now = real;
+ok(runCam.etapa.fim && finalizados.length === 1 && (runCam.etapa.fim === 'derrota' || finalizados[0].premios.length > 0), 'masmorra: terminou e guardou os prêmios uma vez (' + runCam.etapa.fim + ')');
+x = await pedir({ personagem: 'outro', acao: 'masmorraAvancar', args: { run: 8 } });
+ok(x.j.erro, 'masmorra: quem não é do grupo não avança');
+g.Deno.env.get = () => '';
 
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');
 if (falhas) (g.Deno?.exit ?? g.process?.exit)?.(1);

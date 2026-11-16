@@ -53,6 +53,11 @@ select public.grupo_responder('pc', (public.grupo_estado('pc') -> 'convites' -> 
 select pg_temp.igual(jsonb_array_length(public.grupo_estado('pc') -> 'grupo' -> 'membros'), 3, 'grupo com 3');
 
 -- Começar: escolher masmorra, prontos, level e entradas
+reset role;   -- masmorras do 15 ao 60 (16/11/2026): Aldric e Bruna sobem para o Ninho (22)
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '32') where id = 'pa';
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '31') where id = 'pb';
+set role authenticated;
+select pg_temp.como('c');
 select pg_temp.falha($$select public.grupo_escolher('pc', 'ninho')$$, 'Só o líder');
 select pg_temp.como('a');
 select pg_temp.falha($$select public.masmorra_iniciar('pa')$$, 'Escolha a masmorra');
@@ -62,9 +67,9 @@ select public.grupo_pronto('pa', true);
 select pg_temp.como('b'); select public.grupo_pronto('pb', true);
 select pg_temp.como('c'); select public.grupo_pronto('pc', true);
 select pg_temp.como('a');
-select pg_temp.falha($$select public.masmorra_iniciar('pa')$$, 'Level mínimo 10 (abaixo: Caio)');
+select pg_temp.falha($$select public.masmorra_iniciar('pa')$$, 'Level mínimo 22 (abaixo: Caio)');
 reset role;
-update public.personagens set dados = jsonb_set(dados, '{nivel}', '10') where id = 'pc';
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '22') where id = 'pc';
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual((public.masmorra_iniciar('pa') ->> 'estado'), 'andamento', 'masmorra começa');
@@ -147,6 +152,8 @@ reset role;
 update public.personagens set dados = dados || '{"ouro": 50000, "reputacao": 1000}' where id in ('pa', 'pd');
 update public.personagens set dados = dados || '{"ouro": 500, "reputacao": 0}' where id = 'pb';
 update public.personagens set dados = dados || '{"nivel": 4}' where id = 'pc';
+update public.personagens set dados = dados || '{"nivel": 12}' where id = 'pa';
+update public.personagens set dados = dados || '{"nivel": 11}' where id = 'pb';
 set role authenticated;
 select pg_temp.como('c');
 select pg_temp.falha($$select public.alianca_criar('pc', 'Lobos', 'LOB', '{}')$$, 'Precisa ser level 10');
@@ -621,7 +628,8 @@ update public.contas set admin = false where usuario = 'duda';
 reset role;
 delete from public.grupo_membros; delete from public.grupos; delete from public.masmorra_entradas; delete from public.masmorra_runs;
 delete from public.recompensas;
-update public.personagens set dados = jsonb_set(dados, '{nivel}', '12') where id = 'pc';
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '16') where id in ('pa', 'pc');   -- Toca: level 15; Ninho: 22 (16/11/2026)
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '25') where id = 'pb';
 set role authenticated;
 select pg_temp.como('a'); select public.fila_entrar('pa', 'toca');
 select pg_temp.como('b'); select public.fila_entrar('pb', 'toca');
@@ -714,6 +722,8 @@ set role authenticated;
 select pg_temp.como('a'); select pg_temp.falha($$select public.fila_entrar('pa', 'toca')$$, 'Sem entradas');
 reset role;
 delete from public.masmorra_entradas; delete from public.masmorra_fila;
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '12') where id = 'pa';
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '11') where id = 'pb';
 -- Boss da aliança (Daniel, nov/2026)
 reset role;
 delete from public.alianca_espera; delete from public.recompensas;   -- prêmios que sobraram de outros testes
@@ -1285,6 +1295,35 @@ reset role;
 update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr';
 select pg_temp.igual((select dados ->> 'nivel' from public.personagens where id = 'ptr'), '60', 'trava: SQL Editor passa');
 reset role;
+
+-- Masmorra com caminhos (16/11/2026): voto com prazo, só membros; fim guarda os prêmios uma vez só
+reset role;
+delete from public.recompensas; delete from public.masmorra_entradas;
+insert into public.masmorra_runs (lider, masmorra, semente, herois, membros, etapa)
+  values ('pa', 'toca', 1, '[]', array['pa', 'pb'], jsonb_build_object('fase', 1, 'votos', '{}'::jsonb,
+    'prazo', (extract(epoch from now()) * 1000)::bigint + 10000));
+select max(id) as run_cam from public.masmorra_runs \gset
+set role authenticated;
+select pg_temp.como('a');
+select public.masmorra_votar('pa', :run_cam, 'fonte');
+select pg_temp.falha('select public.masmorra_votar(''pa'', ' || :run_cam || ', ''atalho'')', 'Caminho inválido');
+select pg_temp.como('c');
+select pg_temp.falha('select public.masmorra_votar(''pc'', ' || :run_cam || ', ''porta'')', 'não está nessa masmorra');
+select pg_temp.como('b');
+select public.masmorra_votar('pb', :run_cam, 'porta');
+select pg_temp.igual((public.grupo_estado('pb') -> 'run' -> 'etapa' -> 'votos')::text, '{"pa": "fonte", "pb": "porta"}', 'caminhos: os dois votos guardados');
+select pg_temp.falha('select public.masmorra_finalizar(' || :run_cam || ', true, ''[]'')', 'permission denied');
+reset role;
+select public.masmorra_finalizar(:run_cam, true, '[{"pid":"pa","item":{"tipo":"anel","raridade":"rara","nivel":16}},{"pid":"pc","item":{"tipo":"anel","raridade":"rara"}},{"pid":"pb","item":{"tipo":"pergaminho","raridade":"comum"}}]');
+select public.masmorra_finalizar(:run_cam, true, '[{"pid":"pa","item":{"tipo":"anel","raridade":"rara"}}]');
+select pg_temp.igual((select string_agg(personagem_id || ':' || (item ->> 'tipo'), ',' order by personagem_id) from public.recompensas), 'pa:anel,pb:pergaminho', 'caminhos: prêmios só dos membros, uma vez só');
+select pg_temp.igual(public.entradas_usadas('pa') || '/' || public.entradas_usadas('pb'), '1/1', 'caminhos: vitória gasta 1 entrada');
+update public.masmorra_runs set estado = 'andamento', etapa = jsonb_set(etapa, '{prazo}', to_jsonb((extract(epoch from now()) * 1000)::bigint - 5000)) where id = :run_cam;
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha('select public.masmorra_votar(''pa'', ' || :run_cam || ', ''porta'')', 'tempo da votação acabou');
+reset role;
+delete from public.recompensas; delete from public.masmorra_entradas; delete from public.masmorra_runs where id = :run_cam;
 
 -- Etapa 5 (tudo no servidor): depois de trancar, o jogador não grava a ficha direto; o servidor grava; o schema de novo não destranca
 \i supabase/trancar_fichas.sql

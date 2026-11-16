@@ -353,6 +353,7 @@ Tanka.contas = (function () {
     escolher: function (meu, masmorra) { return chamar('grupo_escolher', { meu: meu, masmorra: masmorra }); },
     iniciar: function (meu) { return chamar('masmorra_iniciar', { meu: meu }); },
     concluir: function (meu, run, vitoria) { return chamar('masmorra_concluir', { meu: meu, run_id: run, vitoria: vitoria }); },
+    votar: function (meu, run, opcao) { return chamar('masmorra_votar', { meu: meu, run_id: run, opcao: opcao }); },
     resgatar: function (meu, id) { return chamar('recompensa_resgatar', { meu: meu, recompensa: id }); },
     adminRecarregar: function (meu) { return chamar('masmorra_admin_recarregar', { meu: meu }); },
     // Fila sem grupo: 3 jogadores na mesma masmorra entram juntos; em 30 s sem completar, bots completam.

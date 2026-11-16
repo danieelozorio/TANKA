@@ -1095,3 +1095,20 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   a equipe decidir (Arena?, limite, preço do pergaminho).
   Medalhões das 12 Pedras (folha 4x3 do Daniel, Gemini) em `assets/ascensao/medalhao-<pedra>.webp` (256 px, sem fundo) e
   brasões dos 6 domínios (folha 3x2) em `assets/ascensao/dominio-<id>.webp` (192 px, sem fundo).
+
+### Masmorra com caminhos (Henri, 16/11/2026)
+- Roteiro `D.MASMORRA.roteiro`: luta1 → voto → luta2 → voto → elite → voto → chefe. Lutas automáticas (`simularSalas`
+  com `opc.hpInicial`: a vida passa de uma luta para a outra); `R.salaMasmorra(id, tipo)`; resumo curto `R.resumoLuta`.
+- Votação: abre `resumoSeg` (5 s) depois da luta e dura `votoSeg` (10 s). Só jogadores (`run.membros`) votam
+  (`masmorra_votar`); quem não vota perde o voto; empate = voto do líder (`run.lider`; na fila, o 1º); sem voto: sorteio.
+- Caminhos (`MASMORRA.caminhos`, acumulam): Porta (30% baú: joia comum–épica + pergaminho p/ cada um; 70% armadilha:
+  −15% da vida, não mata), Corredor (luta extra; vencendo +1 pergaminho e +5% de lendária na joia do fim), Fonte (cura
+  e levanta todos; −5 pontos em cada chance de drop).
+- Servidor: tudo em `R.avancarMasmorra(run, etapa, agora)` (puro) chamado pela ação `masmorraAvancar` da função `acao`,
+  que grava `masmorra_runs.etapa` com a chave do servidor (filtro `versao`, sem corrida). No fim, `R.lootMasmorra`
+  sorteia (joia nível −3 a +10 do herói) e `masmorra_finalizar` (só chave do servidor) gasta entrada, conta missão do
+  clã e põe em `recompensas` uma vez só. A tela mostra `etapa.premios`; ao fechar, `receberPendentes` põe na mochila.
+- Masmorras: níveis 15, 22, 30, 37, 45, 52, 60 (também em `masmorra_nivel_min`); forca recalibrada. História: caps.
+  1–3 sem masmorra; 4–7 pedem a masmorra que já abriu no nível do capítulo.
+- Runs antigas (etapa null) seguem no jeito antigo (`masmorraConcluir`); runs novas recusam esse caminho.
+- Imagens: assets/masmorra/porta|corredor|fonte.webp (do Henri).
