@@ -3617,6 +3617,8 @@
       painel = lutaArenaHtml();
     } else if (estado.luta) {
       painel = lutaMasmorraHtml();
+    } else if (estado.mas) {
+      painel = masmorraCaminhosHtml();
     } else if (estado.cacada) {
       painel = cacadaHtml();
     } else if (estado.chefeAviso) {
@@ -5088,6 +5090,8 @@
         estado.luta.rapido = !estado.luta.rapido;
         redesenharLuta();
         break;
+      case 'mas-votar': masVotar(el.dataset.opcao); break;
+      case 'mas-fechar': masFechar(); break;
       case 'luta-fechar': {
         var eraBoss = estado.luta && estado.luta.boss;
         clearTimeout(estado.luta.timer);
@@ -5611,6 +5615,175 @@
   var vistas = {};   // lutas (run.id) que este navegador já mostrou
   var NOMES_SALA = ['Sala 1', 'Sala 2', 'Sala 3 · Chefe'];
 
+  // ---------------- Masmorra com caminhos (Henri, 16/11/2026) ----------------
+  // O servidor avança tudo (lutas automáticas, votações de 10 s, efeitos e prêmios: ação `masmorraAvancar`). Aqui só
+  // mostra: resumo de cada luta, os 3 caminhos para votar e, no fim, os prêmios. estado.mas = { run, etapa, versao, ... }.
+  var NOMES_PASSO = { luta1: 'Luta 1', luta2: 'Luta 2', elite: 'Elite', chefe: 'Chefe', corredor: 'Corredor escuro', voto: 'Caminho' };
+  var masFechadas = {};
+  function agoraMas() { var m = estado.mas; return Date.now() + (m && m.desvio || 0); }
+  function abrirMasmorra(run) {
+    if (!run || !run.etapa || masFechadas[run.id]) return;
+    if (estado.mas && estado.mas.run.id === run.id) { atualizarMas(run.etapa, run.versao, run.estado, run.agora); return; }
+    vistas[run.id] = true;
+    clearInterval(estado.mas && estado.mas.relogio);
+    estado.mas = { run: run, etapa: run.etapa, versao: run.versao || 0, estado: run.estado, mm: R.masmorra(run.masmorra),
+      desvio: run.agora ? Number(run.agora) - Date.now() : 0, vistas: {}, ultimoAvanco: 0, ultimaBusca: Date.now() };
+    estado.mas.relogio = setInterval(tiqueMas, 1000);
+    estado.chefeAviso = null;
+    telaJogo();
+    tiqueMas();
+  }
+  function atualizarMas(etapa, versao, est, agora) {
+    var m = estado.mas;
+    if (!m || versao == null || versao < m.versao) return false;
+    if (agora) m.desvio = Number(agora) - Date.now();
+    var mudou = versao > m.versao || est !== m.estado;
+    m.etapa = etapa; m.versao = versao; m.estado = est;
+    return mudou;
+  }
+  // A cada segundo: conta o tempo da votação; pede ao servidor para avançar quando precisa; busca o estado a cada 2 s.
+  function tiqueMas() {
+    var m = estado.mas, p = estado.personagem;
+    if (!m || !p) return;
+    var e = m.etapa || {}, agora = agoraMas(), membros = m.run.membros || [];
+    var votaram = Object.keys(e.votos || {}).filter(function (k) { return membros.indexOf(k) >= 0; }).length;
+    var precisa = m.estado === 'andamento' && (!e.fim && (!e.prazo || agora >= e.prazo || votaram >= membros.length) || (e.fim && !e.premios));
+    if (precisa && !m.avancando && Date.now() - m.ultimoAvanco > 1500) {
+      m.avancando = true; m.ultimoAvanco = Date.now();
+      C.acao(p.id, 'masmorraAvancar', { run: m.run.id }).then(function (r) {
+        m.avancando = false;
+        if (estado.mas !== m) return;
+        if (r && r.erro) { m.erro = r.erro; }
+        else if (r && r.resultado) { m.erro = null; atualizarMas(r.resultado.etapa, r.resultado.versao, r.resultado.estado, r.resultado.agora); }
+        redesenharMas();
+      }, function (er) { m.avancando = false; m.erro = er.message; });
+    } else if (!m.buscando && Date.now() - m.ultimaBusca > 2000 && m.estado === 'andamento') {
+      m.buscando = true; m.ultimaBusca = Date.now();
+      C.grupo.estado(p.id).then(function (g) {
+        m.buscando = false;
+        if (estado.mas !== m) return;
+        var run = g && g.run;
+        if (run && run.id === m.run.id) atualizarMas(run.etapa, run.versao, run.estado, run.agora);
+        redesenharMas();
+      }, function () { m.buscando = false; });
+    }
+    redesenharMas();
+  }
+  // Redesenha só quando algo mudou (o resumo da luta não recomeça a animação); senão só atualiza o relógio.
+  function chaveMas() {
+    var m = estado.mas, e = m.etapa || {}, agora = agoraMas();
+    return [m.versao, m.estado, m.meuVoto, m.erro, e.prazo && agora >= e.abre ? 'v' : 'n', JSON.stringify(e.votos || {})].join('|');
+  }
+  function redesenharMas() {
+    var painel = document.querySelector('.jogo > section'), m = estado.mas;
+    if (!painel || !m || estado.batalha || estado.luta) return;
+    var tela = painel.querySelector('.mas-tela'), chave = chaveMas();
+    if (tela && m.chave === chave) {
+      var e = m.etapa || {}, agora = agoraMas();
+      var t = painel.querySelector('.mas-tempo'); if (t && e.prazo) t.textContent = Math.max(0, Math.ceil((e.prazo - agora) / 1000)) + ' s';
+      var w = painel.querySelector('.mas-espera b'); if (w && e.abre) w.textContent = Math.max(1, Math.ceil((e.abre - agora) / 1000));
+      return;
+    }
+    m.chave = chave;
+    painel.innerHTML = masmorraCaminhosHtml();
+  }
+  function masVotar(opcao) {
+    var m = estado.mas, p = estado.personagem;
+    if (!m || !p) return;
+    m.meuVoto = opcao;
+    m.etapa.votos = Object.assign({}, m.etapa.votos || {}); m.etapa.votos[p.id] = opcao;
+    redesenharMas();
+    C.grupo.votar(p.id, m.run.id, opcao).then(function () { m.ultimoAvanco = 0; tiqueMas(); }, function (e) { avisar(e.message); });
+  }
+  function masFechar() {
+    var m = estado.mas;
+    if (!m) return;
+    clearInterval(m.relogio);
+    masFechadas[m.run.id] = true;
+    var venceu = m.etapa && m.etapa.fim === 'vitoria', run = m.run;
+    estado.mas = null;
+    if (venceu) {   // missão e História (o servidor confere pelo evento)
+      var mis = R.garantirMissoes(estado.personagem, C.agora());
+      if (mis.runs.indexOf(String(run.id)) < 0) {
+        mis.runs = mis.runs.concat(String(run.id)).slice(-20);
+        R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
+        if (R.registrarHistoria(estado.personagem, 'masmorra', run.masmorra)) avisoHistoria();
+        acaoServidor('eventoJogo', { tipo: 'masmorra', vitoria: true, alvo: run.masmorra, run: String(run.id) });
+      }
+    }
+    estado.aba = 'masmorra';
+    telaJogo();
+    resgatarRecompensas();   // os prêmios vão para a mochila
+    carregarGrupo();
+  }
+  function nomeHeroiRun(run, pid) { var h = run.herois.filter(function (x) { return x.id === pid; })[0]; return h ? h.dados.nome : '?'; }
+  function masmorraCaminhosHtml() {
+    var m = estado.mas, e = m.etapa || {}, run = m.run, M = D.MASMORRA, agora = agoraMas(), meu = estado.personagem.id;
+    var roteiro = M.roteiro.map(function (k, i) {
+      return '<span class="mas-passo' + (i < (e.fase || 0) || (e.fim === 'vitoria') ? ' feito' : i === (e.fase || 0) && !e.fim ? ' atual' : '') + '">' + NOMES_PASSO[k] + '</span>';
+    }).join('<span class="mas-seta">›</span>');
+    // vida atual de cada herói
+    var hpMax = e.hpMax || [], hp = e.hp || hpMax;
+    var herois = run.herois.map(function (h, i) {
+      var d = h.dados, max = hpMax[i] || 1, v = hp[i] != null ? hp[i] : max;
+      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + '"><div class="moldura">' + F.personagem(d.raca, classeRetrato(d), d.sexo) + '</div>'
+        + '<div class="mas-nome">' + esc(d.nome) + (h.bot ? ' <span class="suave pequeno">(bot)</span>' : '') + (h.id === run.lider ? ' 👑' : '') + '</div>'
+        + (hpMax[i] ? barra('hp', v, max, v + ' / ' + max, 'masc' + i) : '') + '</div>';
+    }).join('');
+    // diário: lutas e caminhos (o mais novo em cima)
+    var diario = (e.log || []).map(function (l, i) {
+      if (l.tipo === 'luta') {
+        var mons = l.monstros.map(function (x) { return (x.chefe ? '<span class="selo-chefe">Chefe</span> ' : x.elite ? '<span class="selo-elite">Elite</span> ' : '') + esc(x.nome); }).join(', ');
+        var nova = !m.vistas[i]; m.vistas[i] = true;
+        return '<div class="mas-diario-luta' + (l.vitoria ? '' : ' derrota') + (nova ? ' nova' : '') + '"><h4>⚔ ' + (NOMES_PASSO[l.sala] || 'Luta') + ' <span class="suave pequeno">' + mons + '</span></h4>'
+          + l.linhas.map(function (t, k) { return '<p style="animation-delay:' + (k * 0.6) + 's">' + esc(t) + '</p>'; }).join('') + '</div>';
+      }
+      var C = M.caminhos[l.escolha] || {}, quem = Object.keys(l.votos || {}).map(function (k) { return esc(nomeHeroiRun(run, k)) + ': ' + (M.caminhos[l.votos[k]] || {}).nome; }).join(' · ');
+      var res = l.escolha === 'porta' ? (l.bau ? '🎁 Um baú! Cada um vai levar uma joia e um pergaminho.' : '💥 Armadilha! Todos perderam ' + M.caminhos.porta.armadilhaVidaPct + '% da vida.')
+        : l.escolha === 'fonte' ? '💧 A fonte curou todo o grupo (−' + -M.caminhos.fonte.dropPct + '% de chance nos drops).'
+        : '🕯 O grupo entra no corredor escuro…';
+      return '<div class="mas-diario-caminho"><h4><img src="assets/masmorra/' + l.escolha + '.webp" alt=""> ' + esc(C.nome || l.escolha) + (l.empate ? ' <span class="suave pequeno">(empate: decidiu o líder)</span>' : '') + '</h4>'
+        + '<p>' + res + '</p>' + (quem ? '<p class="suave pequeno">Votos: ' + quem + '</p>' : '<p class="suave pequeno">Ninguém votou: o caminho foi sorteado.</p>') + '</div>';
+    }).reverse().join('');
+    // votação
+    var voto = '';
+    if (!e.fim && e.prazo) {
+      var meuVoto = (e.votos || {})[meu] || m.meuVoto, falta = Math.max(0, Math.ceil((e.prazo - agora) / 1000));
+      if (agora < e.abre) voto = '<p class="mas-espera">Escolham o próximo caminho em <b>' + Math.max(1, Math.ceil((e.abre - agora) / 1000)) + '</b> s…</p>';
+      else voto = '<div class="mas-votacao"><h3>Escolham o caminho · <span class="mas-tempo">' + falta + ' s</span></h3><div class="mas-caminhos">'
+        + ['porta', 'corredor', 'fonte'].map(function (k) {
+          var C = M.caminhos[k], quem = Object.keys(e.votos || {}).filter(function (x) { return e.votos[x] === k; }).map(function (x) { return esc(nomeHeroiRun(run, x)); });
+          return '<button class="mas-caminho' + (meuVoto === k ? ' escolhido' : '') + '" data-acao="mas-votar" data-opcao="' + k + '"' + (run.membros.indexOf(meu) < 0 ? ' disabled' : '') + '>'
+            + '<img src="assets/masmorra/' + k + '.webp" alt=""><strong>' + C.nome + '</strong><span class="pequeno">' + C.texto + '</span>'
+            + '<span class="mas-votos">' + (quem.length ? '🗳 ' + quem.join(', ') : '&nbsp;') + '</span></button>';
+        }).join('') + '</div><p class="suave pequeno">Quem não votar em ' + M.votoSeg + ' s perde o voto. Empate: vale o voto do líder 👑.</p></div>';
+    } else if (!e.fim && m.estado === 'andamento') voto = '<p class="mas-espera">⚔ O grupo avança…</p>';
+    // fim e prêmios
+    var fim = '';
+    if (e.fim) {
+      var meus = (e.premios || []).filter(function (x) { return x.pid === meu; });
+      var itens = meus.filter(function (x) { return x.item.tipo !== 'pergaminho'; }).map(function (x) {
+        return '<div class="mas-premio">' + (x.bau ? '<span class="selo-elite">Baú</span>' : '') + fichaItemHtml(x.item, true) + '</div>';
+      }).join('');
+      var pergs = {};
+      meus.filter(function (x) { return x.item.tipo === 'pergaminho'; }).forEach(function (x) { pergs[x.item.raridade] = (pergs[x.item.raridade] || 0) + 1; });
+      var lp = Object.keys(pergs).map(function (r) { return pergs[r] + 'x Pergaminho para item ' + D.raridades[r].nome.toLowerCase(); }).join(' · ');
+      var ef = e.efeitos || {};
+      fim = e.fim === 'vitoria'
+        ? '<div class="resultado vitoria-chefe"><h2>VITÓRIA!</h2><p>O grupo venceu ' + esc(m.mm.nome) + '.'
+          + (ef.corredores ? ' Corredores vencidos: ' + ef.corredores + '.' : '') + (ef.baus ? ' Baús: ' + ef.baus + '.' : '') + (ef.fontes ? ' Fontes: ' + ef.fontes + ' (−' + ef.fontes * -M.caminhos.fonte.dropPct + '% nos drops).' : '') + '</p>'
+          + (meus.length ? '<h3>Seus prêmios</h3><div class="mas-premios">' + itens + '</div>' + (lp ? '<p>📜 ' + lp + '</p>' : '') : '<p class="suave">Sem prêmios desta vez.</p>')
+          + '<p class="suave pequeno">Ao fechar, os itens vão para a mochila e os pergaminhos para os Consumíveis.</p>'
+        : '<div class="resultado derrota"><h2>Derrota</h2><p>O grupo caiu em ' + esc(m.mm.nome) + '. Ninguém perdeu nada e a entrada não foi gasta.</p>';
+      fim += '<div class="botoes"><button class="btn" data-acao="mas-fechar">' + (e.fim === 'vitoria' ? 'Guardar e voltar' : 'Voltar') + '</button></div></div>';
+    }
+    m.chave = chaveMas();
+    return '<div class="mas-tela">' + fim + '<h3 class="subtitulo">' + esc(m.mm.nome) + '</h3><div class="mas-roteiro">' + roteiro + '</div>'
+      + '<div class="mas-grupo mas-grupo-linha">' + herois + '</div>' + voto
+      + (m.erro ? '<p class="aviso-nivel">' + esc(m.erro) + '</p>' : '')
+      + '<div class="mas-diario">' + diario + '</div></div>';
+  }
+
   function seloMasmorra() {
     var g = estado.gm;
     var n = g && g.convites ? g.convites.length : 0;
@@ -5629,8 +5802,13 @@
       estado.gm = g;
       estado.gmErro = null;
       var run = g.run;
+      // Masmorra com caminhos: abre a tela enquanto ela estiver andando (ou acabou de terminar).
+      if (run && run.etapa && !masFechadas[run.id] && !estado.luta && !estado.batalha && (run.estado === 'andamento' || C.agora() - Date.parse(run.criado_em) < 600000)) {
+        abrirMasmorra(run);
+        return;
+      }
       // Luta nova do grupo (começou há menos de 3 minutos): todos assistem.
-      if (run && !vistas[run.id] && !estado.luta && !estado.batalha && C.agora() - Date.parse(run.criado_em) < 180000) {
+      if (run && !run.etapa && !vistas[run.id] && !estado.luta && !estado.batalha && C.agora() - Date.parse(run.criado_em) < 180000) {
         assistirLuta(run, null);
         return;
       }
@@ -5800,6 +5978,7 @@
     botao.disabled = true;
     try {
       var run = await C.grupo.iniciar(p.id);
+      if (run.etapa) { abrirMasmorra(run); return; }
       var sim = R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
       // O líder já registra o resultado (vale mesmo se fechar a página no meio da luta).
       registrarMasmorra(run, sim).catch(function (e) { avisar('Erro ao registrar o resultado: ' + e.message); });
@@ -6121,9 +6300,11 @@
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
     var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
-    var html = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Grupo de 3, luta automática. A vida da masmorra é separada: morrer lá não tira vida nem exp. '
-      + 'Vitória: cada um ganha um <strong>colar ou anel</strong>, a única forma de conseguir joias, e tem ' + M.pergaminho
-      + '% de chance de ganhar um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>' + (CELULAR ? '</details>' : '')
+    var html = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Grupo de 3. As lutas são automáticas e, entre elas, o grupo <strong>vota o caminho</strong> ('
+      + M.votoSeg + ' s; empate: vale o líder 👑): <strong>Porta selada</strong> (baú ou armadilha), <strong>Corredor escuro</strong> (luta a mais, mais prêmio) ou '
+      + '<strong>Fonte antiga</strong> (cura o grupo, menos drop). A vida passa de uma luta para a outra; a da masmorra é separada da sua. '
+      + 'Vitória: cada um ganha um <strong>colar ou anel</strong> (nível −3 a +10 do seu) e tem ' + M.pergaminho
+      + '% de chance de um <strong>pergaminho de encantamento</strong>. Derrota não gasta entrada.</p>' + (CELULAR ? '</details>' : '')
       + '<div class="secao ouro entradas-masmorra"><span>Entradas hoje</span><strong>' + restam + '/' + M.entradasPorDia + '</strong></div>';
     if (g.convites.length) html += '<h3 class="subtitulo">Convites para grupo</h3><div class="itens">' + g.convites.map(function (c) {
       return '<div class="item"><div><strong>' + esc(c.de) + '</strong> convidou você <span class="suave">(' + c.membros + '/3 no grupo)</span></div>'

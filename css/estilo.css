@@ -1885,3 +1885,35 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .menu-cascata-itens .btn { width: 100%; text-align: left; margin: 0; }
 .quebrar-recebe { display: flex; align-items: center; gap: .5rem; margin: .2rem 0 .5rem; }
 .quebrar-recebe .icone-pequeno { width: 2.2rem; height: 2.2rem; flex: none; }
+
+/* ---------- Masmorra com caminhos (Henri, 16/11/2026) ---------- */
+.mas-roteiro { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem; margin: 0 0 .8rem; font-size: .85rem; }
+.mas-passo { padding: .15rem .5rem; border: 1px solid rgba(201, 169, 107, .3); border-radius: 4px; opacity: .55; }
+.mas-passo.feito { opacity: .9; border-color: var(--ouro); }
+.mas-passo.atual { opacity: 1; border-color: var(--ouro-claro); color: var(--ouro-claro); box-shadow: 0 0 10px rgba(230, 207, 156, .35); }
+.mas-seta { opacity: .5; }
+.mas-grupo-linha { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; margin-bottom: .8rem; }
+.mas-espera { text-align: center; font-style: italic; opacity: .85; margin: .6rem 0; }
+.mas-votacao { border: 1px solid var(--ouro); border-radius: 8px; padding: .8rem; margin: .6rem 0 1rem; background: rgba(201, 169, 107, .05); }
+.mas-votacao h3 { text-align: center; }
+.mas-tempo { color: #ff9f6b; }
+.mas-caminhos { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; }
+.mas-caminho { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .5rem; text-align: center; cursor: pointer;
+  background: rgba(0, 0, 0, .35); border: 2px solid rgba(201, 169, 107, .35); border-radius: 8px; color: inherit; font: inherit; transition: transform .15s, border-color .15s; }
+.mas-caminho:hover:not([disabled]) { transform: translateY(-3px); border-color: var(--ouro); }
+.mas-caminho.escolhido { border-color: var(--ouro-claro); box-shadow: 0 0 16px rgba(230, 207, 156, .45); }
+.mas-caminho img { width: 100%; max-width: 180px; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+.mas-caminho strong { color: var(--ouro-claro); }
+.mas-votos { min-height: 1.2em; font-size: .8rem; opacity: .9; }
+.mas-diario { display: flex; flex-direction: column; gap: .6rem; }
+.mas-diario h4 { margin: 0 0 .3rem; display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
+.mas-diario h4 img { width: 28px; height: 28px; border-radius: 4px; object-fit: cover; }
+.mas-diario-luta, .mas-diario-caminho { border: 1px solid rgba(201, 169, 107, .25); border-radius: 6px; padding: .5rem .7rem; background: rgba(0, 0, 0, .25); }
+.mas-diario-luta.derrota { border-color: #a33; }
+.mas-diario-luta p, .mas-diario-caminho p { margin: .15rem 0; }
+.mas-diario-luta.nova p { animation: mas-linha .5s both; }
+.mas-grupo-linha .mas-lutador { flex: 1 1 180px; max-width: 260px; }
+@keyframes mas-linha { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.mas-premios { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
+.mas-premio { min-width: 200px; max-width: 280px; border: 1px solid rgba(201, 169, 107, .3); border-radius: 6px; padding: .4rem; text-align: left; }
+@media (max-width: 640px) { .mas-caminhos { grid-template-columns: 1fr; } .mas-caminho { flex-direction: row; text-align: left; } .mas-caminho img { width: 72px; } }

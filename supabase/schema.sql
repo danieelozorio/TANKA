@@ -663,6 +663,10 @@ alter table public.grupos enable row level security;
 alter table public.grupo_membros enable row level security;
 alter table public.grupo_convites enable row level security;
 alter table public.masmorra_runs enable row level security;
+-- Masmorra com caminhos (Henri, 16/11/2026): estado da masmorra (lutas, votações, efeitos, prêmios), avançado pela
+-- função `acao` (masmorraAvancar) com a chave do servidor. etapa null = masmorra antiga (uma luta só).
+alter table public.masmorra_runs add column if not exists etapa jsonb;
+alter table public.masmorra_runs add column if not exists versao int not null default 0;
 alter table public.masmorra_entradas enable row level security;
 alter table public.recompensas enable row level security;
 
@@ -672,8 +676,8 @@ language sql stable as $$ select (now() at time zone 'America/Sao_Paulo')::date;
 
 create or replace function public.masmorra_nivel_min(m text) returns int
 language sql immutable as $$
-  select case m when 'toca' then 5 when 'ninho' then 10 when 'catacumbas' then 15 when 'biblioteca' then 20
-    when 'tumba' then 25 when 'covil' then 30 when 'coracao' then 35 end;
+  select case m when 'toca' then 15 when 'ninho' then 22 when 'catacumbas' then 30 when 'biblioteca' then 37
+    when 'tumba' then 45 when 'covil' then 52 when 'coracao' then 60 end;   -- 16/11/2026 (era 5 a 35)
 $$;
 
 -- Entradas de masmorra por dia (igual a MASMORRA.entradasPorDia em js/dados.js). Henri, nov/2026: 2 -> 5.
@@ -750,7 +754,8 @@ begin
       from public.masmorra_fila f where f.personagem_id = meu),
     -- Última luta da qual este personagem participou (nos últimos 20 minutos).
     'run', (select jsonb_build_object('id', r.id, 'masmorra', r.masmorra, 'semente', r.semente, 'herois', r.herois,
-        'estado', r.estado, 'criado_em', r.criado_em, 'lider', r.lider, 'fila', r.grupo_id is null)
+        'estado', r.estado, 'criado_em', r.criado_em, 'lider', r.lider, 'fila', r.grupo_id is null,
+        'etapa', r.etapa, 'versao', r.versao, 'membros', r.membros, 'agora', (extract(epoch from now()) * 1000)::bigint)
       from public.masmorra_runs r where meu = any (r.membros) and r.criado_em > now() - interval '20 minutes'
       order by r.id desc limit 1),
     'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
@@ -877,15 +882,15 @@ begin
   if exists (select 1 from public.masmorra_runs where grupo_id = g and estado = 'andamento') then
     raise exception 'O grupo já está numa masmorra.';
   end if;
-  insert into public.masmorra_runs (grupo_id, lider, masmorra, semente, herois, membros)
+  insert into public.masmorra_runs (grupo_id, lider, masmorra, semente, herois, membros, etapa)
   select g, meu, gr.masmorra, floor(random() * 2147483647)::bigint,
          jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by gm.entrou_em),
-         array_agg(p.id order by gm.entrou_em)
+         array_agg(p.id order by gm.entrou_em), '{"fase": 0}'::jsonb
   from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = g
   returning * into run;
   update public.grupo_membros set pronto = false where grupo_id = g;
   return jsonb_build_object('id', run.id, 'masmorra', run.masmorra, 'semente', run.semente, 'herois', run.herois,
-    'estado', run.estado, 'criado_em', run.criado_em);
+    'estado', run.estado, 'criado_em', run.criado_em, 'etapa', run.etapa, 'versao', run.versao, 'lider', run.lider, 'membros', run.membros);
 end $$;
 
 -- O líder informa o resultado. Vitória: gasta 1 entrada de cada um e cada um ganha 1 joia
@@ -928,6 +933,43 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Voto do caminho (Henri, 16/11/2026): só jogadores da masmorra, só com a votação aberta (até o prazo).
+create or replace function public.masmorra_votar(meu text, run_id bigint, opcao text) returns void
+language plpgsql security definer set search_path = public as $$
+declare run public.masmorra_runs; agora bigint := (extract(epoch from now()) * 1000)::bigint;
+begin
+  perform public.conferir_dono(meu);
+  if opcao not in ('porta', 'corredor', 'fonte') then raise exception 'Caminho inválido.'; end if;
+  select * into run from public.masmorra_runs where id = run_id for update;
+  if run.id is null or not (meu = any (run.membros)) then raise exception 'Você não está nessa masmorra.'; end if;
+  if run.estado <> 'andamento' or run.etapa is null or (run.etapa ->> 'prazo') is null then raise exception 'Não há votação aberta.'; end if;
+  if agora > (run.etapa ->> 'prazo')::bigint + 1500 then raise exception 'O tempo da votação acabou.'; end if;
+  update public.masmorra_runs set etapa = jsonb_set(etapa, array['votos', meu], to_jsonb(opcao), true), versao = versao + 1 where id = run_id;
+end $$;
+grant execute on function public.masmorra_votar(text, bigint, text) to authenticated;
+-- Fim da masmorra com caminhos (só a chave do servidor): marca o resultado, gasta a entrada, conta a missão do clã e
+-- guarda os prêmios (sorteados pela função `acao` com a semente da masmorra). Vale uma vez só.
+create or replace function public.masmorra_finalizar(run_id bigint, vitoria boolean, premios jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare run public.masmorra_runs; pid text; x jsonb;
+begin
+  select * into run from public.masmorra_runs where id = run_id for update;
+  if run.id is null or run.estado <> 'andamento' then return; end if;
+  update public.masmorra_runs set estado = case when vitoria then 'vitoria' else 'derrota' end, concluido_em = now() where id = run_id;
+  if not vitoria then return; end if;
+  foreach pid in array run.membros loop
+    perform public.alianca_missao_de(pid, 'masmorra', 1);
+    insert into public.masmorra_entradas (personagem_id, dia, usadas) values (pid, public.dia_jogo(), 1)
+      on conflict (personagem_id, dia) do update set usadas = public.masmorra_entradas.usadas + 1;
+  end loop;
+  for x in select value from jsonb_array_elements(coalesce(premios, '[]'::jsonb)) loop
+    if (x ->> 'pid') = any (run.membros) and jsonb_typeof(x -> 'item') = 'object' then
+      insert into public.recompensas (personagem_id, origem, item) values (x ->> 'pid', run.masmorra, x -> 'item');
+    end if;
+  end loop;
+end $$;
+revoke execute on function public.masmorra_finalizar(bigint, boolean, jsonb) from public, anon, authenticated;
 
 -- ---------- Fila da masmorra (Henri, nov/2026) ----------
 -- Quem está sem grupo entra na fila de uma masmorra. A cada consulta (fila_ping, a cada ~4 s enquanto espera):
@@ -993,8 +1035,8 @@ begin
         'botClasse2', public.fila_bot_classe(falta, jogador_healer));
       herois := herois || jsonb_build_array(jsonb_build_object('id', d ->> 'id', 'dados', d, 'bot', true));
     end loop;
-    insert into public.masmorra_runs (grupo_id, lider, masmorra, semente, herois, membros)
-      values (null, ids[1], m, floor(random() * 2147483647)::bigint, herois, ids);
+    insert into public.masmorra_runs (grupo_id, lider, masmorra, semente, herois, membros, etapa)
+      values (null, ids[1], m, floor(random() * 2147483647)::bigint, herois, ids, '{"fase": 0}'::jsonb);
     delete from public.masmorra_fila where personagem_id = any (ids);
   end loop;
 end $$;

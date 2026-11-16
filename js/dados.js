@@ -879,32 +879,49 @@ Tanka.dados = {
   // pedido do Henri): 3 heróis 5 levels ACIMA do mínimo, com itens épicos +5, vencem ~60%; no level
   // mínimo quase ninguém vence (ex.: Catacumbas lv15 pede 3 heróis lv20 bem equipados).
   // poderRecomendado: poder de cada herói desse grupo (só para mostrar na tela).
+  // 16/11/2026: níveis 15 a 60 e forca recalibrada para a masmorra com caminhos (grupo com curandeiro vence ~70-100%,
+  // sem curandeiro ~15-45%; herói no nível mínimo: rara+3 no 15 até lendária+5 no 60).
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
   // pergaminho: % de chance de cada herói ganhar 1 pergaminho de encantamento na vitória (qualidade de
   // DROPS_CACADA). O sorteio é do servidor: mudar também em supabase/schema.sql (masmorra_concluir).
   MASMORRA: { entradasPorDia: 5,   // igual a masmorra_entradas_dia() no schema.sql
-     tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 90 },
+     tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 90,
+     // Masmorra com caminhos (Henri, 16/11/2026): lutas automáticas e, entre elas, o grupo vota o caminho.
+     // roteiro: luta1 → voto → luta2 → voto → elite → voto → chefe. A vida passa de uma luta para a outra.
+     roteiro: ['luta1', 'voto', 'luta2', 'voto', 'elite', 'voto', 'chefe'],
+     votoSeg: 10,      // tempo para votar (quem não vota perde o voto; empate: vale o voto do líder)
+     resumoSeg: 5,     // o resumo da luta aparece antes de abrir a votação
+     caminhos: {
+       porta: { nome: 'Porta selada', bauPct: 30, armadilhaVidaPct: 15,
+         texto: '30% de chance de baú (joia comum a épica + pergaminho para cada um); 70% de armadilha (todos perdem 15% da vida).' },
+       corredor: { nome: 'Corredor escuro', lendarioPct: 5, pergaminhos: 1,
+         texto: 'Uma luta a mais. Vencendo: +1 pergaminho para cada um no fim e +5% de chance de joia lendária.' },
+       fonte: { nome: 'Fonte antiga', dropPct: -5, texto: 'Cura todo o grupo (e levanta quem caiu), mas −5% de chance em cada drop.' },
+     },
+     bau: [{ raridade: 'epica', chance: 15 }, { raridade: 'rara', chance: 35 }, { raridade: 'comum', chance: 50 }],
+     nivelDrop: [-3, 10],   // nível dos itens da masmorra: do nível do herói −3 até +10
+  },
   masmorras: [
-    { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
-      forca: { vida: 15.86, ataque: 31.72 }, poderRecomendado: 2300,
+    { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 15, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
+      forca: { vida: 20.0, ataque: 40.0 }, poderRecomendado: 3800,
       joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
-    { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 10, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
-      forca: { vida: 35.92, ataque: 13.77 }, poderRecomendado: 3800,
+    { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 22, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
+      forca: { vida: 56.5, ataque: 21.6 }, poderRecomendado: 8800,
       joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
-    { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 15, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
-      forca: { vida: 13.99, ataque: 12.87 }, poderRecomendado: 6200,
+    { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 30, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
+      forca: { vida: 46.9, ataque: 43.1 }, poderRecomendado: 27900,
       joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
-    { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 20, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
-      forca: { vida: 26.21, ataque: 12.23 }, poderRecomendado: 9600,
+    { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 37, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
+      forca: { vida: 143.9, ataque: 67.1 }, poderRecomendado: 62900,
       joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
-    { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 25, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
-      forca: { vida: 32.14, ataque: 12.85 }, poderRecomendado: 15000,
+    { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 45, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
+      forca: { vida: 229.8, ataque: 91.9 }, poderRecomendado: 146400,
       joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
-    { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 30, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
-      forca: { vida: 15.95, ataque: 15.95 }, poderRecomendado: 24000,
+    { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 52, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
+      forca: { vida: 182.5, ataque: 182.5 }, poderRecomendado: 384600,
       joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
-    { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 35, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
-      forca: { vida: 29.75, ataque: 14.88 }, poderRecomendado: 39000,
+    { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 60, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
+      forca: { vida: 322.0, ataque: 161.0 }, poderRecomendado: 777100,
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 

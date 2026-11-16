@@ -1089,3 +1089,20 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (16/11/2026) Destruidor: passiva Força Bruta ganhou critico 20, vidaPct 15, defesaPct 15 (estava em 95-100% de vida perdida no 3º monstro e 0% no Pesadelo; agora perto do Paladino). Na Arena o crítico da passiva vira +20% de dano.
 - (16/11/2026, tarde) Força Bruta reduzida para critico 10, vidaPct 10, defesaPct 10 (a primeira versão subiu demais o poder; agora ~+11%).
 - (16/11/2026, Henri) Força Bruta: +5 FOR, danoCritico 3, defFisicaPct 5, defMagicaPct 5 (chaves novas: só a defesa / só a defesa mágica, também em tanka_status); +1% por ponto em cada %.
+
+### Masmorra com caminhos (Henri, 16/11/2026)
+- Roteiro `D.MASMORRA.roteiro`: luta1 → voto → luta2 → voto → elite → voto → chefe. Lutas automáticas (`simularSalas`
+  com `opc.hpInicial`: a vida passa de uma luta para a outra); `R.salaMasmorra(id, tipo)`; resumo curto `R.resumoLuta`.
+- Votação: abre `resumoSeg` (5 s) depois da luta e dura `votoSeg` (10 s). Só jogadores (`run.membros`) votam
+  (`masmorra_votar`); quem não vota perde o voto; empate = voto do líder (`run.lider`; na fila, o 1º); sem voto: sorteio.
+- Caminhos (`MASMORRA.caminhos`, acumulam): Porta (30% baú: joia comum–épica + pergaminho p/ cada um; 70% armadilha:
+  −15% da vida, não mata), Corredor (luta extra; vencendo +1 pergaminho e +5% de lendária na joia do fim), Fonte (cura
+  e levanta todos; −5 pontos em cada chance de drop).
+- Servidor: tudo em `R.avancarMasmorra(run, etapa, agora)` (puro) chamado pela ação `masmorraAvancar` da função `acao`,
+  que grava `masmorra_runs.etapa` com a chave do servidor (filtro `versao`, sem corrida). No fim, `R.lootMasmorra`
+  sorteia (joia nível −3 a +10 do herói) e `masmorra_finalizar` (só chave do servidor) gasta entrada, conta missão do
+  clã e põe em `recompensas` uma vez só. A tela mostra `etapa.premios`; ao fechar, `receberPendentes` põe na mochila.
+- Masmorras: níveis 15, 22, 30, 37, 45, 52, 60 (também em `masmorra_nivel_min`); forca recalibrada. História: caps.
+  1–3 sem masmorra; 4–7 pedem a masmorra que já abriu no nível do capítulo.
+- Runs antigas (etapa null) seguem no jeito antigo (`masmorraConcluir`); runs novas recusam esse caminho.
+- Imagens: assets/masmorra/porta|corredor|fonte.webp (do Henri).

@@ -31,7 +31,6 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'floresta', qtd: 100 },
         { tipo: 'chefe', monstro: 'velgrath', qtd: 3 },
-        { tipo: 'masmorra', masmorra: 'toca', qtd: 3 },
       ],
       fechamento: [
         { quem: 'velgrath', texto: 'Ahhh… o espinho… tirem… o espinho…' },
@@ -50,7 +49,6 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'pantano', qtd: 200 },
         { tipo: 'chefe', monstro: 'morgath', qtd: 5 },
-        { tipo: 'masmorra', masmorra: 'ninho', qtd: 4 },
       ],
       fechamento: [
         { quem: 'morgath', texto: 'Está bem, está bem! Eu só plantava os espinhos… ele me pagava em ouro vermelho. Um homem de capuz carmesim. Nunca vi o rosto dele.' },
@@ -69,7 +67,6 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'ruinas', qtd: 350 },
         { tipo: 'chefe', monstro: 'varnok', qtd: 9 },
-        { tipo: 'masmorra', masmorra: 'catacumbas', qtd: 6 },
       ],
       fechamento: [
         { quem: 'varnok', texto: 'Tolo… o homem de capuz já esteve aqui. Copiou o mapa com sangue. Eu não pude impedir. Ninguém pode.' },
@@ -88,7 +85,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'torre', qtd: 700 },
         { tipo: 'chefe', monstro: 'guardiao', qtd: 15 },
-        { tipo: 'masmorra', masmorra: 'biblioteca', qtd: 8 },
+        { tipo: 'masmorra', masmorra: 'toca', qtd: 4 }   // 16/11/2026: masmorras do 15 ao 60; cada capítulo pede a que já abriu,
       ],
       fechamento: [
         { quem: 'narrador', texto: 'No alto da torre, o homem de capuz carmesim vira para você e, enfim, mostra o rosto.' },
@@ -108,7 +105,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'areias', qtd: 1100 },
         { tipo: 'chefe', monstro: 'farao', qtd: 25 },
-        { tipo: 'masmorra', masmorra: 'tumba', qtd: 10 },
+        { tipo: 'masmorra', masmorra: 'toca', qtd: 6 },
       ],
       fechamento: [
         { quem: 'farao', texto: 'Eu… lembro agora. Meu nome era Amenreth. Eu jurei guardar este selo até o fim das areias.' },
@@ -127,7 +124,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'vale', qtd: 2000 },
         { tipo: 'chefe', monstro: 'vharkesh', qtd: 40 },
-        { tipo: 'masmorra', masmorra: 'covil', qtd: 12 },
+        { tipo: 'masmorra', masmorra: 'ninho', qtd: 6 },
       ],
       fechamento: [
         { quem: 'vharkesh', texto: 'Pequeno guerreiro… você me tirou da escuridão. Eu me lembro do pacto. Os dragões voarão com você até o fim.' },
@@ -147,7 +144,7 @@ Tanka.dados.HISTORIA = {
       objetivos: [
         { tipo: 'abate', area: 'cume', qtd: 3000 },
         { tipo: 'chefe', monstro: 'ignaroth', qtd: 70 },
-        { tipo: 'masmorra', masmorra: 'coracao', qtd: 15 },
+        { tipo: 'masmorra', masmorra: 'catacumbas', qtd: 8 },
       ],
       fechamento: [
         { quem: 'narrador', texto: 'Ignaroth cai de joelhos. Kael é arrancado das chamas, desmaiado mas vivo. Aldric caminha até o centro da lava com o último selo nas mãos.' },

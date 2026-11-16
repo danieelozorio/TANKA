@@ -1310,6 +1310,37 @@ teste('Força Bruta (Destruidor, 16/11/2026): +5 FOR, dano crítico 3%, defesa e
   assert.strictEqual(s1.hpMax >= s0.hpMax, true);
 });
 
+teste('masmorra com caminhos (16/11/2026): lutas, votos de 10 s, empate do líder, efeitos e prêmios', () => {
+  const heroi = (c, c2, nome) => { const p = R.criarPersonagem(nome, 'masculino', 'humano', c); R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, c2); R.admin.conjunto(p, 'lendaria'); p.inventario.forEach((i) => { i.encanto = 6; R.equipar(p, i.id); }); return p; };
+  const herois = [['cavaleiro', 'paladino', 'A'], ['arqueiro', 'cacador', 'B'], ['mago', 'curandeiro', 'C']].map((x, i) => ({ id: 'p' + i, dados: heroi(...x) }));
+  const run = { id: 7, semente: 4242, masmorra: 'toca', herois, membros: ['p0', 'p1', 'p2'], lider: 'p0' };
+  let e = R.avancarMasmorra(run, { fase: 0 }, 1000);
+  assert.strictEqual(e.log[0].tipo, 'luta'); assert.ok(e.log[0].vitoria, 'luta 1 vencida');
+  assert.strictEqual(e.fase, 1); assert.strictEqual(e.prazo, 1000 + (D.MASMORRA.resumoSeg + D.MASMORRA.votoSeg) * 1000, 'votação de 10 s depois do resumo');
+  assert.strictEqual(JSON.stringify(R.avancarMasmorra(run, e, 2000)), JSON.stringify(e), 'antes do prazo, sem todos os votos: espera');
+  // empate (1 x 1 x 1): vale o líder
+  e.votos = { p0: 'fonte', p1: 'porta', p2: 'corredor' };
+  const e2 = R.avancarMasmorra(run, e, 2000);
+  assert.strictEqual(e2.log[1].escolha, 'fonte'); assert.ok(e2.log[1].empate);
+  assert.strictEqual(e2.efeitos.fontes, 1); assert.strictEqual(e2.log[2].sala, 'luta2');
+  // ninguém votou e o prazo acabou: sorteia; corredor tem luta extra
+  const e3 = R.avancarMasmorra(run, Object.assign({}, e2, { votos: { p1: 'corredor', p2: 'corredor', p0: 'porta' } }), e2.prazo + 1);
+  assert.strictEqual(e3.log[3].escolha, 'corredor'); assert.ok(e3.log[4].corredor && e3.log[4].sala === 'corredor');
+  let x = e3, t = e3.prazo || 0;
+  for (let i = 0; i < 10 && !x.fim; i++) { t += 20000; x = R.avancarMasmorra(run, x, t); }
+  assert.strictEqual(x.fim, 'vitoria', 'grupo forte vence');
+  const loot = R.lootMasmorra(run, x);
+  ['p0', 'p1', 'p2'].forEach((pid) => {
+    const meus = loot.filter((l) => l.pid === pid);
+    assert.ok(meus.some((l) => ['colar', 'anel'].includes(l.item.tipo)), 'joia para ' + pid);
+    assert.ok(meus.filter((l) => l.corredor).length === x.efeitos.corredores, 'pergaminho do corredor');
+    meus.filter((l) => l.item.nivel).forEach((l) => assert.ok(l.item.nivel >= 30 - 3 && l.item.nivel <= 30 + 10, 'nível −3 a +10: ' + l.item.nivel));
+  });
+  // armadilha: −15% da vida de quem está de pé (não mata)
+  const e4 = R.avancarMasmorra(run, Object.assign({}, e, { hp: [100, 0, 5], hpMax: [1000, 1000, 1000], votos: { p0: 'porta', p1: 'porta', p2: 'porta' } }), 2000);
+  if (e4.log[1].armadilha) assert.strictEqual(e4.log[2].herois.map((h) => h.hpAntes).join(), [Math.min(e4.log[2].herois[0].hpMax, 1), 0, Math.min(e4.log[2].herois[2].hpMax, 1)].join());
+});
+
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
   const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
   R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');
@@ -1770,12 +1801,7 @@ teste('história: só conta no capítulo atual, chefe e criatura comum separados
   assert.ok(!R.historiaEstado(p).objetivos[1].ok, 'chefe precisa de 3');
   R.registrarHistoria(p, 'abate', 'velgrath'); R.registrarHistoria(p, 'abate', 'velgrath');
   assert.ok(R.historiaEstado(p).objetivos[1].ok, 'chefe');
-  assert.strictEqual(R.concluirCapitulo(p), null, 'falta a masmorra');
-  R.registrarHistoria(p, 'masmorra', 'ninho');
-  assert.ok(!R.historiaEstado(p).completo, 'masmorra errada não conta');
-  R.registrarHistoria(p, 'masmorra', 'toca'); R.registrarHistoria(p, 'masmorra', 'toca');
-  assert.ok(!R.historiaEstado(p).completo, 'masmorra precisa de 3');
-  R.registrarHistoria(p, 'masmorra', 'toca');
+  // 16/11/2026: o capítulo 1 não pede masmorra (a primeira abre no level 15)
   assert.ok(R.historiaEstado(p).completo);
   const ouro = p.ouro, exp = p.exp, nivel = p.nivel;
   const fim = R.concluirCapitulo(p);
