@@ -1048,3 +1048,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (nov/2026) Velgrath · Pesadelo (1º chefe, lv 40) mais fácil: vida/dano 1.62 → 1.2 (hp 5346, dano 734-990). Alvo do
   Henri: mago e arqueiro lv 40, tudo épico lv 40 +3, vencem com 1 poção (1000 lutas: caçador 97%, assassino 100%,
   bruxo 91%, curandeiro 81%). Os outros chefes do Pesadelo não mudaram.
+- (16/11/2026) Quebra-Ossos (Destruidor): ignoraDefesaPct 100 → 50 (dava ~16x um ataque na Arena; agora ~3,5x, como o Tiro Silenciador).
+
+### Grupos de itens (Henri, 16/11/2026)
+- `D.GRUPOS_ITEM`: Pesado (cavaleiro/artesão → Paladino, Destruidor, Ferreiro, Coletor), Leve (arqueiro → Arqueiro,
+  Assassino), Mágico (mago → Bruxo, Curandeiro). Cada um usa QUALQUER arma/mão esquerda/armadura do seu grupo
+  (grupo da arma = grupo da classe em TIPOS_ARMA; mão esquerda em `GRUPOS_ITEM.mao`).
+- `ARMAS_CLASSE` virou a lista das preferidas (drops vêm delas). Fora delas: habilidades com `foraPreferida` (80%) do
+  dano (`R.fatorArmaHab`, `fator` no kit; Arena: `arena_kit` com `ARMAS_PREFERIDAS`). Coletor: mão preferida = manopla.
+- Paladino com escudo / Coletor com manopla: +50% nos bônus (`R.multMaoForte`; `tanka_status` com `mf`).
+- Armadura Pesada única: armaduras novas de artesão saem com `classe: 'cavaleiro'` (tabela do cavaleiro). As antigas
+  (`classe: 'artesao'`) continuam valendo, com os números que já tinham.
+- Mercado "só o que o meu grupo usa": filtro manda `classes` (do grupo); leilão compara por grupo.
