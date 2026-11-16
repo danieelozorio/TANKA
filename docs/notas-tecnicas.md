@@ -1087,3 +1087,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mediana de vitórias de antes e o Velgrath vencível por mago/arqueiro lv 40 épico +3 com 1 poção (90%+).
 - O Leve (Caçador/Assassino) continua o mais forte no PvE; Destruidor e Coletor, os mais fracos.
 - (16/11/2026) Destruidor: passiva Força Bruta ganhou critico 20, vidaPct 15, defesaPct 15 (estava em 95-100% de vida perdida no 3º monstro e 0% no Pesadelo; agora perto do Paladino). Na Arena o crítico da passiva vira +20% de dano.
+- (16/11/2026, tarde) Força Bruta reduzida para critico 10, vidaPct 10, defesaPct 10 (a primeira versão subiu demais o poder; agora ~+11%).
