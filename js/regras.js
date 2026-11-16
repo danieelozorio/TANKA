@@ -313,6 +313,7 @@ Tanka.regras = (function () {
     if (!def) return b;
     if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
     else Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) b[k] = def.bonus[k][idx]; });   // itens antigos: valor fixo
+    if (def.multDefesaMagica && b.defesaMagica) b.defesaMagica = b.defesaMagica * def.multDefesaMagica;   // anel: defesa mágica +25%
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
       b[k] = bonusComEncanto(b[k] || 0, item.encanto);

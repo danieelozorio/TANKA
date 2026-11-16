@@ -510,7 +510,7 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40 });   // defesa dos itens x4,5
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: Math.round(3 * D.DEFESA.fator), defesaMagica: Math.round(5 * D.DEFESA.fator), vida: 15 });
   assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
-  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * D.DEFESA.fator) });   // reserva sem nível; encanto no dano
+  assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * 1.25 * D.DEFESA.fator) });   // reserva sem nível; encanto no dano; anel: defesa mágica +25%
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: Math.round(1 * 1.05 * D.DEFESA.fator), vida: 5 });
 });
 

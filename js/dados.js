@@ -277,7 +277,8 @@ Tanka.dados = {
       nomes: ['Colar de Cobre', 'Colar de Prata', 'Colar de Ametista', 'Colar do Sol Eterno'] },
     // Anel (Henri, nov/2026): comum = dano; rara + defesa mágica; épica + 1 atributo sorteado + regeneração;
     // lendária + 2 atributos sorteados + vida + regeneração. Valores por nível em ANEL (os de baixo são só de reserva).
-    anel: { tipo: 'Anel', bonus: { dano: [1, 2, 3, 4], defesaMagica: [0, 2, 4, 6], vida: [0, 0, 0, 30] },
+    // multDefesaMagica (Daniel, 16/11/2026: +25%): vale também para os anéis que já existem (aplicado ao calcular, no jogo e no servidor)
+    anel: { tipo: 'Anel', bonus: { dano: [1, 2, 3, 4], defesaMagica: [0, 2, 4, 6], vida: [0, 0, 0, 30] }, multDefesaMagica: 1.25,
       nomes: ['Anel de Cobre', 'Anel de Prata', 'Anel de Ametista', 'Anel do Sol Eterno'] },
   },
   // Anel por nível: dano = danoPctArma% do dano médio de uma arma do mesmo nível e qualidade (mínimo 1);

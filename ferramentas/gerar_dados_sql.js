@@ -22,7 +22,7 @@ const dados = {
   VELOCIDADE_ARMA: D.VELOCIDADE_ARMA, ARMA_PADRAO: D.ARMA_PADRAO, RARIDADE_ARMA: D.RARIDADE_ARMA,
   MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto }])),
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
-  joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, { bonus: v.bonus }])),
+  joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, v.multDefesaMagica ? { bonus: v.bonus, multDefesaMagica: v.multDefesaMagica } : { bonus: v.bonus }])),
   bonusPorNivel: D.encantamento.bonusPorNivel,
   encantoPct: D.encantamento.pctPorNivel,
   ARENA: D.ARENA,

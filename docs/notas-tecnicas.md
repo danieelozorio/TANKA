@@ -871,3 +871,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Ascensão / Os Sete Selos (proposta, NÃO está no jogo):** depois do level 40, pontos numa árvore de 7 ramos (um por
   região/selo). PDF e números de sugestão com o Daniel (scratchpad). Arte guardada em `assets/ascensao/arvore-sete-selos.webp`
   (461x468, do Daniel; para o computador pode precisar de uma versão maior).
+- **Anel: defesa mágica +25% (Daniel, 16/11/2026):** `D.joias.anel.multDefesaMagica = 1.25`, aplicado ao CALCULAR
+  (`R.bonusItem` e `tanka_status` no servidor), então vale também para os anéis já existentes (o bônus do anel fica
+  gravado no item). Vai no `tanka_dados` (gerar_dados_sql.js copia `multDefesaMagica`). Conferido: jogo e servidor dão a
+  mesma defesa mágica. Motivo: o Mago ganhava a maioria das lutas na Arena (o golpe dele vai na defesa mágica, baixa nas
+  outras classes). **Precisa rodar o schema.**
