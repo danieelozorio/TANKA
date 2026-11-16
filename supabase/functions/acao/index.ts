@@ -28,6 +28,74 @@ function cabecalhoServidor(): Record<string, string> | null {
   return null;
 }
 
+// Lutas que o servidor refaz sozinho (Henri, nov/2026): o navegador só mostra; quem diz o resultado é o servidor.
+const LUTAS = ['masmorraConcluir', 'bossClaConcluir', 'bossMundial'];
+const MAX_PASSOS_MUNDIAL = 5000;
+
+// Chama uma função do banco com a chave do servidor. Se o banco ainda não tem a função nova (schema não rodado),
+// usa a antiga com o login do jogador.
+async function rpcServidor(base: string, cab: Record<string, string>, nome: string, corpo: unknown, antiga?: string) {
+  const srv = cabecalhoServidor();
+  if (srv) {
+    const r = await fetch(base + '/rest/v1/rpc/' + nome, { method: 'POST', headers: srv, body: JSON.stringify(corpo) });
+    if (r.ok) return { ok: true, dados: await r.json().catch(() => null) };
+    const e = await r.json().catch(() => ({}));
+    if (!(antiga && (r.status === 404 || e?.code === 'PGRST202'))) return { ok: false, erro: e?.message || 'Erro no servidor.' };
+  }
+  if (!antiga) return { ok: false, erro: 'Servidor sem chave.' };
+  const r = await fetch(base + '/rest/v1/rpc/' + antiga, { method: 'POST', headers: cab, body: JSON.stringify(corpo) });
+  if (r.ok) return { ok: true, dados: await r.json().catch(() => null) };
+  const e = await r.json().catch(() => ({}));
+  return { ok: false, erro: e?.message || 'Erro no servidor.' };
+}
+
+async function lerServidor(base: string, cab: Record<string, string>, caminho: string) {
+  const r = await fetch(base + '/rest/v1/' + caminho, { headers: cabecalhoServidor() ?? cab });
+  return r.ok ? await r.json() : [];
+}
+
+// deno-lint-ignore no-explicit-any
+async function luta(acao: string, id: string, p: any, args: any, base: string, cab: Record<string, string>, sorteio: () => number) {
+  args = args || {};
+  if (acao === 'masmorraConcluir') {
+    const run = (await lerServidor(base, cab, 'masmorra_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
+    if (!run) return { erro: 'Masmorra não encontrada.' };
+    const sim = R.simularMasmorra(run.herois.map((h: { dados: unknown }) => h.dados), run.masmorra, run.semente);
+    const r = await rpcServidor(base, cab, 'masmorra_registrar', { meu: id, run_id: run.id, vitoria: !!sim.vitoria }, 'masmorra_concluir');
+    return r.ok ? { resultado: { vitoria: !!sim.vitoria } } : { erro: r.erro };
+  }
+  if (acao === 'bossClaConcluir') {
+    const run = (await lerServidor(base, cab, 'alianca_boss_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
+    if (!run) return { erro: 'Investida não encontrada.' };
+    const sim = R.simularBossAlianca(run.herois.map((h: { dados: unknown }) => h.dados), run.nivel, Number(run.hp_inicio), run.semente, Number(run.buff) || 0);
+    const r = await rpcServidor(base, cab, 'alianca_boss_registrar', { meu: id, run_id: run.id, danos: sim.danos }, 'alianca_boss_concluir');
+    return r.ok ? { resultado: r.dados } : { erro: r.erro };
+  }
+  // bossMundial: a luta inteira aqui (vida cheia, sem poção, até `acoesPorAtaque` ações do herói)
+  const est = await fetch(base + '/rest/v1/rpc/boss_estado', { method: 'POST', headers: cab, body: JSON.stringify({ meu: id }) });
+  const st = est.ok ? await est.json() : null;
+  const bs = st && st.boss;
+  if (!bs || !(Number(bs.vida) > 0)) return { erro: 'Ignaroth não está acordado agora.' };
+  const chefe = R.chefeDoNivel(p);
+  const b = R.iniciarBatalha(p, chefe, sorteio, { mundial: true });
+  b.monstro.hp = Number(bs.vida); b.monstro.hpMax = Number(bs.vida_max);
+  const vidaInicial = b.monstro.hp, limite = Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque;
+  const eventos = [];
+  let acoes = 0;
+  for (let n = 0; !b.fim && n < MAX_PASSOS_MUNDIAL; n++) {
+    const ev = R.passo(b);
+    if (!ev) break;
+    eventos.push({ ev, jh: b.jogador.hp, jm: b.jogador.hpMax, mh: b.monstro.hp, po: b.jogador.poder, pc: b.pocoes,
+      at: b.monstro.atordoado || 0, tu: b.lutador ? b.lutador.turno : 0, pr: b.lutador ? Object.assign({}, b.lutador.pronto) : null });
+    if ((ev.ator === 'jogador' || ev.habilidade) && ++acoes >= limite && !b.fim) b.fim = 'tempo';
+  }
+  if (!b.fim) b.fim = 'tempo';
+  const dano = Math.max(0, Math.round(vidaInicial - Math.max(0, b.monstro.hp)));
+  const r = await rpcServidor(base, cab, 'boss_atacar_servidor', { meu: id, dano, chefe }, 'boss_atacar');
+  if (!r.ok) return { erro: r.erro };
+  return { resultado: r.dados, eventos, fim: b.fim, chefe, vidaInicial };
+}
+
 function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
@@ -44,7 +112,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   try { pedido = await req.json(); } catch { return responder({ erro: 'Pedido inválido.' }, 400); }
   const id = String(pedido.personagem ?? '');
   const acao = String(pedido.acao ?? '');
-  if (!id || !A.acoes.includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
+  if (!id || !(A.acoes.includes(acao) || LUTAS.includes(acao))) return responder({ erro: 'Pedido inválido.' }, 400);
 
   // 1. login e personagem (com o login do jogador: o banco só devolve se for dele)
   const u = await fetch(base + '/auth/v1/user', { headers: cab });
@@ -56,6 +124,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
   const antesNormal = JSON.stringify(p);
+  if (LUTAS.includes(acao)) return responder({ ...(await luta(acao, id, p, pedido.args, base, cab, sorteio)), agora: agora() });
 
   // 2. o que vem do banco (nunca do navegador): prêmios/créditos pendentes e as skills do clã
   const extra: Record<string, unknown> = {};
@@ -101,6 +170,8 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
     for (const rid of r5.entregues) await rpc('recompensa_resgatar', { meu: id, recompensa: rid }).catch(() => null);
     for (const cid of r5.creditos) await rpc('credito_aplicar', { meu: id, credito: cid }).catch(() => null);
   }
+  // missão do clã: o encanto conta aqui (o navegador não manda mais)
+  if (acao === 'encantar' && saida.resultado) await rpcServidor(base, cab, 'alianca_missao_servidor', { pid: id, tipo: 'encantar', qtd: 1 }).catch(() => null);
   return responder({ personagem: p, agora: t, resultado: saida.resultado });
 }
 

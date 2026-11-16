@@ -41,8 +41,20 @@ g.fetch = (async (url: string, init: any = {}) => {
       return json([{ id }]);
     }
   }
+  // lutas que o servidor refaz (masmorra, boss do clã, Ignaroth)
+  if (u.pathname === '/rest/v1/masmorra_runs') return json(Number((u.searchParams.get('id') || '').replace('eq.', '')) === 5 ? [runMasmorra] : []);
+  if (u.pathname === '/rest/v1/alianca_boss_runs') return json([runBoss]);
+  if (u.pathname === '/rest/v1/rpc/masmorra_concluir' || u.pathname === '/rest/v1/rpc/alianca_boss_concluir' || u.pathname === '/rest/v1/rpc/boss_atacar') {
+    lutasRegistradas.push({ rota: u.pathname, corpo: JSON.parse(init.body) });
+    return json(u.pathname.endsWith('boss_atacar') ? { dano: JSON.parse(init.body).dano } : u.pathname.endsWith('alianca_boss_concluir') ? { dano: 1 } : null);
+  }
+  if (u.pathname === '/rest/v1/rpc/boss_estado') return json({ boss: { id: 1, vida: 5_000_000, vida_max: 5_000_000 } });
   return json({ erro: 'rota ' + u.pathname }, 404);
 }) as typeof fetch;
+const lutasRegistradas: any[] = [];
+const heroi = { id: p0.id, dados: JSON.parse(JSON.stringify(p0)) };
+const runMasmorra = { id: 5, lider: p0.id, membros: [p0.id], grupo_id: 1, estado: 'andamento', masmorra: Tanka.dados.masmorras[0].id, herois: [heroi], semente: 12345 };
+const runBoss = { id: 9, lider: p0.id, membros: [p0.id], estado: 'andamento', nivel: 1, hp_inicio: 49140, semente: 777, buff: 0, herois: [heroi] };
 
 const base = 'https://x.supabase.co';
 let relogio = 1_800_000_000_000;
@@ -170,6 +182,24 @@ const v = d().versao;
 x = await pedir({ personagem: p0.id, acao: 'habilidadeAuto', args: true });
 ok(x.j.erro === recusarGravacao && x.j.personagem && d().versao === v, 'banco recusou: devolve o erro e o personagem do banco');
 recusarGravacao = '';
+
+// Brechas (Henri, nov/2026): o servidor refaz a luta e diz o resultado; o que o navegador manda não conta
+const simM = R.simularMasmorra([heroi.dados], runMasmorra.masmorra, runMasmorra.semente);
+x = await pedir({ personagem: p0.id, acao: 'masmorraConcluir', args: { run: 5, vitoria: !simM.vitoria } });
+ok(x.j.resultado && x.j.resultado.vitoria === !!simM.vitoria && lutasRegistradas.at(-1).corpo.vitoria === !!simM.vitoria,
+  'masmorra: o resultado é o da luta refeita no servidor (' + (simM.vitoria ? 'vitória' : 'derrota') + ')');
+x = await pedir({ personagem: p0.id, acao: 'masmorraConcluir', args: { run: 6 } });
+ok(x.j.erro, 'masmorra que não existe: erro');
+const simB = R.simularBossAlianca([heroi.dados], 1, 49140, 777, 0);
+x = await pedir({ personagem: p0.id, acao: 'bossClaConcluir', args: { run: 9, danos: [999999999] } });
+ok(JSON.stringify(lutasRegistradas.at(-1).corpo.danos) === JSON.stringify(simB.danos), 'boss do clã: o dano é o da luta refeita no servidor');
+x = await pedir({ personagem: p0.id, acao: 'bossMundial', args: { dano: 999999 } });
+const ultimo = lutasRegistradas.at(-1).corpo;
+ok(x.j.eventos && x.j.eventos.length > 0 && ultimo.dano === 5_000_000 - x.j.eventos.at(-1).mh && ultimo.dano < 999999,
+  'Ignaroth: a luta é no servidor e o dano sai dela (' + ultimo.dano + ')');
+const acoesJ = x.j.eventos.filter((e: any) => e.ev.ator === 'jogador' || e.ev.habilidade).length;
+ok(acoesJ <= Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque, 'Ignaroth: no máximo ' + Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque + ' ações (' + acoesJ + ')');
+ok(d().versao === v, 'lutas do servidor não mexem na ficha');
 
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');
 if (falhas) (g.Deno?.exit ?? g.process?.exit)?.(1);

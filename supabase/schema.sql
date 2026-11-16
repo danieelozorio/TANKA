@@ -88,9 +88,12 @@ alter table public.suspeitas enable row level security;   -- sem políticas: só
 -- Antes de rodar supabase/trancar_fichas.sql: select * from public.gravacoes_papel; (precisa aparecer service_role recente)
 create table if not exists public.gravacoes_papel (papel text primary key, ultima timestamptz not null default now(), qtd bigint not null default 0);
 alter table public.gravacoes_papel enable row level security;   -- sem políticas: só o SQL Editor lê
-create or replace function public.anotar_gravacao(papel text) returns void
+-- anota o papel de quem chamou (a sessão, não um texto vindo de fora: ninguém consegue anotar um papel falso)
+drop function if exists public.anotar_gravacao(text);
+create or replace function public.anotar_gravacao() returns void
 language sql security definer set search_path = public as $$
-  insert into public.gravacoes_papel as g (papel, ultima, qtd) values (papel, now(), 1)
+  insert into public.gravacoes_papel as g (papel, ultima, qtd)
+    values (coalesce(nullif(current_setting('role', true), 'none'), session_user::text), now(), 1)
     on conflict (papel) do update set ultima = now(), qtd = g.qtd + 1;
 $$;
 
@@ -203,7 +206,7 @@ begin
     end if;
   end if;
   -- quem grava a ficha (para conferir, antes de trancar, que as funções do servidor gravam com a chave delas)
-  if tg_op = 'UPDATE' then perform public.anotar_gravacao(current_user::text); end if;
+  if tg_op = 'UPDATE' then perform public.anotar_gravacao(); end if;
   -- trava contra ficha forjada: só nas gravações diretas pela API, e não para administradores
   if tg_op = 'UPDATE' then
     new.trava := old.trava;
@@ -888,12 +891,21 @@ end $$;
 -- O líder informa o resultado. Vitória: gasta 1 entrada de cada um e cada um ganha 1 joia
 -- (colar ou anel) e tem a chance de MASMORRA.pergaminho (dados.js, hoje 90%) de ganhar 1 pergaminho de
 -- encantamento. Derrota: não gasta entrada e ninguém ganha nada.
+-- Resultado da masmorra (Henri, nov/2026): quem decide se o grupo venceu é o servidor. A função `acao`
+-- (masmorraConcluir) refaz a luta com os heróis e a semente gravados aqui e chama masmorra_registrar com a chave do
+-- servidor; o navegador não pode mais dizer "ganhei". masmorra_concluir (antiga) só aceita derrota.
 create or replace function public.masmorra_concluir(meu text, run_id bigint, vitoria boolean) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  if vitoria then raise exception 'Atualize a página (F5) para registrar a masmorra.'; end if;
+  perform public.masmorra_registrar(meu, run_id, false);
+end $$;
+create or replace function public.masmorra_registrar(meu text, run_id bigint, vitoria boolean) returns void
 language plpgsql security definer set search_path = public as $$
 declare run public.masmorra_runs; pid text; sorte int;
 begin
-  perform public.conferir_dono(meu);
-  select * into run from public.masmorra_runs where id = run_id;
+  select * into run from public.masmorra_runs where id = run_id for update;
   -- Grupo da fila (sem grupo_id): qualquer jogador da luta pode informar (o primeiro vale).
   if run.id is null or (run.lider <> meu and not (run.grupo_id is null and meu = any (run.membros))) then
     raise exception 'Só o líder informa o resultado.'; end if;
@@ -901,6 +913,7 @@ begin
   update public.masmorra_runs set estado = case when vitoria then 'vitoria' else 'derrota' end, concluido_em = now() where id = run_id;
   if not vitoria then return; end if;
   foreach pid in array run.membros loop
+    perform public.alianca_missao_de(pid, 'masmorra', 1);
     insert into public.masmorra_entradas (personagem_id, dia, usadas) values (pid, public.dia_jogo(), 1)
       on conflict (personagem_id, dia) do update set usadas = public.masmorra_entradas.usadas + 1;
     select coalesce((h -> 'dados' -> 'atributos' ->> 'sor')::int, 0) into sorte
@@ -1189,11 +1202,19 @@ begin
 end $$;
 
 -- Um ataque: o jogo lutou contra o chefe da área do herói e informa o dano. O primeiro a zerar a vida dá o golpe final.
+-- Ataque ao Chefe Mundial (Henri, nov/2026): a luta é feita pela função `acao` (bossMundial), no servidor, e o dano
+-- vem por boss_atacar_servidor (chave do servidor). boss_atacar (antiga, o navegador dizia o dano) foi desligada.
 create or replace function public.boss_atacar(meu text, dano int, chefe text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  raise exception 'Atualize a página (F5) para atacar o Ignaroth.';
+end $$;
+create or replace function public.boss_atacar_servidor(meu text, dano int, chefe text) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare b public.boss_mundial; cfg jsonb := public.boss_cfg(); d int; ult timestamptz; ali bigint; caiu boolean := false;
 begin
-  perform public.conferir_dono(meu);
+  if not exists (select 1 from public.personagens where id = meu) then raise exception 'Personagem inválido.'; end if;
   perform public.boss_garantir();
   select * into b from public.boss_mundial where estado = 'ativo' and now() >= inicio and now() < fim order by inicio desc limit 1 for update;
   if b.id is null then raise exception 'Ignaroth não está acordado agora.'; end if;
@@ -1232,6 +1253,7 @@ end $$;
 
 revoke execute on function public.boss_cfg(), public.boss_vida_inicial(), public.boss_premiar(bigint, boolean),
   public.boss_garantir() from public, anon, authenticated;
+revoke execute on function public.boss_atacar_servidor(text, int, text) from public, anon, authenticated;
 revoke execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
   public.admin_boss_invocar(text, bigint, int) from public, anon;
 grant execute on function public.boss_estado(text), public.boss_atacar(text, int, text),
@@ -1299,6 +1321,8 @@ grant execute on function public.grupo_estado(text), public.grupo_convidar(text,
   public.grupo_sair(text), public.grupo_expulsar(text, text), public.grupo_pronto(text, boolean), public.grupo_escolher(text, text),
   public.masmorra_iniciar(text), public.masmorra_concluir(text, bigint, boolean), public.recompensa_resgatar(text, bigint),
   public.masmorra_admin_recarregar(text) to authenticated;
+revoke execute on function public.masmorra_registrar(text, bigint, boolean) from public, anon, authenticated;
+revoke execute on function public.entradas_usadas(text), public.meu_grupo(text) from authenticated;   -- só para uso interno
 
 
 -- >>> DADOS DO JOGO (gerado por ferramentas/gerar_dados_sql.js a partir de js/dados.js; não editar à mão)
@@ -2136,6 +2160,7 @@ begin
     saque_pct = pct, pos_antes = pa, pos_depois = depois, jackpot = premio, reputacao = rep, concluido_em = now(),
     estado = jsonb_set(estado, '{pendente}', 'false')
   where id = luta_id;
+  perform public.alianca_missao_de(L.atacante, 'arena', 1);   -- missão do clã (contada aqui, não pelo navegador)
 end $$;
 
 -- Avança a luta até a próxima vez do atacante (que rola o dado) ou até o fim.
@@ -3609,11 +3634,18 @@ end $$;
 
 -- Fim da investida: danos = dano de cada herói, na ordem de `membros`. O dano conta só se o boss ainda estiver
 -- aberto no mesmo dia e nível; nunca passa da vida que ele ainda tem (outros grupos podem ter batido antes).
+-- Fim da investida contra o boss do clã (Henri, nov/2026): o dano de cada um vem da função `acao` (bossClaConcluir),
+-- que refaz a luta no servidor com os heróis e a semente gravados aqui; o navegador não diz mais o dano.
 create or replace function public.alianca_boss_concluir(meu text, run_id bigint, danos bigint[]) returns jsonb
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  raise exception 'Atualize a página (F5) para registrar a investida.';
+end $$;
+create or replace function public.alianca_boss_registrar(meu text, run_id bigint, danos bigint[]) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare run public.alianca_boss_runs; b public.alianca_boss; total bigint := 0; resto bigint; d bigint; i int; nome text; morreu boolean := false;
 begin
-  perform public.conferir_dono(meu);
   select * into run from public.alianca_boss_runs where id = run_id for update;
   if run.id is null or run.lider <> meu then raise exception 'Investida não encontrada.'; end if;
   if run.estado <> 'andamento' then raise exception 'Essa investida já terminou.'; end if;
@@ -3655,6 +3687,7 @@ revoke execute on function public.alianca_boss_estado(text), public.alianca_boss
 grant execute on function public.alianca_boss_estado(text), public.alianca_boss_hora(text, int), public.alianca_boss_sala_criar(text),
   public.alianca_boss_sala_entrar(text, bigint), public.alianca_boss_sala_sair(text), public.alianca_boss_atacar(text),
   public.alianca_boss_concluir(text, bigint, bigint[]) to authenticated;
+revoke execute on function public.alianca_boss_registrar(text, bigint, bigint[]) from public, anon, authenticated;
 
 -- ---------- Clã: skills, doação por dia e missões (Daniel, nov/2026) ----------
 -- Skills: compradas pelo líder com o tesouro, permanentes; nível da skill <= nível do clã; preços em ALIANCA.skillPrecos.
@@ -3719,18 +3752,29 @@ begin
   end loop;
 end $$;
 
--- O jogo manda o progresso do personagem em lotes (limitados por envio).
+-- Progresso das missões do clã (Henri, nov/2026): contado pelo servidor onde a coisa acontece (masmorra vencida,
+-- luta da Arena, encanto e monstros pela função `acao`/`cacada`). O navegador não manda mais (alianca_missao_registrar
+-- ficou sem efeito, para quem estiver com o jogo antigo aberto).
+create or replace function public.alianca_missao_de(pid text, tipo text, qtd int) returns void
+language plpgsql security definer set search_path = public as $$
+declare aid bigint;
+begin
+  select alianca_id into aid from public.alianca_membros where personagem_id = pid;
+  if aid is null or coalesce(qtd, 0) <= 0 then return; end if;
+  perform public.alianca_missao_progresso(aid, tipo, least(qtd, 100000));
+end $$;
+create or replace function public.alianca_missao_servidor(pid text, tipo text, qtd int) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if tipo not in ('monstros', 'encantar') then raise exception 'Missão inválida.'; end if;
+  perform public.alianca_missao_de(pid, tipo, qtd);
+end $$;
 create or replace function public.alianca_missao_registrar(meu text, tipo text, qtd int) returns void
 language plpgsql security definer set search_path = public as $$
-declare m public.alianca_membros; maximo int;
 begin
-  perform public.conferir_dono(meu);
-  select * into m from public.alianca_membros where personagem_id = meu;
-  if m.personagem_id is null then return; end if;
-  maximo := (public.alianca_cfg() -> 'missoesMaxEnvio' ->> tipo)::int;
-  if maximo is null then raise exception 'Missão inválida.'; end if;
-  perform public.alianca_missao_progresso(m.alianca_id, tipo, least(greatest(coalesce(qtd, 0), 0), maximo));
+  perform public.conferir_dono(meu);   -- sem efeito: o servidor conta sozinho
 end $$;
+revoke execute on function public.alianca_missao_de(text, text, int), public.alianca_missao_servidor(text, text, int) from public, anon, authenticated;
 
 -- % de dano contra o boss do clã nesta semana (missões semanais cumpridas).
 drop function if exists public.alianca_boss_buff(bigint);

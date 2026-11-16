@@ -99,6 +99,14 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   });
   const gravou = g.ok ? await g.json() : [];
   if (!gravou.length) return responder({ erro: 'Este personagem foi jogado em outra aba ou aparelho. Recarregando...', conflito: true }, 409);
+  // missão do clã: os monstros vencidos contam aqui, pelo servidor (Henri, nov/2026)
+  const abates = (d: { abates?: Record<string, number> }) => Object.values(d.abates || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+  const novos = abates(p) - abates(linhas[0].dados);
+  const srv = cabecalhoServidor();
+  if (novos > 0 && srv) {
+    await fetch(base + '/rest/v1/rpc/alianca_missao_servidor', { method: 'POST', headers: srv,
+      body: JSON.stringify({ pid: id, tipo: 'monstros', qtd: novos }) }).catch(() => null);
+  }
   return responder({ ...saida, personagem: p, agora: t });
 }
 

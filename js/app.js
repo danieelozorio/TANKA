@@ -5787,7 +5787,7 @@
       var run = await C.grupo.iniciar(p.id);
       var sim = R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
       // O líder já registra o resultado (vale mesmo se fechar a página no meio da luta).
-      C.grupo.concluir(p.id, run.id, sim.vitoria).catch(function (e) { avisar('Erro ao registrar o resultado: ' + e.message); });
+      registrarMasmorra(run, sim).catch(function (e) { avisar('Erro ao registrar o resultado: ' + e.message); });
       assistirLuta(run, sim);
     } catch (e) {
       avisar(e.message);
@@ -5795,11 +5795,18 @@
     }
   }
 
+  // Quem decide o resultado é o servidor (refaz a luta com a mesma semente); o jeito antigo só sem a função `acao`.
+  function registrarMasmorra(run, sim) {
+    var p = estado.personagem;
+    if (!ACAO_SERVIDOR) return C.grupo.concluir(p.id, run.id, sim.vitoria);
+    return C.acao(p.id, 'masmorraConcluir', { run: run.id }).then(function (r) { if (r && r.erro) throw new Error(r.erro); return r; });
+  }
+
   function assistirLuta(run, sim) {
     vistas[run.id] = true;
     sim = sim || R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
     // Luta da fila: qualquer jogador registra o resultado (o primeiro vale; os outros recebem "já terminou").
-    if (run.fila && run.estado === 'andamento') C.grupo.concluir(estado.personagem.id, run.id, sim.vitoria).catch(function () {});
+    if (run.fila && run.estado === 'andamento') registrarMasmorra(run, sim).catch(function () {});
     // Missão: cada masmorra vencida conta uma vez por personagem.
     var mis = R.garantirMissoes(estado.personagem, C.agora());
     if (sim.vitoria && mis.runs.indexOf(String(run.id)) < 0 && mis.runs.indexOf(run.id) < 0) {
@@ -6401,12 +6408,31 @@
     var espera = (estado.bossEnvio || 0) + ((estado.boss.cfg || {}).intervaloSeg || 15) * 1000 - Date.now();
     if (espera > 0) { avisar('Recupere o fôlego: ataque de novo em ' + Math.ceil(espera / 1000) + 's.'); return; }
     var bs = estado.boss.boss, chefeId = R.chefeDoNivel(p);
+    if (ACAO_SERVIDOR) {   // a luta é feita no servidor; aqui só mostra (Henri, nov/2026)
+      if (estado.bossAtacando) return;
+      estado.bossAtacando = true;
+      estado.bossEnvio = Date.now();
+      C.acao(p.id, 'bossMundial', {}).then(function (r) {
+        estado.bossAtacando = false;
+        if (!r || r.erro) { avisar((r && r.erro) || 'Não foi possível atacar.'); carregarBoss(); return; }
+        if (estado.batalha || estado.cacada) return;
+        comecarMundial(p, bs, r.chefe || chefeId, r);
+      }, function (e) { estado.bossAtacando = false; avisar(e.message); });
+      return;
+    }
+    comecarMundial(p, bs, chefeId, null);
+  }
+  function comecarMundial(p, bs, chefeId, srv) {
     var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina
     b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
     b.imagemId = 'ignaroth-mundial';
     b.monstro.nome = 'Ignaroth (Chefe Mundial)';
-    b.monstro.hp = bs.vida;
+    b.monstro.hp = srv ? srv.vidaInicial : bs.vida;
     b.monstro.hpMax = bs.vida_max;
+    if (srv) {
+      b.mundial.vidaInicial = srv.vidaInicial;
+      b.replay = { eventos: srv.eventos || [], i: 0, res: { resultado: srv.fim }, extras: {}, servidor: srv.resultado };
+    }
     estado.resultado = null;
     estado.bossUltimo = null;
     estado.batalha = b;
@@ -6427,7 +6453,8 @@
     estado.bossEnvio = Date.now();
     salvarPreferencias();
     telaJogo();
-    C.boss.atacar(p.id, dano, b.mundial.chefe).then(function (r) {
+    var envio = b.replay && b.replay.servidor ? Promise.resolve(b.replay.servidor) : C.boss.atacar(p.id, dano, b.mundial.chefe);
+    envio.then(function (r) {
       estado.bossUltimo = { dano: r.dano, golpeFinal: r.golpe_final };
       if (r.golpe_final) avisar('🐉 GOLPE FINAL! Ignaroth caiu pelas suas mãos!', 'nivel');
       else avisar('Você causou ' + Number(r.dano).toLocaleString('pt-BR') + ' de dano em Ignaroth.', 'vitoria');
@@ -7159,6 +7186,7 @@
   function enviarMissoesCla() {
     var p = estado.personagem;
     if (!p) return;
+    if (ACAO_SERVIDOR) { filaMissaoCla = {}; return; }   // o servidor conta sozinho (masmorra, Arena, encanto, monstros)
     Object.keys(filaMissaoCla).forEach(function (tipo) {
       var q = Math.min(filaMissaoCla[tipo], AL.missoesMaxEnvio[tipo]);
       if (q <= 0) return;
@@ -7642,7 +7670,9 @@
     estado.luta = L;
     // Quem começou a investida já informa o dano (vale mesmo se fechar a página no meio).
     if (run.lider === p.id && run.estado === 'andamento') {
-      C.alianca.boss.concluir(p.id, run.id, sim.danos).then(function (r) {
+      (ACAO_SERVIDOR
+        ? C.acao(p.id, 'bossClaConcluir', { run: run.id }).then(function (x) { if (x && x.erro) throw new Error(x.erro); return x && x.resultado; })
+        : C.alianca.boss.concluir(p.id, run.id, sim.danos)).then(function (r) {
         L.servidor = r;
         if (r && r.morreu) carregarAlianca();   // exp nova da aliança
         if (estado.luta === L && L.fim) redesenharLuta();

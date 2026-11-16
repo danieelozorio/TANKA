@@ -1027,3 +1027,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `supabase/trancar_fichas.sql` tira o "salvar os seus" (fica só admin) e marca `ajustes.fichas_trancadas`; rodar o
   schema de novo respeita a marca. `supabase/destrancar_fichas.sql` desfaz.
 - Ordem segura: publicar → conferir `select * from gravacoes_papel` (service_role recente) → rodar o trancar.
+
+### Brechas fechadas (Henri, nov/2026): o servidor refaz as lutas
+- Função `acao` ganhou 3 "lutas" (não mexem na ficha): `masmorraConcluir {run}`, `bossClaConcluir {run}` e
+  `bossMundial {}`. Masmorra e boss do clã: lê a run com a chave do servidor e refaz com `R.simularMasmorra` /
+  `R.simularBossAlianca` (mesmos heróis e semente); Ignaroth: luta inteira no servidor (até `acoesPorAtaque` ações) e
+  devolve os eventos para o navegador só mostrar (`b.replay` com `servidor`).
+- Banco: `masmorra_registrar`, `alianca_boss_registrar`, `boss_atacar_servidor` (só a chave do servidor). As antigas
+  (`masmorra_concluir` com vitória, `alianca_boss_concluir`, `boss_atacar`) pedem "Atualize a página".
+  Sem o schema novo, a função usa as antigas com o login do jogador (`rpcServidor(..., antiga)`).
+- Missões do clã contadas pelo servidor: `alianca_missao_de` (masmorra em `masmorra_registrar`, Arena em
+  `arena_finalizar`) e `alianca_missao_servidor` (encanto pela `acao`, monstros pela `cacada` = abates novos).
+  `alianca_missao_registrar` ficou sem efeito; o navegador não manda mais.
+- `anotar_gravacao()` anota o papel da sessão (não aceita texto de fora); `meu_grupo`/`entradas_usadas` só internos.
