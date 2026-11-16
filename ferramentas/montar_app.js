@@ -13,7 +13,7 @@ fs.rmSync(path.join(saida, 'js', 'contas-local.js'), { force: true });   // só 
 let html = fs.readFileSync(path.join(raiz, 'jogar', 'index.html'), 'utf8');
 const troca = (de, para, nome) => { if (!de.test(html)) throw new Error('montar_app: não achei ' + nome + ' em jogar/index.html'); html = html.replace(de, para); };
 troca(/\s*<base href="\.\.\/">/, '', '<base href="../">');
-troca(/(<meta charset="utf-8">)/i, '$1\n  <script>window.ELDRIN_APP = { web: ' + versao + ' };</script>\n  <script src="js/app-nativo.js"></script>', '<meta charset>');
+troca(/(<meta charset="utf-8">)/i, '$1\n  <script>window.ELDRIN_APP = { web: ' + versao + (process.env.ELDRIN_VERSOES_URL ? ', versoes: ' + JSON.stringify(process.env.ELDRIN_VERSOES_URL) : '') + ' };</script>\n  <script src="js/app-nativo.js"></script>', '<meta charset>');
 html = html.replace(/\s*<link rel="manifest"[^>]*>/, '');
 html = html.replace(/\s*<script>\s*\/\/ Instalar no celular[\s\S]*?<\/script>/, '');   // service worker: não no app
 fs.writeFileSync(path.join(saida, 'index.html'), html);

@@ -8,8 +8,8 @@
   var C = window.Capacitor;
   if (!C || !C.isNativePlatform || !C.isNativePlatform()) return;
   var P = C.Plugins || {}, U = P.CapacitorUpdater, H = P.CapacitorHttp, A = P.App;
-  var VERSOES = 'https://github.com/danieelozorio/TANKA/releases/download/app-web/versao.json';
   var local = window.ELDRIN_APP || { web: 0 };
+  var VERSOES = local.versoes || 'https://github.com/danieelozorio/TANKA/releases/download/app-web/versao.json';   // o teste usa o release app-teste
   if (U && U.notifyAppReady) U.notifyAppReady().catch(function () {});   // senão o app volta para a versão anterior
 
   function caixa(html) {
