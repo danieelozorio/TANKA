@@ -1116,3 +1116,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   só é refeito quando o HTML mudou (`missoesUI.html`), guarda a rolagem de `.missoes-painel` e não redesenha com o dedo/
   mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`).
 - (16/11/2026) Replay de destaques: `R.quadrosLuta` guarda até `MASMORRA.quadros` (18) lances por luta (críticos, habilidades, curas, quedas, maiores golpes) com a vida de todos; cada luta tem `inicio`/`dur` (relógio do servidor) e a votação abre quando o replay acaba. A tela (`replayMas`/`arenaReplayHtml`) mostra um lance a cada `quadroMs` (0,7 s), sem acelerar; F5 continua do ponto certo.
+  mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`). Já aberto, troca só o conteúdo de
+  `.missoes-painel` (recriar a caixa repetia a animação de abrir e parecia fechar e abrir).

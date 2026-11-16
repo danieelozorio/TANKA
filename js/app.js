@@ -2998,12 +2998,19 @@
     // mudou, guarda a rolagem e espera o clique terminar.
     if (missoesUI.el.className === 'aberto' && missoesUI.html === html) return;
     if (missoesUI.apertado) { missoesUI.pendente = true; return; }
-    var antigo = missoesUI.el.querySelector('.missoes-painel'), rolagem = antigo ? antigo.scrollTop : 0;
+    var antigo = missoesUI.el.className === 'aberto' && missoesUI.el.querySelector('.missoes-painel');
+    missoesUI.html = html;
+    if (antigo) {
+      // Já aberto: troca só o que está DENTRO da caixa (recriar a caixa repetia a animação de abrir: "fecha e abre").
+      var molde = document.createElement('div'); molde.innerHTML = html;
+      var rolagem = antigo.scrollTop, abaVelha = missoesUI.el.querySelector('.missoes-aba'), abaNova = molde.querySelector('.missoes-aba');
+      if (abaVelha && abaNova && abaVelha.outerHTML !== abaNova.outerHTML) abaVelha.replaceWith(abaNova);
+      antigo.innerHTML = molde.querySelector('.missoes-painel').innerHTML;
+      antigo.scrollTop = rolagem;
+      return;
+    }
     missoesUI.el.className = 'aberto';
     missoesUI.el.innerHTML = html;
-    missoesUI.html = html;
-    var novo = missoesUI.el.querySelector('.missoes-painel');
-    if (novo && rolagem) novo.scrollTop = rolagem;
   }
   function cliqueMissoes(e) {
     var el = e.target.closest('[data-missao]'), p = estado.personagem;
