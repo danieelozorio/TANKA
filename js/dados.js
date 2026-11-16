@@ -1063,6 +1063,14 @@ Tanka.dados = {
     },
   },
 
+  // Trava contra ficha forjada (Henri, nov/2026): o banco recusa gravações diretas da ficha (pela API, sem passar
+  // por uma função do servidor) com saltos impossíveis. "Balde": cada gravação gasta do balde, que enche com o tempo.
+  // ouro: o máximo legítimo numa gravação é vender a mochila cheia de lendárias +10 do level 60 (~4,6 mi).
+  // niveis: levels que dá para subir em seguida (e quantos voltam por minuto). itensFortes: itens novos lendários ou
+  // +5 ou mais (compras do Mercado, Oficina). Acima de `avisar*` a gravação passa, mas fica anotada em `suspeitas`.
+  TRAVA: { ouro: { balde: 8000000, porMinuto: 800000 }, niveis: { balde: 5, porMinuto: 0.5 },
+    itensFortes: { balde: 12, porMinuto: 1 }, itensNovos: 60, avisarOuro: 1500000, avisarNiveis: 2 },
+
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
   // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).

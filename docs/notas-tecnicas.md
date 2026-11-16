@@ -971,3 +971,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   "Depois" vale até fechar o app. `apkMinimo` > instalado força o aviso do APK antes do jogo.
 - `jaInstalado()` (app.js) conta o app Capacitor: some o botão "Baixar app Android".
 - **Luta da masmorra/boss do clã pelo relógio (Henri, nov/2026):** `relogioLuta(L)` avança os eventos pelo tempo real (`L.acum`, x2 se acelerado), não por timer; trocar de aba/app ou recarregar não atrasa: a luta começa em `run.criado_em` e alcança o ponto certo (também no `visibilitychange`). O resultado já era gravado no servidor no começo.
+
+## Trava contra ficha forjada (Henri, nov/2026)
+- A API é pública (normal) e o jogo grava a ficha inteira em `personagens.dados`. Antes, quem soubesse programar podia
+  gravar level/ouro/itens no próprio personagem. Agora o gatilho `validar_personagem` chama `trava_ficha(old, new)` em
+  toda gravação direta pela API (`current_user = 'authenticated'`, não admin); funções security definer e SQL Editor passam.
+- Regras: level só sobe, até `NIVEL_MAXIMO`, e com balde (`TRAVA.niveis`); ouro com balde (`TRAVA.ouro`, ~4,6 mi é a mochila
+  cheia de lendárias +10 vendida de uma vez); atributos iniciais fixos e pontos ≤ (level-1)×3 (`trava_excesso_atributos`);
+  pontos de habilidade = `arena_pontos_ok`; itens com encanto 0–10 e level ≤ máximo; item existente sobe no máximo +3 de
+  encanto por gravação e não muda raridade/level; itens novos lendários ou +5 com balde (`TRAVA.itensFortes`).
+  Personagem novo pela API: level 1, sem ouro, só a arma comum, atributos da classe ± raça.
+- Fichas que já estavam fora da regra continuam gravando (só não podem piorar). Baldes em `personagens.trava`.
+  Gravações acima de `avisarOuro`/`avisarNiveis` e encanto > +1 passam, mas ficam em `suspeitas` (só o SQL Editor lê).
+- É a trava rápida; a solução definitiva é passar cada ação para o servidor (plano de 5 etapas).

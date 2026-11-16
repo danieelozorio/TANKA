@@ -1245,4 +1245,39 @@ select public.sessao_assumir('pc');
 select pg_temp.como('a');
 select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: outra conta no PC não derruba o celular');
 reset role;
+
+-- Trava contra ficha forjada (Henri, nov/2026): gravações diretas pela API com saltos impossíveis são recusadas
+insert into public.personagens (id, conta_id, nome, dados) values ('ptr', '00000000-0000-0000-0000-00000000000d', 'Trava',
+  '{"nome":"Trava","nivel":10,"exp":0,"ouro":1000,"classe":"cavaleiro","pontosLivres":0,"atributosIniciais":{"for":15,"des":10,"res":20,"int":10,"sor":15},
+    "atributos":{"for":42,"des":10,"res":20,"int":10,"sor":15},"inventario":[{"id":"i1","tipo":"arma","raridade":"epica","encanto":3,"nivel":10}]}');
+grant select, update, insert on public.personagens to authenticated;
+set role authenticated;
+select pg_temp.como('d');
+update public.personagens set dados = jsonb_set(jsonb_set(dados, '{ouro}', '5000'), '{nivel}', '11') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '5000', 'trava: ganho normal passa');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{ouro}', '1000000000') where id = 'ptr'$$, 'ouro demais');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr'$$, 'level subiu rápido');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '61') where id = 'ptr'$$, 'acima do máximo');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '5') where id = 'ptr'$$, 'não pode descer');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '99') where id = 'ptr'$$, 'pontos de atributo');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributosIniciais,for}', '90') where id = 'ptr'$$, 'iniciais não mudam');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario,0,encanto}', '10') where id = 'ptr'$$, 'item alterado');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario,0,raridade}', '"lendaria"') where id = 'ptr'$$, 'item alterado');
+update public.personagens set dados = jsonb_set(dados, '{inventario,0,encanto}', '4') where id = 'ptr';
+select pg_temp.igual((select dados -> 'inventario' -> 0 ->> 'encanto' from public.personagens where id = 'ptr'), '4', 'trava: encantar +1 passa');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario}', (select jsonb_agg(jsonb_build_object('id', 'x' || g, 'tipo', 'elmo', 'raridade', 'lendaria', 'encanto', 7)) from generate_series(1, 20) g)) where id = 'ptr'$$, 'itens fortes demais');
+select pg_temp.falha($$insert into public.personagens (id, conta_id, nome, dados) values ('pfx', '00000000-0000-0000-0000-00000000000d', 'Forjado', '{"nivel":60,"classe":"mago","ouro":0}')$$, 'personagem novo inválido');
+reset role;
+-- ficha que já estava fora da regra antes da trava (pontos a mais) continua gravando, só não pode piorar
+update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '60') where id = 'ptr';
+set role authenticated;
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '6000') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '6000', 'trava: ficha antiga fora da regra ainda grava');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '61') where id = 'ptr'$$, 'pontos de atributo');
+reset role;
+-- o SQL Editor (e as funções do servidor) passam direto
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'nivel' from public.personagens where id = 'ptr'), '60', 'trava: SQL Editor passa');
+delete from public.personagens where id = 'ptr';
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

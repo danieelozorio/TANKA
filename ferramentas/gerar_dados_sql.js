@@ -12,6 +12,8 @@ vm.runInContext(fs.readFileSync(path.join(raiz, 'js', 'regras.js'), 'utf8'), ctx
 const D = vm.runInContext('Tanka.dados', ctx);
 const R = vm.runInContext('Tanka.regras', ctx);
 const dados = {
+  // trava contra gravação forjada da ficha (Henri, nov/2026): validar_personagem
+  NIVEL_MAXIMO: D.NIVEL_MAXIMO, PONTOS_POR_NIVEL: D.PONTOS_POR_NIVEL, MODIFICADOR_RACA: D.MODIFICADOR_RACA, TRAVA: D.TRAVA,
   HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, RES_SEM_VIDA: D.RES_SEM_VIDA, VELOCIDADE: D.VELOCIDADE,
   racas: Object.fromEntries(Object.entries(D.racas).map(([k, r]) => [k, { tracos: r.tracos || {} }])),
   classesAtributos: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, c.atributos])),
