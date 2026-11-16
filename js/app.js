@@ -2940,6 +2940,13 @@
       missoesUI.el = document.createElement('div');
       missoesUI.el.id = 'painel-missoes';
       missoesUI.el.addEventListener('click', cliqueMissoes);
+      // Enquanto o dedo/mouse está apertado no painel, não redesenha (senão o botão some no meio do clique).
+      missoesUI.el.addEventListener('pointerdown', function () { missoesUI.apertado = true; });
+      document.addEventListener('pointerup', function () {
+        if (!missoesUI.apertado) return;
+        missoesUI.apertado = false;
+        if (missoesUI.pendente) setTimeout(function () { missoesUI.pendente = false; desenharMissoes(); }, 0);
+      });
       document.body.appendChild(missoesUI.el);
     }
     if (visivel === false || !p) { missoesUI.el.hidden = true; return; }
@@ -2950,7 +2957,7 @@
     var aba = '<button class="missoes-aba" data-missao="painel" aria-expanded="' + missoesUI.aberto + '" title="Missões">'
       + '<span class="missoes-aba-ico">📜</span><span class="missoes-aba-txt">Missões</span>'
       + (prontas ? '<span class="selo-pedidos">' + prontas + '</span>' : '') + '</button>';
-    if (!missoesUI.aberto) { missoesUI.el.className = ''; missoesUI.el.innerHTML = aba; return; }
+    if (!missoesUI.aberto) { missoesUI.el.className = ''; missoesUI.el.innerHTML = aba; missoesUI.html = null; return; }
     function carta(tipo, x) {
       var chave = tipo === 'diarias' ? 'd' : 's', feito = m[chave + 'Ok'][x.id], prog = m[chave][x.id] || 0, pronto = !feito && prog >= x.meta;
       return '<div class="missao-carta' + (feito ? ' feita' : pronto ? ' pronta' : '') + '">'
@@ -2983,11 +2990,20 @@
       + '<div class="missao-texto">' + (le.pode ? 'Seu prêmio de hoje está esperando!' : 'Pego hoje. Volte amanhã: os dias não precisam ser seguidos.') + '</div>'
       + '<div class="missao-pe"><span></span><button class="btn btn-pequeno' + (le.pode ? '' : ' secundario') + '" data-missao="login">' + (le.pode ? 'Pegar' : 'Ver') + '</button></div></div></div>';
     var dias = Math.floor(R.msAteSemana(agora) / 86400000);
-    missoesUI.el.className = 'aberto';
-    missoesUI.el.innerHTML = aba + '<div class="missoes-painel" role="dialog" aria-label="Missões"><div class="missoes-titulo"><span>📜 Missões</span>'
+    var html = aba + '<div class="missoes-painel" role="dialog" aria-label="Missões"><div class="missoes-titulo"><span>📜 Missões</span>'
       + '<button data-missao="painel" title="Fechar">✕</button></div>' + cartaoLogin
       + secao('diarias', 'Diárias', 'renova em ' + tempoTexto(R.msAteReset(agora)), M.diarias, bau)
       + secao('semanais', 'Semanais', 'renova em ' + (dias ? dias + 'd ' : '') + tempoTexto(R.msAteSemana(agora) % 86400000), M.semanais) + '</div>';
+    // Painel aberto durante a caçada (Daniel, nov/2026): a tela redesenha a cada luta; só refaz o painel quando algo
+    // mudou, guarda a rolagem e espera o clique terminar.
+    if (missoesUI.el.className === 'aberto' && missoesUI.html === html) return;
+    if (missoesUI.apertado) { missoesUI.pendente = true; return; }
+    var antigo = missoesUI.el.querySelector('.missoes-painel'), rolagem = antigo ? antigo.scrollTop : 0;
+    missoesUI.el.className = 'aberto';
+    missoesUI.el.innerHTML = html;
+    missoesUI.html = html;
+    var novo = missoesUI.el.querySelector('.missoes-painel');
+    if (novo && rolagem) novo.scrollTop = rolagem;
   }
   function cliqueMissoes(e) {
     var el = e.target.closest('[data-missao]'), p = estado.personagem;
