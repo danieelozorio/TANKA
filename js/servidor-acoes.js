@@ -6,6 +6,121 @@
 Tanka.servidorAcoes = (function () {
   var R = Tanka.regras, D = Tanka.dados;
 
+  var ITEM_RARIDADE = { comum: 'comum', rara: 'raro', epica: 'épico', lendaria: 'lendário' };
+  var TIPOS_CRAFT = ['material', 'receita', 'protecao'];
+  function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
+  function nomeDrop(it) { return it.consumivel ? (it.qtd > 1 ? it.qtd + 'x ' : '') + R.nomeConsumivel(it) : R.nomeItem(it); }
+  function origemCaixa(o) { return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra'; }
+  function origemCredito(m) {
+    m = m || '';
+    return /Arena/.test(m) ? 'arena' : /leilão/.test(m) ? 'leilao' : /^Mercado/.test(m) ? 'mercado' : /clã/.test(m) ? 'cla' : /^Oficina/.test(m) ? 'oficina' : 'arena';
+  }
+
+  // Prêmios guardados no servidor (tabela recompensas: masmorra, leilão, mercado, Oficina, chefes): a lista vem do BANCO
+  // (a função `acao` busca), nunca do navegador. Aplica no personagem e devolve { entregues: [ids para marcar], avisos }.
+  // Item que não cabe na mochila fica guardado (não entra em `entregues`). p.recebidas evita entregar duas vezes.
+  function entregarRecompensas(p, lista, rng) {
+    var entregues = [], avisos = [], avisouCheia = false;
+    var aviso = function (rec, texto, tipo, semCaixa) { avisos.push({ texto: texto, tipo: tipo || '', origem: semCaixa ? null : origemCaixa(rec && rec.origem) }); };
+    var cheia = function (rec, texto) { if (!avisouCheia) aviso(rec, texto, '', true); avisouCheia = true; };
+    var pegar = function (rec) {
+      entregues.push(rec.id);
+      p.recebidas = (p.recebidas || []).concat(rec.id).slice(-200);
+      return JSON.parse(JSON.stringify(rec.item));
+    };
+    (Array.isArray(lista) ? lista : []).forEach(function (rec) {
+      if (!rec || rec.id == null || !rec.item) return;
+      if (p.recebidas && p.recebidas.indexOf(rec.id) >= 0) { entregues.push(rec.id); return; }   // já entregue: só falta marcar
+      var it = rec.item;
+      if (it.leilao) {   // lote ganho no leilão: gerado da semente (igual ao que todos viram)
+        var ganho = R.itemDoLote(it);
+        if (ganho.consumivel) { pegar(rec); R.mudarPergaminho(p, ganho.raridade, ganho.qtd); aviso(rec, 'Você venceu o leilão: ' + nomeDrop(ganho) + '! (Mochila › Consumíveis)', 'item'); return; }
+        if (R.mochilaCheia(p)) { cheia(rec, 'Mochila cheia! Seu item do leilão está guardado: libere espaço para recebê-lo.'); return; }
+        pegar(rec); p.inventario.push(ganho);
+        aviso(rec, 'Você venceu o leilão: ' + R.nomeItem(ganho) + ' (' + nomeRaridadeItem(ganho) + ')!', 'item');
+        return;
+      }
+      if (it.tipo === 'boss_premio') {   // Chefe Mundial: ouro e exp
+        var bp = pegar(rec), gb = R.premioChefeMundial(p, bp);
+        aviso(rec, '🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + gb.ouro.toLocaleString('pt-BR') + ' de ouro e +' + gb.exp.toLocaleString('pt-BR') + ' de exp!', 'vitoria');
+        if (gb.niveis) aviso(rec, 'Level up! Level ' + p.nivel, 'nivel');
+        return;
+      }
+      if (it.tipo === 'titulo') {
+        var tit = pegar(rec);
+        p.titulos = p.titulos || [];
+        if (p.titulos.indexOf(tit.nome) < 0) p.titulos.push(tit.nome);
+        p.titulo = tit.nome;
+        aviso(rec, '🐉 Novo título: "' + tit.nome + '"!', 'nivel');
+        return;
+      }
+      if (it.tipo === 'pergaminho') {
+        var perg = pegar(rec);
+        if (!D.raridades[perg.raridade]) return;
+        var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
+        R.mudarPergaminho(p, perg.raridade, nPerg);
+        aviso(rec, (nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
+          + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
+        return;
+      }
+      if (it.tipo === 'forjado') {   // item da Oficina de um Ferreiro, montado com a semente do servidor
+        if (R.mochilaCheia(p)) { cheia(rec, 'Mochila cheia! Seu item da Oficina está guardado: libere espaço.'); return; }
+        var ifo = R.itemForjado(pegar(rec).spec);
+        if (ifo) { p.inventario.push(ifo); aviso(rec, (ifo.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'A Oficina entregou ' + R.nomeItem(ifo) + ' (' + nomeRaridadeItem(ifo) + ')!', 'item'); }
+        return;
+      }
+      if (TIPOS_CRAFT.indexOf(it.tipo) >= 0 || it.tipo === 'cristal') {
+        var rcf = pegar(rec), ncf = Math.max(1, Math.floor(rcf.qtd || 1));
+        R.mudarConsumivel(p, rcf.tipo, rcf.raridade, ncf);
+        aviso(rec, ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
+        return;
+      }
+      if (it.tipo === 'exp') {   // boss do clã: exp limitada a uma parte da exp do level
+        var rx = pegar(rec);
+        var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
+        var subiu = R.ganharExp(p, xp);
+        aviso(rec, 'Boss do clã derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
+        return;
+      }
+      if (it.tipo === 'bossItem') {
+        if (R.mochilaCheia(p)) { cheia(rec, 'Mochila cheia! Seu item do boss do clã está guardado: libere espaço para recebê-lo.'); return; }
+        var ib = R.itemBossAlianca(p, pegar(rec).raridade, rng);
+        p.inventario.push(ib);
+        aviso(rec, 'Maior dano no boss do clã! Você ganhou ' + R.nomeItem(ib) + ' (' + nomeRaridadeItem(ib) + ')!', 'item');
+        return;
+      }
+      if (R.mochilaCheia(p)) {
+        cheia(rec, 'Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+        return;
+      }
+      var bruto = pegar(rec);
+      var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
+      p.inventario.push(item);
+      aviso(rec, (rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!', 'item');
+    });
+    return { entregues: entregues, avisos: avisos };
+  }
+  // Créditos de ouro/reputação (Arena, leilão, mercado, clã, Oficina), também lidos do banco. p.creditosRecebidos evita
+  // aplicar duas vezes (grava antes, marca depois).
+  function aplicarCreditos(p, lista) {
+    var aplicados = [], avisos = [];
+    (Array.isArray(lista) ? lista : []).forEach(function (c) {
+      if (!c || c.id == null) return;
+      aplicados.push(c.id);
+      if (p.creditosRecebidos && p.creditosRecebidos.indexOf(c.id) >= 0) return;
+      p.creditosRecebidos = (p.creditosRecebidos || []).concat(c.id).slice(-200);
+      var ouro = Math.round(Number(c.ouro) || 0), rep = Math.round(Number(c.reputacao) || 0);
+      p.ouro = Math.max(0, (p.ouro || 0) + ouro);
+      p.reputacao = Math.max(0, (p.reputacao || 0) + rep);
+      var partes = [];
+      if (ouro) partes.push((ouro > 0 ? '+' : '−') + Math.abs(ouro).toLocaleString('pt-BR') + ' de ouro');
+      if (rep) partes.push('+' + rep + ' de reputação');
+      var semCaixa = /^(Lance no leilão|Compra no mercado|Fundação do clã|Doação ao tesouro|Oficina: serviço pedido)/.test(c.motivo || '');
+      avisos.push({ texto: (c.motivo || 'Crédito') + ': ' + partes.join(' e ') + '.', tipo: '', origem: semCaixa ? null : origemCredito(c.motivo) });
+    });
+    return { aplicados: aplicados, avisos: avisos };
+  }
+
   function ok(v, padrao) { return v === true ? true : (typeof v === 'string' ? v : padrao); }
   function texto(v) { return typeof v === 'string' ? v : String(v == null ? '' : v); }
 
@@ -130,16 +245,100 @@ Tanka.servidorAcoes = (function () {
     },
     pararMinas: function (p, a, ctx) { var r = R.pararMinas(p, ctx.agora, ctx.rng); return typeof r === 'string' ? r : { resultado: r }; },
     recolherMinas: function (p, a, ctx) { var r = R.recolherMinas(p, ctx.agora, ctx.rng); return typeof r === 'string' ? r : { resultado: r }; },
+
+    // ---- Etapa 4: prêmios e progresso ----
+    // Prêmios e créditos guardados no banco: a lista vem de ctx.pendentes (a função `acao` lê do banco; o que o
+    // navegador mandar é ignorado). Depois de gravar, a função marca os entregues como recebidos.
+    receber: function (p, a, ctx) {
+      var pd = ctx.pendentes || {};
+      var rec = entregarRecompensas(p, pd.recompensas, ctx.rng), cr = aplicarCreditos(p, pd.creditos);
+      return { resultado: { entregues: rec.entregues, creditos: cr.aplicados, avisos: cr.avisos.concat(rec.avisos) } };
+    },
+    // skills do clã: ctx.cla vem do banco (cacada_bonus)
+    sincronizarCla: function (p, a, ctx) {
+      if (ctx.cla === undefined) return 'Clã indisponível.';
+      if (ctx.cla) p.cla = ctx.cla; else delete p.cla;
+      return true;
+    },
+    // [tipo: 'diarias'|'semanais', id]
+    missao: function (p, a, ctx) {
+      a = Array.isArray(a) ? a : [];
+      var pr = R.resgatarMissao(p, texto(a[0]), texto(a[1]), ctx.agora);
+      return pr ? { resultado: pr } : 'Missão ainda não concluída.';
+    },
+    bauDiario: function (p, a, ctx) { var pr = R.resgatarBonusDiario(p, ctx.agora); return pr ? { resultado: pr } : 'Baú indisponível.'; },
+    pegarLogin: function (p, a, ctx) {
+      var r = R.pegarLogin(p, ctx.agora, ctx.rng);
+      if (!r) return 'Prêmio de hoje já pego.';
+      return r.erro ? r.erro : { resultado: r };
+    },
+    comecarGuia: function (p) { R.comecarGuia(p); return true; },
+    pularGuia: function (p) { R.pularGuia(p); return true; },
+    // aba aberta (o passo "visite a Loja"); confere o guia
+    guiaAba: function (p, a) { R.registrarGuia(p, 'aba', texto(a)); return { resultado: R.verificarGuia(p) }; },
+    verificarGuia: function (p) { return { resultado: R.verificarGuia(p) }; },
+    historiaVista: function (p) { R.marcarHistoriaVista(p); return true; },
+    concluirCapitulo: function (p, a, ctx) {
+      var f = R.concluirCapitulo(p, ctx.rng);
+      if (!f) return 'Capítulo ainda não concluído.';
+      return f.erro ? f.erro : { resultado: f };
+    },
+    acampar: function (p, a, ctx) { R.acampar(p, ctx.agora, !!a); return true; },
+    // Luta da Arena ou masmorra terminou: conta nas missões, no guia e na História. { tipo, vitoria, alvo, run }
+    // (resultado informado pelo jogo; limitado a uma luta a cada `intervalo` segundos de cada tipo)
+    eventoJogo: function (p, a, ctx) {
+      a = a && typeof a === 'object' ? a : {};
+      var INTERVALO = { arena: 8, masmorra: 25 }, tipo = texto(a.tipo);
+      if (!INTERVALO[tipo]) return 'Pedido inválido.';
+      p.eventos = p.eventos || {};
+      if (ctx.agora - (p.eventos[tipo] || 0) < INTERVALO[tipo] * 1000) return { resultado: { ignorado: true } };
+      p.eventos[tipo] = ctx.agora;
+      var historia = false;
+      if (tipo === 'arena') {
+        R.registrarMissao(p, 'arena', 1, ctx.agora);
+        if (a.vitoria) R.registrarMissao(p, 'arenaVitoria', 1, ctx.agora);
+        R.registrarGuia(p, 'arena');
+      } else if (a.vitoria) {
+        var mis = R.garantirMissoes(p, ctx.agora), run = texto(a.run);
+        if (run && mis.runs.indexOf(run) >= 0) return { resultado: { ignorado: true } };
+        if (run) mis.runs = mis.runs.concat(run).slice(-20);
+        R.registrarMissao(p, 'masmorra', 1, ctx.agora);
+        historia = !!R.registrarHistoria(p, 'masmorra', texto(a.alvo));
+      }
+      return { resultado: { guia: R.verificarGuia(p), historia: historia } };
+    },
+    // O que não vale nada (preferências, caixa de entrada, tempo jogado, título já ganho): o resto da ficha é ignorado.
+    preferencias: function (p, a) {
+      a = a && typeof a === 'object' ? a : {};
+      if (a.prefsCacada && typeof a.prefsCacada === 'object') {
+        var pc = a.prefsCacada;
+        p.prefsCacada = { lutarSempre: !!pc.lutarSempre, pocao: Math.max(0, Math.min(100, Number(pc.pocao) || 0)),
+          chefe: ['perguntar', 'lutar', 'fugir'].indexOf(pc.chefe) >= 0 ? pc.chefe : 'perguntar' };
+      }
+      if (Array.isArray(a.caixa)) p.caixa = a.caixa.slice(0, 60).map(function (c) {
+        return { t: Number(c && c.t) || 0, o: texto(c && c.o).slice(0, 20), x: texto(c && c.x).slice(0, 300) };
+      });
+      if (a.caixaVista != null) p.caixaVista = Number(a.caixaVista) || 0;
+      if (a.atividade && typeof a.atividade === 'object') {
+        var at = p.atividade || (p.atividade = { logado: 0, cacando: 0 });
+        ['logado', 'cacando'].forEach(function (k) { var v = Number(a.atividade[k]); if (v > (at[k] || 0)) at[k] = v; });
+      }
+      if (a.titulo !== undefined) { if (!a.titulo) delete p.titulo; else if ((p.titulos || []).indexOf(a.titulo) >= 0) p.titulo = a.titulo; }
+      ['recomecoPresente', 'presenteForcaCacador', 'presenteDestrezaCacador'].forEach(function (k) { if (a[k] === 2 && p[k] === 1) p[k] = 2; });   // só "já avisei"
+      return true;
+    },
   };
 
   // Roda uma ação no personagem `p` (já carregado e normalizado). Devolve {} ou { erro }.
   // Devolve {} (ou { resultado } nas ações sorteadas) ou { erro }. rng: sorteio de quem chama (servidor: Math.random).
-  function executar(p, acao, args, agora, rng) {
+  // extra: o que a função do servidor leu do banco (pendentes, cla).
+  function executar(p, acao, args, agora, rng, extra) {
     if (!Object.prototype.hasOwnProperty.call(ACOES, acao)) return { erro: 'Ação desconhecida.' };
     agora = agora || Date.now();
     R.atualizarTempo(p, agora);
     var r;
-    try { r = ACOES[acao](p, args, { agora: agora, rng: rng || Math.random }); } catch (e) { r = 'Pedido inválido.'; }
+    var ctx = Object.assign({}, extra || {}, { agora: agora, rng: rng || Math.random });
+    try { r = ACOES[acao](p, args, ctx); } catch (e) { r = 'Pedido inválido.'; }
     if (r !== true && !(r && typeof r === 'object' && 'resultado' in r)) return { erro: typeof r === 'string' ? r : 'Não foi possível.' };
     p.poder = R.poder(p);
     return r === true ? {} : { resultado: r.resultado };

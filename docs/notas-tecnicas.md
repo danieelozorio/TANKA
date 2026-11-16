@@ -1004,5 +1004,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   gemas}), `fabricarReceita`, `fabricarProtecao`, `iniciarMinas` ([opção, área]), `pararMinas`, `recolherMinas`.
   Sorteios no servidor: a ação devolve `{ resultado }` (executar(p, acao, args, agora, rng)) e a tela anima com ele
   (encantar espera a resposta antes de abrir a forja; `estado.encantando` evita clique duplo). Oficina já era do servidor.
+- Etapa 4 (prêmios e progresso): `receber` (prêmios da tabela recompensas + créditos: a função lê `pendentes(meu)` do banco,
+  aplica com `entregarRecompensas`/`aplicarCreditos` (p.recebidas / p.creditosRecebidos evitam repetir), grava e só
+  então chama `recompensa_resgatar`/`credito_aplicar`), `sincronizarCla` (skills lidas de `cacada_bonus`), `missao`,
+  `bauDiario`, `pegarLogin`, `comecarGuia`, `pularGuia`, `guiaAba`, `verificarGuia`, `historiaVista`, `concluirCapitulo`,
+  `acampar`, `eventoJogo` ({tipo arena|masmorra, vitoria, alvo, run}: missões/guia/História; 1 a cada 8 s/25 s; ainda é o
+  jogo que informa o resultado) e `preferencias` (só prefsCacada, caixa, caixaVista, atividade, título já ganho e os
+  avisos de presente; grava sempre = marca online). Cliente: `salvarPreferencias()` (junta pedidos em 400 ms) e
+  `receberPendentes()`. A função não grava se nada mudou (exceto preferências).
+- Ainda gravam a ficha direto: anunciar no Mercado e pedir na Oficina (o servidor já mexeu na ficha; trocar por reler),
+  caçada no jeito antigo (só sem a função `cacada`), admin e os jeitos antigos sem a função `acao`.
 - Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
   funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).

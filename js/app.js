@@ -468,7 +468,7 @@
     var c = estado.cacada;
     R.registrarAtividade(p, seg, !!(c && c.fase !== 'parada'));
     atividade.desdeSalvar += seg;
-    if (atividade.desdeSalvar >= 60) { atividade.desdeSalvar = 0; salvar(); }
+    if (atividade.desdeSalvar >= 60) { atividade.desdeSalvar = 0; salvarPreferencias(); }
     var l = document.getElementById('atividade-logado'), k = document.getElementById('atividade-cacando');
     if (l) l.textContent = tempoAtividade(p.atividade.logado);
     if (k) k.textContent = tempoAtividade(p.atividade.cacando);
@@ -479,7 +479,7 @@
     tiqueAtividade();
     clearInterval(atividade.relogio);
     atividade.relogio = null;
-    salvar();
+    salvarPreferencias();
   }
   function tempoAtividade(segundos) {
     var s = Math.floor(Number(segundos) || 0), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
@@ -515,7 +515,7 @@
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
-    salvar();   // também marca o personagem como online para os amigos
+    salvarPreferencias();   // também marca o personagem como online para os amigos
     if (presente) setTimeout(function () {
       avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
     }, 800);
@@ -671,7 +671,7 @@
     p.caixa = p.caixa || [];
     p.caixa.unshift({ t: C.agora(), o: origem, x: texto });
     if (p.caixa.length > 80) p.caixa.length = 80;
-    salvar();
+    salvarPreferencias();
     atualizarSelos();
   }
   function caixaNaoLidas(p) {
@@ -765,7 +765,7 @@
     if (estado.painelTopo === 'caixa') {
       estado.caixaVistaAntes = p.caixaVista || 0;
       p.caixaVista = C.agora();
-      salvar();
+      salvarPreferencias();
     } else if (estado.painelTopo === 'sino') {
       var n = lerNotificacoes();
       estado.sinoVistoAntes = n.vista;
@@ -2979,8 +2979,13 @@
     else if (acao === 'login') { missoesUI.aberto = false; estado.loginAberto = true; estado.loginResultado = null; telaJogo(); }
     else if (acao === 'secao') missoesUI[el.dataset.tipo] = !missoesUI[el.dataset.tipo];
     else if (acao === 'resgatar' || acao === 'bau') {
-      var premio = acao === 'bau' ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
-      if (premio) { salvar(); atualizarFicha(); avisar((acao === 'bau' ? 'Baú do dia: ' : 'Missão concluída: ') + premio + '!', acao === 'bau' ? 'item' : 'nivel'); }
+      var premioLocal = null, ehBau = acao === 'bau', tipoM = el.dataset.tipo, idM = el.dataset.id;
+      acaoServidor(ehBau ? 'bauDiario' : 'missao', ehBau ? null : [tipoM, idM], function () {
+        premioLocal = ehBau ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, tipoM, idM, C.agora());
+      }).then(function (r) {
+        var premio = r ? r.resultado : premioLocal;
+        if (premio) { atualizarFicha(); desenharMissoes(); avisar((ehBau ? 'Baú do dia: ' : 'Missão concluída: ') + premio + '!', ehBau ? 'item' : 'nivel'); }
+      });
     }
     desenharMissoes();
   }
@@ -3872,8 +3877,8 @@
     var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
     var alvos = soEstes ? soEstes.slice() : area ? selecaoArea(area).slice() : [];
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
-    if (R.atualizarTempo(p, C.agora())) salvar();
-    if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
+    R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
+    if (p.acampado) { R.acampar(p, C.agora(), false); acaoServidor('acampar', false); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
     if (!R.estaminaParaCacar(p, alvos)) { avisar('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     pararTimersCacada();
     estado.resultado = null;
@@ -3906,7 +3911,7 @@
   function procurarMonstro() {
     var c = estado.cacada, p = estado.personagem;
     if (!c || !c.ativa) return;
-    if (R.atualizarTempo(p, C.agora())) salvar();
+    R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
     if (!R.estaminaParaCacar(p, c.alvos)) { pararCacada('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     c.fase = 'buscando';
     c.encontro = null;
@@ -4105,6 +4110,41 @@
       if (e && (e.status === 404 || (!e.status && !ACAO_RESPONDEU))) { ACAO_SERVIDOR = false; return antigo(); }
       avisar('Não foi possível salvar: ' + ((e && e.message) || e));
       return null;
+    });
+  }
+  // O que não vale nada (preferências, caixa de entrada, tempo jogado...) vai pela ação `preferencias`: o servidor só
+  // aceita esses campos. Junta vários pedidos seguidos num só.
+  var prefsTimer = null;
+  function salvarPreferencias() {
+    if (!ACAO_SERVIDOR) { salvar(); return; }
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(function () {
+      var p = estado.personagem;
+      if (!p) return;
+      acaoServidor('preferencias', { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
+        atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
+        presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador });
+    }, 400);
+  }
+  // Prêmios (recompensas) e créditos (ouro/reputação) guardados no servidor: o servidor entrega e marca.
+  var avisoCheiaEm = 0;
+  function receberPendentes() {
+    var p = estado.personagem, g = estado.gm;
+    if (!p || estado.resgatando) return Promise.resolve();
+    estado.resgatando = true;
+    return acaoServidor('receber').then(function (r) {
+      estado.resgatando = false;
+      if (g) g.recompensas = [];
+      var av = r && r.resultado ? r.resultado.avisos : [];
+      av.forEach(function (a) {
+        if (/^Mochila cheia/.test(a.texto)) {   // não repete o aviso a cada atualização
+          if (avisoCheiaEm && Date.now() - avisoCheiaEm < 60000) return;
+          avisoCheiaEm = Date.now();
+        }
+        avisar(a.texto, a.tipo);
+        if (a.origem) caixaRegistrar(a.origem, a.texto);
+      });
+      if (!estado.luta && !estado.batalha && !estado.resultado && !estado.chefeAviso && !estado.lutaArena) telaJogo();
     });
   }
   function erroCacada(e) {
@@ -4431,7 +4471,11 @@
   }
 
   function abrirAba(aba) {
-    if (estado.personagem) R.registrarGuia(estado.personagem, 'aba', aba);
+    if (estado.personagem) {
+      var gAntes = estado.personagem.guia && !estado.personagem.guia.fim && !estado.personagem.guia.loja;
+      R.registrarGuia(estado.personagem, 'aba', aba);
+      if (gAntes && estado.personagem.guia.loja) acaoServidor('guiaAba', aba);
+    }
     var menu = document.getElementById('menu-jogo');
     if (menu) menu.open = false;
     estado.aba = aba;
@@ -4701,14 +4745,19 @@
       case 'jogar': abrirJogo(el.dataset.id); break;
       case 'login-fechar': estado.loginAberto = false; estado.loginResultado = null; telaJogo(); break;
       case 'login-pegar': {
-        var rl = R.pegarLogin(estado.personagem, C.agora());
-        if (!rl) break;
-        if (rl.erro) { avisar(rl.erro); break; }
-        estado.loginResultado = rl;
-        salvar(); atualizarFicha(); desenharMissoes();
-        rl.itens.forEach(avisarItem);
-        avisar('🎁 Prêmio de login: ' + rl.partes.map(function (x) { return x.texto; }).join(' + '), 'item');
-        telaJogo();
+        var loginLocal = null;
+        el.disabled = true;
+        acaoServidor('pegarLogin', null, function () { loginLocal = R.pegarLogin(estado.personagem, C.agora()); }).then(function (r) {
+          var rl = r ? r.resultado : loginLocal;
+          el.disabled = false;
+          if (!rl) return;
+          if (rl.erro) { avisar(rl.erro); return; }
+          estado.loginResultado = rl;
+          atualizarFicha(); desenharMissoes();
+          rl.itens.forEach(avisarItem);
+          avisar('🎁 Prêmio de login: ' + rl.partes.map(function (x) { return x.texto; }).join(' + '), 'item');
+          telaJogo();
+        });
         break;
       }
       case 'aba': estado.cascata = false; estado.cascataGrupo = null; abrirAba(el.dataset.aba); break;
@@ -4857,9 +4906,9 @@
       case 'leilao-fechar':
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn, .zoom-x')) break;
         estado.leilaoVer = null; telaJogo(); break;
-      case 'guia-comecar': R.comecarGuia(estado.personagem); salvar(); telaJogo(); break;
+      case 'guia-comecar': R.comecarGuia(estado.personagem); acaoServidor('comecarGuia'); telaJogo(); break;
       case 'guia-pular':
-        if (estado.guiaPularConfirma) { R.pularGuia(estado.personagem); estado.guiaPularConfirma = false; salvar(); telaJogo(); }
+        if (estado.guiaPularConfirma) { R.pularGuia(estado.personagem); estado.guiaPularConfirma = false; acaoServidor('pularGuia'); telaJogo(); }
         else { estado.guiaPularConfirma = true; avisar('Clique de novo para fechar o guia. Sem o guia, você não ganha o presente do final.'); setTimeout(function () { estado.guiaPularConfirma = false; }, 6000); }
         break;
       case 'historia-ver': {
@@ -4867,15 +4916,21 @@
         if (!eh || eh.fim) break;
         estado.historiaCena = { rotulo: 'Capítulo ' + (eh.indice + 1) + ' · ' + nomeArea(eh.capitulo.area), titulo: eh.capitulo.titulo,
           falas: eh.capitulo.abertura, botao: eh.visto ? 'Fechar' : 'Aceitar a missão' };
-        if (!eh.visto) { R.marcarHistoriaVista(estado.personagem); salvar(); }
+        if (!eh.visto) { R.marcarHistoriaVista(estado.personagem); acaoServidor('historiaVista'); }
         telaJogo(); break;
       }
       case 'historia-concluir': {
-        var fim = R.concluirCapitulo(estado.personagem);
-        if (!fim) break;
-        if (fim.erro) { avisar(fim.erro); break; }
-        estado.historiaCena = { rotulo: 'Fim do capítulo', titulo: fim.capitulo.titulo, falas: fim.capitulo.fechamento, premio: fim.premio };
-        salvar(); telaJogo(); break;
+        var fimLocal = null;
+        el.disabled = true;
+        acaoServidor('concluirCapitulo', null, function () { fimLocal = R.concluirCapitulo(estado.personagem); }).then(function (r) {
+          var fim = r ? r.resultado : fimLocal;
+          el.disabled = false;
+          if (!fim) return;
+          if (fim.erro) { avisar(fim.erro); return; }
+          estado.historiaCena = { rotulo: 'Fim do capítulo', titulo: fim.capitulo.titulo, falas: fim.capitulo.fechamento, premio: fim.premio };
+          telaJogo();
+        });
+        break;
       }
       case 'historia-reler': {
         var cr = D.HISTORIA.capitulos[Number(el.dataset.valor)];
@@ -5154,13 +5209,13 @@
       }
       case 'acampar':
         R.acampar(p, C.agora(), true);
-        salvar();
+        acaoServidor('acampar', true);
         avisar(p.nome + ' monta acampamento junto à fogueira. A estamina enche em ' + (D.ESTAMINA.minutosAcampado / 60) + ' h.');
         telaJogo();
         break;
       case 'levantar':
         R.acampar(p, C.agora(), false);
-        salvar();
+        acaoServidor('acampar', false);
         telaJogo();
         break;
       case 'pocao-comprar': {
@@ -5370,10 +5425,10 @@
         var alvo = el.dataset.monstro;
         if (!R.monstroLiberado(p, alvo)) { avisar('Derrote ' + D.monstros[R.monstroAnterior(alvo)].nome + ' primeiro.'); break; }
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
-        if (R.atualizarTempo(p, C.agora())) salvar();
+        R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
         estado.resultado = null; iniciarCacada(D.monstros[alvo].area, [alvo]);   // luta avulsa virou caçada de um monstro só
         break;
-        if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
+        if (p.acampado) { R.acampar(p, C.agora(), false); acaoServidor('acampar', false); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
           clearTimeout(estado.timer);
@@ -5445,7 +5500,7 @@
         var prefO = prefsCacada();
         if (el.dataset.campo === 'pocao') prefO.pocao = Number(el.dataset.valor) || 0;
         else prefO.chefe = el.dataset.valor;
-        salvar();
+        salvarPreferencias();
         var blocoO = document.querySelector('.cacada-opcoes');
         if (blocoO) { var tmpO = document.createElement('div'); tmpO.innerHTML = opcoesCacadaHtml(); blocoO.replaceWith(tmpO.firstChild); }
         var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
@@ -5456,7 +5511,7 @@
       }
       case 'cacada-sempre':
         prefsCacada().lutarSempre = el.checked;
-        salvar();
+        salvarPreferencias();
         if (el.checked && estado.cacada && estado.cacada.fase === 'encontrou' && !estado.cacada.encontro.chefe) lutarCacada();
         break;
       case 'fechar-resultado':
@@ -5477,7 +5532,7 @@
     if (document.visibilityState !== 'hidden' || !estado.personagem || !atividade.relogio) return;
     tiqueAtividade();
     atividade.desdeSalvar = 0;
-    salvar();
+    salvarPreferencias();
   });
   // Dentro do jogo o botão direito não abre o menu do navegador: num item da mochila ele equipa (Daniel, nov/2026).
   // Os dois cliques não equipam mais (equipavam sem querer); passar o mouse mostra a ficha.
@@ -5515,7 +5570,7 @@
   // A cada minuto: avisa o servidor que está jogando (online para os amigos) e procura pedidos novos.
   setInterval(function () {
     if (!estado.personagem || estado.batalha || !document.querySelector('.ficha') || document.hidden) return;
-    salvar();
+    salvarPreferencias();   // também marca o personagem como online para os amigos
     carregarSocial();
     carregarAlianca();
   }, 60000);
@@ -5572,6 +5627,12 @@
 
   // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão para os Consumíveis.
   async function resgatarRecompensas(lista) {
+    var l = lista || (estado.gm && estado.gm.recompensas);
+    if (!l || !l.length) return;
+    if (ACAO_SERVIDOR) return receberPendentes();   // o servidor lê a lista do banco e entrega
+    return resgatarRecompensasAntigo(lista);
+  }
+  async function resgatarRecompensasAntigo(lista) {
     // os prêmios recebidos também ficam na caixa de entrada (origem da recompensa)
     var avisarCaixa = function (msg, tipo) { avisar(msg, tipo); caixaRegistrar(origemCaixa(rec && rec.origem), msg); };
     var p = estado.personagem, g = estado.gm;
@@ -5726,12 +5787,12 @@
     if (run.fila && run.estado === 'andamento') C.grupo.concluir(estado.personagem.id, run.id, sim.vitoria).catch(function () {});
     // Missão: cada masmorra vencida conta uma vez por personagem.
     var mis = R.garantirMissoes(estado.personagem, C.agora());
-    if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
-      mis.runs = mis.runs.concat(run.id).slice(-20);
+    if (sim.vitoria && mis.runs.indexOf(String(run.id)) < 0 && mis.runs.indexOf(run.id) < 0) {
+      mis.runs = mis.runs.concat(String(run.id)).slice(-20);
       R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
       missaoCla('masmorra', 1);
       if (R.registrarHistoria(estado.personagem, 'masmorra', run.masmorra)) avisoHistoria();
-      salvar();
+      acaoServidor('eventoJogo', { tipo: 'masmorra', vitoria: true, alvo: run.masmorra, run: String(run.id) });
     }
     estado.luta = {
       run: run, sim: sim, mm: R.masmorra(run.masmorra), idx: 0, sala: 0, fim: false, rapido: false, registro: [],
@@ -5888,7 +5949,7 @@
     if (!r) return;
     if (r.fim) avisar('🎁 Guia concluído! Mestre Aldric te deu: ' + r.premio + '. Boa jornada, aventureiro!');
     else { var g = R.guiaEstado(p); if (g) avisar('🧭 Guia: ' + g.passo.titulo + '. ' + g.passo.texto); }
-    salvar();
+    acaoServidor('verificarGuia');   // o servidor confere o mesmo passo (e dá o presente do fim)
   }
   function guiaHtml() {
     var p = estado.personagem, g = p && R.guiaEstado(p);
@@ -6349,7 +6410,7 @@
     estado.aba = 'mundial';
     estado.bossUltimo = { dano: dano, enviando: true };
     estado.bossEnvio = Date.now();
-    salvar();
+    salvarPreferencias();
     telaJogo();
     C.boss.atacar(p.id, dano, b.mundial.chefe).then(function (r) {
       estado.bossUltimo = { dano: r.dano, golpeFinal: r.golpe_final };
@@ -6427,6 +6488,7 @@
   async function aplicarCreditos(lista) {
     var p = estado.personagem;
     if (!p || !lista.length || estado.aplicandoCreditos) return;
+    if (ACAO_SERVIDOR) return receberPendentes();   // o servidor lê os créditos do banco e aplica
     estado.aplicandoCreditos = true;
     try {
       for (var i = 0; i < lista.length; i++) {
@@ -6858,7 +6920,7 @@
       missaoCla('arena', 1);
       R.registrarGuia(estado.personagem, 'arena');
       if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
-      salvar();
+      acaoServidor('eventoJogo', { tipo: 'arena', vitoria: L.luta.situacao === 'vitoria' });
       fecharDado3d(); redesenharArena(); carregarArena(); return;
     }
     // Sua vez: a janela com o D20, o botão e 5 segundos.
@@ -7023,7 +7085,7 @@
     var novo = st.alianca ? { id: st.alianca.id, skills: st.skills || {} } : null;
     if (JSON.stringify(novo) === JSON.stringify(p.cla || null)) return;
     if (novo) p.cla = novo; else delete p.cla;
-    salvar();
+    acaoServidor('sincronizarCla');   // o servidor lê as skills do banco
     atualizarFicha();
   }
   function iconeSkillCla(k) {

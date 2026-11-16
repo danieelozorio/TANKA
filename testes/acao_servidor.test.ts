@@ -17,11 +17,17 @@ const banco: Record<string, { conta_id: string; dados: any }> = {
   outro: { conta_id: 'u2', dados: JSON.parse(JSON.stringify(R.criarPersonagem('Outro', 'masculino', 'humano', 'mago'))) },
 };
 let recusarGravacao = '';
+let pendentes: any = { recompensas: [], creditos: [] };
+const marcados: string[] = [];
 g.fetch = (async (url: string, init: any = {}) => {
   const u = new URL(url), h = init.headers || {};
   const token = String(h.Authorization || '').replace('Bearer ', '');
   const json = (x: unknown, st = 200) => new Response(JSON.stringify(x), { status: st });
   if (u.pathname === '/auth/v1/user') return token === 'tok-u1' ? json({ id: 'u1' }) : json({ msg: 'bad' }, 401);
+  if (u.pathname === '/rest/v1/rpc/pendentes') return json(pendentes);
+  if (u.pathname === '/rest/v1/rpc/cacada_bonus') return json({ cla: { id: 7, skills: { exp: 3 } }, exp: 0, ouro: 0 });
+  if (u.pathname === '/rest/v1/rpc/recompensa_resgatar') { marcados.push('r' + JSON.parse(init.body).recompensa); return json({}); }
+  if (u.pathname === '/rest/v1/rpc/credito_aplicar') { marcados.push('c' + JSON.parse(init.body).credito); return json({}); }
   if (u.pathname === '/rest/v1/personagens') {
     const id = (u.searchParams.get('id') || '').replace('eq.', '');
     const linha = banco[id];
@@ -130,6 +136,34 @@ ok(x.j.erro, 'minas: não recolhe antes do fim');
 relogio += 31 * 60000;
 x = await pedir({ personagem: p0.id, acao: 'recolherMinas' });
 ok(!x.j.erro && x.j.resultado && x.j.resultado.qtd > 0 && !d().minas, 'minas: recolhe com a quantidade sorteada no servidor');
+
+// ---- Etapa 4: prêmios e progresso ----
+d().ouro = 1000;
+pendentes = { recompensas: [{ id: 11, origem: 'masmorra', item: { tipo: 'pergaminho', raridade: 'rara', qtd: 2 } }],
+  creditos: [{ id: 21, ouro: 500, reputacao: 3, motivo: 'Vitória na Arena' }] };
+const pergAntes = R.qtdPergaminho(d(), 'rara');
+x = await pedir({ personagem: p0.id, acao: 'receber', args: { recompensas: [{ id: 99, item: { tipo: 'pergaminho', raridade: 'lendaria', qtd: 99 } }] } });
+ok(!x.j.erro && R.qtdPergaminho(d(), 'rara') === pergAntes + 2 && R.qtdPergaminho(d(), 'lendaria') === 0, 'receber: entrega o que está no banco e ignora o que o navegador manda');
+ok(d().ouro === 1500 && marcados.join() === 'r11,c21', 'receber: aplica o crédito e marca os dois como recebidos depois de gravar');
+ok(x.j.resultado.avisos.length === 2, 'receber: devolve os avisos para a tela');
+const vRec = d().versao;
+x = await pedir({ personagem: p0.id, acao: 'receber' });
+ok(R.qtdPergaminho(d(), 'rara') === pergAntes + 2 && d().ouro === 1500, 'receber de novo (marcação falhou): p.recebidas não entrega duas vezes');
+pendentes = { recompensas: [], creditos: [] };
+x = await pedir({ personagem: p0.id, acao: 'receber' });
+ok(d().versao === vRec, 'nada para receber: não grava de novo');
+x = await pedir({ personagem: p0.id, acao: 'sincronizarCla', args: { id: 1, skills: { exp: 10 } } });
+ok(!x.j.erro && d().cla.skills.exp === 3, 'clã: as skills vêm do banco, não do navegador');
+x = await pedir({ personagem: p0.id, acao: 'missao', args: ['diarias', 'monstros'] });
+ok(x.j.erro, 'missão não concluída: recusada');
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', vitoria: true } });
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', vitoria: true } });
+ok(x.j.resultado && x.j.resultado.ignorado, 'evento da Arena repetido em menos de 8 s: ignorado');
+const ouroPref = d().ouro;
+x = await pedir({ personagem: p0.id, acao: 'preferencias', args: { ouro: 99999999, nivel: 60, caixaVista: 123, prefsCacada: { pocao: 30, chefe: 'lutar' } } });
+ok(!x.j.erro && d().ouro === ouroPref && d().nivel === 12 && d().caixaVista === 123 && d().prefsCacada.pocao === 30, 'preferências: grava só os campos permitidos');
+x = await pedir({ personagem: p0.id, acao: 'acampar', args: true });
+ok(!x.j.erro && !!d().acampado === (Tanka.dados.ESTAMINA.acampar !== false), 'acampar');
 
 recusarGravacao = 'Proteção do jogo: ouro demais de uma vez.';
 const v = d().versao;

@@ -1233,6 +1233,19 @@ revoke execute on function public.cacada_bonus(text) from public, anon;
 grant execute on function public.cacada_bonus(text) to authenticated;
 
 -- Pega uma recompensa (o jogo coloca na mochila e salva).
+-- Prêmios e créditos ainda não entregues (plano "tudo no servidor", etapa 4): a função `acao` lê daqui e aplica.
+create or replace function public.pendentes(meu text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  return jsonb_build_object(
+    'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
+      from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb),
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'ouro', c.ouro, 'reputacao', c.reputacao, 'motivo', c.motivo) order by c.id)
+      from public.creditos c where c.personagem_id = meu and not c.aplicado), '[]'::jsonb));
+end $$;
+grant execute on function public.pendentes(text) to authenticated;
+
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare it jsonb;

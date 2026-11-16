@@ -42,13 +42,34 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 403);
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
+  const antesNormal = JSON.stringify(p);
 
-  // 2. a regra, com o relógio do servidor
+  // 2. o que vem do banco (nunca do navegador): prêmios/créditos pendentes e as skills do clã
+  const extra: Record<string, unknown> = {};
+  const rpc = (nome: string, corpo: unknown) => fetch(base + '/rest/v1/rpc/' + nome, { method: 'POST', headers: cab, body: JSON.stringify(corpo) });
+  if (acao === 'receber') {
+    const pd = await rpc('pendentes', { meu: id });
+    if (!pd.ok) return responder({ erro: 'Não foi possível ler os prêmios.', personagem: linhas[0].dados });
+    extra.pendentes = await pd.json();
+  }
+  if (acao === 'sincronizarCla') {
+    const b = await rpc('cacada_bonus', { meu: id });
+    if (b.ok) { const cla = await b.json(); extra.cla = cla && cla.cla ? cla.cla : null; }
+  }
+
+  // 3. a regra, com o relógio e o sorteio do servidor
   const t = agora();
-  const saida = A.executar(p, acao, pedido.args, t, sorteio);
+  const antesTempo = JSON.parse(antesNormal);
+  R.atualizarTempo(antesTempo, t);
+  antesTempo.poder = R.poder(antesTempo);
+  const antes = JSON.stringify(antesTempo);   // (a estamina que encheu sozinha não conta como mudança)
+  const saida = A.executar(p, acao, pedido.args, t, sorteio, extra);
   if (saida.erro) return responder({ erro: saida.erro, personagem: linhas[0].dados, agora: t });
 
-  // 3. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
+  // nada mudou (ex.: prêmio que não cabe na mochila): não grava de novo (preferências gravam sempre: marca "online")
+  if (acao !== 'preferencias' && JSON.stringify(p) === antes) return responder({ personagem: linhas[0].dados, agora: t, resultado: saida.resultado });
+
+  // 4. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
   p.versao = versao + 1;
   const filtro = versao ? 'dados->>versao=eq.' + versao : 'dados->>versao=is.null';
   const g = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&' + filtro + '&select=id', {
@@ -61,6 +82,12 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   }
   const gravou = await g.json();
   if (!gravou.length) return responder({ erro: 'Este personagem foi jogado em outra aba ou aparelho. Recarregando...', conflito: true }, 409);
+  // 5. prêmios entregues: só agora (depois de gravar) marca como recebidos (p.recebidas evita repetir se falhar)
+  if (acao === 'receber' && saida.resultado) {
+    const r5 = saida.resultado as { entregues: number[]; creditos: number[] };
+    for (const rid of r5.entregues) await rpc('recompensa_resgatar', { meu: id, recompensa: rid }).catch(() => null);
+    for (const cid of r5.creditos) await rpc('credito_aplicar', { meu: id, credito: cid }).catch(() => null);
+  }
   return responder({ personagem: p, agora: t, resultado: saida.resultado });
 }
 
