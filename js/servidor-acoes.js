@@ -103,17 +103,46 @@ Tanka.servidorAcoes = (function () {
     comprarSkin: function (p, a) { return ok(R.comprarSkin(p, texto(a)), 'Skin inválida.'); },
     comprarRecomeco: function (p) { return ok(R.comprarRecomeco(p), 'Não foi possível comprar.'); },
     comprarRecomecoHabilidades: function (p) { return ok(R.comprarRecomecoHabilidades(p), 'Não foi possível comprar.'); },
+
+    // ---- Etapa 3: Forja, Oficina e Minas (sorteios feitos aqui; o resultado volta para a tela animar) ----
+    // [itemId, usarProtecao]
+    encantar: function (p, a, ctx) {
+      a = Array.isArray(a) ? a : [];
+      var t = R.encantar(p, texto(a[0]), ctx.rng, !!a[1]);
+      if (!t) return 'Não dá para encantar esse item.';
+      R.registrarMissao(p, 'encantar', 1, ctx.agora);
+      if (t.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, ctx.agora);
+      return { resultado: t };
+    },
+    // { area, classe, tipo, chefe, gemas }
+    forjar: function (p, a, ctx) {
+      a = a && typeof a === 'object' ? a : {};
+      var n = function (v) { return Math.max(0, Math.floor(Number(v) || 0)); };
+      var r = R.forjar(p, texto(a.area), texto(a.classe), texto(a.tipo), n(a.chefe), n(a.gemas), ctx.rng);
+      return typeof r === 'string' ? r : { resultado: { item: r.item, obraPrima: !!r.obraPrima } };
+    },
+    fabricarReceita: function (p, a) { return ok(R.fabricarReceita(p, texto(a)), 'Não foi possível fabricar.'); },
+    fabricarProtecao: function (p, a) { return ok(R.fabricarProtecao(p, texto(a)), 'Não foi possível fabricar.'); },
+    // [opção de tempo, área]
+    iniciarMinas: function (p, a, ctx) {
+      a = Array.isArray(a) ? a : [];
+      return ok(R.iniciarMinas(p, Math.floor(Number(a[0]) || 0), ctx.agora, texto(a[1])), 'Não foi possível minerar.');
+    },
+    pararMinas: function (p, a, ctx) { var r = R.pararMinas(p, ctx.agora, ctx.rng); return typeof r === 'string' ? r : { resultado: r }; },
+    recolherMinas: function (p, a, ctx) { var r = R.recolherMinas(p, ctx.agora, ctx.rng); return typeof r === 'string' ? r : { resultado: r }; },
   };
 
   // Roda uma ação no personagem `p` (já carregado e normalizado). Devolve {} ou { erro }.
-  function executar(p, acao, args, agora) {
+  // Devolve {} (ou { resultado } nas ações sorteadas) ou { erro }. rng: sorteio de quem chama (servidor: Math.random).
+  function executar(p, acao, args, agora, rng) {
     if (!Object.prototype.hasOwnProperty.call(ACOES, acao)) return { erro: 'Ação desconhecida.' };
-    if (agora) R.atualizarTempo(p, agora);
+    agora = agora || Date.now();
+    R.atualizarTempo(p, agora);
     var r;
-    try { r = ACOES[acao](p, args, { agora: agora }); } catch (e) { r = 'Pedido inválido.'; }
-    if (r !== true) return { erro: typeof r === 'string' ? r : 'Não foi possível.' };
+    try { r = ACOES[acao](p, args, { agora: agora, rng: rng || Math.random }); } catch (e) { r = 'Pedido inválido.'; }
+    if (r !== true && !(r && typeof r === 'object' && 'resultado' in r)) return { erro: typeof r === 'string' ? r : 'Não foi possível.' };
     p.poder = R.poder(p);
-    return {};
+    return r === true ? {} : { resultado: r.resultado };
   }
 
   return { executar: executar, acoes: Object.keys(ACOES) };

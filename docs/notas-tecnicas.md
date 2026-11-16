@@ -1000,5 +1000,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `comprarPocao`, `comprarPoteEstamina`, `trocarPergaminho`, `comprarSkin`, `comprarRecomeco`, `comprarRecomecoHabilidades`.
   `acaoServidor(nome, args, local)` devolve promessa; `local` é o jeito antigo (só sem a função). Mercado entre
   jogadores (anunciar/comprar) já é do servidor, mas o cliente ainda grava a ficha depois: na etapa 5, trocar por reler.
+- Etapa 3 (Forja, Oficina, Minas): `encantar` ([id, protecao]; conta as missões), `forjar` ({area, classe, tipo, chefe,
+  gemas}), `fabricarReceita`, `fabricarProtecao`, `iniciarMinas` ([opção, área]), `pararMinas`, `recolherMinas`.
+  Sorteios no servidor: a ação devolve `{ resultado }` (executar(p, acao, args, agora, rng)) e a tela anima com ele
+  (encantar espera a resposta antes de abrir a forja; `estado.encantando` evita clique duplo). Oficina já era do servidor.
 - Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
   funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).

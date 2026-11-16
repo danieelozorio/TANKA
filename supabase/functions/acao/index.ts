@@ -1,7 +1,7 @@
 // Edge Function `acao` (plano "tudo no servidor", Henri, nov/2026): ações do herói decididas aqui, no servidor.
 // O jogo manda { personagem, acao, args } com o login do jogador (Authorization). A função:
 //   1. confere o login (Auth do Supabase) e carrega o personagem do banco COM o login do jogador (só lê o que é dele);
-//   2. roda a ação (js/servidor-acoes.js, empacotado em _shared/tanka.js) com o relógio do servidor;
+//   2. roda a ação (js/servidor-acoes.js, empacotado em _shared/tanka.js) com o relógio e o sorteio do servidor;
 //   3. grava o personagem com a proteção de versão (como o jogo faz) e devolve o personagem novo.
 // Ação recusada: devolve { erro } e o personagem como está no banco (o jogo volta para ele).
 // Publicada sem "verify JWT" do gateway, como a `cacada`: o login é conferido no passo 1.
@@ -19,7 +19,7 @@ function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
-export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Date.now()): Promise<Response> {
+export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Date.now(), sorteio = Math.random): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return responder({ erro: 'Use POST.' }, 405);
   const auth = req.headers.get('Authorization') ?? '';
@@ -45,7 +45,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
 
   // 2. a regra, com o relógio do servidor
   const t = agora();
-  const saida = A.executar(p, acao, pedido.args, t);
+  const saida = A.executar(p, acao, pedido.args, t, sorteio);
   if (saida.erro) return responder({ erro: saida.erro, personagem: linhas[0].dados, agora: t });
 
   // 3. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
@@ -61,7 +61,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   }
   const gravou = await g.json();
   if (!gravou.length) return responder({ erro: 'Este personagem foi jogado em outra aba ou aparelho. Recarregando...', conflito: true }, 409);
-  return responder({ personagem: p, agora: t });
+  return responder({ personagem: p, agora: t, resultado: saida.resultado });
 }
 
 if (import.meta.main) Deno.serve((req) => tratar(req));

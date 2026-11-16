@@ -276,11 +276,11 @@ Tanka.contas = (function () {
       var guardado = contas[chave].personagens.find(function (x) { return x.id === personagemId; });
       if (!guardado) throw new Error('Personagem não encontrado.');
       var t = Date.now(), p = Tanka.regras.normalizar(JSON.parse(JSON.stringify(guardado)));
-      var saida = Tanka.servidorAcoes.executar(p, nome, args, t);
+      var saida = Tanka.servidorAcoes.executar(p, nome, args, t, Math.random);
       if (saida.erro) return { erro: saida.erro, personagem: JSON.parse(JSON.stringify(guardado)), agora: t, diferenca: 0 };
       p.versao = (Number(p.versao) || 0) + 1;
       salvarPersonagem(p);
-      return { personagem: JSON.parse(JSON.stringify(p)), agora: t, diferenca: 0 };
+      return { personagem: JSON.parse(JSON.stringify(p)), agora: t, diferenca: 0, resultado: saida.resultado };
     },
     excluirPersonagem: async function (id) {
       var chave = sessao(), contas = ler();

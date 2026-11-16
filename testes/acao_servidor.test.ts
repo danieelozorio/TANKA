@@ -39,10 +39,11 @@ g.fetch = (async (url: string, init: any = {}) => {
 }) as typeof fetch;
 
 const base = 'https://x.supabase.co';
+let relogio = 1_800_000_000_000;
 const pedir = async (corpo: unknown, token = 'tok-u1') => {
   const r = await tratar(new Request(base + '/functions/v1/acao', {
     method: 'POST', headers: { Authorization: 'Bearer ' + token, apikey: 'pub', 'Content-Type': 'application/json' }, body: JSON.stringify(corpo),
-  }), base, () => 1_800_000_000_000);
+  }), base, () => relogio);
   return { status: r.status, j: await r.json() };
 };
 const d = () => banco[p0.id].dados;
@@ -110,6 +111,25 @@ x = await pedir({ personagem: p0.id, acao: 'comprar', args: { tipo: 'elmo' } });
 ok(x.j.erro && d().inventario.length === nAntes, 'comprar sem ouro: recusado');
 x = await pedir({ personagem: p0.id, acao: 'comprarRecomeco' });
 ok(x.j.erro, 'pergaminho do recomeço sem ouro: recusado');
+
+// ---- Etapa 3: Forja, Oficina e Minas ----
+d().ouro = 100000;
+R.mudarPergaminho(d(), d().inventario.find((i: any) => i.id === d().equipados.arma).raridade, 3);
+const armaId = d().equipados.arma;
+x = await pedir({ personagem: p0.id, acao: 'encantar', args: [armaId, false] });
+ok(!x.j.erro && x.j.resultado && x.j.resultado.sucesso === true && d().inventario.find((i: any) => i.id === armaId).encanto === 1, 'encantar: +1 sorteado e gravado no servidor (até +3 nunca falha)');
+ok(d().missoes && JSON.stringify(d().missoes).includes('encantar'), 'encantar conta na missão');
+x = await pedir({ personagem: p0.id, acao: 'encantar', args: ['nao-existe', false] });
+ok(x.j.erro, 'encantar item que não existe: recusado');
+x = await pedir({ personagem: p0.id, acao: 'forjar', args: { area: 'floresta', classe: 'cavaleiro', tipo: 'arma' } });
+ok(x.j.erro && /Ferreiro/.test(x.j.erro), 'forjar sem ser Ferreiro: recusado');
+x = await pedir({ personagem: p0.id, acao: 'iniciarMinas', args: [0, 'floresta'] });
+ok(!x.j.erro && d().minas && d().minas.area === 'floresta', 'minas: começa no servidor');
+x = await pedir({ personagem: p0.id, acao: 'recolherMinas' });
+ok(x.j.erro, 'minas: não recolhe antes do fim');
+relogio += 31 * 60000;
+x = await pedir({ personagem: p0.id, acao: 'recolherMinas' });
+ok(!x.j.erro && x.j.resultado && x.j.resultado.qtd > 0 && !d().minas, 'minas: recolhe com a quantidade sorteada no servidor');
 
 recusarGravacao = 'Proteção do jogo: ouro demais de uma vez.';
 const v = d().versao;

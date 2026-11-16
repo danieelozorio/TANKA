@@ -2993,17 +2993,25 @@
     var alvoEnc = p.inventario.find(function (i) { return i.id === id; });
     var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
     var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
-    // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
-    var tentativa = R.encantar(p, id, null, !!estado.usarProtecao);
-    if (tentativa && tentativa.protegido) riscoEnc = 'protegido';
+    // O resultado é sorteado e gravado NO SERVIDOR antes da animação (recarregar a página no meio não muda nada).
+    if (!alvoEnc || estado.encantando) return;
+    estado.encantando = true;
     estado.encantoPendente = null;
-    if (tentativa) {
-      R.registrarMissao(p, 'encantar', 1, C.agora());
+    var local = null;
+    acaoServidor('encantar', [id, !!estado.usarProtecao], function () {   // jeito antigo (sem a função no servidor)
+      local = R.encantar(p, id, null, !!estado.usarProtecao);
+      if (local) {
+        R.registrarMissao(p, 'encantar', 1, C.agora());
+        if (local.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
+      }
+    }).then(function (r) {
+      estado.encantando = false;
+      var tentativa = r ? r.resultado : local;
+      if (!tentativa) { telaJogo(); return; }
+      if (tentativa.protegido) riscoEnc = 'protegido';
       missaoCla('encantar', 1);
-      if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
-      salvar();
       abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc, rapido);
-    }
+    });
   }
 
   function abrirForja(item, res, chance, risco, rapido) {
@@ -5226,34 +5234,35 @@
       case 'minas-iniciar': {
         if (estado.cacada || estado.batalha || estado.lutaArena) { avisar('Termine a caçada ou a luta antes de minerar.'); break; }
         if (naFilaMasmorra('minerar')) break;
-        var rm = R.iniciarMinas(p, estado.minasTempo == null ? 1 : estado.minasTempo, C.agora(), estado.minasArea);
-        if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
+        var opMinas = estado.minasTempo == null ? 1 : estado.minasTempo;
+        var rm = R.iniciarMinas(p, opMinas, C.agora(), estado.minasArea);
+        if (rm !== true) avisar(rm); else { acaoServidor('iniciarMinas', [opMinas, estado.minasArea]); avisar('⛏ Mineração começou! Volte quando terminar.'); }
         telaJogo();
         break;
       }
-      case 'minas-parar': {
-        var rp2 = R.pararMinas(p, C.agora());
-        if (typeof rp2 !== 'string') salvar();
-        avisoMinas(rp2, true);
-        telaJogo();
-        break;
-      }
+      case 'minas-parar':
       case 'minas-recolher': {
-        var rc = R.recolherMinas(p, C.agora());
-        if (typeof rc !== 'string') salvar();
-        avisoMinas(rc, false);
-        telaJogo();
+        // a quantidade minerada é sorteada no servidor
+        var parouMinas = el.dataset.acao === 'minas-parar', minasLocal = null;
+        el.disabled = true;
+        acaoServidor(parouMinas ? 'pararMinas' : 'recolherMinas', null, function () {
+          minasLocal = parouMinas ? R.pararMinas(p, C.agora()) : R.recolherMinas(p, C.agora());
+        }).then(function (r) {
+          var rmin = r ? r.resultado : minasLocal;
+          if (rmin) avisoMinas(rmin, parouMinas);
+          telaJogo();
+        });
         break;
       }
       case 'craft-receita': {
         var rr = R.fabricarReceita(p, el.dataset.id);
-        if (rr !== true) avisar(rr); else { salvar(); avisar('📜 Receita fabricada!', 'item'); }
+        if (rr !== true) avisar(rr); else { acaoServidor('fabricarReceita', el.dataset.id); avisar('📜 Receita fabricada!', 'item'); }
         telaJogo();
         break;
       }
       case 'craft-protecao': {
         var rp = R.fabricarProtecao(p, el.dataset.id);
-        if (rp !== true) avisar(rp); else { salvar(); avisar('🛡 Pergaminho de Proteção fabricado!', 'item'); }
+        if (rp !== true) avisar(rp); else { acaoServidor('fabricarProtecao', el.dataset.id); avisar('🛡 Pergaminho de Proteção fabricado!', 'item'); }
         telaJogo();
         break;
       }
@@ -5285,10 +5294,16 @@
       }
       case 'forjar': {
         var fa = forjaAtual(p);   // as mesmas escolhas que a tela mostra
-        var rf = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
-        if (typeof rf === 'string') avisar(rf);
-        else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item raridade-' + rf.item.raridade); }
-        telaJogo();
+        var forjaLocal = null;
+        el.disabled = true;
+        acaoServidor('forjar', { area: fa.area, classe: fa.classe, tipo: fa.tipo, chefe: fa.chefe, gemas: fa.gemas }, function () {
+          forjaLocal = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
+          if (typeof forjaLocal === 'string') { avisar(forjaLocal); forjaLocal = null; }
+        }).then(function (r) {
+          var rf = r ? r.resultado : forjaLocal;
+          if (rf && rf.item) avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item raridade-' + rf.item.raridade);
+          telaJogo();
+        });
         break;
       }
       case 'usar-protecao':
