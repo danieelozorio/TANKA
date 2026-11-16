@@ -1016,3 +1016,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   caçada no jeito antigo (só sem a função `cacada`), admin e os jeitos antigos sem a função `acao`.
 - Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
   funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).
+
+### Tudo no servidor — etapa 5 (tranca da ficha)
+- As funções `cacada` e `acao` gravam a ficha com a chave secreta do projeto (`SUPABASE_SECRET_KEYS.default`, ou
+  `SUPABASE_SERVICE_ROLE_KEY`), que o Supabase põe sozinho nas funções. Ler continua com o login do jogador (RLS).
+- `app.js`: `salvar()` só manda as preferências (ação `preferencias`) para quem não é admin; `salvarFichaDireto()` é o
+  jeito antigo (admin, ou sem a função `acao`). Mercado/leilão/Oficina: `gravarAntesDoBanco` (só grava no jeito antigo)
+  e `sincronizarFicha` (busca a ficha do servidor depois da função do banco).
+- Banco: `gravacoes_papel` anota qual papel grava fichas (`authenticated` = navegador, `service_role` = funções).
+  `supabase/trancar_fichas.sql` tira o "salvar os seus" (fica só admin) e marca `ajustes.fichas_trancadas`; rodar o
+  schema de novo respeita a marca. `supabase/destrancar_fichas.sql` desfaz.
+- Ordem segura: publicar → conferir `select * from gravacoes_papel` (service_role recente) → rodar o trancar.

@@ -53,8 +53,20 @@ drop policy if exists "personagem: salvar os seus" on public.personagens;
 drop policy if exists "personagem: apagar os seus" on public.personagens;
 create policy "personagem: ler os seus" on public.personagens for select using (auth.uid() = conta_id);
 create policy "personagem: criar os seus" on public.personagens for insert with check (auth.uid() = conta_id);
-create policy "personagem: salvar os seus" on public.personagens for update using (auth.uid() = conta_id) with check (auth.uid() = conta_id);
 create policy "personagem: apagar os seus" on public.personagens for delete using (auth.uid() = conta_id);
+-- Gravar a ficha direto: liberado até rodar supabase/trancar_fichas.sql (etapa 5 do plano "tudo no servidor"), que
+-- marca ajustes.fichas_trancadas; rodar o schema de novo respeita a marca (não destranca sozinho).
+create table if not exists public.ajustes (chave text primary key, valor jsonb not null);
+alter table public.ajustes enable row level security;   -- sem políticas: só o SQL Editor
+drop policy if exists "personagem: admin salva os seus" on public.personagens;
+do $$ begin
+  if coalesce((select (valor)::text = 'true' from public.ajustes where chave = 'fichas_trancadas'), false) then
+    create policy "personagem: admin salva os seus" on public.personagens for update
+      using (auth.uid() = conta_id and public.eh_admin()) with check (auth.uid() = conta_id and public.eh_admin());
+  else
+    create policy "personagem: salvar os seus" on public.personagens for update using (auth.uid() = conta_id) with check (auth.uid() = conta_id);
+  end if;
+end $$;
 
 -- Trava contra ficha forjada (Henri, nov/2026). A API é pública (como em todo jogo de navegador) e o jogo grava a
 -- ficha inteira; sem isto, quem sabe programar podia gravar level 60, ouro e itens +10 no próprio personagem.
@@ -72,6 +84,16 @@ alter table public.suspeitas enable row level security;   -- sem políticas: só
 
 -- Pontos de atributo além do que o level dá (distribuídos + livres - (level - 1) x pontos por level); 0 ou menos = ok.
 -- Atributo abaixo do inicial também conta como excesso.
+-- Quem anda gravando fichas (papel do banco): 'authenticated' = o jogo/navegador; 'service_role' = as funções do servidor.
+-- Antes de rodar supabase/trancar_fichas.sql: select * from public.gravacoes_papel; (precisa aparecer service_role recente)
+create table if not exists public.gravacoes_papel (papel text primary key, ultima timestamptz not null default now(), qtd bigint not null default 0);
+alter table public.gravacoes_papel enable row level security;   -- sem políticas: só o SQL Editor lê
+create or replace function public.anotar_gravacao(papel text) returns void
+language sql security definer set search_path = public as $$
+  insert into public.gravacoes_papel as g (papel, ultima, qtd) values (papel, now(), 1)
+    on conflict (papel) do update set ultima = now(), qtd = g.qtd + 1;
+$$;
+
 create or replace function public.trava_excesso_atributos(d jsonb) returns int
 language plpgsql stable as $$
 begin
@@ -180,6 +202,8 @@ begin
       raise exception 'Proteção do jogo: personagem novo inválido.';
     end if;
   end if;
+  -- quem grava a ficha (para conferir, antes de trancar, que as funções do servidor gravam com a chave delas)
+  if tg_op = 'UPDATE' then perform public.anotar_gravacao(current_user::text); end if;
   -- trava contra ficha forjada: só nas gravações diretas pela API, e não para administradores
   if tg_op = 'UPDATE' then
     new.trava := old.trava;

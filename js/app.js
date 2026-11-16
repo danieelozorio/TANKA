@@ -195,7 +195,14 @@
     return !!estado.conta && !!estado.conta.admin;
   }
 
+  // Etapa 5 do plano "tudo no servidor": o jogo não grava mais a ficha inteira. O que vale algo já foi gravado pela
+  // ação do servidor; aqui só vão as preferências (o servidor ignora o resto). Administradores e o jeito antigo (sem a
+  // função `acao`) ainda gravam direto.
   function salvar() {
+    if (typeof ACAO_SERVIDOR !== 'undefined' && ACAO_SERVIDOR && !ehAdmin()) { salvarPreferencias(); return; }
+    salvarFichaDireto();
+  }
+  function salvarFichaDireto() {
     estado.personagem.poder = R.poder(estado.personagem);   // vai junto para o ranking
     try {
       C.salvarPersonagem(estado.personagem).catch(function (e) { if (!e.conflito) avisar('Não foi possível salvar: ' + e.message); });
@@ -2205,12 +2212,11 @@
     if (estado.mercadoOcupado) return;
     estado.mercadoOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);              // o servidor tira o item do personagem salvo
+      await gravarAntesDoBanco(p);              // o servidor tira o item do personagem salvo
       var r = await C.mercado.anunciar(p.id, id, perg, qtd, preco);
       if (id) p.inventario = p.inventario.filter(function (i) { return i.id !== id; });
       else R.mudarConsumivel(p, ctipo, crar, -qtd);
-      salvar();
+      sincronizarFicha();
       avisar('Anunciado no mercado por ' + ouroTxt(preco) + ' de ouro.', 'item');
       receberMercado(r);
       atualizarFicha();
@@ -2224,8 +2230,7 @@
     if (a.item.tipo !== 'pergaminho' && TIPOS_CRAFT.indexOf(a.item.tipo) < 0 && R.mochilaCheia(p)) { avisar('Mochila cheia! Libere espaço antes de comprar.'); return; }
     estado.mercadoOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);              // o servidor confere o ouro salvo
+      await gravarAntesDoBanco(p);              // o servidor confere o ouro salvo
       var r = await C.mercado.comprar(p.id, id);
       avisar('Compra feita! O item vai para a sua mochila.', 'item');
       receberMercado(r);
@@ -2362,8 +2367,7 @@
     if (estado.leilaoLance) return;
     estado.leilaoLance = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);           // o servidor confere o ouro salvo
+      await gravarAntesDoBanco(p);           // o servidor confere o ouro salvo
       var r = await C.leilao.lance(p.id, Number(id), valor);
       (r.lotes || []).forEach(function (l) { l.item = R.itemDoLote(l); });
       estado.leilao = r;
@@ -2861,12 +2865,11 @@
       itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
     estado.oficinaOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);                // o servidor tira do personagem salvo
+      await gravarAntesDoBanco(p);                // o servidor tira do personagem salvo
       var r = await C.oficina.pedir(p.id, x.id, tipo, itemId, op);
       if (r.item_id) p.inventario = p.inventario.filter(function (i) { return i.id !== r.item_id; });
       (r.insumos || []).forEach(function (i) { R.mudarConsumivel(p, i.tipo, i.raridade, -i.qtd); });
-      salvar();
+      sincronizarFicha();
       estado.contratar = null;
       if (r.feito) avisar('🤝 ' + x.nome + ' fez na hora: ' + resultadoCurto(tipo, r.resultado || {}) + ' Chega já já na mochila.', (r.resultado || {}).sucesso === false ? '' : 'item');
       else avisar('Pedido enviado para ' + x.nome + '! Você vê o resultado em "Meus pedidos".', 'item');
@@ -4092,7 +4095,7 @@
   // só se a função não existir. Devolve uma promessa com a resposta do servidor (null no jeito antigo ou com erro).
   function acaoServidor(nome, args, local) {
     var p = estado.personagem;
-    var antigo = function () { if (local) local(); p.poder = R.poder(p); salvar(); return null; };
+    var antigo = function () { if (local) local(); p.poder = R.poder(p); salvarFichaDireto(); return null; };
     if (!ACAO_SERVIDOR) return Promise.resolve(antigo());
     p.poder = R.poder(p);
     return C.acao(p.id, nome, args).then(function (r) {
@@ -4115,16 +4118,28 @@
   // O que não vale nada (preferências, caixa de entrada, tempo jogado...) vai pela ação `preferencias`: o servidor só
   // aceita esses campos. Junta vários pedidos seguidos num só.
   var prefsTimer = null;
+  function prefsAtuais() {
+    var p = estado.personagem;
+    return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
+      atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador };
+  }
   function salvarPreferencias() {
-    if (!ACAO_SERVIDOR) { salvar(); return; }
+    if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
     clearTimeout(prefsTimer);
-    prefsTimer = setTimeout(function () {
-      var p = estado.personagem;
-      if (!p) return;
-      acaoServidor('preferencias', { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
-        atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-        presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador });
-    }, 400);
+    prefsTimer = setTimeout(function () { if (estado.personagem) acaoServidor('preferencias', prefsAtuais()); }, 400);
+  }
+  // Depois de uma função do banco mexer na ficha (Mercado, leilão, Oficina): busca a ficha do servidor (e grava as
+  // preferências junto). No jeito antigo, grava a ficha como antes.
+  function sincronizarFicha() {
+    if (!ACAO_SERVIDOR) { salvarFichaDireto(); return Promise.resolve(); }
+    clearTimeout(prefsTimer);
+    return acaoServidor('preferencias', prefsAtuais());
+  }
+  // Antes de uma função do banco ler a ficha: no jeito antigo, grava primeiro (no novo, o servidor já tem tudo).
+  function gravarAntesDoBanco(p) {
+    p.poder = R.poder(p);
+    return ACAO_SERVIDOR ? Promise.resolve() : C.salvarPersonagem(p);
   }
   // Prêmios (recompensas) e créditos (ouro/reputação) guardados no servidor: o servidor entrega e marca.
   var avisoCheiaEm = 0;

@@ -1278,6 +1278,25 @@ reset role;
 -- o SQL Editor (e as funções do servidor) passam direto
 update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr';
 select pg_temp.igual((select dados ->> 'nivel' from public.personagens where id = 'ptr'), '60', 'trava: SQL Editor passa');
-delete from public.personagens where id = 'ptr';
 reset role;
+
+-- Etapa 5 (tudo no servidor): depois de trancar, o jogador não grava a ficha direto; o servidor grava; o schema de novo não destranca
+\i supabase/trancar_fichas.sql
+set role authenticated;
+select pg_temp.como('d');
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '7000') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '6000', 'tranca: jogador não grava a ficha direto');
+reset role;
+do $$ begin if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role bypassrls; end if; end $$;
+grant all on all tables in schema public to service_role; grant usage on schema public, auth to service_role; grant execute on all functions in schema public, auth to service_role;
+set role service_role;
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '7000') where id = 'ptr';
+reset role;
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '7000', 'tranca: função do servidor grava');
+select pg_temp.igual((select (qtd > 0)::text from public.gravacoes_papel where papel = 'service_role'), 'true', 'tranca: anota quem gravou');
+\i supabase/schema.sql
+select pg_temp.igual((select count(*)::text from pg_policies where tablename = 'personagens' and policyname = 'personagem: salvar os seus'), '0', 'tranca: rodar o schema de novo não destranca');
+\i supabase/destrancar_fichas.sql
+select pg_temp.igual((select count(*)::text from pg_policies where tablename = 'personagens' and policyname = 'personagem: salvar os seus'), '1', 'tranca: destrancar volta ao normal');
+delete from public.personagens where id = 'ptr';
 \echo TODOS OS TESTES DO BANCO PASSARAM

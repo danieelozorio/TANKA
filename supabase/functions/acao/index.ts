@@ -15,6 +15,19 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Etapa 5 do plano "tudo no servidor": o jogador não grava mais a ficha direto (o banco tranca). A função grava com a
+// chave secreta do projeto (variável que o Supabase põe sozinho nas funções; nunca vai para o navegador), depois de
+// conferir que o personagem é de quem pediu. Sem a chave (teste local), grava com o login do jogador, como antes.
+function cabecalhoServidor(): Record<string, string> | null {
+  try {
+    const k = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
+    if (k) return { apikey: k, 'Content-Type': 'application/json' };
+  } catch { /* sem a variável nova */ }
+  const s = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (s) return { apikey: s, Authorization: 'Bearer ' + s, 'Content-Type': 'application/json' };
+  return null;
+}
+
 function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
@@ -73,7 +86,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   p.versao = versao + 1;
   const filtro = versao ? 'dados->>versao=eq.' + versao : 'dados->>versao=is.null';
   const g = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&' + filtro + '&select=id', {
-    method: 'PATCH', headers: { ...cab, Prefer: 'return=representation' }, body: JSON.stringify({ dados: p }),
+    method: 'PATCH', headers: { ...(cabecalhoServidor() ?? cab), Prefer: 'return=representation' }, body: JSON.stringify({ dados: p }),
   });
   if (!g.ok) {
     let msg = 'Não foi possível salvar.';
