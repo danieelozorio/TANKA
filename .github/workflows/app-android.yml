@@ -117,8 +117,9 @@ jobs:
           fi
           (cd app-android/www && zip -qr -9 ../../eldrin-web.zip .)
           MB=$(node -e "console.log((require('fs').statSync('eldrin-web.zip').size/1048576).toFixed(1))")
+          SOMA=$(sha256sum eldrin-web.zip | cut -d' ' -f1)   # o app confere o arquivo baixado (o plugin exige)
           gh release upload app-web eldrin-web.zip --clobber
-          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', tamanhoMB: $MB, apk: $APK_NUM, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
+          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: $MB, apk: $APK_NUM, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
           cat versao.json
           gh release upload app-web versao.json --clobber
 

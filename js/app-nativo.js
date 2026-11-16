@@ -46,7 +46,7 @@
         var el = document.getElementById('app-atualizar-pct');
         if (el && e && e.percent !== undefined) el.textContent = Math.round(e.percent) + '%';
       });
-      U.download({ url: v.webUrl, version: String(v.web) }).then(function (pacote) {
+      U.download({ url: v.webUrl, version: String(v.web), checksum: v.checksum || '' }).then(function (pacote) {
         return U.set({ id: pacote.id });   // troca o jogo e reinicia
       }).catch(function (erro) {
         if (ouvinte && ouvinte.then) ouvinte.then(function (o) { o.remove(); });
@@ -77,7 +77,7 @@
       var instalado = A && A.getInfo ? A.getInfo().then(function (i) { return Number(i.build) || 0; }) : Promise.resolve(0);
       instalado.then(function (apk) {
         if (v.apk && v.apkUrl && apk && Number(v.apk) > apk && Number(v.apkMinimo || 0) > apk) oferecerApk(v);   // APK obrigatório
-        else if (v.web && v.webUrl && Number(v.web) > Number(local.web || 0) && U && U.download) oferecerJogo(v);
+        else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) oferecerJogo(v);
         else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v);
       });
     }).catch(function () {});
