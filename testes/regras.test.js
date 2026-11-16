@@ -569,7 +569,7 @@ teste('mochila: limite de 32 bloqueia compra, drop e desequipar', () => {
 
 teste('drops de armadura: peças da classe ou a mão esquerda (sem colar e anel)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao');
-  const tipos = new Set(); for (let i = 0; i < 20000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo === 'secundaria') assert.strictEqual(d.mao, 'manopla'); else assert.strictEqual(d.classe, 'artesao'); } }
+  const tipos = new Set(); for (let i = 0; i < 20000; i++) { const d = R.rolarDropArmadura(p, 'cobra', rng); if (d) { tipos.add(d.tipo); if (d.tipo === 'secundaria') assert.strictEqual(d.mao, 'manopla'); else assert.strictEqual(d.classe, 'cavaleiro'); } }
   assert.deepStrictEqual([...tipos].sort(), ['botas', 'elmo', 'luvas', 'peitoral', 'secundaria']);
 });
 
@@ -1276,6 +1276,32 @@ teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa
   assert.strictEqual(v.recomecos, 1);
 });
 
+teste('grupos de itens: Pesado, Leve e Mágico', () => {
+  const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
+  R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');
+  assert.ok(R.armasPermitidas(f).includes('espada2m') && R.armasPermitidas(f).includes('foice'), 'ferreiro: qualquer arma pesada');
+  assert.ok(!R.armasPermitidas(f).includes('arco') && !R.armasPermitidas(f).includes('cajado'), 'ferreiro: nada leve ou mágico');
+  assert.strictEqual(R.maoPermitida(f).sort().join(), 'escudo,manopla');
+  assert.ok(R.podeUsar(f, { tipo: 'elmo', classe: 'cavaleiro' }) && R.podeUsar(f, { tipo: 'elmo', classe: 'artesao' }), 'armadura pesada (velha ou nova)');
+  assert.ok(!R.podeUsar(f, { tipo: 'elmo', classe: 'arqueiro' }) && !R.podeUsar(f, { tipo: 'elmo', classe: 'mago' }), 'sem armadura leve ou mágica');
+  f.inventario = [R.novoItem('arma', 'cavaleiro', 'rara', null, 'espada2m', 10)];
+  assert.ok(R.equipar(f, f.inventario[0].id), 'ferreiro com espada de duas mãos');
+  assert.strictEqual(R.fatorArmaHab(f), 0.8);
+  f.inventario.push(R.novoItem('arma', 'artesao', 'rara', null, 'martelo', 10)); R.equipar(f, f.inventario[1].id);
+  assert.strictEqual(R.fatorArmaHab(f), 1, 'martelo é preferida do ferreiro');
+  assert.strictEqual(R.novoItem('peitoral', 'artesao', 'rara', null, null, 10).classe, 'cavaleiro', 'armadura pesada única (tabela do cavaleiro)');
+  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago');
+  assert.ok(!R.podeUsar(m, { tipo: 'arma', arma: 'espada', classe: 'cavaleiro' }) && R.podeUsar(m, { tipo: 'arma', arma: 'cetro', classe: 'mago' }));
+  // Coletor com manopla e Paladino com escudo: +50% nos bônus
+  const c = R.criarPersonagem('C', 'masculino', 'humano', 'artesao'); R.admin.subirNivel(c, 9); R.escolherSegundaClasse(c, 'coletor');
+  const man = R.novoItem('secundaria', null, 'epica', null, 'manopla', 10); c.inventario = [man]; R.equipar(c, man.id);
+  const b = R.bonusItem(man), tot = R.bonusEquipamentos(c);
+  Object.keys(b).forEach((k) => assert.strictEqual(tot[k], b[k] * 1.5, 'manopla do coletor: ' + k));
+  const pa = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(pa, 9); R.escolherSegundaClasse(pa, 'destruidor');
+  const esc = R.novoItem('secundaria', null, 'epica', null, 'escudo', 10); pa.inventario = [esc]; R.equipar(pa, esc.id);
+  Object.keys(R.bonusItem(esc)).forEach((k) => assert.strictEqual(R.bonusEquipamentos(pa)[k], R.bonusItem(esc)[k], 'escudo no destruidor: normal'));
+});
+
 teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const s0 = R.status(p);
@@ -1308,7 +1334,9 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.escolherSegundaClasse(p, 'destruidor'), true);
   assert.strictEqual(p.equipados.arma, 'r', 'arma incompatível continua equipada');
   R.desequipar(p, 'arma');
-  assert.ok(!R.equipar(p, 'r'), 'mas não dá para equipar de novo');
+  // grupos (16/11/2026): espada é do grupo Pesado, então o Destruidor usa; as habilidades perdem 20% (não é preferida)
+  assert.ok(R.equipar(p, 'r'), 'arma do grupo Pesado: equipa');
+  assert.strictEqual(R.fatorArmaHab(p), 0.8, 'fora das preferidas: habilidades com 80%');
   assert.ok(R.equipar(p, 'e2'));
   assert.strictEqual(typeof R.comprar(p, 'rara', 'arma', 'machado2m'), 'object');
   // Caçador: aljava não com balestra nem com adaga

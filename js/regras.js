@@ -44,6 +44,7 @@ Tanka.regras = (function () {
   // nivel: nível do item (1 a 60); sem ele, item no modelo antigo (valores fixos da raridade).
   function novoItem(tipo, classe, raridade, rng, especifico, nivel) {
     var joia = TIPOS_JOIA.indexOf(tipo) >= 0 || tipo === 'secundaria';
+    if (TIPOS_ARMADURA.indexOf(tipo) >= 0 && classe) classe = classeArmadura(classe);   // Armadura Pesada única
     var item = { id: novoId(), tipo: tipo, classe: joia ? null : classe, raridade: raridade, encanto: 0 };
     rng = rng || Math.random;
     if (tipo === 'arma') {
@@ -257,26 +258,44 @@ Tanka.regras = (function () {
   });
   // Tipo só das segundas classes: não existe na raridade comum.
   function soSegundaClasse(id, mao) { return !DA_BASE[mao ? 'mao' : 'armas'][id]; }
+  // Preferidas: as da segunda classe (ou da classe). Permitidas: todas do grupo (Pesado, Leve ou Mágico).
   function listaArmas(p) { var c2 = p.talentos && p.talentos.classe2; return D.ARMAS_CLASSE[c2 && D.ARMAS_CLASSE[c2] ? c2 : p.classe]; }
-  function armasPermitidas(p) { return listaArmas(p).armas; }
-  function maoPermitida(p) { return listaArmas(p).mao; }
+  var GI = D.GRUPOS_ITEM;
+  function grupoDaClasse(classe) { return GI.classes[classe] || null; }
+  function grupoDe(p) { return grupoDaClasse(p.classe); }
+  function classeArmadura(classe) { return GI.armadura[grupoDaClasse(classe)] || classe; }
+  function grupoArma(id) { var t = D.TIPOS_ARMA[id]; return t ? grupoDaClasse(t.classe) : null; }
+  function armasPreferidas(p) { return listaArmas(p).armas; }
+  function maoPreferida(p) { return listaArmas(p).mao; }
+  function armasPermitidas(p) { var g = grupoDe(p); return Object.keys(D.TIPOS_ARMA).filter(function (a) { return grupoArma(a) === g; }); }
+  function maoPermitida(p) { var g = grupoDe(p); return Object.keys(D.MAO_ESQUERDA).filter(function (m) { return GI.mao[m] === g; }); }
+  // Dano das habilidades (%): com uma arma fora das preferidas, `foraPreferida`% (sem arma: normal).
+  function fatorArmaHab(p) {
+    var a = armaEquipada(p);
+    return a && armasPreferidas(p).indexOf(tipoArmaId(a)) < 0 ? GI.foraPreferida / 100 : 1;
+  }
+  // Paladino com escudo / Coletor com manopla: +pct% nos bônus dessa mão esquerda.
+  function multMaoForte(p, item) {
+    var c2 = p.talentos && p.talentos.classe2, f = c2 && GI.maoForte[c2];
+    return f && item && item.tipo === 'secundaria' && item.mao === f.mao ? 1 + f.pct / 100 : 1;
+  }
   function sortearDaLista(lista, raridade, mao, rng) {
     var l = lista.filter(function (id) { return raridade !== 'comum' || !soSegundaClasse(id, mao); });
     return l.length ? l[Math.floor((rng || Math.random)() * l.length)] : null;
   }
-  function sortearTipoArma(p, raridade, rng) { return sortearDaLista(armasPermitidas(p), raridade, false, rng) || D.ARMA_PADRAO[p.classe]; }
-  function sortearMao(p, raridade, rng) { return sortearDaLista(maoPermitida(p), raridade, true, rng); }
+  function sortearTipoArma(p, raridade, rng) { return sortearDaLista(armasPreferidas(p), raridade, false, rng) || D.ARMA_PADRAO[p.classe]; }
+  function sortearMao(p, raridade, rng) { return sortearDaLista(maoPreferida(p), raridade, true, rng); }
   // Por que não dá para equipar (texto) ou null.
   function motivoNaoEquipa(p, item) {
     if (!item) return 'Item não encontrado.';
-    if (item.tipo === 'arma' && !podeUsar(p, item)) return 'Sua classe não usa ' + tipoArma(item).nome + '.';
+    if (item.tipo === 'arma' && !podeUsar(p, item)) return tipoArma(item).nome + ' não é do grupo ' + GI.nomes[grupoDe(p)] + '.';
     if (item.tipo === 'secundaria') {
-      if (!podeUsar(p, item)) return 'Sua classe não usa ' + D.MAO_ESQUERDA[item.mao].nome + ' na mão esquerda.';
+      if (!podeUsar(p, item)) return D.MAO_ESQUERDA[item.mao].nome + ' não é do grupo ' + GI.nomes[grupoDe(p)] + '.';
       var arma = armaEquipada(p), ta = arma && tipoArma(arma);
       if (ta && ta.duasMaos) return ta.nome + ' ocupa as duas mãos.';
       if (ta && (ta.proibe || []).indexOf(item.mao) >= 0) return D.MAO_ESQUERDA[item.mao].nome + ' não combina com ' + ta.nome + '.';
     }
-    if (!podeUsar(p, item)) return 'Esse item não é da sua classe.';
+    if (!podeUsar(p, item)) return 'Essa armadura não é do grupo ' + GI.nomes[grupoDe(p)] + '.';
     return null;
   }
 
@@ -387,7 +406,7 @@ Tanka.regras = (function () {
   function podeUsar(p, item) {
     if (item.tipo === 'arma') return armasPermitidas(p).indexOf(tipoArmaId(item)) >= 0;
     if (item.tipo === 'secundaria') return maoPermitida(p).indexOf(item.mao) >= 0;
-    return item.classe === null || item.classe === p.classe;
+    return item.classe === null || grupoDaClasse(item.classe) === grupoDe(p);   // armadura: mesmo grupo
   }
 
   // Soma dos bônus de todas as armaduras e joias equipadas.
@@ -397,8 +416,8 @@ Tanka.regras = (function () {
     Object.keys(p.equipados).forEach(function (slot) {
       var item = itemNoSlot(p, slot);
       if (!item) return;
-      var b = bonusItem(item);
-      Object.keys(b).forEach(function (k) { total[k] += b[k]; });
+      var b = bonusItem(item), mf = multMaoForte(p, item);
+      Object.keys(b).forEach(function (k) { total[k] += b[k] * mf; });
     });
     return total;
   }
@@ -552,11 +571,11 @@ Tanka.regras = (function () {
     var c = segundaClasse(p);
     if (!c) {
       var ini = D.HABILIDADE_INICIAL[p.classe];
-      return ini ? [{ def: Object.assign({ inicial: true }, ini), pts: 0 }] : [];
+      return ini ? [{ def: Object.assign({ inicial: true }, ini), pts: 0, fator: fatorArmaHab(p) }] : [];
     }
     return (talentos(p).ordem[modo] || []).map(function (id) {
       var def = c.habilidades.filter(function (h) { return h.id === id; })[0];
-      return def && def.tipo !== 'passiva' && habLiberada(p, def) && pontosEm(p, id) > 0 ? { def: def, pts: pontosEm(p, id) } : null;
+      return def && def.tipo !== 'passiva' && habLiberada(p, def) && pontosEm(p, id) > 0 ? { def: def, pts: pontosEm(p, id), fator: fatorArmaHab(p) } : null;
     }).filter(Boolean);
   }
   // Pergaminho das Habilidades: devolve os pontos e deixa escolher a segunda classe de novo.
@@ -1713,9 +1732,9 @@ Tanka.regras = (function () {
       hab.golpes.push({ acerto: true, critico: false, dano: d });
     } else if (def.tipo === 'multiplo') {
       // Double Shot: várias flechas no mesmo turno, cada uma pode errar ou ser crítica.
-      for (var f = 0; f < (def.flechas || 2) && !b.fim; f++) hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) / 100 }));
+      for (var f = 0; f < (def.flechas || 2) && !b.fim; f++) hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 }));
     } else {
-      var g = golpeJogador(b, Object.assign({ mult: multHabilidade(def, k.pts) / 100 }, def.nivel ? opcoesNivel(def, b.jogador, b.monstro) : {}));
+      var g = golpeJogador(b, Object.assign({ mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 }, def.nivel ? opcoesNivel(def, b.jogador, b.monstro) : {}));
       hab.golpes.push(g);
       // Luz Punitiva: parte do dano vira vida.
       if (g.acerto && g.dano > 0 && def.curaDano && b.jogador.hp > 0) {
@@ -2591,7 +2610,7 @@ Tanka.regras = (function () {
             continue;
           }
           var alvos = !k ? [vivos(ms)[0]] : k.def.tipo === 'area' ? vivos(ms) : [vivos(ms)[0]];
-          var mult = k ? multHabilidade(k.def, k.pts) : 100;
+          var mult = k ? multHabilidade(k.def, k.pts) * (k.fator || 1) : 100;
           if (k) registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome });
           // Double Shot: as flechas seguintes vão no primeiro monstro vivo (o mesmo, ou o próximo se ele caiu).
           if (k && k.def.tipo === 'multiplo') {
@@ -2966,6 +2985,11 @@ Tanka.regras = (function () {
     tipoArmaId: tipoArmaId,
     tipoArma: tipoArma,
     armasPermitidas: armasPermitidas,
+    armasPreferidas: armasPreferidas,
+    maoPreferida: maoPreferida,
+    grupoDe: grupoDe,
+    grupoDaClasse: grupoDaClasse,
+    fatorArmaHab: fatorArmaHab,
     maoPermitida: maoPermitida,
     soSegundaClasse: soSegundaClasse,
     faixaBonus: faixaBonus,

@@ -132,6 +132,11 @@
     var atr = D.classes[item.classe] && D.classes[item.classe].atributoDano;
     var l = [t.duasMaos ? 'Duas mãos (ocupa a mão esquerda)' : 'Uma mão', 'Velocidade: ' + D.NOME_VELOCIDADE[t.vel]
       + (t.fator !== 1 ? ' · dano x' + String(t.fator).replace('.', ',') : '')];
+    // grupo e arma preferida (16/11/2026)
+    var pg = estado.personagem, ga = D.TIPOS_ARMA[R.tipoArmaId(item)];
+    if (ga) l.push('Grupo ' + D.GRUPOS_ITEM.nomes[R.grupoDaClasse(ga.classe)]);
+    if (pg && R.podeUsar(pg, item) && R.armasPreferidas(pg).indexOf(R.tipoArmaId(item)) < 0)
+      l.push('Não é arma preferida da sua classe: habilidades com ' + D.GRUPOS_ITEM.foraPreferida + '% do dano');
     var e = item.extras;
     if (e) {   // arma por nível: extras da faixa
       Object.keys(e.atributos || {}).forEach(function (k) { l.push('+' + e.atributos[k] + ' de ' + D.atributos[k].nome); });
@@ -1289,7 +1294,8 @@
       + '<div class="arma-topo"><div class="icone-pequeno arma-icone borda-' + arma.raridade + aura(arma) + '">' + F.icone(arma)
       + (arma.encanto ? '<span class="nivel-encanto">+' + arma.encanto + '</span>' : '') + '</div><div class="arma-nome">' + nomeItemHtml(arma)
       + '<div><span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span>'
-      + ' <span class="suave pequeno">' + R.tipoArma(arma).nome + ' · ' + D.NOME_VELOCIDADE[R.tipoArma(arma).vel] + (R.tipoArma(arma).duasMaos ? ' · duas mãos' : '') + '</span></div></div></div>'
+      + ' <span class="suave pequeno">' + R.tipoArma(arma).nome + ' · ' + D.NOME_VELOCIDADE[R.tipoArma(arma).vel] + (R.tipoArma(arma).duasMaos ? ' · duas mãos' : '')
+      + (R.fatorArmaHab(estado.personagem) < 1 ? ' · <span class="menos">habilidades ' + D.GRUPOS_ITEM.foraPreferida + '%</span>' : '') + '</span></div></div></div>'
       + '<div class="arma-stats">'
       + stat('Dano da arma', dano(dArma), extra ? 'Inclui +' + extra + ' do encanto' : '')
       + stat('Por golpe', dano(s.dano), 'Com os seus atributos')
@@ -1432,7 +1438,7 @@
     var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
     var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
     return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
-      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe.'
+      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são do seu grupo (Pesado, Leve ou Mágico).'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
       + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
       + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'
@@ -1491,7 +1497,7 @@
     } else {
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
-        : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é da sua classe') + '</span>';
+        : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é do seu grupo') + '</span>';
       acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
@@ -1591,7 +1597,7 @@
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
       acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
-          : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é da sua classe') + '</span>')
+          : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é do seu grupo') + '</span>')
         + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
@@ -2070,7 +2076,8 @@
     var f = filtroMercado();
     estado.mercadoCarregando = true;
     // Só o que a minha classe usa: o servidor filtra com as regras daqui (armas, mão esquerda e armaduras da classe).
-    var filtro = f.soClasse ? { classe: p.classe, armas: R.armasPermitidas(p), maos: R.maoPermitida(p), padrao: D.ARMA_PADRAO } : null;
+    var filtro = f.soClasse ? { classe: p.classe, armas: R.armasPermitidas(p), maos: R.maoPermitida(p), padrao: D.ARMA_PADRAO,
+      classes: Object.keys(D.GRUPOS_ITEM.classes).filter(function (c) { return R.grupoDaClasse(c) === R.grupoDe(p); }) } : null;
     C.mercado.estado(p.id, f.categoria, f.ordem, f.pagina, filtro).then(function (r) {
       estado.mercadoCarregando = false;
       if (estado.personagem !== p) return;
@@ -2129,7 +2136,7 @@
       + '<label class="mercado-ordem">Ordenar por <select id="mercado-ordem">' + ORDENS_MERCADO.map(function (o) {
         return '<option value="' + o[0] + '"' + (f.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>'
-      + '<label class="mercado-so-classe"><input type="checkbox" data-acao="mercado-so-classe"' + (f.soClasse ? ' checked' : '') + '> Só o que a minha classe usa</label>'
+      + '<label class="mercado-so-classe"><input type="checkbox" data-acao="mercado-so-classe"' + (f.soClasse ? ' checked' : '') + '> Só o que o meu grupo usa</label>'
       + '<button class="btn secundario btn-pequeno" data-acao="mercado-atualizar">Atualizar</button>'
       + '<button class="btn" data-acao="mercado-vender-abrir">Vender</button></div>';
     if (estado.mercadoErro) h += '<p class="menos">' + esc(estado.mercadoErro) + '</p>';
@@ -2352,11 +2359,12 @@
     var r = estado.leilao, id = estado.leilaoVer;
     var l = r && r.lotes && r.lotes.filter(function (x) { return String(x.id) === String(id); })[0];
     if (!l || l.item.consumivel) return '';
-    var p = estado.personagem, outro = l.classe && l.classe !== p.classe ? null : itemParaComparar(p, l.item);
+    var outroGrupo = l.classe && R.grupoDaClasse(l.classe) !== R.grupoDe(estado.personagem);
+    var p = estado.personagem, outro = outroGrupo ? null : itemParaComparar(p, l.item);
     return '<div class="zoom-fundo leilao-zoom" data-acao="leilao-fechar"><div class="zoom-janela" role="dialog" aria-label="Lote do leilão">'
       + '<button class="zoom-x" data-acao="leilao-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas">' + cartaZoom(l.item, outro, 'Lote do leilão') + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
-      + (l.classe && l.classe !== p.classe ? '<p class="menos pequeno">Item de ' + NOME_CLASSE_LOTE[l.classe] + ': só essa classe usa.</p>' : '')
+      + (outroGrupo ? '<p class="menos pequeno">Item do grupo ' + D.GRUPOS_ITEM.nomes[R.grupoDaClasse(l.classe)] + ': só esse grupo usa.</p>' : '')
       + '<div class="botoes"><button class="btn secundario" data-acao="leilao-fechar">Fechar</button></div></div></div>';
   }
   async function darLance(id) {
