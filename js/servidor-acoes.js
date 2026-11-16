@@ -61,6 +61,48 @@ Tanka.servidorAcoes = (function () {
     usarSkin: function (p, a) { return R.usarSkin(p, texto(a)) ? true : 'Skin inválida.'; },
     usarRecomeco: function (p) { return ok(R.usarRecomeco(p), 'Não foi possível.'); },
     usarRecomecoHabilidades: function (p) { return ok(R.usarRecomecoHabilidades(p), 'Não foi possível.'); },
+
+    // ---- Etapa 2: Mochila e Mercado ----
+    vender: function (p, a) {
+      var id = texto(a);
+      if (!(p.inventario || []).some(function (i) { return i.id === id; })) return 'Item não encontrado.';
+      return R.vender(p, id) ? true : 'Não dá para vender esse item (equipado ou travado?).';
+    },
+    // [ids]: venda em lote
+    venderVarios: function (p, a) {
+      if (!Array.isArray(a) || !a.length || a.length > 200) return 'Pedido inválido.';
+      var r = R.venderVarios(p, a.map(texto));
+      return r && r.vendidos ? true : 'Nenhum item vendido.';
+    },
+    travarItem: function (p, a) {
+      var id = texto(a);
+      if (!(p.inventario || []).some(function (i) { return i.id === id; })) return 'Item não encontrado.';
+      R.travarItem(p, id);
+      return true;
+    },
+    // [critério, crescente]
+    organizarMochila: function (p, a) {
+      a = Array.isArray(a) ? a : [];
+      if (typeof a[0] !== 'string' || a[0].length > 20) return 'Pedido inválido.';
+      R.organizarMochila(p, a[0], !!a[1]);   // critério desconhecido: só não muda a ordem
+      return true;
+    },
+    // { raridade?, tipo, especifico? }: compra no Mercado (o item é sorteado aqui, no servidor)
+    comprar: function (p, a) {
+      a = a && typeof a === 'object' ? a : {};
+      var r = a.raridade ? R.comprar(p, texto(a.raridade), texto(a.tipo), a.especifico ? texto(a.especifico) : undefined)
+        : R.comprar(p, texto(a.tipo), a.especifico ? texto(a.especifico) : undefined);
+      return typeof r === 'string' ? r : (r ? true : 'Não foi possível comprar.');
+    },
+    comprarPocao: function (p) { return ok(R.comprarPocao(p), 'Não foi possível comprar.'); },
+    comprarPoteEstamina: function (p, a, ctx) { return ok(R.comprarPoteEstamina(p, ctx.agora || Date.now()), 'Não foi possível comprar.'); },
+    trocarPergaminho: function (p, a) {
+      var r = R.trocarPergaminho(p, texto(a));
+      return r && r.erro ? r.erro : true;
+    },
+    comprarSkin: function (p, a) { return ok(R.comprarSkin(p, texto(a)), 'Skin inválida.'); },
+    comprarRecomeco: function (p) { return ok(R.comprarRecomeco(p), 'Não foi possível comprar.'); },
+    comprarRecomecoHabilidades: function (p) { return ok(R.comprarRecomecoHabilidades(p), 'Não foi possível comprar.'); },
   };
 
   // Roda uma ação no personagem `p` (já carregado e normalizado). Devolve {} ou { erro }.

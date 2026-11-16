@@ -4075,22 +4075,28 @@
   // servidor substitui o personagem (se o servidor recusar, volta ao que está no banco). Sem a função publicada (404),
   // grava do jeito antigo.
   var ACAO_SERVIDOR = typeof C.acao === 'function', ACAO_RESPONDEU = false;
-  function acaoServidor(nome, args) {
+  // local: quando a ação é sorteada no servidor (comprar), a tela não aplica antes; `local` é o jeito antigo, usado
+  // só se a função não existir. Devolve uma promessa com a resposta do servidor (null no jeito antigo ou com erro).
+  function acaoServidor(nome, args, local) {
     var p = estado.personagem;
+    var antigo = function () { if (local) local(); p.poder = R.poder(p); salvar(); return null; };
+    if (!ACAO_SERVIDOR) return Promise.resolve(antigo());
     p.poder = R.poder(p);
-    if (!ACAO_SERVIDOR) { salvar(); return; }
-    C.acao(p.id, nome, args).then(function (r) {
+    return C.acao(p.id, nome, args).then(function (r) {
       ACAO_RESPONDEU = true;
-      if (!estado.personagem || estado.personagem.id !== p.id) return;
+      if (!estado.personagem || estado.personagem.id !== p.id) return null;
       if (r && r.personagem) adotarPersonagem(r.personagem);
       if (r && r.erro) {
         avisar(r.erro);
         if (!estado.luta && !estado.batalha && !estado.lutaArena) telaJogo();
+        return null;
       }
+      return r;
     }, function (e) {
-      if (e && e.conflito) return;   // o jogo já recarrega o personagem
-      if (e && (e.status === 404 || (!e.status && !ACAO_RESPONDEU))) { ACAO_SERVIDOR = false; salvar(); return; }
+      if (e && e.conflito) return null;   // o jogo já recarrega o personagem
+      if (e && (e.status === 404 || (!e.status && !ACAO_RESPONDEU))) { ACAO_SERVIDOR = false; return antigo(); }
       avisar('Não foi possível salvar: ' + ((e && e.message) || e));
+      return null;
     });
   }
   function erroCacada(e) {
@@ -4754,7 +4760,7 @@
       case 'trocar-pergaminho': {
         var troca = R.trocarPergaminho(p, el.dataset.raridade);
         if (troca.erro) { avisar(troca.erro); break; }
-        salvar();
+        acaoServidor('trocarPergaminho', el.dataset.raridade);
         avisar('Troca feita! +1 Pergaminho para item ' + ITEM_RARIDADE[troca.para] + '.', 'item');
         telaJogo();
         break;
@@ -4762,7 +4768,7 @@
       case 'skin-comprar': {
         var r = R.comprarSkin(p, el.dataset.valor);
         if (r !== true) { avisar(r); break; }
-        salvar();
+        acaoServidor('comprarSkin', el.dataset.valor);
         avisar('Skin comprada e em uso no seu D20!');
         telaJogo();
         break;
@@ -4896,9 +4902,10 @@
       }
       case 'mochila-organizar': {
         var vm = visaoMochila();
-        R.organizarMochila(p, vm.ordem === 'mochila' ? 'raridade' : vm.ordem, vm.ordem === 'mochila' ? false : vm.crescente);
+        var critOrg = vm.ordem === 'mochila' ? 'raridade' : vm.ordem, cresOrg = vm.ordem === 'mochila' ? false : vm.crescente;
+        R.organizarMochila(p, critOrg, cresOrg);
         vm.ordem = 'mochila';
-        salvar();
+        acaoServidor('organizarMochila', [critOrg, cresOrg]);
         telaJogo();
         avisar('Mochila organizada.');
         break;
@@ -4926,7 +4933,7 @@
         if (!lt.confirmar) { lt.confirmar = true; atualizarTotalLote(); break; }
         var vendeu = R.venderVarios(p, idsLote);
         estado.vendaLote = { ids: {}, confirmar: false };
-        salvar();
+        if (vendeu.vendidos) acaoServidor('venderVarios', idsLote);
         telaJogo();
         atualizarTotalLote();
         avisar('Vendidos ' + vendeu.vendidos + ' item(ns): +' + vendeu.ouro.toLocaleString('pt-BR') + ' de ouro', 'item');
@@ -4935,7 +4942,7 @@
       case 'item-travar':
         R.travarItem(p, el.dataset.id);
         estado.vendaPendente = null;
-        salvar();
+        acaoServidor('travarItem', el.dataset.id);
         telaJogo();
         break;
       case 'ficha-status':
@@ -5107,7 +5114,7 @@
         break;
       case 'hab-pergaminho-comprar': {
         var rh = R.comprarRecomecoHabilidades(p);
-        if (rh === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO_HABILIDADES.nome + '!', 'item'); }
+        if (rh === true) { acaoServidor('comprarRecomecoHabilidades'); telaJogo(); avisar('Você comprou o ' + D.RECOMECO_HABILIDADES.nome + '!', 'item'); }
         else avisar(rh);
         break;
       }
@@ -5120,7 +5127,7 @@
       }
       case 'recomeco-comprar': {
         var rc = R.comprarRecomeco(p);
-        if (rc === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
+        if (rc === true) { acaoServidor('comprarRecomeco'); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
         else avisar(rc);
         break;
       }
@@ -5150,13 +5157,13 @@
         break;
       case 'pocao-comprar': {
         var rp = R.comprarPocao(p);
-        if (rp === true) { salvar(); avisar('Poção de vida comprada.', 'vitoria'); } else avisar(rp);
+        if (rp === true) { acaoServidor('comprarPocao'); avisar('Poção de vida comprada.', 'vitoria'); } else avisar(rp);
         telaJogo();
         break;
       }
       case 'pote-estamina': {
         var re = R.comprarPoteEstamina(p, C.agora());
-        if (re === true) { salvar(); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
+        if (re === true) { acaoServidor('comprarPoteEstamina'); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
         telaJogo();
         break;
       }
@@ -5178,7 +5185,7 @@
         var item = p.inventario.find(function (i) { return i.id === el.dataset.id; });
         var valor = item ? R.precoVenda(item) : 0;
         if (item && R.vender(p, item.id)) {
-          salvar();
+          acaoServidor('vender', item.id);
           avisar('Você vendeu ' + R.nomeItem(item) + ' por ' + valor + ' de ouro.');
           estado.itemFoco = null;
           estado.zoom = null;
@@ -5188,12 +5195,24 @@
         break;
       }
       case 'comprar': {
-        var comprado = el.dataset.raridade ? R.comprar(p, el.dataset.raridade, el.dataset.tipo, el.dataset.especifico || undefined)
-          : R.comprar(p, el.dataset.tipo, el.dataset.especifico || undefined);
-        if (typeof comprado === 'string') { avisar(comprado); break; }
-        salvar();
-        avisar('Você comprou ' + R.nomeItem(comprado) + ' (nível ' + comprado.nivel + ', ' + D.raridades[comprado.raridade].nome + ')! Está na mochila.');
-        telaJogo();
+        // o item é sorteado no servidor: a tela espera a resposta (no jeito antigo, sorteia aqui)
+        var pedidoCompra = { raridade: el.dataset.raridade || null, tipo: el.dataset.tipo, especifico: el.dataset.especifico || null };
+        var avisarCompra = function (it) {
+          if (!it) return;
+          avisar('Você comprou ' + R.nomeItem(it) + ' (nível ' + (it.nivel || 1) + ', ' + D.raridades[it.raridade].nome + ')! Está na mochila.');
+          telaJogo();
+        };
+        var compraLocal = null, idsAntes = p.inventario.map(function (i) { return i.id; });
+        el.disabled = true;
+        acaoServidor('comprar', pedidoCompra, function () {
+          compraLocal = pedidoCompra.raridade ? R.comprar(p, pedidoCompra.raridade, pedidoCompra.tipo, pedidoCompra.especifico || undefined)
+            : R.comprar(p, pedidoCompra.tipo, pedidoCompra.especifico || undefined);
+          if (typeof compraLocal === 'string') { avisar(compraLocal); compraLocal = null; }
+        }).then(function (r) {
+          el.disabled = false;
+          var novo = r ? estado.personagem.inventario.filter(function (i) { return idsAntes.indexOf(i.id) < 0; }).pop() : compraLocal;
+          avisarCompra(novo);
+        });
         break;
       }
       case 'pedir-encanto':

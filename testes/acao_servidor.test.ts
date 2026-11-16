@@ -88,6 +88,29 @@ d().recomecos = 1;
 x = await pedir({ personagem: p0.id, acao: 'usarRecomeco' });
 ok(!x.j.erro && d().recomecos === 0 && d().pontosLivres === (d().nivel - 1) * 3, 'recomeço com pergaminho: pontos voltam');
 
+// ---- Etapa 2: Mochila e Mercado ----
+d().ouro = 100000; d().reputacao = 1000;
+const nAntes = d().inventario.length;
+x = await pedir({ personagem: p0.id, acao: 'comprar', args: { tipo: 'elmo' } });
+ok(!x.j.erro && d().inventario.length === nAntes + 1 && d().ouro < 100000, 'comprar: o item é sorteado e cobrado no servidor');
+const novo = d().inventario[d().inventario.length - 1].id, ouroAntes = d().ouro;
+x = await pedir({ personagem: p0.id, acao: 'travarItem', args: novo });
+ok(!x.j.erro && d().inventario.find((i: any) => i.id === novo).travado, 'travar item');
+x = await pedir({ personagem: p0.id, acao: 'vender', args: novo });
+ok(x.j.erro && d().inventario.some((i: any) => i.id === novo), 'item travado não vende');
+await pedir({ personagem: p0.id, acao: 'travarItem', args: novo });
+x = await pedir({ personagem: p0.id, acao: 'vender', args: novo });
+ok(!x.j.erro && !d().inventario.some((i: any) => i.id === novo) && d().ouro > ouroAntes, 'vender: tira o item e paga o preço do servidor');
+x = await pedir({ personagem: p0.id, acao: 'vender', args: d().equipados.arma });
+ok(x.j.erro, 'item equipado não vende');
+x = await pedir({ personagem: p0.id, acao: 'venderVarios', args: ['nao-existe'] });
+ok(x.j.erro, 'venda em lote sem itens válidos: recusada');
+d().ouro = 0;
+x = await pedir({ personagem: p0.id, acao: 'comprar', args: { tipo: 'elmo' } });
+ok(x.j.erro && d().inventario.length === nAntes, 'comprar sem ouro: recusado');
+x = await pedir({ personagem: p0.id, acao: 'comprarRecomeco' });
+ok(x.j.erro, 'pergaminho do recomeço sem ouro: recusado');
+
 recusarGravacao = 'Proteção do jogo: ouro demais de uma vez.';
 const v = d().versao;
 x = await pedir({ personagem: p0.id, acao: 'habilidadeAuto', args: true });

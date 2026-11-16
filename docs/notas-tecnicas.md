@@ -995,5 +995,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Cliente: `C.acao(id, nome, args)` (contas.js usa a mesma fila/troca de personagem da caçada; contas-local.js roda a
   regra local). `acaoServidor(nome, args)` em app.js: a regra roda na tela na hora e o servidor confirma; sem a função
   (404) volta a `salvar()`.
+- Etapa 2 (Mochila e Mercado): `vender`, `venderVarios` ([ids]), `travarItem`, `organizarMochila` ([critério, crescente]),
+  `comprar` ({raridade?, tipo, especifico?}: o item é sorteado no servidor; a tela espera a resposta e acha o item novo),
+  `comprarPocao`, `comprarPoteEstamina`, `trocarPergaminho`, `comprarSkin`, `comprarRecomeco`, `comprarRecomecoHabilidades`.
+  `acaoServidor(nome, args, local)` devolve promessa; `local` é o jeito antigo (só sem a função). Mercado entre
+  jogadores (anunciar/comprar) já é do servidor, mas o cliente ainda grava a ficha depois: na etapa 5, trocar por reler.
 - Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
   funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).
