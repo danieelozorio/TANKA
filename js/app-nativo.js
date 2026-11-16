@@ -1,7 +1,7 @@
 // App Android (Capacitor, Henri, nov/2026). Só roda dentro do app; no site não faz nada.
 // O jogo inteiro vem dentro do APK. Ao abrir, o app confere no GitHub (release "app-web", arquivo versao.json)
 // se saiu versão nova:
-//  - jogo novo (web maior que o deste app): pergunta e, se o jogador deixar, baixa o pacote do jogo e reinicia;
+//  - jogo novo (web maior que o deste app): cobre a tela, baixa o pacote do jogo (obrigatório) e reinicia;
 //  - APK novo (apk maior que o instalado): mostra o link para baixar o APK.
 // window.ELDRIN_APP = { web: N } é escrito no index.html por ferramentas/montar_app.js.
 (function () {
@@ -32,16 +32,19 @@
   function depois(chave) { try { sessionStorage.setItem('eldrin.app.depois', chave); } catch (e) {} }
   function jaDisseDepois(chave) { try { return sessionStorage.getItem('eldrin.app.depois') === chave; } catch (e) { return false; } }
 
+  // Jogo novo: atualização OBRIGATÓRIA (pedido do Henri, 16/11/2026). Jogo velho no app briga com o servidor novo
+  // ("jogado em outra aba"), então o app cobre a tela, baixa e reinicia; se falhar, só dá para tentar de novo.
+  var atualizando = false;
   function oferecerJogo(v) {
-    var chave = 'web' + v.web;
-    if (jaDisseDepois(chave)) return;
-    var d = caixa('<strong style="color:#f4d9a0">Atualização do Eldrin</strong><br>Saiu uma versão nova do jogo'
-      + (v.tamanhoMB ? ' (' + v.tamanhoMB + ' MB)' : '') + '. Quer baixar agora?<br>' + botao('Atualizar agora', true) + botao('Depois'));
-    var b = d.querySelectorAll('button');
-    b[1].onclick = function () { depois(chave); d.remove(); };
-    b[0].onclick = function () {
-      d.innerHTML = '<strong style="color:#f4d9a0">Baixando a atualização…</strong> <span id="app-atualizar-pct">0%</span>'
-        + '<br><small>Não feche o app. Ele reinicia sozinho no fim.</small>';
+    if (atualizando) return;
+    atualizando = true;
+    var d = caixa('');
+    d.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;'
+      + 'padding:24px;text-align:center;background:rgba(7,8,12,.96);color:#e8dcc4;font:16px/1.5 Georgia,serif';
+    function baixar() {
+      d.innerHTML = '<strong style="color:#f4d9a0;font-size:20px">Atualizando o Eldrin…</strong>'
+        + '<div style="margin-top:8px">Versão nova do jogo' + (v.tamanhoMB ? ' (' + v.tamanhoMB + ' MB)' : '') + ': <span id="app-atualizar-pct">0%</span></div>'
+        + '<small style="color:#a8987a;margin-top:6px">Não feche o app. Ele reinicia sozinho no fim.</small>';
       var ouvinte = U.addListener && U.addListener('download', function (e) {
         var el = document.getElementById('app-atualizar-pct');
         if (el && e && e.percent !== undefined) el.textContent = Math.round(e.percent) + '%';
@@ -52,11 +55,13 @@
         if (ouvinte && ouvinte.then) ouvinte.then(function (o) { o.remove(); });
         var msg = (erro && (erro.message || erro.code)) || String(erro);
         console.error('[eldrin-app] atualização falhou: ' + msg);
-        d.innerHTML = 'Não deu para baixar a atualização agora. Tente de novo mais tarde.<br><small style="color:#a8987a">'
-          + String(msg).replace(/</g, '&lt;').slice(0, 200) + '</small><br>' + botao('Ok');
-        d.querySelector('button').onclick = function () { d.remove(); };
+        d.innerHTML = '<strong style="color:#f4d9a0;font-size:20px">Não deu para atualizar</strong>'
+          + '<div style="margin-top:8px">Confira a internet e tente de novo.</div><small style="color:#a8987a">'
+          + String(msg).replace(/</g, '&lt;').slice(0, 200) + '</small><div>' + botao('Tentar de novo', true) + '</div>';
+        d.querySelector('button').onclick = baixar;
       });
-    };
+    }
+    baixar();
   }
   function oferecerApk(v) {
     var chave = 'apk' + v.apk;

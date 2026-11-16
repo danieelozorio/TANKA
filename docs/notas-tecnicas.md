@@ -967,8 +967,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   - Chave oficial: segredos `ANDROID_CHAVE_B64` e `ANDROID_CHAVE_SENHA` (só o dono do repositório cria). Sem eles,
     usa a chave de teste (aviso no log). Quem instalou um APK de teste precisa desinstalar antes do oficial.
 - `js/app-nativo.js` (só dentro do app): `notifyAppReady`; confere o `versao.json` (CapacitorHttp); jogo novo →
-  pergunta "Atualizar agora / Depois" e baixa o zip (`download` + `set`, reinicia); APK novo → link para baixar.
-  "Depois" vale até fechar o app. `apkMinimo` > instalado força o aviso do APK antes do jogo.
+  atualização OBRIGATÓRIA (16/11: jogo velho no app brigava com o servidor novo e dava "jogado em outra aba"): cobre a
+  tela, baixa o zip (`download` com `checksum` sha256, que o plugin exige, + `set`, reinicia); se falhar, "Tentar de
+  novo". APK novo → link para baixar ("Depois" vale até fechar o app). `apkMinimo` > instalado força o aviso do APK.
+- Teste no celular virtual (só branch `henri/apk-*`): o workflow liga um Android 15, instala o APK (com depuração do
+  WebView ligada e jogo versão 1 apontando para o release `app-teste`, que recebe um pacote versão 2), roda
+  `app-android/teste-celular.sh`/`.py` (DevTools do WebView pela porta 9222) e sobe prints, `teste.txt` e `logcat.txt`
+  no release `app-teste` (baixar com `gh api` + `Accept: application/octet-stream`).
 - `jaInstalado()` (app.js) conta o app Capacitor: some o botão "Baixar app Android".
 - **Luta da masmorra/boss do clã pelo relógio (Henri, nov/2026):** `relogioLuta(L)` avança os eventos pelo tempo real (`L.acum`, x2 se acelerado), não por timer; trocar de aba/app ou recarregar não atrasa: a luta começa em `run.criado_em` e alcança o ponto certo (também no `visibilitychange`). O resultado já era gravado no servidor no começo.
 
