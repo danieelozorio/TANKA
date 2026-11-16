@@ -442,6 +442,19 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `custoChips`. **Correção:** a peça da forja contratada usava o campo `tipo` (o mesmo do serviço): escolher a peça
   quebrava o formulário e o pedido ia com a peça "forjar". Agora é `estado.contratar.peca`. Nome do item sem o encanto
   repetido ("+5 Espada +5").
+- **Balão "onde conseguir" (Henri, nov/2026):** em `custoChips`, todo chip que falta (exceto ouro) vira `.dica-custo`
+  com um `.dica-balao` montado por `ondeConseguir(c)` (material da região: drop + Mineração; do chefe: chefe e `dropChefe`;
+  gema: Mineração; fragmento: boss do clã; cristal: quebra na Forja com `CRISTAIS_QUEBRA`; receita: Coletor/Mercado).
+  Números lidos de `D.CRAFT`. Toque/clique abre e fecha (classe `aberta`, listener global logo abaixo de `custoChips`);
+  hover só em telas com mouse (`@media (hover: hover)`). O balão é empurrado para dentro da tela se passar da borda.
+
+- **Quebrar item, amigo na hora e oficina parada (Henri, nov/2026):** serviço `quebrar` do Ferreiro
+  (`CRAFT.oficina.servicos.quebrar`, `porNivel: true`): o preço do Ferreiro vale **por level do item** (`R.precoServico`;
+  no servidor, `oficina_pedir` multiplica). O item vira cristais da raridade dele: `CRAFT.quebrar` (`R.cristaisQuebrar` e
+  `oficina_cristais_quebrar` no SQL; Lv 1–9: 2, 30: 10, 45: 20, 60: 30). Relíquias não quebram.
+  **Amigo:** se o artesão é amigo (amizade aceita, `sao_amigos`), `oficina_pedir` já chama `oficina_fazer_pedido` (a parte de
+  `oficina_fazer` sem conferir o dono) e devolve `{feito, resultado}`; a lista marca `amigo` (selo "🤝 Amigo · faz na hora").
+  **24 h:** artesão que não salva o jogo há `CRAFT.oficina.sumirHoras` (24) sai da lista e `oficina_pedir` recusa (`oficina_ativa`).
 
 ## Arena: só o dado decide (Henri, nov/2026)
 - `arena_vez`: tirado o sorteio de esquiva (passiva/conjunto); na Arena só o 1 do dado erra. Exceção: a Sombra
@@ -858,7 +871,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   amigo; silenciado não sussurra). Quem recebe vê a aba aparecer (conversas das últimas 24 h).
 - **Clã › Membros:** ações num menu em cascata (`details.menu-cascata`) com "Adicionar amigo" (`al-amigo`).
 - **Mercado Negro:** aba `mercadoNegro` no grupo Mercado com o comércio entre jogadores (saiu da Loja). Faixa de nível como o Leilão:
-  `mercado_nivel_max(meu)` (antes do 10: até 12; 10–19: 22; 20–29: 32; 30+: sem limite) filtra `mercado_estado` (os seus anúncios
+  `mercado_nivel_max(meu)` (antes do 10: até 12; 10–19: 22; 20–29: 32; 30–39: 50; 40+: sem limite, `LEILAO.mercadoSemLimite`) filtra `mercado_estado` (os seus anúncios
   sempre aparecem) e trava `mercado_comprar`.
 - **Fila da masmorra com bots de classe:** `fila_papel` (healer/guerreiro/dps) e `fila_bot_classe`; o bot é o 1º jogador com
   `botClasse2` = papel que falta (guerreiro → healer + Arqueiro/Bruxo; dps → guerreiro + healer; healer → guerreiro + Arqueiro).
@@ -876,3 +889,71 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   gravado no item). Vai no `tanka_dados` (gerar_dados_sql.js copia `multDefesaMagica`). Conferido: jogo e servidor dão a
   mesma defesa mágica. Motivo: o Mago ganhava a maioria das lutas na Arena (o golpe dele vai na defesa mágica, baixa nas
   outras classes). **Precisa rodar o schema.**
+
+### Masmorras mais difíceis (Henri, 14/11/2026)
+- `forca` de cada masmorra em `dados.js` recalibrada por simulação: 3 heróis com level = mínimo + 5 e itens épicos +5
+  vencem ~60%; no level mínimo (ou +3 com épico +3) quase 0%. Ex.: Catacumbas (lv15) pede 3 heróis lv20 bem equipados.
+- Novo campo `poderRecomendado` (poder por herói desse grupo), mostrado no cartão da masmorra com o poder do jogador.
+- Não mexe no schema. A função `cacada` é publicada sozinha (mudou dados.js).
+
+### Arqueiro (Caçador): passiva e veneno (Henri, 14/11/2026)
+- Passiva `reflexo-rapido` agora se chama **Sede de Caça**: +5 DES e `rouboVida [0.1, 0.9]` (1% com o ponto de graça,
+  10% com 10 pontos); sem esquiva. `extrasNivel` (regras.js) e `arena_extras` (schema) passaram a somar também a passiva
+  sem `nivel`.
+- Flecha Envenenada: `dotPct [10, 5]` (até 60%, era 140%), sem `curaMorte`, recarga 5 (era 4).
+
+## Interface Arcane (Henri, nov/2026)
+- Terceira opção de tema na ⚙ (Clássica, Zealot, **Arcane**), só no computador (no celular continua a casca Zealot).
+- Usa as **telas da Clássica** (`interfaceAtual()` continua devolvendo `'classica'`); só muda o visual. O tema escolhido
+  de verdade sai de `temaAtual()` (usado no painel de Interface).
+- `jogar/index.html` e `ferramentas/artifact.html` carregam `css/tema-arcane.css` só quando o tema é `arcane`. Todo o CSS
+  é preso a `html[data-interface="arcane"]`: não mexe na Clássica nem no Zealot.
+- Base: CSS do Gemini (paleta castelo/ferro/ouro velho/arcano, Cinzel + Inter), aplicado nas classes reais (`.caixa`,
+  `.abas-jogo`, `.sub-abas`, `.barra.*`, `.poder-destaque`, `.btn`, `.slot`/`.celula`, `.ranking`, `.leilao-lote`...).
+- Molduras dos itens: `assets/interface/arcane/slot-<comum|rara|conjunto|epica|lendaria|vazio>.webp`, recortadas da
+  referência do Henri (`--arcane-slot` em cada `.borda-*`), com a cor da raridade suavizada. Bônus dos equipamentos vira pergaminho.
+- Camada "maquete" (seção 11 do CSS): artes **provisórias** recortadas da maquete do Henri (baixa resolução): paredes do
+  castelo nas laterais (`lateral-esq/dir`), torres no topo, escudos nos espaços vazios (`escudo-<espaço>`, via `--arcane-escudo`),
+  moldura de runas no retrato (`moldura-runas`, em `.retrato-central::before`), brasão/castelo/dragão em cima da mochila e
+  dragões no rodapé. Trocar pelas versões em alta do Gemini quando chegarem (mesmos nomes de arquivo).
+- Artes recortadas de novo da maquete em alta (1952x2174): escudos, laterais, topo, runas, brasão, dragões, enfeites dos
+  cantos da ficha (`canto-escudo-esq/dir`, `canto-lobo`, `canto-leao`) e leão da placa de Poder (`brasao-leao`).
+- **Efeitos animados** (`js/arcane-efeitos.js`, carregado só no tema Arcane junto com o CSS): um canvas fixo por cima
+  (sem cliques, `#arcane-efeitos`) desenha faíscas douradas em volta de `.ficha .cabeca`, pó arcano em volta de
+  `.retrato-central` e da mochila, e o fogo das tochas/velas das laterais (posições em `CHAMAS`, % da arte) com brasas.
+  Só lê posições (a cada 200 ms); para com a aba escondida e não roda com "reduzir movimento". No CSS: névoa girando atrás
+  do retrato e brilho que respira no quadro do nome e na placa de Poder.
+
+- **Arcane no celular (teste):** no celular a ⚙ › Interface oferece "Zealot" (a casca do celular, padrão) ou "Arcane".
+  Com Arcane, o `jogar/index.html` não liga a casca (`data-celular`): o jogo usa as telas da Clássica e a seção 14 do
+  `css/tema-arcane.css` (até 760 px) as adapta. As abas viram o **menu em cascata** (`cascataHtml()` no app.js, só no tema
+  Arcane; ações `cascata` e `cascata-grupo`; `estado.cascata`/`estado.cascataGrupo`): botão com grupo › aba e lista dos
+  grupos com ícone, cada um abrindo as abas dele. Ficha compacta (Arma e Atividades escondidas), imagens menores, mochila em 6 colunas.
+- **Lutas da caçada** (seção 15 do CSS): cartas com moldura dourada (herói com brilho arcano, monstro em vermelho, chefe pulsando), VS dourado pulsando, relato da luta em pergaminho escuro. O `arcane-efeitos.js` olha a barra de vida dos lutadores (`#lutador-jogador`/`#lutador-monstro`): quando cai, a carta treme (`.arcane-golpe`) e soltam faíscas.
+- **Números curtos** (`numCurto`/`numRecurso` no app.js): na barra de recursos da Arcane, ouro e reputação aparecem como 52.4k, 2.495M, 1.25B (corta, não arredonda). O número inteiro fica no `title`. Clássica e Zealot continuam com o número inteiro.
+- **Ajustes depois do teste no jogo** (seção 16 do CSS): barras redesenhadas (trilho de vidro escuro arredondado, preenchimento
+  com reflexo e um brilho que passa a cada 6 s; sem as pontas de metal), brilho do encanto sem o quadrado colorido (só luz suave,
+  2,6x mais lenta), tudo que pisca mais devagar, brasão da mochila recortado (sem o fundo retangular), nomes do pergaminho de
+  bônus legíveis. No `arcane-efeitos.js`: pó e faíscas somem mais rápido, piscam devagar, e o fogo tremula com calma.
+- **HUD dark fantasy** (seção 17 do CSS; pedido do Henri com `INSTRUCOES_PARA_CLAUDE.md` + `referencia-hud.png`): as barras
+  continuam vindo da função `barra()` do app.js (sem barras novas). A `barra()` agora põe `levou-dano` quando o valor CAI em
+  relação ao anterior (mesma comparação do rastro `<s>`; cura e valor igual não piscam) e `vida-baixa` na vida do herói até 25%
+  (não no monstro). A Experiência da ficha ganhou o embrulho `#ficha-exp` e, no nível máximo, a classe `maximo`. Só a Arcane
+  estiliza essas classes: moldura dourada, medalhão com ícone SVG (coração/raio/estrela, em `--ic-*`), ponta dourada,
+  clarão de dano, borda pulsando com vida baixa, Exp roxa, nome do lutador numa faixa dourada e VS em ouro com risco de fogo.
+
+## Reino do Pesadelo e level 60 (Henri, nov/2026)
+- `D.NIVEL_MAXIMO` = 60. Pontos de habilidade: +1 por level depois do 40 (`TALENTOS.pontosDepois2`; 54 no 40, 74 no 60),
+  também no SQL `arena_pontos_ok`. Arena 30+ vai até o 60 (`a4.nivel [31, 60]`).
+- `D.PESADELO`: 7 chefes (`<base>-pesadelo`, montados no fim do dados.js a partir do Ignaroth da caçada × `vida`/`dano`).
+  Abrem no level do chefe (40, 43, 46, 50, 53, 56, 60), custam 20 de estamina, não mexem na presença do chefe da caçada,
+  material = o do chefe base. Exp por vitória = exp do level do chefe até o do próximo / `vitoriasPorFaixa` (100 ≈ 1 semana).
+- Força calibrada com `node ferramentas/simular_pesadelo.js` (herói no level do chefe, tudo épico +5 do mesmo level):
+  ~5 de 10 na média das 4 segundas classes do meio. A diferença entre classes é grande (Assassino/Caçador ganham quase
+  sempre; Destruidor/Coletor quase nunca).
+- Level 40+: o Mapa do Reino dá 10% da exp (`mapaExpPct`), ouro e drops normais. Itens acima do 40 só caem no Pesadelo
+  (level do chefe até +3, `dropPesadelo` em regras.js); no mapa e no Mercado o teto é 40.
+- Servidor: `novoEncontro` com alvo `*-pesadelo` faz o encontro direto (chefe: false, para a caçada automática lutar).
+- Tela: portal no Mapa do Reino (`reino-pesadelo`), mapa `assets/mapa-pesadelo.webp` (x/y em `D.PESADELO.chefes`), ficha do
+  chefe e ⚔ ENFRENTAR (caçada contínua só com esse chefe).
+- **Revanche com confirmação (Henri, nov/2026):** o histórico da Arena traz `oponente_id`; o botão Revanche abre a mesma janela do Desafiar (`abrirDesafio(id, 'revanche')`, `estado.desafio.luta`) e o ⚔ Revanche chama `arena_revanche`. Sem `oponente_id` (schema antigo) luta direto como antes.

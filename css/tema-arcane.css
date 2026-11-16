@@ -1,0 +1,1036 @@
+/* ==========================================================================
+   ELDRIN — Interface "Arcane" (Henri, nov/2026). Só no computador.
+   Castelo, ferro forjado, ouro velho e brilhos arcanos. Base: CSS do Gemini
+   (cores, fontes e efeitos), aplicado nas classes reais da interface Clássica.
+   Carregado só quando o jogador escolhe Arcane na ⚙ (jogar/index.html); tudo
+   preso a html[data-interface="arcane"], então não mexe na Clássica nem no Zealot.
+   Molduras dos itens: assets/interface/arcane/slot-<raridade>.webp.
+   ========================================================================== */
+
+html[data-interface="arcane"] {
+  /* Fundos de castelo e pedra */
+  --bg-pagina: #0d0f13;
+  --bg-pedra-escura: linear-gradient(180deg, #181b21 0%, #101216 100%);
+  --bg-pedra-card: linear-gradient(180deg, #1e2229 0%, #14171c 100%);
+  --bg-inset: #0e1014;
+  /* Pergaminho (bônus e relatórios) */
+  --bg-pergaminho: linear-gradient(180deg, #d8c7a6 0%, #bfa77f 100%);
+  --texto-pergaminho: #24190e;
+  --borda-pergaminho: #6e5331;
+  /* Metais */
+  --ferro-escuro: #2b303a;
+  --ferro-borda: #434a57;
+  --ouro-velho: #8c6b32;
+  --ouro-brilho: #d9ac54;
+  --ouro-texto: #f0c975;
+  /* Arcano */
+  --arcano-verde: #22c55e;
+  --arcano-roxo: #a855f7;
+  --arcano-azul: #3b82f6;
+  /* Textos */
+  --texto-principal: #ede6d6;
+  --texto-secundario: #a39b8b;
+  --texto-apagado: #6e685f;
+  /* Status */
+  --vida-grad: linear-gradient(90deg, #7f1d1d 0%, #dc2626 55%, #f87171 100%);
+  --estamina-grad: linear-gradient(90deg, #78350f 0%, #d97706 60%, #fbbf24 100%);
+  --xp-grad: linear-gradient(90deg, #1e3a8a 0%, #2563eb 60%, #60a5fa 100%);
+  --perigo-grad: linear-gradient(180deg, #5c1919 0%, #3a0f0f 100%);
+  /* Tipografia */
+  --fonte-titulo: 'Cinzel', Georgia, serif;
+  --fonte-corpo: 'Inter', system-ui, -apple-system, sans-serif;
+
+  /* As variáveis da Clássica passam a usar a paleta Arcane (o resto do jogo segue junto) */
+  --fundo: var(--bg-pagina);
+  --painel: rgba(24, 27, 33, .94);
+  --painel-2: #181b21;
+  --borda: var(--ferro-borda);
+  --ouro: var(--ouro-velho);
+  --ouro-claro: var(--ouro-texto);
+  --texto: var(--texto-principal);
+  --suave: var(--texto-secundario);
+  --titulo: var(--fonte-titulo);
+  --corpo: var(--fonte-corpo);
+  --raio: 8px;
+  --arcane-slot: url("../assets/interface/arcane/slot-vazio.webp");
+}
+
+/* ---------- 1. Base, títulos e barra de rolagem ---------- */
+html[data-interface="arcane"] body {
+  font-size: 16px;
+  background-color: var(--bg-pagina);
+  background-image:
+    radial-gradient(circle at 50% 0%, rgba(217, 172, 84, .06) 0%, transparent 55%),
+    radial-gradient(circle at 15% 20%, rgba(168, 85, 247, .04) 0%, transparent 45%),
+    radial-gradient(circle at 85% 30%, rgba(34, 197, 94, .04) 0%, transparent 45%),
+    /* fileiras de pedra do castelo, bem discretas */
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .22) 0 2px, transparent 2px 46px),
+    linear-gradient(180deg, #11141a, #0b0d11);
+  background-attachment: fixed;
+  color: var(--texto-principal);
+  font-family: var(--fonte-corpo);
+}
+html[data-interface="arcane"] body::before { opacity: .09; }
+html[data-interface="arcane"] h1, html[data-interface="arcane"] h2, html[data-interface="arcane"] h3, html[data-interface="arcane"] h4 {
+  font-family: var(--fonte-titulo); letter-spacing: .04em; color: var(--ouro-texto); text-shadow: 0 2px 4px rgba(0, 0, 0, .85);
+}
+html[data-interface="arcane"] ::-webkit-scrollbar { width: 8px; height: 8px; }
+html[data-interface="arcane"] ::-webkit-scrollbar-track { background: #0c0e12; }
+html[data-interface="arcane"] ::-webkit-scrollbar-thumb { background: #3a3f4b; border: 1px solid var(--ouro-velho); border-radius: 4px; }
+
+/* ---------- 2. Barra superior: logo, recursos e avisos ---------- */
+html[data-interface="arcane"] .topo {
+  background: linear-gradient(180deg, #161920 0%, #0e1014 100%);
+  border-bottom: 2px solid var(--ferro-borda);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .75);
+}
+html[data-interface="arcane"] .topo .logo {
+  font-family: var(--fonte-titulo); font-weight: 800; letter-spacing: .14em; color: var(--ouro-texto);
+  text-shadow: 0 0 12px rgba(217, 172, 84, .35);
+}
+html[data-interface="arcane"] .barra-recursos {
+  background: linear-gradient(180deg, rgba(22, 25, 32, .97), rgba(14, 16, 20, .97));
+  border-bottom: 2px solid var(--ferro-borda);
+}
+html[data-interface="arcane"] .barra-recursos::after { background: var(--ouro-brilho); box-shadow: 0 0 10px rgba(217, 172, 84, .7); }
+html[data-interface="arcane"] .recurso {
+  background: linear-gradient(180deg, #1e222b 0%, #12151b 100%);
+  border: 1.5px solid var(--ouro-velho);
+  box-shadow: inset 0 0 0 1px rgba(217, 172, 84, .18), inset 0 2px 6px rgba(0, 0, 0, .7), 0 3px 8px rgba(0, 0, 0, .5);
+}
+html[data-interface="arcane"] .rec-txt small { font-family: var(--fonte-corpo); font-size: .66rem; letter-spacing: .08em; color: var(--texto-secundario); }
+html[data-interface="arcane"] .rec-txt strong { font-family: var(--fonte-titulo); font-weight: 700; }
+html[data-interface="arcane"] .btn-aviso { border-color: var(--ouro-velho); background: linear-gradient(180deg, #1e222b, #12151b); }
+
+/* ---------- 3. Painéis de castelo ---------- */
+html[data-interface="arcane"] .caixa {
+  background: var(--bg-pedra-escura);
+  border: 2px solid var(--ferro-borda);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(217, 172, 84, .25), inset 0 0 32px rgba(0, 0, 0, .85), 0 12px 28px rgba(0, 0, 0, .75);
+}
+/* filete dourado no topo + cantos de ferro dourado */
+html[data-interface="arcane"] .caixa::before {
+  inset: -2px; --c: var(--ouro-brilho); --t: 18px; --g: 2px;
+}
+html[data-interface="arcane"] .caixa::after {
+  content: ""; position: absolute; top: -2px; left: 16px; right: 16px; height: 2px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--ouro-brilho), transparent);
+}
+html[data-interface="arcane"] .caixa-interna,
+html[data-interface="arcane"] .arma-carta,
+html[data-interface="arcane"] .arma-stat {
+  background: var(--bg-pedra-card);
+  border: 1px solid var(--ferro-borda);
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(217, 172, 84, .1), inset 0 2px 10px rgba(0, 0, 0, .65);
+}
+
+/* ---------- 4. Ficha do herói, barras e poder ---------- */
+html[data-interface="arcane"] .ficha .cabeca .moldura {
+  border: 2px solid var(--ouro-velho); border-radius: 6px;
+  box-shadow: 0 0 12px rgba(217, 172, 84, .25), inset 0 0 8px rgba(0, 0, 0, .8);
+}
+/* Moldura arcana do retrato central (aba Personagem): ouro + brilho verde e roxo */
+html[data-interface="arcane"] .retrato-central {
+  border: 2px solid var(--ouro-brilho); border-radius: 6px; overflow: visible; isolation: isolate;
+  box-shadow: 0 0 0 4px #0e1014, 0 0 0 5px rgba(59, 130, 246, .55), 0 0 22px rgba(34, 197, 94, .3), 0 0 40px rgba(168, 85, 247, .25),
+    inset 0 0 16px rgba(0, 0, 0, .85);
+}
+html[data-interface="arcane"] .retrato-central > img, html[data-interface="arcane"] .retrato-central > svg { border-radius: 4px; }
+html[data-interface="arcane"] .retrato-central::before {
+  content: ""; position: absolute; inset: -14px; z-index: -1; border-radius: 14px; pointer-events: none;
+  background: radial-gradient(ellipse at 20% 70%, rgba(34, 197, 94, .35), transparent 55%),
+    radial-gradient(ellipse at 85% 30%, rgba(59, 130, 246, .3), transparent 55%),
+    radial-gradient(ellipse at 70% 95%, rgba(168, 85, 247, .35), transparent 55%);
+  filter: blur(6px); animation: arcane-aura 6s ease-in-out infinite;
+}
+@keyframes arcane-aura { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+
+
+/* Brasão de poder */
+html[data-interface="arcane"] .poder-destaque {
+  background: radial-gradient(circle at center, rgba(217, 172, 84, .2) 0%, #14161b 75%);
+  border: 1.5px solid var(--ouro-velho); border-radius: 6px;
+  box-shadow: inset 0 0 16px rgba(217, 172, 84, .15), 0 4px 12px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .poder-txt strong, html[data-interface="arcane"] .poder-txt b {
+  font-family: var(--fonte-titulo); font-weight: 800; color: var(--ouro-texto); text-shadow: 0 0 10px rgba(217, 172, 84, .4);
+}
+
+/* ---------- 5. Navegação, sub-abas e botões ---------- */
+html[data-interface="arcane"] .abas-jogo {
+  background: #101217; border: 1.5px solid var(--ferro-borda); border-radius: 8px; padding: 4px; gap: 4px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .8);
+}
+html[data-interface="arcane"] .abas-jogo button {
+  font-family: var(--fonte-titulo); font-size: .85rem; font-weight: 700; color: var(--texto-secundario);
+  border: 1px solid transparent; border-radius: 6px; transition: all .18s ease;
+}
+html[data-interface="arcane"] .abas-jogo button + button::before { display: none; }
+html[data-interface="arcane"] .abas-jogo button:hover { color: var(--texto-principal); background: rgba(255, 255, 255, .04); }
+html[data-interface="arcane"] .abas-jogo button.ativa {
+  color: var(--ouro-texto); text-shadow: none;
+  background: linear-gradient(180deg, #2d2619 0%, #1b1710 100%);
+  border-color: var(--ouro-brilho);
+  box-shadow: inset 0 0 12px rgba(217, 172, 84, .25), 0 2px 8px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .abas-jogo button.ativa::after { display: none; }
+html[data-interface="arcane"] .abas-jogo button.ativa .aba-ico { color: var(--ouro-brilho); }
+
+html[data-interface="arcane"] .sub-abas { background: #0e1014; border: 1px solid var(--ferro-escuro); padding: 4px; gap: 4px; }
+html[data-interface="arcane"] .sub-abas button {
+  font-family: var(--fonte-corpo); font-size: .8rem; font-weight: 600; color: var(--texto-secundario);
+  border: 1px solid transparent; padding: 6px 14px; transition: all .15s ease;
+}
+html[data-interface="arcane"] .sub-abas button:hover { color: var(--texto-principal); }
+html[data-interface="arcane"] .sub-abas button.ativa {
+  background: linear-gradient(180deg, #e5be6b 0%, #b58938 100%); color: #1a1207; font-weight: 700;
+  border-color: #fde68a; box-shadow: 0 0 12px rgba(217, 172, 84, .4);
+}
+html[data-interface="arcane"] .mochila-abas button.ativa { color: var(--ouro-texto); border-color: var(--ouro-velho); background: linear-gradient(180deg, #2d2619, #1b1710); }
+
+/* Botão principal (dourado/ferro) */
+html[data-interface="arcane"] .btn {
+  font-family: var(--fonte-titulo); font-weight: 700; font-size: .82rem; letter-spacing: .05em; color: var(--ouro-texto);
+  background: linear-gradient(180deg, #332a1b 0%, #1d1810 100%);
+  border: 1.5px solid var(--ouro-velho); border-radius: 5px;
+  box-shadow: inset 0 1px 0 rgba(253, 230, 138, .2), 0 3px 8px rgba(0, 0, 0, .65);
+  transition: all .15s ease;
+}
+html[data-interface="arcane"] .btn:hover:not(:disabled) {
+  filter: none; border-color: var(--ouro-brilho);
+  background: linear-gradient(180deg, #473922 0%, #261f14 100%);
+  box-shadow: inset 0 0 12px rgba(217, 172, 84, .3), 0 0 12px rgba(217, 172, 84, .25); transform: translateY(-1px);
+}
+html[data-interface="arcane"] .btn:disabled { opacity: .42; cursor: not-allowed; }
+/* Botão secundário / filtro (ferro escuro) */
+html[data-interface="arcane"] .btn.secundario {
+  font-family: var(--fonte-corpo); font-weight: 500; letter-spacing: 0; color: var(--texto-principal);
+  background: linear-gradient(180deg, #22262f 0%, #15181e 100%); border: 1px solid var(--ferro-borda); box-shadow: none;
+}
+html[data-interface="arcane"] .btn.secundario:hover:not(:disabled) { border-color: var(--ouro-velho); color: var(--ouro-texto); background: linear-gradient(180deg, #22262f, #15181e); box-shadow: none; }
+/* Botão de perigo */
+html[data-interface="arcane"] .btn.perigo, html[data-interface="arcane"] .btn-perigo {
+  color: #fecaca; background: var(--perigo-grad); border: 1.5px solid #b91c1c; box-shadow: inset 0 0 10px rgba(220, 38, 38, .3);
+}
+html[data-interface="arcane"] .btn.perigo:hover:not(:disabled), html[data-interface="arcane"] .btn-perigo:hover { border-color: #f87171; box-shadow: 0 0 14px rgba(220, 38, 38, .45); background: var(--perigo-grad); }
+
+/* ---------- 6. Slots de equipamento e mochila: moldura de ferro com o fundo da raridade ---------- */
+html[data-interface="arcane"] .slot,
+html[data-interface="arcane"] .celula {
+  padding: 11px;
+  background: var(--arcane-slot) center / 100% 100% no-repeat, #151312;
+  border: 2px solid transparent; border-radius: 4px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .6);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+html[data-interface="arcane"] .slot.vazio { border-style: solid; opacity: .8; }
+html[data-interface="arcane"] .celula.vazia { opacity: .7; }
+html[data-interface="arcane"] .boneco { --slot: 68px; }
+html[data-interface="arcane"] .mochila { gap: 7px; }
+html[data-interface="arcane"] button.slot:hover, html[data-interface="arcane"] button.celula:hover {
+  outline: none; transform: translateY(-1px); box-shadow: 0 0 0 1px var(--ouro-brilho), 0 0 12px rgba(217, 172, 84, .4);
+}
+html[data-interface="arcane"] .borda-comum { --arcane-slot: url("../assets/interface/arcane/slot-comum.webp"); }
+html[data-interface="arcane"] .borda-rara { --arcane-slot: url("../assets/interface/arcane/slot-rara.webp"); }
+html[data-interface="arcane"] .borda-conjunto { --arcane-slot: url("../assets/interface/arcane/slot-conjunto.webp"); }
+html[data-interface="arcane"] .borda-epica { --arcane-slot: url("../assets/interface/arcane/slot-epica.webp"); }
+html[data-interface="arcane"] .borda-lendaria { --arcane-slot: url("../assets/interface/arcane/slot-lendaria.webp"); }
+html[data-interface="arcane"] .slot.borda-lendaria:not([class*="aura-e"]),
+html[data-interface="arcane"] .celula.borda-lendaria:not([class*="aura-e"]) { animation: arcane-pulso-lendario 3s infinite ease-in-out; }
+@keyframes arcane-pulso-lendario {
+  0%, 100% { box-shadow: 0 3px 8px rgba(0, 0, 0, .6), 0 0 8px rgba(245, 158, 11, .3); }
+  50% { box-shadow: 0 3px 8px rgba(0, 0, 0, .6), 0 0 16px rgba(245, 158, 11, .55); }
+}
+/* Ícones pequenos (arma da ficha, consumíveis) usam a mesma moldura */
+html[data-interface="arcane"] .icone-pequeno[class*="borda-"],
+html[data-interface="arcane"] .icone-grande[class*="borda-"] {
+  padding: 6px; border-color: transparent; background: var(--arcane-slot) center / 100% 100% no-repeat, #151312;
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-interface="arcane"] .retrato-central::before, html[data-interface="arcane"] .slot, html[data-interface="arcane"] .celula { animation: none !important; }
+}
+
+/* ---------- 7. Pergaminhos: bônus dos equipamentos ---------- */
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna {
+  background: var(--bg-pergaminho); color: var(--texto-pergaminho);
+  border: 2px solid var(--borda-pergaminho); border-radius: 6px;
+  box-shadow: inset 0 0 22px rgba(66, 43, 18, .45), 0 6px 16px rgba(0, 0, 0, .65);
+}
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna h3,
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna h4,
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna strong { color: #3b230d; text-shadow: none; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .suave { color: #4a3a24; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .mais { color: #1f5f2a; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .menos { color: #8a1c15; }
+
+/* ---------- 8. Aventura: mapa, caçada e dado da Arena ---------- */
+html[data-interface="arcane"] .mapa-mundo {
+  border: 2px solid var(--ouro-velho); border-radius: 8px;
+  box-shadow: 0 0 0 1px #0b0d10, 0 10px 24px rgba(0, 0, 0, .8);
+}
+html[data-interface="arcane"] .cacada-arena {
+  border: 1.5px solid var(--ouro-velho); border-radius: 8px;
+  box-shadow: inset 0 0 32px rgba(0, 0, 0, .85);
+}
+html[data-interface="arcane"] .lutador .moldura {
+  border: 2px solid var(--ferro-borda);
+  box-shadow: inset 0 0 0 1px rgba(217, 172, 84, .25), 0 8px 20px rgba(0, 0, 0, .75);
+}
+html[data-interface="arcane"] .dado-palco, html[data-interface="arcane"] .dado-janela {
+  background: radial-gradient(circle at center, #1e2636 0%, #0e121a 85%);
+  border: 1.5px solid var(--ouro-velho); border-radius: 8px;
+  box-shadow: inset 0 0 24px rgba(59, 130, 246, .2), 0 6px 18px rgba(0, 0, 0, .75);
+}
+html[data-interface="arcane"] .tabela-relatorio, html[data-interface="arcane"] .registro, html[data-interface="arcane"] .log {
+  background: #0d0f13; border: 1px solid var(--ferro-borda); border-radius: 6px; box-shadow: inset 0 3px 12px rgba(0, 0, 0, .85); line-height: 1.65;
+}
+html[data-interface="arcane"] .critico { color: var(--ouro-texto); font-weight: 700; }
+
+/* ---------- 9. Leilão, campos e tabelas ---------- */
+html[data-interface="arcane"] .leilao-lote {
+  background: var(--bg-pedra-card); border: 1.5px solid var(--ferro-borda); border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(217, 172, 84, .12), 0 4px 14px rgba(0, 0, 0, .65); transition: border-color .2s ease;
+}
+html[data-interface="arcane"] .leilao-lote:hover { border-color: var(--ouro-velho); }
+html[data-interface="arcane"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html[data-interface="arcane"] select,
+html[data-interface="arcane"] textarea {
+  background: var(--bg-inset); color: var(--texto-principal);
+  border: 1.5px solid var(--ferro-borda); border-radius: 5px; box-shadow: inset 0 2px 6px rgba(0, 0, 0, .8);
+}
+html[data-interface="arcane"] input:focus, html[data-interface="arcane"] select:focus, html[data-interface="arcane"] textarea:focus {
+  outline: none; border-color: var(--ouro-brilho); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .8), 0 0 8px rgba(217, 172, 84, .3);
+}
+html[data-interface="arcane"] .ranking th, html[data-interface="arcane"] .boss-rank th, html[data-interface="arcane"] .comparar-tabela th {
+  font-family: var(--fonte-titulo); font-size: .78rem; color: var(--ouro-texto); text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1.5px solid var(--ouro-velho);
+}
+html[data-interface="arcane"] .ranking td, html[data-interface="arcane"] .boss-rank td { border-bottom: 1px solid rgba(67, 74, 87, .45); }
+html[data-interface="arcane"] .ranking tr:hover td, html[data-interface="arcane"] .boss-rank tr:hover td { background: rgba(217, 172, 84, .06); }
+html[data-interface="arcane"] .ranking tr.meu td {
+  background: rgba(217, 172, 84, .12); border-top: 1px solid rgba(217, 172, 84, .3); border-bottom: 1px solid rgba(217, 172, 84, .3);
+}
+
+/* ---------- 10. Rodapé ---------- */
+html[data-interface="arcane"] .rodape { border-top: 2px solid var(--ferro-borda); background: linear-gradient(180deg, #12151b, #0b0d11); color: var(--texto-secundario); }
+
+/* ==========================================================================
+   11. Camada "maquete" (Henri, nov/2026): aproxima da imagem de referência.
+   Artes recortadas da maquete em assets/interface/arcane/ (provisórias até
+   chegarem as artes em alta do Gemini).
+   ========================================================================== */
+html[data-interface="arcane"] {
+  --navy: linear-gradient(180deg, #161d2c 0%, #0f1420 100%);
+  --madeira: linear-gradient(180deg, #2b1d13 0%, #1a110b 100%);
+  --ouro-moldura: #9b7a3c;
+}
+/* Fundo: paredes do castelo nas laterais (vitrais, velas e tochas) */
+html[data-interface="arcane"] body {
+  background:
+    url("../assets/interface/arcane/lateral-esq.webp") left top / auto 100vh no-repeat fixed,
+    url("../assets/interface/arcane/lateral-dir.webp") right top / auto 100vh no-repeat fixed,
+    radial-gradient(ellipse at 50% 0%, rgba(217, 172, 84, .07), transparent 55%) fixed,
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, .25) 0 2px, transparent 2px 44px) fixed,
+    linear-gradient(180deg, #14161c, #0b0c10) fixed;
+}
+/* Topo: ameias e torres do castelo atrás do nome */
+html[data-interface="arcane"] .topo {
+  background: url("../assets/interface/arcane/topo-castelo.webp") center bottom / auto 100% no-repeat, linear-gradient(180deg, #0f1218, #0b0d11);
+  border-bottom: 1px solid #000;
+}
+html[data-interface="arcane"] .barra-recursos {
+  background: linear-gradient(180deg, #2a2116 0%, #17120c 100%);
+  border-top: 2px solid var(--ouro-moldura); border-bottom: 2px solid var(--ouro-moldura);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, .25), 0 6px 18px rgba(0, 0, 0, .7);
+}
+html[data-interface="arcane"] .recurso { background: linear-gradient(180deg, #1a1d27, #0f1118); border-color: var(--ouro-moldura); }
+
+/* Painéis: azul-noite com moldura dourada dupla */
+html[data-interface="arcane"] .caixa {
+  background: var(--navy);
+  border: 2px solid var(--ouro-moldura);
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 0 5px rgba(155, 122, 60, .55),
+    inset 0 0 0 1px rgba(255, 220, 150, .12), inset 0 0 40px rgba(0, 0, 0, .7), 0 14px 30px rgba(0, 0, 0, .8);
+}
+html[data-interface="arcane"] .caixa::before { --t: 26px; --g: 3px; inset: -6px; }
+
+/* Ficha: retrato pequeno com moldura dourada brilhante */
+html[data-interface="arcane"] .ficha .cabeca {
+  padding: .5rem; border: 2px solid #c9a14e; border-radius: 6px;
+  background: linear-gradient(180deg, #1d1a14, #12100c);
+  box-shadow: 0 0 14px rgba(240, 190, 90, .55), inset 0 0 18px rgba(240, 190, 90, .18);
+}
+html[data-interface="arcane"] .ficha .cabeca .moldura { border-color: #e2bb63; box-shadow: 0 0 10px rgba(240, 190, 90, .6); }
+/* Brasão de Poder: placa dourada ornamentada */
+html[data-interface="arcane"] .poder-destaque {
+  background: radial-gradient(ellipse at center, rgba(240, 200, 110, .35), transparent 70%), linear-gradient(180deg, #3a2c16, #1c150b);
+  border: 2px solid #c9a14e; border-radius: 4px;
+  box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .35), inset 0 0 18px rgba(0, 0, 0, .6), 0 6px 14px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .poder-ico { border-width: 2px; background: radial-gradient(circle, #5a4320, #1c150b); }
+/* Carta da arma: vinho escuro com fio dourado */
+html[data-interface="arcane"] .arma-carta {
+  background: linear-gradient(180deg, #2a1418, #160b0d); border: 1px solid #8a6a36; border-left-width: 3px;
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 150, .1), inset 0 0 20px rgba(120, 20, 30, .35);
+}
+html[data-interface="arcane"] .arma-stat { background: rgba(10, 6, 7, .55); border-color: rgba(138, 106, 54, .45); }
+
+/* Abas: faixa de couro/ouro */
+html[data-interface="arcane"] .abas-jogo { background: linear-gradient(180deg, #2a2116, #15100a); border: 2px solid var(--ouro-moldura); }
+html[data-interface="arcane"] .abas-jogo button.ativa { background: linear-gradient(180deg, #4a3a20, #241b0e); border-color: #e2bb63; }
+
+/* Personagem: escudos nos espaços vazios e moldura de runas no retrato */
+html[data-interface="arcane"] .boneco { --slot: 72px; }
+html[data-interface="arcane"] .slot.vazio {
+  height: calc(var(--slot) * 1.15); padding: 0; border: 0; opacity: 1; box-shadow: none;
+  background: var(--arcane-escudo, none) center / contain no-repeat;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .7));
+}
+html[data-interface="arcane"] .slot.vazio > * { visibility: hidden; }
+html[data-interface="arcane"] .espaco-elmo { --arcane-escudo: url("../assets/interface/arcane/escudo-elmo.webp"); }
+html[data-interface="arcane"] .espaco-colar { --arcane-escudo: url("../assets/interface/arcane/escudo-colar.webp"); }
+html[data-interface="arcane"] .espaco-peitoral { --arcane-escudo: url("../assets/interface/arcane/escudo-peitoral.webp"); }
+html[data-interface="arcane"] .espaco-luvas { --arcane-escudo: url("../assets/interface/arcane/escudo-luvas.webp"); }
+html[data-interface="arcane"] .espaco-arma { --arcane-escudo: url("../assets/interface/arcane/escudo-arma.webp"); }
+html[data-interface="arcane"] .espaco-anel1 { --arcane-escudo: url("../assets/interface/arcane/escudo-anel1.webp"); }
+html[data-interface="arcane"] .espaco-secundaria { --arcane-escudo: url("../assets/interface/arcane/escudo-secundaria.webp"); }
+html[data-interface="arcane"] .espaco-anel2 { --arcane-escudo: url("../assets/interface/arcane/escudo-anel2.webp"); }
+html[data-interface="arcane"] .espaco-botas { --arcane-escudo: url("../assets/interface/arcane/escudo-botas.webp"); }
+html[data-interface="arcane"] .personagem-tela {
+  padding: 1rem .6rem; border-radius: 6px;
+  background: radial-gradient(ellipse at 15% 75%, rgba(34, 197, 94, .18), transparent 45%),
+    radial-gradient(ellipse at 60% 30%, rgba(59, 130, 246, .14), transparent 45%),
+    radial-gradient(ellipse at 90% 95%, rgba(168, 85, 247, .2), transparent 45%);
+}
+html[data-interface="arcane"] .retrato-central { border: 0; box-shadow: none; overflow: visible; }
+html[data-interface="arcane"] .retrato-central::before {
+  content: ""; position: absolute; z-index: 2; pointer-events: none; filter: none; animation: arcane-aura 6s ease-in-out infinite;
+  /* janela interna da moldura: 8,6% / 12,3% / 10,2% / 11,6% da imagem (esq/topo/dir/baixo) */
+  left: -10.6%; right: -12.5%; top: -16.2%; bottom: -15.3%; border-radius: 0;
+  background: url("../assets/interface/arcane/moldura-runas.webp") center / 100% 100% no-repeat;
+}
+html[data-interface="arcane"] .retrato-central::after { border-radius: 4px; }
+/* Bônus dos equipamentos: pergaminho alto com cantos dourados */
+html[data-interface="arcane"] .personagem-tela .lateral { align-self: stretch; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna {
+  min-height: 100%; padding: 1rem 1.1rem;
+  background: radial-gradient(ellipse at 50% 40%, #e3d2ad, #c7ae83 70%, #a98d60 100%);
+  border: 2px solid #7a5a2c; border-radius: 3px;
+  box-shadow: 0 0 0 1px #2a1c0c, inset 0 0 0 4px rgba(122, 90, 44, .25), inset 0 0 30px rgba(80, 50, 20, .45), 0 8px 18px rgba(0, 0, 0, .7);
+  font-family: Georgia, 'EB Garamond', serif;
+}
+
+/* Mochila: painel de madeira com o brasão, o castelo e o dragão em cima */
+html[data-interface="arcane"] .pg-mochila {
+  position: relative; margin-top: 2.6rem; padding: .8rem; border-radius: 4px;
+  background: var(--madeira); border: 2px solid var(--ouro-moldura);
+  box-shadow: 0 0 0 1px #000, inset 0 0 30px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .pg-mochila::before {
+  content: ""; position: absolute; right: -8px; top: -62px; width: 66%; height: 72px; pointer-events: none;
+  background: url("../assets/interface/arcane/mochila-brasao.webp") right bottom / contain no-repeat;
+}
+html[data-interface="arcane"] .pg-mochila > h3.subtitulo { position: absolute; top: -2.2rem; left: 0; margin: 0; }
+html[data-interface="arcane"] .mochila-abas { border-bottom-color: var(--ouro-moldura); }
+html[data-interface="arcane"] .mochila-abas button { background: linear-gradient(180deg, #2a1d13, #1a110b); border: 1px solid #5a4326; border-bottom: 0; color: var(--texto-secundario); }
+html[data-interface="arcane"] .mochila-abas button.ativa { color: #ffe0a0; background: linear-gradient(180deg, #6a2a1a, #3a160d); border-color: #c9a14e; }
+html[data-interface="arcane"] .mochila-barra { background: rgba(10, 6, 3, .55); border-color: rgba(155, 122, 60, .45); }
+
+/* Rodapé de ferro com dragões */
+html[data-interface="arcane"] .rodape {
+  position: relative; padding: 1.4rem 16px; font-family: var(--fonte-titulo); color: #c9bfa8;
+  background: url("../assets/interface/arcane/rodape-dragao-esq.webp") calc(50% - 175px) center / auto 100% no-repeat,
+    url("../assets/interface/arcane/rodape-dragao-dir.webp") calc(50% + 180px) center / auto 100% no-repeat,
+    linear-gradient(180deg, #1a1c22, #0b0c10);
+  border-top: 2px solid #4a4f5a;
+}
+/* escudos por cima da moldura de runas (como na maquete) */
+html[data-interface="arcane"] .boneco .espaco { position: relative; z-index: 3; }
+html[data-interface="arcane"] .rodape { display: block; width: 100%; box-sizing: border-box; }
+
+/* ---------- 12. Enfeites dos cantos e brilhos lentos (artes da maquete em alta) ---------- */
+/* Escudos no alto da ficha, lobo e leão embaixo */
+html[data-interface="arcane"] .ficha { overflow: visible; }
+html[data-interface="arcane"] .ficha .cabeca { position: relative; }
+html[data-interface="arcane"] .ficha .cabeca::before, html[data-interface="arcane"] .ficha .cabeca::after {
+  content: ""; position: absolute; top: -44px; width: 46px; height: 60px; pointer-events: none; z-index: 2;
+  background: center / contain no-repeat; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .8));
+}
+html[data-interface="arcane"] .ficha .cabeca::before { left: -34px; background-image: url("../assets/interface/arcane/canto-escudo-esq.webp"); }
+html[data-interface="arcane"] .ficha .cabeca::after { right: -34px; background-image: url("../assets/interface/arcane/canto-escudo-dir.webp"); }
+html[data-interface="arcane"] .ficha .atividades { position: relative; }
+html[data-interface="arcane"] .ficha .atividades::before, html[data-interface="arcane"] .ficha .atividades::after {
+  content: ""; position: absolute; bottom: -62px; width: 48px; height: 54px; pointer-events: none; z-index: 2;
+  background: center / contain no-repeat; filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .8));
+}
+html[data-interface="arcane"] .ficha .atividades::before { left: -40px; background-image: url("../assets/interface/arcane/canto-lobo.webp"); }
+html[data-interface="arcane"] .ficha .atividades::after { right: -40px; background-image: url("../assets/interface/arcane/canto-leao.webp"); }
+/* Leão dourado em cima da placa de Poder */
+html[data-interface="arcane"] .poder-destaque { margin-top: 2.1rem; overflow: visible; }
+html[data-interface="arcane"] .poder-ico::before {
+  content: ""; position: absolute; left: 50%; top: -34px; width: 40px; height: 40px; transform: translateX(-50%); pointer-events: none;
+  background: url("../assets/interface/arcane/brasao-leao.webp") center / contain no-repeat;
+  filter: drop-shadow(0 0 6px rgba(240, 190, 90, .55));
+}
+html[data-interface="arcane"] .poder-ico { position: relative; }
+/* Brilhos que respiram devagar: placa de Poder, quadro do nome e moldura de runas */
+html[data-interface="arcane"] .poder-destaque { animation: arcane-respira-ouro 4.5s ease-in-out infinite; }
+html[data-interface="arcane"] .ficha .cabeca { animation: arcane-respira-nome 3.2s ease-in-out infinite; }
+@keyframes arcane-respira-ouro {
+  0%, 100% { box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .35), inset 0 0 18px rgba(0, 0, 0, .6), 0 0 8px rgba(240, 190, 90, .15); }
+  50% { box-shadow: 0 0 0 1px #000, 0 0 0 3px #4a3a1e, inset 0 0 0 1px rgba(255, 230, 160, .55), inset 0 0 22px rgba(240, 190, 90, .18), 0 0 18px rgba(240, 190, 90, .45); }
+}
+@keyframes arcane-respira-nome {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 220, 140, .5), 0 0 14px 2px rgba(240, 180, 70, .6), 0 0 34px rgba(240, 170, 60, .3), inset 0 0 18px rgba(240, 190, 90, .22); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 230, 160, .8), 0 0 22px 4px rgba(255, 200, 90, .85), 0 0 50px rgba(255, 180, 70, .45), inset 0 0 26px rgba(240, 190, 90, .35); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-interface="arcane"] .poder-destaque, html[data-interface="arcane"] .ficha .cabeca { animation: none; }
+}
+/* Névoa arcana atrás do retrato, girando devagar (verde à esquerda, azul à direita, roxo embaixo) */
+html[data-interface="arcane"] .personagem-tela { position: relative; isolation: isolate; }
+html[data-interface="arcane"] .personagem-tela::before {
+  content: ""; position: absolute; inset: -4% 30% -6% -4%; z-index: -1; pointer-events: none; border-radius: 40%;
+  background:
+    radial-gradient(ellipse 38% 45% at 22% 62%, rgba(34, 197, 94, .38), transparent 70%),
+    radial-gradient(ellipse 34% 42% at 80% 40%, rgba(59, 130, 246, .34), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 78% 92%, rgba(168, 85, 247, .32), transparent 70%);
+  filter: blur(14px); animation: arcane-nevoa 14s ease-in-out infinite alternate;
+}
+@keyframes arcane-nevoa {
+  0% { transform: rotate(-4deg) scale(1); opacity: .8; }
+  50% { transform: rotate(3deg) scale(1.05); opacity: 1; }
+  100% { transform: rotate(-2deg) scale(.97); opacity: .85; }
+}
+@media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .personagem-tela::before { animation: none; } }
+
+/* ---------- 13. Ficha do herói como na referência (Henri, nov/2026) ---------- */
+/* Letras com serifa nesta parte, maiores e em tom pergaminho */
+html[data-interface="arcane"] .ficha { font-family: 'EB Garamond', Georgia, serif; }
+html[data-interface="arcane"] .ficha > .suave, html[data-interface="arcane"] .ficha .dica { font-size: 1.12rem; color: #d9c6a2; margin-top: .35rem; }
+html[data-interface="arcane"] .ficha .vida-tempo { font-size: .92rem; color: #c9b893; }
+/* Quadro do nome: fundo de pedra escura, borda dourada que brilha (as faíscas vêm do arcane-efeitos.js) */
+html[data-interface="arcane"] .ficha .cabeca {
+  grid-template-columns: 98px 1fr; gap: 1rem; padding: .7rem .8rem; margin-bottom: 1rem;
+  background: radial-gradient(ellipse at 70% 40%, rgba(80, 66, 46, .55), transparent 70%), linear-gradient(180deg, #2a2620, #1b1915);
+  border: 2px solid #f0c66a; border-radius: 3px;
+}
+html[data-interface="arcane"] .ficha .cabeca h2 { font-family: 'EB Garamond', Georgia, serif; font-weight: 700; font-size: 1.6rem; color: #ecd3a0; text-shadow: 0 2px 3px rgba(0, 0, 0, .8); letter-spacing: .01em; }
+html[data-interface="arcane"] .ficha .cabeca .suave, html[data-interface="arcane"] .ficha .cabeca .nivel { font-size: 1.3rem; color: #e0cba3; line-height: 1.35; }
+/* Retrato pequeno: moldura dourada com cantos trabalhados */
+html[data-interface="arcane"] .ficha .cabeca .moldura {
+  border: 3px solid #c9a14e; border-radius: 2px; aspect-ratio: 4 / 5;
+  box-shadow: 0 0 0 1px #3a2a10, inset 0 0 0 1px rgba(255, 230, 160, .5), 0 0 10px rgba(240, 190, 90, .55);
+  background: linear-gradient(#e8c06a, #e8c06a) left top / 12px 3px no-repeat, linear-gradient(#e8c06a, #e8c06a) left top / 3px 12px no-repeat,
+    linear-gradient(#e8c06a, #e8c06a) right bottom / 12px 3px no-repeat, linear-gradient(#e8c06a, #e8c06a) right bottom / 3px 12px no-repeat, #0e0c09;
+}
+/* Placa de Poder com leão, espadas e asas (arte da referência) */
+html[data-interface="arcane"] .poder-destaque {
+  display: block; position: relative; height: auto; aspect-ratio: 787 / 312; margin: 1.6rem -.4rem .4rem; padding: 0;
+  background: url("../assets/interface/arcane/placa-poder.webp") center / 100% 100% no-repeat; border: 0; border-radius: 0;
+  box-shadow: none; animation: arcane-respira-placa 4.5s ease-in-out infinite;
+}
+html[data-interface="arcane"] .poder-destaque::before, html[data-interface="arcane"] .poder-destaque::after { display: none; }
+html[data-interface="arcane"] .poder-destaque .poder-ico {
+  position: absolute; left: 38.75%; top: 56.7%; width: 17%; height: auto; aspect-ratio: 1; transform: translate(-50%, -50%);
+  border: 2px solid #e8c06a; background: radial-gradient(circle at 45% 40%, #6a4f22, #2a1e0c 75%); color: #ffd98a;
+  box-shadow: 0 0 0 2px #3a2a10, 0 0 14px rgba(255, 200, 100, .55), inset 0 0 10px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .poder-destaque .poder-ico svg { width: 58%; height: 58%; }
+html[data-interface="arcane"] .poder-ico::before { display: none; }
+html[data-interface="arcane"] .poder-destaque .poder-txt { position: absolute; left: 49.5%; top: 57%; transform: translateY(-50%); }
+html[data-interface="arcane"] .poder-txt small { font-family: var(--fonte-titulo); font-size: .82rem; letter-spacing: .14em; color: #f0d9a0; text-shadow: 0 1px 2px #000; }
+html[data-interface="arcane"] .poder-txt strong { font-family: 'EB Garamond', Georgia, serif; font-weight: 700; font-size: 2.3rem; color: #ffd98a; text-shadow: 0 0 12px rgba(255, 200, 100, .55), 0 2px 2px #000; }
+@keyframes arcane-respira-placa { 0%, 100% { filter: drop-shadow(0 0 4px rgba(240, 190, 90, .2)); } 50% { filter: drop-shadow(0 0 14px rgba(240, 190, 90, .55)); } }
+@media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .poder-destaque { animation: none; } }
+
+/* ==========================================================================
+   14. Arcane no celular (Henri, nov/2026): tela estreita, jeito de app.
+   Abas viram menu em cascata (ícone + nome), imagens menores, ficha compacta.
+   ========================================================================== */
+html[data-interface="arcane"] .cascata { display: none; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] body {
+    font-size: 15px;
+    background: radial-gradient(ellipse at 50% 0%, rgba(217, 172, 84, .08), transparent 60%) fixed,
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, .25) 0 2px, transparent 2px 40px) fixed, linear-gradient(180deg, #14161c, #0b0c10) fixed;
+  }
+  /* Topo enxuto: nome à esquerda, botões pequenos; recursos em 2 colunas */
+  html[data-interface="arcane"] .topo { padding: .45rem .7rem; background: url("../assets/interface/arcane/topo-castelo.webp") center bottom / auto 100% no-repeat, linear-gradient(180deg, #0f1218, #0b0d11); }
+  html[data-interface="arcane"] .topo .logo { font-size: 1.1rem; }
+  html[data-interface="arcane"] .topo .acoes { gap: .3rem; }
+  html[data-interface="arcane"] .topo .acoes > .suave { display: none; }
+  html[data-interface="arcane"] .topo .acoes .btn { padding: .35em .6em; font-size: .72rem; }
+  /* Recursos numa linha só: ícone pequeno + valor, sem o rótulo (Henri) */
+  html[data-interface="arcane"] .recursos-dentro { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 4px; padding: .35rem .4rem;
+    overflow-x: auto; scrollbar-width: none; }
+  html[data-interface="arcane"] .recursos-dentro::-webkit-scrollbar { display: none; }
+  html[data-interface="arcane"] .recurso { flex: 0 1 auto; min-width: 0; gap: 3px; padding: 2px 6px 2px 2px; border-width: 1px; }
+  html[data-interface="arcane"] .rec-ico { width: 20px; height: 20px; font-size: .7rem; box-shadow: none; }
+  html[data-interface="arcane"] .rec-ico svg { width: 12px; height: 12px; }
+  html[data-interface="arcane"] .rec-txt small { display: none; }
+  html[data-interface="arcane"] .rec-txt strong { font-size: .72rem; letter-spacing: 0; white-space: nowrap; }
+  html[data-interface="arcane"] .rec-usar { padding: .1em .4em; font-size: .6rem; }
+  html[data-interface="arcane"] .avisos-topo { display: flex; gap: 3px; flex: none; margin: 0; }
+  html[data-interface="arcane"] .btn-aviso { width: 26px; height: 26px; padding: 4px; }
+  html[data-interface="arcane"] .btn-aviso svg { width: 14px; height: 14px; }
+  html[data-interface="arcane"] .btn-aviso .selo-num { transform: scale(.8); top: -6px; right: -6px; }
+  html[data-interface="arcane"] #painel-topo { top: 84px; }
+  html[data-interface="arcane"] .conteudo { padding: .7rem .55rem 2rem; }
+  html[data-interface="arcane"] .jogo { grid-template-columns: 1fr; gap: .9rem; }
+  html[data-interface="arcane"] .caixa { padding: .8rem; box-shadow: 0 0 0 1px #000, 0 0 0 3px #2a2116, inset 0 0 30px rgba(0, 0, 0, .6), 0 8px 18px rgba(0, 0, 0, .7); }
+
+  /* Ficha compacta: retrato pequeno, barras e Poder; Arma e Atividades ficam na aba Personagem */
+  html[data-interface="arcane"] .ficha .cabeca { grid-template-columns: 64px 1fr; gap: .7rem; padding: .5rem .6rem; }
+  html[data-interface="arcane"] .ficha .cabeca h2 { font-size: 1.25rem; }
+  html[data-interface="arcane"] .ficha .cabeca .suave, html[data-interface="arcane"] .ficha .cabeca .nivel { font-size: 1rem; }
+  html[data-interface="arcane"] .ficha .cabeca::before, html[data-interface="arcane"] .ficha .cabeca::after { width: 30px; height: 40px; top: -28px; }
+  html[data-interface="arcane"] .ficha .cabeca::before { left: -20px; } html[data-interface="arcane"] .ficha .cabeca::after { right: -20px; }
+  html[data-interface="arcane"] .ficha > .suave, html[data-interface="arcane"] .ficha .dica { font-size: .95rem; margin-top: .15rem; }
+  html[data-interface="arcane"] .poder-destaque { max-width: 300px; margin: 1.1rem auto .2rem; }
+  html[data-interface="arcane"] .poder-txt strong { font-size: 1.8rem; }
+  html[data-interface="arcane"] .poder-txt small { font-size: .66rem; }
+  html[data-interface="arcane"] .ficha > .secao, html[data-interface="arcane"] .ficha .ficha-sanfona,
+  html[data-interface="arcane"] .ficha .atividades, html[data-interface="arcane"] .ficha .vida-tempo { display: none; }
+
+  /* Abas normais escondidas; no lugar, o menu em cascata */
+  html[data-interface="arcane"] .abas-jogo, html[data-interface="arcane"] .sub-abas { display: none; }
+  html[data-interface="arcane"] .cascata { display: block; position: relative; z-index: 7; margin: 0 0 .8rem; }
+  html[data-interface="arcane"] .cascata-botao {
+    width: 100%; display: flex; align-items: center; gap: .6rem; padding: .55rem .8rem; cursor: pointer; text-align: left;
+    color: var(--ouro-texto); font-family: var(--fonte-titulo); border: 2px solid var(--ouro-moldura); border-radius: 6px;
+    background: linear-gradient(180deg, #3a2c18, #1d160c); box-shadow: inset 0 1px 0 rgba(255, 230, 160, .25), 0 4px 10px rgba(0, 0, 0, .6);
+  }
+  html[data-interface="arcane"] .cascata-onde { flex: 1; display: grid; line-height: 1.15; }
+  html[data-interface="arcane"] .cascata-onde b { font-size: 1rem; letter-spacing: .04em; }
+  html[data-interface="arcane"] .cascata-onde small { display: flex; align-items: center; gap: .3rem; font-family: var(--fonte-corpo); font-size: .78rem; color: var(--texto-secundario); }
+  html[data-interface="arcane"] .cascata-ico { display: inline-grid; place-items: center; width: 32px; height: 32px; flex: none; border-radius: 50%;
+    border: 1px solid var(--ouro-moldura); background: radial-gradient(circle, #4a3a1e, #17110a); color: var(--ouro-brilho); }
+  html[data-interface="arcane"] .cascata-ico svg { width: 18px; height: 18px; }
+  html[data-interface="arcane"] .cascata .sub-ico svg { width: 14px; height: 14px; }
+  html[data-interface="arcane"] .cascata-seta { font-size: 1.1rem; color: var(--ouro-brilho); transition: transform .2s; }
+  html[data-interface="arcane"] .cascata.aberta .cascata-botao .cascata-seta { transform: rotate(180deg); }
+  html[data-interface="arcane"] .cascata-painel {
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px); display: grid; gap: 2px; padding: .4rem;
+    border: 2px solid var(--ouro-moldura); border-radius: 6px; background: linear-gradient(180deg, #171d2b, #0e121b);
+    box-shadow: 0 0 0 1px #000, 0 14px 30px rgba(0, 0, 0, .85); animation: cascata-desce .18s ease-out;
+  }
+  @keyframes cascata-desce { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+  html[data-interface="arcane"] .cascata-grupo, html[data-interface="arcane"] .cascata-sub {
+    display: flex; align-items: center; gap: .65rem; width: 100%; padding: .5rem .6rem; cursor: pointer; text-align: left;
+    border: 1px solid transparent; border-radius: 5px; background: none; color: var(--texto-principal); font-family: var(--fonte-titulo); font-size: .95rem;
+  }
+  html[data-interface="arcane"] .cascata-grupo .cascata-nome, html[data-interface="arcane"] .cascata-sub .cascata-nome { flex: 1; }
+  html[data-interface="arcane"] .cascata-grupo.atual { color: var(--ouro-texto); background: linear-gradient(90deg, rgba(217, 172, 84, .16), transparent); border-color: rgba(217, 172, 84, .35); }
+  html[data-interface="arcane"] .cascata-grupo.expandido .cascata-seta { transform: rotate(90deg); }
+  html[data-interface="arcane"] .cascata-subs { display: grid; gap: 2px; margin: 0 0 .3rem 1.4rem; padding-left: .7rem; border-left: 2px solid var(--ouro-moldura); }
+  html[data-interface="arcane"] .cascata-sub { font-family: var(--fonte-corpo); font-size: .9rem; padding: .42rem .55rem; color: var(--texto-secundario); }
+  html[data-interface="arcane"] .cascata-sub .sub-ico { display: inline-grid; place-items: center; width: 22px; color: var(--ouro-brilho); }
+  html[data-interface="arcane"] .cascata-sub.atual { color: #1a1207; font-weight: 700; background: linear-gradient(180deg, #e5be6b, #b58938); }
+  html[data-interface="arcane"] .cascata-sub.atual .sub-ico { color: #1a1207; }
+
+  /* Personagem: imagens menores */
+  html[data-interface="arcane"] .personagem-tela { grid-template-columns: 1fr; padding: .6rem .2rem; }
+  html[data-interface="arcane"] .personagem-tela::before { inset: -2% -2% 30% -2%; }
+  html[data-interface="arcane"] .boneco { --slot: 50px; max-width: 330px; gap: .35rem; }
+  html[data-interface="arcane"] .retrato-central { max-width: 170px; }
+  html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna { min-height: 0; }
+  html[data-interface="arcane"] .pg-mochila { margin-top: 2rem; padding: .55rem; }
+  html[data-interface="arcane"] .pg-mochila::before { width: 78%; height: 52px; top: -46px; }
+  html[data-interface="arcane"] .pg-mochila > h3.subtitulo { top: -1.7rem; font-size: .95rem; }
+  html[data-interface="arcane"] .mochila { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+  html[data-interface="arcane"] .slot, html[data-interface="arcane"] .celula { padding: 8px; }
+  html[data-interface="arcane"] .mochila-barra { padding: .45rem .5rem; }
+  html[data-interface="arcane"] .dica-mochila { display: none; }
+
+  /* Outras telas: mapa, cartas e tabelas no tamanho da tela */
+  html[data-interface="arcane"] .mapa-icone { width: 42px; height: 42px; font-size: 1.1rem; }
+  /* bola com a arte da área: do tamanho da linha (antes passava por cima da linha de baixo) */
+  html[data-interface="arcane"] .mapa-icone .arte { width: 46px; height: 46px; margin: -2px; }
+  html[data-interface="arcane"] .mapa-nome { font-size: .72rem; }
+  html[data-interface="arcane"] .mapa-nivel { font-size: .64rem; }
+  html[data-interface="arcane"] .ranking { font-size: .82rem; }
+  html[data-interface="arcane"] h2 { font-size: 1.1rem; } html[data-interface="arcane"] h3 { font-size: .95rem; }
+  html[data-interface="arcane"] .rodape { padding: .9rem 10px; font-size: .78rem;
+    background: url("../assets/interface/arcane/rodape-dragao-esq.webp") calc(50% - 115px) center / auto 80% no-repeat,
+      url("../assets/interface/arcane/rodape-dragao-dir.webp") calc(50% + 120px) center / auto 80% no-repeat, linear-gradient(180deg, #1a1c22, #0b0c10); }
+}
+
+/* ---------- 15. Lutas da caçada (Henri, nov/2026) ---------- */
+html[data-interface="arcane"] .cacada-topo {
+  padding: .55rem .8rem; border: 2px solid var(--ouro-moldura); border-radius: 5px;
+  background: linear-gradient(180deg, #33261a, #1a120b); box-shadow: inset 0 1px 0 rgba(255, 220, 150, .2), 0 4px 10px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .cacada-arena {
+  border: 2px solid var(--ouro-moldura); border-radius: 4px;
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 0 5px rgba(155, 122, 60, .5), inset 0 0 60px rgba(0, 0, 0, .85);
+}
+/* Cartas dos lutadores: moldura dourada; o herói brilha em arcano, o monstro em vermelho */
+html[data-interface="arcane"] .lutador .moldura { border: 3px solid #c9a14e; border-radius: 3px; position: relative;
+  box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] #lutador-jogador .moldura { box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a2116, 0 0 18px rgba(34, 197, 94, .35), 0 0 30px rgba(59, 130, 246, .25), 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] #lutador-monstro .moldura { border-color: #a8452f; box-shadow: 0 0 0 1px #000, 0 0 0 4px #2a1612, 0 0 20px rgba(220, 60, 40, .35), 0 10px 22px rgba(0, 0, 0, .8); }
+html[data-interface="arcane"] .cacada-encontro.chefe .moldura { border-color: #ff7a55; animation: arcane-chefe 1.6s ease-in-out infinite; }
+@keyframes arcane-chefe { 50% { box-shadow: 0 0 0 1px #000, 0 0 0 4px #3a1208, 0 0 34px rgba(255, 90, 50, .75), 0 10px 22px rgba(0, 0, 0, .8); } }
+html[data-interface="arcane"] .lutador h3 { font-family: var(--fonte-titulo); color: var(--ouro-texto); letter-spacing: .06em; }
+/* VS dourado com brilho que pulsa */
+html[data-interface="arcane"] .vs {
+  font-family: var(--fonte-titulo); font-weight: 800; font-size: 2.3rem; color: #f0c975;
+  text-shadow: 0 0 10px rgba(255, 190, 80, .8), 0 0 24px rgba(255, 150, 40, .45), 0 3px 3px #000; animation: arcane-vs 2s ease-in-out infinite;
+}
+@keyframes arcane-vs { 50% { transform: scale(1.08); text-shadow: 0 0 16px rgba(255, 210, 110, 1), 0 0 36px rgba(255, 150, 40, .7), 0 3px 3px #000; } }
+/* Golpe: a carta treme (classe posta pelo arcane-efeitos.js) */
+html[data-interface="arcane"] .arcane-golpe { animation: arcane-treme .32s ease-out; }
+@keyframes arcane-treme { 20% { transform: translateX(-5px) rotate(-1deg); } 45% { transform: translateX(4px) rotate(1deg); } 70% { transform: translateX(-2px); } }
+/* Relato da luta: pergaminho escuro com fio dourado */
+html[data-interface="arcane"] .registro {
+  font-family: 'EB Garamond', Georgia, serif; font-size: 1.02rem; line-height: 1.5; color: #e6d6b5;
+  background: linear-gradient(180deg, rgba(42, 30, 18, .92), rgba(22, 15, 9, .95)); border: 2px solid var(--ouro-moldura); border-radius: 4px;
+  box-shadow: inset 0 0 24px rgba(0, 0, 0, .7), 0 0 0 1px #000;
+}
+html[data-interface="arcane"] .registro p { padding: .1rem 0; border-bottom: 1px solid rgba(155, 122, 60, .12); }
+html[data-interface="arcane"] .registro .destaque { color: #f0c975; }
+html[data-interface="arcane"] .registro .critico, html[data-interface="arcane"] .registro .habilidade-usada { color: #ffd862; }
+html[data-interface="arcane"] .registro .dano-recebido { color: #f2a090; }
+/* Opções, resumo e histórico da caçada */
+html[data-interface="arcane"] .cacada-opcoes { border: 1px solid rgba(155, 122, 60, .45); border-radius: 5px; background: rgba(10, 8, 6, .5); }
+html[data-interface="arcane"] .cacada-num {
+  border: 1px solid #6a5430; border-radius: 4px; background: linear-gradient(180deg, #2a2116, #15100a);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 150, .15);
+}
+html[data-interface="arcane"] .cacada-num strong { font-family: var(--fonte-titulo); color: var(--ouro-texto); }
+@media (prefers-reduced-motion: reduce) { html[data-interface="arcane"] .vs, html[data-interface="arcane"] .arcane-golpe { animation: none; } }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .lutador .moldura { max-width: 120px; }
+  html[data-interface="arcane"] .vs { font-size: 1.5rem; }
+  html[data-interface="arcane"] .registro { height: 160px; font-size: .92rem; }
+  html[data-interface="arcane"] .cacada-arena { min-height: 0; }
+  /* Duas colunas iguais: o "Caçada em andamento…" não aperta a carta do herói */
+  html[data-interface="arcane"] .cacada-arena { position: relative; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .6rem; padding: .7rem .5rem; }
+  html[data-interface="arcane"] .cacada-arena > .vs { position: absolute; left: 50%; top: 22%; transform: translateX(-50%); z-index: 2; pointer-events: none; }
+  html[data-interface="arcane"] .cacada-arena > .vs:empty { display: none; }
+  html[data-interface="arcane"] .cacada-busca { min-width: 0; gap: .3rem; padding: .4rem .2rem; }
+  html[data-interface="arcane"] .busca-txt { font-size: .78rem; line-height: 1.2; }
+  html[data-interface="arcane"] .busca-passos { height: 2rem; gap: .5rem; }
+  html[data-interface="arcane"] .busca-passos .passo { width: .8rem; }
+  html[data-interface="arcane"] .busca-barra { width: 100%; height: 7px; }
+  html[data-interface="arcane"] .cacada-busca .busca-icone { max-width: 54px; max-height: 54px; }
+}
+
+/* ==========================================================================
+   16. Ajustes do Henri depois de ver no jogo (nov/2026)
+   ========================================================================== */
+/* --- Barras modernas: trilho de vidro escuro, preenchimento com brilho e um reflexo que passa devagar --- */
+html[data-interface="arcane"] .barra {
+  height: 18px; margin: .25rem 0 .55rem; padding: 0; overflow: hidden; clip-path: none;
+  border-radius: 999px; border: 1px solid rgba(217, 172, 84, .38);
+  background: linear-gradient(180deg, rgba(0, 0, 0, .65), rgba(24, 20, 14, .75));
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, .9), 0 0 0 1px rgba(0, 0, 0, .55), 0 1px 0 rgba(255, 220, 150, .07);
+}
+html[data-interface="arcane"] .barra > i, html[data-interface="arcane"] .barra > s {
+  top: 2px; bottom: 2px; left: 2px; max-width: calc(100% - 4px); border-radius: 999px;
+}
+html[data-interface="arcane"] .barra > i { overflow: hidden; transition: width .45s cubic-bezier(.2, .8, .2, 1); }
+/* reflexo de cima (vidro) */
+html[data-interface="arcane"] .barra > i::after {
+  inset: 0 0 52% 0; border-radius: 999px 999px 40% 40%;
+  background: linear-gradient(rgba(255, 255, 255, .42), rgba(255, 255, 255, .06));
+}
+/* brilho que atravessa a barra a cada poucos segundos */
+html[data-interface="arcane"] .barra > i::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 35%, rgba(255, 255, 255, .28) 50%, transparent 65%) no-repeat;
+  background-size: 220% 100%; animation: arcane-brilho-barra 6s ease-in-out infinite;
+}
+@keyframes arcane-brilho-barra { 0%, 55% { background-position: 160% 0; } 100% { background-position: -60% 0; } }
+html[data-interface="arcane"] .barra.hp > i, html[data-interface="arcane"] .barra.jogador > i, html[data-interface="arcane"] .barra.heroi > i {
+  background: linear-gradient(90deg, #6e1210 0%, #c92a20 45%, #f2533e 80%, #ff8a6e 100%);
+  box-shadow: 0 0 8px rgba(255, 70, 50, .55), inset 0 -2px 3px rgba(80, 0, 0, .45);
+}
+html[data-interface="arcane"] #lutador-monstro .barra.hp > i {
+  background: linear-gradient(90deg, #4a120a 0%, #9a2d14 45%, #d2552a 85%, #f08a50 100%);
+  box-shadow: 0 0 8px rgba(240, 110, 50, .5), inset 0 -2px 3px rgba(60, 10, 0, .45);
+}
+html[data-interface="arcane"] .barra.estamina > i {
+  background: linear-gradient(90deg, #8a4f08 0%, #d9921c 45%, #f6c33e 80%, #ffe49a 100%);
+  box-shadow: 0 0 8px rgba(255, 190, 60, .5), inset 0 -2px 3px rgba(90, 50, 0, .4);
+}
+html[data-interface="arcane"] .barra.exp > i {
+  background: linear-gradient(90deg, #172f80 0%, #2f62d8 45%, #4f8ff5 80%, #9ccaff 100%);
+  box-shadow: 0 0 8px rgba(80, 150, 255, .55), inset 0 -2px 3px rgba(0, 20, 80, .45);
+}
+html[data-interface="arcane"] .barra > s { background: linear-gradient(90deg, #fff1c8, #ffd98a); }
+html[data-interface="arcane"] .barra > b {
+  font-family: var(--fonte-corpo); font-weight: 700; font-size: .72rem; letter-spacing: .04em; line-height: 16px; color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .95), 0 0 6px rgba(0, 0, 0, .6);
+}
+html[data-interface="arcane"] .ficha .barra { height: 20px; }
+html[data-interface="arcane"] .ficha .barra > b { line-height: 18px; font-size: .78rem; }
+html[data-interface="arcane"] .lutador .barra { height: 20px; }
+html[data-interface="arcane"] .lutador .barra > b { line-height: 18px; font-size: .78rem; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .ficha .barra, html[data-interface="arcane"] .lutador .barra { height: 16px; margin: .15rem 0 .35rem; }
+  html[data-interface="arcane"] .ficha .barra > b, html[data-interface="arcane"] .lutador .barra > b { line-height: 14px; font-size: .66rem; }
+}
+
+/* --- Brilho do encantamento nos itens: sem o quadrado colorido duro, só uma luz suave que respira devagar --- */
+html[data-interface="arcane"] [class*="aura-e"] {
+  border-color: transparent; border-radius: 6px;
+  animation: arcane-encanto calc(var(--vel, 1.6s) * 2.6) ease-in-out infinite;
+}
+@keyframes arcane-encanto {
+  0%, 100% { box-shadow: 0 3px 8px rgba(0, 0, 0, .6), 0 0 calc(var(--forca) * .45) rgba(var(--cor), .28); }
+  50% { box-shadow: 0 3px 8px rgba(0, 0, 0, .6), 0 0 calc(var(--forca) * .8) rgba(var(--cor), .5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-interface="arcane"] [class*="aura-e"] { animation: none; box-shadow: 0 0 calc(var(--forca) * .5) rgba(var(--cor), .4); }
+  html[data-interface="arcane"] .barra > i::before { animation: none; display: none; }
+}
+
+/* --- Tudo pisca mais devagar --- */
+html[data-interface="arcane"] .ficha .cabeca { animation-duration: 7s; }
+html[data-interface="arcane"] .poder-destaque { animation-duration: 8s; }
+html[data-interface="arcane"] .slot.borda-lendaria:not([class*="aura-e"]),
+html[data-interface="arcane"] .celula.borda-lendaria:not([class*="aura-e"]) { animation-duration: 7s; }
+html[data-interface="arcane"] .vs { animation-duration: 4.5s; }
+html[data-interface="arcane"] .cacada-encontro.chefe .moldura { animation-duration: 3.5s; }
+html[data-interface="arcane"] .retrato-central::before { animation-duration: 10s; }
+
+/* --- Pergaminho do bônus: nomes legíveis (antes ficavam claros demais no papel) --- */
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .status dt { color: #4a3420; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .status dd { color: #1f4f1a; font-weight: 700; }
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .status dd .menos,
+html[data-interface="arcane"] .personagem-tela .lateral .caixa-interna .status dd.menos { color: #8a1c15; }
+/* Barrinhas finas da luta (estamina e exp) no mesmo estilo das barras novas */
+html[data-interface="arcane"] .est-fina, html[data-interface="arcane"] .exp-fina {
+  height: 13px; border-radius: 999px; border: 1px solid rgba(217, 172, 84, .3);
+  background: linear-gradient(180deg, rgba(0, 0, 0, .65), rgba(24, 20, 14, .75)); box-shadow: inset 0 1px 2px rgba(0, 0, 0, .9);
+}
+html[data-interface="arcane"] .est-fina > i, html[data-interface="arcane"] .exp-fina > i {
+  position: relative; border-radius: 999px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35);
+}
+html[data-interface="arcane"] .est-fina > i { background: linear-gradient(90deg, #8a4f08, #d9921c 45%, #f6c33e 80%, #ffe49a); }
+html[data-interface="arcane"] .exp-fina > i { background: linear-gradient(90deg, #172f80, #2f62d8 45%, #4f8ff5 80%, #9ccaff); }
+html[data-interface="arcane"] .est-fina > b, html[data-interface="arcane"] .exp-fina > b { line-height: 11px; font-size: .62rem; font-family: var(--fonte-corpo); font-weight: 700; }
+
+/* ==========================================================================
+   17. HUD dark fantasy (Henri, nov/2026; INSTRUCOES_PARA_CLAUDE.md + referencia-hud.png)
+   Barras do jogo (função barra() no app.js) com moldura dourada, medalhão com ícone
+   (coração, raio, estrela), ponta dourada, brilho que passa devagar, clarão quando a vida
+   CAI (classe .levou-dano) e alerta pulsando com vida até 25% (classe .vida-baixa).
+   Vida vermelha, Estamina âmbar, Experiência roxa.
+   ========================================================================== */
+html[data-interface="arcane"] {
+  --ic-vida: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23ff8a8a'/%3E%3Cstop offset='.5' stop-color='%23e81818'/%3E%3Cstop offset='1' stop-color='%23860606'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%23ffd9a0' stroke-width='.8' d='M12 21s-7.4-4.5-9.5-9.1C1 8.5 3.1 5 6.5 5c2 0 3.5 1.1 4.5 2.5l1 1.3 1-1.3C14 6.1 15.5 5 17.5 5c3.4 0 5.5 3.5 4 6.9C19.4 16.5 12 21 12 21z'/%3E%3C/svg%3E");
+  --ic-estamina: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff2b0'/%3E%3Cstop offset='.55' stop-color='%23f2b12a'/%3E%3Cstop offset='1' stop-color='%23a5620a'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%23fff0c8' stroke-width='.6' d='M13.5 1.5 4 13.6h6.3l-1.6 8.9 9.8-12.6h-6.4z'/%3E%3C/svg%3E");
+  --ic-exp: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23f2e2ff'/%3E%3Cstop offset='.5' stop-color='%23a65cff'/%3E%3Cstop offset='1' stop-color='%235014a4'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23g)' stroke='%23f6e6ff' stroke-width='.6' d='M12 1.5l2.5 7.9L22.5 12l-8 2.6L12 22.5l-2.5-7.9L1.5 12l8-2.6z'/%3E%3C/svg%3E");
+  --ponta-ouro: linear-gradient(180deg, #fbe6a6 0%, #d9a94c 45%, #8a5e1e 100%);
+}
+/* --- Barras com moldura dourada (todas) --- */
+html[data-interface="arcane"] .barra {
+  height: 24px; border-radius: 5px; border: 2px solid #987443; background: #080a10;
+  box-shadow: inset 0 2px 6px #000, 0 0 5px rgba(255, 190, 70, .2), 0 0 0 1px rgba(0, 0, 0, .7);
+}
+html[data-interface="arcane"] .barra > i, html[data-interface="arcane"] .barra > s { top: 1px; bottom: 1px; left: 1px; max-width: calc(100% - 2px); border-radius: 3px; }
+html[data-interface="arcane"] .barra > i { transition: width .65s cubic-bezier(.2, .8, .2, 1); }
+html[data-interface="arcane"] .barra > i::after { inset: 0 0 55% 0; border-radius: 3px 3px 40% 40%; background: linear-gradient(rgba(255, 255, 255, .45), rgba(255, 255, 255, .05)); }
+html[data-interface="arcane"] .barra > i::before {
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, .5) 50%, transparent 62%) no-repeat; background-size: 260% 100%;
+  animation: arcane-brilho-barra 5s ease-in-out infinite;
+}
+html[data-interface="arcane"] .barra.hp > i, html[data-interface="arcane"] .barra.jogador > i, html[data-interface="arcane"] .barra.heroi > i {
+  background: linear-gradient(180deg, #ff7777, #e60000 45%, #970000); box-shadow: 0 0 14px #ff2525;
+}
+html[data-interface="arcane"] .barra.estamina > i { background: linear-gradient(180deg, #ffe58a, #e7a51d 50%, #a76a08); box-shadow: 0 0 14px #ffbb32; }
+html[data-interface="arcane"] .barra.exp > i { background: linear-gradient(180deg, #c69aff, #8735e8 50%, #5014a4); box-shadow: 0 0 14px #a855ff; }
+html[data-interface="arcane"] #lutador-monstro .barra.hp > i { background: linear-gradient(180deg, #ff9a6a, #e0400e 45%, #8a1c04); box-shadow: 0 0 14px #ff5a1e; }
+html[data-interface="arcane"] .barra.hp { box-shadow: inset 0 2px 6px #000, 0 0 6px rgba(255, 40, 40, .25), 0 0 0 1px rgba(0, 0, 0, .7); }
+html[data-interface="arcane"] .barra.estamina { box-shadow: inset 0 2px 6px #000, 0 0 6px rgba(255, 187, 50, .22), 0 0 0 1px rgba(0, 0, 0, .7); }
+html[data-interface="arcane"] .barra.exp { box-shadow: inset 0 2px 6px #000, 0 0 6px rgba(168, 85, 255, .25), 0 0 0 1px rgba(0, 0, 0, .7); }
+html[data-interface="arcane"] .barra.exp.maximo > i { box-shadow: 0 0 18px #b06bff; }
+html[data-interface="arcane"] .barra.exp.maximo > b { color: #fff3d0; letter-spacing: .06em; }
+html[data-interface="arcane"] .barra > b {
+  font-family: Georgia, 'EB Garamond', serif; font-weight: 700; font-size: .92rem; letter-spacing: .02em; line-height: 20px;
+  color: #fff; text-shadow: 1px 2px 3px #000, 0 0 4px rgba(0, 0, 0, .8);
+}
+/* Clarão quando a vida cai (só quando diminui: a classe vem do barra() comparando com o valor anterior) */
+html[data-interface="arcane"] .barra.levou-dano > i { animation: arcane-dano .45s ease; }
+html[data-interface="arcane"] .barra.levou-dano { animation: arcane-dano-borda .45s ease; }
+@keyframes arcane-dano { 0%, 100% { filter: brightness(1); } 45% { filter: brightness(2); } }
+@keyframes arcane-dano-borda { 45% { box-shadow: inset 0 2px 6px #000, 0 0 22px rgba(255, 30, 30, .9), 0 0 0 1px rgba(0, 0, 0, .7); border-color: #ff6a50; } }
+/* Vida baixa (até 25%): borda pulsando em vermelho */
+html[data-interface="arcane"] .barra.vida-baixa { animation: arcane-perigo 1.1s ease-in-out infinite alternate; border-color: #c0392b; }
+@keyframes arcane-perigo {
+  from { box-shadow: inset 0 2px 6px #000, 0 0 5px rgba(255, 0, 0, .5), 0 0 0 1px rgba(0, 0, 0, .7); }
+  to { box-shadow: inset 0 2px 6px #000, 0 0 22px rgba(255, 0, 0, .9), 0 0 0 1px rgba(0, 0, 0, .7); }
+}
+
+/* --- Ficha: medalhão com ícone à esquerda e ponta dourada à direita --- */
+html[data-interface="arcane"] #ficha-hp, html[data-interface="arcane"] #ficha-estamina, html[data-interface="arcane"] #ficha-exp {
+  position: relative; padding: 0 10px 0 22px; margin: .2rem 0 .65rem;
+}
+html[data-interface="arcane"] #ficha-hp .barra, html[data-interface="arcane"] #ficha-estamina .barra, html[data-interface="arcane"] #ficha-exp .barra { margin: 0; height: 24px; }
+html[data-interface="arcane"] #ficha-hp .barra > b, html[data-interface="arcane"] #ficha-estamina .barra > b, html[data-interface="arcane"] #ficha-exp .barra > b { line-height: 20px; font-size: .95rem; }
+html[data-interface="arcane"] #ficha-hp::before, html[data-interface="arcane"] #ficha-estamina::before, html[data-interface="arcane"] #ficha-exp::before {
+  content: ""; position: absolute; left: -6px; top: 50%; width: 38px; height: 38px; transform: translateY(-50%); z-index: 3; pointer-events: none;
+  border-radius: 50%; border: 2px solid #d9b25e;
+  background: var(--ic) center / 60% no-repeat, radial-gradient(circle at 40% 32%, #3d2c18, #0c0805 72%);
+  box-shadow: 0 0 0 1px #000, 0 0 0 3px rgba(150, 108, 44, .6), 0 0 12px var(--brilho), inset 0 0 8px rgba(0, 0, 0, .85);
+}
+html[data-interface="arcane"] #ficha-hp::after, html[data-interface="arcane"] #ficha-estamina::after, html[data-interface="arcane"] #ficha-exp::after {
+  content: ""; position: absolute; right: 0; top: 50%; width: 16px; height: 30px; transform: translateY(-50%); z-index: 3; pointer-events: none;
+  background: var(--ponta-ouro); clip-path: polygon(0 14%, 48% 14%, 100% 50%, 48% 86%, 0 86%, 34% 50%);
+  filter: drop-shadow(0 1px 1px #000);
+}
+html[data-interface="arcane"] #ficha-hp { --ic: var(--ic-vida); --brilho: rgba(255, 40, 40, .55); }
+html[data-interface="arcane"] #ficha-estamina { --ic: var(--ic-estamina); --brilho: rgba(255, 187, 50, .5); }
+html[data-interface="arcane"] #ficha-exp { --ic: var(--ic-exp); --brilho: rgba(168, 85, 255, .55); }
+/* coração bate mais forte com vida baixa */
+html[data-interface="arcane"] #ficha-hp:has(.vida-baixa)::before { animation: arcane-coracao 1.1s ease-in-out infinite alternate; }
+@keyframes arcane-coracao { to { box-shadow: 0 0 0 1px #000, 0 0 0 3px rgba(190, 40, 30, .8), 0 0 22px rgba(255, 30, 30, .95), inset 0 0 8px rgba(0, 0, 0, .85); } }
+
+/* --- Luta: barras com pontas douradas dos dois lados --- */
+html[data-interface="arcane"] #hp-jogador, html[data-interface="arcane"] #hp-monstro { position: relative; padding: 0 12px; }
+html[data-interface="arcane"] #hp-jogador .barra, html[data-interface="arcane"] #hp-monstro .barra { margin: .2rem 0 .35rem; height: 22px; }
+html[data-interface="arcane"] #hp-jogador .barra > b, html[data-interface="arcane"] #hp-monstro .barra > b { line-height: 18px; font-size: .9rem; }
+html[data-interface="arcane"] #hp-jogador::before, html[data-interface="arcane"] #hp-monstro::before,
+html[data-interface="arcane"] #hp-jogador::after, html[data-interface="arcane"] #hp-monstro::after {
+  content: ""; position: absolute; top: 50%; width: 15px; height: 28px; transform: translateY(-50%); z-index: 3; pointer-events: none;
+  background: var(--ponta-ouro); filter: drop-shadow(0 1px 1px #000);
+}
+html[data-interface="arcane"] #hp-jogador::after, html[data-interface="arcane"] #hp-monstro::after { right: 0; clip-path: polygon(0 14%, 48% 14%, 100% 50%, 48% 86%, 0 86%, 34% 50%); }
+html[data-interface="arcane"] #hp-jogador::before, html[data-interface="arcane"] #hp-monstro::before { left: 0; clip-path: polygon(100% 14%, 52% 14%, 0 50%, 52% 86%, 100% 86%, 66% 50%); }
+/* Nome do lutador numa faixa dourada (como a placa "Líder" da referência) */
+html[data-interface="arcane"] .lutador h3 {
+  position: relative; display: inline-block; margin: -1.1rem auto .35rem; padding: .32rem 1.6rem .3rem; z-index: 2;
+  font-size: 1rem; color: #fbe3a6; text-shadow: 0 2px 2px #000;
+  background: var(--ponta-ouro); clip-path: polygon(0 50%, 12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%);
+}
+html[data-interface="arcane"] .lutador h3::before {
+  content: ""; position: absolute; inset: 2px; z-index: -1; background: linear-gradient(180deg, #2c2116, #120d07);
+  clip-path: polygon(0 50%, 11px 0, calc(100% - 11px) 0, 100% 50%, calc(100% - 11px) 100%, 11px 100%);
+}
+/* VS em ouro com risco de fogo */
+html[data-interface="arcane"] .vs {
+  position: relative; font-size: 3rem; line-height: 1; color: transparent; text-shadow: none;
+  background: linear-gradient(180deg, #fff6cf 0%, #f6c75a 40%, #d77a17 72%, #7a2a06 100%); -webkit-background-clip: text; background-clip: text;
+  filter: drop-shadow(0 0 8px rgba(255, 140, 40, .65)) drop-shadow(0 3px 2px #000);
+  animation: arcane-vs-calmo 4.5s ease-in-out infinite;
+}
+html[data-interface="arcane"] .vs::before {
+  content: ""; position: absolute; left: 50%; top: 52%; width: 150%; height: 5px; z-index: -1; transform: translate(-50%, -50%) rotate(-38deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 110, 20, .85) 25%, #fff0c0 50%, rgba(255, 110, 20, .85) 75%, transparent); filter: blur(1.5px);
+}
+html[data-interface="arcane"] .vs:empty::before { display: none; }
+@keyframes arcane-vs-calmo { 50% { transform: scale(1.05); } }
+
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .barra { height: 20px; }
+  html[data-interface="arcane"] .barra > b { line-height: 16px; font-size: .78rem; }
+  html[data-interface="arcane"] #ficha-hp .barra, html[data-interface="arcane"] #ficha-estamina .barra, html[data-interface="arcane"] #ficha-exp .barra { height: 20px; }
+  html[data-interface="arcane"] #ficha-hp .barra > b, html[data-interface="arcane"] #ficha-estamina .barra > b, html[data-interface="arcane"] #ficha-exp .barra > b { line-height: 16px; font-size: .8rem; }
+  html[data-interface="arcane"] #ficha-hp::before, html[data-interface="arcane"] #ficha-estamina::before, html[data-interface="arcane"] #ficha-exp::before { width: 30px; height: 30px; left: -4px; }
+  html[data-interface="arcane"] #hp-jogador .barra, html[data-interface="arcane"] #hp-monstro .barra { height: 18px; }
+  html[data-interface="arcane"] #hp-jogador .barra > b, html[data-interface="arcane"] #hp-monstro .barra > b { line-height: 14px; font-size: .74rem; }
+  html[data-interface="arcane"] .lutador h3 { font-size: .8rem; padding: .25rem 1.1rem; }
+  html[data-interface="arcane"] .vs { font-size: 1.9rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-interface="arcane"] .barra > i, html[data-interface="arcane"] .barra > i::before, html[data-interface="arcane"] .barra.levou-dano,
+  html[data-interface="arcane"] .barra.levou-dano > i, html[data-interface="arcane"] .barra.vida-baixa, html[data-interface="arcane"] #ficha-hp::before,
+  html[data-interface="arcane"] .vs { animation: none !important; transition: none !important; }
+}
+/* rótulos das barras da ficha começam depois do medalhão, como na referência */
+html[data-interface="arcane"] .ficha > .suave:not(.vida-tempo):not(.pequeno), html[data-interface="arcane"] .ficha > .dica { padding-left: 36px; margin-bottom: .1rem; }
+/* barrinha fina de exp da luta também em roxo */
+html[data-interface="arcane"] .exp-fina > i { background: linear-gradient(180deg, #c69aff, #8735e8 50%, #5014a4); }
+/* Sem o retângulo colorido atrás do equipamento (Henri): fica só o fundo do painel */
+html[data-interface="arcane"] .personagem-tela { background: none; }
+html[data-interface="arcane"] .personagem-tela::before { display: none; }
+
+/* ---------- 18. Celular: monstros da área em carta deitada e compacta (inspirado no Zealot) ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .monstros { grid-template-columns: 1fr; gap: .5rem; }
+  html[data-interface="arcane"] .monstro { flex-direction: row; align-items: stretch; border: 1px solid #6a5430; border-radius: 6px;
+    background: linear-gradient(180deg, #1c1f27, #12141a); box-shadow: inset 0 1px 0 rgba(255, 220, 150, .08), 0 4px 10px rgba(0, 0, 0, .5); }
+  html[data-interface="arcane"] .monstro.monstro-escolhido { border-color: #e2bb63; box-shadow: 0 0 0 1px rgba(226, 187, 99, .4), 0 0 14px rgba(242, 201, 76, .25); }
+  html[data-interface="arcane"] .monstro .moldura { width: 5.6rem; flex: none; aspect-ratio: auto; border-right: 1px solid #6a5430; }
+  html[data-interface="arcane"] .monstro .corpo { padding: .5rem .6rem; gap: .3rem; min-width: 0; }
+  html[data-interface="arcane"] .monstro .corpo h3 { font-size: .95rem; margin: 0; }
+  html[data-interface="arcane"] .monstro-resumo { display: flex; flex-wrap: wrap; gap: .15rem .55rem; font-size: .78rem; color: var(--texto-principal); }
+  html[data-interface="arcane"] .monstro-resumo span:first-child { color: #f2c94c; font-weight: 700; }
+  html[data-interface="arcane"] .monstro-detalhes > summary { font-size: .76rem; color: var(--ouro-brilho); cursor: pointer; }
+  html[data-interface="arcane"] .monstro-detalhes .ficha-monstro { font-size: .78rem; margin-top: .3rem; }
+  html[data-interface="arcane"] .monstro-detalhes p { font-size: .78rem; margin: .3rem 0; }
+  html[data-interface="arcane"] .monstro .corpo .btn { min-height: 2.2rem; padding: .3em .6em; font-size: .74rem; white-space: normal; line-height: 1.2; }
+  html[data-interface="arcane"] .monstro .corpo .menos.pequeno { font-size: .72rem; margin: 0; }
+  html[data-interface="arcane"] .monstro.chefe .corpo > p { font-size: .78rem; }
+  html[data-interface="arcane"] .monstro.chefe .misterio { font-size: .78rem; }
+  /* barra "Monstros da caçada" numa linha só, presa no alto embaixo dos recursos */
+  html[data-interface="arcane"] .cacada-escolha { top: 40px; display: flex; flex-wrap: nowrap; align-items: center; gap: .35rem; padding: .4rem .45rem; margin: 0 0 .6rem;
+    border: 1px solid var(--ouro-moldura); border-radius: 6px; background: rgba(14, 12, 9, .96); box-shadow: 0 6px 14px rgba(0, 0, 0, .6); }
+  html[data-interface="arcane"] .cacada-escolha > span { flex: 1; min-width: 0; font-size: .74rem; line-height: 1.2; }
+  html[data-interface="arcane"] .cacada-escolha .btn { padding: .35em .55em; font-size: .7rem; min-height: 0; white-space: nowrap; }
+  html[data-interface="arcane"] .regiao-topo p { font-size: .8rem; }
+}
+
+/* ---------- 19. Ficha e comparação de itens mais enxutas (Henri, nov/2026) ---------- */
+/* tipo e raridade já aparecem na imagem/cor; "equipado" já está no rótulo; "Comparado com…" é repetido */
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-tipo,
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-eq,
+html[data-interface="arcane"] #ficha-flutuante .ficha-comparado { display: none; }
+/* "nível 10 · qualidade 32%" em letra pequena */
+html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .78rem; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] #ficha-flutuante { font-size: .82rem; padding: .6rem .65rem; }
+  html[data-interface="arcane"] #ficha-flutuante.comparando { width: calc(100vw - 16px); }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas { gap: .5rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas .comparar-lado { padding-right: .35rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-duas .comparar-lado + .comparar-lado { padding: 0 0 0 .5rem; }
+  html[data-interface="arcane"] #ficha-flutuante .comparar-rotulo { font-size: .62rem; margin: 0 0 .3rem; letter-spacing: .12em; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-topo { grid-template-columns: 40px minmax(0, 1fr); gap: .45rem; margin-bottom: .35rem; padding-right: 14px; }
+  html[data-interface="arcane"] #ficha-flutuante .icone-grande { width: 40px; height: 40px; padding: 5px; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-nome { font-size: .82rem; line-height: 1.2; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .66rem; line-height: 1.2; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-poder { font-size: .76rem; padding: .25rem .4rem; margin: .25rem 0; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-bonus { font-size: .8rem; margin-bottom: .35rem; }
+  html[data-interface="arcane"] #ficha-flutuante .ficha-item-bonus li { padding: 0; }
+  html[data-interface="arcane"] #ficha-flutuante .item-acoes { gap: .3rem; }
+  html[data-interface="arcane"] #ficha-flutuante .item-acoes .btn { padding: .3em .6em; font-size: .72rem; min-height: 0; }
+  html[data-interface="arcane"] #ficha-flutuante .botoes .btn { padding: .3em .7em; font-size: .72rem; }
+}
+
+/* ---------- 20. Celular: escolha de personagem compacta (cabem os 3 na tela) ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .lista-personagens { grid-template-columns: 1fr; gap: .55rem; }
+  html[data-interface="arcane"] .lista-personagens .carta:not(.nova) {
+    display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; grid-template-areas: "foto nome jogar" "foto detalhe excluir";
+    column-gap: .65rem; row-gap: .15rem; align-items: center; text-align: left; padding: .5rem .6rem;
+  }
+  html[data-interface="arcane"] .lista-personagens .carta .moldura { grid-area: foto; width: 76px; height: 92px; aspect-ratio: auto; margin: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta .moldura img { object-position: 50% 18%; }
+  html[data-interface="arcane"] .lista-personagens .carta .nome { grid-area: nome; align-self: end; margin: 0; font-size: 1.05rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .detalhe { grid-area: detalhe; align-self: start; margin: 0; font-size: .78rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .btn { width: auto; margin: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta [data-acao="jogar"] { grid-area: jogar; align-self: end; padding: .45em 1.1em; font-size: .82rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .btn-excluir { grid-area: excluir; align-self: start; padding: .2em .5em; font-size: .7rem; }
+  html[data-interface="arcane"] .lista-personagens .carta .excluir-confirma { grid-column: 1 / -1; }
+  html[data-interface="arcane"] .lista-personagens .carta.nova { padding: .7rem; min-height: 0; }
+  html[data-interface="arcane"] .lista-personagens .carta.nova span { font-size: 1.6rem; line-height: 1; }
+}
+
+/* ---------- 21. Celular: Chat e ⚙ no fim da página (não flutuam), Missões no menu em cascata ---------- */
+@media (max-width: 760px) {
+  html[data-interface="arcane"] body { position: relative; padding-bottom: 64px; }
+  html[data-interface="arcane"] #chat:not(:has(.chat-janela)) { position: absolute; left: 10px; bottom: 10px; }
+  html[data-interface="arcane"] #botao-musica { position: absolute; right: 10px; bottom: 10px; }
+  html[data-interface="arcane"] #config-painel { bottom: 16px; }
+  html[data-interface="arcane"] .chat-botao { font-size: .85rem; padding: .5em 1em; }
+  /* aba flutuante de Missões só aparece com o painel aberto (para poder fechar) */
+  html[data-interface="arcane"] #painel-missoes:not(.aberto) .missoes-aba { display: none; }
+  html[data-interface="arcane"] .cascata-missoes { margin-top: .3rem; border-top: 1px solid rgba(155, 122, 60, .35); border-radius: 0 0 5px 5px; }
+  html[data-interface="arcane"] .cascata-missoes .cascata-ico { font-size: .95rem; }
+  html[data-interface="arcane"] .cascata .selo-num { position: static; margin-left: auto; }
+}

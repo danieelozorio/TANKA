@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=EB+Garamond:wght@400;500;600&family=IM+Fell+English+SC&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo.css?v=189">
+  <link rel="stylesheet" href="css/estilo.css?v=192">
   <!-- Interface escolhida na engrenagem (⚙): Clássica (padrão) ou Zealot (tema Pedra Sombria do Daniel). -->
   <script>
     (function () {
@@ -27,9 +27,10 @@
       // Casca do celular (Daniel, nov/2026): no celular (toque + tela pequena) o jogo usa telas próprias, sobre o
       // tema Zealot. Celular usa sempre a casca; Clássica e Zealot são só para o computador.
       var cel = window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820;   // celular: sempre a casca (Daniel, nov/2026)
-      if (cel) { t = 'zealot'; document.documentElement.setAttribute('data-celular', ''); }
+      if (cel && t !== 'arcane') { t = 'zealot'; document.documentElement.setAttribute('data-celular', ''); }   // Arcane no celular (Henri): telas da Clássica + menu em cascata
       document.documentElement.setAttribute('data-interface', t);
       if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=135">');
+      if (t === 'arcane') document.write('<link rel="stylesheet" href="css/tema-arcane.css?v=26"><script src="js/arcane-efeitos.js?v=4"><\/script>');   // Arcane (Henri, nov/2026): só no computador
     })();
   </script>
   <link rel="stylesheet" href="css/celular.css?v=22">
@@ -38,15 +39,15 @@
   <main id="app" aria-live="polite"></main>
   <div id="aviso" role="status" hidden></div>
 
-  <script src="js/dados.js?v=191"></script>
+  <script src="js/dados.js?v=197"></script>
   <script src="js/historia.js?v=5"></script>
-  <script src="js/regras.js?v=183"></script>
-  <script src="js/servidor-cacada.js?v=170"></script>
+  <script src="js/regras.js?v=187"></script>
+  <script src="js/servidor-cacada.js?v=171"></script>
   <script src="js/config.js?v=120"></script>
   <script src="js/contas.js?v=175"></script>
   <script src="js/retratos.js?v=120"></script>
   <script src="js/dado3d.js?v=121"></script>
-  <script src="js/app.js?v=228"></script>
+  <script src="js/app.js?v=247"></script>
   <script>
     // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});

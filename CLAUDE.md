@@ -33,6 +33,7 @@ No começo da conversa, se não estiver claro quem está falando, perguntar: "Vo
   O Claude do Henri mostra prints e publica quando o **Henri** disser "pode publicar".
 - Botão de publicar (pedido do Henri): ao terminar uma mudança pronta para publicar, perguntar com as opções clicáveis
   (AskUserQuestion) "Publicar agora" / "Ainda não". Clicar em "Publicar agora" vale como "pode publicar".
+- Quando precisar rodar o `supabase/schema.sql` (Henri): **mandar o arquivo para ele na conversa** (SendUserFile), não só avisar.
 - Para publicar (Henri): `git fetch origin && git merge origin/main` no branch dele (trazer o que o Daniel publicou),
   resolver conflitos, rodar os testes, e então `git push origin HEAD:main` (precisa ser avanço normal, nunca `--force`).
 

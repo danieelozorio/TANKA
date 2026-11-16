@@ -83,7 +83,16 @@ Tanka.dados = {
         encantar: { nome: 'Encantar item', de: 'ferreiro' }, forjar: { nome: 'Forjar arma ou armadura', de: 'ferreiro' },
         reliquia: { nome: 'Relíquia Rúnica', de: 'ferreiro' },
         receita: { nome: 'Fabricar Receita', de: 'coletor' }, protecao: { nome: 'Fabricar Pergaminho de Proteção', de: 'coletor' },
-      } },
+        quebrar: { nome: 'Quebrar item', de: 'ferreiro', porNivel: true },   // preço do Ferreiro x level do item (Henri, nov/2026)
+      },
+      // Artesão na lista de amigos do cliente: o pedido é feito na hora, sem o artesão precisar aceitar (Henri, nov/2026).
+      amigoNaHora: true,
+      // Artesão sem entrar no jogo há mais de `sumirHoras` sai da lista de Oficinas abertas (Henri, nov/2026).
+      sumirHoras: 24 },
+    // Quebrar item (Ferreiro, Mercado › Oficinas): a arma/armadura vira cristais da raridade dela, mais quanto maior o level.
+    // Até o level `corte`: level x porNivel; depois, mais porNivelDepois por level. Mínimo `minimo`.
+    // Level 1–9: 2 · 15: 5 · 30: 10 · 45: 20 · 60: 30.
+    quebrar: { minimo: 2, corte: 30, porNivel: 1 / 3, porNivelDepois: 2 / 3 },
     // Relíquia Rúnica (etapa 5): só Anão Ferreiro level 30+, 1 tentativa por semana. Item lendário +7 ou mais vira uma
     // relíquia ÚNICA no jogo (nome escolhido pelo cliente, assinatura do anão) com uma runa sorteada (bônus só contra
     // monstros). Chance = base + Sorte x porSorte, até `maxima`. Falhou: os materiais se perdem, o item volta igual.
@@ -536,6 +545,7 @@ Tanka.dados = {
     nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
     // Passivas são fixas (valor de 1 ponto, sem receber pontos). Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
     pontosDepois: { nivel: 20, porNivel: 2 },
+    pontosDepois2: { nivel: 40, porNivel: 1 },   // do level 41 ao 60: +1 por level (Henri, nov/2026): 54 pontos no 60
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
     atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
@@ -588,10 +598,12 @@ Tanka.dados = {
         // id antigo 'pes-ligeiros' mantido: os pontos e a ordem já salvos passam para o Double Shot.
         { id: 'pes-ligeiros', nome: 'Double Shot', tipo: 'multiplo', flechas: 2, recarga: 3,
           descricao: 'Atira duas flechas no mesmo turno, cada uma com o dano de um ataque básico.' },
-        { id: 'reflexo-rapido', nome: 'Reflexo Rápido', tipo: 'passiva', atributos: { des: 5 }, evasao: 5, descricao: '+5 de Destreza e mais esquiva, sempre.' },
-        { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 4, turnos: 3,
-          dotPct: [90, 5], curaMorte: 5, pula: true,
-          descricao: 'Veneno de 90% a 140% de um ataque por turno, por 3 turnos. Pula para outro monstro; cada monstro morto pelo veneno cura 5%.' },
+        // 'reflexo-rapido' (id antigo mantido): era esquiva; desde 14/11/2026 (Henri) é roubo de vida, 1% a 10% (1 de graça + 10 pontos).
+        { id: 'reflexo-rapido', nome: 'Sede de Caça', tipo: 'passiva', atributos: { des: 5 }, rouboVida: [0.1, 0.9],
+          descricao: '+5 de Destreza e parte do dano que você causa vira vida (até 10%), sempre.' },
+        { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 5, turnos: 3,
+          dotPct: [10, 5], pula: true,   // era [90, 5] com cura de 5% por monstro morto (Henri, 14/11/2026: até 60%, sem cura)
+          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro.' },
         { id: 'tiro-silenciador', nome: 'Tiro Silenciador', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 6, mult: [180, 5],
           ignoraDefesaPct: 50, silencia: 1, descricao: 'Golpe de 180% a 230% que ignora metade da defesa e cala o oponente por 1 turno. Mais forte na Arena.' },
       ] },
@@ -695,7 +707,27 @@ Tanka.dados = {
       { raridade: 'comum', chance: 70 },
     ],
   },
-  NIVEL_MAXIMO: 40,
+  NIVEL_MAXIMO: 60,   // era 40; do 41 ao 60 só o Reino do Pesadelo dá exp de verdade (Henri, nov/2026)
+  // ---------- Reino do Pesadelo (Henri, nov/2026): conteúdo final, do level 40 ao 60 ----------
+  // Em Aventura › Caçar, um mapa à parte só com os 7 chefes em versão Pesadelo (sem monstros comuns). Cada luta gasta
+  // `estamina`. Drop igual ao dos chefes (D.chefe.drop / D.chefe.pergaminho), com itens do level do chefe até +`nivelDropExtra`.
+  // Itens acima do level `mapaNivelItem` só caem aqui. No Mapa do Reino, herói level `mapaNivelExp`+ ganha `mapaExpPct`% da exp
+  // (o ouro e os drops continuam; os itens de lá vão só até o level `mapaNivelItem`).
+  // `forca`: vida e dano do chefe calibrados por simulação (ferramentas/simular_pesadelo.js): herói no level do chefe,
+  // com tudo épico +5 do mesmo level, vence ~5 de 10 lutas. `exp`: ~1 semana em cada chefe (ver o comentário lá).
+  // vitoriasPorFaixa: vitórias para ir do level de um chefe ao do próximo (~1 semana: ~20 lutas por dia, ~3 de 4 ganhas).
+  // ouro: do 1º ao último chefe (por estamina rende menos que o Cume do Fogo Eterno: o ouro é farmado no Mapa do Reino).
+  PESADELO: { estamina: 20, mapaNivelExp: 40, mapaExpPct: 10, mapaNivelItem: 40, nivelDropExtra: 3, vitoriasPorFaixa: 100,
+    ouro: [14000, 26000],
+    chefes: [
+      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.62, dano: 1.62, nivel: 40, x: 17, y: 82 },
+      { id: 'morgath-pesadelo', base: 'morgath', vida: 1.77, dano: 1.77, nivel: 43, x: 26, y: 33 },
+      { id: 'varnok-pesadelo', base: 'varnok', vida: 1.88, dano: 1.88, nivel: 46, x: 43, y: 64 },
+      { id: 'guardiao-pesadelo', base: 'guardiao', vida: 2.13, dano: 2.13, nivel: 50, x: 49, y: 22 },
+      { id: 'farao-pesadelo', base: 'farao', vida: 2.18, dano: 2.18, nivel: 53, x: 73, y: 63 },
+      { id: 'vharkesh-pesadelo', base: 'vharkesh', vida: 2.3, dano: 2.3, nivel: 56, x: 75, y: 21 },
+      { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.42, dano: 2.42, nivel: 60, x: 91, y: 40 },
+    ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
   CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
 
@@ -820,8 +852,10 @@ Tanka.dados = {
   // Única fonte de colar e anel. Vida própria (não mexe na vida de fora), sem poções e sem
   // habilidades. Batalha automática com semente do servidor (todos calculam a mesma luta).
   // Salas: 1) os 3 monstros da área; 2) 2x o 3º monstro + Elite; 3) Chefe da Masmorra.
-  // forca: multiplica vida e ataque de todos os monstros da masmorra (calibrado por simulação:
-  // grupo no level mínimo, itens da raridade da área +3, vence cerca de 2 em 3 vezes).
+  // forca: multiplica vida e ataque de todos os monstros da masmorra. Calibrado por simulação (nov/2026,
+  // pedido do Henri): 3 heróis 5 levels ACIMA do mínimo, com itens épicos +5, vencem ~60%; no level
+  // mínimo quase ninguém vence (ex.: Catacumbas lv15 pede 3 heróis lv20 bem equipados).
+  // poderRecomendado: poder de cada herói desse grupo (só para mostrar na tela).
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
   // pergaminho: % de chance de cada herói ganhar 1 pergaminho de encantamento na vitória (qualidade de
   // DROPS_CACADA). O sorteio é do servidor: mudar também em supabase/schema.sql (masmorra_concluir).
@@ -829,25 +863,25 @@ Tanka.dados = {
      tamanhoGrupo: 3, elite: { vida: 2, ataque: 1.25 }, chefe: { vida: 3, ataque: 1.25 }, pergaminho: 90 },
   masmorras: [
     { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 5, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
-      forca: { vida: 4, ataque: 8 },   // ataque 8 (era 4): o dano da Floresta caiu pela metade e a masmorra continua igual
+      forca: { vida: 15.86, ataque: 31.72 }, poderRecomendado: 2300,
       joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
     { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 10, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
-      forca: { vida: 3, ataque: 1.15 },
+      forca: { vida: 35.92, ataque: 13.77 }, poderRecomendado: 3800,
       joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
     { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 15, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
-      forca: { vida: 1.25, ataque: 1.15 },
+      forca: { vida: 13.99, ataque: 12.87 }, poderRecomendado: 6200,
       joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
     { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 20, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
-      forca: { vida: 1.5, ataque: 0.7 },
+      forca: { vida: 26.21, ataque: 12.23 }, poderRecomendado: 9600,
       joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
     { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 25, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
-      forca: { vida: 1.5, ataque: 0.6 },
+      forca: { vida: 32.14, ataque: 12.85 }, poderRecomendado: 15000,
       joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
     { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 30, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
-      forca: { vida: 0.6, ataque: 0.6 },
+      forca: { vida: 15.95, ataque: 15.95 }, poderRecomendado: 24000,
       joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
     { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 35, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
-      forca: { vida: 1, ataque: 0.5 },
+      forca: { vida: 29.75, ataque: 14.88 }, poderRecomendado: 39000,
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 
@@ -865,7 +899,7 @@ Tanka.dados = {
       { id: 'a1', nome: 'Arena 5~10', nivel: [5, 10], jackpotPor10min: 50 },
       { id: 'a2', nome: 'Arena 11~20', nivel: [11, 20], jackpotPor10min: 100 },
       { id: 'a3', nome: 'Arena 21~30', nivel: [21, 30], jackpotPor10min: 150 },
-      { id: 'a4', nome: 'Arena 30+', nivel: [31, 40], jackpotPor10min: 200 },
+      { id: 'a4', nome: 'Arena 30+', nivel: [31, 60], jackpotPor10min: 200 },   // até o 60 (Reino do Pesadelo)
     ],
   },
 
@@ -1049,6 +1083,8 @@ Tanka.dados = {
     fases: [{ id: 'muitoLongo', nome: 'Muito longo', acimaMin: 180 }, { id: 'longo', nome: 'Longo', acimaMin: 60 },
       { id: 'medio', nome: 'Médio', acimaMin: 20 }, { id: 'curto', nome: 'Curto', acimaMin: 0 }],
     nomeMuitoCurto: 'Muito curto',
+    // Mercado Negro: na última faixa (30+) o limite é o item mais alto dela (50); do level 40 (Reino do Pesadelo) em diante, sem limite.
+    mercadoSemLimite: 40,
     minimo: { comum: 1000, rara: 5000, epica: 10000, lendaria: 50000 },
     pacotePergaminho: { comum: 10, rara: 5, epica: 3, lendaria: 1 },
     faixas: [
@@ -1135,8 +1171,41 @@ Tanka.dados = {
       imagem: arquivo(c.nome),
     };
   });
+  // Reino do Pesadelo: os 7 chefes em versão Pesadelo (level 40 a 60). Números a partir do Ignaroth da caçada:
+  // vida e dano x `vida`/`dano` de cada um (calibrados por simulação), velocidade de um herói do level do chefe (90%),
+  // defesa crescendo com o level. Exp por vitória: a exp do level do chefe até o do próximo / `vitoriasPorFaixa`.
+  (function () {
+    var P = D.PESADELO, ig = D.monstros.ignaroth;
+    function expFaixa(de, ate) {   // igual a R.expNecessaria (regras.js), que ainda não existe aqui
+      var t = 0;
+      for (var n = de; n < ate; n++) {
+        var v = D.EXP_BASE * 16;
+        if (n <= 5) v = D.EXP_BASE * Math.pow(2, n - 1);
+        else for (var k = 6; k <= n; k++) { var f = D.EXP_FAIXAS.filter(function (x) { return k <= x.ate; })[0]; v *= f ? f.crescimento : D.EXP_CRESCIMENTO; }
+        t += Math.round(v);
+      }
+      return t;
+    }
+    P.chefes.forEach(function (c, i) {
+      var b = D.monstros[c.base], prox = P.chefes[i + 1], vel = D.VELOCIDADE.inicial * Math.pow(D.VELOCIDADE.porNivel, c.nivel - 1);
+      var exp = prox ? Math.round(expFaixa(c.nivel, prox.nivel) / P.vitoriasPorFaixa) : Math.round(expFaixa(c.nivel - 4, c.nivel) / P.vitoriasPorFaixa);
+      D.monstros[c.id] = {
+        nome: b.nome.split(',')[0].replace(/^O /, '') + ' · Pesadelo', descricao: c.descricao || b.descricao, area: b.area, indiceArea: b.indiceArea,
+        chefe: true, pesadelo: true, base: c.base, nivel: c.nivel,
+        hp: Math.round(ig.hp * c.vida), ataque: [Math.round(ig.ataqueCacada[0] * c.dano), Math.round(ig.ataqueCacada[1] * c.dano)],
+        ataqueCacada: [Math.round(ig.ataqueCacada[0] * c.dano), Math.round(ig.ataqueCacada[1] * c.dano)],
+        velocidade: Math.max(1, Math.round(vel * 0.9)),
+        defesa: Math.round(ig.defesa * Math.pow(1.04, c.nivel - 30)), defesaMagica: Math.round(ig.defesa * Math.pow(1.04, c.nivel - 30)),
+        exp: exp, ouro: Math.round(P.ouro[0] + (P.ouro[1] - P.ouro[0]) * i / (P.chefes.length - 1)),
+        drops: [], dropsArmadura: [], dropsItem: [],
+        imagem: b.imagem.replace(/\.jpg$/, '-pesadelo.jpg'),
+        magia: b.magia ? { nome: b.magia.nome } : null,
+      };
+    });
+  })();
   // Magia de cada monstro da caçada (MAGIA_MONSTROS).
   Object.keys(D.MAGIA_MONSTROS.nomes).forEach(function (id) { if (D.monstros[id]) D.monstros[id].magia = { nome: D.MAGIA_MONSTROS.nomes[id] }; });
+  D.PESADELO.chefes.forEach(function (c) { var m = D.MAGIA_MONSTROS.nomes[c.base]; if (m) D.monstros[c.id].magia = { nome: m }; });
   // Bosses da aliança ("Os Libertos"): números do chefe da caçada de cada fase, com nome, descrição e imagem próprios.
   D.BOSS_ALIANCA.bosses.forEach(function (b, i) {
     var base = D.monstros[D.BOSS_ALIANCA.chefes[i]];

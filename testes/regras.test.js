@@ -124,7 +124,7 @@ teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do
   assert.ok(Math.abs(R.expNecessaria(30) / R.expNecessaria(29) - 1.12) < 0.001);
   // monstros do meio da área para subir: nunca passa de ~420 por level
   const area = (n) => D.areas.filter((a) => a.nivelMin <= n).pop();
-  for (let n = 15; n < D.NIVEL_MAXIMO; n++) assert.ok(R.expNecessaria(n) / D.monstros[area(n).monstros[1].id].exp < 420, 'level ' + n);
+  for (let n = 15; n < D.PESADELO.mapaNivelExp; n++) assert.ok(R.expNecessaria(n) / D.monstros[area(n).monstros[1].id].exp < 420, 'level ' + n);
 });
 
 teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem trocada); o golpe cura parte do dano', () => {
@@ -594,13 +594,13 @@ teste('personagem antigo com armaEquipada vira equipados.arma', () => {
 
 // ---------- Áreas, chefes e curva de level ----------
 
-teste('curva de level: dobra até o 5, depois +50% por level; máximo 40', () => {
+teste('curva de level: dobra até o 5, depois +50% por level; máximo 60 (Reino do Pesadelo)', () => {
   assert.deepStrictEqual([1, 2, 3, 4, 5, 6, 7, 8, 10].map(R.expNecessaria), [10, 20, 40, 80, 160, 240, 360, 540, 1215]);
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 100);
   assert.strictEqual(p.nivel, D.NIVEL_MAXIMO);
   R.ganharExp(p, 1e12);
-  assert.strictEqual(p.nivel, 40); assert.strictEqual(p.exp, 0);
+  assert.strictEqual(p.nivel, 60); assert.strictEqual(p.exp, 0);
 });
 
 teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela regra', () => {
@@ -1152,7 +1152,8 @@ teste('seta verde: item da mochila melhor que o equipado; outra classe nunca', (
   // Floresta com metade do dano; a masmorra da Floresta continua com o mesmo dano de antes
   assert.deepStrictEqual([...D.monstros.lobo.ataque], [3, 5]);
   const chefeToca = R.salasMasmorra('toca')[2][0];
-  assert.deepStrictEqual([...chefeToca.ataque, chefeToca.velocidade], [80, 100, 14], 'masmorra: mesmo dano, mais lenta (velocidade era 18)');
+  const fT = R.masmorra('toca').forca.ataque;   // ataque do chefe = 10~12,5 × força da masmorra
+  assert.deepStrictEqual([...chefeToca.ataque, chefeToca.velocidade], [Math.round(10 * fT), Math.round(12.5 * fT), 14], 'masmorra: dano pela força, mais lenta (velocidade era 18)');
 });
 
 teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), passiva no status e recomeço', () => {
@@ -1345,8 +1346,8 @@ teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela rarida
   R.admin.subirNivel(p, 19);   // level 20
   for (let i = 0; i < 300; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 17 && n <= 23, n); }
   R.admin.subirNivel(p, 20);   // level 40
-  const vistos = new Set(); for (let i = 0; i < 2000; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 37 && n <= 43, n); vistos.add(n); }
-  assert.strictEqual(vistos.size, 7);   // 37 a 43
+  const vistos = new Set(); for (let i = 0; i < 2000; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 37 && n <= 40, n); vistos.add(n); }
+  assert.strictEqual(vistos.size, 4);   // 37 a 40: acima do 40 só no Reino do Pesadelo
   // mesmo nível: lendária mais forte que comum; nível maior mais forte
   const m = (n, q) => { const d = R.danoDoNivel(n, q); return (d[0] + d[1]) / 2; };
   assert.ok(m(10, 1) > m(10, 0.6) && m(10, 0.1) < m(10, 0.55) && m(30, 0.5) > m(10, 0.5));
@@ -2349,4 +2350,71 @@ teste('fila da masmorra: o bot vira a classe que falta (mesmo poder), e a luta u
   assert.strictEqual(cura.atributos.int, p.atributos.for, 'o atributo de ataque passa para a Inteligência');
   const sim = R.simularMasmorra([p, bot('curandeiro'), bot('cacador')], 'toca', 123);
   assert.deepStrictEqual(sim.inicio.herois.map(h => h.classe2).join(), 'ferreiro,curandeiro,cacador');
+});
+
+teste('arqueiro: Sede de Caça dá roubo de vida (1% a 10%) e a Flecha Envenenada vai até 60%, sem cura, recarga 5', () => {
+  const p = R.criarPersonagem('Arq', 'masculino', 'humano', 'arqueiro');
+  R.admin.subirNivel(p, 29);
+  R.talentos(p).classe2 = D.SEGUNDAS_CLASSES ? Object.keys(D.SEGUNDAS_CLASSES).find((k) => D.SEGUNDAS_CLASSES[k].habilidades.some((h) => h.id === 'reflexo-rapido')) : null;
+  assert.strictEqual(R.extrasNivel(p).rouboVida, 1, '1 ponto de graça = 1%');
+  R.talentos(p).pontos['reflexo-rapido'] = 10;
+  assert.strictEqual(R.extrasNivel(p).rouboVida, 10, 'no máximo = 10%');
+  const def = Object.values(D.SEGUNDAS_CLASSES).flatMap((c) => c.habilidades).find((h) => h.id === 'flecha-envenenada');
+  assert.ok(!def.curaMorte && def.recarga === 5);
+  assert.strictEqual(def.dotPct[0] + def.dotPct[1] * 10, 60);
+  const pas = Object.values(D.SEGUNDAS_CLASSES).flatMap((c) => c.habilidades).find((h) => h.id === 'reflexo-rapido');
+  assert.ok(!pas.evasao, 'sem esquiva');
+});
+
+teste('oficinas: quebrar item dá cristais pelo level e cobra o preço x level (Henri, nov/2026)', () => {
+  const n = (lv) => R.cristaisQuebrar({ nivel: lv }), igual = assert.strictEqual;
+  igual(n(1), 2); igual(n(5), 2); igual(n(9), 3); igual(n(30), 10); igual(n(45), 20); igual(n(60), 30);
+  igual(R.precoServico('quebrar', 50, { nivel: 30 }), 1500);
+  igual(R.precoServico('encantar', 50, { nivel: 30 }), 50);
+  igual(D.CRAFT.oficina.servicos.quebrar.de, 'ferreiro');
+});
+
+teste('Reino do Pesadelo: level 60, chefes por level, 20 de estamina, exp e itens 40+ só lá (Henri, nov/2026)', () => {
+  const igual = assert.strictEqual;
+  igual(D.NIVEL_MAXIMO, 60);
+  igual(D.PESADELO.chefes.length, 7);
+  const ids = D.PESADELO.chefes.map((c) => c.id);
+  ids.forEach((id) => { const m = D.monstros[id]; assert.ok(m.chefe && m.pesadelo && m.exp > 0 && m.ouro > 0 && /-pesadelo\.jpg$/.test(m.imagem), id); igual(R.custoEstamina(id), 20); });
+  // cada chefe mais forte que o anterior; o primeiro mais forte que o Ignaroth da caçada
+  for (let i = 1; i < ids.length; i++) assert.ok(D.monstros[ids[i]].hp >= D.monstros[ids[i - 1]].hp);
+  assert.ok(D.monstros[ids[0]].hp > D.monstros.ignaroth.hp);
+  const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 38);   // level 39
+  assert.ok(!R.reinoPesadeloAberto(p) && !R.podePesadelo(p, 'velgrath-pesadelo'));
+  R.admin.subirNivel(p, 1);    // level 40
+  assert.ok(R.reinoPesadeloAberto(p) && R.podePesadelo(p, 'velgrath-pesadelo') && !R.podePesadelo(p, 'morgath-pesadelo'));
+  assert.ok(!R.podeCacar(p, 'velgrath-pesadelo'), 'não entra na caçada normal');
+  igual(R.fatorExp(p, 'velgrath-pesadelo'), 100);
+  // pontos de habilidade: +1 por level depois do 40
+  igual(R.pontosHabilidadeTotal(p), 54); p.nivel = 60; igual(R.pontosHabilidadeTotal(p), 74); p.nivel = 40;
+  // Mapa do Reino no 40+: 10% da exp, ouro normal
+  const b = { fim: 'vitoria', monstroId: 'elemental-de-fogo', pocoes: 0, rng: () => 0.99, s: {} };
+  if (!D.monstros[b.monstroId]) b.monstroId = D.areas[6].monstros[2].id;
+  R.estamina(p).pts = 100;
+  const r = R.concluirBatalha(p, b, Date.now());
+  igual(r.exp, Math.floor(D.monstros[b.monstroId].exp / 10)); igual(r.ouro, D.monstros[b.monstroId].ouro); assert.ok(r.expReino);
+  // itens: no mapa no máximo 40; no Pesadelo do level do chefe até +3
+  for (let i = 0; i < 300; i++) assert.ok(R.nivelDoDrop(p, Math.random) <= 40);
+  const niveis = new Set();
+  for (let i = 0; i < 400; i++) {
+    R.estamina(p).pts = 100;
+    const rr = R.concluirBatalha(p, { fim: 'vitoria', monstroId: 'farao-pesadelo', pocoes: 0, rng: Math.random, s: {} }, Date.now());
+    [rr.drop, rr.dropArmadura].filter(Boolean).forEach((it) => { niveis.add(it.nivel); p.inventario = p.inventario.filter((x) => x.id !== it.id); });
+  }
+  assert.ok(niveis.size > 0 && [...niveis].every((n) => n >= 53 && n <= 56), [...niveis].join());
+  // servidor: encontro direto com o chefe do Pesadelo
+  const q = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(q, 39);
+  const t = 1.8e12; R.atualizarTempo(q, t); R.estamina(q).pts = 19;
+  assert.ok(SC.encontro(q, ['velgrath-pesadelo'], t, rng).erro, 'sem 20 de estamina');
+  R.estamina(q).pts = 40;
+  assert.ok(/level 43/.test(SC.encontro(q, ['morgath-pesadelo'], t, rng).erro));
+  const e = SC.encontro(q, ['velgrath-pesadelo'], t, rng);
+  igual(e.encontro.monstro, 'velgrath-pesadelo');
+  const s = SC.lutar(q, e.encontro.prontoEm, rng, { exp: 0, ouro: 0 });
+  assert.ok(s.res.resultado); igual(R.estamina(q).pts <= 20, true);
 });

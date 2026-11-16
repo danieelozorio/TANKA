@@ -949,6 +949,10 @@ delete from public.recompensas; delete from public.creditos; delete from public.
 -- Oficinas e Relíquia Rúnica (Anões, etapas 4 e 5)
 reset role;
 delete from public.recompensas; delete from public.creditos;
+-- (estes testes são de artesão que NÃO é amigo: o pedido espera; amigos têm o bloco próprio mais abaixo)
+create temp table amizades_guardadas as select de, para, status from public.amizades;
+delete from public.amizades;
+update public.personagens set atualizado_em = now() where id in ('pa', 'pb', 'pd');
 update public.personagens set dados = dados || '{"nivel": 30, "raca": "anao", "talentos": {"classe2": "ferreiro"}}'::jsonb where id = 'pd';
 update public.personagens set dados = dados || '{"talentos": {"classe2": "coletor"}}'::jsonb where id = 'pb';
 update public.personagens set dados = dados || '{"ouro": 100000, "equipados": {}, "inventario": [{"id":"esp9","tipo":"arma","raridade":"epica","encanto":3,"nivel":20},
@@ -1022,6 +1026,53 @@ reset role; update public.oficina_pedidos set criado_em = now() - interval '25 h
 set role authenticated; select pg_temp.como('a'); select public.oficina_estado('pa') is not null;
 reset role;
 select pg_temp.igual((select estado from public.oficina_pedidos where id = :ped5), 'expirado', 'oficina: sem fazer em 24 h, volta tudo');
+-- Quebrar item, amigo feito na hora e oficina parada há 24 h (Henri, nov/2026)
+delete from public.recompensas; delete from public.creditos; delete from public.oficina_pedidos;
+update public.personagens set dados = jsonb_set(dados, '{inventario}', '[{"id":"q30","tipo":"arma","raridade":"rara","encanto":0,"nivel":30},
+  {"id":"q60","tipo":"peitoral","raridade":"epica","encanto":0,"nivel":60},{"id":"q5","tipo":"botas","raridade":"comum","encanto":0,"nivel":5},
+  {"id":"qrel","tipo":"arma","raridade":"lendaria","encanto":8,"runa":"furia","nivel":40}]') where id = 'pa';
+select pg_temp.igual(public.oficina_cristais_quebrar('{"nivel":5}'), 2, 'quebrar: level 5 dá 2 cristais');
+select pg_temp.igual(public.oficina_cristais_quebrar('{"nivel":30}'), 10, 'quebrar: level 30 dá 10 cristais');
+select pg_temp.igual(public.oficina_cristais_quebrar('{"nivel":60}'), 30, 'quebrar: level 60 dá 30 cristais');
+set role authenticated; select pg_temp.como('d');
+select public.oficina_configurar('pd', '{"encantar": 500, "quebrar": 10}', 30, 100);
+select pg_temp.como('b');
+select pg_temp.falha($$select public.oficina_configurar('pb', '{"quebrar": 10}', 0, 0)$$, 'não oferece');
+select pg_temp.como('a');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pd', 'quebrar', 'qrel', '{}')$$, 'Relíquias não podem ser quebradas');
+select (public.oficina_pedir('pa', 'pd', 'quebrar', 'q30', '{}') ->> 'feito') is null;
+reset role;
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pa'), -300, 'quebrar: preço x level do item (10 x 30)');
+select pg_temp.igual((select count(*) from public.oficina_pedidos where cliente = 'pa' and estado = 'pendente')::int, 1, 'quebrar: sem ser amigo, o pedido espera');
+select id as pedq from public.oficina_pedidos where cliente = 'pa' and estado = 'pendente' \gset
+set role authenticated; select pg_temp.como('d');
+select (public.oficina_fazer('pd', :pedq) ->> 'cristais')::int = 10;
+reset role;
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'cristal' and item ->> 'raridade' = 'rara'), 10,
+  'quebrar: 10 cristais raros para o cliente');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pd'), 270, 'quebrar: Ferreiro recebe 300 - 10%');
+-- amigo: feito na hora
+delete from public.recompensas; delete from public.creditos;
+insert into public.amizades (de, para, status) values ('pd', 'pa', 'aceita');
+set role authenticated; select pg_temp.como('a');
+select pg_temp.igual((public.oficina_estado('pa') -> 'lista' -> 0 ->> 'amigo')::boolean, true, 'oficina: lista marca o artesão amigo');
+select pg_temp.igual((public.oficina_pedir('pa', 'pd', 'quebrar', 'q60', '{}') -> 'resultado' ->> 'cristais')::int, 30, 'amigo: quebrar feito na hora (30 cristais)');
+reset role;
+select pg_temp.igual((select estado from public.oficina_pedidos where cliente = 'pa' order by id desc limit 1), 'feito', 'amigo: pedido já sai feito');
+select pg_temp.igual((select (item ->> 'qtd')::int from public.recompensas where personagem_id = 'pa' and item ->> 'raridade' = 'epica'), 30, 'amigo: cristais já chegam');
+select pg_temp.igual((select sum(ouro)::int from public.creditos where personagem_id = 'pd'), 540, 'amigo: Ferreiro recebe na hora (600 - 10%)');
+delete from public.amizades where de = 'pd' and para = 'pa';
+-- 24 h sem entrar: some da lista e não aceita pedido
+reset role; alter table public.personagens disable trigger antes_de_salvar_personagem;
+update public.personagens set atualizado_em = now() - interval '25 hours' where id = 'pd';
+alter table public.personagens enable trigger antes_de_salvar_personagem;
+set role authenticated; select pg_temp.como('a');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.oficina_estado('pa') -> 'lista') x where x ->> 'id' = 'pd')::int, 0, 'oficina: artesão 24 h fora some da lista');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pd', 'quebrar', 'q5', '{}')$$, 'há mais de 24 h');
+select pg_temp.como('d');
+select pg_temp.igual((select count(*) from jsonb_array_elements(public.oficina_estado('pd') -> 'lista') x where x ->> 'id' = 'pd')::int, 1, 'oficina: o próprio artesão ainda vê a dele');
+reset role; update public.personagens set atualizado_em = now() where id = 'pd';
+insert into public.amizades (de, para, status) select de, para, status from amizades_guardadas on conflict do nothing;
 delete from public.recompensas; delete from public.creditos; delete from public.oficina_pedidos; delete from public.oficinas; delete from public.reliquias;
 -- Habilidades do level 20/30 (nov/2026): pontos +2 do 21, level 20 fora da Arena, level 30 só no 30
 select pg_temp.igual(public.arena_pontos_ok(pg_temp.heroi('arqueiro', 30, '{"classe2":"cacador","pontos":{"saraivada":10,"pes-ligeiros":10,"flecha-na-perna":10,"reflexo-rapido":4}}')), true, 'arena: 34 pontos no level 30');
