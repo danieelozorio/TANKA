@@ -1088,3 +1088,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - O Leve (Caçador/Assassino) continua o mais forte no PvE; Destruidor e Coletor, os mais fracos.
 - (16/11/2026) Destruidor: passiva Força Bruta ganhou critico 20, vidaPct 15, defesaPct 15 (estava em 95-100% de vida perdida no 3º monstro e 0% no Pesadelo; agora perto do Paladino). Na Arena o crítico da passiva vira +20% de dano.
 - (16/11/2026, tarde) Força Bruta reduzida para critico 10, vidaPct 10, defesaPct 10 (a primeira versão subiu demais o poder; agora ~+11%).
+- (16/11/2026, Henri) Força Bruta: +5 FOR, danoCritico 3, defFisicaPct 5, defMagicaPct 5 (chaves novas: só a defesa / só a defesa mágica, também em tanka_status); +1% por ponto em cada %.

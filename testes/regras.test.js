@@ -1300,6 +1300,16 @@ teste('atributos 16/11/2026: dano % do atributo da classe, DES cheia só no Caç
   const n = R.criarPersonagem('N', 'masculino', 'humano', 'mago'); R.normalizar(n); assert.strictEqual(n.presenteAtributos3, 2);
 });
 
+teste('Força Bruta (Destruidor, 16/11/2026): +5 FOR, dano crítico 3%, defesa e defesa mágica 5% (+1% por ponto)', () => {
+  const p = R.criarPersonagem('D', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 9);
+  const s0 = R.status(p); R.escolherSegundaClasse(p, 'destruidor');
+  const n = R.pontosEm(p, 'forca-bruta'), s1 = R.status(p);
+  assert.strictEqual(R.atributosTotais(p).for - p.atributos.for >= 5, true);
+  assert.strictEqual(D.SEGUNDAS_CLASSES.destruidor.habilidades.find((h) => h.id === 'forca-bruta').danoCritico, 3);
+  assert.ok(s1.defesa > s0.defesa && s1.defesaMagica > s0.defesaMagica, 'mais defesa e defesa mágica');
+  assert.strictEqual(s1.hpMax >= s0.hpMax, true);
+});
+
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
   const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
   R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');

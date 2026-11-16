@@ -1251,6 +1251,8 @@ Tanka.regras = (function () {
     var d = pas.def, n = pas.pts, v = function (c) { return valorBonus(d, c, n); };
     if (d.vidaPct) s.hpMax = Math.round(s.hpMax * (1 + v('vidaPct') / 100));
     if (d.defesaPct) { s.defesa = Math.round(s.defesa * (1 + v('defesaPct') / 100)); s.defesaMagica = Math.round(s.defesaMagica * (1 + v('defesaPct') / 100)); }
+    if (d.defFisicaPct) s.defesa = Math.round(s.defesa * (1 + v('defFisicaPct') / 100));            // só a defesa
+    if (d.defMagicaPct) s.defesaMagica = Math.round(s.defesaMagica * (1 + v('defMagicaPct') / 100)); // só a defesa mágica
     if (d.dano) s.dano = [Math.round(s.dano[0] * (1 + v('dano') / 100)), Math.round(s.dano[1] * (1 + v('dano') / 100))];
     if (d.evasao) s.evasao += v('evasao');
     if (d.critico) s.chanceCritico += v('critico');
