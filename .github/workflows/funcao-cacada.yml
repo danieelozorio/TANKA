@@ -1,4 +1,5 @@
-# Envia a função `cacada` (caçada decidida no servidor) para o Supabase sempre que o main mudar nas regras.
+# Envia as funções `cacada` (caçada decidida no servidor) e `acao` (ações do herói no servidor) para o Supabase
+# sempre que o main mudar nas regras.
 # Precisa do segredo SUPABASE_ACCESS_TOKEN no GitHub (Settings > Secrets and variables > Actions).
 # Sem o segredo, só avisa e não falha.
 name: Funcao cacada (Supabase)
@@ -10,6 +11,7 @@ on:
       - 'js/historia.js'
       - 'js/regras.js'
       - 'js/servidor-cacada.js'
+      - 'js/servidor-acoes.js'
       - 'supabase/functions/**'
       - 'ferramentas/gerar_servidor.js'
       - '.github/workflows/funcao-cacada.yml'
@@ -28,10 +30,13 @@ jobs:
       - uses: denoland/setup-deno@v2
         with: { deno-version: v2.x }
       - name: Teste da função
-        run: deno run --allow-read --allow-env testes/cacada_servidor.test.ts
+        run: |
+          deno run --allow-read --allow-env testes/cacada_servidor.test.ts
+          deno run --allow-read --allow-env testes/acao_servidor.test.ts
       - uses: supabase/setup-cli@v1
         with: { version: latest }
       - name: Enviar para o Supabase
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::warning::Falta o segredo SUPABASE_ACCESS_TOKEN: função não enviada."; exit 0; fi
           supabase functions deploy cacada --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes
+          supabase functions deploy acao --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes

@@ -252,14 +252,17 @@ Tanka.contas = (function () {
   // Caçada decidida pelo servidor (função `cacada`, plano anti-trapaça). Entra na mesma fila das gravações: espera o
   // que estava pendente, e a versão que a função gravou passa a ser a desta aba. Devolve a resposta da função
   // ({ erro } quando a regra recusou; o personagem novo vem em `personagem`).
-  function cacada(acao, corpo) {
-    var pedido = Object.assign({ acao: acao }, corpo || {});
+  function cacada(acao, corpo) { return funcaoServidor('cacada', Object.assign({ acao: acao }, corpo || {})); }
+  // Ação do herói decidida pelo servidor (função `acao`, plano "tudo no servidor"): { erro } se a regra recusou;
+  // em todo caso vem o personagem como ficou no banco.
+  function acao(personagemId, nome, args) { return funcaoServidor('acao', { personagem: personagemId, acao: nome, args: args }); }
+  function funcaoServidor(funcao, pedido) {
     var feito = fila.catch(function () {}).then(async function () {
       if (emConflito) throw erroConflito();
       if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
       var r;
       try {
-        r = await pedir('/functions/v1/cacada', { metodo: 'POST', corpo: pedido });
+        r = await pedir('/functions/v1/' + funcao, { metodo: 'POST', corpo: pedido });
       } catch (e) {
         if (e.status === 409) { emConflito = true; if (aoConflito) aoConflito(); throw erroConflito(); }
         throw e;
@@ -483,6 +486,7 @@ Tanka.contas = (function () {
     excluirPersonagem: excluirPersonagem,
     salvarPersonagem: salvarPersonagem,
     cacada: cacada,
+    acao: acao,
     sessaoVale: sessaoVale,
     aoConflito: function (f) { aoConflito = f; },
   };

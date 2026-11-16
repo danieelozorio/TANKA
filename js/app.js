@@ -4070,6 +4070,29 @@
     Object.keys(p).forEach(function (k) { delete p[k]; });
     Object.assign(p, novo);
   }
+  // ---- Ações do herói decididas pelo servidor (plano "tudo no servidor", etapa 1, Henri nov/2026) ----
+  // A regra roda aqui na hora (a tela responde sem esperar) e na função `acao` do servidor, que grava; a resposta do
+  // servidor substitui o personagem (se o servidor recusar, volta ao que está no banco). Sem a função publicada (404),
+  // grava do jeito antigo.
+  var ACAO_SERVIDOR = typeof C.acao === 'function', ACAO_RESPONDEU = false;
+  function acaoServidor(nome, args) {
+    var p = estado.personagem;
+    p.poder = R.poder(p);
+    if (!ACAO_SERVIDOR) { salvar(); return; }
+    C.acao(p.id, nome, args).then(function (r) {
+      ACAO_RESPONDEU = true;
+      if (!estado.personagem || estado.personagem.id !== p.id) return;
+      if (r && r.personagem) adotarPersonagem(r.personagem);
+      if (r && r.erro) {
+        avisar(r.erro);
+        if (!estado.luta && !estado.batalha && !estado.lutaArena) telaJogo();
+      }
+    }, function (e) {
+      if (e && e.conflito) return;   // o jogo já recarrega o personagem
+      if (e && (e.status === 404 || (!e.status && !ACAO_RESPONDEU))) { ACAO_SERVIDOR = false; salvar(); return; }
+      avisar('Não foi possível salvar: ' + ((e && e.message) || e));
+    });
+  }
   function erroCacada(e) {
     var c = estado.cacada;
     if (e && e.conflito) return;   // o jogo já recarrega o personagem
@@ -4725,7 +4748,7 @@
         telaJogo();
         break;
       case 'desequipar':
-        if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
+        if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; acaoServidor('desequipar', el.dataset.slot); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
         break;
       case 'trocar-pergaminho': {
@@ -4745,7 +4768,7 @@
         break;
       }
       case 'skin-usar':
-        if (R.usarSkin(p, el.dataset.valor)) { salvar(); telaJogo(); }
+        if (R.usarSkin(p, el.dataset.valor)) { acaoServidor('usarSkin', el.dataset.valor); telaJogo(); }
         break;
       case 'arena-ver':
         estado.arenaVer = el.dataset.valor;
@@ -5042,7 +5065,7 @@
         var ru = R.usarRecomeco(p);
         estado.recomecoPendente = false;
         estado.pontosPend = null;
-        if (ru === true) { salvar(); telaJogo(); avisar('Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir!', 'nivel'); }
+        if (ru === true) { acaoServidor('usarRecomeco'); telaJogo(); avisar('Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir!', 'nivel'); }
         else { avisar(ru); atualizarFicha(); }
         break;
       }
@@ -5050,7 +5073,7 @@
         var sc = D.SEGUNDAS_CLASSES[el.dataset.valor];
         if (!sc || !confirm('Virar ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '? Só dá para trocar com o ' + D.RECOMECO_HABILIDADES.nome + '.')) break;
         var rcl = R.escolherSegundaClasse(p, el.dataset.valor);
-        if (rcl === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Agora você é ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '! Distribua os seus pontos.', 'nivel'); }
+        if (rcl === true) { estado.habPend = {}; acaoServidor('segundaClasse', el.dataset.valor); telaJogo(); avisar('Agora você é ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '! Distribua os seus pontos.', 'nivel'); }
         else avisar(rcl);
         break;
       }
@@ -5071,14 +5094,16 @@
       case 'hab-cancelar': estado.habPend = {}; telaJogo(); break;
       case 'hab-confirmar': {
         var pdc = pendHab();
-        Object.keys(pdc).forEach(function (k) { for (var i = 0; i < pdc[k]; i++) R.mudarPontoHabilidade(p, k, 1); });
+        var feitosHab = {};
+        Object.keys(pdc).forEach(function (k) { for (var i = 0; i < pdc[k]; i++) if (R.mudarPontoHabilidade(p, k, 1) === true) feitosHab[k] = (feitosHab[k] || 0) + 1; });
         estado.habPend = {};
-        salvar(); telaJogo(); avisar('Pontos de habilidade confirmados!');
+        if (Object.keys(feitosHab).length) acaoServidor('pontosHabilidade', feitosHab);
+        telaJogo(); avisar('Pontos de habilidade confirmados!');
         break;
       }
       case 'hab-ordem':
-        R.moverHabilidade(p, el.dataset.modo, el.dataset.id, el.dataset.op);
-        salvar(); telaJogo();
+        if (R.moverHabilidade(p, el.dataset.modo, el.dataset.id, el.dataset.op)) acaoServidor('ordemHabilidade', [el.dataset.modo, el.dataset.id, el.dataset.op]);
+        telaJogo();
         break;
       case 'hab-pergaminho-comprar': {
         var rh = R.comprarRecomecoHabilidades(p);
@@ -5089,7 +5114,7 @@
       case 'hab-pergaminho-usar': {
         if (!confirm('Usar o ' + D.RECOMECO_HABILIDADES.nome + '? Os pontos voltam e você escolhe a segunda classe de novo.')) break;
         var uh = R.usarRecomecoHabilidades(p);
-        if (uh === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Habilidades zeradas: escolha a segunda classe de novo.', 'nivel'); }
+        if (uh === true) { estado.habPend = {}; acaoServidor('usarRecomecoHabilidades'); telaJogo(); avisar('Habilidades zeradas: escolha a segunda classe de novo.', 'nivel'); }
         else avisar(uh);
         break;
       }
@@ -5104,10 +5129,10 @@
         atualizarFicha();
         break;
       case 'pontos-confirmar': {
-        var pc = pontosPendentes(), dados = 0;
-        R.ATRIBUTOS.forEach(function (k) { while (pc[k] > 0 && R.distribuirPonto(p, k)) { pc[k] -= 1; dados++; } });
+        var pc = pontosPendentes(), dados = 0, feitos = {};
+        R.ATRIBUTOS.forEach(function (k) { while (pc[k] > 0 && R.distribuirPonto(p, k)) { pc[k] -= 1; dados++; feitos[k] = (feitos[k] || 0) + 1; } });
         estado.pontosPend = null;
-        salvar();
+        if (dados) acaoServidor('atributos', feitos);
         telaJogo();
         if (dados) avisar(dados + ' ponto(s) de atributo distribuído(s)!', 'nivel');
         break;
@@ -5142,7 +5167,7 @@
         }
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; salvar(); telaJogo(); }
+        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; acaoServidor('equipar', el.dataset.id); telaJogo(); }
         else avisar(R.motivoNaoEquipa(p, p.inventario.find(function (i) { return i.id === el.dataset.id; })) || 'Não foi possível equipar (mochila cheia?).');
         break;
       case 'pedir-venda':
@@ -5305,7 +5330,7 @@
       case 'auto-habilidade':
         p.habilidadeAuto = el.checked;
         if (estado.batalha) estado.batalha.auto = el.checked;
-        salvar();
+        acaoServidor('habilidadeAuto', el.checked);
         break;
       case 'cacar': {
         var alvo = el.dataset.monstro;
@@ -5435,7 +5460,7 @@
     fecharFlutuante();
     estado.zoom = null;
     estado.vendaPendente = null;
-    salvar();
+    acaoServidor('equipar', el.dataset.id);
     telaJogo();
   });
   document.addEventListener('keydown', function (e) {

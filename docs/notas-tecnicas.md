@@ -984,3 +984,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Fichas que já estavam fora da regra continuam gravando (só não podem piorar). Baldes em `personagens.trava`.
   Gravações acima de `avisarOuro`/`avisarNiveis` e encanto > +1 passam, mas ficam em `suspeitas` (só o SQL Editor lê).
 - É a trava rápida; a solução definitiva é passar cada ação para o servidor (plano de 5 etapas).
+
+## Tudo no servidor — etapa 1: ações do herói (Henri, nov/2026)
+- Regra única em `js/servidor-acoes.js` (`Tanka.servidorAcoes.executar(p, acao, args, agora)`), com lista fechada de
+  ações: `atributos` ({for: n...}), `segundaClasse`, `pontosHabilidade` ({id: n}), `ordemHabilidade` ([modo,id,op]),
+  `habilidadeAuto`, `equipar`, `desequipar`, `usarSkin`, `usarRecomeco`, `usarRecomecoHabilidades`.
+- Edge Function `supabase/functions/acao/index.ts` (igual à `cacada`: confere o login, lê o personagem com RLS, roda a
+  regra, grava com a proteção de versão). Recusa: `{ erro, personagem }` com a ficha do banco. Enviada pelo mesmo
+  workflow (`funcao-cacada.yml`), que também roda `testes/acao_servidor.test.ts` (no Node: `node --experimental-strip-types`).
+- Cliente: `C.acao(id, nome, args)` (contas.js usa a mesma fila/troca de personagem da caçada; contas-local.js roda a
+  regra local). `acaoServidor(nome, args)` em app.js: a regra roda na tela na hora e o servidor confirma; sem a função
+  (404) volta a `salvar()`.
+- Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
+  funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).
