@@ -594,7 +594,9 @@ Tanka.dados = {
         { id: 'furia', nome: 'Fúria', tipo: 'reforco', turnos: 2, dano: 10, danoCritico: 10, recarga: 4, descricao: 'Mais dano e mais dano crítico.' },
         { id: 'terremoto', nome: 'Terremoto', tipo: 'area', recarga: 3, descricao: 'Dano em área.' },
         { id: 'golpe-pesado', nome: 'Golpe Pesado', tipo: 'unico', recarga: 3, descricao: 'Um golpe muito forte em um inimigo.' },
-        { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, descricao: '+5 de Força e mais dano crítico, sempre.' },
+        // 16/11/2026: + crítico, vida e defesa (sem escudo e com a DES fraca, o Destruidor ficava muito atrás)
+        { id: 'forca-bruta', nome: 'Força Bruta', tipo: 'passiva', atributos: { for: 5 }, danoCritico: 10, critico: 20, vidaPct: 15, defesaPct: 15,
+          descricao: '+5 de Força, mais chance e dano crítico, mais vida e mais defesa, sempre.' },
         { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, foco: 'cacada', rouboVida: [4, 1],
           descricao: '5% a 15% do dano que você causa vira vida. Mais forte na caçada.' },
         // Henri (13/11/2026): no lugar do Golpe Apocalíptico. quebraTurnos: a defesa quebrada dura essas vezes do alvo.

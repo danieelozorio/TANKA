@@ -1086,3 +1086,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Pesadelo: vida/dano de cada chefe recalibrados (o Ignaroth da caçada ficou mais forte e é a base deles); alvo: a
   mediana de vitórias de antes e o Velgrath vencível por mago/arqueiro lv 40 épico +3 com 1 poção (90%+).
 - O Leve (Caçador/Assassino) continua o mais forte no PvE; Destruidor e Coletor, os mais fracos.
+- (16/11/2026) Destruidor: passiva Força Bruta ganhou critico 20, vidaPct 15, defesaPct 15 (estava em 95-100% de vida perdida no 3º monstro e 0% no Pesadelo; agora perto do Paladino). Na Arena o crítico da passiva vira +20% de dano.
