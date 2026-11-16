@@ -1068,3 +1068,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Armadura Pesada única: armaduras novas de artesão saem com `classe: 'cavaleiro'` (tabela do cavaleiro). As antigas
   (`classe: 'artesao'`) continuam valendo, com os números que já tinham.
 - Mercado "só o que o meu grupo usa": filtro manda `classes` (do grupo); leilão compara por grupo.
+
+### Atributos rebalanceados (Henri, 16/11/2026)
+- Antes, DES era o melhor atributo para TODAS as classes (precisão, crítico e esquiva cheios para todos).
+- `D.ATRIBUTOS_COMBATE`: o atributo de dano da classe (FOR Cavaleiro/Artesão, DES Caçador, INT Mago) dá `danoPct` (1%)
+  de dano por ponto acima de `danoDesde` (10) e +1 de precisão por ponto (além do +1 de dano a cada 3).
+  DES: crítico e esquiva cheios só no Caçador; nas outras classes `desOutros` (30%), inclusive na precisão.
+  Crítico mágico (chance 0,5%/pt e dano 1%/pt) saiu da SOR e foi para a INT. SOR: só encanto (0,75%/pt), drop (0,3%/pt) e craft.
+- Arena (`tanka_status`): soma o % do atributo da classe no `extra` (lá não há crítico nem precisão).
+- Presente: `presenteAtributos3` = 1 Recomeço para quem tinha level (aviso no login).

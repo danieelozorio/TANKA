@@ -1063,6 +1063,13 @@ Tanka.regras = (function () {
       if (ganhaDes) p.recomecos = (p.recomecos || 0) + 1;
       p.presenteDestrezaCacador = ganhaDes ? 1 : 2;
     }
+    // Atributos rebalanceados de novo (16/11/2026: dano % pelo atributo da classe, DES cheia só no Caçador, crítico
+    // mágico na INT, SOR só encanto/drop/craft): quem já tinha level ganha 1 Recomeço, uma vez só.
+    if (!p.presenteAtributos3) {
+      var ganhaA3 = p.nivel > 1;
+      if (ganhaA3) p.recomecos = (p.recomecos || 0) + 1;
+      p.presenteAtributos3 = ganhaA3 ? 1 : 2;
+    }
     // Raças e classes rebalanceadas (nov/2026): os atributos iniciais passam a ser só os da classe (70 pontos);
     // os pontos que o jogador distribuiu continuam os mesmos.
     if (!p.atributosV2 && p.atributos && p.atributosIniciais && D.classes[p.classe]) {
@@ -1155,7 +1162,10 @@ Tanka.regras = (function () {
     var ta = arma ? tipoArma(arma) : null, idxArma = arma ? RARIDADES.indexOf(arma.raridade) : 0;
     var danoBase = arma ? danoArmaComEncanto(arma, true) : [0, 0], fat = ta ? ta.fator : 1;
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
-    var bonus = Math.floor(a[D.classes[p.classe].atributoDano || (magico ? 'int' : 'for')] / D.PONTOS_POR_DANO);
+    var atrDano = D.classes[p.classe].atributoDano || (magico ? 'int' : 'for'), AC = D.ATRIBUTOS_COMBATE;
+    var bonus = Math.floor(a[atrDano] / D.PONTOS_POR_DANO);
+    var pctAtr = Math.max(0, a[atrDano] - AC.danoDesde) * AC.danoPct;            // % de dano do atributo da classe
+    var fDes = atrDano === 'des' ? 1 : AC.desOutros;                               // crítico e esquiva da DES
     var pctItem = function (v, k) { return eq[k] ? Math.round(v * (1 + eq[k] / 100)) : v; };   // % da mão esquerda
     return comConjunto(comRaca(comPassiva({
       hpMax: pctItem(D.HP_INICIAL
@@ -1168,18 +1178,18 @@ Tanka.regras = (function () {
       ataqueMagico: magico ? bonus : 0,              // INT (Mago)
       // o fator do tipo da arma vale para o golpe inteiro: arma + dano do herói + mão esquerda
       dano: danoComMao([Math.round((danoBase[0] + bonus + (eq.dano || 0)) * fat), Math.round((danoBase[1] + bonus + (eq.dano || 0)) * fat)],
-        (magico ? eq.danoMagico || 0 : 0) + (eq.danoPct || 0)),
+        (magico ? eq.danoMagico || 0 : 0) + (eq.danoPct || 0) + pctAtr),
       // cada ponto de RES conta: 0,45 de defesa por ponto (antes só a cada 10) + armaduras (já x4,5)
       defesa: pctItem(Math.round(a.res * D.DEFESA.fator / 10) + eq.defesa, 'defesaPct'),
       defesaMagica: pctItem(Math.round(a.res * D.DEFESA.fator / 10) + eq.defesaMagica, 'defesaPct'),
-      precisao: 75 + a.des + (eq.precisao || 0),     // DES (%) + aljava
-      evasao: a.des * 0.5,                           // DES (%)
+      precisao: 75 + a[atrDano] + (atrDano === 'des' ? 0 : a.des * fDes) + (eq.precisao || 0),   // atributo da classe + DES + aljava
+      evasao: a.des * AC.desEvasao * fDes,           // DES (%): cheio no Caçador
       // 15 no level 1, +6% por level (não depende da DES), vezes a velocidade da arma (devagar 0,8 / rápida 1,2)
       velocidade: Math.max(1, Math.round(velocidadeDoNivel(p.nivel) * (ta ? D.VELOCIDADE_ARMA[ta.vel] : 1) * (1 + (eq.velocidadePct || 0) / 100))),
-      chanceCritico: a.des * 0.5 + (eq.critico || 0),   // DES (0,5% por ponto) + mão esquerda (a Sorte não conta mais)
+      chanceCritico: a.des * AC.desCritico * fDes + (eq.critico || 0),   // DES (cheio no Caçador) + mão esquerda
       danoCritico: 150 + a.for,                      // FOR (% do dano)
-      chanceCriticoMagico: a.sor + (eq.critico || 0),   // SOR (1% por ponto)
-      danoCriticoMagico: 150 + a.sor + (eq.danoCriticoMagico || 0),   // SOR (% do dano) + orbe
+      chanceCriticoMagico: a.int * AC.intCritico + (eq.critico || 0),   // INT (antes SOR)
+      danoCriticoMagico: 150 + a.int * AC.intDanoCritico + (eq.danoCriticoMagico || 0),   // INT (% do dano) + orbe
       chanceCraft: a.sor,                            // SOR (%)
       chanceEncantamento: a.sor * D.SORTE.encanto,   // 0,5% por ponto de SOR
       bonusRecompensa: 0,                            // % a mais de ouro e exp (passiva do Coletor)

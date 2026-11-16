@@ -22,6 +22,7 @@ const dados = {
   PONTOS_POR_DANO: D.PONTOS_POR_DANO,
   TIPOS_ARMA: Object.fromEntries(Object.entries(D.TIPOS_ARMA).map(([k, t]) => [k, { vel: t.vel, fator: t.fator }])),
   VELOCIDADE_ARMA: D.VELOCIDADE_ARMA, ARMA_PADRAO: D.ARMA_PADRAO, RARIDADE_ARMA: D.RARIDADE_ARMA,
+  ATRIBUTOS_COMBATE: D.ATRIBUTOS_COMBATE,
   ARMAS_PREFERIDAS: Object.fromEntries(Object.entries(D.ARMAS_CLASSE).map(([k, a]) => [k, a.armas])),
   GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte },
   MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto }])),

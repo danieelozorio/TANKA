@@ -524,11 +524,16 @@
     iniciarAtividade();
     var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
+    var presenteA3 = estado.personagem.presenteAtributos3 === 1;
+    if (presenteA3) estado.personagem.presenteAtributos3 = 2;
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
     salvarPreferencias();   // também marca o personagem como online para os amigos
-    if (presente) setTimeout(function () {
+    if (presenteA3) setTimeout(function () {
+      avisar('🎁 Os atributos mudaram! Agora o atributo da sua classe (Força, Destreza ou Inteligência) dá +1% de dano por ponto, a Sorte cuida de encanto e drop e a Resistência da vida. Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
+    }, 800);
+    else if (presente) setTimeout(function () {
       avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
     }, 800);
     else if (presenteDes) setTimeout(function () {
@@ -1253,17 +1258,19 @@
   // Balão do atributo: o que ele faz, quanto cada ponto vale e quanto falta para o próximo degrau.
   // O que cada ponto vale, conforme a classe (o atributo de dano é FOR, DES ou INT).
   function regrasAtributo(p) {
-    var dano = D.classes[p.classe].atributoDano, n = D.PONTOS_POR_DANO;
+    var dano = D.classes[p.classe].atributoDano, n = D.PONTOS_POR_DANO, AC = D.ATRIBUTOS_COMBATE;
+    var dp = '+' + fmtDec(AC.danoPct) + '% de dano por ponto acima de ' + AC.danoDesde, f = dano === 'des' ? 1 : AC.desOutros;
+    var principal = function (a) { return dano === a ? [dp, '+1 de Ataque a cada ' + n + ' pontos', '+1 de precisão por ponto'] : []; };
     return {
-      for: { ganhos: (dano === 'for' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : []).concat(['+1% de dano crítico por ponto']),
-        degrau: dano === 'for' ? [n, 'Ataque'] : null },
-      des: { ganhos: (dano === 'des' ? ['+1 de Ataque a cada ' + n + ' pontos (soma no dano dos golpes)'] : [])
-        .concat(['+0,5% de chance de crítico por ponto', '+1% de precisão por ponto', '+0,5% de evasão por ponto']), degrau: dano === 'des' ? [n, 'Ataque'] : null },
+      for: { ganhos: principal('for').concat(['+1% de dano crítico por ponto']), degrau: dano === 'for' ? [n, 'Ataque'] : null },
+      des: { ganhos: principal('des').concat([
+          '+' + fmtDec(AC.desCritico * f) + '% de chance de crítico por ponto', '+' + fmtDec(AC.desEvasao * f) + '% de evasão por ponto']
+          .concat(dano === 'des' ? [] : ['+' + fmtDec(f) + ' de precisão por ponto'])), degrau: dano === 'des' ? [n, 'Ataque'] : null },
       res: { ganhos: ['+' + D.HP_POR_RES + ' de vida por ponto acima de ' + D.RES_SEM_VIDA, '+' + fmtDec(D.DEFESA.fator / 10) + ' de defesa e +' + fmtDec(D.DEFESA.fator / 10) + ' de defesa mágica por ponto'] },
-      int: { ganhos: dano === 'int' ? ['+1 de Ataque mágico a cada ' + n + ' pontos (soma no dano das magias)'] : ['Não ajuda a sua classe na luta'],
-        degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
-      sor: { ganhos: ['+' + fmtDec(D.SORTE.drop) + '% na chance de drop por ponto (sobre a chance de cada drop)', '+1% de chance de crítico mágico por ponto', '+1% de dano crítico mágico por ponto',
-        '+0,5% de encantamento por ponto', '+1% de craft por ponto'] },
+      int: { ganhos: dano === 'int' ? principal('int').concat(['+' + fmtDec(AC.intCritico) + '% de chance de crítico mágico por ponto', '+' + fmtDec(AC.intDanoCritico) + '% de dano crítico mágico por ponto'])
+          : ['Não ajuda a sua classe na luta'], degrau: dano === 'int' ? [n, 'Ataque mágico'] : null },
+      sor: { ganhos: ['+' + fmtDec(D.SORTE.encanto) + '% de encantamento por ponto', '+' + fmtDec(D.SORTE.drop) + '% na chance de drop por ponto (sobre a chance de cada drop)',
+        '+1% de craft por ponto'] },
     };
   }
   function dicaAtributo(p, k, pend) {
@@ -4130,7 +4137,7 @@
     var p = estado.personagem;
     return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
       atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador };
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3 };
   }
   function salvarPreferencias() {
     if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }

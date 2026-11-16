@@ -324,7 +324,7 @@ Tanka.servidorAcoes = (function () {
         ['logado', 'cacando'].forEach(function (k) { var v = Number(a.atividade[k]); if (v > (at[k] || 0)) at[k] = v; });
       }
       if (a.titulo !== undefined) { if (!a.titulo) delete p.titulo; else if ((p.titulos || []).indexOf(a.titulo) >= 0) p.titulo = a.titulo; }
-      ['recomecoPresente', 'presenteForcaCacador', 'presenteDestrezaCacador'].forEach(function (k) { if (a[k] === 2 && p[k] === 1) p[k] = 2; });   // só "já avisei"
+      ['recomecoPresente', 'presenteForcaCacador', 'presenteDestrezaCacador', 'presenteAtributos3'].forEach(function (k) { if (a[k] === 2 && p[k] === 1) p[k] = 2; });   // só "já avisei"
       return true;
     },
   };

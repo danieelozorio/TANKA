@@ -229,10 +229,10 @@ teste('drops da caçada (a Sorte não muda): 1º monstro 5%, 2º 8%, 3º 10% de 
     const tp = taxa(() => R.rolarPergaminho(p, id, rng));
     assert.ok(Math.abs(tp - perg) < 0.3, id + ' pergaminho ' + tp);
   }
-  // A Sorte voltou a aumentar o drop: +0,2% sobre a chance base por ponto (200 de SOR = 5% x 1,4 = 7%)
+  // A Sorte aumenta o drop: +0,3% sobre a chance base por ponto (16/11/2026; 200 de SOR = 5% x 1,6 = 8%)
   p.atributos.sor = 200;
   const comSorte = taxa(() => R.rolarDrop(p, 'lobo', rng));
-  assert.ok(Math.abs(comSorte - 7) < 0.3, 'com sorte ' + comSorte);
+  assert.ok(Math.abs(comSorte - 8) < 0.3, 'com sorte ' + comSorte);
   assert.ok(Math.abs(taxa(() => R.rolarPergaminho(p, 'urso', rng)) - 10) < 0.3, 'pergaminho com sorte');
 });
 
@@ -297,21 +297,24 @@ teste('anel: dano ~15% de uma arma do nível, defesa mágica (rara+), atributos 
   assert.strictEqual(v.encanto, 3);
 });
 
-teste('sorte: 0,5% de encantamento por ponto; não mexe no crítico físico', () => {
+teste('sorte: 0,75% de encantamento por ponto; não mexe em luta nenhuma (16/11/2026)', () => {
   const p = R.criarPersonagem('T', 'masculino', 'anao', 'artesao');
-  assert.strictEqual(R.status(p).chanceEncantamento, 10);
+  assert.strictEqual(R.status(p).chanceEncantamento, 20 * 0.75);
   assert.strictEqual(R.status(p).bonusDrop, undefined);
   const q = R.criarPersonagem('T', 'masculino', 'anao', 'artesao'); q.atributos.sor += 50;
-  assert.strictEqual(R.status(q).chanceCritico, R.status(p).chanceCritico);
-  assert.strictEqual(R.status(q).chanceCriticoMagico, R.status(p).chanceCriticoMagico + 50, 'crítico mágico continua com a Sorte');
+  ['chanceCritico', 'chanceCriticoMagico', 'danoCriticoMagico', 'evasao', 'precisao'].forEach((k) => assert.strictEqual(R.status(q)[k], R.status(p)[k], k));
+  assert.strictEqual(R.status(q).dano.join(), R.status(p).dano.join());
 });
 
 teste('mago causa dano mágico com INT', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'mago');
   const s = R.status(p);
   assert.strictEqual(s.tipoDano, 'magico');
-  assert.deepStrictEqual([...s.dano], [Math.round((1 + Math.floor(20 / 3)) * 1.4), Math.round((5 + Math.floor(20 / 3)) * 1.4)]);   // (cajado + 1 a cada 3 de INT) x1,4
-  assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).sor, 'crítico mágico: 1% por ponto de Sorte');
+  // (cajado + 1 a cada 3 de INT) x1,4, depois +1% por ponto de INT acima de 10 (16/11/2026)
+  const pct = 1 + (20 - 10) / 100;
+  assert.strictEqual([...s.dano].join(), [Math.round(Math.round((1 + Math.floor(20 / 3)) * 1.4) * pct), Math.round(Math.round((5 + Math.floor(20 / 3)) * 1.4) * pct)].join());
+  assert.strictEqual(s.chanceCriticoMagico, R.atributosTotais(p).int * 0.5, 'crítico mágico: 0,5% por ponto de INT');
+  assert.strictEqual(s.danoCriticoMagico, 150 + R.atributosTotais(p).int, 'dano crítico mágico: 1% por ponto de INT');
 });
 
 teste('batalha completa contra o lobo termina e aplica resultado', () => {
@@ -424,7 +427,7 @@ teste('encantamento: chances por nível, bônus de Sorte e teto por nível (+10 
   const { p, item } = comArma('rara', 3);
   assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [70, 60, 50, 40, 30, 20, 10]);
   p.atributos.sor = 20; item.encanto = 3;
-  assert.strictEqual(R.chanceEncantar(p, item), 80);   // 0,5% por ponto
+  assert.strictEqual(R.chanceEncantar(p, item), 85);   // 0,75% por ponto (16/11/2026)
   p.atributos.sor = 200;
   assert.deepStrictEqual([3, 4, 5, 6, 7, 8, 9].map((e) => { item.encanto = e; return R.chanceEncantar(p, item); }), [85, 75, 65, 55, 42, 30, 20], 'teto de cada nível');
   p.atributos.sor = 0; p.raca = 'anao'; item.encanto = 9;
@@ -528,7 +531,7 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(s1.hpMax, s0.hpMax + 40 + 4 * 3); // vida do peitoral + 4 RES * 3 HP
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor);   // anel não dá mais Sorte
   assert.deepStrictEqual([...s1.dano], [s0.dano[0] + 2, s0.dano[1] + 2]);   // 2 anéis comuns: +1 de dano cada
-  assert.strictEqual(s1.chanceCritico, p.atributos.des * 0.5);   // só a Destreza (a Sorte não conta mais)
+  assert.strictEqual(s1.chanceCritico, p.atributos.des * D.ATRIBUTOS_COMBATE.desCritico * D.ATRIBUTOS_COMBATE.desOutros);   // só a Destreza (30% fora do Caçador)
 });
 
 teste('equipar: só armadura da própria classe; joia serve para todos', () => {
@@ -1260,20 +1263,38 @@ teste('atributos: +1 de dano a cada 3 pontos do atributo da classe (Caçador usa
   assert.strictEqual(D.SEGUNDAS_CLASSES.cacador.nome, 'Arqueiro');
   const antes = R.status(c).dano[0], crit = R.status(c).chanceCritico;
   c.atributos.for += 9; assert.strictEqual(R.status(c).dano[0], antes, 'Força não dá dano ao Caçador');
-  c.atributos.des += 9; assert.strictEqual(R.status(c).dano[0], antes + 3, 'Destreza dá o dano do Caçador');
-  assert.strictEqual(R.status(c).chanceCritico, crit + 4.5, 'Destreza continua dando crítico');
+  c.atributos.des += 9; assert.ok(R.status(c).dano[0] > antes + 3, 'Destreza dá o dano do Caçador (+1 a cada 3 e +1% por ponto)');
+  assert.strictEqual(R.status(c).chanceCritico, crit + 4.5, 'Destreza continua dando crítico (cheio no Caçador)');
   // Caçador com level ganha 1 Recomeço de presente, uma vez só; outras classes não
-  const a = R.criarPersonagem('A', 'masculino', 'humano', 'arqueiro'); a.nivel = 15; a.recomecos = 0; a.recomecoPresente = 2; delete a.presenteForcaCacador; delete a.presenteDestrezaCacador;
+  const a = R.criarPersonagem('A', 'masculino', 'humano', 'arqueiro'); a.nivel = 15; a.recomecos = 0; a.recomecoPresente = 2; a.presenteAtributos3 = 2; delete a.presenteForcaCacador; delete a.presenteDestrezaCacador;
   R.normalizar(a); R.normalizar(a);
   assert.strictEqual(a.recomecos, 2);   // um pela Força (03/11) e um pela volta da Destreza (11/11)
-  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); m.nivel = 15; m.recomecos = 0; m.recomecoPresente = 2; delete m.presenteForcaCacador; delete m.presenteDestrezaCacador;
+  const m = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); m.nivel = 15; m.recomecos = 0; m.recomecoPresente = 2; m.presenteAtributos3 = 2; delete m.presenteForcaCacador; delete m.presenteDestrezaCacador;
   R.normalizar(m); assert.strictEqual(m.recomecos, 0);
   const k = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro'), d0 = R.status(k).dano[0];
-  k.atributos.for += 3; assert.strictEqual(R.status(k).dano[0], d0 + 1);
+  k.atributos.for += 3; assert.ok(R.status(k).dano[0] > d0, 'Força dá dano ao Cavaleiro');
   // presente: 1 Pergaminho do Recomeço para quem já tinha level
-  const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 8; delete v.recomecoPresente; v.recomecos = 0;
+  const v = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); v.nivel = 8; delete v.recomecoPresente; v.presenteAtributos3 = 2; v.recomecos = 0;
   R.normalizar(v); R.normalizar(v);
   assert.strictEqual(v.recomecos, 1);
+});
+
+teste('atributos 16/11/2026: dano % do atributo da classe, DES cheia só no Caçador, presente de Recomeço', () => {
+  const AC = D.ATRIBUTOS_COMBATE;
+  const k = R.criarPersonagem('K', 'masculino', 'humano', 'cavaleiro'), s0 = R.status(k);
+  k.atributos.for += 30; const s1 = R.status(k);
+  assert.strictEqual(s1.precisao, s0.precisao + 30, 'Força dá precisão ao Cavaleiro');
+  assert.ok(s1.dano[1] >= Math.round(s0.dano[1] * 1.3), 'Força: +1% de dano por ponto');
+  const d = R.criarPersonagem('D', 'masculino', 'humano', 'cavaleiro'), e0 = R.status(d); d.atributos.des += 20;
+  assert.strictEqual(R.status(d).evasao - e0.evasao, 20 * AC.desEvasao * AC.desOutros, 'DES dá só 30% da esquiva fora do Caçador');
+  assert.strictEqual(R.status(d).chanceCritico - e0.chanceCritico, 20 * AC.desCritico * AC.desOutros);
+  const c = R.criarPersonagem('C', 'masculino', 'humano', 'arqueiro'), c0 = R.status(c); c.atributos.des += 20;
+  assert.strictEqual(R.status(c).evasao - c0.evasao, 20 * AC.desEvasao, 'Caçador: esquiva cheia');
+  // presente: todo herói com level ganha 1 Recomeço uma vez só
+  const v = R.criarPersonagem('V', 'masculino', 'humano', 'mago'); v.nivel = 12; v.recomecos = 0; v.recomecoPresente = 2; delete v.presenteAtributos3;
+  R.normalizar(v); R.normalizar(v);
+  assert.strictEqual(v.recomecos, 1); assert.strictEqual(v.presenteAtributos3, 1);
+  const n = R.criarPersonagem('N', 'masculino', 'humano', 'mago'); R.normalizar(n); assert.strictEqual(n.presenteAtributos3, 2);
 });
 
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
@@ -1528,7 +1549,7 @@ teste('tipos de arma equilibrados: o fator vale para o golpe inteiro (arma + her
     assert.ok(Math.abs(dpt('martelo', b) / normal - 1) < 0.01, 'martelo (normal) = normal');
   }
   assert.deepStrictEqual([D.TIPOS_ARMA.martelo.vel, D.TIPOS_ARMA.balestra.vel], ['normal', 'normal']);
-  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
+  const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro'); p.atributos.des = D.ATRIBUTOS_COMBATE.danoDesde;
   p.inventario.push({ id: 'b', tipo: 'arma', classe: 'arqueiro', arma: 'balestra', raridade: 'comum', variacao: 0, dano: [10, 20], encanto: 0 });
   p.equipados.arma = 'b';
   const bonus = R.status(p).ataque;
@@ -2000,6 +2021,7 @@ teste('mão esquerda: % fixos pela raridade (não crescem com o nível) e valem 
     assert.strictEqual(o.bonus.danoCriticoMagico, 20);
   }
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'artesao'); p.nivel = 30; p.inventario = []; p.equipados = { arma: null, secundaria: null };
+  p.atributos.for = D.ATRIBUTOS_COMBATE.danoDesde;   // sem o % de dano da Força (16/11/2026), para medir só a manopla
   const m = R.novoItem('arma', 'artesao', 'epica', () => 0.5, 'martelo', 30); p.inventario.push(m); R.equipar(p, m.id);
   const d0 = R.status(p).dano;
   const mp = R.novoItem('secundaria', null, 'epica', () => 0.5, 'manopla', 30); delete mp.bonus.for; delete mp.bonus.res; delete mp.bonus.des; delete mp.bonus.int; delete mp.bonus.sor;

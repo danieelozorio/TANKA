@@ -335,12 +335,13 @@ do $$
 declare p jsonb; s0 jsonb; s10 jsonb; d0 int; d10 int;
 begin
   p := pg_temp.heroi('cavaleiro', 30, null) || jsonb_build_object('equipados', '{"arma":"w"}'::jsonb);
+  p := jsonb_set(p, '{atributos,for}', '10');   -- sem o % de dano da Força (16/11/2026), para medir só o encanto
   s0 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":0,"nivel":40,"dano":[100,200]}]'::jsonb));
   s10 := public.tanka_status(p || jsonb_build_object('inventario', '[{"id":"w","tipo":"arma","arma":"espada","classe":"cavaleiro","raridade":"lendaria","encanto":10,"nivel":40,"dano":[100,200]}]'::jsonb));
   d0 := (s0 -> 'dano' ->> 1)::int; d10 := (s10 -> 'dano' ->> 1)::int;
   raise notice 'encanto: % x %', s0 -> 'dano', s10 -> 'dano';
   -- +10 = +50% de 200 = +100 antes dos bônus de PvP
-  if d10 - d0 < 100 or d10 - d0 > 115 then
+  if d10 - d0 < 100 or d10 - d0 > 120 then   -- (os % de PvP e do herói multiplicam os +100)
     raise exception 'FALHA servidor: lendária +10 devia somar ~+100 (+50%% de 200): % x %', s0 -> 'dano', s10 -> 'dano'; end if;
   raise notice 'ok   servidor: encanto em %% (+5%% do dano por nível)';
 end $$;

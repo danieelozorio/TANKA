@@ -120,11 +120,11 @@ Tanka.dados = {
   MODIFICADOR_RACA: 3,    // cada elevação +3, cada redução -3
 
   atributos: {
-    for: { nome: 'Força', sigla: 'FOR', efeito: 'Ataque (Cavaleiro e Artesão), dano crítico' },
-    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Ataque (Caçador), chance de crítico, evasão, precisão' },
-    res: { nome: 'Resistência', sigla: 'RES', efeito: 'Defesa, defesa mágica, vida' },
-    int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Ataque mágico (Mago)' },
-    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Crítico mágico, dano crítico mágico, craft e encantamento' },
+    for: { nome: 'Força', sigla: 'FOR', efeito: 'Cavaleiro e Artesão: +1% de dano e +1 de precisão por ponto. Todos: dano crítico' },
+    des: { nome: 'Destreza', sigla: 'DES', efeito: 'Caçador: +1% de dano, precisão, crítico e esquiva. Outras classes: 30% disso' },
+    res: { nome: 'Resistência', sigla: 'RES', efeito: 'Vida, defesa e defesa mágica' },
+    int: { nome: 'Inteligência', sigla: 'INT', efeito: 'Mago: +1% de dano e +1 de precisão por ponto, crítico e dano crítico mágico' },
+    sor: { nome: 'Sorte', sigla: 'SOR', efeito: 'Chance de encanto, de drop e de craft' },
   },
 
   classes: {
@@ -839,7 +839,13 @@ Tanka.dados = {
   // Não gasta em área abaixo do nível do herói (exp reduzida).
   // ligada: false = desligada (nov/2026, teste do progresso sem ela). Para voltar: true (a regra e a tela já estão prontas).
   VITALIDADE: { ligada: false, maximo: 100, maximoVip: 200, porHora: 5, multiplicador: 2, fuso: -3 },
-  SORTE: { encanto: 0.5, drop: 0.2 },   // drop: +0,2% sobre a chance base de cada drop por ponto (nov/2026)
+  SORTE: { encanto: 0.75, drop: 0.3 },   // por ponto de SOR: % de encanto e % sobre a chance de cada drop (16/11/2026: era 0,5 e 0,2)
+  // Atributos de combate (Henri, 16/11/2026): o atributo de dano da classe (FOR Cavaleiro/Artesão, DES Caçador,
+  // INT Mago) dá `danoPct`% de dano por ponto acima de `danoDesde`. A DES dá crítico e esquiva cheios só ao Caçador
+  // (`desOutros` = fração para as outras classes). O crítico mágico saiu da SOR e foi para a INT. A SOR ficou só para
+  // encanto, drop e craft; a RES, para vida e defesa.
+  ATRIBUTOS_COMBATE: { danoPct: 1.0, danoDesde: 10, desCritico: 0.5, desEvasao: 0.5, desOutros: 0.3,
+    intCritico: 0.5, intDanoCritico: 1 },   // drop: +0,2% sobre a chance base de cada drop por ponto (nov/2026)
 
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.
   ACERTO_PVE_MINIMO: 95,
