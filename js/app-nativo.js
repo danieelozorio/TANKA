@@ -48,9 +48,12 @@
       });
       U.download({ url: v.webUrl, version: String(v.web) }).then(function (pacote) {
         return U.set({ id: pacote.id });   // troca o jogo e reinicia
-      }).catch(function () {
+      }).catch(function (erro) {
         if (ouvinte && ouvinte.then) ouvinte.then(function (o) { o.remove(); });
-        d.innerHTML = 'Não deu para baixar a atualização agora. Tente de novo mais tarde.<br>' + botao('Ok');
+        var msg = (erro && (erro.message || erro.code)) || String(erro);
+        console.error('[eldrin-app] atualização falhou: ' + msg);
+        d.innerHTML = 'Não deu para baixar a atualização agora. Tente de novo mais tarde.<br><small style="color:#a8987a">'
+          + String(msg).replace(/</g, '&lt;').slice(0, 200) + '</small><br>' + botao('Ok');
         d.querySelector('button').onclick = function () { d.remove(); };
       });
     };

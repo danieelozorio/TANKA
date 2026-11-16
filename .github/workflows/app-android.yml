@@ -38,7 +38,13 @@ jobs:
         with: { node-version: 22 }
 
       - name: Montar o jogo para o app
-        run: ELDRIN_VERSAO_WEB=$N node ferramentas/montar_app.js
+        run: |
+          # No branch de teste o jogo do APK fica com versão 1, para o app oferecer a atualização do main e o teste apertar.
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then V=$N; else V=1; fi
+          ELDRIN_VERSAO_WEB=$V node ferramentas/montar_app.js
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            node -e "const f='app-android/capacitor.config.json',c=require('./'+f);c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          fi
 
       - name: Precisa montar o APK?
         id: decide
@@ -123,6 +129,9 @@ jobs:
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Preparar o teste
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        run: pip install websocket-client
       - name: Testar no celular virtual (Android 15)
         if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
         uses: reactivecircus/android-emulator-runner@v2
@@ -132,16 +141,9 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          script: |
-            adb install -r Eldrin-app.apk
-            adb shell am start -n br.com.eldrinonline.app/.MainActivity
-            sleep 30
-            adb exec-out screencap -p > tela-1.png
-            sleep 20
-            adb exec-out screencap -p > tela-2.png
-            adb logcat -d -s Capacitor:* chromium:* Capacitor/Console:* > logcat.txt || true
+          script: sh app-android/teste-celular.sh
       - name: Guardar os prints do teste
-        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        if: always() && steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
         run: |
           gh release view app-teste >/dev/null 2>&1 || gh release create app-teste --prerelease --latest=false --title "App Android: prints do teste" --notes "Prints do celular virtual (branch de teste)."
-          gh release upload app-teste tela-1.png tela-2.png logcat.txt --clobber
+          gh release upload app-teste tela-1.png tela-2.png tela-3.png logcat.txt teste.txt --clobber
