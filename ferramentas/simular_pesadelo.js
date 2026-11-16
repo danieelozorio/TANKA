@@ -4,7 +4,7 @@
 // Alvo (pedido do Henri): ~5 de 10 (média das 4 segundas classes do meio; as mais fortes ganham mais). Ajustar `vida`/`dano` em D.PESADELO.chefes.
 // Uso: node ferramentas/simular_pesadelo.js [lutas por classe, padrão 80] [raridade] [encanto]
 const { D, R, medir, CLASSES } = require('./simular_cacada.js');
-const PRINCIPAL = { cavaleiro: ['for', 'res'], arqueiro: ['for', 'des'], mago: ['int', 'res'], artesao: ['for', 'sor'] };
+const PRINCIPAL = { cavaleiro: ['for', 'res'], arqueiro: ['des', 'res'], mago: ['int', 'res'], artesao: ['for', 'res'] };   // 16/11/2026: atributo da classe + RES
 
 function heroi(classe, classe2, nivel, raridade, encanto) {
   const p = R.criarPersonagem('S', 'masculino', 'humano', classe);

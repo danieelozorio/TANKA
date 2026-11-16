@@ -11,7 +11,7 @@ function carregar() {
 }
 const T = carregar(), D = T.dados, R = T.regras;
 let s = 12345; const rng = () => { s = (s * 1664525 + 1013904223) % 4294967296; return s / 4294967296; };
-const PRINCIPAL = { cavaleiro: ['for', 'res'], arqueiro: ['for', 'des'], mago: ['int', 'res'], artesao: ['for', 'sor'] };
+const PRINCIPAL = { cavaleiro: ['for', 'res'], arqueiro: ['des', 'res'], mago: ['int', 'res'], artesao: ['for', 'res'] };   // 16/11/2026: atributo da classe + RES
 // perfis por área: [raridade, encanto, joias?]
 const PERFIL = {
   fraco:  { dn: 0, rar: ['comum', 'comum', 'comum', 'comum', 'rara', 'rara', 'epica'], enc: [0, 0, 1, 2, 2, 3, 3], joias: false, pecas: [1, 3, 5, 5, 5, 5, 5] },

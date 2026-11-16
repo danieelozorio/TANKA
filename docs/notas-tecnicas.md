@@ -1077,3 +1077,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Crítico mágico (chance 0,5%/pt e dano 1%/pt) saiu da SOR e foi para a INT. SOR: só encanto (0,75%/pt), drop (0,3%/pt) e craft.
 - Arena (`tanka_status`): soma o % do atributo da classe no `extra` (lá não há crítico nem precisão).
 - Presente: `presenteAtributos3` = 1 Recomeço para quem tinha level (aviso no login).
+
+### Caçadas e Pesadelo rebalanceados para os atributos novos (Henri, 16/11/2026)
+- Os heróis ficaram mais fortes com o % de dano do atributo da classe. Vida dos monstros por área (`ajusteVida`)
+  x1,18 (Floresta) a x2,01 (Cume) e `danoCacada` x1 a x1,24, calibrados para o perfil típico (atributo da classe 2/3 +
+  RES 1/3) ter as mesmas lutas de antes (turnos e vida perdida no 3º monstro). Simuladores usam o PRINCIPAL novo.
+- Pesado (Cavaleiro/Artesão) ficava para trás: `ATRIBUTOS_COMBATE.danoPctClasse` = 1,5% por ponto de FOR (outros 1%).
+- Pesadelo: vida/dano de cada chefe recalibrados (o Ignaroth da caçada ficou mais forte e é a base deles); alvo: a
+  mediana de vitórias de antes e o Velgrath vencível por mago/arqueiro lv 40 épico +3 com 1 poção (90%+).
+- O Leve (Caçador/Assassino) continua o mais forte no PvE; Destruidor e Coletor, os mais fracos.

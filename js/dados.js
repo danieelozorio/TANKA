@@ -701,6 +701,8 @@ Tanka.dados = {
   // Chefes: drop e pergaminho iguais para todos (D.chefe.drop e D.chefe.pergaminho, abaixo).
   // chanceChefe: % somada à presença do chefe a cada monstro morto na área (escondida do jogador).
   // ajusteVida: multiplica a vida dos monstros da área (compensa o dano maior dos heróis desde que 3 pontos = +1 de dano).
+  // 16/11/2026 (atributos com % de dano): vida x1,18 a x2,01 e danoCacada x1 a x1,24 por área, calibrados para o típico
+  // (atributo da classe 2/3 + RES 1/3) ter as mesmas lutas de antes (ferramentas/simular_cacada.js).
   // Drops da caçada, iguais em todas as áreas: chance (%) pela posição do monstro (1º, 2º, 3º).
   // Arma, armadura e pergaminho são sorteados separados (dá para cair mais de um na mesma luta).
   // Armadura = uma das 4 peças da classe ou a mão esquerda. O bônus de Sorte aumenta as chances.
@@ -732,20 +734,21 @@ Tanka.dados = {
   PESADELO: { estamina: 20, mapaNivelExp: 40, mapaExpPct: 10, mapaNivelItem: 40, nivelDropExtra: 3, vitoriasPorFaixa: 100,
     ouro: [14000, 26000],
     chefes: [
-      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.2, dano: 1.2, nivel: 40, x: 17, y: 82 },
-      { id: 'morgath-pesadelo', base: 'morgath', vida: 1.77, dano: 1.77, nivel: 43, x: 26, y: 33 },
-      { id: 'varnok-pesadelo', base: 'varnok', vida: 1.88, dano: 1.88, nivel: 46, x: 43, y: 64 },
-      { id: 'guardiao-pesadelo', base: 'guardiao', vida: 2.13, dano: 2.13, nivel: 50, x: 49, y: 22 },
-      { id: 'farao-pesadelo', base: 'farao', vida: 2.18, dano: 2.18, nivel: 53, x: 73, y: 63 },
-      { id: 'vharkesh-pesadelo', base: 'vharkesh', vida: 2.3, dano: 2.3, nivel: 56, x: 75, y: 21 },
-      { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.42, dano: 2.42, nivel: 60, x: 91, y: 40 },
+      // 16/11/2026: vida/dano recalibrados com os atributos novos (ver docs/notas-tecnicas.md)
+      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.11, dano: 1.51, nivel: 40, x: 17, y: 82 },
+      { id: 'morgath-pesadelo', base: 'morgath', vida: 1.469, dano: 1.998, nivel: 43, x: 26, y: 33 },
+      { id: 'varnok-pesadelo', base: 'varnok', vida: 1.589, dano: 2.16, nivel: 46, x: 43, y: 64 },
+      { id: 'guardiao-pesadelo', base: 'guardiao', vida: 1.981, dano: 2.694, nivel: 50, x: 49, y: 22 },
+      { id: 'farao-pesadelo', base: 'farao', vida: 2.071, dano: 2.817, nivel: 53, x: 73, y: 63 },
+      { id: 'vharkesh-pesadelo', base: 'vharkesh', vida: 2.219, dano: 3.019, nivel: 56, x: 75, y: 21 },
+      { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.468, dano: 3.357, nivel: 60, x: 91, y: 40 },
     ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
   CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
 
   areas: [
     {
-      id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1, ajusteVida: 1.65,
+      id: 'floresta', nome: 'Floresta Sombria', nivelMin: 1, chanceChefe: 1, ajusteVida: 1.95,
       crescimento: { ataque: 2 },
       descricao: 'Mata densa e enevoada onde todo aventureiro dá os primeiros passos.',
       base: { hp: 20, ataque: 1, exp: 2 }, ouro: [2, 5, 8],
@@ -757,70 +760,70 @@ Tanka.dados = {
       chefe: { id: 'velgrath', dano: [8, 10], danoCacada: [17, 21], ouro: 20, exp: 50, nome: 'Velgrath, o Ancião Apodrecido', descricao: 'A árvore mais antiga da floresta, corrompida por magia sombria. Suas raízes arrastam os invasores para a terra.' },
     },
     {
-      id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.6,
+      id: 'pantano', nome: 'Pântano de Brumafria', nivelMin: 5, chanceChefe: 0.7, ajusteVida: 1.98,
       descricao: 'Águas paradas cobertas por uma névoa gelada que nunca se dissipa.',
       base: { hp: 70, ataque: 8, exp: 10 }, ouro: [12, 20, 30],
       monstros: [
         { id: 'sapo', dano: [10, 15], danoCacada: [6, 10], nome: 'Sapo Gigante', descricao: 'Do tamanho de um boi, engole viajantes inteiros.' },
-        { id: 'aranha', dano: [15, 20], danoCacada: [10, 13], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
-        { id: 'troll', dano: [18, 22], danoCacada: [15, 20], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
+        { id: 'aranha', dano: [15, 20], danoCacada: [10, 14], nome: 'Aranha do Brejo', descricao: 'Tece teias entre as árvores mortas do pântano.' },
+        { id: 'troll', dano: [18, 22], danoCacada: [16, 21], nome: 'Troll do Pântano', descricao: 'Coberto de musgo, regenera feridas no lodo.' },
       ],
-      chefe: { id: 'morgath', dano: [25, 30], danoCacada: [17, 19], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
+      chefe: { id: 'morgath', dano: [25, 30], danoCacada: [18, 20], nome: 'Morgath, a Bruxa do Brejo', descricao: 'Senhora da névoa. Fala com os mortos do pântano.' },
     },
     {
-      id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.3,
+      id: 'ruinas', nome: 'Ruínas de Dravenhold', nivelMin: 10, chanceChefe: 0.5, ajusteVida: 1.86,
       descricao: 'Restos de um reino caído, onde os mortos ainda guardam seus tesouros.',
       base: { hp: 140, ataque: 15, exp: 30 }, ouro: [40, 60, 80],
       monstros: [
-        { id: 'esqueleto', dano: [20, 28], danoCacada: [33, 46], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
-        { id: 'goblin', dano: [26, 35], danoCacada: [42, 57], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
-        { id: 'gargula', dano: [31, 42], danoCacada: [58, 78], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
+        { id: 'esqueleto', dano: [20, 28], danoCacada: [34, 48], nome: 'Esqueleto Guerreiro', descricao: 'Soldado de Dravenhold que nunca deixou o posto.' },
+        { id: 'goblin', dano: [26, 35], danoCacada: [44, 58], nome: 'Goblin Saqueador', descricao: 'Revira as ruínas atrás de ouro e não divide com ninguém.' },
+        { id: 'gargula', dano: [31, 42], danoCacada: [59, 81], nome: 'Gárgula', descricao: 'Estátua de pedra que ganha vida ao anoitecer.' },
       ],
-      chefe: { id: 'varnok', dano: [38, 52], danoCacada: [59, 79], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
+      chefe: { id: 'varnok', dano: [38, 52], danoCacada: [61, 82], ouro: 200, nome: 'Varnok, o Lich', descricao: 'O antigo rei de Dravenhold, que trocou a alma pela imortalidade.' },
     },
     {
-      id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3, ajusteVida: 1.35,
+      id: 'torre', nome: 'Torre Carmesim', nivelMin: 15, chanceChefe: 0.3, ajusteVida: 2.04,
       descricao: 'Uma torre de pedra vermelha que pulsa com magia proibida.',
       base: { hp: 200, ataque: 22, exp: 90 }, ouro: [100, 150, 200],
       monstros: [
-        { id: 'golem', dano: [30, 40], danoCacada: [37, 50], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
-        { id: 'cultista', dano: [38, 52], danoCacada: [47, 65], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
-        { id: 'espectro', dano: [46, 63], danoCacada: [70, 97], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
+        { id: 'golem', dano: [30, 40], danoCacada: [40, 53], nome: 'Golem de Pedra', descricao: 'Guardião construído pelos magos da torre.' },
+        { id: 'cultista', dano: [38, 52], danoCacada: [50, 69], nome: 'Cultista Sombrio', descricao: 'Entoa rituais para despertar o que dorme no topo.' },
+        { id: 'espectro', dano: [46, 63], danoCacada: [74, 104], nome: 'Espectro', descricao: 'Alma presa na torre, atravessa paredes e armaduras.' },
       ],
-      chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [86, 115], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
+      chefe: { id: 'guardiao', dano: [56, 75], danoCacada: [91, 123], nome: 'O Guardião da Torre', descricao: 'Ninguém sabe o que há sob a armadura. Ninguém voltou para contar.' },
     },
     {
-      id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 1.3,
+      id: 'areias', nome: 'Areias Rubras', nivelMin: 20, chanceChefe: 0.2, ajusteVida: 2.2,
       descricao: 'Deserto de areia vermelha que engoliu um império inteiro.',
       base: { hp: 320, ataque: 32, exp: 270 }, ouro: [150, 300, 600],   // nov/2026: era 800/1600/3200 (ouro x16 da Torre); agora ~x3 por área, como a exp
       monstros: [
-        { id: 'escorpiao', dano: [44, 59], danoCacada: [68, 91], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
-        { id: 'lagarto', dano: [54, 74], danoCacada: [84, 115], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
-        { id: 'mumia', dano: [68, 92], danoCacada: [114, 154], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
+        { id: 'escorpiao', dano: [44, 59], danoCacada: [73, 97], nome: 'Escorpião Gigante', descricao: 'Seu ferrão atravessa escudos de aço.' },
+        { id: 'lagarto', dano: [54, 74], danoCacada: [90, 123], nome: 'Homem-Lagarto', descricao: 'Guerreiro das dunas, rápido e traiçoeiro.' },
+        { id: 'mumia', dano: [68, 92], danoCacada: [122, 164], nome: 'Múmia', descricao: 'Sacerdote do império perdido, envolto em faixas amaldiçoadas.' },
       ],
-      chefe: { id: 'farao', dano: [82, 110], danoCacada: [143, 193], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
+      chefe: { id: 'farao', dano: [82, 110], danoCacada: [153, 205], nome: 'O Faraó Sem Nome', descricao: 'Seu nome foi apagado da história. Sua vingança não.' },
     },
     {
-      id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 1.4,
+      id: 'vale', nome: 'Vale dos Dragões', nivelMin: 25, chanceChefe: 0.15, ajusteVida: 2.44,
       descricao: 'Desfiladeiros de rocha negra onde os dragões fazem seus ninhos.',
       base: { hp: 420, ataque: 40, exp: 800 }, ouro: [450, 900, 1800],   // era 2000/4000/8000
       monstros: [
-        { id: 'drake', dano: [54, 74], danoCacada: [123, 168], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
-        { id: 'wyvern', dano: [68, 92], danoCacada: [155, 209], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
-        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [224, 301], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
+        { id: 'drake', dano: [54, 74], danoCacada: [136, 187], nome: 'Drake', descricao: 'Dragão jovem, sem asas, mas com garras de ferro.' },
+        { id: 'wyvern', dano: [68, 92], danoCacada: [172, 232], nome: 'Wyvern', descricao: 'Ataca dos céus com cauda venenosa.' },
+        { id: 'cavaleiroDraconico', dano: [86, 116], danoCacada: [248, 334], nome: 'Cavaleiro Dracônico', descricao: 'Guerreiro que bebeu sangue de dragão e virou parte deles.' },
       ],
-      chefe: { id: 'vharkesh', dano: [103, 140], danoCacada: [225, 304], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
+      chefe: { id: 'vharkesh', dano: [103, 140], danoCacada: [249, 338], nome: "Vhar'kesh, o Dragão Ancião", descricao: 'O mais velho dos dragões. Viu reinos nascerem e caírem.' },
     },
     {
-      id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 1.35,
+      id: 'cume', nome: 'Cume do Fogo Eterno', nivelMin: 30, chanceChefe: 0.1, ajusteVida: 2.71,
       descricao: 'O topo do vulcão, onde a lava nunca esfria.',
       base: { hp: 550, ataque: 60, exp: 2400 }, ouro: [1350, 2700, 5400],   // era 5000/10000/20000
       monstros: [
-        { id: 'salamandra', dano: [82, 110], danoCacada: [233, 312], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
-        { id: 'demonio', dano: [102, 138], danoCacada: [290, 392], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
-        { id: 'elemental', dano: [128, 173], danoCacada: [379, 513], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
+        { id: 'salamandra', dano: [82, 110], danoCacada: [289, 387], nome: 'Salamandra', descricao: 'Nada na lava como um peixe na água.' },
+        { id: 'demonio', dano: [102, 138], danoCacada: [359, 486], nome: 'Demônio de Lava', descricao: 'Nascido do fogo, deixa um rastro de brasas.' },
+        { id: 'elemental', dano: [128, 173], danoCacada: [470, 636], nome: 'Elemental de Fogo', descricao: 'Chama viva, quente o bastante para derreter aço.' },
       ],
-      chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [612, 825], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
+      chefe: { id: 'ignaroth', dano: [154, 208], danoCacada: [759, 1023], nome: 'Ignaroth, Senhor das Chamas', descricao: 'O fogo obedece a ele. O mundo inteiro teme o dia em que ele acordar.' },
     },
   ],
 
@@ -844,7 +847,7 @@ Tanka.dados = {
   // INT Mago) dá `danoPct`% de dano por ponto acima de `danoDesde`. A DES dá crítico e esquiva cheios só ao Caçador
   // (`desOutros` = fração para as outras classes). O crítico mágico saiu da SOR e foi para a INT. A SOR ficou só para
   // encanto, drop e craft; a RES, para vida e defesa.
-  ATRIBUTOS_COMBATE: { danoPct: 1.0, danoDesde: 10, desCritico: 0.5, desEvasao: 0.5, desOutros: 0.3,
+  ATRIBUTOS_COMBATE: { danoPct: 1.0, danoPctClasse: { cavaleiro: 1.5, artesao: 1.5 }, danoDesde: 10, desCritico: 0.5, desEvasao: 0.5, desOutros: 0.3,
     intCritico: 0.5, intDanoCritico: 1 },   // drop: +0,2% sobre a chance base de cada drop por ponto (nov/2026)
 
   // Chance mínima do herói acertar um monstro (caçada e masmorra); a precisão acima disso chega a 100%.

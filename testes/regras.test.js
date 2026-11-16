@@ -518,6 +518,8 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
 });
 
 teste('equipar armaduras soma defesa, vida e atributos no status', () => {
+  const acOrig = D.ATRIBUTOS_COMBATE.danoPctClasse; D.ATRIBUTOS_COMBATE.danoPctClasse = { cavaleiro: 0 };   // sem o % de dano da Força (mede só o fixo)
+  try {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const s0 = R.status(p);
   const add = (tipo, rar, classe = 'cavaleiro') => { const i = { id: tipo + rar + Math.random(), tipo, classe, raridade: rar, encanto: 0 }; p.inventario.push(i); return i; };
@@ -532,6 +534,7 @@ teste('equipar armaduras soma defesa, vida e atributos no status', () => {
   assert.strictEqual(R.atributosTotais(p).sor, p.atributos.sor);   // anel não dá mais Sorte
   assert.deepStrictEqual([...s1.dano], [s0.dano[0] + 2, s0.dano[1] + 2]);   // 2 anéis comuns: +1 de dano cada
   assert.strictEqual(s1.chanceCritico, p.atributos.des * D.ATRIBUTOS_COMBATE.desCritico * D.ATRIBUTOS_COMBATE.desOutros);   // só a Destreza (30% fora do Caçador)
+  } finally { D.ATRIBUTOS_COMBATE.danoPctClasse = acOrig; }
 });
 
 teste('equipar: só armadura da própria classe; joia serve para todos', () => {
@@ -624,7 +627,7 @@ teste('áreas: 7 áreas, vida e exp dobram (Floresta dobra o ataque), chefe pela
     assert.ok(Math.abs(c.velocidade - m3.velocidade) <= 1); assert.strictEqual(c.exp, a.chefe.exp != null ? a.chefe.exp : m3.exp * 5);
     assert.strictEqual(c.ouro, a.chefe.ouro != null ? a.chefe.ouro : m3.ouro * 5);
   }
-  assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [112, 448, 2970]);   // com o ajusteVida da área
+  assert.deepStrictEqual(['sapo', 'troll', 'elemental'].map((k) => D.monstros[k].hp), [139, 554, 5962]);   // com o ajusteVida da área (16/11/2026)
   assert.deepStrictEqual(['sapo', 'aranha', 'troll'].map((k) => D.monstros[k].ataque[0]), [10, 15, 18]);
   assert.deepStrictEqual([...D.areas.map((a) => a.chanceChefe)], [1, 0.7, 0.5, 0.3, 0.2, 0.15, 0.1]);
 });
@@ -1445,6 +1448,8 @@ teste('armas por nível: extras por faixa (atributos, PvE, PvP e pontos de habil
 });
 
 teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2, 3 e 4 peças', () => {
+  const acOrig = D.ATRIBUTOS_COMBATE.danoPctClasse; D.ATRIBUTOS_COMBATE.danoPctClasse = { cavaleiro: 0 };   // sem o % de dano da Força (mede só o fixo)
+  try {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 14); R.escolherSegundaClasse(p, 'paladino');
   const pecas = ['elmo', 'peitoral', 'luvas', 'botas'].map((t) => R.comprar(Object.assign(p, { ouro: 1e9 }), t));
@@ -1469,6 +1474,7 @@ teste('conjuntos das segundas classes: peças com o mesmo nome dão bônus de 2,
   pecas.forEach((it) => { it.conjunto = 'destruidor-2'; });
   const forSem = p.atributos.for + R.bonusEquipamentos(p).for;
   assert.strictEqual(R.atributosTotais(p).for, forSem + 5 + 5, 'conjunto +5 e a passiva fixa Força Bruta +5');
+  } finally { D.ATRIBUTOS_COMBATE.danoPctClasse = acOrig; }
 });
 
 teste('conjunto: 10% das armaduras da caçada, na raridade sorteada; fora da venda em lote', () => {

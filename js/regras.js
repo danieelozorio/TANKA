@@ -1164,7 +1164,7 @@ Tanka.regras = (function () {
     // +1 de dano a cada 3 pontos do atributo de dano da classe (Força, Destreza ou Inteligência).
     var atrDano = D.classes[p.classe].atributoDano || (magico ? 'int' : 'for'), AC = D.ATRIBUTOS_COMBATE;
     var bonus = Math.floor(a[atrDano] / D.PONTOS_POR_DANO);
-    var pctAtr = Math.max(0, a[atrDano] - AC.danoDesde) * AC.danoPct;            // % de dano do atributo da classe
+    var pctAtr = Math.max(0, a[atrDano] - AC.danoDesde) * ((AC.danoPctClasse || {})[p.classe] != null ? AC.danoPctClasse[p.classe] : AC.danoPct);   // % de dano do atributo da classe
     var fDes = atrDano === 'des' ? 1 : AC.desOutros;                               // crítico e esquiva da DES
     var pctItem = function (v, k) { return eq[k] ? Math.round(v * (1 + eq[k] / 100)) : v; };   // % da mão esquerda
     return comConjunto(comRaca(comPassiva({
