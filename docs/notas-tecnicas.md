@@ -1114,4 +1114,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Imagens: assets/masmorra/porta|corredor|fonte.webp (do Henri).
 - **Missões abertas durante a caçada (Daniel, nov/2026):** `telaJogo` chama `desenharMissoes` a cada luta; agora o painel
   só é refeito quando o HTML mudou (`missoesUI.html`), guarda a rolagem de `.missoes-painel` e não redesenha com o dedo/
-  mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`).
+  mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`). Já aberto, troca só o conteúdo de
+  `.missoes-painel` (recriar a caixa repetia a animação de abrir e parecia fechar e abrir).
