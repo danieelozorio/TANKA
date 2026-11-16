@@ -1043,3 +1043,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (nov/2026) Velgrath · Pesadelo (1º chefe, lv 40) mais fácil: vida/dano 1.62 → 1.2 (hp 5346, dano 734-990). Alvo do
   Henri: mago e arqueiro lv 40, tudo épico lv 40 +3, vencem com 1 poção (1000 lutas: caçador 97%, assassino 100%,
   bruxo 91%, curandeiro 81%). Os outros chefes do Pesadelo não mudaram.
+- (16/11/2026) Quebra-Ossos (Destruidor): ignoraDefesaPct 100 → 50 (dava ~16x um ataque na Arena; agora ~3,5x, como o Tiro Silenciador).
