@@ -970,3 +970,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   pergunta "Atualizar agora / Depois" e baixa o zip (`download` + `set`, reinicia); APK novo → link para baixar.
   "Depois" vale até fechar o app. `apkMinimo` > instalado força o aviso do APK antes do jogo.
 - `jaInstalado()` (app.js) conta o app Capacitor: some o botão "Baixar app Android".
+- **Luta da masmorra/boss do clã pelo relógio (Henri, nov/2026):** `relogioLuta(L)` avança os eventos pelo tempo real (`L.acum`, x2 se acelerado), não por timer; trocar de aba/app ou recarregar não atrasa: a luta começa em `run.criado_em` e alcança o ponto certo (também no `visibilitychange`). O resultado já era gravado no servidor no começo.

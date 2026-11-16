@@ -4961,6 +4961,7 @@
         entrarMasmorra(el);
         break;
       case 'luta-velocidade':
+        relogioLuta(estado.luta);   // o tempo até aqui conta na velocidade antiga
         estado.luta.rapido = !estado.luta.rapido;
         redesenharLuta();
         break;
@@ -5679,6 +5680,8 @@
       hpM: sim.inicio.salas[0].map(function (m) { return m.hpMax; }),
       // Toda luta dura no máximo uns 75 segundos na velocidade normal.
       atraso: Math.max(30, Math.min(350, Math.round(75000 / Math.max(1, sim.eventos.length)))),
+      // começou no servidor em criado_em: recarregando a página, a luta segue do ponto certo
+      acum: Math.max(0, C.agora() - Date.parse(run.criado_em)) || 0,
     };
     estado.luta.registro.push('<p class="destaque">O grupo entra em ' + esc(estado.luta.mm.nome) + '!</p>');
     estado.chefeAviso = null;
@@ -5687,17 +5690,35 @@
     agendarLuta();
   }
 
+  // A luta da masmorra/boss do clã anda pelo relógio, como a caçada (Henri, nov/2026): se o jogador troca de aba/app
+  // (o navegador quase para os timers) ou recarrega a página, ela continua de onde devia estar. `L.acum` = tempo de
+  // luta já "passado" (em ms de velocidade normal); cada evento vale `L.atraso`.
+  function relogioLuta(L) {
+    var agora = Date.now();
+    if (L.ultimo == null) L.ultimo = agora;
+    L.acum = (L.acum || 0) + (agora - L.ultimo) * (L.rapido ? 2 : 1);   // Daniel: acelerar é 2x (era 4x)
+    L.ultimo = agora;
+    var alvo = Math.floor(L.acum / L.atraso), andou = false;
+    while (!L.fim && L.idx < alvo) { passoLuta(L.idx < alvo - 1); andou = true; }
+    if (!L.fim && L.idx >= L.sim.eventos.length && L.idx <= alvo) { passoLuta(false); andou = true; }
+    return andou;
+  }
   function agendarLuta() {
     var L = estado.luta;
     if (!L || L.fim) return;
     clearTimeout(L.timer);
     L.timer = setTimeout(function () {
       if (estado.luta !== L) return;
-      passoLuta(false);
-      redesenharLuta();
+      if (relogioLuta(L)) redesenharLuta();
       agendarLuta();
-    }, L.rapido ? Math.max(10, Math.round(L.atraso / 2)) : L.atraso);   // Daniel: acelerar é 2x (era 4x)
+    }, L.rapido ? Math.max(10, Math.round(L.atraso / 2)) : L.atraso);
   }
+  document.addEventListener('visibilitychange', function () {
+    var L = estado.luta;
+    if (document.hidden || !L || L.fim || !L.sim) return;
+    if (relogioLuta(L)) redesenharLuta();   // voltou para o jogo: a luta já está onde devia
+    agendarLuta();
+  });
 
   function passoLuta(silencioso) {
     var L = estado.luta, ev = L.sim.eventos[L.idx++];
@@ -7479,6 +7500,7 @@
       hpH: sim.inicio.herois.map(function (h) { return h.hpMax; }),
       hpM: sim.inicio.salas[0].map(function (m) { return m.hp != null ? m.hp : m.hpMax; }),
       atraso: Math.max(30, Math.min(350, Math.round(45000 / Math.max(1, sim.eventos.length)))),
+      acum: Math.max(0, agoraBossAl() - Date.parse(run.criado_em)) || 0,
     };
     L.mm = { nome: L.boss.nome };
     estado.luta = L;
