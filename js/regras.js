@@ -2731,11 +2731,55 @@ Tanka.regras = (function () {
     if (curas) linhas.push('O grupo é curado ' + curas + (curas > 1 ? ' vezes.' : ' vez.'));
     caidos.forEach(function (i) { if (sim.hp[i] === 0) linhas.push(nome(i) + ' caiu!'); });
     linhas.push(sim.vitoria ? (mon.length > 1 ? 'Todos os inimigos caíram!' : mon[0].nome + ' caiu!') : 'O grupo foi derrotado.');
-    return { tipo: 'luta', sala: tipo || sala, vitoria: !!sim.vitoria,
-      monstros: mon.map(function (m) { return { id: m.id, nome: m.nome, elite: !!m.elite, chefe: !!m.chefe }; }),
+    return { tipo: 'luta', sala: tipo || sala, vitoria: !!sim.vitoria, quadros: quadrosLuta(sim, hpAntes),
+      monstros: mon.map(function (m) { return { id: m.id, nome: m.nome, elite: !!m.elite, chefe: !!m.chefe, hpMax: m.hpMax }; }),
       herois: her.map(function (h, i) { return { nome: h.nome, hpAntes: hpAntes ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax, hp: sim.hp[i], hpMax: h.hpMax }; }),
       linhas: linhas.slice(0, 5) };
   }
+  // Replay de destaques (16/11/2026): os melhores lances da luta (críticos, habilidades, curas, quem caiu e os maiores
+  // golpes), em ordem, com a vida de todos depois de cada um. Quadro: { t: texto, hh: [vida dos heróis], mh: [vida dos
+  // monstros], a: 'h3'|'m1' (quem levou), d: dano, c: crítico, x: 'cura'|'hab'|'caiu'|'erro' }.
+  function quadrosLuta(sim, hpAntes) {
+    var ini = sim.inicio, her = ini.herois, mon = ini.salas[0], max = D.MASMORRA.quadros || 18;
+    var mh = mon.map(function (m) { return m.hp != null ? m.hp : m.hpMax; });
+    var hh = her.map(function (h, i) { return hpAntes && hpAntes[i] != null ? Math.min(h.hpMax, hpAntes[i]) : h.hpMax; });
+    var nH = function (i) { return her[i] ? her[i].nome : '?'; }, nM = function (i) { return mon[i] ? mon[i].nome : '?'; };
+    var todos = [];
+    sim.eventos.forEach(function (e) {
+      var q = null, pts = 0;
+      if (e.tipo === 'golpe' && e.de === 'h' && e.alvo != null) {
+        if (e.acerto) mh[e.alvo] = Math.max(0, mh[e.alvo] - e.dano);
+        if (e.acerto) {
+          q = { t: e.queima ? '🔥 ' + nM(e.alvo) + ' queima: ' + e.dano : e.dot ? '☠️ ' + nM(e.alvo) + ' sofre o veneno: ' + e.dano
+            : (e.critico ? 'CRÍTICO! ' : '') + nH(e.i) + ' acerta ' + nM(e.alvo) + ': ' + e.dano.toLocaleString('pt-BR'), a: 'm' + e.alvo, d: e.dano, c: !!e.critico };
+          pts = e.dano / Math.max(1, mon[e.alvo].hpMax) * 100 + (e.critico ? 40 : 0);
+          if (e.caiu) { q.t += ' — ' + nM(e.alvo) + ' caiu!'; q.x = 'caiu'; pts += 120; }
+        }
+      } else if (e.tipo === 'golpe' && e.de === 'm') {
+        if (e.acerto && e.alvo != null) {
+          q = { t: (e.area ? '💥 ' : '') + nM(e.i) + ' acerta ' + nH(e.alvo) + ': ' + e.dano.toLocaleString('pt-BR'), a: 'h' + e.alvo, d: e.dano };
+          pts = e.dano / Math.max(1, her[e.alvo].hpMax) * 120;
+          if (e.milagre) { q.t += ' — ✨ Milagre!'; pts += 90; }
+          if (e.caiu) { q.t += ' — ' + nH(e.alvo) + ' caiu!'; q.x = 'caiu'; pts += 150; }
+        } else if (e.alvo != null && !e.atordoado) { q = { t: nH(e.alvo) + (e.sombra ? ' some nas sombras.' : ' se esquiva de ' + nM(e.i) + '.'), a: 'h' + e.alvo, x: 'erro' }; pts = 8; }
+        else if (e.atordoado) { q = { t: nM(e.i) + ' está atordoado.', a: 'm' + e.i, x: 'erro' }; pts = 12; }
+      } else if (e.tipo === 'hab') {
+        q = { t: (e.cura ? '💚 ' : e.reforco ? '✨ ' : '⚡ ') + nH(e.i) + ' usa ' + e.nome + (e.cura ? ' e cura o grupo' : '') + '!', a: 'h' + e.i, x: e.cura ? 'cura' : 'hab' };
+        pts = e.cura ? 70 : 45;
+      } else if (e.tipo === 'habM') { q = { t: '💥 ' + nM(e.i) + ' usa ' + e.nome + '!', a: 'm' + e.i, x: 'hab' }; pts = 90; }
+      if (e.hp) hh = e.hp.slice();
+      if (q) { q.hh = hh.slice(); q.mh = mh.slice(); todos.push({ q: q, pts: pts }); }
+    });
+    if (!todos.length) return [];
+    var ultimo = todos[todos.length - 1];
+    var escolhidos = todos.slice(0, -1).map(function (x, i) { return { x: x, i: i }; })
+      .sort(function (a, b) { return b.x.pts - a.x.pts; }).slice(0, max - 1)
+      .sort(function (a, b) { return a.i - b.i; }).map(function (o) { return o.x.q; });
+    escolhidos.push(ultimo.q);
+    return escolhidos;
+  }
+  // Tempo (ms) que a tela leva para mostrar uma luta (replay de destaques + o "fim da luta").
+  function duracaoLuta(l) { return ((l && l.quadros ? l.quadros.length : 0) * (D.MASMORRA.quadroMs || 700)) + 1800; }
   // Avança a masmorra do ponto onde parou (o servidor chama; nada aqui depende do navegador). run: { semente, masmorra,
   // herois, membros, lider }; e: run.etapa (estado da masmorra). agora em ms. Devolve o estado novo (cópia).
   // Para numa votação aberta ou no fim (e.fim = 'vitoria' | 'derrota').
@@ -2744,10 +2788,12 @@ Tanka.regras = (function () {
     e.fase = e.fase || 0; e.log = e.log || []; e.efeitos = e.efeitos || { fontes: 0, corredores: 0, baus: 0, armadilhas: 0 };
     var herois = run.herois.map(function (h) { return h.dados; });
     var humanos = run.membros || [];
+    var tela = agora;   // quando a tela termina de mostrar as lutas desta vez (uma depois da outra)
     function lutar(tipo, n) {
       var sim = simularSalas(herois, [salaMasmorra(run.masmorra, tipo)], (Number(run.semente) + 7919 * (n + 1)) >>> 0, { hpInicial: e.hp });
       var r = resumoLuta(sim, n, e.hp, tipo);
       e.hpMax = sim.hpMax; e.hp = sim.hp;
+      r.inicio = tela; r.dur = duracaoLuta(r); tela += r.dur;
       e.log.push(r);
       e.ultima = agora;
       return sim.vitoria;
@@ -2762,7 +2808,7 @@ Tanka.regras = (function () {
         continue;
       }
       if (!e.prazo) {   // abre a votação (depois do resumo da luta)
-        e.abre = agora + M.resumoSeg * 1000; e.prazo = e.abre + M.votoSeg * 1000; e.votos = {};
+        e.abre = Math.max(tela, agora + 1000); e.prazo = e.abre + M.votoSeg * 1000; e.votos = {};   // abre quando o replay acaba
         break;
       }
       var votos = e.votos || {}, quem = Object.keys(votos).filter(function (k) { return humanos.indexOf(k) >= 0 && C[votos[k]]; });
@@ -3242,6 +3288,7 @@ Tanka.regras = (function () {
     salasMasmorra: salasMasmorra,
     salaMasmorra: salaMasmorra,
     resumoLuta: resumoLuta,
+    duracaoLuta: duracaoLuta,
     avancarMasmorra: avancarMasmorra,
     lootMasmorra: lootMasmorra,
     simularMasmorra: simularMasmorra,

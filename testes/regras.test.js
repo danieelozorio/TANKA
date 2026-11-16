@@ -1316,7 +1316,12 @@ teste('masmorra com caminhos (16/11/2026): lutas, votos de 10 s, empate do líde
   const run = { id: 7, semente: 4242, masmorra: 'toca', herois, membros: ['p0', 'p1', 'p2'], lider: 'p0' };
   let e = R.avancarMasmorra(run, { fase: 0 }, 1000);
   assert.strictEqual(e.log[0].tipo, 'luta'); assert.ok(e.log[0].vitoria, 'luta 1 vencida');
-  assert.strictEqual(e.fase, 1); assert.strictEqual(e.prazo, 1000 + (D.MASMORRA.resumoSeg + D.MASMORRA.votoSeg) * 1000, 'votação de 10 s depois do resumo');
+  assert.strictEqual(e.fase, 1); assert.strictEqual(e.abre, 1000 + R.duracaoLuta(e.log[0]), 'a votação abre quando o replay acaba');
+  assert.strictEqual(e.prazo, e.abre + D.MASMORRA.votoSeg * 1000, 'votação de 10 s');
+  const q = e.log[0].quadros;
+  assert.ok(q.length > 3 && q.length <= D.MASMORRA.quadros, 'replay de destaques: ' + q.length + ' lances');
+  assert.strictEqual(q[q.length - 1].mh.every((v) => v === 0), true, 'último lance: todos os monstros no chão');
+  assert.strictEqual(q[q.length - 1].hh.join(), e.hp.join(), 'último lance: vida final do grupo');
   assert.strictEqual(JSON.stringify(R.avancarMasmorra(run, e, 2000)), JSON.stringify(e), 'antes do prazo, sem todos os votos: espera');
   // empate (1 x 1 x 1): vale o líder
   e.votos = { p0: 'fonte', p1: 'porta', p2: 'corredor' };

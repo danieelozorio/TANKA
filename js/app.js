@@ -5644,7 +5644,7 @@
     clearInterval(estado.mas && estado.mas.relogio);
     estado.mas = { run: run, etapa: run.etapa, versao: run.versao || 0, estado: run.estado, mm: R.masmorra(run.masmorra),
       desvio: run.agora ? Number(run.agora) - Date.now() : 0, vistas: {}, ultimoAvanco: 0, ultimaBusca: Date.now() };
-    estado.mas.relogio = setInterval(tiqueMas, 1000);
+    estado.mas.relogio = setInterval(tiqueMas, 350);   // o replay troca de lance a cada 0,7 s
     estado.chefeAviso = null;
     telaJogo();
     tiqueMas();
@@ -5687,8 +5687,50 @@
   }
   // Redesenha só quando algo mudou (o resumo da luta não recomeça a animação); senão só atualiza o relógio.
   function chaveMas() {
-    var m = estado.mas, e = m.etapa || {}, agora = agoraMas();
-    return [m.versao, m.estado, m.meuVoto, m.erro, e.prazo && agora >= e.abre ? 'v' : 'n', JSON.stringify(e.votos || {})].join('|');
+    var m = estado.mas, e = m.etapa || {}, agora = agoraMas(), r = replayMas();
+    return [m.versao, m.estado, m.meuVoto && m.meuVoto.opcao, m.erro, e.prazo && agora >= e.abre ? 'v' : 'n', JSON.stringify(e.votos || {}),
+      r ? r.n + ':' + r.q : '-', r ? r.fimLuta : ''].join('|');
+  }
+  // Qual luta está passando agora (replay de destaques pelo relógio do servidor) e em que lance. Lutas que ainda vão
+  // passar (o servidor já calculou) ficam escondidas até a vez delas.
+  function replayMas() {
+    var m = estado.mas, e = m && m.etapa || {}, agora = agoraMas(), Q = D.MASMORRA.quadroMs || 700, r = null;
+    (e.log || []).forEach(function (l, n) {
+      if (r || l.tipo !== 'luta' || !l.quadros || !l.quadros.length || l.inicio == null) return;
+      if (agora >= l.inicio && agora < l.inicio + l.dur) {
+        var q = Math.min(l.quadros.length - 1, Math.floor((agora - l.inicio) / Q));
+        r = { l: l, n: n, q: q, fimLuta: agora >= l.inicio + l.quadros.length * Q };
+      }
+    });
+    return r;
+  }
+  function escondidaMas(l) { return l.tipo === 'luta' && l.inicio != null && agoraMas() < l.inicio; }
+  function arenaReplayHtml(r) {
+    var m = estado.mas, run = m.run, l = r.l, q = l.quadros[r.q], alvo = q.a || '';
+    var dano = function (lado, i) {
+      if (alvo !== lado + i || r.fimLuta) return '';
+      if (q.x === 'erro') return '<span class="mas-dano erro">errou</span>';
+      if (q.x === 'cura') return '<span class="mas-dano cura">✚</span>';
+      return q.d ? '<span class="mas-dano' + (q.c ? ' critico' : '') + '">−' + q.d.toLocaleString('pt-BR') + '</span>' : '';
+    };
+    var herois = run.herois.map(function (h, i) {
+      var d = h.dados, max = (l.herois[i] || {}).hpMax || 1, v = q.hh[i] != null ? q.hh[i] : max;
+      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + (alvo === 'h' + i && !r.fimLuta ? ' mas-alvo' : '') + '"><div class="moldura">' + F.personagem(d.raca, classeRetrato(d), d.sexo) + dano('h', i) + '</div>'
+        + '<div class="mas-nome">' + esc(d.nome) + '</div>' + barra('hp', v, max, v + ' / ' + max, 'masr-h' + i) + '</div>';
+    }).join('');
+    var monstros = l.monstros.map(function (x, i) {
+      var max = x.hpMax || 1, v = q.mh[i] != null ? q.mh[i] : max;
+      return '<div class="mas-lutador' + (v > 0 ? '' : ' caido') + (x.chefe ? ' mas-chefe' : '') + (alvo === 'm' + i && !r.fimLuta ? ' mas-alvo' : '') + '"><div class="moldura">' + F.imagemMonstro(x.id) + dano('m', i) + '</div>'
+        + '<div class="mas-nome">' + (x.chefe ? '<span class="selo-chefe">Chefe</span> ' : x.elite ? '<span class="selo-elite">Elite</span> ' : '') + esc(x.nome) + '</div>'
+        + barra('hp', v, max, v.toLocaleString('pt-BR') + ' / ' + max.toLocaleString('pt-BR'), 'masr-m' + r.n + '-' + i) + '</div>';
+    }).join('');
+    var linhas = l.quadros.slice(Math.max(0, r.q - 4), r.q + 1).map(function (x, k, arr) {
+      return '<p class="' + (k === arr.length - 1 ? 'mas-lance-atual ' : '') + (x.c ? 'critico' : x.x === 'cura' ? 'cura' : x.x === 'caiu' ? 'destaque' : x.x === 'erro' ? 'errou' : '') + '">' + esc(x.t) + '</p>';
+    }).join('');
+    var fim = r.fimLuta ? '<div class="mas-fim-luta ' + (l.vitoria ? 'vitoria' : 'derrota') + '">' + (l.vitoria ? 'VITÓRIA!' : 'O grupo caiu…') + '</div>' : '';
+    return '<div class="mas-replay"><h4>⚔ ' + (NOMES_PASSO[l.sala] || 'Luta') + ' <span class="suave pequeno">lance ' + (r.q + 1) + '/' + l.quadros.length + '</span></h4>'
+      + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
+      + fim + '<div class="registro mas-lances">' + linhas + '</div></div>';
   }
   function redesenharMas() {
     var painel = document.querySelector('.jogo > section'), m = estado.mas;
@@ -5706,7 +5748,7 @@
   function masVotar(opcao) {
     var m = estado.mas, p = estado.personagem;
     if (!m || !p) return;
-    m.meuVoto = opcao;
+    m.meuVoto = { prazo: m.etapa.prazo, opcao: opcao };   // vale só para esta votação
     m.etapa.votos = Object.assign({}, m.etapa.votos || {}); m.etapa.votos[p.id] = opcao;
     redesenharMas();
     C.grupo.votar(p.id, m.run.id, opcao).then(function () { m.ultimoAvanco = 0; tiqueMas(); }, function (e) { avisar(e.message); });
@@ -5735,6 +5777,11 @@
   function nomeHeroiRun(run, pid) { var h = run.herois.filter(function (x) { return x.id === pid; })[0]; return h ? h.dados.nome : '?'; }
   function masmorraCaminhosHtml() {
     var m = estado.mas, e = m.etapa || {}, run = m.run, M = D.MASMORRA, agora = agoraMas(), meu = estado.personagem.id;
+    var rp = replayMas(), oculto = -1;
+    (e.log || []).forEach(function (l, i) { if (oculto < 0 && escondidaMas(l)) oculto = i; });
+    var logVisivel = oculto < 0 ? (e.log || []) : e.log.slice(0, oculto);
+    if (rp) logVisivel = logVisivel.slice(0, rp.n);   // a luta que está passando aparece no replay, não no diário
+    var passando = !!rp || oculto >= 0;
     var roteiro = M.roteiro.map(function (k, i) {
       return '<span class="mas-passo' + (i < (e.fase || 0) || (e.fim === 'vitoria') ? ' feito' : i === (e.fase || 0) && !e.fim ? ' atual' : '') + '">' + NOMES_PASSO[k] + '</span>';
     }).join('<span class="mas-seta">›</span>');
@@ -5747,7 +5794,7 @@
         + (hpMax[i] ? barra('hp', v, max, v + ' / ' + max, 'masc' + i) : '') + '</div>';
     }).join('');
     // diário: lutas e caminhos (o mais novo em cima)
-    var diario = (e.log || []).map(function (l, i) {
+    var diario = logVisivel.map(function (l, i) {
       if (l.tipo === 'luta') {
         var mons = l.monstros.map(function (x) { return (x.chefe ? '<span class="selo-chefe">Chefe</span> ' : x.elite ? '<span class="selo-elite">Elite</span> ' : '') + esc(x.nome); }).join(', ');
         var nova = !m.vistas[i]; m.vistas[i] = true;
@@ -5763,8 +5810,9 @@
     }).reverse().join('');
     // votação
     var voto = '';
-    if (!e.fim && e.prazo) {
-      var meuVoto = (e.votos || {})[meu] || m.meuVoto, falta = Math.max(0, Math.ceil((e.prazo - agora) / 1000));
+    if (passando) voto = '';
+    else if (!e.fim && e.prazo) {
+      var meuVoto = (e.votos || {})[meu] || (m.meuVoto && m.meuVoto.prazo === e.prazo ? m.meuVoto.opcao : null), falta = Math.max(0, Math.ceil((e.prazo - agora) / 1000));
       if (agora < e.abre) voto = '<p class="mas-espera">Escolham o próximo caminho em <b>' + Math.max(1, Math.ceil((e.abre - agora) / 1000)) + '</b> s…</p>';
       else voto = '<div class="mas-votacao"><h3>Escolham o caminho · <span class="mas-tempo">' + falta + ' s</span></h3><div class="mas-caminhos">'
         + ['porta', 'corredor', 'fonte'].map(function (k) {
@@ -5776,7 +5824,7 @@
     } else if (!e.fim && m.estado === 'andamento') voto = '<p class="mas-espera">⚔ O grupo avança…</p>';
     // fim e prêmios
     var fim = '';
-    if (e.fim) {
+    if (e.fim && !passando) {
       var meus = (e.premios || []).filter(function (x) { return x.pid === meu; });
       var itens = meus.filter(function (x) { return x.item.tipo !== 'pergaminho'; }).map(function (x) {
         return '<div class="mas-premio">' + (x.bau ? '<span class="selo-elite">Baú</span>' : '') + fichaItemHtml(x.item, true) + '</div>';
@@ -5795,7 +5843,7 @@
     }
     m.chave = chaveMas();
     return '<div class="mas-tela">' + fim + '<h3 class="subtitulo">' + esc(m.mm.nome) + '</h3><div class="mas-roteiro">' + roteiro + '</div>'
-      + '<div class="mas-grupo mas-grupo-linha">' + herois + '</div>' + voto
+      + (rp ? arenaReplayHtml(rp) : '<div class="mas-grupo mas-grupo-linha">' + herois + '</div>') + voto
       + (m.erro ? '<p class="aviso-nivel">' + esc(m.erro) + '</p>' : '')
       + '<div class="mas-diario">' + diario + '</div></div>';
   }

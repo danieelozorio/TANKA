@@ -1917,3 +1917,21 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .mas-premios { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: center; }
 .mas-premio { min-width: 200px; max-width: 280px; border: 1px solid rgba(201, 169, 107, .3); border-radius: 6px; padding: .4rem; text-align: left; }
 @media (max-width: 640px) { .mas-caminhos { grid-template-columns: 1fr; } .mas-caminho { flex-direction: row; text-align: left; } .mas-caminho img { width: 72px; } }
+/* replay de destaques da masmorra (16/11/2026) */
+.mas-replay { border: 1px solid rgba(201, 169, 107, .35); border-radius: 8px; padding: .6rem; margin-bottom: .8rem; background: rgba(0, 0, 0, .25); }
+.mas-replay h4 { margin: 0 0 .5rem; }
+.mas-replay .moldura { position: relative; overflow: visible; }
+.mas-dano { position: absolute; left: 50%; top: -6px; transform: translateX(-50%); font-weight: 700; color: #ff7b6b; text-shadow: 0 1px 3px #000;
+  white-space: nowrap; pointer-events: none; animation: mas-sobe .65s ease-out both; z-index: 2; }
+.mas-dano.critico { color: #ffd34d; font-size: 1.25em; }
+.mas-dano.cura { color: #7dff9a; }
+.mas-dano.erro { color: #bbb; font-size: .8em; font-style: italic; }
+@keyframes mas-sobe { from { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 30% { opacity: 1; transform: translate(-50%, -4px) scale(1.15); } to { opacity: .9; transform: translate(-50%, -14px) scale(1); } }
+.mas-alvo .moldura { animation: mas-treme .35s; box-shadow: 0 0 10px rgba(255, 120, 90, .6); }
+@keyframes mas-treme { 0%, 100% { transform: none; } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.mas-fim-luta { text-align: center; font-family: var(--titulo); font-size: 1.4rem; margin: .4rem 0; animation: mas-linha .4s both; }
+.mas-fim-luta.vitoria { color: var(--ouro-claro); }
+.mas-fim-luta.derrota { color: #ff6b6b; }
+.mas-lances { max-height: none; min-height: 7.5em; }
+.mas-lances p { margin: .1rem 0; opacity: .6; }
+.mas-lances p.mas-lance-atual { opacity: 1; animation: mas-linha .35s both; }

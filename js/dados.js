@@ -890,7 +890,8 @@ Tanka.dados = {
      // roteiro: luta1 → voto → luta2 → voto → elite → voto → chefe. A vida passa de uma luta para a outra.
      roteiro: ['luta1', 'voto', 'luta2', 'voto', 'elite', 'voto', 'chefe'],
      votoSeg: 10,      // tempo para votar (quem não vota perde o voto; empate: vale o voto do líder)
-     resumoSeg: 5,     // o resumo da luta aparece antes de abrir a votação
+     resumoSeg: 5,     // (antigo) a votação agora abre quando o replay da luta acaba
+     quadros: 18, quadroMs: 700,   // replay de destaques: até 18 lances por luta, 0,7 s cada (velocidade fixa)
      caminhos: {
        porta: { nome: 'Porta selada', bauPct: 30, armadilhaVidaPct: 15,
          texto: '30% de chance de baú (joia comum a épica + pergaminho para cada um); 70% de armadilha (todos perdem 15% da vida).' },
