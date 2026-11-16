@@ -7,7 +7,7 @@
 //   3. roda a regra (js/servidor-cacada.js, empacotado em _shared/tanka.js) com o relógio e o sorteio do servidor;
 //   4. grava o personagem com a proteção de versão (como o jogo faz) e devolve o resultado + o personagem novo.
 // Publicada sem "verify JWT" do gateway (as chaves novas do Supabase não usam o segredo antigo): o login é conferido
-// no passo 1. Não usa a chave secreta: tudo passa pelas regras de segurança do banco (RLS).
+// no passo 1. Lê com o login do jogador (RLS); grava com a chave do servidor (etapa 5 do plano "tudo no servidor").
 import Tanka from '../_shared/tanka.js';
 
 const R = Tanka.regras, S = Tanka.servidorCacada;
@@ -17,6 +17,19 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// Etapa 5 do plano "tudo no servidor": o jogador não grava mais a ficha direto (o banco tranca). A função grava com a
+// chave secreta do projeto (variável que o Supabase põe sozinho nas funções; nunca vai para o navegador), depois de
+// conferir que o personagem é de quem pediu. Sem a chave (teste local), grava com o login do jogador, como antes.
+function cabecalhoServidor(): Record<string, string> | null {
+  try {
+    const k = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}').default;
+    if (k) return { apikey: k, 'Content-Type': 'application/json' };
+  } catch { /* sem a variável nova */ }
+  const s = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (s) return { apikey: s, Authorization: 'Bearer ' + s, 'Content-Type': 'application/json' };
+  return null;
+}
 
 function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
@@ -82,10 +95,18 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   p.versao = versao + 1;
   const filtro = versao ? 'dados->>versao=eq.' + versao : 'dados->>versao=is.null';
   const g = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&' + filtro + '&select=id', {
-    method: 'PATCH', headers: { ...cab, Prefer: 'return=representation' }, body: JSON.stringify({ dados: p }),
+    method: 'PATCH', headers: { ...(cabecalhoServidor() ?? cab), Prefer: 'return=representation' }, body: JSON.stringify({ dados: p }),
   });
   const gravou = g.ok ? await g.json() : [];
   if (!gravou.length) return responder({ erro: 'Este personagem foi jogado em outra aba ou aparelho. Recarregando...', conflito: true }, 409);
+  // missão do clã: os monstros vencidos contam aqui, pelo servidor (Henri, nov/2026)
+  const abates = (d: { abates?: Record<string, number> }) => Object.values(d.abates || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+  const novos = abates(p) - abates(linhas[0].dados);
+  const srv = cabecalhoServidor();
+  if (novos > 0 && srv) {
+    await fetch(base + '/rest/v1/rpc/alianca_missao_servidor', { method: 'POST', headers: srv,
+      body: JSON.stringify({ pid: id, tipo: 'monstros', qtd: novos }) }).catch(() => null);
+  }
   return responder({ ...saida, personagem: p, agora: t });
 }
 

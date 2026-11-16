@@ -957,3 +957,109 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: portal no Mapa do Reino (`reino-pesadelo`), mapa `assets/mapa-pesadelo.webp` (x/y em `D.PESADELO.chefes`), ficha do
   chefe e ⚔ ENFRENTAR (caçada contínua só com esse chefe).
 - **Revanche com confirmação (Henri, nov/2026):** o histórico da Arena traz `oponente_id`; o botão Revanche abre a mesma janela do Desafiar (`abrirDesafio(id, 'revanche')`, `estado.desafio.luta`) e o ⚔ Revanche chama `arena_revanche`. Sem `oponente_id` (schema antigo) luta direto como antes.
+
+## App Android com Capacitor (Henri, 15/11/2026)
+- App SEPARADO do APK antigo do Daniel (TWA `br.com.eldrinonline.jogo`): pacote `br.com.eldrinonline.app`, nome "Eldrin".
+  O jogo inteiro (js, css, assets) vai DENTRO do APK.
+- `app-android/`: package.json (Capacitor 7 + @capgo/capacitor-updater + @capacitor/app), capacitor.config.json,
+  `assets/` (ícone e splash para o @capacitor/assets), `chave-teste.jks` (chave de TESTE, senha `eldrin-teste`, alias
+  `eldrin`). As pastas `www/` e `android/` são geradas (não vão para o git).
+- `ferramentas/montar_app.js` monta `app-android/www` a partir de `jogar/index.html` (tira o `<base>` e o service worker,
+  põe `window.ELDRIN_APP = { web: N }` e `js/app-nativo.js`).
+- `.github/workflows/app-android.yml` (GitHub monta tudo; aqui não dá: sem Android SDK nem npm):
+  - push no main com mudança no jogo: release `app-web` com `eldrin-web.zip` (o jogo, ~45 MB) e `versao.json`
+    (`web`, `webUrl`, `tamanhoMB`, `apk`, `apkUrl`, `apkMinimo`). N = número da execução do workflow.
+  - APK (release `app-android`, `Eldrin-app.apk`): só quando muda `app-android/`, `js/app-nativo.js`, o workflow, ou
+    no botão Run workflow. versionCode = N.
+  - branch `henri/apk-*`: só monta o APK e deixa em Artifacts da execução.
+  - Chave oficial: segredos `ANDROID_CHAVE_B64` e `ANDROID_CHAVE_SENHA` (só o dono do repositório cria). Sem eles,
+    usa a chave de teste (aviso no log). Quem instalou um APK de teste precisa desinstalar antes do oficial.
+- `js/app-nativo.js` (só dentro do app): `notifyAppReady`; confere o `versao.json` (CapacitorHttp); jogo novo →
+  pergunta "Atualizar agora / Depois" e baixa o zip (`download` + `set`, reinicia); APK novo → link para baixar.
+  "Depois" vale até fechar o app. `apkMinimo` > instalado força o aviso do APK antes do jogo.
+- `jaInstalado()` (app.js) conta o app Capacitor: some o botão "Baixar app Android".
+- **Luta da masmorra/boss do clã pelo relógio (Henri, nov/2026):** `relogioLuta(L)` avança os eventos pelo tempo real (`L.acum`, x2 se acelerado), não por timer; trocar de aba/app ou recarregar não atrasa: a luta começa em `run.criado_em` e alcança o ponto certo (também no `visibilitychange`). O resultado já era gravado no servidor no começo.
+
+## Trava contra ficha forjada (Henri, nov/2026)
+- A API é pública (normal) e o jogo grava a ficha inteira em `personagens.dados`. Antes, quem soubesse programar podia
+  gravar level/ouro/itens no próprio personagem. Agora o gatilho `validar_personagem` chama `trava_ficha(old, new)` em
+  toda gravação direta pela API (`current_user = 'authenticated'`, não admin); funções security definer e SQL Editor passam.
+- Regras: level só sobe, até `NIVEL_MAXIMO`, e com balde (`TRAVA.niveis`); ouro com balde (`TRAVA.ouro`, ~4,6 mi é a mochila
+  cheia de lendárias +10 vendida de uma vez); atributos iniciais fixos e pontos ≤ (level-1)×3 (`trava_excesso_atributos`);
+  pontos de habilidade = `arena_pontos_ok`; itens com encanto 0–10 e level ≤ máximo; item existente sobe no máximo +3 de
+  encanto por gravação e não muda raridade/level; itens novos lendários ou +5 com balde (`TRAVA.itensFortes`).
+  Personagem novo pela API: level 1, sem ouro, só a arma comum, atributos da classe ± raça.
+- Fichas que já estavam fora da regra continuam gravando (só não podem piorar). Baldes em `personagens.trava`.
+  Gravações acima de `avisarOuro`/`avisarNiveis` e encanto > +1 passam, mas ficam em `suspeitas` (só o SQL Editor lê).
+- É a trava rápida; a solução definitiva é passar cada ação para o servidor (plano de 5 etapas).
+
+## Tudo no servidor — etapa 1: ações do herói (Henri, nov/2026)
+- Regra única em `js/servidor-acoes.js` (`Tanka.servidorAcoes.executar(p, acao, args, agora)`), com lista fechada de
+  ações: `atributos` ({for: n...}), `segundaClasse`, `pontosHabilidade` ({id: n}), `ordemHabilidade` ([modo,id,op]),
+  `habilidadeAuto`, `equipar`, `desequipar`, `usarSkin`, `usarRecomeco`, `usarRecomecoHabilidades`.
+- Edge Function `supabase/functions/acao/index.ts` (igual à `cacada`: confere o login, lê o personagem com RLS, roda a
+  regra, grava com a proteção de versão). Recusa: `{ erro, personagem }` com a ficha do banco. Enviada pelo mesmo
+  workflow (`funcao-cacada.yml`), que também roda `testes/acao_servidor.test.ts` (no Node: `node --experimental-strip-types`).
+- Cliente: `C.acao(id, nome, args)` (contas.js usa a mesma fila/troca de personagem da caçada; contas-local.js roda a
+  regra local). `acaoServidor(nome, args)` em app.js: a regra roda na tela na hora e o servidor confirma; sem a função
+  (404) volta a `salvar()`.
+- Etapa 2 (Mochila e Mercado): `vender`, `venderVarios` ([ids]), `travarItem`, `organizarMochila` ([critério, crescente]),
+  `comprar` ({raridade?, tipo, especifico?}: o item é sorteado no servidor; a tela espera a resposta e acha o item novo),
+  `comprarPocao`, `comprarPoteEstamina`, `trocarPergaminho`, `comprarSkin`, `comprarRecomeco`, `comprarRecomecoHabilidades`.
+  `acaoServidor(nome, args, local)` devolve promessa; `local` é o jeito antigo (só sem a função). Mercado entre
+  jogadores (anunciar/comprar) já é do servidor, mas o cliente ainda grava a ficha depois: na etapa 5, trocar por reler.
+- Etapa 3 (Forja, Oficina, Minas): `encantar` ([id, protecao]; conta as missões), `forjar` ({area, classe, tipo, chefe,
+  gemas}), `fabricarReceita`, `fabricarProtecao`, `iniciarMinas` ([opção, área]), `pararMinas`, `recolherMinas`.
+  Sorteios no servidor: a ação devolve `{ resultado }` (executar(p, acao, args, agora, rng)) e a tela anima com ele
+  (encantar espera a resposta antes de abrir a forja; `estado.encantando` evita clique duplo). Oficina já era do servidor.
+- Etapa 4 (prêmios e progresso): `receber` (prêmios da tabela recompensas + créditos: a função lê `pendentes(meu)` do banco,
+  aplica com `entregarRecompensas`/`aplicarCreditos` (p.recebidas / p.creditosRecebidos evitam repetir), grava e só
+  então chama `recompensa_resgatar`/`credito_aplicar`), `sincronizarCla` (skills lidas de `cacada_bonus`), `missao`,
+  `bauDiario`, `pegarLogin`, `comecarGuia`, `pularGuia`, `guiaAba`, `verificarGuia`, `historiaVista`, `concluirCapitulo`,
+  `acampar`, `eventoJogo` ({tipo arena|masmorra, vitoria, alvo, run}: missões/guia/História; 1 a cada 8 s/25 s; ainda é o
+  jogo que informa o resultado) e `preferencias` (só prefsCacada, caixa, caixaVista, atividade, título já ganho e os
+  avisos de presente; grava sempre = marca online). Cliente: `salvarPreferencias()` (junta pedidos em 400 ms) e
+  `receberPendentes()`. A função não grava se nada mudou (exceto preferências).
+- Ainda gravam a ficha direto: anunciar no Mercado e pedir na Oficina (o servidor já mexeu na ficha; trocar por reler),
+  caçada no jeito antigo (só sem a função `cacada`), admin e os jeitos antigos sem a função `acao`.
+- Próximas etapas: 2 Mochila/Mercado, 3 Forja/Oficina/Minas, 4 Prêmios, 5 tirar o UPDATE direto da ficha (aí as
+  funções do servidor precisam gravar por um caminho próprio, não pelo login do jogador).
+
+### Tudo no servidor — etapa 5 (tranca da ficha)
+- As funções `cacada` e `acao` gravam a ficha com a chave secreta do projeto (`SUPABASE_SECRET_KEYS.default`, ou
+  `SUPABASE_SERVICE_ROLE_KEY`), que o Supabase põe sozinho nas funções. Ler continua com o login do jogador (RLS).
+- `app.js`: `salvar()` só manda as preferências (ação `preferencias`) para quem não é admin; `salvarFichaDireto()` é o
+  jeito antigo (admin, ou sem a função `acao`). Mercado/leilão/Oficina: `gravarAntesDoBanco` (só grava no jeito antigo)
+  e `sincronizarFicha` (busca a ficha do servidor depois da função do banco).
+- Banco: `gravacoes_papel` anota qual papel grava fichas (`authenticated` = navegador, `service_role` = funções).
+  `supabase/trancar_fichas.sql` tira o "salvar os seus" (fica só admin) e marca `ajustes.fichas_trancadas`; rodar o
+  schema de novo respeita a marca. `supabase/destrancar_fichas.sql` desfaz.
+- Ordem segura: publicar → conferir `select * from gravacoes_papel` (service_role recente) → rodar o trancar.
+
+### Brechas fechadas (Henri, nov/2026): o servidor refaz as lutas
+- Função `acao` ganhou 3 "lutas" (não mexem na ficha): `masmorraConcluir {run}`, `bossClaConcluir {run}` e
+  `bossMundial {}`. Masmorra e boss do clã: lê a run com a chave do servidor e refaz com `R.simularMasmorra` /
+  `R.simularBossAlianca` (mesmos heróis e semente); Ignaroth: luta inteira no servidor (até `acoesPorAtaque` ações) e
+  devolve os eventos para o navegador só mostrar (`b.replay` com `servidor`).
+- Banco: `masmorra_registrar`, `alianca_boss_registrar`, `boss_atacar_servidor` (só a chave do servidor). As antigas
+  (`masmorra_concluir` com vitória, `alianca_boss_concluir`, `boss_atacar`) pedem "Atualize a página".
+  Sem o schema novo, a função usa as antigas com o login do jogador (`rpcServidor(..., antiga)`).
+- Missões do clã contadas pelo servidor: `alianca_missao_de` (masmorra em `masmorra_registrar`, Arena em
+  `arena_finalizar`) e `alianca_missao_servidor` (encanto pela `acao`, monstros pela `cacada` = abates novos).
+  `alianca_missao_registrar` ficou sem efeito; o navegador não manda mais.
+- `anotar_gravacao()` anota o papel da sessão (não aceita texto de fora); `meu_grupo`/`entradas_usadas` só internos.
+- (nov/2026) Velgrath · Pesadelo (1º chefe, lv 40) mais fácil: vida/dano 1.62 → 1.2 (hp 5346, dano 734-990). Alvo do
+  Henri: mago e arqueiro lv 40, tudo épico lv 40 +3, vencem com 1 poção (1000 lutas: caçador 97%, assassino 100%,
+  bruxo 91%, curandeiro 81%). Os outros chefes do Pesadelo não mudaram.
+- (16/11/2026) Quebra-Ossos (Destruidor): ignoraDefesaPct 100 → 50 (dava ~16x um ataque na Arena; agora ~3,5x, como o Tiro Silenciador).
+
+### Grupos de itens (Henri, 16/11/2026)
+- `D.GRUPOS_ITEM`: Pesado (cavaleiro/artesão → Paladino, Destruidor, Ferreiro, Coletor), Leve (arqueiro → Arqueiro,
+  Assassino), Mágico (mago → Bruxo, Curandeiro). Cada um usa QUALQUER arma/mão esquerda/armadura do seu grupo
+  (grupo da arma = grupo da classe em TIPOS_ARMA; mão esquerda em `GRUPOS_ITEM.mao`).
+- `ARMAS_CLASSE` virou a lista das preferidas (drops vêm delas). Fora delas: habilidades com `foraPreferida` (80%) do
+  dano (`R.fatorArmaHab`, `fator` no kit; Arena: `arena_kit` com `ARMAS_PREFERIDAS`). Coletor: mão preferida = manopla.
+- Paladino com escudo / Coletor com manopla: +50% nos bônus (`R.multMaoForte`; `tanka_status` com `mf`).
+- Armadura Pesada única: armaduras novas de artesão saem com `classe: 'cavaleiro'` (tabela do cavaleiro). As antigas
+  (`classe: 'artesao'`) continuam valendo, com os números que já tinham.
+- Mercado "só o que o meu grupo usa": filtro manda `classes` (do grupo); leilão compara por grupo.

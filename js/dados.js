@@ -409,7 +409,19 @@ Tanka.dados = {
     bruxo: { armas: ['cajado', 'varinha', 'cetro'], mao: ['livro'] },
     curandeiro: { armas: ['cetro', 'cajado', 'varinha'], mao: ['orbe'] },
     ferreiro: { armas: ['martelo', 'martelo2m', 'maca'], mao: ['manopla'] },
-    coletor: { armas: ['foice', 'martelo', 'picareta'], mao: ['escudo'] },
+    coletor: { armas: ['foice', 'martelo', 'picareta'], mao: ['manopla'] },
+  },
+  // Grupos de itens (Henri, 16/11/2026): cada classe usa qualquer arma, mão esquerda e armadura do seu grupo.
+  // ARMAS_CLASSE (acima) virou a lista das PREFERIDAS: com outra arma do grupo, as habilidades dão `foraPreferida`% do dano.
+  // Armadura Pesada única: os itens novos do grupo usam a tabela do cavaleiro (`armadura`).
+  // maoForte: a passiva da segunda classe aumenta os bônus dessa mão esquerda (Paladino com escudo, Coletor com manopla).
+  GRUPOS_ITEM: {
+    classes: { cavaleiro: 'pesado', artesao: 'pesado', arqueiro: 'leve', mago: 'magico' },
+    nomes: { pesado: 'Pesado', leve: 'Leve', magico: 'Mágico' },
+    armadura: { pesado: 'cavaleiro', leve: 'arqueiro', magico: 'mago' },
+    mao: { escudo: 'pesado', manopla: 'pesado', aljava: 'leve', adaga: 'leve', garra: 'leve', shuriken: 'leve', orbe: 'magico', livro: 'magico' },
+    foraPreferida: 80,
+    maoForte: { paladino: { mao: 'escudo', pct: 50 }, coletor: { mao: 'manopla', pct: 50 } },
   },
   // Nomes das armas e itens novos: "<tipo> <sufixo>" (8 por raridade).
   SUFIXOS_ARMA: {
@@ -570,7 +582,7 @@ Tanka.dados = {
         { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
         { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
-        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre.' },
+        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele.' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
           descricao: 'Recupera 0,66% a 1,26% da vida máxima a cada turno. Mais forte na caçada.' },
@@ -587,8 +599,8 @@ Tanka.dados = {
           descricao: '5% a 15% do dano que você causa vira vida. Mais forte na caçada.' },
         // Henri (13/11/2026): no lugar do Golpe Apocalíptico. quebraTurnos: a defesa quebrada dura essas vezes do alvo.
         { id: 'quebra-ossos', nome: 'Quebra-Ossos', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 0],
-          ignoraDefesaPct: 100, quebraDefesaPct: [25, 1], quebraTurnos: 2,
-          descricao: 'Golpe de 200% que ignora a defesa do alvo e deixa o inimigo com −25% a −35% de defesa por 2 turnos. Mais forte na Arena.' },
+          ignoraDefesaPct: 50, quebraDefesaPct: [25, 1], quebraTurnos: 2,   // 16/11/2026: ignorava 100% (~16x um ataque na Arena)
+          descricao: 'Golpe de 200% que ignora metade da defesa do alvo e deixa o inimigo com −25% a −35% de defesa por 2 turnos. Mais forte na Arena.' },
       ] },
     // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
     cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',
@@ -662,7 +674,7 @@ Tanka.dados = {
         { id: 'chuva-de-pedras', nome: 'Chuva de Pedras', tipo: 'area', reduzido: true, recarga: 3, descricao: 'Dano em área (mais fraco).' },
         { id: 'pedrada', nome: 'Pedrada', tipo: 'unico', reduzido: true, recarga: 2, descricao: 'Um golpe em um inimigo (mais fraco).' },
         { id: 'rede', nome: 'Rede', tipo: 'atordoar', atordoa: 2, recarga: 5, descricao: 'Joga a rede em um inimigo e ele fica preso.' },
-        { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada.' },
+        { id: 'bolso-fundo', nome: 'Bolso Fundo', tipo: 'passiva', recompensa: 10, descricao: 'Mais ouro e exp em cada luta da caçada. Com manopla, a manopla dá +50% dos bônus dela.' },
         { id: 'bolso-de-pocoes', nome: 'Bolso de Poções', tipo: 'passiva', nivel: 20, foco: 'cacada', curaEmergencia: [35, 2], limiar: 40,
           descricao: 'Uma vez por luta, quando a vida cai abaixo de 40%, recupera 37% a 57% da vida. Mais forte na caçada.' },
         { id: 'po-nos-olhos', nome: 'Pó nos Olhos', tipo: 'cegar', nivel: 30, foco: 'arena', recarga: 6, turnos: 2, erroPct: [30, 1],
@@ -720,7 +732,7 @@ Tanka.dados = {
   PESADELO: { estamina: 20, mapaNivelExp: 40, mapaExpPct: 10, mapaNivelItem: 40, nivelDropExtra: 3, vitoriasPorFaixa: 100,
     ouro: [14000, 26000],
     chefes: [
-      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.62, dano: 1.62, nivel: 40, x: 17, y: 82 },
+      { id: 'velgrath-pesadelo', base: 'velgrath', vida: 1.2, dano: 1.2, nivel: 40, x: 17, y: 82 },
       { id: 'morgath-pesadelo', base: 'morgath', vida: 1.77, dano: 1.77, nivel: 43, x: 26, y: 33 },
       { id: 'varnok-pesadelo', base: 'varnok', vida: 1.88, dano: 1.88, nivel: 46, x: 43, y: 64 },
       { id: 'guardiao-pesadelo', base: 'guardiao', vida: 2.13, dano: 2.13, nivel: 50, x: 49, y: 22 },
@@ -1063,6 +1075,14 @@ Tanka.dados = {
       item: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }],
     },
   },
+
+  // Trava contra ficha forjada (Henri, nov/2026): o banco recusa gravações diretas da ficha (pela API, sem passar
+  // por uma função do servidor) com saltos impossíveis. "Balde": cada gravação gasta do balde, que enche com o tempo.
+  // ouro: o máximo legítimo numa gravação é vender a mochila cheia de lendárias +10 do level 60 (~4,6 mi).
+  // niveis: levels que dá para subir em seguida (e quantos voltam por minuto). itensFortes: itens novos lendários ou
+  // +5 ou mais (compras do Mercado, Oficina). Acima de `avisar*` a gravação passa, mas fica anotada em `suspeitas`.
+  TRAVA: { ouro: { balde: 8000000, porMinuto: 800000 }, niveis: { balde: 5, porMinuto: 0.5 },
+    itensFortes: { balde: 12, porMinuto: 1 }, itensNovos: 60, avisarOuro: 1500000, avisarNiveis: 2 },
 
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },

@@ -12,6 +12,8 @@ vm.runInContext(fs.readFileSync(path.join(raiz, 'js', 'regras.js'), 'utf8'), ctx
 const D = vm.runInContext('Tanka.dados', ctx);
 const R = vm.runInContext('Tanka.regras', ctx);
 const dados = {
+  // trava contra gravação forjada da ficha (Henri, nov/2026): validar_personagem
+  NIVEL_MAXIMO: D.NIVEL_MAXIMO, PONTOS_POR_NIVEL: D.PONTOS_POR_NIVEL, MODIFICADOR_RACA: D.MODIFICADOR_RACA, TRAVA: D.TRAVA,
   HP_INICIAL: D.HP_INICIAL, HP_POR_NIVEL: D.HP_POR_NIVEL, HP_POR_RES: D.HP_POR_RES, RES_SEM_VIDA: D.RES_SEM_VIDA, VELOCIDADE: D.VELOCIDADE,
   racas: Object.fromEntries(Object.entries(D.racas).map(([k, r]) => [k, { tracos: r.tracos || {} }])),
   classesAtributos: Object.fromEntries(Object.entries(D.classes).map(([k, c]) => [k, c.atributos])),
@@ -20,6 +22,8 @@ const dados = {
   PONTOS_POR_DANO: D.PONTOS_POR_DANO,
   TIPOS_ARMA: Object.fromEntries(Object.entries(D.TIPOS_ARMA).map(([k, t]) => [k, { vel: t.vel, fator: t.fator }])),
   VELOCIDADE_ARMA: D.VELOCIDADE_ARMA, ARMA_PADRAO: D.ARMA_PADRAO, RARIDADE_ARMA: D.RARIDADE_ARMA,
+  ARMAS_PREFERIDAS: Object.fromEntries(Object.entries(D.ARMAS_CLASSE).map(([k, a]) => [k, a.armas])),
+  GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte },
   MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto }])),
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, v.multDefesaMagica ? { bonus: v.bonus, multDefesaMagica: v.multDefesaMagica } : { bonus: v.bonus }])),

@@ -132,6 +132,11 @@
     var atr = D.classes[item.classe] && D.classes[item.classe].atributoDano;
     var l = [t.duasMaos ? 'Duas mãos (ocupa a mão esquerda)' : 'Uma mão', 'Velocidade: ' + D.NOME_VELOCIDADE[t.vel]
       + (t.fator !== 1 ? ' · dano x' + String(t.fator).replace('.', ',') : '')];
+    // grupo e arma preferida (16/11/2026)
+    var pg = estado.personagem, ga = D.TIPOS_ARMA[R.tipoArmaId(item)];
+    if (ga) l.push('Grupo ' + D.GRUPOS_ITEM.nomes[R.grupoDaClasse(ga.classe)]);
+    if (pg && R.podeUsar(pg, item) && R.armasPreferidas(pg).indexOf(R.tipoArmaId(item)) < 0)
+      l.push('Não é arma preferida da sua classe: habilidades com ' + D.GRUPOS_ITEM.foraPreferida + '% do dano');
     var e = item.extras;
     if (e) {   // arma por nível: extras da faixa
       Object.keys(e.atributos || {}).forEach(function (k) { l.push('+' + e.atributos[k] + ' de ' + D.atributos[k].nome); });
@@ -195,7 +200,14 @@
     return !!estado.conta && !!estado.conta.admin;
   }
 
+  // Etapa 5 do plano "tudo no servidor": o jogo não grava mais a ficha inteira. O que vale algo já foi gravado pela
+  // ação do servidor; aqui só vão as preferências (o servidor ignora o resto). Administradores e o jeito antigo (sem a
+  // função `acao`) ainda gravam direto.
   function salvar() {
+    if (typeof ACAO_SERVIDOR !== 'undefined' && ACAO_SERVIDOR && !ehAdmin()) { salvarPreferencias(); return; }
+    salvarFichaDireto();
+  }
+  function salvarFichaDireto() {
     estado.personagem.poder = R.poder(estado.personagem);   // vai junto para o ranking
     try {
       C.salvarPersonagem(estado.personagem).catch(function (e) { if (!e.conflito) avisar('Não foi possível salvar: ' + e.message); });
@@ -468,7 +480,7 @@
     var c = estado.cacada;
     R.registrarAtividade(p, seg, !!(c && c.fase !== 'parada'));
     atividade.desdeSalvar += seg;
-    if (atividade.desdeSalvar >= 60) { atividade.desdeSalvar = 0; salvar(); }
+    if (atividade.desdeSalvar >= 60) { atividade.desdeSalvar = 0; salvarPreferencias(); }
     var l = document.getElementById('atividade-logado'), k = document.getElementById('atividade-cacando');
     if (l) l.textContent = tempoAtividade(p.atividade.logado);
     if (k) k.textContent = tempoAtividade(p.atividade.cacando);
@@ -479,7 +491,7 @@
     tiqueAtividade();
     clearInterval(atividade.relogio);
     atividade.relogio = null;
-    salvar();
+    salvarPreferencias();
   }
   function tempoAtividade(segundos) {
     var s = Math.floor(Number(segundos) || 0), d = Math.floor(s / 86400), h = Math.floor(s / 3600) % 24, m = Math.floor(s / 60) % 60;
@@ -515,7 +527,7 @@
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
-    salvar();   // também marca o personagem como online para os amigos
+    salvarPreferencias();   // também marca o personagem como online para os amigos
     if (presente) setTimeout(function () {
       avisar('🎁 Os atributos mudaram! Você ganhou 1 ' + D.RECOMECO.nome + ' para redistribuir seus pontos (Herói > Atributos).', 'item');
     }, 800);
@@ -671,7 +683,7 @@
     p.caixa = p.caixa || [];
     p.caixa.unshift({ t: C.agora(), o: origem, x: texto });
     if (p.caixa.length > 80) p.caixa.length = 80;
-    salvar();
+    salvarPreferencias();
     atualizarSelos();
   }
   function caixaNaoLidas(p) {
@@ -765,7 +777,7 @@
     if (estado.painelTopo === 'caixa') {
       estado.caixaVistaAntes = p.caixaVista || 0;
       p.caixaVista = C.agora();
-      salvar();
+      salvarPreferencias();
     } else if (estado.painelTopo === 'sino') {
       var n = lerNotificacoes();
       estado.sinoVistoAntes = n.vista;
@@ -1282,7 +1294,8 @@
       + '<div class="arma-topo"><div class="icone-pequeno arma-icone borda-' + arma.raridade + aura(arma) + '">' + F.icone(arma)
       + (arma.encanto ? '<span class="nivel-encanto">+' + arma.encanto + '</span>' : '') + '</div><div class="arma-nome">' + nomeItemHtml(arma)
       + '<div><span class="selo raridade-' + arma.raridade + '">' + D.raridades[arma.raridade].nome + '</span>'
-      + ' <span class="suave pequeno">' + R.tipoArma(arma).nome + ' · ' + D.NOME_VELOCIDADE[R.tipoArma(arma).vel] + (R.tipoArma(arma).duasMaos ? ' · duas mãos' : '') + '</span></div></div></div>'
+      + ' <span class="suave pequeno">' + R.tipoArma(arma).nome + ' · ' + D.NOME_VELOCIDADE[R.tipoArma(arma).vel] + (R.tipoArma(arma).duasMaos ? ' · duas mãos' : '')
+      + (R.fatorArmaHab(estado.personagem) < 1 ? ' · <span class="menos">habilidades ' + D.GRUPOS_ITEM.foraPreferida + '%</span>' : '') + '</span></div></div></div>'
       + '<div class="arma-stats">'
       + stat('Dano da arma', dano(dArma), extra ? 'Inclui +' + extra + ' do encanto' : '')
       + stat('Por golpe', dano(s.dano), 'Com os seus atributos')
@@ -1425,7 +1438,7 @@
     var p = estado.personagem, s = R.status(p), sel = selecaoArea(area), e = estiloArea(area, D.areas.indexOf(area));
     var livres = area.monstros.filter(function (m) { return R.monstroLiberado(p, m.id); }).length;
     return '<div class="regiao-topo" style="--cor:' + e.cor + '"><button class="btn secundario btn-pequeno" data-acao="mapa">← Mapa</button>'
-      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são da sua classe.'
+      + '<div><h3>' + iconeArea(area) + ' ' + area.nome + '</h3><p class="suave pequeno">' + area.descricao + ' Armas e armaduras que caem são do seu grupo (Pesado, Leve ou Mágico).'
       + (R.mochilaCheia(p) ? ' <strong class="menos">Mochila cheia: venda itens para receber drops.</strong>' : '') + '</p></div></div>'
       + '<div class="cacada-escolha"><span>Monstros da caçada: <strong>' + sel.length + '</strong> de ' + livres + '</span>'
       + '<button class="btn secundario btn-pequeno" data-acao="cacada-todos" data-valor="' + area.id + '">' + (sel.length === livres ? 'Limpar' : 'Selecionar todos') + '</button>'
@@ -1484,7 +1497,7 @@
     } else {
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
-        : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é da sua classe') + '</span>';
+        : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é do seu grupo') + '</span>';
       acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
@@ -1584,7 +1597,7 @@
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
       acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
-          : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é da sua classe') + '</span>')
+          : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é do seu grupo') + '</span>')
         + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
@@ -2063,7 +2076,8 @@
     var f = filtroMercado();
     estado.mercadoCarregando = true;
     // Só o que a minha classe usa: o servidor filtra com as regras daqui (armas, mão esquerda e armaduras da classe).
-    var filtro = f.soClasse ? { classe: p.classe, armas: R.armasPermitidas(p), maos: R.maoPermitida(p), padrao: D.ARMA_PADRAO } : null;
+    var filtro = f.soClasse ? { classe: p.classe, armas: R.armasPermitidas(p), maos: R.maoPermitida(p), padrao: D.ARMA_PADRAO,
+      classes: Object.keys(D.GRUPOS_ITEM.classes).filter(function (c) { return R.grupoDaClasse(c) === R.grupoDe(p); }) } : null;
     C.mercado.estado(p.id, f.categoria, f.ordem, f.pagina, filtro).then(function (r) {
       estado.mercadoCarregando = false;
       if (estado.personagem !== p) return;
@@ -2122,7 +2136,7 @@
       + '<label class="mercado-ordem">Ordenar por <select id="mercado-ordem">' + ORDENS_MERCADO.map(function (o) {
         return '<option value="' + o[0] + '"' + (f.ordem === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
       }).join('') + '</select></label>'
-      + '<label class="mercado-so-classe"><input type="checkbox" data-acao="mercado-so-classe"' + (f.soClasse ? ' checked' : '') + '> Só o que a minha classe usa</label>'
+      + '<label class="mercado-so-classe"><input type="checkbox" data-acao="mercado-so-classe"' + (f.soClasse ? ' checked' : '') + '> Só o que o meu grupo usa</label>'
       + '<button class="btn secundario btn-pequeno" data-acao="mercado-atualizar">Atualizar</button>'
       + '<button class="btn" data-acao="mercado-vender-abrir">Vender</button></div>';
     if (estado.mercadoErro) h += '<p class="menos">' + esc(estado.mercadoErro) + '</p>';
@@ -2205,12 +2219,11 @@
     if (estado.mercadoOcupado) return;
     estado.mercadoOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);              // o servidor tira o item do personagem salvo
+      await gravarAntesDoBanco(p);              // o servidor tira o item do personagem salvo
       var r = await C.mercado.anunciar(p.id, id, perg, qtd, preco);
       if (id) p.inventario = p.inventario.filter(function (i) { return i.id !== id; });
       else R.mudarConsumivel(p, ctipo, crar, -qtd);
-      salvar();
+      sincronizarFicha();
       avisar('Anunciado no mercado por ' + ouroTxt(preco) + ' de ouro.', 'item');
       receberMercado(r);
       atualizarFicha();
@@ -2224,8 +2237,7 @@
     if (a.item.tipo !== 'pergaminho' && TIPOS_CRAFT.indexOf(a.item.tipo) < 0 && R.mochilaCheia(p)) { avisar('Mochila cheia! Libere espaço antes de comprar.'); return; }
     estado.mercadoOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);              // o servidor confere o ouro salvo
+      await gravarAntesDoBanco(p);              // o servidor confere o ouro salvo
       var r = await C.mercado.comprar(p.id, id);
       avisar('Compra feita! O item vai para a sua mochila.', 'item');
       receberMercado(r);
@@ -2347,11 +2359,12 @@
     var r = estado.leilao, id = estado.leilaoVer;
     var l = r && r.lotes && r.lotes.filter(function (x) { return String(x.id) === String(id); })[0];
     if (!l || l.item.consumivel) return '';
-    var p = estado.personagem, outro = l.classe && l.classe !== p.classe ? null : itemParaComparar(p, l.item);
+    var outroGrupo = l.classe && R.grupoDaClasse(l.classe) !== R.grupoDe(estado.personagem);
+    var p = estado.personagem, outro = outroGrupo ? null : itemParaComparar(p, l.item);
     return '<div class="zoom-fundo leilao-zoom" data-acao="leilao-fechar"><div class="zoom-janela" role="dialog" aria-label="Lote do leilão">'
       + '<button class="zoom-x" data-acao="leilao-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas">' + cartaZoom(l.item, outro, 'Lote do leilão') + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
-      + (l.classe && l.classe !== p.classe ? '<p class="menos pequeno">Item de ' + NOME_CLASSE_LOTE[l.classe] + ': só essa classe usa.</p>' : '')
+      + (outroGrupo ? '<p class="menos pequeno">Item do grupo ' + D.GRUPOS_ITEM.nomes[R.grupoDaClasse(l.classe)] + ': só esse grupo usa.</p>' : '')
       + '<div class="botoes"><button class="btn secundario" data-acao="leilao-fechar">Fechar</button></div></div></div>';
   }
   async function darLance(id) {
@@ -2362,8 +2375,7 @@
     if (estado.leilaoLance) return;
     estado.leilaoLance = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);           // o servidor confere o ouro salvo
+      await gravarAntesDoBanco(p);           // o servidor confere o ouro salvo
       var r = await C.leilao.lance(p.id, Number(id), valor);
       (r.lotes || []).forEach(function (l) { l.item = R.itemDoLote(l); });
       estado.leilao = r;
@@ -2861,12 +2873,11 @@
       itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
     estado.oficinaOcupado = true;
     try {
-      p.poder = R.poder(p);
-      await C.salvarPersonagem(p);                // o servidor tira do personagem salvo
+      await gravarAntesDoBanco(p);                // o servidor tira do personagem salvo
       var r = await C.oficina.pedir(p.id, x.id, tipo, itemId, op);
       if (r.item_id) p.inventario = p.inventario.filter(function (i) { return i.id !== r.item_id; });
       (r.insumos || []).forEach(function (i) { R.mudarConsumivel(p, i.tipo, i.raridade, -i.qtd); });
-      salvar();
+      sincronizarFicha();
       estado.contratar = null;
       if (r.feito) avisar('🤝 ' + x.nome + ' fez na hora: ' + resultadoCurto(tipo, r.resultado || {}) + ' Chega já já na mochila.', (r.resultado || {}).sucesso === false ? '' : 'item');
       else avisar('Pedido enviado para ' + x.nome + '! Você vê o resultado em "Meus pedidos".', 'item');
@@ -2979,8 +2990,13 @@
     else if (acao === 'login') { missoesUI.aberto = false; estado.loginAberto = true; estado.loginResultado = null; telaJogo(); }
     else if (acao === 'secao') missoesUI[el.dataset.tipo] = !missoesUI[el.dataset.tipo];
     else if (acao === 'resgatar' || acao === 'bau') {
-      var premio = acao === 'bau' ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, el.dataset.tipo, el.dataset.id, C.agora());
-      if (premio) { salvar(); atualizarFicha(); avisar((acao === 'bau' ? 'Baú do dia: ' : 'Missão concluída: ') + premio + '!', acao === 'bau' ? 'item' : 'nivel'); }
+      var premioLocal = null, ehBau = acao === 'bau', tipoM = el.dataset.tipo, idM = el.dataset.id;
+      acaoServidor(ehBau ? 'bauDiario' : 'missao', ehBau ? null : [tipoM, idM], function () {
+        premioLocal = ehBau ? R.resgatarBonusDiario(p, C.agora()) : R.resgatarMissao(p, tipoM, idM, C.agora());
+      }).then(function (r) {
+        var premio = r ? r.resultado : premioLocal;
+        if (premio) { atualizarFicha(); desenharMissoes(); avisar((ehBau ? 'Baú do dia: ' : 'Missão concluída: ') + premio + '!', ehBau ? 'item' : 'nivel'); }
+      });
     }
     desenharMissoes();
   }
@@ -2993,17 +3009,25 @@
     var alvoEnc = p.inventario.find(function (i) { return i.id === id; });
     var antesEnc = alvoEnc && Object.assign({}, alvoEnc);
     var chanceEnc = alvoEnc && R.chanceEncantar(p, alvoEnc), riscoEnc = alvoEnc && R.riscoEncantar(alvoEnc);
-    // O resultado é sorteado e salvo antes da animação (recarregar a página no meio não muda nada).
-    var tentativa = R.encantar(p, id, null, !!estado.usarProtecao);
-    if (tentativa && tentativa.protegido) riscoEnc = 'protegido';
+    // O resultado é sorteado e gravado NO SERVIDOR antes da animação (recarregar a página no meio não muda nada).
+    if (!alvoEnc || estado.encantando) return;
+    estado.encantando = true;
     estado.encantoPendente = null;
-    if (tentativa) {
-      R.registrarMissao(p, 'encantar', 1, C.agora());
+    var local = null;
+    acaoServidor('encantar', [id, !!estado.usarProtecao], function () {   // jeito antigo (sem a função no servidor)
+      local = R.encantar(p, id, null, !!estado.usarProtecao);
+      if (local) {
+        R.registrarMissao(p, 'encantar', 1, C.agora());
+        if (local.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
+      }
+    }).then(function (r) {
+      estado.encantando = false;
+      var tentativa = r ? r.resultado : local;
+      if (!tentativa) { telaJogo(); return; }
+      if (tentativa.protegido) riscoEnc = 'protegido';
       missaoCla('encantar', 1);
-      if (tentativa.sucesso) R.registrarMissao(p, 'encantoSucesso', 1, C.agora());
-      salvar();
       abrirForja(antesEnc, tentativa, chanceEnc, riscoEnc, rapido);
-    }
+    });
   }
 
   function abrirForja(item, res, chance, risco, rapido) {
@@ -3864,8 +3888,8 @@
     var p = estado.personagem, area = D.areas.find(function (a) { return a.id === areaId; });
     var alvos = soEstes ? soEstes.slice() : area ? selecaoArea(area).slice() : [];
     if (!alvos.length) { avisar('Escolha pelo menos um monstro.'); return; }
-    if (R.atualizarTempo(p, C.agora())) salvar();
-    if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
+    R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
+    if (p.acampado) { R.acampar(p, C.agora(), false); acaoServidor('acampar', false); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
     if (!R.estaminaParaCacar(p, alvos)) { avisar('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     pararTimersCacada();
     estado.resultado = null;
@@ -3898,7 +3922,7 @@
   function procurarMonstro() {
     var c = estado.cacada, p = estado.personagem;
     if (!c || !c.ativa) return;
-    if (R.atualizarTempo(p, C.agora())) salvar();
+    R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
     if (!R.estaminaParaCacar(p, c.alvos)) { pararCacada('Sem estamina: acampe, espere encher ou use um pote de estamina (Mercado).'); return; }
     c.fase = 'buscando';
     c.encontro = null;
@@ -4069,6 +4093,82 @@
     if (!novo || novo === p || novo.id !== p.id) return;
     Object.keys(p).forEach(function (k) { delete p[k]; });
     Object.assign(p, novo);
+  }
+  // ---- Ações do herói decididas pelo servidor (plano "tudo no servidor", etapa 1, Henri nov/2026) ----
+  // A regra roda aqui na hora (a tela responde sem esperar) e na função `acao` do servidor, que grava; a resposta do
+  // servidor substitui o personagem (se o servidor recusar, volta ao que está no banco). Sem a função publicada (404),
+  // grava do jeito antigo.
+  var ACAO_SERVIDOR = typeof C.acao === 'function', ACAO_RESPONDEU = false;
+  // local: quando a ação é sorteada no servidor (comprar), a tela não aplica antes; `local` é o jeito antigo, usado
+  // só se a função não existir. Devolve uma promessa com a resposta do servidor (null no jeito antigo ou com erro).
+  function acaoServidor(nome, args, local) {
+    var p = estado.personagem;
+    var antigo = function () { if (local) local(); p.poder = R.poder(p); salvarFichaDireto(); return null; };
+    if (!ACAO_SERVIDOR) return Promise.resolve(antigo());
+    p.poder = R.poder(p);
+    return C.acao(p.id, nome, args).then(function (r) {
+      ACAO_RESPONDEU = true;
+      if (!estado.personagem || estado.personagem.id !== p.id) return null;
+      if (r && r.personagem) adotarPersonagem(r.personagem);
+      if (r && r.erro) {
+        avisar(r.erro);
+        if (!estado.luta && !estado.batalha && !estado.lutaArena) telaJogo();
+        return null;
+      }
+      return r;
+    }, function (e) {
+      if (e && e.conflito) return null;   // o jogo já recarrega o personagem
+      if (e && (e.status === 404 || (!e.status && !ACAO_RESPONDEU))) { ACAO_SERVIDOR = false; return antigo(); }
+      avisar('Não foi possível salvar: ' + ((e && e.message) || e));
+      return null;
+    });
+  }
+  // O que não vale nada (preferências, caixa de entrada, tempo jogado...) vai pela ação `preferencias`: o servidor só
+  // aceita esses campos. Junta vários pedidos seguidos num só.
+  var prefsTimer = null;
+  function prefsAtuais() {
+    var p = estado.personagem;
+    return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
+      atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador };
+  }
+  function salvarPreferencias() {
+    if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
+    clearTimeout(prefsTimer);
+    prefsTimer = setTimeout(function () { if (estado.personagem) acaoServidor('preferencias', prefsAtuais()); }, 400);
+  }
+  // Depois de uma função do banco mexer na ficha (Mercado, leilão, Oficina): busca a ficha do servidor (e grava as
+  // preferências junto). No jeito antigo, grava a ficha como antes.
+  function sincronizarFicha() {
+    if (!ACAO_SERVIDOR) { salvarFichaDireto(); return Promise.resolve(); }
+    clearTimeout(prefsTimer);
+    return acaoServidor('preferencias', prefsAtuais());
+  }
+  // Antes de uma função do banco ler a ficha: no jeito antigo, grava primeiro (no novo, o servidor já tem tudo).
+  function gravarAntesDoBanco(p) {
+    p.poder = R.poder(p);
+    return ACAO_SERVIDOR ? Promise.resolve() : C.salvarPersonagem(p);
+  }
+  // Prêmios (recompensas) e créditos (ouro/reputação) guardados no servidor: o servidor entrega e marca.
+  var avisoCheiaEm = 0;
+  function receberPendentes() {
+    var p = estado.personagem, g = estado.gm;
+    if (!p || estado.resgatando) return Promise.resolve();
+    estado.resgatando = true;
+    return acaoServidor('receber').then(function (r) {
+      estado.resgatando = false;
+      if (g) g.recompensas = [];
+      var av = r && r.resultado ? r.resultado.avisos : [];
+      av.forEach(function (a) {
+        if (/^Mochila cheia/.test(a.texto)) {   // não repete o aviso a cada atualização
+          if (avisoCheiaEm && Date.now() - avisoCheiaEm < 60000) return;
+          avisoCheiaEm = Date.now();
+        }
+        avisar(a.texto, a.tipo);
+        if (a.origem) caixaRegistrar(a.origem, a.texto);
+      });
+      if (!estado.luta && !estado.batalha && !estado.resultado && !estado.chefeAviso && !estado.lutaArena) telaJogo();
+    });
   }
   function erroCacada(e) {
     var c = estado.cacada;
@@ -4394,7 +4494,11 @@
   }
 
   function abrirAba(aba) {
-    if (estado.personagem) R.registrarGuia(estado.personagem, 'aba', aba);
+    if (estado.personagem) {
+      var gAntes = estado.personagem.guia && !estado.personagem.guia.fim && !estado.personagem.guia.loja;
+      R.registrarGuia(estado.personagem, 'aba', aba);
+      if (gAntes && estado.personagem.guia.loja) acaoServidor('guiaAba', aba);
+    }
     var menu = document.getElementById('menu-jogo');
     if (menu) menu.open = false;
     estado.aba = aba;
@@ -4664,14 +4768,19 @@
       case 'jogar': abrirJogo(el.dataset.id); break;
       case 'login-fechar': estado.loginAberto = false; estado.loginResultado = null; telaJogo(); break;
       case 'login-pegar': {
-        var rl = R.pegarLogin(estado.personagem, C.agora());
-        if (!rl) break;
-        if (rl.erro) { avisar(rl.erro); break; }
-        estado.loginResultado = rl;
-        salvar(); atualizarFicha(); desenharMissoes();
-        rl.itens.forEach(avisarItem);
-        avisar('🎁 Prêmio de login: ' + rl.partes.map(function (x) { return x.texto; }).join(' + '), 'item');
-        telaJogo();
+        var loginLocal = null;
+        el.disabled = true;
+        acaoServidor('pegarLogin', null, function () { loginLocal = R.pegarLogin(estado.personagem, C.agora()); }).then(function (r) {
+          var rl = r ? r.resultado : loginLocal;
+          el.disabled = false;
+          if (!rl) return;
+          if (rl.erro) { avisar(rl.erro); return; }
+          estado.loginResultado = rl;
+          atualizarFicha(); desenharMissoes();
+          rl.itens.forEach(avisarItem);
+          avisar('🎁 Prêmio de login: ' + rl.partes.map(function (x) { return x.texto; }).join(' + '), 'item');
+          telaJogo();
+        });
         break;
       }
       case 'aba': estado.cascata = false; estado.cascataGrupo = null; abrirAba(el.dataset.aba); break;
@@ -4725,13 +4834,13 @@
         telaJogo();
         break;
       case 'desequipar':
-        if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; salvar(); telaJogo(); }
+        if (R.desequipar(p, el.dataset.slot)) { estado.zoom = null; acaoServidor('desequipar', el.dataset.slot); telaJogo(); }
         else avisar('Mochila cheia! Venda algo antes de desequipar.');
         break;
       case 'trocar-pergaminho': {
         var troca = R.trocarPergaminho(p, el.dataset.raridade);
         if (troca.erro) { avisar(troca.erro); break; }
-        salvar();
+        acaoServidor('trocarPergaminho', el.dataset.raridade);
         avisar('Troca feita! +1 Pergaminho para item ' + ITEM_RARIDADE[troca.para] + '.', 'item');
         telaJogo();
         break;
@@ -4739,13 +4848,13 @@
       case 'skin-comprar': {
         var r = R.comprarSkin(p, el.dataset.valor);
         if (r !== true) { avisar(r); break; }
-        salvar();
+        acaoServidor('comprarSkin', el.dataset.valor);
         avisar('Skin comprada e em uso no seu D20!');
         telaJogo();
         break;
       }
       case 'skin-usar':
-        if (R.usarSkin(p, el.dataset.valor)) { salvar(); telaJogo(); }
+        if (R.usarSkin(p, el.dataset.valor)) { acaoServidor('usarSkin', el.dataset.valor); telaJogo(); }
         break;
       case 'arena-ver':
         estado.arenaVer = el.dataset.valor;
@@ -4820,9 +4929,9 @@
       case 'leilao-fechar':
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn, .zoom-x')) break;
         estado.leilaoVer = null; telaJogo(); break;
-      case 'guia-comecar': R.comecarGuia(estado.personagem); salvar(); telaJogo(); break;
+      case 'guia-comecar': R.comecarGuia(estado.personagem); acaoServidor('comecarGuia'); telaJogo(); break;
       case 'guia-pular':
-        if (estado.guiaPularConfirma) { R.pularGuia(estado.personagem); estado.guiaPularConfirma = false; salvar(); telaJogo(); }
+        if (estado.guiaPularConfirma) { R.pularGuia(estado.personagem); estado.guiaPularConfirma = false; acaoServidor('pularGuia'); telaJogo(); }
         else { estado.guiaPularConfirma = true; avisar('Clique de novo para fechar o guia. Sem o guia, você não ganha o presente do final.'); setTimeout(function () { estado.guiaPularConfirma = false; }, 6000); }
         break;
       case 'historia-ver': {
@@ -4830,15 +4939,21 @@
         if (!eh || eh.fim) break;
         estado.historiaCena = { rotulo: 'Capítulo ' + (eh.indice + 1) + ' · ' + nomeArea(eh.capitulo.area), titulo: eh.capitulo.titulo,
           falas: eh.capitulo.abertura, botao: eh.visto ? 'Fechar' : 'Aceitar a missão' };
-        if (!eh.visto) { R.marcarHistoriaVista(estado.personagem); salvar(); }
+        if (!eh.visto) { R.marcarHistoriaVista(estado.personagem); acaoServidor('historiaVista'); }
         telaJogo(); break;
       }
       case 'historia-concluir': {
-        var fim = R.concluirCapitulo(estado.personagem);
-        if (!fim) break;
-        if (fim.erro) { avisar(fim.erro); break; }
-        estado.historiaCena = { rotulo: 'Fim do capítulo', titulo: fim.capitulo.titulo, falas: fim.capitulo.fechamento, premio: fim.premio };
-        salvar(); telaJogo(); break;
+        var fimLocal = null;
+        el.disabled = true;
+        acaoServidor('concluirCapitulo', null, function () { fimLocal = R.concluirCapitulo(estado.personagem); }).then(function (r) {
+          var fim = r ? r.resultado : fimLocal;
+          el.disabled = false;
+          if (!fim) return;
+          if (fim.erro) { avisar(fim.erro); return; }
+          estado.historiaCena = { rotulo: 'Fim do capítulo', titulo: fim.capitulo.titulo, falas: fim.capitulo.fechamento, premio: fim.premio };
+          telaJogo();
+        });
+        break;
       }
       case 'historia-reler': {
         var cr = D.HISTORIA.capitulos[Number(el.dataset.valor)];
@@ -4873,9 +4988,10 @@
       }
       case 'mochila-organizar': {
         var vm = visaoMochila();
-        R.organizarMochila(p, vm.ordem === 'mochila' ? 'raridade' : vm.ordem, vm.ordem === 'mochila' ? false : vm.crescente);
+        var critOrg = vm.ordem === 'mochila' ? 'raridade' : vm.ordem, cresOrg = vm.ordem === 'mochila' ? false : vm.crescente;
+        R.organizarMochila(p, critOrg, cresOrg);
         vm.ordem = 'mochila';
-        salvar();
+        acaoServidor('organizarMochila', [critOrg, cresOrg]);
         telaJogo();
         avisar('Mochila organizada.');
         break;
@@ -4903,7 +5019,7 @@
         if (!lt.confirmar) { lt.confirmar = true; atualizarTotalLote(); break; }
         var vendeu = R.venderVarios(p, idsLote);
         estado.vendaLote = { ids: {}, confirmar: false };
-        salvar();
+        if (vendeu.vendidos) acaoServidor('venderVarios', idsLote);
         telaJogo();
         atualizarTotalLote();
         avisar('Vendidos ' + vendeu.vendidos + ' item(ns): +' + vendeu.ouro.toLocaleString('pt-BR') + ' de ouro', 'item');
@@ -4912,7 +5028,7 @@
       case 'item-travar':
         R.travarItem(p, el.dataset.id);
         estado.vendaPendente = null;
-        salvar();
+        acaoServidor('travarItem', el.dataset.id);
         telaJogo();
         break;
       case 'ficha-status':
@@ -4961,6 +5077,7 @@
         entrarMasmorra(el);
         break;
       case 'luta-velocidade':
+        relogioLuta(estado.luta);   // o tempo até aqui conta na velocidade antiga
         estado.luta.rapido = !estado.luta.rapido;
         redesenharLuta();
         break;
@@ -5041,7 +5158,7 @@
         var ru = R.usarRecomeco(p);
         estado.recomecoPendente = false;
         estado.pontosPend = null;
-        if (ru === true) { salvar(); telaJogo(); avisar('Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir!', 'nivel'); }
+        if (ru === true) { acaoServidor('usarRecomeco'); telaJogo(); avisar('Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir!', 'nivel'); }
         else { avisar(ru); atualizarFicha(); }
         break;
       }
@@ -5049,7 +5166,7 @@
         var sc = D.SEGUNDAS_CLASSES[el.dataset.valor];
         if (!sc || !confirm('Virar ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '? Só dá para trocar com o ' + D.RECOMECO_HABILIDADES.nome + '.')) break;
         var rcl = R.escolherSegundaClasse(p, el.dataset.valor);
-        if (rcl === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Agora você é ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '! Distribua os seus pontos.', 'nivel'); }
+        if (rcl === true) { estado.habPend = {}; acaoServidor('segundaClasse', el.dataset.valor); telaJogo(); avisar('Agora você é ' + ((p.sexo === 'feminino' && sc.nomeF) || sc.nome) + '! Distribua os seus pontos.', 'nivel'); }
         else avisar(rcl);
         break;
       }
@@ -5070,31 +5187,33 @@
       case 'hab-cancelar': estado.habPend = {}; telaJogo(); break;
       case 'hab-confirmar': {
         var pdc = pendHab();
-        Object.keys(pdc).forEach(function (k) { for (var i = 0; i < pdc[k]; i++) R.mudarPontoHabilidade(p, k, 1); });
+        var feitosHab = {};
+        Object.keys(pdc).forEach(function (k) { for (var i = 0; i < pdc[k]; i++) if (R.mudarPontoHabilidade(p, k, 1) === true) feitosHab[k] = (feitosHab[k] || 0) + 1; });
         estado.habPend = {};
-        salvar(); telaJogo(); avisar('Pontos de habilidade confirmados!');
+        if (Object.keys(feitosHab).length) acaoServidor('pontosHabilidade', feitosHab);
+        telaJogo(); avisar('Pontos de habilidade confirmados!');
         break;
       }
       case 'hab-ordem':
-        R.moverHabilidade(p, el.dataset.modo, el.dataset.id, el.dataset.op);
-        salvar(); telaJogo();
+        if (R.moverHabilidade(p, el.dataset.modo, el.dataset.id, el.dataset.op)) acaoServidor('ordemHabilidade', [el.dataset.modo, el.dataset.id, el.dataset.op]);
+        telaJogo();
         break;
       case 'hab-pergaminho-comprar': {
         var rh = R.comprarRecomecoHabilidades(p);
-        if (rh === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO_HABILIDADES.nome + '!', 'item'); }
+        if (rh === true) { acaoServidor('comprarRecomecoHabilidades'); telaJogo(); avisar('Você comprou o ' + D.RECOMECO_HABILIDADES.nome + '!', 'item'); }
         else avisar(rh);
         break;
       }
       case 'hab-pergaminho-usar': {
         if (!confirm('Usar o ' + D.RECOMECO_HABILIDADES.nome + '? Os pontos voltam e você escolhe a segunda classe de novo.')) break;
         var uh = R.usarRecomecoHabilidades(p);
-        if (uh === true) { estado.habPend = {}; salvar(); telaJogo(); avisar('Habilidades zeradas: escolha a segunda classe de novo.', 'nivel'); }
+        if (uh === true) { estado.habPend = {}; acaoServidor('usarRecomecoHabilidades'); telaJogo(); avisar('Habilidades zeradas: escolha a segunda classe de novo.', 'nivel'); }
         else avisar(uh);
         break;
       }
       case 'recomeco-comprar': {
         var rc = R.comprarRecomeco(p);
-        if (rc === true) { salvar(); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
+        if (rc === true) { acaoServidor('comprarRecomeco'); telaJogo(); avisar('Você comprou o ' + D.RECOMECO.nome + '!', 'item'); }
         else avisar(rc);
         break;
       }
@@ -5103,34 +5222,34 @@
         atualizarFicha();
         break;
       case 'pontos-confirmar': {
-        var pc = pontosPendentes(), dados = 0;
-        R.ATRIBUTOS.forEach(function (k) { while (pc[k] > 0 && R.distribuirPonto(p, k)) { pc[k] -= 1; dados++; } });
+        var pc = pontosPendentes(), dados = 0, feitos = {};
+        R.ATRIBUTOS.forEach(function (k) { while (pc[k] > 0 && R.distribuirPonto(p, k)) { pc[k] -= 1; dados++; feitos[k] = (feitos[k] || 0) + 1; } });
         estado.pontosPend = null;
-        salvar();
+        if (dados) acaoServidor('atributos', feitos);
         telaJogo();
         if (dados) avisar(dados + ' ponto(s) de atributo distribuído(s)!', 'nivel');
         break;
       }
       case 'acampar':
         R.acampar(p, C.agora(), true);
-        salvar();
+        acaoServidor('acampar', true);
         avisar(p.nome + ' monta acampamento junto à fogueira. A estamina enche em ' + (D.ESTAMINA.minutosAcampado / 60) + ' h.');
         telaJogo();
         break;
       case 'levantar':
         R.acampar(p, C.agora(), false);
-        salvar();
+        acaoServidor('acampar', false);
         telaJogo();
         break;
       case 'pocao-comprar': {
         var rp = R.comprarPocao(p);
-        if (rp === true) { salvar(); avisar('Poção de vida comprada.', 'vitoria'); } else avisar(rp);
+        if (rp === true) { acaoServidor('comprarPocao'); avisar('Poção de vida comprada.', 'vitoria'); } else avisar(rp);
         telaJogo();
         break;
       }
       case 'pote-estamina': {
         var re = R.comprarPoteEstamina(p, C.agora());
-        if (re === true) { salvar(); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
+        if (re === true) { acaoServidor('comprarPoteEstamina'); avisar('Você bebe o pote: +' + D.ESTAMINA.pote.enche + ' de estamina.', 'vitoria'); } else avisar(re);
         telaJogo();
         break;
       }
@@ -5141,7 +5260,7 @@
         }
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; salvar(); telaJogo(); }
+        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; acaoServidor('equipar', el.dataset.id); telaJogo(); }
         else avisar(R.motivoNaoEquipa(p, p.inventario.find(function (i) { return i.id === el.dataset.id; })) || 'Não foi possível equipar (mochila cheia?).');
         break;
       case 'pedir-venda':
@@ -5152,7 +5271,7 @@
         var item = p.inventario.find(function (i) { return i.id === el.dataset.id; });
         var valor = item ? R.precoVenda(item) : 0;
         if (item && R.vender(p, item.id)) {
-          salvar();
+          acaoServidor('vender', item.id);
           avisar('Você vendeu ' + R.nomeItem(item) + ' por ' + valor + ' de ouro.');
           estado.itemFoco = null;
           estado.zoom = null;
@@ -5162,12 +5281,24 @@
         break;
       }
       case 'comprar': {
-        var comprado = el.dataset.raridade ? R.comprar(p, el.dataset.raridade, el.dataset.tipo, el.dataset.especifico || undefined)
-          : R.comprar(p, el.dataset.tipo, el.dataset.especifico || undefined);
-        if (typeof comprado === 'string') { avisar(comprado); break; }
-        salvar();
-        avisar('Você comprou ' + R.nomeItem(comprado) + ' (nível ' + comprado.nivel + ', ' + D.raridades[comprado.raridade].nome + ')! Está na mochila.');
-        telaJogo();
+        // o item é sorteado no servidor: a tela espera a resposta (no jeito antigo, sorteia aqui)
+        var pedidoCompra = { raridade: el.dataset.raridade || null, tipo: el.dataset.tipo, especifico: el.dataset.especifico || null };
+        var avisarCompra = function (it) {
+          if (!it) return;
+          avisar('Você comprou ' + R.nomeItem(it) + ' (nível ' + (it.nivel || 1) + ', ' + D.raridades[it.raridade].nome + ')! Está na mochila.');
+          telaJogo();
+        };
+        var compraLocal = null, idsAntes = p.inventario.map(function (i) { return i.id; });
+        el.disabled = true;
+        acaoServidor('comprar', pedidoCompra, function () {
+          compraLocal = pedidoCompra.raridade ? R.comprar(p, pedidoCompra.raridade, pedidoCompra.tipo, pedidoCompra.especifico || undefined)
+            : R.comprar(p, pedidoCompra.tipo, pedidoCompra.especifico || undefined);
+          if (typeof compraLocal === 'string') { avisar(compraLocal); compraLocal = null; }
+        }).then(function (r) {
+          el.disabled = false;
+          var novo = r ? estado.personagem.inventario.filter(function (i) { return idsAntes.indexOf(i.id) < 0; }).pop() : compraLocal;
+          avisarCompra(novo);
+        });
         break;
       }
       case 'pedir-encanto':
@@ -5181,34 +5312,35 @@
       case 'minas-iniciar': {
         if (estado.cacada || estado.batalha || estado.lutaArena) { avisar('Termine a caçada ou a luta antes de minerar.'); break; }
         if (naFilaMasmorra('minerar')) break;
-        var rm = R.iniciarMinas(p, estado.minasTempo == null ? 1 : estado.minasTempo, C.agora(), estado.minasArea);
-        if (rm !== true) avisar(rm); else { salvar(); avisar('⛏ Mineração começou! Volte quando terminar.'); }
+        var opMinas = estado.minasTempo == null ? 1 : estado.minasTempo;
+        var rm = R.iniciarMinas(p, opMinas, C.agora(), estado.minasArea);
+        if (rm !== true) avisar(rm); else { acaoServidor('iniciarMinas', [opMinas, estado.minasArea]); avisar('⛏ Mineração começou! Volte quando terminar.'); }
         telaJogo();
         break;
       }
-      case 'minas-parar': {
-        var rp2 = R.pararMinas(p, C.agora());
-        if (typeof rp2 !== 'string') salvar();
-        avisoMinas(rp2, true);
-        telaJogo();
-        break;
-      }
+      case 'minas-parar':
       case 'minas-recolher': {
-        var rc = R.recolherMinas(p, C.agora());
-        if (typeof rc !== 'string') salvar();
-        avisoMinas(rc, false);
-        telaJogo();
+        // a quantidade minerada é sorteada no servidor
+        var parouMinas = el.dataset.acao === 'minas-parar', minasLocal = null;
+        el.disabled = true;
+        acaoServidor(parouMinas ? 'pararMinas' : 'recolherMinas', null, function () {
+          minasLocal = parouMinas ? R.pararMinas(p, C.agora()) : R.recolherMinas(p, C.agora());
+        }).then(function (r) {
+          var rmin = r ? r.resultado : minasLocal;
+          if (rmin) avisoMinas(rmin, parouMinas);
+          telaJogo();
+        });
         break;
       }
       case 'craft-receita': {
         var rr = R.fabricarReceita(p, el.dataset.id);
-        if (rr !== true) avisar(rr); else { salvar(); avisar('📜 Receita fabricada!', 'item'); }
+        if (rr !== true) avisar(rr); else { acaoServidor('fabricarReceita', el.dataset.id); avisar('📜 Receita fabricada!', 'item'); }
         telaJogo();
         break;
       }
       case 'craft-protecao': {
         var rp = R.fabricarProtecao(p, el.dataset.id);
-        if (rp !== true) avisar(rp); else { salvar(); avisar('🛡 Pergaminho de Proteção fabricado!', 'item'); }
+        if (rp !== true) avisar(rp); else { acaoServidor('fabricarProtecao', el.dataset.id); avisar('🛡 Pergaminho de Proteção fabricado!', 'item'); }
         telaJogo();
         break;
       }
@@ -5240,10 +5372,16 @@
       }
       case 'forjar': {
         var fa = forjaAtual(p);   // as mesmas escolhas que a tela mostra
-        var rf = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
-        if (typeof rf === 'string') avisar(rf);
-        else { salvar(); avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item raridade-' + rf.item.raridade); }
-        telaJogo();
+        var forjaLocal = null;
+        el.disabled = true;
+        acaoServidor('forjar', { area: fa.area, classe: fa.classe, tipo: fa.tipo, chefe: fa.chefe, gemas: fa.gemas }, function () {
+          forjaLocal = R.forjar(p, fa.area, fa.classe, fa.tipo, fa.chefe, fa.gemas);
+          if (typeof forjaLocal === 'string') { avisar(forjaLocal); forjaLocal = null; }
+        }).then(function (r) {
+          var rf = r ? r.resultado : forjaLocal;
+          if (rf && rf.item) avisar((rf.obraPrima ? '✨ OBRA-PRIMA! ' : '🔨 ') + 'Você forjou ' + R.nomeItem(rf.item) + ' (' + nomeRaridadeItem(rf.item) + ')!', 'item raridade-' + rf.item.raridade);
+          telaJogo();
+        });
         break;
       }
       case 'usar-protecao':
@@ -5304,16 +5442,16 @@
       case 'auto-habilidade':
         p.habilidadeAuto = el.checked;
         if (estado.batalha) estado.batalha.auto = el.checked;
-        salvar();
+        acaoServidor('habilidadeAuto', el.checked);
         break;
       case 'cacar': {
         var alvo = el.dataset.monstro;
         if (!R.monstroLiberado(p, alvo)) { avisar('Derrote ' + D.monstros[R.monstroAnterior(alvo)].nome + ' primeiro.'); break; }
         if (!R.podeCacar(p, alvo)) { avisar('Essa área ainda não foi liberada.'); break; }
-        if (R.atualizarTempo(p, C.agora())) salvar();
+        R.atualizarTempo(p, C.agora());   // (o servidor recalcula a estamina sozinho em cada ação)
         estado.resultado = null; iniciarCacada(D.monstros[alvo].area, [alvo]);   // luta avulsa virou caçada de um monstro só
         break;
-        if (p.acampado) { R.acampar(p, C.agora(), false); salvar(); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
+        if (p.acampado) { R.acampar(p, C.agora(), false); acaoServidor('acampar', false); avisar('Acampamento levantado. Boa caçada!'); }   // caçar levanta o acampamento sozinho
         var chefe = R.sortearChefe(p, alvo);
         if (chefe) {
           clearTimeout(estado.timer);
@@ -5385,7 +5523,7 @@
         var prefO = prefsCacada();
         if (el.dataset.campo === 'pocao') prefO.pocao = Number(el.dataset.valor) || 0;
         else prefO.chefe = el.dataset.valor;
-        salvar();
+        salvarPreferencias();
         var blocoO = document.querySelector('.cacada-opcoes');
         if (blocoO) { var tmpO = document.createElement('div'); tmpO.innerHTML = opcoesCacadaHtml(); blocoO.replaceWith(tmpO.firstChild); }
         var cc = estado.cacada;   // chefe esperando resposta agora: já aplica a escolha
@@ -5396,7 +5534,7 @@
       }
       case 'cacada-sempre':
         prefsCacada().lutarSempre = el.checked;
-        salvar();
+        salvarPreferencias();
         if (el.checked && estado.cacada && estado.cacada.fase === 'encontrou' && !estado.cacada.encontro.chefe) lutarCacada();
         break;
       case 'fechar-resultado':
@@ -5417,7 +5555,7 @@
     if (document.visibilityState !== 'hidden' || !estado.personagem || !atividade.relogio) return;
     tiqueAtividade();
     atividade.desdeSalvar = 0;
-    salvar();
+    salvarPreferencias();
   });
   // Dentro do jogo o botão direito não abre o menu do navegador: num item da mochila ele equipa (Daniel, nov/2026).
   // Os dois cliques não equipam mais (equipavam sem querer); passar o mouse mostra a ficha.
@@ -5434,7 +5572,7 @@
     fecharFlutuante();
     estado.zoom = null;
     estado.vendaPendente = null;
-    salvar();
+    acaoServidor('equipar', el.dataset.id);
     telaJogo();
   });
   document.addEventListener('keydown', function (e) {
@@ -5455,7 +5593,7 @@
   // A cada minuto: avisa o servidor que está jogando (online para os amigos) e procura pedidos novos.
   setInterval(function () {
     if (!estado.personagem || estado.batalha || !document.querySelector('.ficha') || document.hidden) return;
-    salvar();
+    salvarPreferencias();   // também marca o personagem como online para os amigos
     carregarSocial();
     carregarAlianca();
   }, 60000);
@@ -5512,6 +5650,12 @@
 
   // Prêmios da masmorra: joias entram na mochila (se couber); pergaminhos vão para os Consumíveis.
   async function resgatarRecompensas(lista) {
+    var l = lista || (estado.gm && estado.gm.recompensas);
+    if (!l || !l.length) return;
+    if (ACAO_SERVIDOR) return receberPendentes();   // o servidor lê a lista do banco e entrega
+    return resgatarRecompensasAntigo(lista);
+  }
+  async function resgatarRecompensasAntigo(lista) {
     // os prêmios recebidos também ficam na caixa de entrada (origem da recompensa)
     var avisarCaixa = function (msg, tipo) { avisar(msg, tipo); caixaRegistrar(origemCaixa(rec && rec.origem), msg); };
     var p = estado.personagem, g = estado.gm;
@@ -5651,7 +5795,7 @@
       var run = await C.grupo.iniciar(p.id);
       var sim = R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
       // O líder já registra o resultado (vale mesmo se fechar a página no meio da luta).
-      C.grupo.concluir(p.id, run.id, sim.vitoria).catch(function (e) { avisar('Erro ao registrar o resultado: ' + e.message); });
+      registrarMasmorra(run, sim).catch(function (e) { avisar('Erro ao registrar o resultado: ' + e.message); });
       assistirLuta(run, sim);
     } catch (e) {
       avisar(e.message);
@@ -5659,19 +5803,26 @@
     }
   }
 
+  // Quem decide o resultado é o servidor (refaz a luta com a mesma semente); o jeito antigo só sem a função `acao`.
+  function registrarMasmorra(run, sim) {
+    var p = estado.personagem;
+    if (!ACAO_SERVIDOR) return C.grupo.concluir(p.id, run.id, sim.vitoria);
+    return C.acao(p.id, 'masmorraConcluir', { run: run.id }).then(function (r) { if (r && r.erro) throw new Error(r.erro); return r; });
+  }
+
   function assistirLuta(run, sim) {
     vistas[run.id] = true;
     sim = sim || R.simularMasmorra(run.herois.map(function (h) { return h.dados; }), run.masmorra, run.semente);
     // Luta da fila: qualquer jogador registra o resultado (o primeiro vale; os outros recebem "já terminou").
-    if (run.fila && run.estado === 'andamento') C.grupo.concluir(estado.personagem.id, run.id, sim.vitoria).catch(function () {});
+    if (run.fila && run.estado === 'andamento') registrarMasmorra(run, sim).catch(function () {});
     // Missão: cada masmorra vencida conta uma vez por personagem.
     var mis = R.garantirMissoes(estado.personagem, C.agora());
-    if (sim.vitoria && mis.runs.indexOf(run.id) < 0) {
-      mis.runs = mis.runs.concat(run.id).slice(-20);
+    if (sim.vitoria && mis.runs.indexOf(String(run.id)) < 0 && mis.runs.indexOf(run.id) < 0) {
+      mis.runs = mis.runs.concat(String(run.id)).slice(-20);
       R.registrarMissao(estado.personagem, 'masmorra', 1, C.agora());
       missaoCla('masmorra', 1);
       if (R.registrarHistoria(estado.personagem, 'masmorra', run.masmorra)) avisoHistoria();
-      salvar();
+      acaoServidor('eventoJogo', { tipo: 'masmorra', vitoria: true, alvo: run.masmorra, run: String(run.id) });
     }
     estado.luta = {
       run: run, sim: sim, mm: R.masmorra(run.masmorra), idx: 0, sala: 0, fim: false, rapido: false, registro: [],
@@ -5679,6 +5830,8 @@
       hpM: sim.inicio.salas[0].map(function (m) { return m.hpMax; }),
       // Toda luta dura no máximo uns 75 segundos na velocidade normal.
       atraso: Math.max(30, Math.min(350, Math.round(75000 / Math.max(1, sim.eventos.length)))),
+      // começou no servidor em criado_em: recarregando a página, a luta segue do ponto certo
+      acum: Math.max(0, C.agora() - Date.parse(run.criado_em)) || 0,
     };
     estado.luta.registro.push('<p class="destaque">O grupo entra em ' + esc(estado.luta.mm.nome) + '!</p>');
     estado.chefeAviso = null;
@@ -5687,17 +5840,35 @@
     agendarLuta();
   }
 
+  // A luta da masmorra/boss do clã anda pelo relógio, como a caçada (Henri, nov/2026): se o jogador troca de aba/app
+  // (o navegador quase para os timers) ou recarrega a página, ela continua de onde devia estar. `L.acum` = tempo de
+  // luta já "passado" (em ms de velocidade normal); cada evento vale `L.atraso`.
+  function relogioLuta(L) {
+    var agora = Date.now();
+    if (L.ultimo == null) L.ultimo = agora;
+    L.acum = (L.acum || 0) + (agora - L.ultimo) * (L.rapido ? 2 : 1);   // Daniel: acelerar é 2x (era 4x)
+    L.ultimo = agora;
+    var alvo = Math.floor(L.acum / L.atraso), andou = false;
+    while (!L.fim && L.idx < alvo) { passoLuta(L.idx < alvo - 1); andou = true; }
+    if (!L.fim && L.idx >= L.sim.eventos.length && L.idx <= alvo) { passoLuta(false); andou = true; }
+    return andou;
+  }
   function agendarLuta() {
     var L = estado.luta;
     if (!L || L.fim) return;
     clearTimeout(L.timer);
     L.timer = setTimeout(function () {
       if (estado.luta !== L) return;
-      passoLuta(false);
-      redesenharLuta();
+      if (relogioLuta(L)) redesenharLuta();
       agendarLuta();
-    }, L.rapido ? Math.max(10, Math.round(L.atraso / 2)) : L.atraso);   // Daniel: acelerar é 2x (era 4x)
+    }, L.rapido ? Math.max(10, Math.round(L.atraso / 2)) : L.atraso);
   }
+  document.addEventListener('visibilitychange', function () {
+    var L = estado.luta;
+    if (document.hidden || !L || L.fim || !L.sim) return;
+    if (relogioLuta(L)) redesenharLuta();   // voltou para o jogo: a luta já está onde devia
+    agendarLuta();
+  });
 
   function passoLuta(silencioso) {
     var L = estado.luta, ev = L.sim.eventos[L.idx++];
@@ -5808,7 +5979,7 @@
     if (!r) return;
     if (r.fim) avisar('🎁 Guia concluído! Mestre Aldric te deu: ' + r.premio + '. Boa jornada, aventureiro!');
     else { var g = R.guiaEstado(p); if (g) avisar('🧭 Guia: ' + g.passo.titulo + '. ' + g.passo.texto); }
-    salvar();
+    acaoServidor('verificarGuia');   // o servidor confere o mesmo passo (e dá o presente do fim)
   }
   function guiaHtml() {
     var p = estado.personagem, g = p && R.guiaEstado(p);
@@ -6245,12 +6416,31 @@
     var espera = (estado.bossEnvio || 0) + ((estado.boss.cfg || {}).intervaloSeg || 15) * 1000 - Date.now();
     if (espera > 0) { avisar('Recupere o fôlego: ataque de novo em ' + Math.ceil(espera / 1000) + 's.'); return; }
     var bs = estado.boss.boss, chefeId = R.chefeDoNivel(p);
+    if (ACAO_SERVIDOR) {   // a luta é feita no servidor; aqui só mostra (Henri, nov/2026)
+      if (estado.bossAtacando) return;
+      estado.bossAtacando = true;
+      estado.bossEnvio = Date.now();
+      C.acao(p.id, 'bossMundial', {}).then(function (r) {
+        estado.bossAtacando = false;
+        if (!r || r.erro) { avisar((r && r.erro) || 'Não foi possível atacar.'); carregarBoss(); return; }
+        if (estado.batalha || estado.cacada) return;
+        comecarMundial(p, bs, r.chefe || chefeId, r);
+      }, function (e) { estado.bossAtacando = false; avisar(e.message); });
+      return;
+    }
+    comecarMundial(p, bs, chefeId, null);
+  }
+  function comecarMundial(p, bs, chefeId, srv) {
     var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina
     b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
     b.imagemId = 'ignaroth-mundial';
     b.monstro.nome = 'Ignaroth (Chefe Mundial)';
-    b.monstro.hp = bs.vida;
+    b.monstro.hp = srv ? srv.vidaInicial : bs.vida;
     b.monstro.hpMax = bs.vida_max;
+    if (srv) {
+      b.mundial.vidaInicial = srv.vidaInicial;
+      b.replay = { eventos: srv.eventos || [], i: 0, res: { resultado: srv.fim }, extras: {}, servidor: srv.resultado };
+    }
     estado.resultado = null;
     estado.bossUltimo = null;
     estado.batalha = b;
@@ -6269,9 +6459,10 @@
     estado.aba = 'mundial';
     estado.bossUltimo = { dano: dano, enviando: true };
     estado.bossEnvio = Date.now();
-    salvar();
+    salvarPreferencias();
     telaJogo();
-    C.boss.atacar(p.id, dano, b.mundial.chefe).then(function (r) {
+    var envio = b.replay && b.replay.servidor ? Promise.resolve(b.replay.servidor) : C.boss.atacar(p.id, dano, b.mundial.chefe);
+    envio.then(function (r) {
       estado.bossUltimo = { dano: r.dano, golpeFinal: r.golpe_final };
       if (r.golpe_final) avisar('🐉 GOLPE FINAL! Ignaroth caiu pelas suas mãos!', 'nivel');
       else avisar('Você causou ' + Number(r.dano).toLocaleString('pt-BR') + ' de dano em Ignaroth.', 'vitoria');
@@ -6347,6 +6538,7 @@
   async function aplicarCreditos(lista) {
     var p = estado.personagem;
     if (!p || !lista.length || estado.aplicandoCreditos) return;
+    if (ACAO_SERVIDOR) return receberPendentes();   // o servidor lê os créditos do banco e aplica
     estado.aplicandoCreditos = true;
     try {
       for (var i = 0; i < lista.length; i++) {
@@ -6778,7 +6970,7 @@
       missaoCla('arena', 1);
       R.registrarGuia(estado.personagem, 'arena');
       if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
-      salvar();
+      acaoServidor('eventoJogo', { tipo: 'arena', vitoria: L.luta.situacao === 'vitoria' });
       fecharDado3d(); redesenharArena(); carregarArena(); return;
     }
     // Sua vez: a janela com o D20, o botão e 5 segundos.
@@ -6943,7 +7135,7 @@
     var novo = st.alianca ? { id: st.alianca.id, skills: st.skills || {} } : null;
     if (JSON.stringify(novo) === JSON.stringify(p.cla || null)) return;
     if (novo) p.cla = novo; else delete p.cla;
-    salvar();
+    acaoServidor('sincronizarCla');   // o servidor lê as skills do banco
     atualizarFicha();
   }
   function iconeSkillCla(k) {
@@ -7002,6 +7194,7 @@
   function enviarMissoesCla() {
     var p = estado.personagem;
     if (!p) return;
+    if (ACAO_SERVIDOR) { filaMissaoCla = {}; return; }   // o servidor conta sozinho (masmorra, Arena, encanto, monstros)
     Object.keys(filaMissaoCla).forEach(function (tipo) {
       var q = Math.min(filaMissaoCla[tipo], AL.missoesMaxEnvio[tipo]);
       if (q <= 0) return;
@@ -7479,12 +7672,15 @@
       hpH: sim.inicio.herois.map(function (h) { return h.hpMax; }),
       hpM: sim.inicio.salas[0].map(function (m) { return m.hp != null ? m.hp : m.hpMax; }),
       atraso: Math.max(30, Math.min(350, Math.round(45000 / Math.max(1, sim.eventos.length)))),
+      acum: Math.max(0, agoraBossAl() - Date.parse(run.criado_em)) || 0,
     };
     L.mm = { nome: L.boss.nome };
     estado.luta = L;
     // Quem começou a investida já informa o dano (vale mesmo se fechar a página no meio).
     if (run.lider === p.id && run.estado === 'andamento') {
-      C.alianca.boss.concluir(p.id, run.id, sim.danos).then(function (r) {
+      (ACAO_SERVIDOR
+        ? C.acao(p.id, 'bossClaConcluir', { run: run.id }).then(function (x) { if (x && x.erro) throw new Error(x.erro); return x && x.resultado; })
+        : C.alianca.boss.concluir(p.id, run.id, sim.danos)).then(function (r) {
         L.servidor = r;
         if (r && r.morreu) carregarAlianca();   // exp nova da aliança
         if (estado.luta === L && L.fim) redesenharLuta();
@@ -7771,7 +7967,7 @@
   // Android/Chrome: o navegador avisa que dá para instalar (beforeinstallprompt) e o botão abre a janela de instalar.
   // iPhone: não existe essa janela; o botão explica o caminho pelo Safari. Já instalado: o botão some.
   var instalacao = { evento: null };
-  function jaInstalado() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  function jaInstalado() { return (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
   function ehIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
   function ehCelular() { return ehIOS() || /android|mobi/i.test(navigator.userAgent); }
   // No celular aparece sempre (se ainda não instalou); no computador, só quando o navegador deixa instalar.

@@ -1,0 +1,147 @@
+# App Android do Eldrin (Capacitor, Henri, nov/2026). O jogo inteiro vai dentro do APK.
+# A cada mudança do jogo no main: monta o pacote do jogo (eldrin-web.zip) e o versao.json no release "app-web";
+# o app avisa o jogador e, se ele deixar, baixa o pacote novo (sem APK novo).
+# O APK é montado de novo só quando muda a parte do app (app-android/, js/app-nativo.js, este arquivo) ou no botão
+# "Run workflow"; fica no release "app-android" (Eldrin-app.apk).
+# Chave do APK: segredos ANDROID_CHAVE_B64 e ANDROID_CHAVE_SENHA (Settings > Secrets and variables > Actions).
+# Sem eles, assina com a chave de TESTE (app-android/chave-teste.jks): serve para testar, não para os jogadores.
+# Em outro branch (henri/apk-*): só monta o APK e deixa para baixar em "Artifacts" da execução (não mexe nos releases).
+name: App Android
+on:
+  push:
+    branches: [main, 'henri/apk-*']
+    paths:
+      - 'js/**'
+      - 'css/**'
+      - 'assets/**'
+      - 'jogar/index.html'
+      - 'app-android/**'
+      - 'ferramentas/montar_app.js'
+      - '.github/workflows/app-android.yml'
+  workflow_dispatch:
+concurrency:
+  group: app-android-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      N: ${{ github.run_number }}
+      REPO_URL: https://github.com/${{ github.repository }}/releases/download
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Montar o jogo para o app
+        run: ELDRIN_VERSAO_WEB=$N node ferramentas/montar_app.js
+
+      - name: Precisa montar o APK?
+        id: decide
+        run: |
+          APK=nao
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then APK=sim
+          elif ! gh release view app-android >/dev/null 2>&1; then APK=sim
+          elif ! git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" > mudou.txt 2>/dev/null; then APK=sim
+          elif grep -qE '^(app-android/|ferramentas/montar_app\.js|js/app-nativo\.js|\.github/workflows/app-android\.yml)' mudou.txt; then APK=sim
+          fi
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          echo "Montar APK: $APK"
+
+      - uses: actions/setup-java@v5
+        if: steps.decide.outputs.apk == 'sim'
+        with: { distribution: temurin, java-version: 21 }
+
+      - name: Montar o APK
+        if: steps.decide.outputs.apk == 'sim'
+        working-directory: app-android
+        run: |
+          npm install --no-audit --no-fund
+          npx cap add android
+          grep -rq adjustMarginsForEdgeToEdge node_modules/@capacitor/android/capacitor/src && echo 'margem da barra do celular: ok' || { echo '::error::Capacitor sem adjustMarginsForEdgeToEdge'; exit 1; }
+          # Faixas da barra de notificações e da barra de baixo: pretas, com ícones claros.
+          sed -i '/name="AppTheme.NoActionBar"/a\        <item name="android:windowBackground">@android:color/black</item>\n        <item name="android:windowLightStatusBar">false</item>\n        <item name="android:windowLightNavigationBar">false</item>' android/app/src/main/res/values/styles.xml
+          cat android/app/src/main/res/values/styles.xml
+          npx capacitor-assets generate --android --assetPath assets --iconBackgroundColor '#0a0c12' --splashBackgroundColor '#010302' --splashBackgroundColorDark '#010302'
+          sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"1.0.$N\"/" android/app/build.gradle
+          grep -E 'versionCode|versionName' android/app/build.gradle
+          npx cap sync android
+          cd android && ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Assinar o APK
+        if: steps.decide.outputs.apk == 'sim'
+        env:
+          CHAVE_B64: ${{ secrets.ANDROID_CHAVE_B64 }}
+          CHAVE_SENHA: ${{ secrets.ANDROID_CHAVE_SENHA }}
+        run: |
+          BT="$ANDROID_HOME/build-tools/$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)"
+          if [ -n "$CHAVE_B64" ] && [ -n "$CHAVE_SENHA" ]; then
+            echo "$CHAVE_B64" | base64 -d > chave.jks; SENHA="$CHAVE_SENHA"; echo "Chave oficial."
+          else
+            cp app-android/chave-teste.jks chave.jks; SENHA=eldrin-teste
+            echo "::warning::Sem os segredos ANDROID_CHAVE_B64/ANDROID_CHAVE_SENHA: APK assinado com a chave de TESTE."
+          fi
+          "$BT/zipalign" -f -p 4 app-android/android/app/build/outputs/apk/release/app-release-unsigned.apk alinhado.apk
+          "$BT/apksigner" sign --ks chave.jks --ks-key-alias eldrin --ks-pass "pass:$SENHA" --key-pass "pass:$SENHA" --out Eldrin-app.apk alinhado.apk
+          "$BT/apksigner" verify Eldrin-app.apk
+          rm -f chave.jks
+          ls -la Eldrin-app.apk
+
+      - name: APK para baixar (branch de teste)
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with: { name: Eldrin-app-apk, path: Eldrin-app.apk }
+
+      - name: Publicar (releases app-android e app-web)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          gh release view app-web >/dev/null 2>&1 || gh release create app-web --title "App Android: pacote do jogo" --latest=false \
+            --notes "Usado pelo app para se atualizar sozinho (eldrin-web.zip + versao.json). Não apagar."
+          gh release download app-web -p versao.json -O antigo.json 2>/dev/null || echo '{}' > antigo.json
+          APK_NUM=$(node -e "console.log(require('./antigo.json').apk||0)")
+          if [ "${{ steps.decide.outputs.apk }}" = "sim" ]; then
+            gh release view app-android >/dev/null 2>&1 || gh release create app-android --title "App Android do Eldrin (APK)" \
+              --notes "Baixe o Eldrin-app.apk, toque no arquivo e permita instalar."
+            gh release upload app-android Eldrin-app.apk --clobber
+            APK_NUM=$N
+          fi
+          (cd app-android/www && zip -qr -9 ../../eldrin-web.zip .)
+          MB=$(node -e "console.log((require('fs').statSync('eldrin-web.zip').size/1048576).toFixed(1))")
+          gh release upload app-web eldrin-web.zip --clobber
+          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', tamanhoMB: $MB, apk: $APK_NUM, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
+          cat versao.json
+          gh release upload app-web versao.json --clobber
+
+      # Teste num celular virtual (só nos branches de teste): instala o APK, abre e tira prints da tela.
+      # Os prints ficam no release "app-teste" (pré-lançamento, só para conferir).
+      - name: Liberar o celular virtual (KVM)
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Testar no celular virtual (Android 15)
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r Eldrin-app.apk
+            adb shell am start -n br.com.eldrinonline.app/.MainActivity
+            sleep 30
+            adb exec-out screencap -p > tela-1.png
+            sleep 20
+            adb exec-out screencap -p > tela-2.png
+            adb logcat -d -s Capacitor:* chromium:* Capacitor/Console:* > logcat.txt || true
+      - name: Guardar os prints do teste
+        if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
+        run: |
+          gh release view app-teste >/dev/null 2>&1 || gh release create app-teste --prerelease --latest=false --title "App Android: prints do teste" --notes "Prints do celular virtual (branch de teste)."
+          gh release upload app-teste tela-1.png tela-2.png logcat.txt --clobber

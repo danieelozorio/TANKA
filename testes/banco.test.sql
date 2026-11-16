@@ -1,6 +1,9 @@
 -- Testes do banco (supabase/schema.sql) num PostgreSQL comum. Rodar com: sh testes/banco.test.sh
 \set ON_ERROR_STOP 1
 set client_min_messages = warning;
+-- As funções "_registrar/_servidor" são só da chave do servidor; aqui o teste chama direto, como o servidor faria.
+grant execute on function public.masmorra_registrar(text, bigint, boolean), public.alianca_boss_registrar(text, bigint, bigint[]),
+  public.boss_atacar_servidor(text, int, text), public.alianca_missao_servidor(text, text, int) to authenticated;
 
 -- Três jogadores (contas) com um personagem cada, mais um quarto que não é amigo.
 insert into auth.users (id, raw_user_meta_data) values
@@ -69,7 +72,8 @@ select pg_temp.falha($$select public.masmorra_iniciar('pa')$$, 'Todos precisam e
 select pg_temp.como('b');
 select pg_temp.igual((public.grupo_estado('pb') -> 'run' ->> 'masmorra'), 'ninho', 'Bruna vê a luta começar');
 select pg_temp.igual(jsonb_array_length(public.grupo_estado('pb') -> 'run' -> 'herois'), 3, 'luta com os 3 heróis');
-select pg_temp.falha($$select public.masmorra_concluir('pb', (public.grupo_estado('pb') -> 'run' ->> 'id')::bigint, true)$$, 'Só o líder');
+select pg_temp.falha($$select public.masmorra_concluir('pb', (public.grupo_estado('pb') -> 'run' ->> 'id')::bigint, true)$$, 'Atualize a página');
+select pg_temp.falha($$select public.masmorra_registrar('pb', (public.grupo_estado('pb') -> 'run' ->> 'id')::bigint, true)$$, 'Só o líder');
 
 -- Derrota não gasta entrada
 select pg_temp.como('a');
@@ -83,8 +87,8 @@ select pg_temp.como('b'); select public.grupo_pronto('pb', true);
 select pg_temp.como('c'); select public.grupo_pronto('pc', true);
 select pg_temp.como('a');
 select public.masmorra_iniciar('pa');
-select public.masmorra_concluir('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true);
-select pg_temp.falha($$select public.masmorra_concluir('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true)$$, 'já terminou');
+select public.masmorra_registrar('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true);
+select pg_temp.falha($$select public.masmorra_registrar('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true)$$, 'já terminou');
 select pg_temp.igual((public.grupo_estado('pa') ->> 'entradas')::int, 1, 'vitória gasta 1 entrada');
 select pg_temp.como('c');
 select pg_temp.igual((public.grupo_estado('pc') ->> 'entradas')::int, 1, 'entrada gasta também para o Caio');
@@ -104,7 +108,7 @@ select pg_temp.como('b'); select public.grupo_pronto('pb', true);
 select pg_temp.como('c'); select public.grupo_pronto('pc', true);
 select pg_temp.como('a');
 select public.masmorra_iniciar('pa');
-select public.masmorra_concluir('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true);
+select public.masmorra_registrar('pa', (public.grupo_estado('pa') -> 'run' ->> 'id')::bigint, true);
 select public.grupo_pronto('pa', true);
 select pg_temp.como('b'); select public.grupo_pronto('pb', true);
 select pg_temp.como('c'); select public.grupo_pronto('pc', true);
@@ -216,12 +220,13 @@ select public.alianca_skill_comprar('pa', 'dano');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'skills' ->> 'dano')::int, 2, 'clã nível 2 libera a skill nível 2');
 select pg_temp.falha($$select public.alianca_skill_comprar('pa', 'dano')$$, 'Suba o clã para o nível 3');
 -- Missões do clã: progresso somado; cumpriu = ouro no tesouro (x1,2 no nível 2)
-select public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_missao_registrar('pa', 'monstros', 300),
-  public.alianca_missao_registrar('pa', 'monstros', 300), public.alianca_missao_registrar('pa', 'monstros', 999);
-select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'progresso')::int, 1200, 'missão: no máximo 300 monstros por envio');
+select public.alianca_missao_registrar('pa', 'monstros', 300);
+select pg_temp.igual(coalesce((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'progresso')::int, 0), 0, 'missão: o navegador não conta mais');
+select public.alianca_missao_servidor('pa', 'monstros', 700), public.alianca_missao_servidor('pa', 'monstros', 500);
+select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'progresso')::int, 1200, 'missão: o servidor conta');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'missoes' -> 'diarias' -> 'monstros' ->> 'concluida')::boolean, true, 'missão diária cumprida');
 select pg_temp.igual((public.alianca_estado('pa', null) -> 'alianca' ->> 'tesouro')::int, 11000 + 100000 - 40000 + 3600, 'missão diária: 3.000 x 1,2 no tesouro');
-select pg_temp.falha($$select public.alianca_missao_registrar('pa', 'trapaca', 1)$$, 'Missão inválida');
+select pg_temp.falha($$select public.alianca_missao_servidor('pa', 'trapaca', 1)$$, 'Missão inválida');
 reset role;
 update public.alianca_missoes set progresso = 15000, concluida = true where periodo = 'semana' and tipo = 'monstros';
 set role authenticated; select pg_temp.como('a');
@@ -647,7 +652,7 @@ select pg_temp.igual(public.fila_papel('{"classe":"mago","talentos":{"classe2":"
 select max(id) as run_fila from public.masmorra_runs \gset
 set role authenticated;
 select pg_temp.como('d');
-select public.masmorra_concluir('pd', :run_fila, true);
+select public.masmorra_registrar('pd', :run_fila, true);
 reset role;
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' in ('colar', 'anel'))::int, 1, 'fila: só o jogador ganha a joia (bots não)');
 select pg_temp.igual(public.entradas_usadas('pd'), 1, 'fila: gasta 1 entrada do jogador');
@@ -665,8 +670,8 @@ select pg_temp.como('d'); select public.fila_entrar('pd', 'toca');
 reset role;
 select pg_temp.igual((select string_agg(personagem_id, ',' order by personagem_id) from public.masmorra_fila where masmorra = 'toca'), 'pd', 'fila: sem ping há 20 s, sai da fila');
 set role authenticated;
-select pg_temp.como('d'); select pg_temp.falha('select public.masmorra_concluir(''pd'', ' || :run_fila || ', true)', 'já terminou');
-select pg_temp.como('a'); select pg_temp.falha('select public.masmorra_concluir(''pa'', ' || :run_fila || ', true)', 'Só o líder');
+select pg_temp.como('d'); select pg_temp.falha('select public.masmorra_registrar(''pd'', ' || :run_fila || ', true)', 'já terminou');
+select pg_temp.como('a'); select pg_temp.falha('select public.masmorra_registrar(''pa'', ' || :run_fila || ', true)', 'Só o líder');
 select public.fila_sair('pa');
 select pg_temp.como('d'); select public.fila_sair('pd');
 reset role;
@@ -737,15 +742,15 @@ reset role;
 select pg_temp.igual((select count(*) from public.alianca_boss_runs where id = :run_boss and membros = array['pb', 'pd'])::int, 1, 'boss: investida leva o grupo todo');
 set role authenticated; select pg_temp.como('b');
 select pg_temp.falha($$select public.alianca_boss_atacar('pb')$$, 'ainda está numa investida');
-select pg_temp.igual((public.alianca_boss_concluir('pb', :run_boss, array[1000, 500]::bigint[]) ->> 'dano')::bigint, 1500::bigint, 'boss: dano do grupo somado');
-select pg_temp.falha('select public.alianca_boss_concluir(''pb'', ' || :run_boss || ', array[1]::bigint[])', 'já terminou');
+select pg_temp.igual((public.alianca_boss_registrar('pb', :run_boss, array[1000, 500]::bigint[]) ->> 'dano')::bigint, 1500::bigint, 'boss: dano do grupo somado');
+select pg_temp.falha('select public.alianca_boss_registrar(''pb'', ' || :run_boss || ', array[1]::bigint[])', 'já terminou');
 select pg_temp.igual((public.alianca_boss_estado('pb') -> 'boss' ->> 'hp')::bigint,
   (public.tanka_dados() -> 'BOSS_ALIANCA' -> 'niveis' -> 0 ->> 'hp')::bigint - 1500, 'boss: vida de todos diminui');
 select pg_temp.igual(public.alianca_boss_estado('pb') -> 'ranking' -> 0 ->> 'nome', 'Bruna', 'boss: ranking de dano');
 -- o líder da aliança mata o boss sozinho (dano maior que a vida conta só a vida que falta)
 select pg_temp.como('a');
 select (public.alianca_boss_atacar('pa') ->> 'id')::bigint as run_boss2 \gset
-select pg_temp.igual((public.alianca_boss_concluir('pa', :run_boss2, array[999999999]::bigint[]) ->> 'morreu')::boolean, true, 'boss: morreu');
+select pg_temp.igual((public.alianca_boss_registrar('pa', :run_boss2, array[999999999]::bigint[]) ->> 'morreu')::boolean, true, 'boss: morreu');
 select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'estado', 'morto', 'boss: fica morto até amanhã');
 select pg_temp.igual((public.alianca_boss_estado('pa') -> 'boss' ->> 'nivel')::int, 2, 'boss: sobe para o nível 2');
 select pg_temp.igual(public.alianca_boss_estado('pa') -> 'boss' ->> 'ultimo_golpe', 'Aldric', 'boss: quem deu o último golpe');
@@ -804,22 +809,22 @@ select pg_temp.igual((select count(*) from public.mensagens where classe = 'sist
 delete from public.boss_mundial; delete from public.mensagens;
 -- fora do horário não dá para atacar
 set role authenticated;
-select pg_temp.como('a'); select pg_temp.falha($$select public.boss_atacar('pa', 100, 'rei_goblin')$$, 'não está acordado');
+select pg_temp.como('a'); select pg_temp.falha($$select public.boss_atacar_servidor('pa', 100, 'rei_goblin')$$, 'não está acordado');
 select pg_temp.falha($$select public.admin_boss_invocar('pa', 1000, 60)$$, 'Só administradores');
 reset role;
 update public.contas set admin = true where usuario = 'duda';
 set role authenticated;
 select pg_temp.como('d'); select public.admin_boss_invocar('pd', 1000, 60);
-select pg_temp.como('a'); select public.boss_atacar('pa', 300, 'rei_goblin');
-select pg_temp.falha($$select public.boss_atacar('pa', 300, 'rei_goblin')$$, 'Espere alguns segundos');
-select pg_temp.falha($$select public.boss_atacar('pb', 300, 'x')$$, 'Personagem inválido');
-select pg_temp.como('b'); select public.boss_atacar('pb', 250, 'rainha_aranha');
-select pg_temp.como('c'); select public.boss_atacar('pc', 200, 'rei_goblin');
+select pg_temp.como('a'); select public.boss_atacar_servidor('pa', 300, 'rei_goblin');
+select pg_temp.falha($$select public.boss_atacar_servidor('pa', 300, 'rei_goblin')$$, 'Espere alguns segundos');
+select pg_temp.falha($$select public.boss_atacar('pa', 300, 'x')$$, 'Atualize a página');
+select pg_temp.como('b'); select public.boss_atacar_servidor('pb', 250, 'rainha_aranha');
+select pg_temp.como('c'); select public.boss_atacar_servidor('pc', 200, 'rei_goblin');
 -- no máximo 5 ataques por despertar
 reset role;
 update public.boss_mundial_dano set ataques = 5, ultimo_em = now() - interval '1 minute' where personagem_id = 'pc';
 set role authenticated;
-select pg_temp.como('c'); select pg_temp.falha($$select public.boss_atacar('pc', 200, 'rei_goblin')$$, 'já usou os 5 ataques');
+select pg_temp.como('c'); select pg_temp.falha($$select public.boss_atacar_servidor('pc', 200, 'rei_goblin')$$, 'já usou os 5 ataques');
 reset role;
 update public.boss_mundial_dano set ataques = 1 where personagem_id = 'pc';
 \echo ok chefe mundial: 5 ataques por despertar
@@ -830,7 +835,7 @@ select pg_temp.como('a');
 select pg_temp.igual((public.boss_estado('pa') -> 'boss' ->> 'vida')::int, 250, 'boss: a vida é de todos (1000 - 750)');
 select pg_temp.igual((public.boss_estado('pa') -> 'eu' ->> 'posicao')::int, 1, 'boss: posição no ranking');
 select pg_temp.igual((public.boss_estado('pa') -> 'aliancas' -> 0 ->> 'sigla'), 'BTB', 'boss: ranking de alianças (BTB 450)');
-select pg_temp.igual((public.boss_atacar('pa', 999999, 'rei_goblin') ->> 'caiu')::boolean, true, 'boss: o golpe que zera derruba');
+select pg_temp.igual((public.boss_atacar_servidor('pa', 999999, 'rei_goblin') ->> 'caiu')::boolean, true, 'boss: o golpe que zera derruba');
 reset role;
 select pg_temp.igual((select estado from public.boss_mundial order by id desc limit 1), 'derrotado', 'boss: derrotado');
 select pg_temp.igual((select golpe_final from public.boss_mundial order by id desc limit 1), 'pa', 'boss: golpe final de quem zerou');
@@ -846,10 +851,10 @@ select pg_temp.igual((select count(*) from public.recompensas where item ->> 'ti
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');
-select pg_temp.falha($$select public.boss_atacar('pa', 10, 'rei_goblin')$$, 'não está acordado');
+select pg_temp.falha($$select public.boss_atacar_servidor('pa', 10, 'rei_goblin')$$, 'não está acordado');
 -- não caiu a tempo: 70% + 1 pergaminho para quem atacou
 select pg_temp.como('d'); select public.admin_boss_invocar('pd', 5000, 60);
-select pg_temp.como('b'); select public.boss_atacar('pb', 100, 'rainha_aranha');
+select pg_temp.como('b'); select public.boss_atacar_servidor('pb', 100, 'rainha_aranha');
 reset role;
 delete from public.recompensas;
 update public.boss_mundial set fim = now() - interval '1 second' where estado = 'ativo';
@@ -1245,4 +1250,62 @@ select public.sessao_assumir('pc');
 select pg_temp.como('a');
 select pg_temp.igual(public.sessao_vale('celular')::text, 'true', 'sessao_vale: outra conta no PC não derruba o celular');
 reset role;
+
+-- Trava contra ficha forjada (Henri, nov/2026): gravações diretas pela API com saltos impossíveis são recusadas
+insert into public.personagens (id, conta_id, nome, dados) values ('ptr', '00000000-0000-0000-0000-00000000000d', 'Trava',
+  '{"nome":"Trava","nivel":10,"exp":0,"ouro":1000,"classe":"cavaleiro","pontosLivres":0,"atributosIniciais":{"for":15,"des":10,"res":20,"int":10,"sor":15},
+    "atributos":{"for":42,"des":10,"res":20,"int":10,"sor":15},"inventario":[{"id":"i1","tipo":"arma","raridade":"epica","encanto":3,"nivel":10}]}');
+grant select, update, insert on public.personagens to authenticated;
+set role authenticated;
+select pg_temp.como('d');
+update public.personagens set dados = jsonb_set(jsonb_set(dados, '{ouro}', '5000'), '{nivel}', '11') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '5000', 'trava: ganho normal passa');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{ouro}', '1000000000') where id = 'ptr'$$, 'ouro demais');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr'$$, 'level subiu rápido');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '61') where id = 'ptr'$$, 'acima do máximo');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{nivel}', '5') where id = 'ptr'$$, 'não pode descer');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '99') where id = 'ptr'$$, 'pontos de atributo');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributosIniciais,for}', '90') where id = 'ptr'$$, 'iniciais não mudam');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario,0,encanto}', '10') where id = 'ptr'$$, 'item alterado');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario,0,raridade}', '"lendaria"') where id = 'ptr'$$, 'item alterado');
+update public.personagens set dados = jsonb_set(dados, '{inventario,0,encanto}', '4') where id = 'ptr';
+select pg_temp.igual((select dados -> 'inventario' -> 0 ->> 'encanto' from public.personagens where id = 'ptr'), '4', 'trava: encantar +1 passa');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{inventario}', (select jsonb_agg(jsonb_build_object('id', 'x' || g, 'tipo', 'elmo', 'raridade', 'lendaria', 'encanto', 7)) from generate_series(1, 20) g)) where id = 'ptr'$$, 'itens fortes demais');
+select pg_temp.falha($$insert into public.personagens (id, conta_id, nome, dados) values ('pfx', '00000000-0000-0000-0000-00000000000d', 'Forjado', '{"nivel":60,"classe":"mago","ouro":0}')$$, 'personagem novo inválido');
+reset role;
+-- ficha que já estava fora da regra antes da trava (pontos a mais) continua gravando, só não pode piorar
+update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '60') where id = 'ptr';
+set role authenticated;
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '6000') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '6000', 'trava: ficha antiga fora da regra ainda grava');
+select pg_temp.falha($$update public.personagens set dados = jsonb_set(dados, '{atributos,for}', '61') where id = 'ptr'$$, 'pontos de atributo');
+reset role;
+-- o SQL Editor (e as funções do servidor) passam direto
+update public.personagens set dados = jsonb_set(dados, '{nivel}', '60') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'nivel' from public.personagens where id = 'ptr'), '60', 'trava: SQL Editor passa');
+reset role;
+
+-- Etapa 5 (tudo no servidor): depois de trancar, o jogador não grava a ficha direto; o servidor grava; o schema de novo não destranca
+\i supabase/trancar_fichas.sql
+set role authenticated;
+select pg_temp.como('d');
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '7000') where id = 'ptr';
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '6000', 'tranca: jogador não grava a ficha direto');
+reset role;
+do $$ begin if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role bypassrls; end if; end $$;
+grant all on all tables in schema public to service_role; grant usage on schema public, auth to service_role; grant execute on all functions in schema public, auth to service_role;
+set role service_role;
+update public.personagens set dados = jsonb_set(dados, '{ouro}', '7000') where id = 'ptr';
+reset role;
+select pg_temp.igual((select dados ->> 'ouro' from public.personagens where id = 'ptr'), '7000', 'tranca: função do servidor grava');
+select pg_temp.igual((select (qtd > 0)::text from public.gravacoes_papel where papel = 'service_role'), 'true', 'tranca: anota quem gravou');
+\i supabase/schema.sql
+select pg_temp.igual((select count(*)::text from pg_policies where tablename = 'personagens' and policyname = 'personagem: salvar os seus'), '0', 'tranca: rodar o schema de novo não destranca');
+select pg_temp.igual((select bool_or(has_function_privilege('authenticated', f, 'execute'))::text from unnest(array[
+  'public.masmorra_registrar(text, bigint, boolean)', 'public.alianca_boss_registrar(text, bigint, bigint[])',
+  'public.boss_atacar_servidor(text, int, text)', 'public.alianca_missao_servidor(text, text, int)',
+  'public.alianca_missao_de(text, text, int)']) f), 'false', 'brechas: só o servidor registra masmorra, bosses e missões');
+\i supabase/destrancar_fichas.sql
+select pg_temp.igual((select count(*)::text from pg_policies where tablename = 'personagens' and policyname = 'personagem: salvar os seus'), '1', 'tranca: destrancar volta ao normal');
+delete from public.personagens where id = 'ptr';
 \echo TODOS OS TESTES DO BANCO PASSARAM
