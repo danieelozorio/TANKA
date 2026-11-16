@@ -1,0 +1,9 @@
+{
+  "appId": "br.com.eldrinonline.app",
+  "appName": "Eldrin",
+  "webDir": "www",
+  "android": { "backgroundColor": "#07080c" },
+  "plugins": {
+    "CapacitorUpdater": { "autoUpdate": false, "appReadyTimeout": 15000 }
+  }
+}

@@ -7771,7 +7771,7 @@
   // Android/Chrome: o navegador avisa que dá para instalar (beforeinstallprompt) e o botão abre a janela de instalar.
   // iPhone: não existe essa janela; o botão explica o caminho pelo Safari. Já instalado: o botão some.
   var instalacao = { evento: null };
-  function jaInstalado() { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
+  function jaInstalado() { return (window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()) || (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; }
   function ehIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
   function ehCelular() { return ehIOS() || /android|mobi/i.test(navigator.userAgent); }
   // No celular aparece sempre (se ainda não instalou); no computador, só quando o navegador deixa instalar.

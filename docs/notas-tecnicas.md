@@ -949,3 +949,24 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: portal no Mapa do Reino (`reino-pesadelo`), mapa `assets/mapa-pesadelo.webp` (x/y em `D.PESADELO.chefes`), ficha do
   chefe e ⚔ ENFRENTAR (caçada contínua só com esse chefe).
 - **Revanche com confirmação (Henri, nov/2026):** o histórico da Arena traz `oponente_id`; o botão Revanche abre a mesma janela do Desafiar (`abrirDesafio(id, 'revanche')`, `estado.desafio.luta`) e o ⚔ Revanche chama `arena_revanche`. Sem `oponente_id` (schema antigo) luta direto como antes.
+
+## App Android com Capacitor (Henri, 15/11/2026)
+- App SEPARADO do APK antigo do Daniel (TWA `br.com.eldrinonline.jogo`): pacote `br.com.eldrinonline.app`, nome "Eldrin".
+  O jogo inteiro (js, css, assets) vai DENTRO do APK.
+- `app-android/`: package.json (Capacitor 7 + @capgo/capacitor-updater + @capacitor/app), capacitor.config.json,
+  `assets/` (ícone e splash para o @capacitor/assets), `chave-teste.jks` (chave de TESTE, senha `eldrin-teste`, alias
+  `eldrin`). As pastas `www/` e `android/` são geradas (não vão para o git).
+- `ferramentas/montar_app.js` monta `app-android/www` a partir de `jogar/index.html` (tira o `<base>` e o service worker,
+  põe `window.ELDRIN_APP = { web: N }` e `js/app-nativo.js`).
+- `.github/workflows/app-android.yml` (GitHub monta tudo; aqui não dá: sem Android SDK nem npm):
+  - push no main com mudança no jogo: release `app-web` com `eldrin-web.zip` (o jogo, ~45 MB) e `versao.json`
+    (`web`, `webUrl`, `tamanhoMB`, `apk`, `apkUrl`, `apkMinimo`). N = número da execução do workflow.
+  - APK (release `app-android`, `Eldrin-app.apk`): só quando muda `app-android/`, `js/app-nativo.js`, o workflow, ou
+    no botão Run workflow. versionCode = N.
+  - branch `henri/apk-*`: só monta o APK e deixa em Artifacts da execução.
+  - Chave oficial: segredos `ANDROID_CHAVE_B64` e `ANDROID_CHAVE_SENHA` (só o dono do repositório cria). Sem eles,
+    usa a chave de teste (aviso no log). Quem instalou um APK de teste precisa desinstalar antes do oficial.
+- `js/app-nativo.js` (só dentro do app): `notifyAppReady`; confere o `versao.json` (CapacitorHttp); jogo novo →
+  pergunta "Atualizar agora / Depois" e baixa o zip (`download` + `set`, reinicia); APK novo → link para baixar.
+  "Depois" vale até fechar o app. `apkMinimo` > instalado força o aviso do APK antes do jogo.
+- `jaInstalado()` (app.js) conta o app Capacitor: some o botão "Baixar app Android".
