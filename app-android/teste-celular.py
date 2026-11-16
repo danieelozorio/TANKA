@@ -13,7 +13,7 @@ def pagina():
         time.sleep(2)
     raise SystemExit('WebView não apareceu')
 
-ws = websocket.create_connection(pagina(), timeout=10)
+ws = websocket.create_connection(pagina(), timeout=10, suppress_origin=True)
 n = [0]
 def cmd(metodo, **params):
     n[0] += 1
@@ -55,7 +55,7 @@ while time.time() < fim:
         print('ws:', e); break
 time.sleep(8)
 try:
-    ws = websocket.create_connection(pagina(), timeout=10); n[0] = 0
+    ws = websocket.create_connection(pagina(), timeout=10, suppress_origin=True); n[0] = 0
     print('depois — ELDRIN_APP:', js('JSON.stringify(window.ELDRIN_APP)'))
     print('depois — updater atual:', js('Capacitor.Plugins.CapacitorUpdater.current().then(r=>JSON.stringify(r))'))
 except Exception as e:
