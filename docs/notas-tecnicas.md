@@ -1091,4 +1091,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (16/11/2026, Henri) Força Bruta: +5 FOR, danoCritico 3, defFisicaPct 5, defMagicaPct 5 (chaves novas: só a defesa / só a defesa mágica, também em tanka_status); +1% por ponto em cada %.
 - **Constelação da Ascensão v2 (proposta, NÃO está no jogo):** 6 domínios × 2 trilhas, 12 pontes, Pedras Angulares que
   se excluem por domínio, máx. 3 Pedras, limite de 70 de 156 pontos (PDF e dados de sugestão no scratchpad do Daniel).
-  Medalhões das 12 Pedras (folha 4x3 do Daniel, Gemini) recortados em `assets/ascensao/medalhao-<pedra>.webp` (256 px, sem fundo).
+  Medalhões das 12 Pedras (folha 4x3 do Daniel, Gemini) em `assets/ascensao/medalhao-<pedra>.webp` (256 px, sem fundo) e
+  brasões dos 6 domínios (folha 3x2) em `assets/ascensao/dominio-<id>.webp` (192 px, sem fundo).
