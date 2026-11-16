@@ -724,6 +724,73 @@ Tanka.dados = {
     ],
   },
   NIVEL_MAXIMO: 60,   // era 40; do 41 ao 60 só o Reino do Pesadelo dá exp de verdade (Henri, nov/2026)
+  // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
+  // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).
+  // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (2 por par).
+  // Pontos: 1 por level do 41 ao 60; no level 60, mais 1 a cada `expPorPonto` x (exp do level 59) até `limitePontos`.
+  // Só vale contra monstros (caçada, masmorra, chefes), como as skills do clã; a Arena não usa.
+  // Efeitos (%, salvo indicado): dano, danoChefe, danoMeiaVida (alvo < 50%), danoCacada, critico (pontos), danoCritico,
+  // precisao (pontos), defesa (física), defesaMagica, vida, velocidade, evasao (pontos), rouboVida, reflete,
+  // reducaoDano, danoHab, recargaMenos (turnos), curaHab (% da vida ao usar habilidade), ouro, exp, drop.
+  ASCENSAO: {
+    nome: 'Pacto de Ascensão',
+    nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 70, maxPedras: 3,
+    custo: { pequeno: 1, notavel: 2, ponte: 2, pedra: 4 },
+    precoRefazer: 50000,   // ouro para zerar o Pacto e distribuir de novo
+    dominios: [
+      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 2 },
+        trilhas: [
+          { nome: 'Carniceiro', pequeno: { dano: 2 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 6, precisao: -3 } },
+            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+25% de dano', custo: '−15% de vida máxima', ef: { dano: 25, vida: -15 } } },
+          { nome: 'Executor', pequeno: { danoChefe: 3 }, notavel: { nome: 'Sem Piedade', ef: { danoMeiaVida: 10 } },
+            pedra: { id: 'execucao', nome: 'Execução', txt: '+40% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem está com a vida cheia', ef: { execucao: 1 } } },
+        ] },
+      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { critico: 1 },
+        trilhas: [
+          { nome: 'Olho de Falcão', pequeno: { critico: 1 }, notavel: { nome: 'Mira Firme', ef: { critico: 3, precisao: 5 } },
+            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'Todo 4º golpe é crítico garantido', custo: 'Os outros críticos causam −20% de dano', ef: { golpeCerteiro: 1 } } },
+          { nome: 'Lâmina Fina', pequeno: { danoCritico: 4 }, notavel: { nome: 'Corte Profundo', ef: { danoCritico: 12 } },
+            pedra: { id: 'ferida-aberta', nome: 'Ferida Aberta', txt: 'O crítico faz sangrar: mais 30% do golpe em 3 turnos', custo: '−2 de chance de crítico', ef: { feridaAberta: 30, critico: -2 } } },
+        ] },
+      { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 },
+        trilhas: [
+          { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 4 } },
+            pedra: { id: 'inabalavel', nome: 'Inabalável', txt: '−15% de dano recebido; abaixo de 30% da vida, +25% de defesa', custo: '−10% de velocidade', ef: { reducaoDano: 15, inabalavel: 25, velocidade: -10 } } },
+          { nome: 'Espinhos', pequeno: { defesaMagica: 2 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
+            pedra: { id: 'couraca-de-espinhos', nome: 'Couraça de Espinhos', txt: 'Devolve 20% do dano recebido', custo: '−8% de dano', ef: { reflete: 20, dano: -8 } } },
+        ] },
+      { id: 'vigor', nome: 'Vigor', cor: '#4fbf62', tema: 'Vida e cura', tronco: { vida: 2 },
+        trilhas: [
+          { nome: 'Sangue Vivo', pequeno: { vida: 3 }, notavel: { nome: 'Coração Forte', ef: { vida: 8 } },
+            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 3% da vida a cada turno', custo: 'Poções curam só metade da vida', ef: { regen: 3, pocaoMetade: 1 } } },
+          { nome: 'Vampiro', pequeno: { rouboVida: 1 }, notavel: { nome: 'Presas', ef: { rouboVida: 3 } },
+            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+10% de roubo de vida', custo: 'Não pode usar poção', ef: { rouboVida: 10, semPocao: 1 } } },
+        ] },
+      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidade: 1 },
+        trilhas: [
+          { nome: 'Relâmpago', pequeno: { velocidade: 2 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidade: 5, evasao: 3 } },
+            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'Começa a luta com a barra de ataque cheia e o 1º golpe tem +40% de dano', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
+          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },
+            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
+        ] },
+      { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
+        trilhas: [
+          { nome: 'Saqueador', pequeno: { ouro: 4 }, notavel: { nome: 'Bolsos Fundos', ef: { drop: 4 } },
+            pedra: { id: 'mao-dourada', nome: 'Mão Dourada', txt: '+35% de ouro e +10% de drop', custo: '−15% de exp', ef: { ouro: 35, drop: 10, exp: -15 } } },
+          { nome: 'Erudito', pequeno: { exp: 3 }, notavel: { nome: 'Estudioso', ef: { exp: 8 } },
+            pedra: { id: 'sabedoria', nome: 'Sabedoria', txt: '+25% de exp; com os pontos no limite, vira +20% de drop', custo: '−15% de ouro', ef: { sabedoria: 1, ouro: -15 } } },
+        ] },
+    ],
+    // Pontes entre domínios vizinhos [perto do centro, longe do centro] (ligam a 2ª trilha de um à 1ª do outro).
+    pontes: [
+      [{ dano: 1, critico: 1 }, { dano: 3, danoCritico: 4 }],             // Fúria ⇄ Precisão
+      [{ critico: 1, defesa: 2 }, { reducaoDano: 4 }],                    // Precisão ⇄ Bastião
+      [{ defesa: 2, vida: 2 }, { vida: 5, defesa: 5 }],                   // Bastião ⇄ Vigor
+      [{ vida: 2, velocidade: 1 }, { curaHab: 5 }],                       // Vigor ⇄ Tempestade
+      [{ velocidade: 1, ouro: 2 }, { exp: 4, ouro: 4 }],                  // Tempestade ⇄ Fortuna
+      [{ ouro: 2, dano: 1 }, { danoCacada: 5 }],                          // Fortuna ⇄ Fúria
+    ],
+  },
   // ---------- Reino do Pesadelo (Henri, nov/2026): conteúdo final, do level 40 ao 60 ----------
   // Em Aventura › Caçar, um mapa à parte só com os 7 chefes em versão Pesadelo (sem monstros comuns). Cada luta gasta
   // `estamina`. Drop igual ao dos chefes (D.chefe.drop / D.chefe.pergaminho), com itens do level do chefe até +`nivelDropExtra`.

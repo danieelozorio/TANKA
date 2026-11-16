@@ -599,8 +599,20 @@ Tanka.regras = (function () {
 
   // --- Na luta: estado de um lutador (herói) com as habilidades ---
   function novoLutador(p, modo) {
+    var ex = extrasLuta(p);
     return { kit: kitHabilidades(p, modo), turno: 0, pronto: {}, buffs: [], furtivo: false, critEm: -1, provocaAte: -1, vidaExtra: 0,
-      ex: extrasNivel(p), milagreUsado: false, dot: null, escudo: 0, escudoAte: -1, congelaChance: 0, bolsoUsado: false };
+      ex: ex, milagreUsado: false, dot: null, escudo: 0, escudoAte: -1, congelaChance: 0, bolsoUsado: false,
+      modo: modo, primeiroGolpe: !!ex.primeiroGolpe, nGolpes: 0, baixa: false };
+  }
+  // Extras da luta contra monstros: passivas do level 20/30 + Pacto de Ascensão.
+  function extrasLuta(p) {
+    var x = extrasNivel(p), a = efeitosAscensao(p);
+    if (a.rouboVida) x.rouboVida = (x.rouboVida || 0) + a.rouboVida;
+    if (a.regen) x.regenPct = (x.regenPct || 0) + a.regen;
+    if (a.reducaoDano) x.reducaoDano = (x.reducaoDano || 0) + a.reducaoDano;
+    ['reflete', 'danoChefe', 'danoMeiaVida', 'danoCacada', 'danoHab', 'recargaMenos', 'curaHab', 'execucao', 'golpeCerteiro',
+      'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
+    return x;
   }
   function somaBuff(L, campo) {
     var t = 0;
@@ -616,6 +628,7 @@ Tanka.regras = (function () {
       return false;
     });
     if (L.mudaVel) h.vel = Math.max(1, Math.round(h.velBase * (1 + somaBuff(L, 'velocidade') / 100)));
+    if (L.ex && L.ex.inabalavel) L.baixa = h.hp * 100 < h.hpMax * 30;
     if (L.ex && L.ex.regenPct && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.max(1, Math.round(h.hpMax * L.ex.regenPct / 100)));
   }
   // ----- Level 20 contra monstros: veneno/sangramento, escudo, roubo de vida, menos dano e Bolso de Poções -----
@@ -677,13 +690,14 @@ Tanka.regras = (function () {
       if (atacante && L.congelaChance && rng() * 100 < L.congelaChance) atacante.atordoado = Math.max(atacante.atordoado || 0, 1);
     }
     // Defesa Suprema (level 30): devolve parte do dano para quem bateu.
-    var rf = somaBuff(L, 'reflete');
+    var rf = somaBuff(L, 'reflete') + ((L.ex && L.ex.reflete) || 0);
     if (atacante && rf && dano > 0 && atacante.hp > 0) atacante.hp = Math.max(0, atacante.hp - Math.round(dano * rf / 100));
     return dano;
   }
   // Depois de levar dano: Bolso de Poções (uma vez por luta, abaixo do limiar).
   function depoisDeReceber(L, h) {
     var x = L && L.ex;
+    if (x && x.inabalavel) L.baixa = h.hp * 100 < h.hpMax * 30;   // Inabalável (Pacto): mais defesa com pouca vida
     // Milagre (level 30): uma vez por luta, quem cai volta.
     if (x && x.milagrePct && h.hp <= 0 && !L.milagreUsado) { L.milagreUsado = true; h.hp = Math.max(1, Math.round(h.hpMax * x.milagrePct / 100)); return 'milagre'; }
     if (!x || !x.curaEmergencia || L.bolsoUsado || h.hp <= 0 || h.hp * 100 >= h.hpMax * (x.limiar || 40)) return false;
@@ -701,7 +715,15 @@ Tanka.regras = (function () {
     }
     return null;
   }
-  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + (k.def.recarga || 1); }
+  // Foco (Pacto de Ascensão): recarga 1 turno menor (no mínimo 1).
+  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + Math.max(1, (k.def.recarga || 1) - ((L.ex && L.ex.recargaMenos) || 0)); }
+  // Ponte Vigor ⇄ Tempestade (Pacto): cura % da vida ao usar uma habilidade.
+  function curaAoUsar(L, h) { if (L && L.ex && L.ex.curaHab && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(h.hpMax * L.ex.curaHab / 100)); }
+  // Ferida Aberta (Pacto): o crítico deixa o alvo sangrando (dano no começo da vez dele, como a queimadura).
+  function sangrar(alvo, g) {
+    if (!g.sangra || !alvo || alvo.hp <= 0) return;
+    if (!alvo.queima || alvo.queima.turnos <= 0 || alvo.queima.dano < g.sangra) alvo.queima = { turnos: 3, dano: g.sangra };
+  }
   function ehReforco(def) { return def.tipo === 'reforco' || def.tipo === 'furtivo' || def.tipo === 'provocar' || def.tipo === 'dot' || def.tipo === 'escudo' || def.tipo === 'cegar'; }
   // Aplica um reforço no próprio herói (e no grupo, se for de grupo: alvos = [{ L, h }]).
   function aplicarReforco(k, dono, alvos) {
@@ -752,24 +774,38 @@ Tanka.regras = (function () {
   function calcularGolpe(s, L, alvo, opcoes, rng) {
     var magico = s.tipoDano === 'magico', g = { acerto: false, critico: false, dano: 0 };
     // Contra monstros (caçada e masmorra) o herói acerta pelo menos 95% (errar é coisa da Arena, que tem regra própria no servidor).
+    var X = (L && L.ex) || {}, fa = 1, certeiro = false;
+    // Pacto de Ascensão: 1º golpe da luta, todo 4º golpe crítico (Golpe Certeiro)
+    if (L && L.primeiroGolpe) { L.primeiroGolpe = false; fa *= 1 + X.primeiroGolpe / 100; }
+    if (X.golpeCerteiro && L) { L.nGolpes = (L.nGolpes || 0) + 1; certeiro = L.nGolpes % 4 === 0; }
     if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, D.ACERTO_PVE_MINIMO, 100)) return g;
+    // Pacto: contra chefes, alvo ferido (meia vida / Execução), só na caçada, habilidade x ataque normal (Eco)
+    var va = opcoes.vidaAlvo != null ? opcoes.vidaAlvo : (alvo.hpMax ? alvo.hp / alvo.hpMax : 1);
+    if (X.danoChefe && alvo.chefe) fa *= 1 + X.danoChefe / 100;
+    if (X.danoMeiaVida && va < 0.5) fa *= 1 + X.danoMeiaVida / 100;
+    if (X.execucao) fa *= va < 0.3 ? 1.4 : va >= 1 ? 0.9 : 1;
+    if (X.danoCacada && L.modo === 'cacada') fa *= 1 + X.danoCacada / 100;
+    if (opcoes.normal) { if (X.eco) fa *= 0.9; } else if (X.danoHab) fa *= 1 + X.danoHab / 100;
     var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
-    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1);
+    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1) * fa;
     // level 30: a defesa quebrada (Martelo das Correntes) e o golpe que ignora parte dela (Tiro Silenciador)
     defesa = defesa * (1 - Math.max(alvo.defQuebra || 0, alvo.quebraTemp ? alvo.quebraTemp.pct : 0) / 100) * (1 - (opcoes.ignoraDefesaPct || 0) / 100);
     dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
     var chance = (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0) + somaBuff(L, 'critico');
-    var garantido = (L && L.critEm === L.turno) || opcoes.critGarantido;
+    var garantido = (L && L.critEm === L.turno) || opcoes.critGarantido || certeiro;
     if (garantido || rng() * 100 < chance) {
       g.critico = true;
-      dano = Math.floor(dano * ((magico ? s.danoCriticoMagico : s.danoCritico) + somaBuff(L, 'danoCritico')) / 100);
+      dano = Math.floor(dano * ((magico ? s.danoCriticoMagico : s.danoCritico) + somaBuff(L, 'danoCritico')) / 100 * (X.golpeCerteiro && !certeiro ? 0.8 : 1));
+      if (X.feridaAberta) g.sangra = Math.max(1, Math.round(dano * X.feridaAberta / 100 / 3));
     }
     if (garantido && L && L.critEm === L.turno) L.critEm = -1;
     g.acerto = true; g.dano = dano;
     return g;
   }
   // Defesa do herói com os reforços (ex.: Grito de Desafio).
-  function defesaHeroi(s, L) { return Math.round(s.defesa * (1 + somaBuff(L, 'defesaPct') / 100)); }
+  function defesaHeroi(s, L) { return Math.round(s.defesa * (1 + defesaExtraPct(L) / 100)); }
+  // % a mais de defesa na luta: reforços + Inabalável (Pacto) com menos de 30% da vida.
+  function defesaExtraPct(L) { return somaBuff(L, 'defesaPct') + (L && L.ex && L.ex.inabalavel && L.baixa ? L.ex.inabalavel : 0); }
 
   // Mantém a vida coerente quando o HP máximo muda (equipar, desequipar, distribuir ponto).
   function ajustarVida(p, hpMaxAntes) {
@@ -1137,7 +1173,7 @@ Tanka.regras = (function () {
   // pve = true: soma as skills de combate do clã (só contra monstros: caçada, masmorra e bosses; nunca na Arena).
   function status(p, pve) {
     var s = statusBase(p);
-    return pve ? comRunas(comCla(s, p), p) : s;
+    return pve ? comAscensao(comRunas(comCla(s, p), p), p) : s;
   }
   // Runas das Relíquias equipadas (só contra monstros).
   function comRunas(s, p) {
@@ -1262,6 +1298,141 @@ Tanka.regras = (function () {
     return s;
   }
 
+  // ---------- Pacto de Ascensão (Daniel, nov/2026) ----------
+  // p.ascensao = { nos: [ids na ordem em que foram pegos], exp: exp guardada no level máximo, extras: pontos ganhos pela exp }.
+  // Ids: '<dom>-t0'/'<dom>-t1' (tronco), '<dom>-<trilha>-<0..4>' (2 pequenos, notável, 2 pequenos), '<dom>-<trilha>-p'
+  // (Pedra Angular) e 'ponte-<dom>-<dom2>-<0|1>'. Só vale contra monstros (status com pve), como as skills do clã.
+  var AS = D.ASCENSAO, ARVORE_ASC = null;
+  function arvoreAscensao() {
+    if (ARVORE_ASC) return ARVORE_ASC;
+    var nos = {}, n = AS.dominios.length;
+    var add = function (id, o) { o.id = id; o.viz = []; o.custo = AS.custo[o.tipo]; nos[id] = o; };
+    var ligar = function (a, b) { nos[a].viz.push(b); nos[b].viz.push(a); };
+    AS.dominios.forEach(function (d) {
+      add(d.id + '-t0', { tipo: 'pequeno', dom: d.id, ef: d.tronco, raiz: true });
+      add(d.id + '-t1', { tipo: 'pequeno', dom: d.id, ef: d.tronco });
+      ligar(d.id + '-t0', d.id + '-t1');
+      d.trilhas.forEach(function (t, ti) {
+        var b = d.id + '-' + ti + '-';
+        for (var k = 0; k < 5; k++) add(b + k, k === 2 ? { tipo: 'notavel', dom: d.id, trilha: ti, ef: t.notavel.ef, nome: t.notavel.nome }
+          : { tipo: 'pequeno', dom: d.id, trilha: ti, ef: t.pequeno });
+        add(b + 'p', { tipo: 'pedra', dom: d.id, trilha: ti, ef: t.pedra.ef, nome: t.pedra.nome });
+        ligar(d.id + '-t1', b + 0);
+        for (k = 1; k < 5; k++) ligar(b + (k - 1), b + k);
+        ligar(b + 1, b + 3);   // atalho que pula o notável
+        ligar(b + 4, b + 'p');
+      });
+      ligar(d.id + '-0-2', d.id + '-1-2');   // os dois notáveis do domínio se ligam
+    });
+    AS.dominios.forEach(function (d, i) {
+      var e = AS.dominios[(i + 1) % n];
+      [1, 3].forEach(function (k, q) {
+        var id = 'ponte-' + d.id + '-' + e.id + '-' + q;
+        add(id, { tipo: 'ponte', doms: [d.id, e.id], ef: AS.pontes[i][q] });
+        ligar(id, d.id + '-1-' + k); ligar(id, e.id + '-0-' + k);
+      });
+    });
+    return (ARVORE_ASC = nos);
+  }
+  function nosAscensao(p) { return p && p.ascensao && Array.isArray(p.ascensao.nos) ? p.ascensao.nos : []; }
+  function expPorPontoAscensao() { return Math.round(expNecessaria(D.NIVEL_MAXIMO - 1) * AS.expPorPonto); }
+  // Pontos ganhos: 1 por level do 41 ao 60 + os da exp no level máximo, até o limite.
+  function pontosAscensaoTotal(p) {
+    if (!p || p.nivel < AS.nivelInicio) return 0;
+    var extras = Math.max(0, Math.floor((p.ascensao && p.ascensao.extras) || 0));
+    return Math.min(AS.limitePontos, (Math.min(p.nivel, D.NIVEL_MAXIMO) - AS.nivelInicio) * AS.pontosPorNivel + extras);
+  }
+  function custoNosAscensao(lista) { var A = arvoreAscensao(), t = 0; lista.forEach(function (id) { t += A[id] ? A[id].custo : 0; }); return t; }
+  function pontosAscensaoLivres(p) { return pontosAscensaoTotal(p) - custoNosAscensao(nosAscensao(p)); }
+  // Motivo de não poder pegar `id` tendo `lista` (null = pode).
+  function motivoAscensao(lista, id, total) {
+    var A = arvoreAscensao(), no = A[id];
+    if (!no) return 'Ponto inválido.';
+    if (lista.indexOf(id) >= 0) return 'Você já tem este ponto.';
+    if (no.tipo === 'pedra') {
+      var pedras = lista.filter(function (i) { return A[i] && A[i].tipo === 'pedra'; });
+      if (pedras.some(function (i) { return A[i].dom === no.dom; })) return 'A outra Pedra Angular deste domínio já foi escolhida.';
+      if (pedras.length >= AS.maxPedras) return 'No máximo ' + AS.maxPedras + ' Pedras Angulares.';
+    }
+    if (!no.raiz && !no.viz.some(function (v) { return lista.indexOf(v) >= 0; })) return 'Precisa de um ponto ligado a este.';
+    if (custoNosAscensao(lista) + no.custo > total) return 'Pontos insuficientes.';
+    return null;
+  }
+  // Coloca os pontos numa ordem possível (cada um ligado aos anteriores). null = conjunto impossível.
+  function ordenarAscensao(conjunto, total) {
+    var resta = conjunto.filter(function (id, i) { return conjunto.indexOf(id) === i; }), ok = [];
+    while (resta.length) {
+      var i = 0;
+      while (i < resta.length && motivoAscensao(ok, resta[i], total)) i++;
+      if (i === resta.length) return null;
+      ok.push(resta.splice(i, 1)[0]);
+    }
+    return ok;
+  }
+  // Soma dos efeitos dos pontos pegos (ficha inválida = nada).
+  var CACHE_ASC = {}, N_CACHE_ASC = 0;
+  function efeitosAscensao(p) {
+    var lista = nosAscensao(p);
+    if (!lista.length || p.nivel < AS.nivelInicio) return {};
+    var total = pontosAscensaoTotal(p), chave = total + '|' + lista.join(',');
+    if (!CACHE_ASC[chave]) {
+      if (++N_CACHE_ASC > 200) { CACHE_ASC = {}; N_CACHE_ASC = 1; }
+      CACHE_ASC[chave] = calcularEfeitosAscensao(lista, total);
+    }
+    return Object.assign({}, CACHE_ASC[chave]);
+  }
+  function calcularEfeitosAscensao(lista, total) {
+    var x = {};
+    if (!ordenarAscensao(lista, total)) return x;
+    var A = arvoreAscensao();
+    lista.forEach(function (id) { var ef = A[id].ef; Object.keys(ef).forEach(function (k) { x[k] = (x[k] || 0) + ef[k]; }); });
+    // Sabedoria: +25% de exp; com os pontos no limite (a exp não serve mais), vira +20% de drop
+    if (x.sabedoria) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + 20; else x.exp = (x.exp || 0) + 25; }
+    return x;
+  }
+  function comAscensao(s, p) {
+    var x = efeitosAscensao(p), pct = function (v, n) { return Math.round(v * (1 + n / 100)); };
+    if (x.vida) s.hpMax = Math.max(1, pct(s.hpMax, x.vida));
+    if (x.dano) s.dano = [Math.max(1, pct(s.dano[0], x.dano)), Math.max(1, pct(s.dano[1], x.dano))];
+    if (x.critico) { s.chanceCritico = Math.max(0, s.chanceCritico + x.critico); s.chanceCriticoMagico = Math.max(0, s.chanceCriticoMagico + x.critico); }
+    if (x.danoCritico) { s.danoCritico += x.danoCritico; s.danoCriticoMagico += x.danoCritico; }
+    if (x.precisao) s.precisao += x.precisao;
+    if (x.defesa) s.defesa = pct(s.defesa, x.defesa);
+    if (x.defesaMagica) s.defesaMagica = pct(s.defesaMagica, x.defesaMagica);
+    if (x.velocidade) s.velocidade = Math.max(1, pct(s.velocidade, x.velocidade));
+    if (x.evasao) s.evasao += x.evasao;
+    return s;
+  }
+  // Pega um ponto (ação do servidor).
+  function comprarAscensao(p, id) {
+    if (p.nivel < AS.nivelInicio) return 'O ' + AS.nome + ' abre no level ' + AS.nivelInicio + '.';
+    var lista = nosAscensao(p), m = motivoAscensao(lista, id, pontosAscensaoTotal(p));
+    if (m) return m;
+    var hpAntes = status(p).hpMax;
+    p.ascensao = Object.assign({ exp: 0, extras: 0 }, p.ascensao || {}, { nos: lista.concat([id]) });
+    ajustarVida(p, hpAntes);
+    return true;
+  }
+  // Zera os pontos pagando ouro (a exp e os pontos ganhos continuam).
+  function refazerAscensao(p) {
+    if (!nosAscensao(p).length) return 'Nenhum ponto para zerar.';
+    if ((p.ouro || 0) < AS.precoRefazer) return 'Ouro insuficiente.';
+    var hpAntes = status(p).hpMax;
+    p.ouro -= AS.precoRefazer;
+    p.ascensao.nos = [];
+    ajustarVida(p, hpAntes);
+    return true;
+  }
+  // Exp no level máximo vira ponto do Pacto (até o limite).
+  function ganharExpAscensao(p, qtd) {
+    if (!(qtd > 0) || pontosAscensaoTotal(p) >= AS.limitePontos) return 0;
+    var a = p.ascensao = Object.assign({ nos: [], exp: 0, extras: 0 }, p.ascensao || {}), custo = expPorPontoAscensao(), ganhos = 0;
+    a.exp = (a.exp || 0) + qtd;
+    while (a.exp >= custo && pontosAscensaoTotal(p) < AS.limitePontos) { a.exp -= custo; a.extras = (a.extras || 0) + 1; ganhos++; }
+    if (pontosAscensaoTotal(p) >= AS.limitePontos) a.exp = 0;
+    return ganhos;
+  }
+
   // Poder: nota de força para o ranking (ataque por tempo + resistência).
   // Ataque = dano médio x crítico esperado x precisão x velocidade; resistência = vida x defesas x evasão.
   function poder(p) {
@@ -1294,7 +1465,7 @@ Tanka.regras = (function () {
       p.pontosLivres += D.PONTOS_POR_NIVEL;
       niveis += 1;
     }
-    if (p.nivel >= D.NIVEL_MAXIMO) p.exp = 0;
+    if (p.nivel >= D.NIVEL_MAXIMO) { ganharExpAscensao(p, p.exp); p.exp = 0; }
     if (niveis > 0) p.hpAtual = status(p).hpMax;
     return niveis;
   }
@@ -1302,7 +1473,8 @@ Tanka.regras = (function () {
   // Uma única rolagem; as chances são cumulativas (ex.: Urso: <10 épica, <40 rara).
   function rolarRaridade(p, tabela, rng) {
     var mult = (1 + atributosTotais(p).sor * D.SORTE.drop / 100)   // Sorte: +0,2% sobre a chance base por ponto (nov/2026)
-      * (1 + bonusCla(p, 'fortuna') / 100);                         // skill Fortuna do clã
+      * (1 + bonusCla(p, 'fortuna') / 100)                          // skill Fortuna do clã
+      * (1 + (efeitosAscensao(p).drop || 0) / 100);                 // Pacto de Ascensão
     var r = rng() * 100;
     var acumulado = 0;
     for (var i = 0; i < tabela.length; i++) {
@@ -1566,6 +1738,7 @@ Tanka.regras = (function () {
   function iniciarBatalha(p, monstroId, rng, opcoes) {
     var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial);
     var s = status(p, true);   // contra monstro: com as skills do clã
+    var L = novoLutador(p, 'cacada');
     return {
       monstroId: monstroId,
       rng: rng || Math.random,
@@ -1578,8 +1751,8 @@ Tanka.regras = (function () {
       pocoes: mundial ? 0 : (p.pocoes || 0),   // poções disponíveis na luta (só na caçada)
       ataque: mundial || !m.ataqueCacada ? m.ataque : m.ataqueCacada,   // dano do monstro nesta luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
-      jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
-      lutador: novoLutador(p, 'cacada'),   // habilidades da caçada (ordem, recargas, reforços)
+      jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: L.ex.primeiroGolpe ? 100 : 0, poder: 0 },
+      lutador: L,   // habilidades da caçada (ordem, recargas, reforços)
       chefe: !!m.chefe,
       // Nas 2 primeiras zonas o monstro começa com a barra cheia (o primeiro golpe é dele). Da 3ª zona em diante
       // (Ruínas de Dravenhold...) os dois começam vazios: ataca primeiro quem for mais rápido.
@@ -1600,8 +1773,9 @@ Tanka.regras = (function () {
   // porcentagem: 100 / (100 + defesa). opcoes.mult: multiplicador (1 = normal).
   function golpeJogador(b, opcoes) {
     var m = D.monstros[b.monstroId];
-    var g = calcularGolpe(b.s, b.lutador, m, Object.assign({}, opcoes, { mult: (opcoes.mult || 1) * 100 }), b.rng);
+    var g = calcularGolpe(b.s, b.lutador, m, Object.assign({}, opcoes, { mult: (opcoes.mult || 1) * 100, vidaAlvo: b.monstro.hp / b.monstro.hpMax }), b.rng);
     if (!g.acerto) return g;
+    sangrar(b.monstro, g);
     var dano = g.dano;
     if (b.monstro.armaduraQuebrada) dano = Math.round(dano * D.habilidades.artesao.danoArmaduraQuebrada);
     g.acerto = true;
@@ -1618,7 +1792,7 @@ Tanka.regras = (function () {
 
   function ataqueJogador(b) {
     var magico = b.s.tipoDano === 'magico';
-    var g = golpeJogador(b, {});
+    var g = golpeJogador(b, { normal: true });
     if (g.acerto) ganharPoder(b, D.habilidades[b.classe].poderPorAcerto || D.PODER.porAcerto);
     return { ator: 'jogador', acerto: g.acerto, critico: g.critico, dano: g.dano, magico: magico };
   }
@@ -1658,6 +1832,7 @@ Tanka.regras = (function () {
 
   // Pede a poção na batalha: o jogador bebe na próxima vez dele (gasta a vez).
   function beberPocao(b) {
+    if (b.lutador && b.lutador.ex && b.lutador.ex.semPocao) return false;   // Sede Eterna (Pacto)
     if (b.fim || b.pocoes <= 0 || b.pocaoPendente || b.jogador.hp >= b.jogador.hpMax) return false;
     b.pocaoPendente = true;
     return true;
@@ -1682,7 +1857,7 @@ Tanka.regras = (function () {
     if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - s.evasao, 5, 95)) return ev;
     var bruto = rolar(b.ataque || m.ataque, rng);
     var dano = aoReceber(b.lutador, magia
-      ? danoComDefesa(Math.round(bruto * MG.mult), Math.round(s.defesaMagica * (1 + somaBuff(b.lutador, 'defesaPct') / 100)))
+      ? danoComDefesa(Math.round(bruto * MG.mult), Math.round(s.defesaMagica * (1 + defesaExtraPct(b.lutador) / 100)))
       : danoComDefesa(bruto, defesaHeroi(s, b.lutador)), b.monstro, rng);
     ev.acerto = true;
     ev.dano = dano;
@@ -1711,7 +1886,8 @@ Tanka.regras = (function () {
           b.pocaoPendente = false;
           b.pocoes -= 1;
           var curou = b.jogador.hpMax - b.jogador.hp;
-          b.jogador.hp = b.jogador.hpMax;
+          if (b.lutador && b.lutador.ex && b.lutador.ex.pocaoMetade) curou = Math.min(curou, Math.round(b.jogador.hpMax / 2));   // Regeneração (Pacto)
+          b.jogador.hp += curou;
           return { ator: 'jogador', pocao: true, cura: curou };
         }
         var cheia = b.jogador.poder >= D.PODER.maximo;
@@ -1724,12 +1900,15 @@ Tanka.regras = (function () {
     }
   }
 
+  // Eco (Pacto de Ascensão): a habilidade sai 2 vezes com X% de chance.
+  function eco(L, rng) { return !!(L && L.ex && L.ex.eco) && rng() * 100 < L.ex.eco; }
   // Vez do herói na caçada: usa a 1ª habilidade pronta da ordem (reforço + ataque, ou golpe da habilidade).
   function vezComHabilidades(b) {
     var L = b.lutador, k = escolherHabilidade(L, { grupo: false });
     if (!k) return ataqueJogador(b);
     var def = k.def, magico = b.s.tipoDano === 'magico';
     gastarHabilidade(L, k);
+    curaAoUsar(L, b.jogador);
     if (ehReforco(def)) {
       aplicarReforco(k, { L: L, h: b.jogador, s: b.s, alvo: b.monstro }, null);
       var ev = ataqueJogador(b);
@@ -1745,10 +1924,13 @@ Tanka.regras = (function () {
       hab.golpes.push({ acerto: true, critico: false, dano: d });
     } else if (def.tipo === 'multiplo') {
       // Double Shot: várias flechas no mesmo turno, cada uma pode errar ou ser crítica.
-      for (var f = 0; f < (def.flechas || 2) && !b.fim; f++) hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 }));
+      var vezes = eco(L, b.rng) ? 2 : 1;
+      if (vezes > 1) hab.eco = true;
+      for (var f = 0; f < (def.flechas || 2) * vezes && !b.fim; f++) hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 }));
     } else {
       var g = golpeJogador(b, Object.assign({ mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 }, def.nivel ? opcoesNivel(def, b.jogador, b.monstro) : {}));
       hab.golpes.push(g);
+      if (!b.fim && eco(L, b.rng)) { hab.eco = true; hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 })); }
       // Luz Punitiva: parte do dano vira vida.
       if (g.acerto && g.dano > 0 && def.curaDano && b.jogador.hp > 0) {
         var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
@@ -1826,6 +2008,9 @@ Tanka.regras = (function () {
         res.exp = Math.floor(res.exp * (1 + b.s.bonusRecompensa / 100));
         res.ouro = Math.floor(res.ouro * (1 + b.s.bonusRecompensa / 100));
       }
+      var xa = efeitosAscensao(p);   // Pacto de Ascensão
+      if (xa.exp) res.exp = Math.max(1, Math.floor(res.exp * (1 + xa.exp / 100)));
+      if (xa.ouro) res.ouro = Math.max(1, Math.floor(res.ouro * (1 + xa.ouro / 100)));
       var vit = D.VITALIDADE.ligada ? atualizarVitalidade(p, agora) : null;
       if (D.VITALIDADE.ligada && !res.penalizado && vit.pts > 0) {   // Vitalidade: exp e ouro dobrados
         vit.pts -= 1;
@@ -2575,6 +2760,7 @@ Tanka.regras = (function () {
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
     // opc.hpInicial: a vida com que cada herói entra (masmorra com caminhos: a vida passa de uma luta para a outra)
+    hs.forEach(function (h) { if (h.L.ex.primeiroGolpe) h.barra = 100; });   // Primeiro Golpe (Pacto)
     if (opc.hpInicial) hs.forEach(function (h, i) { if (opc.hpInicial[i] != null) h.hp = Math.max(0, Math.min(h.hpMax, Math.round(opc.hpInicial[i]))); });
     var fimDe = function (r) { r.hp = hs.map(function (h) { return h.hp; }); r.hpMax = hs.map(function (h) { return h.hpMax; }); return r; };
     var ataquesMonstro = 0;
@@ -2613,7 +2799,7 @@ Tanka.regras = (function () {
           }
           var ferido = vivos(hs).some(function (x) { return x.hp * 100 / x.hpMax < T.curaSoAbaixo; });
           var k = escolherHabilidade(L, { grupo: true, grupoFerido: ferido });
-          if (k) gastarHabilidade(L, k);
+          if (k) { gastarHabilidade(L, k); curaAoUsar(L, H); }
           if (k && ehReforco(k.def)) {
             aplicarReforco(k, { L: L, h: H, s: H.s, alvo: vivos(ms)[0] }, vivos(hs).map(function (x) { return { L: x.L, h: x }; }));
             registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome, reforco: true });
@@ -2628,6 +2814,7 @@ Tanka.regras = (function () {
           var alvos = !k ? [vivos(ms)[0]] : k.def.tipo === 'area' ? vivos(ms) : [vivos(ms)[0]];
           var mult = k ? multHabilidade(k.def, k.pts) * (k.fator || 1) : 100;
           if (k) registrar({ tipo: 'hab', i: ev.i, nome: k.def.nome });
+          if (k && eco(L, rng)) alvos = alvos.concat(alvos.map(function () { return null; }));   // Eco (Pacto): sai 2 vezes
           // Double Shot: as flechas seguintes vão no primeiro monstro vivo (o mesmo, ou o próximo se ele caiu).
           if (k && k.def.tipo === 'multiplo') {
             alvos = [];
@@ -2638,10 +2825,11 @@ Tanka.regras = (function () {
             if (!alvo) return;
             var e = n === 0 ? ev : { tipo: 'golpe', sala: si, de: 'h', i: ev.i, acerto: false, critico: false, dano: 0, caiu: false };
             e.alvo = ms.indexOf(alvo);
-            var g = calcularGolpe(H.s, L, alvo, Object.assign({ mult: mult * (1 + (opc.buffDano || 0) / 100) }, k && k.def.nivel ? opcoesNivel(k.def, H, alvo) : {}), rng);
+            var g = calcularGolpe(H.s, L, alvo, Object.assign({ mult: mult * (1 + (opc.buffDano || 0) / 100), normal: !k }, k && k.def.nivel ? opcoesNivel(k.def, H, alvo) : {}), rng);
             if (g.acerto) {
               e.acerto = true; e.critico = g.critico; e.dano = g.dano;
               alvo.hp = Math.max(0, alvo.hp - g.dano);
+              sangrar(alvo, g);
               aoCausar(L, H, g.dano);
               if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100));
               if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s, k.pts);
@@ -3170,6 +3358,10 @@ Tanka.regras = (function () {
     poder: poder,
     tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
+    calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
+    ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
+    refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,
     ganharExp: ganharExp,
     chefeDoNivel: chefeDoNivel,
     premioChefeMundial: premioChefeMundial,

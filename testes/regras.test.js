@@ -2515,3 +2515,67 @@ teste('Reino do Pesadelo: level 60, chefes por level, 20 de estamina, exp e iten
   const s = SC.lutar(q, e.encontro.prontoEm, rng, { exp: 0, ouro: 0 });
   assert.ok(s.res.resultado); igual(R.estamina(q).pts <= 20, true);
 });
+
+const igualA = (a, b) => assert.strictEqual(a, b);
+teste('Pacto de Ascensão: pontos do 41 ao 60 e pela exp, trilhas ligadas, Pedras que se excluem (Daniel, nov/2026)', () => {
+  const A = D.ASCENSAO, arv = R.arvoreAscensao();
+  // árvore: 6 domínios x 22 pontos + 12 pontes = 156 pontos de custo
+  igualA(R.custoNosAscensao(Object.keys(arv)), 156);
+  const p = R.criarPersonagem('Asc', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 39);
+  igualA(p.nivel, 40); igualA(R.pontosAscensaoTotal(p), 0);
+  assert.ok(typeof R.comprarAscensao(p, 'furia-t0') === 'string', 'sem pontos no 40');
+  p.nivel = 60; igualA(R.pontosAscensaoTotal(p), 20);
+  // só pega ponto ligado
+  assert.ok(/ligado/.test(R.comprarAscensao(p, 'furia-t1')));
+  assert.strictEqual(R.comprarAscensao(p, 'furia-t0'), true);
+  ['furia-t1', 'furia-0-0', 'furia-0-1', 'furia-0-3', 'furia-0-4'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
+  igualA(R.pontosAscensaoLivres(p), 14);
+  // dano só contra monstros (a Arena não usa)
+  const sem = R.status(p).dano[1], com = R.status(p, true).dano[1];
+  assert.ok(com > sem * 1.08, sem + ' ' + com);
+  assert.strictEqual(R.comprarAscensao(p, 'furia-0-p'), true);   // Sede de Sangue: +25% dano, -15% vida
+  assert.ok(/outra Pedra/.test(R.comprarAscensao(p, 'furia-1-p')), 'a outra Pedra do domínio');
+  // ponte leva para o domínio vizinho sem passar pelo tronco dele
+  assert.strictEqual(R.comprarAscensao(p, 'ponte-fortuna-furia-0'), true, 'ponte ligada a furia-0-1');
+  assert.strictEqual(R.comprarAscensao(p, 'fortuna-1-1'), true);
+  // exp no level 60 vira ponto
+  const antes = R.pontosAscensaoTotal(p);
+  R.ganharExp(p, R.expPorPontoAscensao() * 2 + 5);
+  igualA(R.pontosAscensaoTotal(p), antes + 2); igualA(p.exp, 0); igualA(p.ascensao.exp, 5);
+  // ficha forjada (ponto solto) não vale nada
+  const f = JSON.parse(JSON.stringify(p)); f.ascensao.nos = ['vigor-1-p'];
+  assert.deepStrictEqual({ ...R.efeitosAscensao(f) }, {});
+  // ordem: conjunto ligado é aceito em qualquer ordem
+  assert.ok(R.ordenarAscensao(['furia-t1', 'furia-t0'], 20)); assert.strictEqual(R.ordenarAscensao(['furia-t1'], 20), null);
+  // refazer custa ouro e devolve os pontos
+  p.ouro = A.precoRefazer; assert.strictEqual(R.refazerAscensao(p), true); igualA(p.ouro, 0); igualA(R.pontosAscensaoLivres(p), R.pontosAscensaoTotal(p));
+  // limite
+  p.ascensao.extras = 999; igualA(R.pontosAscensaoTotal(p), A.limitePontos);
+});
+
+teste('Pacto de Ascensão: efeitos na luta (Primeiro Golpe, Sede Eterna, Golpe Certeiro, ouro da Fortuna)', () => {
+  const p = R.criarPersonagem('Asc2', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 59);
+  p.ascensao = { nos: [], exp: 0, extras: 50 };
+  ['tempestade-t0', 'tempestade-t1', 'tempestade-0-0', 'tempestade-0-1', 'tempestade-0-3', 'tempestade-0-4', 'tempestade-0-p',
+    'vigor-t0', 'vigor-t1', 'vigor-1-0', 'vigor-1-1', 'vigor-1-3', 'vigor-1-4', 'vigor-1-p',
+    'precisao-t0', 'precisao-t1', 'precisao-0-0', 'precisao-0-1', 'precisao-0-3', 'precisao-0-4', 'precisao-0-p',
+    'fortuna-t0'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
+  assert.ok(/No máximo 3/.test(R.comprarAscensao(p, 'furia-t0') === true && ['furia-t1', 'furia-0-0', 'furia-0-1', 'furia-0-3', 'furia-0-4'].every((id) => R.comprarAscensao(p, id) === true) && R.comprarAscensao(p, 'furia-0-p')));
+  p.pocoes = 2;
+  const b = R.iniciarBatalha(p, D.areas[0].monstros[0].id, () => 0.5);
+  igualA(b.jogador.barra, 100);                     // Primeiro Golpe: começa com a barra cheia
+  assert.strictEqual(R.beberPocao(b), false);      // Sede Eterna: sem poção
+  // Golpe Certeiro: o 4º golpe é crítico mesmo com o sorteio ruim
+  const L = b.lutador, alvo = { indiceArea: 0, defesa: 0, defesaMagica: 0, hp: 100, hpMax: 100 };
+  const crit = [1, 2, 3, 4].map(() => R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).critico);
+  assert.deepStrictEqual(crit, [false, false, false, true]);
+  // ouro +3% (tronco da Fortuna) na caçada
+  const q = R.criarPersonagem('Asc3', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(q, 59);
+  const m = D.areas[6].monstros[2].id;
+  R.estamina(q).pts = 100; const r0 = R.concluirBatalha(q, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
+  q.ascensao = { nos: ['fortuna-t0'], exp: 0, extras: 0 };
+  R.estamina(q).pts = 100; const r1 = R.concluirBatalha(q, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
+  igualA(r1.ouro, Math.floor(r0.ouro * 1.03));
+});

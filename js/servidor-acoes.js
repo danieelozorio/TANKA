@@ -156,6 +156,17 @@ Tanka.servidorAcoes = (function () {
       }
       return true;
     },
+    // [ids]: pega pontos do Pacto de Ascensão, na ordem (cada um ligado aos anteriores)
+    ascensao: function (p, a) {
+      a = Array.isArray(a) ? a : [];
+      if (!a.length || a.length > 200) return 'Pedido inválido.';
+      for (var i = 0; i < a.length; i++) {
+        var r = R.comprarAscensao(p, texto(a[i]));
+        if (r !== true) return ok(r, 'Não foi possível pegar o ponto.');
+      }
+      return true;
+    },
+    refazerAscensao: function (p) { return ok(R.refazerAscensao(p), 'Não foi possível.'); },
     // [modo, id, op]: ordem de uso das habilidades
     ordemHabilidade: function (p, a) {
       a = Array.isArray(a) ? a : [];

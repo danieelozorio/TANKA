@@ -1089,12 +1089,21 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (16/11/2026) Destruidor: passiva Força Bruta ganhou critico 20, vidaPct 15, defesaPct 15 (estava em 95-100% de vida perdida no 3º monstro e 0% no Pesadelo; agora perto do Paladino). Na Arena o crítico da passiva vira +20% de dano.
 - (16/11/2026, tarde) Força Bruta reduzida para critico 10, vidaPct 10, defesaPct 10 (a primeira versão subiu demais o poder; agora ~+11%).
 - (16/11/2026, Henri) Força Bruta: +5 FOR, danoCritico 3, defFisicaPct 5, defMagicaPct 5 (chaves novas: só a defesa / só a defesa mágica, também em tanka_status); +1% por ponto em cada %.
-- **Constelação da Ascensão v2 (proposta, NÃO está no jogo):** 6 domínios × 2 trilhas, 12 pontes, Pedras Angulares que
-  se excluem por domínio, máx. 3 Pedras, limite de 70 de 156 pontos; abre no level 40 (1 ponto por level até o 60, depois
-  pela exp). Números, desenho e PDF em `docs/propostas/constelacao/` (dados.js, arvore.js, pdf.js; rodar da raiz). Esperando
-  a equipe decidir (Arena?, limite, preço do pergaminho).
-  Medalhões das 12 Pedras (folha 4x3 do Daniel, Gemini) em `assets/ascensao/medalhao-<pedra>.webp` (256 px, sem fundo) e
-  brasões dos 6 domínios (folha 3x2) em `assets/ascensao/dominio-<id>.webp` (192 px, sem fundo).
+- **Pacto de Ascensão (NO JOGO, Daniel 16/11/2026; era a "Constelação v2"):** aba Herói › Pacto (`abaAscensao`).
+  Números em `D.ASCENSAO` (6 domínios × 2 trilhas, pontes, custos 1/2/2/4, máx. 3 Pedras, limite 70 de 156, reset
+  `precoRefazer` 50.000 de ouro). Regras em regras.js (`arvoreAscensao`, `motivoAscensao`, `ordenarAscensao`,
+  `efeitosAscensao` com cache, `comAscensao` no `status(p, true)`, `extrasLuta` no lutador, `comprarAscensao`,
+  `refazerAscensao`, `ganharExpAscensao`). Ficha: `p.ascensao = { nos, exp, extras }`; ficha forjada (pontos soltos,
+  a mais) = nenhum efeito. Pontos: 1 por level 41–60; no 60 a exp vira ponto (1 a cada exp do level 59).
+  Só contra monstros (caçada, masmorra, chefes; a Arena no servidor não lê). Efeitos de luta: Primeiro Golpe (barra cheia +
+  1º golpe), Golpe Certeiro (contador `L.nGolpes`), Ferida Aberta (`sangrar` usa a `queima` do monstro), Execução/Sem
+  Piedade (`opcoes.vidaAlvo` na caçada), Eco (habilidade 2x; `normal` marca o ataque normal), Foco (`gastarHabilidade`),
+  Inabalável (`L.baixa`, `defesaExtraPct`), Sede Eterna (`beberPocao` recusa), Regeneração (poção cura metade).
+  Ouro/exp no `concluirBatalha`; drop no `rolarRaridade`. Mudança da proposta: ponte Precisão⇄Bastião longe virou
+  "−4% de dano recebido" (monstro não dá crítico). Servidor: ações `ascensao` ([ids]) e `refazerAscensao`.
+  Tela: SVG com o desenho da proposta, centro "Pacto de Ascensão"; tocar = detalhe embaixo; pendentes em
+  `estado.ascPend` (Confirmar/Cancelar); `redesenharPacto` só troca a caixa e guarda a rolagem.
+  Arte: `assets/ascensao/medalhao-<pedra>.webp` e `dominio-<id>.webp`. Proposta antiga em `docs/propostas/constelacao/`.
 
 ### Masmorra com caminhos (Henri, 16/11/2026)
 - Roteiro `D.MASMORRA.roteiro`: luta1 → voto → luta2 → voto → elite → voto → chefe. Lutas automáticas (`simularSalas`

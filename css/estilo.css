@@ -1937,3 +1937,32 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .mas-lances p.mas-lance-atual { opacity: 1; animation: mas-linha .35s both; }
 .mas-dano-total { font-size: .78rem; color: #e8b97a; white-space: nowrap; }
 .mas-dano-total.top { color: #ffd34d; font-weight: 700; }
+
+/* ---------- Pacto de Ascensão (árvore depois do level 40) ---------- */
+.pacto-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pacto-topo p { margin: .2em 0 .6em; }
+.pacto-pontos { text-align: center; min-width: 110px; padding: 6px 10px; border: 1px solid var(--ouro); border-radius: 10px; background: rgba(201,169,107,.08); }
+.pacto-pontos b { display: block; font-size: 1.7em; color: #f0c56a; line-height: 1.1; }
+.pacto-pontos small { display: block; color: var(--suave, #9a9a9a); font-size: .72em; }
+.pacto-exp { margin: 0 0 10px; }
+.pacto-confirmar { margin: 0 0 10px; }
+.pacto-mapa { border: 1px solid #3a2c18; border-radius: 12px; overflow: auto; background: #0a0806; max-height: 82vh; -webkit-overflow-scrolling: touch; }
+.pacto-svg { display: block; width: 100%; height: auto; max-width: 900px; margin: 0 auto; }
+.pacto-mapa.zoom .pacto-svg { width: 1500px; max-width: none; }
+.asc-no { cursor: pointer; }
+.asc-no.livre > :first-child { animation: asc-pulsa 1.6s ease-in-out infinite; }
+.asc-no.sel > :first-child { stroke: #fff !important; stroke-opacity: 1 !important; stroke-width: 4px; }
+@keyframes asc-pulsa { 50% { stroke-opacity: .25; } }
+.pacto-legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; margin: 8px 2px; }
+.pacto-legenda b { color: #f0c56a; }
+.pacto-legenda .btn-mini { margin-left: auto; }
+.pacto-detalhe { display: flex; gap: 12px; align-items: center; padding: 10px 12px; border: 1px solid var(--cor-dom); border-radius: 12px; background: rgba(0,0,0,.35); box-shadow: inset 0 0 18px rgba(0,0,0,.4); }
+.pacto-medalhao { width: 64px; height: 64px; object-fit: contain; flex: none; }
+.pacto-detalhe-txt { flex: 1; min-width: 0; }
+.pacto-detalhe-txt strong { color: var(--cor-dom); font-size: 1.1em; }
+.pacto-detalhe-acao { flex: none; text-align: right; max-width: 40%; }
+.pacto-dica { text-align: center; margin: 6px 0; }
+.pacto-resumo { margin-top: 12px; }
+.pacto-resumo summary { cursor: pointer; color: var(--ouro-claro); }
+.pacto-resumo ul { margin: .3em 0; padding-left: 1.2em; }
+.pacto-refazer { margin-top: 12px; }

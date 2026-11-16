@@ -583,3 +583,16 @@ html[data-celular] .enc-chips { flex-wrap: nowrap; }
 html[data-celular] .enc-chip { padding-right: .3rem; }
 html[data-celular] .enc-chip i { width: 1.3rem; height: 1.3rem; }
 html[data-celular] [data-acao="mochila-ferramentas"], html[data-celular] [data-acao="mochila-lote"] { white-space: nowrap; font-size: clamp(.8rem, 3.6vw, .95rem); padding-inline: .5rem; }
+
+/* Pacto de Ascensão no celular: o mapa rola de lado e para baixo; o detalhe fica embaixo, com o botão inteiro */
+html[data-celular] .pacto-topo { flex-direction: column; gap: 4px; }
+html[data-celular] .pacto-pontos { align-self: stretch; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
+html[data-celular] .pacto-pontos b { display: inline; font-size: 1.4em; }
+html[data-celular] .pacto-pontos small { display: inline; }
+html[data-celular] .pacto-mapa { max-height: 62vh; }
+html[data-celular] .pacto-svg { width: 760px; max-width: none; }
+html[data-celular] .pacto-mapa.zoom .pacto-svg { width: 1200px; }
+html[data-celular] .pacto-detalhe { flex-wrap: wrap; }
+html[data-celular] .pacto-medalhao { width: 52px; height: 52px; }
+html[data-celular] .pacto-detalhe-acao { max-width: none; width: 100%; text-align: center; }
+html[data-celular] .pacto-detalhe-acao .btn { width: 100%; }
