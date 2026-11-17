@@ -522,6 +522,12 @@
     estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
     estado.loginResultado = null;
     iniciarAtividade();
+    // Créditos e mensagens do Reino (SQL Editor): busca ao entrar e a cada 2 min (fora de luta).
+    clearInterval(estado.timerPendentes);
+    setTimeout(function () { if (ACAO_SERVIDOR && estado.personagem) receberPendentes(); }, 4000);
+    estado.timerPendentes = setInterval(function () {
+      if (ACAO_SERVIDOR && estado.personagem && !estado.luta && !estado.batalha && !estado.lutaArena && document.visibilityState !== 'hidden') receberPendentes();
+    }, 120000);
     var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
     var presenteA3 = estado.personagem.presenteAtributos3 === 1;
@@ -675,7 +681,7 @@
   var ICONE_CARTA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.2 7 12 11.5 18.8 7z"/></svg>';
   var ICONE_SINO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a6 6 0 0 1 6 6v3.5l1.8 3.3A1 1 0 0 1 19 16H5a1 1 0 0 1-.9-1.2L6 11.5V8a6 6 0 0 1 6-6zm-2.5 15h5a2.5 2.5 0 0 1-5 0z"/></svg>';
   var ORIGENS_CAIXA = { boss: ['🐉', 'Chefe Mundial'], arena: ['⚔', 'Arena'], leilao: ['🔨', 'Leilão'], mercado: ['💰', 'Mercado'],
-    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'] };
+    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'], admin: ['📜', 'Mensagem do Reino'] };
   function origemCaixa(o) {
     return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra';
   }

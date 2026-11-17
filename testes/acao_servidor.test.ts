@@ -199,6 +199,10 @@ ok(R.qtdPergaminho(d(), 'rara') === pergAntes + 2 && d().ouro === 1500, 'receber
 pendentes = { recompensas: [], creditos: [] };
 x = await pedir({ personagem: p0.id, acao: 'receber' });
 ok(d().versao === vRec, 'nada para receber: não grava de novo');
+pendentes = { recompensas: [], creditos: [{ id: 31, ouro: 0, reputacao: 0, motivo: 'Mensagem do Reino: Obrigado por testar!' }] };
+x = await pedir({ personagem: p0.id, acao: 'receber' });
+ok(x.j.resultado && x.j.resultado.avisos[0].texto === 'Obrigado por testar!' && x.j.resultado.avisos[0].origem === 'admin' && d().ouro === 1500 && marcados.includes('c31'),
+  'mensagem do Reino: só o texto, na caixa, sem mexer no ouro, e marcada como entregue');
 x = await pedir({ personagem: p0.id, acao: 'sincronizarCla', args: { id: 1, skills: { exp: 10 } } });
 ok(!x.j.erro && d().cla.skills.exp === 3, 'clã: as skills vêm do banco, não do navegador');
 x = await pedir({ personagem: p0.id, acao: 'missao', args: ['diarias', 'monstros'] });

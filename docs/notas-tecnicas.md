@@ -1198,3 +1198,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Em `tema-arcane.css` (≤760px): o ponto tocado abre num cartão fixo embaixo (`.pacto-detalhe` fixed, ✕ `asc-sel-fechar`),
   só com ícone, tipo e custo em pontos, nome, efeito, custo da Pedra e o botão. Somem o texto do topo, a legenda
   (fica o Aumentar), o caminho domínio › trilha (`.pacto-caminho`) e as regras (`.pacto-regra`). Contador de pontos numa linha.
+- **Mensagem do Reino (17/11/2026):** crédito com ouro 0 e reputação 0 (`creditos.motivo` = texto) vira aviso + caixa
+  de entrada com origem `admin` (📜). SQL pronto no scratchpad do Daniel (insert em `public.creditos`). O jogo busca os
+  pendentes ao entrar e a cada 2 min (`estado.timerPendentes`).
