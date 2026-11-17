@@ -1126,3 +1126,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ### Poção automática: opções 10% e 30% (Henri, 16/11/2026)
 - `CACADA.pocaoAuto` = [10, 30] (era [10, 5]); quem tinha 5% vira 10% em `prefsCacada` (app.js).
+
+### Arena: veneno, sangramento e queimadura passam pela defesa (Henri, 17/11/2026)
+- `arena_vez` (schema.sql): no lançamento do `dot` (Corte Vampírico, Flecha Envenenada) e da `queima` (Maldição de
+  Ignaroth), o dano por vez é multiplicado por `k / (k + defesa)` do alvo (defesa física ou mágica pelo tipo de dano de
+  quem lança, com os reforços de defesa do alvo). Antes ignorava a defesa e batia ~9x um golpe normal contra quem tinha
+  muita defesa. Só na Arena; na caçada continua sem defesa.

@@ -1135,7 +1135,7 @@ begin
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
   if (d -> 'queima' ->> 'turnos')::int <> 3 or (d ->> 'cortaCura')::int <> 3 then raise exception 'FALHA maldição: %', d; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'queimou')::int <> 16 then raise exception 'FALHA maldição: queimadura de 16%% do dano (15 + 1 ponto): %', r -> 'ev'; end if;
+  if (r -> 'ev' ->> 'queimou')::int <> 8 then raise exception 'FALHA maldição: queimadura de 16%% do dano (15 + 1 ponto) com a defesa 100 = 8: %', r -> 'ev'; end if;
   raise notice 'ok   arena: Maldição de Ignaroth queima e corta a cura';
   -- Milagre: volta uma vez
   d := base || jsonb_build_object('hp', 1, 'milagre', 25, 'defesa', 0);
@@ -1164,9 +1164,9 @@ begin
   -- Level 20 na Arena: veneno (quem envenenou recupera), escudo, regeneração, roubo de vida e Bolso de Poções
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 10); a := r -> 'eu'; d := r -> 'outro';
-  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 80 then raise exception 'FALHA sangramento: %', d -> 'veneno'; end if;
+  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 40 then raise exception 'FALHA sangramento (80 com a defesa 100 do alvo = 40): %', d -> 'veneno'; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'envenenado')::int <> 80 or (r -> 'outro' ->> 'hp')::int <> 516 then raise exception 'FALHA sangramento: tira 80 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
+  if (r -> 'ev' ->> 'envenenado')::int <> 40 or (r -> 'outro' ->> 'hp')::int <> 508 then raise exception 'FALHA sangramento: tira 40 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
   raise notice 'ok   arena: Corte Vampírico sangra e cura quem cortou';
   d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 20, '{"classe2":"bruxo","pontos":{"escudo-de-gelo":10},"ordem":{"arena":["escudo-de-gelo"]}}')));
   r := public.arena_vez(d, base, 1); d := r -> 'eu';
