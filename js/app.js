@@ -2191,7 +2191,7 @@
       h += '<div class="hab-cabeca"><div><h3 class="subtitulo">' + (fem && c.nomeF || c.nome) + '</h3><p class="suave pequeno">' + c.descricao + '</p></div>'
         + '<div class="hab-livres">Pontos livres <b>' + livres + '</b></div></div>'
         + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Cada habilidade precisa de pelo menos 1 ponto para ser usada (máximo ' + T.maxPorHabilidade + '). '
-        + 'As passivas ficam sempre ligadas (com 1 ponto de graça) e também recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + '.</p>' + (CELULAR ? '</details>' : '')
+        + 'As passivas ficam sempre ligadas (com 1 ponto de graça) e também recebem pontos. Você ganha +' + T.pontosPorNivel + ' ponto a cada level' + (T.pontosDepois ? ' (+' + T.pontosDepois.porNivel + ' a partir do level ' + (T.pontosDepois.nivel + 1) + ')' : '') + (T.pontosAteNivel ? ', até o level ' + T.pontosAteNivel + '. Depois disso, os pontos vêm do Pacto de Ascensão' : '') + '.</p>' + (CELULAR ? '</details>' : '')
         + '<div class="grade-hab">' + c.habilidades.map(function (x) { return cartaHabilidade(x, R.pontosDistribuidos(p, x.id), pd[x.id] || 0, true, R.pontosDaArma(p)[x.id] || 0); }).join('') + '</div>'
         + (totalPendHab() ? '<div class="botoes"><button class="btn" data-acao="hab-confirmar">Confirmar pontos</button><button class="btn secundario" data-acao="hab-cancelar">Cancelar</button></div>' : '');
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });

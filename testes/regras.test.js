@@ -2514,7 +2514,7 @@ teste('Reino do Pesadelo: level 60, chefes por level, 20 de estamina, exp e iten
   assert.ok(!R.podeCacar(p, 'velgrath-pesadelo'), 'não entra na caçada normal');
   igual(R.fatorExp(p, 'velgrath-pesadelo'), 100);
   // pontos de habilidade: +1 por level depois do 40
-  igual(R.pontosHabilidadeTotal(p), 54); p.nivel = 60; igual(R.pontosHabilidadeTotal(p), 74); p.nivel = 40;
+  igual(R.pontosHabilidadeTotal(p), 54); p.nivel = 60; igual(R.pontosHabilidadeTotal(p), 60);   // para no 46 (17/11/2026) p.nivel = 40;
   // Mapa do Reino no 40+: 10% da exp, ouro normal
   const b = { fim: 'vitoria', monstroId: 'elemental-de-fogo', pocoes: 0, rng: () => 0.99, s: {} };
   if (!D.monstros[b.monstroId]) b.monstroId = D.areas[6].monstros[2].id;
@@ -2646,4 +2646,13 @@ teste('Torre do Eclipse: turno com escolhas, desviar pela esquiva, resistência 
   const t5 = R.novaTorre(fichas, 1), id = t5.herois[0].L.kit[0].def.id;
   R.resolverTurnoTorre(t5, [{ acao: 'habilidade', hab: id, ordem: 1 }], 5);
   assert.ok(R.habilidadesTorre(t5.herois[0]).indexOf(id) < 0 || (t5.herois[0].L.kit[0].def.recarga || 1) <= 1);
+});
+
+teste('pontos de habilidade param no level 46 (60 pontos); depois só o Pacto', () => {
+  const p = R.criarPersonagem('Lim', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 45);
+  assert.strictEqual(R.pontosHabilidadeTotal(p), 60);
+  R.admin.subirNivel(p, 14);
+  assert.strictEqual(p.nivel, 60);
+  assert.strictEqual(R.pontosHabilidadeTotal(p), 60, 'no 60 continua 60');
 });

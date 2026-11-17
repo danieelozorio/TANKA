@@ -1198,3 +1198,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Em `tema-arcane.css` (≤760px): o ponto tocado abre num cartão fixo embaixo (`.pacto-detalhe` fixed, ✕ `asc-sel-fechar`),
   só com ícone, tipo e custo em pontos, nome, efeito, custo da Pedra e o botão. Somem o texto do topo, a legenda
   (fica o Aumentar), o caminho domínio › trilha (`.pacto-caminho`) e as regras (`.pacto-regra`). Contador de pontos numa linha.
+
+### Pontos de habilidade param no level 46 (Henri, 17/11/2026)
+- `TALENTOS.pontosAteNivel: 46`: `pontosHabilidadeTotal` (regras.js) e `arena_pontos_ok` (schema) contam os levels só
+  até o 46 = 60 pontos (dá todas as habilidades +10). Depois, só o Pacto de Ascensão. Quem já passou do 46 com mais
+  de 60 pontos distribuídos fica com pontos livres negativos até refazer.

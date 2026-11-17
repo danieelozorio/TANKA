@@ -468,10 +468,11 @@ Tanka.regras = (function () {
   }
   function pontosHabilidadeTotal(p) {
     if (p.nivel < T.nivelSegunda) return 0;
-    var dp = T.pontosDepois, ate = dp ? Math.min(p.nivel, dp.nivel) : p.nivel;
-    var d2 = T.pontosDepois2, ate2 = d2 ? Math.min(p.nivel, d2.nivel) : p.nivel;
+    var nv = T.pontosAteNivel ? Math.min(p.nivel, T.pontosAteNivel) : p.nivel;   // depois do 46: só o Pacto
+    var dp = T.pontosDepois, ate = dp ? Math.min(nv, dp.nivel) : nv;
+    var d2 = T.pontosDepois2, ate2 = d2 ? Math.min(nv, d2.nivel) : nv;
     return T.pontosIniciais + (ate - T.nivelSegunda) * T.pontosPorNivel + (dp ? Math.max(0, ate2 - dp.nivel) * dp.porNivel : 0)
-      + (d2 ? Math.max(0, p.nivel - d2.nivel) * d2.porNivel : 0);
+      + (d2 ? Math.max(0, nv - d2.nivel) * d2.porNivel : 0);
   }
   // Habilidades do level 20 (foco: caçada) e do level 30 (foco: Arena); valem em todo lugar. Sem `nivel`: as de sempre.
   function habLiberada(p, def) { return !def.nivel || (p.nivel || 1) >= def.nivel; }

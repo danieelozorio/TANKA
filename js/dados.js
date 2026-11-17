@@ -561,7 +561,8 @@ Tanka.dados = {
     nivelSegunda: 10, pontosIniciais: 4, pontosPorNivel: 1, maxPorHabilidade: 10,
     // Passivas são fixas (valor de 1 ponto, sem receber pontos). Do level 21 em diante: 2 pontos por level (Daniel, nov/2026): 14 no level 20, 34 no level 30.
     pontosDepois: { nivel: 20, porNivel: 2 },
-    pontosDepois2: { nivel: 40, porNivel: 1 },   // do level 41 ao 60: +1 por level (Henri, nov/2026): 54 pontos no 60
+    pontosDepois2: { nivel: 40, porNivel: 1 },
+    pontosAteNivel: 46,   // (Henri, 17/11/2026) depois do 46 não ganha mais ponto de habilidade (60 pontos: tudo +10); só o Pacto   // do level 41 ao 60: +1 por level (Henri, nov/2026): 54 pontos no 60
     unico: { base: 150, porPonto: 5 }, unicoReduzido: { base: 120, porPonto: 4 },
     area: { base: 80, porPonto: 3 }, areaReduzida: { base: 60, porPonto: 3 },
     atordoar: { base: 100, porPonto: 5 },     // dano do golpe que atordoa
