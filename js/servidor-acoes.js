@@ -295,26 +295,30 @@ Tanka.servidorAcoes = (function () {
       return f.erro ? f.erro : { resultado: f };
     },
     acampar: function (p, a, ctx) { R.acampar(p, ctx.agora, !!a); return true; },
-    // Luta da Arena ou masmorra terminou: conta nas missões, no guia e na História. { tipo, vitoria, alvo, run }
-    // (resultado informado pelo jogo; limitado a uma luta a cada `intervalo` segundos de cada tipo)
+    // Luta da Arena ou masmorra terminou: conta nas missões, no guia e na História. { tipo, luta (Arena) | run (masmorra) }
+    // Segurança (nov/2026): o resultado NÃO vem do navegador. A função `acao` confere a luta no banco e passa em
+    // ctx.luta = { id, vitoria } (Arena: o herói foi o atacante e a luta acabou) ou { id, masmorra } (masmorra
+    // vencida em que ele estava). Sem a luta conferida, não conta. Cada luta conta uma vez só.
     eventoJogo: function (p, a, ctx) {
       a = a && typeof a === 'object' ? a : {};
-      var INTERVALO = { arena: 8, masmorra: 25 }, tipo = texto(a.tipo);
-      if (!INTERVALO[tipo]) return 'Pedido inválido.';
+      var tipo = texto(a.tipo), L = ctx.luta;
+      if (tipo !== 'arena' && tipo !== 'masmorra') return 'Pedido inválido.';
+      if (!L || !L.id) return { resultado: { ignorado: true } };
       p.eventos = p.eventos || {};
-      if (ctx.agora - (p.eventos[tipo] || 0) < INTERVALO[tipo] * 1000) return { resultado: { ignorado: true } };
-      p.eventos[tipo] = ctx.agora;
+      var vistos = Array.isArray(p.eventos[tipo + 'Ids']) ? p.eventos[tipo + 'Ids'] : [], chave = String(L.id);
+      if (vistos.indexOf(chave) >= 0) return { resultado: { ignorado: true } };
+      p.eventos[tipo + 'Ids'] = vistos.concat(chave).slice(-30);
       var historia = false;
       if (tipo === 'arena') {
         R.registrarMissao(p, 'arena', 1, ctx.agora);
-        if (a.vitoria) R.registrarMissao(p, 'arenaVitoria', 1, ctx.agora);
+        if (L.vitoria) R.registrarMissao(p, 'arenaVitoria', 1, ctx.agora);
         R.registrarGuia(p, 'arena');
-      } else if (a.vitoria) {
-        var mis = R.garantirMissoes(p, ctx.agora), run = texto(a.run);
-        if (run && mis.runs.indexOf(run) >= 0) return { resultado: { ignorado: true } };
-        if (run) mis.runs = mis.runs.concat(run).slice(-20);
+      } else {
+        var mis = R.garantirMissoes(p, ctx.agora);
+        if (mis.runs.indexOf(chave) >= 0) return { resultado: { ignorado: true } };
+        mis.runs = mis.runs.concat(chave).slice(-20);
         R.registrarMissao(p, 'masmorra', 1, ctx.agora);
-        historia = !!R.registrarHistoria(p, 'masmorra', texto(a.alvo));
+        historia = !!R.registrarHistoria(p, 'masmorra', texto(L.masmorra));
       }
       return { resultado: { guia: R.verificarGuia(p), historia: historia } };
     },

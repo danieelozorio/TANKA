@@ -213,6 +213,18 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
     if (!pd.ok) return responder({ erro: 'Não foi possível ler os prêmios.', personagem: linhas[0].dados });
     extra.pendentes = await pd.json();
   }
+  // eventoJogo (missões da Arena e da masmorra): o resultado vem do banco, nunca do navegador.
+  if (acao === 'eventoJogo') {
+    const ag = (pedido.args || {}) as Record<string, unknown>;
+    if (ag.tipo === 'arena' && Number(ag.luta) > 0) {
+      const l = (await lerServidor(base, cab, 'arena_lutas?id=eq.' + Number(ag.luta) + '&select=id,atacante,situacao'))[0];
+      if (l && l.atacante === id && l.situacao !== 'andamento') extra.luta = { id: 'a' + l.id, vitoria: l.situacao === 'vitoria' };
+    }
+    if (ag.tipo === 'masmorra' && Number(ag.run) > 0) {
+      const m = (await lerServidor(base, cab, 'masmorra_runs?id=eq.' + Number(ag.run) + '&select=id,membros,estado,masmorra'))[0];
+      if (m && (m.membros || []).includes(id) && m.estado === 'vitoria') extra.luta = { id: String(m.id), masmorra: m.masmorra };
+    }
+  }
   if (acao === 'sincronizarCla') {
     const b = await rpc('cacada_bonus', { meu: id });
     if (b.ok) { const cla = await b.json(); extra.cla = cla && cla.cla ? cla.cla : null; }

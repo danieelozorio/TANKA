@@ -55,6 +55,10 @@ g.fetch = (async (url: string, init: any = {}) => {
   }
   if (u.pathname === '/rest/v1/rpc/masmorra_finalizar') { finalizados.push(JSON.parse(init.body)); runCam.estado = JSON.parse(init.body).vitoria ? 'vitoria' : 'derrota'; return json(null); }
   if (u.pathname === '/rest/v1/alianca_boss_runs') return json([runBoss]);
+  if (u.pathname === '/rest/v1/arena_lutas') {
+    const lid = Number((u.searchParams.get('id') || '').replace('eq.', ''));
+    return json(lid === 76 ? [{ id: 76, atacante: p0.id, situacao: 'vitoria' }] : lid === 77 ? [{ id: 77, atacante: 'outro', situacao: 'vitoria' }] : []);
+  }
   if (u.pathname === '/rest/v1/torre_runs') {
     if (init.method === 'PATCH') {
       if ('eq.' + runTorre.versao !== u.searchParams.get('versao')) return json([]);
@@ -199,9 +203,18 @@ x = await pedir({ personagem: p0.id, acao: 'sincronizarCla', args: { id: 1, skil
 ok(!x.j.erro && d().cla.skills.exp === 3, 'clã: as skills vêm do banco, não do navegador');
 x = await pedir({ personagem: p0.id, acao: 'missao', args: ['diarias', 'monstros'] });
 ok(x.j.erro, 'missão não concluída: recusada');
+// missões da Arena/masmorra: só contam com a luta conferida no banco (segurança, nov/2026)
+const arenaAntes = JSON.stringify((d().missoes || {}));
 x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', vitoria: true } });
-x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', vitoria: true } });
-ok(x.j.resultado && x.j.resultado.ignorado, 'evento da Arena repetido em menos de 8 s: ignorado');
+ok(x.j.resultado && x.j.resultado.ignorado, 'Arena: "venci" sem luta de verdade não conta');
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', luta: 77 } });
+ok(x.j.resultado && x.j.resultado.ignorado, 'Arena: luta de outra pessoa não conta');
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', luta: 76 } });
+ok(x.j.resultado && !x.j.resultado.ignorado && JSON.stringify(d().missoes) !== arenaAntes, 'Arena: luta de verdade conta');
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'arena', luta: 76 } });
+ok(x.j.resultado && x.j.resultado.ignorado, 'Arena: a mesma luta não conta duas vezes');
+x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'masmorra', run: 999 } });
+ok(x.j.resultado && x.j.resultado.ignorado, 'masmorra: número inventado não conta');
 const ouroPref = d().ouro;
 x = await pedir({ personagem: p0.id, acao: 'preferencias', args: { ouro: 99999999, nivel: 60, caixaVista: 123, prefsCacada: { pocao: 30, chefe: 'lutar' } } });
 ok(!x.j.erro && d().ouro === ouroPref && d().nivel === 12 && d().caixaVista === 123 && d().prefsCacada.pocao === 30, 'preferências: grava só os campos permitidos');

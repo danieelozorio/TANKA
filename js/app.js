@@ -7553,7 +7553,7 @@
       missaoCla('arena', 1);
       R.registrarGuia(estado.personagem, 'arena');
       if (L.luta.situacao === 'vitoria') R.registrarMissao(estado.personagem, 'arenaVitoria', 1, C.agora());
-      acaoServidor('eventoJogo', { tipo: 'arena', vitoria: L.luta.situacao === 'vitoria' });
+      acaoServidor('eventoJogo', { tipo: 'arena', luta: L.luta.id });   // o servidor confere a luta no banco
       fecharDado3d(); redesenharArena(); carregarArena(); return;
     }
     // Sua vez: a janela com o D20, o botão e 5 segundos.

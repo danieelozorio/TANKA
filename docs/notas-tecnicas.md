@@ -1167,3 +1167,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   vivos escolheram ou o prazo acabou (semente = semente da subida + andar x 1000 + turno), fase `narrando` por
   `MS_NARRACAO(eventos)` e então sobe de andar/abre a escolha. Cliente: `C.torre.*` (contas.js) e `C.acao(id, 'torreAvancar')`.
   Testes: banco.test.sql (Torre) e acao_servidor.test.ts (torre: ...).
+
+## Segurança (Daniel, 17/11/2026)
+- Amigos acharam: (1) a API mostra a estrutura do banco (OpenAPI) — os dados continuam protegidos (RLS em todas as
+  tabelas, regras só "os seus"); dá para esconder com `alter role authenticator set pgrst.openapi_mode to 'disabled'`.
+  (2) Missões da Arena/masmorra sem jogar: `eventoJogo` acreditava no navegador. Agora a função `acao` confere a luta
+  no banco (`arena_lutas`: atacante = o herói e luta acabada; `masmorra_runs`: membro e estado 'vitoria') e passa
+  `ctx.luta`; cada luta conta uma vez (`p.eventos.<tipo>Ids`). O jogo manda `{ tipo: 'arena', luta: id }`.
+- Funções de senha do admin, `masmorra_votar` e `pendentes`: tiradas do papel anon (no Supabase o anon tem permissão
+  própria; `revoke ... from public` sozinho não basta). Conferência: SQL que lista tabela sem RLS, regra aberta,
+  função aberta sem login, função sem conferir o dono, Storage público, tranca e GraphQL.
