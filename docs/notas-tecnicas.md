@@ -1106,6 +1106,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Tela: SVG com o desenho da proposta, centro "Pacto de Ascensão"; tocar = detalhe embaixo; pendentes em
   `estado.ascPend` (Confirmar/Cancelar); `redesenharPacto` só troca a caixa e guarda a rolagem.
   Arte: `assets/ascensao/medalhao-<pedra>.webp` e `dominio-<id>.webp`. Proposta antiga em `docs/propostas/constelacao/`.
+  Aba escondida antes do level 40 (`abaVisivel`/`abasDe(g)` nas barras; `telaJogo` volta para Personagem). No 40, janela
+  `pactoTutorialHtml` uma vez (depois do prêmio de login); `p.pactoVisto` vai pela ação `preferencias`.
 
 ### Masmorra com caminhos (Henri, 16/11/2026)
 - Roteiro `D.MASMORRA.roteiro`: luta1 → voto → luta2 → voto → elite → voto → chefe. Lutas automáticas (`simularSalas`

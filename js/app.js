@@ -1025,6 +1025,9 @@
     GRUPOS.filter(function (g) { return g.id === 'mercado'; })[0].abas.push('leilao');
   }
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
+  // Abas que o jogador vê: o Pacto de Ascensão só aparece a partir do level 40 (antes ele nem sabe que existe).
+  function abaVisivel(a) { return a !== 'ascensao' || !!(estado.personagem && estado.personagem.nivel >= D.ASCENSAO.nivelInicio); }
+  function abasDe(g) { return g.abas.filter(abaVisivel); }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
   var NOME_TRACO = { vidaPct: ['%', 'de vida'], danoPct: ['%', 'de dano'], velocidadePct: ['%', 'de velocidade'],
@@ -1104,16 +1107,16 @@
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
     var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
-      var alvo = abaDoGuia(), guiaAqui = alvo && g.abas.indexOf(alvo) >= 0 && estado.aba !== alvo;
-      var destino = guiaAqui ? alvo : estado.subAba[g.id] || g.abas[0];
+      var alvo = abaDoGuia(), guiaAqui = alvo && abasDe(g).indexOf(alvo) >= 0 && estado.aba !== alvo;
+      var destino = guiaAqui ? alvo : estado.subAba[g.id] || abasDe(g)[0];
       return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + (guiaAqui ? ' guia-alvo' : '') + '">'
-        + '<span class="aba-ico">' + ICONES[g.id] + g.abas.map(seloDaAba).join('') + '</span><span class="aba-nome">' + g.nome + '</span></button>';
+        + '<span class="aba-ico">' + ICONES[g.id] + abasDe(g).map(seloDaAba).join('') + '</span><span class="aba-nome">' + g.nome + '</span></button>';
     }).join('') + '</nav>';
     return nav;
   }
   function subAbasHtml() {
     var atual = grupoDaAba(estado.aba);
-    return atual && atual.abas.length > 1 ? '<nav class="sub-abas" id="sub-abas">' + atual.abas.map(function (a) {
+    return atual && abasDe(atual).length > 1 ? '<nav class="sub-abas" id="sub-abas">' + abasDe(atual).map(function (a) {
       return '<button data-acao="aba" data-aba="' + a + '" class="' + (estado.aba === a ? 'ativa' : '') + (a === abaDoGuia() && estado.aba !== a ? ' guia-alvo' : '') + '">' + (ICONES_SUB[a] ? '<span class="sub-ico">' + ICONES_SUB[a] + '</span>' : '') + NOME_ABA[a] + seloDaAba(a) + '</button>';
     }).join('') + '</nav>' : '';
   }
@@ -1123,19 +1126,19 @@
   function cascataHtml() {
     if (temaAtual() !== 'arcane') return '';
     var g0 = grupoDaAba(estado.aba) || GRUPOS[0], aberto = !!estado.cascata, exp = estado.cascataGrupo || g0.id;
-    var selos = function (g) { return g.abas.map(seloDaAba).join(''); };
+    var selos = function (g) { return abasDe(g).map(seloDaAba).join(''); };
     var h = '<div class="cascata' + (aberto ? ' aberta' : '') + '"><button type="button" class="cascata-botao" data-acao="cascata" aria-expanded="' + aberto + '">'
       + '<span class="cascata-ico">' + ICONES[g0.id] + '</span><span class="cascata-onde"><b>' + g0.nome + '</b>'
-      + (g0.abas.length > 1 && NOME_ABA[estado.aba] ? '<small>' + (ICONES_SUB[estado.aba] ? '<span class="sub-ico">' + ICONES_SUB[estado.aba] + '</span>' : '') + NOME_ABA[estado.aba] + '</small>' : '')
+      + (abasDe(g0).length > 1 && NOME_ABA[estado.aba] ? '<small>' + (ICONES_SUB[estado.aba] ? '<span class="sub-ico">' + ICONES_SUB[estado.aba] + '</span>' : '') + NOME_ABA[estado.aba] + '</small>' : '')
       + '</span><span class="cascata-seta" aria-hidden="true">▾</span></button>';
     if (aberto) {
       h += '<div class="cascata-painel" role="menu">' + GRUPOS.map(function (g) {
-        var varias = g.abas.length > 1, expandido = varias && exp === g.id;
+        var varias = abasDe(g).length > 1, expandido = varias && exp === g.id;
         var botao = '<button type="button" role="menuitem" class="cascata-grupo' + (g === g0 ? ' atual' : '') + (expandido ? ' expandido' : '') + '" '
-          + (varias ? 'data-acao="cascata-grupo" data-valor="' + g.id + '" aria-expanded="' + expandido + '"' : 'data-acao="aba" data-aba="' + g.abas[0] + '"') + '>'
+          + (varias ? 'data-acao="cascata-grupo" data-valor="' + g.id + '" aria-expanded="' + expandido + '"' : 'data-acao="aba" data-aba="' + abasDe(g)[0] + '"') + '>'
           + '<span class="cascata-ico">' + ICONES[g.id] + '</span><span class="cascata-nome">' + g.nome + '</span>' + selos(g)
           + (varias ? '<span class="cascata-seta" aria-hidden="true">›</span>' : '') + '</button>';
-        var subs = expandido ? '<div class="cascata-subs">' + g.abas.map(function (a) {
+        var subs = expandido ? '<div class="cascata-subs">' + abasDe(g).map(function (a) {
           return '<button type="button" role="menuitem" class="cascata-sub' + (estado.aba === a ? ' atual' : '') + '" data-acao="aba" data-aba="' + a + '">'
             + '<span class="sub-ico">' + (ICONES_SUB[a] || '') + '</span><span class="cascata-nome">' + NOME_ABA[a] + '</span>' + seloDaAba(a) + '</button>';
         }).join('') + '</div>' : '';
@@ -2120,6 +2123,23 @@
       + (estado.ascRefazer ? '<button class="btn perigo btn-pequeno" data-acao="asc-refazer">Confirmar: zerar</button> <button class="btn secundario btn-pequeno" data-acao="asc-refazer-nao">Cancelar</button>'
         : '<button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button>') + '</p>';
     return h;
+  }
+  // Tutorial do Pacto: aparece uma vez, quando o herói chega no level 40 (p.pactoVisto marca que já viu).
+  function pactoNovo() { var p = estado.personagem; return !!(p && p.nivel >= D.ASCENSAO.nivelInicio && !p.pactoVisto && !(p.guia && !p.guia.fim)); }
+  function pactoTutorialHtml() {
+    var AS = D.ASCENSAO;
+    return '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela pacto-tutorial" role="dialog" aria-label="' + AS.nome + '">'
+      + '<button class="zoom-x" data-acao="pacto-tutorial-fechar" aria-label="Fechar">✕</button>'
+      + '<div class="pacto-tut-topo"><img src="assets/ascensao/medalhao-sabedoria.webp" alt=""><div><small>Novo · level ' + AS.nivelInicio + '</small><h3>' + AS.nome + '</h3></div></div>'
+      + '<p>Uma árvore de poderes só sua, em <b>Herói › Pacto</b>.</p>'
+      + '<ol class="pacto-tut-passos">'
+      + '<li><b>1 ponto por level</b> do 41 ao ' + D.NIVEL_MAXIMO + '. No ' + D.NIVEL_MAXIMO + ', a exp vira ponto.</li>'
+      + '<li><b>Comece no centro</b> e siga as linhas para fora.</li>'
+      + '<li><b>Pedra Angular</b> no fim de cada trilha: forte, mas com um custo (máx. ' + AS.maxPedras + ').</li>'
+      + '<li><b>Não dá para pegar tudo:</b> escolha o seu caminho.</li>'
+      + '</ol><p class="suave pequeno">Vale contra monstros, não na Arena.</p>'
+      + '<div class="botoes"><button class="btn" data-acao="pacto-tutorial-ir">Abrir o Pacto</button><button class="btn secundario" data-acao="pacto-tutorial-fechar">Depois</button></div>'
+      + '</div></div>';
   }
   function abaAscensao() { setTimeout(prepararMapaPacto, 0); return '<section class="caixa pacto" id="pacto">' + pactoHtml() + '</section>'; }
   // O mapa rola (celular ou aumentado): abre no centro e depois volta para onde o jogador estava.
@@ -3858,6 +3878,7 @@
   }
 
   function telaJogo() {
+    if (!abaVisivel(estado.aba)) estado.aba = 'personagem';
     guardarJogo();
     conferirGuia();
     var grupo = grupoDaAba(estado.aba);
@@ -3924,6 +3945,7 @@
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
+      + (!estado.loginAberto && pactoNovo() && !estado.batalha && !estado.luta && !estado.lutaArena ? pactoTutorialHtml() : '')
       + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
@@ -4397,7 +4419,7 @@
     var p = estado.personagem;
     return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
       atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3 };
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, pactoVisto: !!p.pactoVisto };
   }
   function salvarPreferencias() {
     if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
@@ -5033,6 +5055,11 @@
         break;
       case 'criar-personagem': criarPersonagem(); break;
       case 'jogar': abrirJogo(el.dataset.id); break;
+      case 'pacto-tutorial-ir': case 'pacto-tutorial-fechar':
+        p.pactoVisto = true; salvarPreferencias();
+        if (el.dataset.acao === 'pacto-tutorial-ir') estado.aba = 'ascensao';
+        telaJogo();
+        break;
       case 'login-fechar': estado.loginAberto = false; estado.loginResultado = null; telaJogo(); break;
       case 'login-pegar': {
         var loginLocal = null;

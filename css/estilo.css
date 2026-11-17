@@ -1982,3 +1982,10 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .chat-discord svg { width: 1.2rem; height: 1rem; }
 .chat-discord:hover, .chat-discord:focus-visible { opacity: 1; background: #4752c4; transform: translateY(-2px); outline: none; }
 html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular: o chat abre pelo topo */
+/* Tutorial do Pacto de Ascensão (aparece uma vez, no level 40) */
+.pacto-tutorial { max-width: 520px; }
+.pacto-tut-topo { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+.pacto-tut-topo img { width: 64px; height: 64px; object-fit: contain; flex: none; }
+.pacto-tut-topo small { color: #f0c56a; text-transform: uppercase; letter-spacing: .08em; font-size: .72em; }
+.pacto-tut-topo h3 { margin: 0; }
+.pacto-tut-passos { margin: .4em 0 .6em; padding-left: 1.3em; display: grid; gap: .45em; line-height: 1.35; }

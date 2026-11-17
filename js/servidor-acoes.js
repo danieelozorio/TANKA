@@ -334,6 +334,7 @@ Tanka.servidorAcoes = (function () {
         var at = p.atividade || (p.atividade = { logado: 0, cacando: 0 });
         ['logado', 'cacando'].forEach(function (k) { var v = Number(a.atividade[k]); if (v > (at[k] || 0)) at[k] = v; });
       }
+      if (a.pactoVisto === true) p.pactoVisto = true;   // já viu o tutorial do Pacto de Ascensão
       if (a.titulo !== undefined) { if (!a.titulo) delete p.titulo; else if ((p.titulos || []).indexOf(a.titulo) >= 0) p.titulo = a.titulo; }
       ['recomecoPresente', 'presenteForcaCacador', 'presenteDestrezaCacador', 'presenteAtributos3'].forEach(function (k) { if (a[k] === 2 && p[k] === 1) p[k] = 2; });   // só "já avisei"
       return true;
