@@ -2579,3 +2579,44 @@ teste('Pacto de Ascensão: efeitos na luta (Primeiro Golpe, Sede Eterna, Golpe C
   R.estamina(q).pts = 100; const r1 = R.concluirBatalha(q, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
   igualA(r1.ouro, Math.floor(r0.ouro * 1.03));
 });
+
+teste('Torre do Eclipse: turno com escolhas, desviar pela esquiva, resistência a stun, aviso e subir (Daniel, nov/2026)', () => {
+  const T = D.TORRE, igualT = (a, b) => assert.strictEqual(a, b);
+  const ficha = (c, c2) => {
+    const p = R.criarPersonagem('T' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2);
+    const hs = D.SEGUNDAS_CLASSES[c2].habilidades.filter((h) => h.tipo !== 'passiva' && (!h.nivel || p.nivel >= h.nivel));
+    let g = 0, i = 0; while (R.pontosHabilidadeLivres(p) > 0 && g++ < 400) R.mudarPontoHabilidade(p, hs[i++ % hs.length].id, 1);
+    return p;
+  };
+  const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
+  const t = R.novaTorre(fichas, 1);
+  igualT(t.andar, 1); igualT(t.herois.length, 4); igualT(t.inimigos.length, 1); igualT(t.inimigos[0].tipo, 'elite');
+  assert.ok(R.ehChefeTorre(5) && !R.ehChefeTorre(4)); igualT(R.inimigosTorre(5)[0].tipo, 'chefe');
+  // vida e dano crescem por andar; resistência sobe 1 por andar
+  const a1 = R.inimigosTorre(1)[0], a2 = R.inimigosTorre(2)[0];
+  assert.ok(R.inimigosTorre(11)[0].hpMax > a1.hpMax * 1.6); igualT(a2.res.stun, a1.res.stun + T.resistencia.porAndar);
+  // desviar: 40% + esquiva, até 90%
+  igualT(R.chanceDesviar({ s: { evasao: 3 } }), 43); igualT(R.chanceDesviar({ s: { evasao: 80 } }), 90);
+  // mesma semente e mesmas escolhas = mesmo resultado (o servidor refaz igual)
+  const t2 = JSON.parse(JSON.stringify(t)); t2.herois.forEach((h, i) => { h.L = t.herois[i].L; });
+  const esc = [{ acao: 'atacar', alvo: 0, ordem: 2 }, { acao: 'pocao', ordem: 1 }, { acao: 'xxx' }, { acao: 'desviar', ordem: 4 }];
+  const e1 = R.resolverTurnoTorre(R.novaTorre(fichas, 1), esc, 77).map((x) => x.t).join('|');
+  const e2 = R.resolverTurnoTorre(R.novaTorre(fichas, 1), esc, 77).map((x) => x.t).join('|');
+  igualT(e1, e2);
+  assert.ok(/bebe uma poção/.test(e1) && /se prepara para desviar/.test(e1), e1);
+  // ordem: a poção (ordem 1) vem antes do ataque (ordem 2)
+  assert.ok(e1.indexOf('bebe uma poção') < e1.indexOf('acerta'), e1);
+  // stun que pega aumenta a resistência do alvo
+  const t3 = R.novaTorre(fichas, 5); const ch = t3.inimigos[0], r0 = ch.res.stun;
+  let n = 0; while (!t3.fim && n++ < 40) R.resolverTurnoTorre(t3, [], n);
+  assert.ok(ch.res.stun === r0 || ch.res.stun >= r0 + T.resistencia.porStun, 'resistência só sobe de ' + T.resistencia.porStun + ' em ' + T.resistencia.porStun);
+  // aviso aparece e a luta acaba (vitória ou derrota)
+  const t4 = R.novaTorre(fichas, 1); let avisos = 0, k = 0;
+  while (!t4.fim && k++ < 60) avisos += R.resolverTurnoTorre(t4, [], 1000 + k).filter((x) => x.aviso).length;
+  assert.ok(t4.fim && avisos > 0, 'fim ' + t4.fim + ' avisos ' + avisos);
+  if (t4.fim === 'vitoria') { assert.ok(R.subirTorre(t4)); igualT(t4.andar, 2); igualT(t4.turno, 0); assert.ok(t4.herois.every((h) => h.hp === h.hpMax)); }
+  // habilidade em recarga não pode ser usada (vira automático)
+  const t5 = R.novaTorre(fichas, 1), id = t5.herois[0].L.kit[0].def.id;
+  R.resolverTurnoTorre(t5, [{ acao: 'habilidade', hab: id, ordem: 1 }], 5);
+  assert.ok(R.habilidadesTorre(t5.herois[0]).indexOf(id) < 0 || (t5.herois[0].L.kit[0].def.recarga || 1) <= 1);
+});

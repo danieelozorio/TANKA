@@ -724,6 +724,42 @@ Tanka.dados = {
     ],
   },
   NIVEL_MAXIMO: 60,   // era 40; do 41 ao 60 só o Reino do Pesadelo dá exp de verdade (Henri, nov/2026)
+  // ---------- Torre do Eclipse (Daniel, nov/2026): torre sem fim, grupo de 4, turnos narrados ----------
+  // Cada andar é uma luta por turnos. No turno, os 4 escolhem ao mesmo tempo (segundosEscolha) a ação (atacar,
+  // habilidade, desviar, poção), o alvo e a ordem; depois os inimigos agem. A cada `chefeCada` andares, um chefe com
+  // mecânicas avisadas antes (aviso.turnos). Vida e dano crescem `crescimento` por andar. Ilimitado por dia.
+  // Efeitos no inimigo (stun, corte de cura, quebrar defesa, veneno/queimadura, cegar): chance = 100% − resistência
+  // (base + porAndar x andar; o stun ganha porStun a cada vez que pega, até o fim da luta).
+  // Desviar: chance = desviar.base + esquiva do herói (máx. desviar.max); só evita golpe avisado.
+  TORRE: {
+    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 10, chefeCada: 5, maxTurnos: 30,
+    crescimento: 1.06, crescimentoDefesa: 1.03,
+    pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
+    semProvocar: 2,                                     // sem ninguém provocando, o golpe normal acerta 2 heróis (o tanque faz falta)
+    aura: 6,                                            // % da vida de todos por turno (não tem defesa; a cura segura)
+    multCura: 1.6,                                      // curas de habilidade valem 60% mais na Torre (o curandeiro faz falta)
+    entreAndares: 100,                                  // % da vida que volta entre os andares (quem caiu volta com isso)
+    desviar: { base: 40, max: 90 },
+    resistencia: { base: 20, porAndar: 1, porStun: 25, max: 95 },
+    corteCura: { pct: 50, turnos: 3 },
+    furia: { desde: 15, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 12º
+    // inimigo do andar 1 (números de calibragem: ferramentas/simular_torre.js)
+    chefe: { vida: 3300, dano: [2150, 2800], defesa: 120 },
+    elite: { vida: 0.85, dano: 0.92, defesa: 0.9 },       // andar sem chefe: x do chefe
+    lacaio: { vida: 0.1, dano: 0.3 },
+    mecanicas: {
+      mortal: { nome: 'Golpe Mortal', turnos: 2, alvo: 'um', vidaPct: 85, texto: 'prepara o GOLPE MORTAL em {alvo}' },
+      chuva: { nome: 'Chuva de Ruína', turnos: 1, alvo: 'todos', vidaPct: 45, texto: 'ergue os braços: CHUVA DE RUÍNA no grupo todo' },
+      marca: { nome: 'Marca da Ruína', turnos: 2, alvo: 'um', vidaPct: 40, texto: 'põe a MARCA DA RUÍNA em {alvo}: se não desviar, explode em todos' },
+      escudo: { nome: 'Escudo de Ossos', turnos: 2, escudoPct: 12, curaPct: 15, texto: 'se cobre com o ESCUDO DE OSSOS: quebrem antes que ele se cure' },
+      invocar: { nome: 'Invocação', turnos: 1, qtd: 2, texto: 'abre um portal: vão sair 2 lacaios' },
+    },
+    // mecânicas dos chefes pela ordem (o 1º chefe, andar 5, usa a 1ª lista)
+    chefes: [['mortal', 'chuva'], ['mortal', 'invocar'], ['marca', 'escudo'], ['marca', 'mortal', 'chuva'], ['escudo', 'invocar', 'mortal']],
+    chefesRepete: 2,                                    // depois da lista, os chefes revezam do 3º em diante (nunca volta aos fáceis)
+    mecanicaElite: ['chuva', 'mortal', 'marca'],        // andar sem chefe: 1 mecânica, em rodízio
+    aCada: 3,                                           // turnos entre um aviso e o próximo
+  },
   // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
   // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).
   // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (2 por par).

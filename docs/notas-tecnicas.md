@@ -1143,3 +1143,18 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Ignaroth), o dano por vez é multiplicado por `k / (k + defesa)` do alvo (defesa física ou mágica pelo tipo de dano de
   quem lança, com os reforços de defesa do alvo). Antes ignorava a defesa e batia ~9x um golpe normal contra quem tinha
   muita defesa. Só na Arena; na caçada continua sem defesa.
+
+## Torre do Eclipse (Daniel, nov/2026) — etapa 1: regras e motor de turnos (ainda sem servidor nem tela)
+- Grupo de 4, torre sem fim, ilimitada por dia, level 30+. Números em `D.TORRE`; motor puro em regras.js
+  (`novaTorre(fichas, andar)`, `resolverTurnoTorre(t, escolhas, semente)`, `subirTorre`, `escolhaAutoTorre`,
+  `habilidadesTorre`, `chanceDesviar`, `inimigosTorre`). O estado `t` é JSON (o servidor vai guardar e refazer com a semente).
+- Turno: os 4 escolhem { acao: atacar|habilidade|desviar|pocao, hab, alvo, ordem 1–4 }; inválida ou sem escolha =
+  automática. Heróis agem na ordem; depois os inimigos (golpe normal físico; sem ninguém provocando acerta
+  `semProvocar` heróis); aura tira `aura`% de todos por turno; avisos de mecânica (`mecanicas`: mortal, chuva, marca,
+  escudo, invocar) com `turnos` de antecedência; stun no turno do golpe avisado interrompe a mecânica.
+- Desviar = `desviar.base` + esquiva (máx. `desviar.max`), só contra golpe avisado. Efeitos no inimigo: 100% − resistência
+  (`resistencia.base` + 1/andar; stun que pega +`porStun`). Veneno/sangramento e Maldição também tentam corte de cura.
+- Andar: elite (1 mecânica) ou chefe a cada 5 (`chefes`, depois revezam do `chefesRepete` em diante). Vida volta cheia
+  entre andares; 2 poções por subida +1 por chefe; curas de habilidade x`multCura`; Fúria do chefe depois do turno 15.
+- Calibragem: `node ferramentas/simular_torre.js` (subidas de bots). Level 30 épico +3 chega ~10–12, level 40 ~22–24,
+  level 60 ~32–34; grupo sem tanque fica bem atrás; sem cura e 4 de dano, atrás do equilibrado.
