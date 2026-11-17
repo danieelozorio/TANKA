@@ -1152,9 +1152,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   automática. Heróis agem na ordem; depois os inimigos (golpe normal físico; sem ninguém provocando acerta
   `semProvocar` heróis, hoje 1); `aura` desligada (0) — Daniel preferiu só o chefe mais forte; avisos de mecânica (`mecanicas`: mortal, chuva, marca,
   escudo, invocar) com `turnos` de antecedência; stun no turno do golpe avisado interrompe a mecânica.
-- Desviar = `desviar.base` + esquiva (máx. `desviar.max`), só contra golpe avisado. Efeitos no inimigo: 100% − resistência
+- Desviar = `desviar.base` + `porPonto` x MAIOR atributo do herói (`h.maiorAtr`; máx. `desviar.max`), só contra golpe avisado. Efeitos no inimigo: 100% − resistência
   (`resistencia.base` + 1/andar; stun que pega +`porStun`). Veneno/sangramento e Maldição também tentam corte de cura.
 - Andar: elite (1 mecânica) ou chefe a cada 5 (`chefes`, depois revezam do `chefesRepete` em diante). Vida volta cheia
-  entre andares; 2 poções por subida +1 por chefe; curas de habilidade x`multCura`; Fúria do chefe depois do turno 15.
-- Calibragem: `node ferramentas/simular_torre.js` (subidas de bots). Chefe do andar 1: vida 3800, dano 3400–4400.
-  Level 30 épico +3 chega ~12–14 (chefe do 10 é a 1ª barreira), level 40 ~24, level 60 ~35; equilibrado vai mais longe.
+  entre andares; 2 poções por subida +1 por chefe; Fúria do chefe depois do turno 25, fim no 45. Invocação só repõe
+  lacaios mortos; o chefe caindo leva os lacaios. (Daniel tirou o bônus de cura de 60%.)
+- Calibragem: `node ferramentas/simular_torre.js` (subidas de bots). Chefe do andar 1: vida 7500, dano 1500–2000
+  (lutas de ~11–16 turnos). Level 30 épico +3 chega ~10–12, level 40 ~22, level 60 ~32; equilibrado vai mais longe.

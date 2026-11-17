@@ -2596,7 +2596,8 @@ teste('Torre do Eclipse: turno com escolhas, desviar pela esquiva, resistência 
   const a1 = R.inimigosTorre(1)[0], a2 = R.inimigosTorre(2)[0];
   assert.ok(R.inimigosTorre(11)[0].hpMax > a1.hpMax * 1.6); igualT(a2.res.stun, a1.res.stun + T.resistencia.porAndar);
   // desviar: 40% + esquiva, até 90%
-  igualT(R.chanceDesviar({ s: { evasao: 3 } }), 43); igualT(R.chanceDesviar({ s: { evasao: 80 } }), 90);
+  igualT(R.chanceDesviar({ maiorAtr: 100 }), 45); igualT(R.chanceDesviar({ maiorAtr: 400 }), 90);
+  assert.ok(t.herois.every((h) => h.maiorAtr >= 20), 'maior atributo guardado');
   // mesma semente e mesmas escolhas = mesmo resultado (o servidor refaz igual)
   const t2 = JSON.parse(JSON.stringify(t)); t2.herois.forEach((h, i) => { h.L = t.herois[i].L; });
   const esc = [{ acao: 'atacar', alvo: 0, ordem: 2 }, { acao: 'pocao', ordem: 1 }, { acao: 'xxx' }, { acao: 'desviar', ordem: 4 }];

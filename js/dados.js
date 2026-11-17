@@ -730,21 +730,20 @@ Tanka.dados = {
   // mecânicas avisadas antes (aviso.turnos). Vida e dano crescem `crescimento` por andar. Ilimitado por dia.
   // Efeitos no inimigo (stun, corte de cura, quebrar defesa, veneno/queimadura, cegar): chance = 100% − resistência
   // (base + porAndar x andar; o stun ganha porStun a cada vez que pega, até o fim da luta).
-  // Desviar: chance = desviar.base + esquiva do herói (máx. desviar.max); só evita golpe avisado.
+  // Desviar: chance = desviar.base + porPonto x maior atributo do herói (máx. desviar.max); só evita golpe avisado.
   TORRE: {
-    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 10, chefeCada: 5, maxTurnos: 30,
+    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 10, chefeCada: 5, maxTurnos: 45,
     crescimento: 1.06, crescimentoDefesa: 1.03,
     pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
     semProvocar: 1,                                     // heróis que o golpe normal acerta quando ninguém provoca (Daniel: 1, sem regra extra)
     aura: 0,                                            // % da vida de todos por turno (desligada a pedido do Daniel: o chefe é que fica forte)
-    multCura: 1.6,                                      // curas de habilidade valem 60% mais na Torre (o curandeiro faz falta)
     entreAndares: 100,                                  // % da vida que volta entre os andares (quem caiu volta com isso)
-    desviar: { base: 40, max: 90 },
+    desviar: { base: 20, porPonto: 0.25, max: 90 },    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
     resistencia: { base: 20, porAndar: 1, porStun: 25, max: 95 },
     corteCura: { pct: 50, turnos: 3 },
-    furia: { desde: 15, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 12º
+    furia: { desde: 25, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 25º
     // inimigo do andar 1 (números de calibragem: ferramentas/simular_torre.js)
-    chefe: { vida: 3800, dano: [3400, 4400], defesa: 120 },
+    chefe: { vida: 7500, dano: [1500, 2000], defesa: 120 },
     elite: { vida: 0.85, dano: 0.92, defesa: 0.9 },       // andar sem chefe: x do chefe
     lacaio: { vida: 0.1, dano: 0.3 },
     mecanicas: {

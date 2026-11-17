@@ -2930,7 +2930,8 @@ Tanka.regras = (function () {
     var p = normalizar(JSON.parse(JSON.stringify(dados)));
     var s = status(p, true);
     return { id: p.id, nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, raca: p.raca, sexo: p.sexo,
-      s: s, hp: s.hpMax, hpMax: s.hpMax, L: novoLutador(p, 'masmorra'), pocoes: TR.pocoes };
+      s: s, hp: s.hpMax, hpMax: s.hpMax, L: novoLutador(p, 'masmorra'), pocoes: TR.pocoes,
+      maiorAtr: Math.max.apply(null, ATRIBUTOS.map(function (k) { return atributosTotais(p)[k] || 0; })) };
   }
   // Nova subida: { andar, turno, herois, inimigos, avisos, fim, log }.
   function novaTorre(fichas, andar) {
@@ -2953,7 +2954,8 @@ Tanka.regras = (function () {
     return true;
   }
   function vivosT(l) { return l.filter(function (x) { return x.hp > 0; }); }
-  function chanceDesviar(h) { return Math.min(TR.desviar.max, TR.desviar.base + Math.max(0, h.s.evasao || 0)); }
+  // Desviar: pelo maior atributo do herói (Daniel: não fica só para quem tem Destreza).
+  function chanceDesviar(h) { return Math.min(TR.desviar.max, Math.round(TR.desviar.base + TR.desviar.porPonto * (h.maiorAtr || 0))); }
   // Efeito num inimigo: pega com 100% − resistência. O stun que pega aumenta a resistência a stun dele.
   function efeitoPega(alvo, tipo, rng) {
     var r = alvo.res ? alvo.res[tipo] || 0 : 0, ok = rng() * 100 >= r;
@@ -3012,7 +3014,11 @@ Tanka.regras = (function () {
       aoCausar(h.L, h, g.dano);
       sangrar(alvo, g);
       diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), dano: g.dano, critico: g.critico });
-      if (alvo.hp === 0) diz(alvo.nome + ' caiu!', { caiu: true });
+      if (alvo.hp === 0) {
+        diz(alvo.nome + ' caiu!', { caiu: true });
+        // chefe caiu: os lacaios fogem pelo portal
+        if (alvo.chefe) t.inimigos.forEach(function (x) { if (x.tipo === 'lacaio' && x.hp > 0) { x.hp = 0; diz(x.nome + ' foge pelo portal.'); } });
+      }
       return g;
     };
     // efeitos de habilidade no inimigo, com a resistência
@@ -3049,7 +3055,7 @@ Tanka.regras = (function () {
       gastarHabilidade(L, k); curaAoUsar(L, h);
       diz(quem + ' usa ' + def.nome + '!', { de: 'h', i: x.i, hab: def.nome });
       if (def.tipo === 'cura') {
-        var pct = valorBonus(def, 'vidaPct', k.pts) * (TR.multCura || 1);
+        var pct = valorBonus(def, 'vidaPct', k.pts);
         vivosT(t.herois).forEach(function (o) { o.hp = Math.min(o.hpMax, o.hp + Math.round(o.hpMax * pct / 100)); });
         diz('O grupo recupera ' + Math.round(pct) + '% da vida.', { curaGrupo: pct }); return;
       }
@@ -3093,7 +3099,9 @@ Tanka.regras = (function () {
       var M = TR.mecanicas[a.mec], alvos = M.alvo === 'todos' ? vivosT(t.herois) : [t.herois[a.alvo]].filter(function (h) { return h && h.hp > 0; });
       if (a.mec === 'escudo') { m.escudoOssos = Math.round(m.hpMax * M.escudoPct / 100); m.escudoAte = t.turno + 2; diz(m.nome + ' se cobre com o Escudo de Ossos (' + txtNum(m.escudoOssos) + ').', { mec: a.mec }); return; }
       if (a.mec === 'invocar') {
-        for (var q = 0; q < M.qtd; q++) {
+        var jaTem = t.inimigos.filter(function (x) { return x.tipo === 'lacaio' && x.hp > 0; }).length;
+        if (jaTem >= M.qtd) { diz('O portal se abre, mas os lacaios de antes ainda estão de pé.', { mec: a.mec }); return; }
+        for (var q = jaTem; q < M.qtd; q++) {
           var area = D.areas[(t.andar + q) % D.areas.length], lm = D.monstros[area.monstros[0].id], g = Math.pow(TR.crescimento, t.andar - 1), v = Math.round(TR.chefe.vida * g * TR.lacaio.vida);
           t.inimigos.push({ id: lm.id, nome: lm.nome, imagem: lm.imagem, tipo: 'lacaio', hp: v, hpMax: v, ataque: [Math.round(TR.chefe.dano[0] * g * TR.lacaio.dano), Math.round(TR.chefe.dano[1] * g * TR.lacaio.dano)],
             defesa: Math.round(TR.chefe.defesa * 0.5), defesaMagica: Math.round(TR.chefe.defesa * 0.5), indiceArea: 6, res: { stun: 0, cura: 0, defesa: 0, dot: 0, cegar: 0 }, atordoado: 0, nAtq: 0 });
