@@ -2069,11 +2069,11 @@
     var titulo, texto, extra = '';
     if (no.tipo === 'pedra') {
       titulo = tr.pedra.nome; texto = tr.pedra.txt; extra = '<div class="menos pequeno">Custo: ' + tr.pedra.custo + '</div>'
-        + '<div class="suave pequeno">As 2 Pedras Angulares do domínio se excluem · no máximo ' + AS.maxPedras + ' Pedras</div>';
+        + '<div class="suave pequeno pacto-regra">As 2 Pedras Angulares do domínio se excluem · no máximo ' + AS.maxPedras + ' Pedras</div>';
     } else if (no.tipo === 'ponte') {
       var dd = no.doms.map(function (x) { return AS.dominios.filter(function (d) { return d.id === x; })[0].nome; });
       titulo = 'Ponte ' + dd.join(' ⇄ '); texto = efAscTexto(no.ef);
-      extra = '<div class="suave pequeno">Liga os dois domínios: dá para seguir para o outro lado sem passar pelo começo dele.</div>';
+      extra = '<div class="suave pequeno pacto-regra">Liga os dois domínios: dá para seguir para o outro lado sem passar pelo começo dele.</div>';
     } else {
       titulo = no.tipo === 'notavel' ? no.nome : (tr ? tr.nome : dom.nome); texto = efAscTexto(no.ef);
     }
@@ -2083,9 +2083,9 @@
       : tem ? '<span class="mais pequeno">✔ Já é seu</span>'
       : motivo ? '<span class="suave pequeno">' + motivo + '</span>'
       : '<button class="btn btn-pequeno" data-acao="asc-pegar" data-id="' + id + '">Pegar (' + no.custo + ' ponto' + (no.custo > 1 ? 's' : '') + ')</button>';
-    return '<div class="pacto-detalhe" style="--cor-dom:' + (dom ? dom.cor : '#e6cf9c') + '">'
+    return '<div class="pacto-detalhe" style="--cor-dom:' + (dom ? dom.cor : '#e6cf9c') + '"><button class="pacto-fechar" data-acao="asc-sel-fechar" aria-label="Fechar">✕</button>'
       + (no.tipo === 'pedra' ? '<img class="pacto-medalhao" src="assets/ascensao/medalhao-' + tr.pedra.id + '.webp" alt="">' : dom ? '<img class="pacto-medalhao" src="assets/ascensao/dominio-' + dom.id + '.webp" alt="">' : '')
-      + '<div class="pacto-detalhe-txt"><div class="suave pequeno">' + tipoNome + (dom ? ' · ' + dom.nome + (tr ? ' › ' + tr.nome : '') : '') + ' · ' + no.custo + ' ponto' + (no.custo > 1 ? 's' : '') + '</div>'
+      + '<div class="pacto-detalhe-txt"><div class="suave pequeno">' + tipoNome + (dom ? '<span class="pacto-caminho"> · ' + dom.nome + (tr ? ' › ' + tr.nome : '') + '</span>' : '') + ' · ' + no.custo + ' ponto' + (no.custo > 1 ? 's' : '') + '</div>'
       + '<strong>' + titulo + '</strong><div>' + texto + '</div>' + extra + '</div><div class="pacto-detalhe-acao">' + botao + '</div></div>';
   }
   function pactoResumo(p) {
@@ -5499,6 +5499,7 @@
       }
       case 'hab-cancelar': estado.habPend = {}; telaJogo(); break;
       case 'asc-sel': estado.ascSel = el.dataset.id; redesenharPacto(); break;
+      case 'asc-sel-fechar': estado.ascSel = null; redesenharPacto(); break;
       case 'asc-zoom': estado.ascZoom = !estado.ascZoom; redesenharPacto(); break;
       case 'asc-pegar': {
         var lpg = R.nosAscensao(p).concat(pendAsc()), mpg = R.motivoAscensao(lpg, el.dataset.id, R.pontosAscensaoTotal(p));

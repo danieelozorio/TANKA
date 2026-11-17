@@ -1160,3 +1160,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   compara a Ameaça (o veredito "mais forte/fraco" também). Ranking e perfil de amigo continuam com o Poder.
 - Histórico da Arena: botão **📜 Resumo** em toda luta (`arena_resumo(meu, luta)`, só quem lutou). Mostra o vencedor,
   o relatório (`relatorioArenaHtml`) e todos os lances (reusa `aplicarEventoArena` com `L.tudo`, sem o corte de 60 linhas).
+
+## Pacto no celular (Arcane) (Henri, 17/11/2026)
+- Em `tema-arcane.css` (≤760px): o ponto tocado abre num cartão fixo embaixo (`.pacto-detalhe` fixed, ✕ `asc-sel-fechar`),
+  só com ícone, tipo e custo em pontos, nome, efeito, custo da Pedra e o botão. Somem o texto do topo, a legenda
+  (fica o Aumentar), o caminho domínio › trilha (`.pacto-caminho`) e as regras (`.pacto-regra`). Contador de pontos numa linha.
