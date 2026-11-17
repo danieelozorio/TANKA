@@ -1034,3 +1034,11 @@ html[data-interface="arcane"] #ficha-flutuante .ficha-item-nivel { font-size: .7
   html[data-interface="arcane"] .cascata-missoes .cascata-ico { font-size: .95rem; }
   html[data-interface="arcane"] .cascata .selo-num { position: static; margin-left: auto; }
 }
+
+/* Atributos e status na aba Personagem (Henri, 16/11/2026): no celular a ficha fica compacta e escondia os atributos */
+html[data-interface="arcane"] .pg-atributos { display: none; }
+@media (max-width: 760px) {
+  html[data-interface="arcane"] .pg-atributos { display: block; margin-top: 1rem; }
+  html[data-interface="arcane"] .pg-atributos .secao { margin-top: .6rem; }
+  html[data-interface="arcane"] .pg-atributos .linha-atr .btn.mini { min-width: 2.4rem; min-height: 2.2rem; font-size: 1.1rem; }
+}

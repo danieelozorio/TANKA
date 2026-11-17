@@ -912,6 +912,13 @@
         nova.innerHTML = x[1]();
         velho.replaceWith(nova.firstChild);
       });
+      // Arcane no celular: os atributos também ficam na aba Personagem
+      var pa = document.querySelector('.pg-atributos');
+      if (pa && estado.personagem) {
+        var p = estado.personagem, n = document.createElement('div');
+        n.innerHTML = atributosAbaHtml(p);
+        if (n.firstChild) pa.replaceWith(n.firstChild);
+      }
     });
   }
 
@@ -1153,11 +1160,9 @@
     if (sub && tmp.querySelector('#sub-abas')) sub.replaceWith(tmp.querySelector('#sub-abas'));
   }
 
-  function fichaHtml() {
-    var p = estado.personagem, s = R.status(p);
-    var precisa = R.expNecessaria(p.nivel);
-    var arma = R.armaEquipada(p);
-    var emBatalha = !!estado.batalha;
+  // Atributos (com + e −), habilidade, raça e status: na ficha ("Atributos e status") e, na Arcane do celular, também
+  // na aba Personagem (lá a ficha fica compacta e escondia isso; Henri, 16/11/2026).
+  function fichaDetalhesHtml(p, s, emBatalha) {
     var eq = R.bonusEquipamentos(p);
     // Pontos escolhidos mas ainda não confirmados: aparecem em verde e mudam a prévia dos status.
     var pend = pontosPendentes(), usados = totalPendentes(), restam = p.pontosLivres - usados;
@@ -1204,6 +1209,25 @@
       ['Encantamento', mudanca(s.chanceEncantamento, sNovo.chanceEncantamento, pct), 'Bônus na chance de sucesso ao encantar.'],
     ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
+    return '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + restam + ' ponto(s) livre(s)</span>' : '') + '</h3>'
+      + '<p class="suave pequeno dica-texto">Passe o mouse (ou toque) no nome para ver o que cada atributo faz.</p>' + atrs + '</div>'
+      + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
+      + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
+      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
+      + '<div class="secao"><h3>Raça: ' + nomeRaca(p.raca, p.sexo) + '</h3><p class="pequeno tracos-raca">' + tracosRacaHtml(p.raca) + '</p></div>'
+      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div>';
+  }
+
+  function atributosAbaHtml(p) {
+    return '<div class="pg-atributos"><h3 class="subtitulo">Atributos e status' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '</h3>'
+      + fichaDetalhesHtml(p, R.status(p), !!estado.batalha) + '</div>';
+  }
+
+  function fichaHtml() {
+    var p = estado.personagem, s = R.status(p);
+    var precisa = R.expNecessaria(p.nivel);
+    var arma = R.armaEquipada(p);
+    var emBatalha = !!estado.batalha;
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
@@ -1220,25 +1244,18 @@
       + '<div class="secao"><h3>Arma</h3>' + armaFichaHtml(p, arma, s) + '</div>'
       + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
       + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
-      + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">'
-      + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + restam + ' ponto(s) livre(s)</span>' : '') + '</h3>'
-      + '<p class="suave pequeno dica-texto">Passe o mouse (ou toque) no nome para ver o que cada atributo faz.</p>' + atrs + '</div>'
-      + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
-      + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
-      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
-      + '<div class="secao"><h3>Raça: ' + nomeRaca(p.raca, p.sexo) + '</h3><p class="pequeno tracos-raca">' + tracosRacaHtml(p.raca) + '</p></div>'
-      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
+      + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">' + fichaDetalhesHtml(p, s, emBatalha) + '</div>')
       + atividadesHtml(p)
       + '</aside>';
   }
 
   // ----- Pontos de atributo: escolher com + e −, conferir a prévia e só então confirmar -----
   var DESCRICAO_ATRIBUTO = {
-    for: 'Aumenta o ataque físico e o dano dos golpes críticos.',
-    des: 'Aumenta a precisão, a evasão e a chance de crítico.',
+    for: 'Cavaleiro e Artesão: dano e precisão. Todos: dano dos golpes críticos.',
+    des: 'Caçador: dano, precisão, crítico e evasão. Outras classes: só 30% do crítico, da evasão e da precisão.',
     res: 'Aumenta a vida (acima de 10), a defesa e a defesa mágica.',
-    int: 'Aumenta o ataque mágico (dano dos magos).',
-    sor: 'Aumenta a chance de drop, o crítico mágico, o dano crítico mágico, o encantamento e o craft.',
+    int: 'Mago: dano, precisão, crítico mágico e dano crítico mágico.',
+    sor: 'Aumenta a chance de drop, de encantamento e de craft.',
   };
   function pontosPendentes() {
     var p = estado.personagem;
@@ -1653,6 +1670,7 @@
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
       + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
+      + (temaAtual() === 'arcane' ? atributosAbaHtml(p) : '')
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
       + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
       + baixo + '</div></div>';
