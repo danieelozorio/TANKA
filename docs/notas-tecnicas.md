@@ -519,6 +519,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Caixa: `p.caixa` (até 80, mais novo primeiro, `{t, o, x}`) e `p.caixaVista`. Entra pelos avisos de `resgatarRecompensas`
   (`avisarCaixa`, origem da recompensa → boss/leilao/mercado/oficina/cla/masmorra) e de `aplicarCreditos` (menos os
   que o próprio jogador fez: lance, compra, fundação/doação do clã, pedido na oficina). "Mochila cheia" não entra.
+  Prêmios da masmorra (itens e "mochila cheia" dela) e pergaminhos ganhos não entram (16/11/2026): só no sininho
+  (`avisarSemMasmorra`; masmorra = origem que `origemCaixa` não conhece).
 - Sininho: todo `avisar` (`guardarNotificacao`), até 60, no localStorage por personagem (`eldrin.notificacoes.<id>`).
 
 ## Ficha do item flutuante (Henri, nov/2026)

@@ -5954,6 +5954,8 @@
   async function resgatarRecompensasAntigo(lista) {
     // os prêmios recebidos também ficam na caixa de entrada (origem da recompensa)
     var avisarCaixa = function (msg, tipo) { avisar(msg, tipo); caixaRegistrar(origemCaixa(rec && rec.origem), msg); };
+    // Masmorra e pergaminhos ganhos: só no sininho, não na caixa de entrada (pedido do Henri, 16/11/2026).
+    var avisarSemMasmorra = function (msg, tipo) { if (origemCaixa(rec && rec.origem) === 'masmorra') avisar(msg, tipo); else avisarCaixa(msg, tipo); };
     var p = estado.personagem, g = estado.gm;
     lista = lista || (g && g.recompensas);
     if (!p || !lista || !lista.length || estado.resgatando) return;
@@ -6020,7 +6022,7 @@
           var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
           R.mudarPergaminho(p, perg.raridade, nPerg);
           salvar();
-          avisarCaixa((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
+          avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
             + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
@@ -6063,7 +6065,7 @@
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+          if (!avisouCheia) avisarSemMasmorra('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
@@ -6071,7 +6073,7 @@
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
-        avisarCaixa((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
+        avisarSemMasmorra((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
       if (entregues.length) {
         p.poder = R.poder(p);
