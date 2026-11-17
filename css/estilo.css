@@ -1423,6 +1423,8 @@ body:has(#painel-missoes.aberto) #aviso { right: auto; left: 16px; align-items: 
 .leilao-cab .icone-pequeno { width: 56px; height: 56px; position: relative; cursor: zoom-in; padding: 0; }
 .leilao-nome { font-family: var(--titulo); font-size: .98rem; line-height: 1.2; }
 .leilao-lider { color: #7fdc94; font-weight: 700; font-size: .85rem; }
+.leilao-coberto { color: #ff8a7a; font-weight: 700; font-size: .85rem; }
+.leilao-lote.coberto { box-shadow: 0 0 0 2px rgba(224, 74, 60, .55); }
 .leilao-acao { display: flex; gap: .4rem; }
 .leilao-acao .lance-valor { flex: 1; min-width: 0; }
 .leilao-zoom .zoom-cartas { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; }

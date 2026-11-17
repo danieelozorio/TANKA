@@ -1202,3 +1202,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   de entrada com origem `admin` (📜). SQL pronto no scratchpad do Daniel (insert em `public.creditos`). O jogo busca os
   pendentes ao entrar e a cada 2 min (`estado.timerPendentes`).
 - **Chat global como admin:** insert em `mensagens` com `set_config('tanka.aviso_sistema','1',true)`, classe 'sistema', nivel 1, conta do admin; a tela mostra "📢 Admin:" (nivel 0 = aviso automático 🐉).
+- **Leilão (17/11/2026):** lotes em que o personagem deu lance sobem para o topo (te cobriram > você lidera > o resto). Os lances ficam no navegador (`localStorage` 'eldrin.leilaoLances', por personagem, últimos 40); "Te cobriram!" em vermelho.
