@@ -1346,6 +1346,32 @@ teste('masmorra com caminhos (16/11/2026): lutas, votos de 10 s, empate do líde
   if (e4.log[1].armadilha) assert.strictEqual(e4.log[2].herois.map((h) => h.hpAntes).join(), [Math.min(e4.log[2].herois[0].hpMax, 1), 0, Math.min(e4.log[2].herois[2].hpMax, 1)].join());
 });
 
+teste('atributo das armas e da mão esquerda (17/11/2026): 2 mãos dobra; mão esquerda dá o atributo do grupo', () => {
+  for (let i = 0; i < 60; i++) {
+    const um = R.novoItem('arma', 'cavaleiro', 'epica', null, 'espada', 40), dois = R.novoItem('arma', 'cavaleiro', 'epica', null, 'espada2m', 40);
+    Object.values(um.extras.atributos).forEach((v) => assert.ok(v >= 5 && v <= 8, '1 mão nível 40: ' + v));
+    Object.values(dois.extras.atributos).forEach((v) => assert.ok(v >= 10 && v <= 16, '2 mãos nível 40: ' + v));
+    const esc = R.novoItem('secundaria', null, 'comum', null, 'escudo', 40), liv = R.novoItem('secundaria', null, 'comum', null, 'livro', 40);
+    const adg = R.novoItem('secundaria', null, 'comum', null, 'adaga', 40);
+    assert.ok(esc.bonus.for >= 5 && esc.bonus.for <= 8, 'escudo FOR ' + esc.bonus.for);
+    assert.ok(liv.bonus.int >= 5 && liv.bonus.int <= 8, 'livro INT ' + liv.bonus.int);
+    assert.ok(adg.bonus.des >= 5 && adg.bonus.des <= 8, 'adaga DES ' + adg.bonus.des);
+  }
+  assert.ok(!R.novoItem('secundaria', null, 'epica', null, 'escudo', 8).bonus.for, 'até o nível 10: sem atributo');
+  // itens antigos: o Livro perde a INT antiga e ganha a nova; arma de 2 mãos dobra; sempre o mesmo sorteio
+  const p = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); p.nivel = 40;
+  const livro = { id: 'lv1', tipo: 'secundaria', mao: 'livro', raridade: 'epica', nivel: 40, encanto: 0, bonus: { int: 19, danoMagico: 10, res: 3 } };
+  const caj = { id: 'cj1', tipo: 'arma', arma: 'cajado', classe: 'mago', raridade: 'epica', nivel: 40, encanto: 0, dano: [10, 20], extras: { atributos: { int: 7 } } };
+  p.inventario = [livro, caj];
+  R.normalizar(p);
+  assert.ok(livro.bonus.int >= 5 && livro.bonus.int <= 8 && livro.bonus.res === 3 && livro.atrV3, 'livro migrado: ' + livro.bonus.int);
+  assert.strictEqual(caj.extras.atributos.int, 14, 'cajado: atributo dobrado');
+  R.normalizar(p); assert.strictEqual(caj.extras.atributos.int, 14, 'uma vez só');
+  const outro = { id: 'lv1', tipo: 'secundaria', mao: 'livro', raridade: 'epica', nivel: 40, encanto: 0, bonus: { int: 19, danoMagico: 10, res: 3 } };
+  const q = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); q.inventario = [outro]; R.normalizar(q);
+  assert.strictEqual(outro.bonus.int, livro.bonus.int, 'mesmo sorteio no servidor e no navegador');
+});
+
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
   const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
   R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');

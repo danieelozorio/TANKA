@@ -57,7 +57,7 @@ Tanka.regras = (function () {
     if (nivel) {
       item.nivel = Math.max(1, Math.min(D.ITEM_NIVEL.maximo, nivel));
       item.qualidade = sortearQualidade(raridade, rng);
-      if (tipo === 'arma') { item.dano = danoDoNivel(item.nivel, item.qualidade); item.extras = sortearExtrasArma(item.nivel, rng); }
+      if (tipo === 'arma') { item.dano = danoDoNivel(item.nivel, item.qualidade); item.extras = sortearExtrasArma(item.nivel, rng, D.TIPOS_ARMA[item.arma].duasMaos); }
     }
     if (tipo === 'secundaria') {
       item.mao = especifico;
@@ -66,7 +66,15 @@ Tanka.regras = (function () {
     // Armaduras novas também sorteiam 1 dos 8 finais das armas (ex.: "Elmo do Capitão"); as antigas mantêm o nome.
     if (TIPOS_ARMADURA.indexOf(tipo) >= 0) item.variacao = Math.floor(rng() * D.SUFIXOS_ARMA[raridade].length);
     if (tipo !== 'arma') item.bonus = sortearBonus(item, rng);
+    if (tipo === 'arma' || tipo === 'secundaria') item.atrV3 = true;   // já nasce com o atributo de 17/11/2026
     return item;
+  }
+  // Atributo fixo da mão esquerda (escudo/manopla FOR, livro/orbe INT, Leve DES), na faixa de 1 atributo das armas do
+  // nível do item (até o 10: nada). Devolve [atributo, valor] ou null.
+  function atributoMao(item, rng) {
+    var k = D.ATRIBUTO_ARMA.mao[item.mao], f = faixaExtras(item.nivel || 1);
+    if (!k || !f.atributos) return null;
+    return [k, rolar([f.atributos[1], f.atributos[2]], rng || Math.random)];
   }
   // ---------- Nível e qualidade dos itens ----------
   var N_ = D.ITEM_NIVEL;
@@ -108,14 +116,17 @@ Tanka.regras = (function () {
     return Math.max(1, Math.round(valorRaro * escalaNivel(nivel) * multQualidade(q) / multQualidade(0.55)));
   }
   // Extras da arma pela faixa de nível (EXTRAS_ARMA).
-  function sortearExtrasArma(nivel, rng) {
+  function hashTexto(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function faixaExtras(nivel) { return D.EXTRAS_ARMA.filter(function (x) { return nivel <= x.ate; })[0] || D.EXTRAS_ARMA[D.EXTRAS_ARMA.length - 1]; }
+  // duasMaos: arma de 2 mãos dá o atributo x ATRIBUTO_ARMA.duasMaos (17/11/2026)
+  function sortearExtrasArma(nivel, rng, duasMaos) {
     rng = rng || Math.random;
-    var f = D.EXTRAS_ARMA.filter(function (x) { return nivel <= x.ate; })[0] || D.EXTRAS_ARMA[D.EXTRAS_ARMA.length - 1], e = {};
+    var f = faixaExtras(nivel), e = {}, x = duasMaos ? D.ATRIBUTO_ARMA.duasMaos : 1;
     if (f.atributos) {
       var livres = ATRIBUTOS.slice(); e.atributos = {};
       for (var i = 0; i < f.atributos[0]; i++) {
         var k = livres.splice(Math.floor(rng() * livres.length), 1)[0];
-        e.atributos[k] = rolar([f.atributos[1], f.atributos[2]], rng);
+        e.atributos[k] = rolar([f.atributos[1] * x, f.atributos[2] * x], rng);
       }
     }
     if (f.pve) e.pve = rolar(f.pve, rng);
@@ -243,6 +254,7 @@ Tanka.regras = (function () {
       var k = ATRIBUTOS[Math.floor(rng() * ATRIBUTOS.length)];
       b[k] = (b[k] || 0) + rolar(extra, rng);
     }
+    if (item.tipo === 'secundaria' && item.nivel) { var am = atributoMao(item, rng); if (am) b[am[0]] = (b[am[0]] || 0) + am[1]; }
     return b;
   }
   function novaArma(classe, raridade, rng, especifico) { return novoItem('arma', classe, raridade, rng, especifico); }
@@ -1147,6 +1159,24 @@ Tanka.regras = (function () {
       if (!anelAntigo(i)) return;
       if (i.qualidade == null) i.qualidade = sortearQualidade(i.raridade);
       i.bonus = sortearBonusAnel(i, Math.random);
+    });
+    // Atributo das armas e da mão esquerda (17/11/2026): arma de 2 mãos dobra o atributo; a mão esquerda ganha o
+    // atributo fixo do grupo (o Livro perde a INT antiga, que crescia muito). Sorteio fixo pelo id (servidor e navegador iguais).
+    p.inventario.forEach(function (i) {
+      if (i.atrV3 || (i.tipo !== 'arma' && i.tipo !== 'secundaria')) return;
+      var rng = rngSemente(hashTexto(String(i.id)));
+      if (i.tipo === 'arma') {
+        var t = D.TIPOS_ARMA[tipoArmaId(i)];
+        if (t && t.duasMaos && i.extras && i.extras.atributos)
+          Object.keys(i.extras.atributos).forEach(function (k) { i.extras.atributos[k] = Math.round(i.extras.atributos[k] * D.ATRIBUTO_ARMA.duasMaos); });
+      } else {
+        var def = definicao(i), idx = RARIDADES.indexOf(i.raridade);
+        if (!i.bonus) { i.bonus = {}; if (def) Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) i.bonus[k] = def.bonus[k][idx]; }); }
+        if (i.mao === 'livro') delete i.bonus.int;
+        var am = atributoMao(i, rng);
+        if (am) i.bonus[am[0]] = (i.bonus[am[0]] || 0) + am[1];
+      }
+      i.atrV3 = true;
     });
     // Colares de antes da escada (13/11/2026): ganham os bônus novos da raridade e do nível deles.
     p.inventario.forEach(function (i) {

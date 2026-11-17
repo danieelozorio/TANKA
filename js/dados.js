@@ -391,7 +391,7 @@ Tanka.dados = {
     orbe: { nome: 'Orbe', bonus: { danoMagico: [4, 7, 10, 14], danoCriticoMagico: [5, 10, 15, 20] }, fixos: ['danoMagico', 'danoCriticoMagico'], encanto: 'danoMagico' },
     manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], danoPct: [4, 7, 10, 14] }, fixos: ['danoPct'], encanto: 'danoPct' },
     // segundas classes (a partir de rara)
-    livro: { nome: 'Livro de Magias', bonus: { int: [1, 2, 4, 8], danoMagico: [4, 7, 10, 14] }, fixos: ['danoMagico'], encanto: 'danoMagico' },
+    livro: { nome: 'Livro de Magias', bonus: { danoMagico: [4, 7, 10, 14] }, fixos: ['danoMagico'], encanto: 'danoMagico' },
     adaga: { nome: 'Adaga', bonus: { dano: [2, 5, 10, 16], critico: [1, 2, 3, 5] }, fixos: ['critico'], encanto: 'dano' },
     garra: { nome: 'Garra', bonus: { dano: [3, 6, 12, 18] }, encanto: 'dano' },
     shuriken: { nome: 'Shuriken', bonus: { dano: [1, 3, 6, 10], critico: [2, 4, 6, 10] }, fixos: ['critico'], encanto: 'critico' },
@@ -485,6 +485,10 @@ Tanka.dados = {
   // (atributos diferentes, sorteados entre FOR/DES/RES/INT/SOR); pve/pvp: % de dano; hab: pontos numa habilidade
   // sorteada da segunda classe (nº 1 a 4 da lista de quem usar a arma), além do limite de 10.
   // Estes extras substituem os da raridade (RARIDADE_ARMA), que ficam só para as armas antigas.
+  // Atributo das armas e da mão esquerda (Henri, 17/11/2026): arma de 1 mão = a faixa abaixo; arma de 2 mãos = x2;
+  // mão esquerda = 1 atributo FIXO do grupo (escudo/manopla FOR, livro/orbe INT, aljava/adaga/garra/shuriken DES) na
+  // mesma faixa de 1 atributo da arma (o Livro dava muito mais INT e ficava acima do Cajado).
+  ATRIBUTO_ARMA: { duasMaos: 2, mao: { escudo: 'for', manopla: 'for', livro: 'int', orbe: 'int', aljava: 'des', adaga: 'des', garra: 'des', shuriken: 'des' } },
   EXTRAS_ARMA: [
     { ate: 10 },
     { ate: 20, atributos: [1, 1, 2] },

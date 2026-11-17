@@ -1143,3 +1143,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Ignaroth), o dano por vez é multiplicado por `k / (k + defesa)` do alvo (defesa física ou mágica pelo tipo de dano de
   quem lança, com os reforços de defesa do alvo). Antes ignorava a defesa e batia ~9x um golpe normal contra quem tinha
   muita defesa. Só na Arena; na caçada continua sem defesa.
+
+## Atributo das armas e da mão esquerda (Henri, 17/11/2026)
+- Arma de 1 mão: faixa de `EXTRAS_ARMA` (nv20 +1–2, nv40 +5–8, nv60 +5–10). Arma de 2 mãos: x`ATRIBUTO_ARMA.duasMaos` (2).
+- Mão esquerda: 1 atributo fixo do grupo (`ATRIBUTO_ARMA.mao`: escudo/manopla FOR, livro/orbe INT, aljava/adaga/garra/shuriken DES),
+  na faixa de 1 atributo da arma do mesmo nível (`atributoMao` em regras.js). O Livro perdeu a INT que crescia com o nível.
+- Itens antigos: `normalizar` migra uma vez (marca `atrV3`), com sorteio fixo pelo id (`hashTexto` + `rngSemente`),
+  igual no servidor e no navegador. Itens novos já nascem com `atrV3`.
