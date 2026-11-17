@@ -947,6 +947,7 @@ begin
   if agora > (run.etapa ->> 'prazo')::bigint + 1500 then raise exception 'O tempo da votação acabou.'; end if;
   update public.masmorra_runs set etapa = jsonb_set(etapa, array['votos', meu], to_jsonb(opcao), true), versao = versao + 1 where id = run_id;
 end $$;
+revoke execute on function public.masmorra_votar(text, bigint, text) from public, anon;   -- só com login (conferência de segurança, nov/2026)
 grant execute on function public.masmorra_votar(text, bigint, text) to authenticated;
 -- Fim da masmorra com caminhos (só a chave do servidor): marca o resultado, gasta a entrada, conta a missão do clã e
 -- guarda os prêmios (sorteados pela função `acao` com a semente da masmorra). Vale uma vez só.
@@ -1332,6 +1333,7 @@ begin
     'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'ouro', c.ouro, 'reputacao', c.reputacao, 'motivo', c.motivo) order by c.id)
       from public.creditos c where c.personagem_id = meu and not c.aplicado), '[]'::jsonb));
 end $$;
+revoke execute on function public.pendentes(text) from public, anon;   -- só com login (conferência de segurança, nov/2026)
 grant execute on function public.pendentes(text) to authenticated;
 
 create or replace function public.recompensa_resgatar(meu text, recompensa bigint) returns jsonb
