@@ -7650,7 +7650,7 @@
     if (vista === 'skills') return html + skillsClaHtml(st);
     if (vista === 'missoes') return html + missoesClaHtml(st);
     // Mural
-    html += '<div class="caixa-interna"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
+    html += '<div class="caixa-interna cla-secao"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
       + (manda ? '<div class="linha-form"><input id="al-mural" maxlength="' + AL.muralMax + '" placeholder="Escreva um aviso para todos" value="' + esc(a.mural) + '">'
         + '<button class="btn secundario" data-acao="al-mural">Salvar</button></div>' : '') + '</div>';
     // Tesouro e bônus
@@ -7662,7 +7662,7 @@
         + '</div>';
     }
     var doado = Number(st.doado_hoje || 0), resta = Math.max(0, AL.doacaoMaxDia - doado);
-    html += '<div class="caixa-interna"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
+    html += '<div class="caixa-interna cla-secao"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
       + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave pequeno">Cada ouro doado vira exp do clã e conta como sua contribuição. O líder usa o tesouro para comprar as '
       + '<strong>skills do clã</strong>, que valem para todos os membros para sempre.</p>' + (CELULAR ? '</details>' : '')
@@ -7674,7 +7674,7 @@
       + '</div>';
     // Convidar e pedidos
     if (manda) {
-      html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
+      html += '<div class="caixa-interna cla-secao"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
         + '<button class="btn" data-acao="al-convidar">Convidar</button></div>'
         + (st.pedidos.length ? '<h3 class="subtitulo">Pedidos para entrar</h3><div class="itens">' + st.pedidos.map(function (x) {
           return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x) + ' · Lv ' + x.nivel

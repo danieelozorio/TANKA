@@ -958,6 +958,15 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .alianca-topo { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: .8rem 1rem;
   border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; background: radial-gradient(ellipse at 10% 50%, rgba(201, 162, 74, .14), transparent 60%), linear-gradient(180deg, #1b2331, #121822); }
 .alianca-titulo h2 { margin: 0 0 .1rem; }
+/* Clã › geral: Mural, Tesouro e Convidar com respiro entre as caixas e entre o campo e o botão (Henri, 16/11/2026). */
+.cla-secao + .cla-secao { margin-top: .9rem; }
+.cla-secao { padding: 1rem 1.1rem; }
+.cla-secao h3 { margin: 0 0 .6rem; }
+.cla-secao p { margin: .35rem 0; }
+.cla-secao .alianca-mural, .cla-secao > .suave:first-of-type { margin-bottom: .7rem; }
+.cla-secao .linha-form { display: flex; flex-wrap: wrap; gap: .6rem; align-items: stretch; margin-top: .7rem; }
+.cla-secao .linha-form input { flex: 1 1 14rem; min-width: 0; margin: 0; }
+.cla-secao .linha-form .btn { flex: 0 0 auto; margin: 0; }
 .alianca-mural { white-space: pre-wrap; padding: .5rem .7rem; border-left: 3px solid var(--ouro); background: rgba(201, 162, 74, .06); border-radius: 0 8px 8px 0; }
 .alianca-chamada { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .alianca-chamada p { margin: 0; }
