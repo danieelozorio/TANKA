@@ -3932,7 +3932,9 @@
   // de sempre) → resultado entra no resumo → procura de novo. Para com a vida em ≤5% ou quando o jogador para.
   function prefsCacada() {
     var p = estado.personagem;
-    return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
+    var pr = p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
+    if (pr.pocao && D.CACADA.pocaoAuto.indexOf(Number(pr.pocao)) < 0) pr.pocao = D.CACADA.pocaoAuto[0];   // opção que saiu (5%) → 10%
+    return pr;
   }
   function iniciarCacada(areaId, soEstes) {
     if (bloqueadoMinerando('caçar')) return;

@@ -954,7 +954,7 @@ Tanka.dados = {
   // = +60% acima da referência). Chance: o mais fraco pesa 1 + `pesoFraco` (3x o mais forte) no começo; com a
   // evolução os pesos se igualam.
   CACADA: { tempoInicio: [2000, 2000], tempoFinal: [2000, 2000], sorteBase: 15, faixaEvolucao: 0.6, pesoFraco: 2,
-    vidaMinima: 5, contagem: 3, pocaoAuto: [10, 5], historico: 10 },
+    vidaMinima: 5, contagem: 3, pocaoAuto: [10, 30], historico: 10 },
 
   // Prêmios de login (Daniel, nov/2026): 1 vez por dia (vira às 00:00 de Brasília), os dias NÃO precisam ser seguidos.
   // semana: boas-vindas, 7 prêmios, um por dia de login, SÓ UMA VEZ por herói (depois fica só a trilha dos 30).
