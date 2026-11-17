@@ -10,9 +10,10 @@ Tanka.servidorAcoes = (function () {
   var TIPOS_CRAFT = ['material', 'receita', 'protecao'];
   function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
   function nomeDrop(it) { return it.consumivel ? (it.qtd > 1 ? it.qtd + 'x ' : '') + R.nomeConsumivel(it) : R.nomeItem(it); }
-  function origemCaixa(o) { return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra'; }
+  function origemCaixa(o) { return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla', torre: 'torre' }[o] || 'masmorra'; }
   function origemCredito(m) {
     m = m || '';
+    if (/^Torre/.test(m)) return 'torre';
     return /Arena/.test(m) ? 'arena' : /leilão/.test(m) ? 'leilao' : /^Mercado/.test(m) ? 'mercado' : /clã/.test(m) ? 'cla' : /^Oficina/.test(m) ? 'oficina' : 'arena';
   }
 
@@ -60,7 +61,7 @@ Tanka.servidorAcoes = (function () {
         var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
         R.mudarPergaminho(p, perg.raridade, nPerg);
         aviso(rec, (nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
-          + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
+          + (perg.boss ? ' do boss do clã!' : rec.origem === 'torre' ? ' da Torre do Eclipse!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
         return;
       }
       if (it.tipo === 'forjado') {   // item da Oficina de um Ferreiro, montado com a semente do servidor

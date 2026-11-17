@@ -1992,3 +1992,55 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .pacto-tut-topo small { color: #f0c56a; text-transform: uppercase; letter-spacing: .08em; font-size: .72em; }
 .pacto-tut-topo h3 { margin: 0; }
 .pacto-tut-passos { margin: .4em 0 .6em; padding-left: 1.3em; display: grid; gap: .45em; line-height: 1.35; }
+
+/* ---------- Torre do Eclipse (tela) ---------- */
+.torre-topo { display: flex; gap: 12px; align-items: flex-start; }
+.torre-topo > img { width: 92px; height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid var(--ouro); flex: none; }
+.torre-topo p { margin: .2em 0 .5em; }
+.torre-recordes { display: flex; gap: 14px; flex-wrap: wrap; }
+.torre-recordes span { padding: 3px 10px; border: 1px solid #5a4528; border-radius: 12px; background: rgba(201,169,107,.08); }
+.torre-recordes b { color: #f0c56a; }
+.torre-regras ul { margin: .3em 0; padding-left: 1.2em; }
+.torre-grupo { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin: 6px 0; }
+.torre-membro { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; padding: 8px; border: 1px solid var(--borda); border-radius: 10px; }
+.torre-membro.pronto { border-color: #5bbf72; }
+.torre-membro .moldura { width: 64px; height: 76px; overflow: hidden; border-radius: 6px; }
+.torre-membro .moldura img { width: 100%; height: 100%; object-fit: cover; }
+.torre-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.torre-cab small { display: block; color: var(--ouro); letter-spacing: .1em; text-transform: uppercase; font-size: .7rem; }
+.torre-cab strong { font-size: 1.25rem; color: #f0c56a; }
+.torre-turno { text-align: right; color: var(--ouro-claro); }
+.torre-relogio { display: inline-block; margin-left: 8px; min-width: 42px; padding: 2px 8px; border-radius: 10px; background: #1f1810; border: 1px solid var(--ouro); text-align: center; }
+.torre-relogio.fim { border-color: #e04a3c; color: #ff8a7a; animation: asc-pulsa 1s infinite; }
+.torre-aviso { margin: 6px 0; padding: 8px 12px; border: 1px solid #8a3a28; border-radius: 8px; background: #2a1410; color: #ffd3c8; }
+.torre-aviso.agora { border-color: #e04a3c; background: #4a120c; box-shadow: 0 0 14px rgba(224,74,60,.45); animation: asc-pulsa 1.2s infinite; }
+.torre-inimigos, .torre-herois { display: grid; gap: 8px; margin: 8px 0; }
+.torre-inimigos { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.torre-herois { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.torre-inimigo, .torre-heroi { display: flex; gap: 8px; align-items: center; padding: 6px 8px; border: 1px solid var(--borda); border-radius: 10px; background: rgba(0,0,0,.25); }
+.torre-inimigo > div, .torre-heroi > div:last-child { flex: 1; min-width: 0; }
+.torre-inimigo img { width: 58px; height: 58px; object-fit: cover; border-radius: 8px; flex: none; }
+.torre-inimigo.chefe { border-color: #c0392b; box-shadow: 0 0 12px rgba(192,57,43,.35); }
+.torre-inimigo.caido, .torre-heroi.caido { opacity: .4; filter: grayscale(1); }
+.torre-heroi .moldura { width: 44px; height: 52px; overflow: hidden; border-radius: 6px; flex: none; }
+.torre-heroi .moldura img { width: 100%; height: 100%; object-fit: cover; }
+.torre-heroi.eu { border-color: var(--ouro); }
+.torre-vida { position: relative; height: 14px; margin: 3px 0; background: #2a1d14; border-radius: 7px; overflow: hidden; }
+.torre-vida i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #3e9e52, #6fd383); }
+.torre-vida.inimigo i { background: linear-gradient(90deg, #a3271c, #e04a3c); }
+.torre-vida span { position: relative; display: block; text-align: center; font-size: .7rem; line-height: 14px; color: #fff; text-shadow: 0 1px 2px #000; }
+.torre-narracao { max-height: 190px; overflow-y: auto; margin: 8px 0; padding: 8px 10px; border-left: 3px solid var(--ouro); background: #14100c; border-radius: 4px; }
+.torre-narracao p { margin: 2px 0; font-size: .92rem; }
+.torre-narracao .n-aviso, .torre-narracao .n-mec { color: #ff9b8a; font-weight: 700; }
+.torre-narracao .n-bom { color: #8fe0a0; }
+.torre-narracao .n-ruim { color: #ff8a7a; }
+.torre-painel { margin-top: 8px; padding: 10px; border: 1px solid var(--ouro); border-radius: 10px; background: rgba(201,169,107,.06); }
+.torre-painel h4 { margin: 0 0 6px; color: var(--ouro-claro); }
+.torre-ops, .torre-linha { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; align-items: center; }
+.torre-op { padding: 8px 12px; border: 1px solid var(--borda); border-radius: 8px; background: #1f1810; color: var(--ouro-claro); cursor: pointer; font: inherit; }
+.torre-op small { opacity: .75; }
+.torre-op.sel { border-color: #f0c56a; background: #3a2c14; color: #fff; box-shadow: 0 0 8px rgba(240,197,106,.35); }
+.torre-op:disabled { opacity: .4; cursor: default; }
+.torre-op.mini { padding: 5px 10px; }
+.torre-espera { text-align: center; margin: 10px 0; }
+.torre-desistir { text-align: right; margin-top: 10px; }

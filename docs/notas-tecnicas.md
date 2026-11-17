@@ -1216,3 +1216,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (padrão 100, 250, 500, 1000 por 90 s); mede tempos (metade/95%/99%) e erros por pedido; para se passar de 30% de erros.
 - Projeto de teste: rodar o schema.sql, desligar "Confirm email", subir o limite de cadastros (Auth > Rate Limits).
   O workflow envia as funções `cacada`/`acao` para ele com o SUPABASE_ACCESS_TOKEN (precisa ser da mesma conta).
+- **Etapa 3 (tela, 17/11/2026):** aba Aventura › Torre (`abaTorre`, só level 30+ via `abaVisivel`). Saguão: recorde,
+  regras, grupo (o mesmo da masmorra; até 4), "Estou pronto" e o líder "Subir a Torre". Luta: cabeçalho com andar/turno e
+  relógio, faixa ⚠ dos avisos (`NESTE TURNO!` quando `em` = 1), inimigos (vida, resistência a stun, marcas), os 4 heróis
+  (vida, poções, ✔ ação escolhida e ordem), narração do último turno (1 linha/s) e o painel da ação (atacar, desviar com a
+  chance, poção, habilidades com recarga, alvo, ordem 1–4; dá para trocar até resolver). `carregarTorre` a cada 1,5 s na aba
+  (5 s no saguão) e chama `torreAvancar` só quando precisa (sem torre, todos os vivos escolheram, prazo acabou, fim da
+  narração). `carregarGrupo` leva para a Torre quem está no grupo de 4 quando a subida começa.
+- **Etapa 4 (prêmios):** `torre_registrar` dá, por andar vencido e por membro: andar novo = 1000 x andar de ouro + 5 x andar de
+  reputação (créditos "Torre do Eclipse: andar N"); repetido = 150 x andar de ouro; chefe (andar múltiplo de 5) novo =
+  1 pergaminho (até 10 raro, até 25 épico, depois lendário) em `recompensas` origem 'torre'. `D.TORRE.premios` só para a
+  tela (manter igual ao SQL). Caixa de entrada: origem 'torre' (🗼).

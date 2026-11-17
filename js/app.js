@@ -609,6 +609,7 @@
   var ICONES_SUB = {
     personagem: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
     encantar: svg('<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M18 6l-2.5 2.5m-7 7L6 18"/>'),
+    torre: svg('<path d="M7 21V9l-2-2V3h3v2h2V3h4v2h2V3h3v4l-2 2v12Z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4M11 11h2"/>'),
     habilidades: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'),
     ascensao: svg('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="3.5" r="1.6"/><circle cx="19.4" cy="16.2" r="1.6"/><circle cx="4.6" cy="16.2" r="1.6"/><path d="M12 9V5.1m2.6 8.4 3.4 2m-8.6-2-3.4 2"/>'),
     cacar: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>'),
@@ -681,12 +682,13 @@
   var ICONE_CARTA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.2 7 12 11.5 18.8 7z"/></svg>';
   var ICONE_SINO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a6 6 0 0 1 6 6v3.5l1.8 3.3A1 1 0 0 1 19 16H5a1 1 0 0 1-.9-1.2L6 11.5V8a6 6 0 0 1 6-6zm-2.5 15h5a2.5 2.5 0 0 1-5 0z"/></svg>';
   var ORIGENS_CAIXA = { boss: ['🐉', 'Chefe Mundial'], arena: ['⚔', 'Arena'], leilao: ['🔨', 'Leilão'], mercado: ['💰', 'Mercado'],
-    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'], admin: ['📜', 'Mensagem do Reino'] };
+    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'], admin: ['📜', 'Mensagem do Reino'], torre: ['🗼', 'Torre'] };
   function origemCaixa(o) {
-    return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra';
+    return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla', torre: 'torre' }[o] || 'masmorra';
   }
   function origemCredito(m) {
     m = m || '';
+    if (/^Torre/.test(m)) return 'torre';
     return /Arena/.test(m) ? 'arena' : /leilão/.test(m) ? 'leilao' : /^Mercado/.test(m) ? 'mercado' : /clã/.test(m) ? 'cla' : /^Oficina/.test(m) ? 'oficina' : 'arena';
   }
   function caixaRegistrar(origem, texto) {
@@ -1016,13 +1018,13 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao'] },
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'mineracao', 'mundial', 'historia'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
   ];
-  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1032,7 +1034,12 @@
   }
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Abas que o jogador vê: o Pacto de Ascensão só aparece a partir do level 40 (antes ele nem sabe que existe).
-  function abaVisivel(a) { return a !== 'ascensao' || !!(estado.personagem && estado.personagem.nivel >= D.ASCENSAO.nivelInicio); }
+  function abaVisivel(a) {
+    var n = estado.personagem ? estado.personagem.nivel : 0;
+    if (a === 'ascensao') return n >= D.ASCENSAO.nivelInicio;
+    if (a === 'torre') return n >= D.TORRE.nivelMin;   // Torre do Eclipse: level 30+
+    return true;
+  }
   function abasDe(g) { return g.abas.filter(abaVisivel); }
   // Raça e classe concordam com o gênero da personagem (sem o sexo, fica no masculino).
   // Traços da raça em texto: "+10% de velocidade · −10% de vida".
@@ -3928,7 +3935,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -5394,6 +5401,21 @@
       case 'grupo-recusar':
         acaoGrupo(function () { return C.grupo.responder(p.id, Number(el.dataset.convite), false); });
         break;
+      case 'torre-acao': { var te = torreEst().esc || (torreEst().esc = {}); te.acao = el.dataset.valor; te.hab = el.dataset.hab || null; redesenharTorre(); break; }
+      case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); redesenharTorre(); break;
+      case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); redesenharTorre(); break;
+      case 'torre-confirmar': torreConfirmar(); break;
+      case 'torre-subir':
+        C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
+        break;
+      case 'torre-desistir-pedir': estado.torreDesistir = true; redesenharTorre(); break;
+      case 'torre-desistir-nao': estado.torreDesistir = false; redesenharTorre(); break;
+      case 'torre-desistir': {
+        var rd = runTorre(); estado.torreDesistir = false;
+        if (rd) C.torre.desistir(p.id, rd.id).then(carregarTorre, function (er) { avisar(er.message); });
+        break;
+      }
+      case 'torre-sair': if (torreEst().st) torreEst().st.run = null; torreEst().esc = null; telaJogo(); break;
       case 'grupo-pronto':
         acaoGrupo(function () { return C.grupo.pronto(p.id, el.dataset.valor === 'sim'); });
         break;
@@ -6221,6 +6243,7 @@
     return n ? ' <span class="selo-pedidos">' + n + '</span>' : '';
   }
 
+  var torreAvisadas = {};
   function carregarGrupo() {
     var p = estado.personagem;
     if (!p || estado.gmCarregando) return;
@@ -6232,6 +6255,16 @@
       if (estado.personagem !== p) return;
       estado.gm = g;
       estado.gmErro = null;
+      // Torre: grupo de 4 e alguém começou a subida fora da aba: avisa e leva para a Torre (fora de luta).
+      if (g.grupo && g.grupo.membros.length === D.TORRE.grupo && estado.aba !== 'torre' && p.nivel >= D.TORRE.nivelMin) {
+        C.torre.estado(p.id).then(function (st) {
+          var rt = st && st.run;
+          if (!rt || rt.estado !== 'andamento' || torreAvisadas[rt.id] || estado.personagem !== p) return;
+          torreAvisadas[rt.id] = true; torreEst().st = st;
+          avisar('🗼 Seu grupo está subindo a Torre do Eclipse!', 'nivel');
+          if (!estado.luta && !estado.batalha && !estado.lutaArena && !estado.resultado) { estado.aba = 'torre'; telaJogo(); }
+        }, function () {});
+      }
       var run = g.run;
       // Masmorra com caminhos: abre a tela enquanto ela estiver andando (ou acabou de terminar).
       if (run && run.etapa && !masFechadas[run.id] && !estado.luta && !estado.batalha && (run.estado === 'andamento' || C.agora() - Date.parse(run.criado_em) < 600000)) {
@@ -6728,6 +6761,200 @@
       + '<div class="botoes"><button class="btn" data-acao="historia-fechar">' + (c.botao || 'Continuar') + '</button></div></div></div>';
   }
 
+  // ---------- Torre do Eclipse (Daniel, nov/2026): tela (etapa 3) ----------
+  // estado.torre = { st: torre_estado (run, recorde, agora), dif: relógio do servidor − daqui, esc: escolha em montagem,
+  //   narr: { chave, inicio } (narração do turno), timer }. O turno é resolvido pelo servidor (torreAvancar).
+  var TR_ = D.TORRE;
+  function torreEst() { return estado.torre || (estado.torre = { st: null, esc: null, narr: null }); }
+  function agoraServ() { return Date.now() + (torreEst().dif || 0); }
+  function runTorre() { var s = torreEst().st; return s && s.run; }
+  function torreAndando() { var r = runTorre(); return !!(r && r.estado === 'andamento'); }
+  function carregarTorre() {
+    var p = estado.personagem, T = torreEst();
+    if (!p || T.carregando) return Promise.resolve();
+    T.carregando = true;
+    return C.torre.estado(p.id).then(function (st) {
+      T.carregando = false; T.erro = null;
+      if (estado.personagem !== p) return;
+      T.st = st; if (st && st.agora) T.dif = st.agora - Date.now();
+      return avancarTorreSePreciso();
+    }, function (e) { T.carregando = false; T.erro = e.message; }).then(function () { redesenharTorre(); agendarTorre(); });
+  }
+  // Pede ao servidor para andar: monta o andar, resolve o turno (todos escolheram ou acabou o prazo) ou sai da narração.
+  function avancarTorreSePreciso() {
+    var r = runTorre(), p = estado.personagem;
+    if (!r || r.estado !== 'andamento') return Promise.resolve();
+    var t = r.torre, agora = agoraServ(), precisa = !t;
+    if (t && t.fase === 'narrando') precisa = agora >= r.prazo;
+    if (t && t.fase === 'escolha') {
+      var vivos = t.herois.filter(function (h) { return h.hp > 0; });
+      precisa = agora >= r.prazo || vivos.every(function (h) { return r.escolhas && r.escolhas[h.id]; });
+    }
+    if (!precisa) return Promise.resolve();
+    return C.acao(p.id, 'torreAvancar', { run: r.id }).then(function (x) {
+      var res = x && x.resultado;
+      if (!res) return;
+      var antes = r.torre;
+      Object.assign(r, res);
+      if (res.agora) torreEst().dif = res.agora - Date.now();
+      // andar vencido: busca os prêmios logo
+      if (antes && antes.fase === 'escolha' && r.torre && r.torre.fim === 'vitoria' && ACAO_SERVIDOR) setTimeout(receberPendentes, 2500);
+    }, function () {});
+  }
+  function agendarTorre() {
+    var T = torreEst();
+    clearTimeout(T.timer);
+    if (estado.aba !== 'torre' || !estado.personagem) return;
+    T.timer = setTimeout(carregarTorre, torreAndando() ? 1500 : 5000);
+  }
+  function redesenharTorre() {
+    var caixa = document.getElementById('torre');
+    if (!caixa) return;
+    var foco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#torre') ? null : null;
+    caixa.innerHTML = torreConteudo();
+    var reg = caixa.querySelector('.torre-narracao');
+    if (reg) reg.scrollTop = reg.scrollHeight;
+  }
+  function abaTorre() { setTimeout(function () { if (!torreEst().st) carregarTorre(); else agendarTorre(); }, 0); return '<section class="caixa torre" id="torre">' + torreConteudo() + '</section>'; }
+  function vidaBarra(hp, max, cls) {
+    var pc = Math.max(0, Math.min(100, Math.round(hp * 100 / Math.max(1, max))));
+    return '<div class="torre-vida ' + (cls || '') + '"><i style="width:' + pc + '%"></i><span>' + Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + Number(max).toLocaleString('pt-BR') + '</span></div>';
+  }
+  var ICO_ACAO = { atacar: '⚔', habilidade: '✨', desviar: '💨', pocao: '🧪' };
+  function torreConteudo() {
+    var p = estado.personagem, T = torreEst(), st = T.st;
+    if (!st) return '<p class="suave">' + (T.erro ? esc(T.erro) : 'Abrindo os portões da Torre…') + '</p>';
+    if (st.local) return '<p class="suave">A Torre é em grupo de 4 e precisa do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
+    var r = st.run;
+    if (r && r.torre && (r.estado === 'andamento' || r.torre.fim)) return torreLuta(r);
+    return torreSaguao(st);
+  }
+  function torreSaguao(st) {
+    var p = estado.personagem, g = estado.gm, rec = st.recorde || { melhor: 0, semana: 0 };
+    if (!g) carregarGrupo();
+    var h = '<div class="torre-topo"><img src="assets/monstros/guardiao-da-torre-pesadelo.jpg" alt=""><div><h3 class="subtitulo">🗼 ' + TR_.nome + '</h3>'
+      + '<p class="suave pequeno">Torre sem fim para um grupo de ' + TR_.grupo + '. Cada andar é uma luta por turnos: os ' + TR_.grupo + ' escolhem juntos, '
+      + 'o chefe avisa os golpes fortes antes. A cada ' + TR_.chefeCada + ' andares, um chefe. Ilimitada: suba quantas vezes quiser.</p>'
+      + '<div class="torre-recordes"><span>Seu recorde <b>' + rec.melhor + '</b></span><span>Esta semana <b>' + rec.semana + '</b></span></div></div></div>';
+    h += '<details class="regras-celular torre-regras"' + (CELULAR ? '' : ' open') + '><summary>Como funciona</summary><ul>'
+      + '<li><b>⚔ Atacar</b>, <b>✨ Habilidade</b> (com recarga), <b>💨 Desviar</b> (só do golpe avisado; chance pelo seu maior atributo) ou <b>🧪 Poção</b>.</li>'
+      + '<li>Cada um escolhe a <b>ordem</b> (1º a 4º): o tanque provoca primeiro, o curandeiro cura por último.</li>'
+      + '<li>⚠ Quando o chefe avisa um golpe, <b>desvie</b> ou use um <b>stun</b> logo antes: o chefe atordoado perde o golpe.</li>'
+      + '<li>Os efeitos (stun, corte de cura...) pegam com <b>100% − a resistência</b> do inimigo, que sobe a cada andar.</li>'
+      + '<li>Salva andar por andar: a subida começa depois do <b>menor recorde</b> do grupo.</li>'
+      + '<li><b>Prêmios por andar:</b> andar novo = ' + TR_.premios.ouroNovo.toLocaleString('pt-BR') + ' de ouro x andar e ' + TR_.premios.repNovo + ' de reputação x andar '
+      + '(chefe: + 1 pergaminho); andar repetido = ' + TR_.premios.ouroRepetido + ' de ouro x andar.</li></ul></details>';
+    var r = st.run;
+    if (r && r.estado !== 'andamento' && r.torre) h += '<p class="aviso-nivel">Última subida: o grupo chegou ao andar <b>' + r.torre.andar + '</b>.</p>';
+    if (!g) return h + '<p class="suave">Carregando o grupo…</p>';
+    var gr = g.grupo;
+    if (!gr) return h + '<div class="secao"><p>Você precisa de um <b>grupo de ' + TR_.grupo + '</b>. Na aba <b>Social</b>, use <b>"Convidar para o grupo"</b> nos seus amigos '
+      + '(level ' + TR_.nivelMin + '+). Quem convida vira o líder 👑.</p></div>';
+    var souLider = gr.lider === p.id, eu = gr.membros.filter(function (m) { return m.id === p.id; })[0] || {};
+    h += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + TR_.grupo + ')</h3><div class="torre-grupo">' + gr.membros.map(function (m) {
+      return '<div class="torre-membro' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
+        + '<strong>' + (m.id === gr.lider ? '👑 ' : '') + esc(m.nome) + '</strong><span class="suave pequeno">' + nomeClasseX(m) + ' · Lv ' + m.nivel + '</span>'
+        + '<span class="pequeno ' + (m.pronto ? 'online' : 'suave') + '">' + (m.pronto ? '✔ Pronto' : 'Aguardando') + '</span>'
+        + (m.nivel < TR_.nivelMin ? '<span class="menos pequeno">Precisa do level ' + TR_.nivelMin + '</span>' : '') + '</div>';
+    }).join('') + '</div>';
+    if (gr.membros.length < TR_.grupo) h += '<p class="suave pequeno">Faltam ' + (TR_.grupo - gr.membros.length) + ': convide pela aba Social.</p>';
+    h += '<div class="botoes">' + (eu.pronto ? '<button class="btn secundario" data-acao="grupo-pronto" data-valor="nao">Não estou pronto</button>'
+        : '<button class="btn" data-acao="grupo-pronto" data-valor="sim">Estou pronto</button>')
+      + (souLider ? '<button class="btn" data-acao="torre-subir"' + (gr.membros.length !== TR_.grupo ? ' disabled' : '') + '>🗼 Subir a Torre</button>' : '<span class="suave pequeno">O líder começa a subida.</span>')
+      + '</div>';
+    return h;
+  }
+  function textoAviso(t, a) {
+    var M = TR_.mecanicas[a.mec], quem = a.alvo != null && t.herois[a.alvo] ? ' em ' + esc(t.herois[a.alvo].nome) : '';
+    return '<b>' + M.nome + '</b>' + quem + ' — ' + (a.em <= 1 ? '<b>NESTE TURNO!</b>' : 'em ' + a.em + ' turnos');
+  }
+  function torreLuta(r) {
+    var p = estado.personagem, T = torreEst(), t = r.torre, eu = t.herois.map(function (h) { return h.id; }).indexOf(p.id), me = t.herois[eu];
+    var agora = agoraServ(), resta = Math.max(0, Math.ceil((r.prazo - agora) / 1000));
+    var chefe = R.ehChefeTorre(t.andar);
+    var h = '<div class="torre-cab"><div><small>' + TR_.nome + '</small><strong>Andar ' + t.andar + (chefe ? ' · Chefe' : '') + '</strong></div>'
+      + '<div class="torre-turno">Turno ' + (t.turno + (t.fase === 'escolha' ? 1 : 0)) + (t.fase === 'escolha' && r.estado === 'andamento' ? '<b class="torre-relogio' + (resta <= 5 ? ' fim' : '') + '">' + resta + 's</b>' : '') + '</div></div>';
+    // avisos do chefe
+    (t.avisos || []).forEach(function (a) { h += '<div class="torre-aviso' + (a.em <= 1 ? ' agora' : '') + '">⚠ ' + textoAviso(t, a) + '</div>'; });
+    // inimigos
+    h += '<div class="torre-inimigos">' + t.inimigos.map(function (m, i) {
+      var marcas = [];
+      if (m.atordoado > 0 && m.hp > 0) marcas.push('💫 atordoado');
+      if (m.escudoOssos > 0) marcas.push('🦴 escudo ' + Number(m.escudoOssos).toLocaleString('pt-BR'));
+      if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push('🩸 cura −' + m.cortaCura.pct + '%');
+      if (m.queima && m.queima.turnos > 0) marcas.push('🔥 sangrando');
+      return '<div class="torre-inimigo' + (m.hp <= 0 ? ' caido' : '') + (m.chefe ? ' chefe' : '') + '">' + (m.imagem ? '<img src="' + m.imagem + '" alt="">' : '')
+        + '<div><strong>' + esc(m.nome) + '</strong>' + vidaBarra(m.hp, m.hpMax, 'inimigo')
+        + '<div class="suave pequeno">🛡 Resistência a stun ' + Math.min(95, m.res ? m.res.stun : 0) + '%' + (marcas.length ? ' · ' + marcas.join(' · ') : '') + '</div></div></div>';
+    }).join('') + '</div>';
+    // heróis
+    h += '<div class="torre-herois">' + t.herois.map(function (x) {
+      var e = r.escolhas && r.escolhas[x.id];
+      return '<div class="torre-heroi' + (x.hp <= 0 ? ' caido' : '') + (x.id === p.id ? ' eu' : '') + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
+        + '<div><strong>' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(x.hp, x.hpMax)
+        + '<div class="pequeno">🧪 ' + x.pocoes + (t.fase === 'escolha' && x.hp > 0 ? (e ? ' · <span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : ' · <span class="suave">escolhendo…</span>') : '')
+        + (x.hp <= 0 ? ' · <span class="menos">caído</span>' : '') + '</div></div></div>';
+    }).join('') + '</div>';
+    // narração do último turno (aparece uma linha por segundo)
+    var log = t.log || [], chave = t.andar + ':' + t.turno;
+    if (!T.narr || T.narr.chave !== chave) T.narr = { chave: chave, inicio: Date.now() };
+    var n = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min(log.length, 1 + Math.floor((Date.now() - T.narr.inicio) / 1000)) : log.length;
+    if (log.length) h += '<div class="torre-narracao">' + log.slice(0, n).map(function (ev) {
+      return '<p class="' + (ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + esc(ev.t) + '</p>';
+    }).join('') + '</div>';
+    // fim
+    if (r.estado !== 'andamento' || t.fim === 'derrota') {
+      return h + '<div class="resultado derrota"><h2>' + (r.estado === 'abandonada' ? 'Subida encerrada' : 'O grupo caiu') + '</h2><p>Vocês chegaram ao andar <b>' + t.andar
+        + '</b>. Cada andar vencido ficou no recorde.</p><div class="botoes"><button class="btn" data-acao="torre-sair">Voltar</button></div></div>';
+    }
+    if (t.fase === 'narrando') return h + '<p class="suave torre-espera">' + (t.fim === 'vitoria' ? '🏆 Andar vencido! Subindo para o andar ' + (t.andar + 1) + '…' : 'O turno está acontecendo…') + '</p>' + torreDesistir(r);
+    // escolha
+    if (!me || me.hp <= 0) return h + '<p class="suave torre-espera">Você caiu neste andar. Volta no próximo, com a vida cheia.</p>' + torreDesistir(r);
+    return h + torrePainel(r, t, me) + torreDesistir(r);
+  }
+  function torreDesistir(r) {
+    var p = estado.personagem;
+    if (r.lider !== p.id || r.estado !== 'andamento') return '';
+    return '<p class="torre-desistir">' + (estado.torreDesistir ? '<button class="btn perigo btn-pequeno" data-acao="torre-desistir">Confirmar: desistir da subida</button> '
+      + '<button class="btn secundario btn-pequeno" data-acao="torre-desistir-nao">Cancelar</button>' : '<button class="btn secundario btn-pequeno" data-acao="torre-desistir-pedir">Desistir da subida</button>') + '</p>';
+  }
+  function torrePainel(r, t, me) {
+    var T = torreEst(), vivos = t.inimigos.map(function (m, i) { return { m: m, i: i }; }).filter(function (x) { return x.m.hp > 0; });
+    var minha = r.escolhas && r.escolhas[me.id];
+    var e = T.esc || (T.esc = { acao: 'atacar', hab: null, alvo: vivos.length ? vivos[0].i : 0, ordem: me.L && me.L.kit.some(function (k) { return k.def.tipo === 'provocar'; }) ? 1 : me.classe2 === 'curandeiro' ? 4 : 2 });
+    if (!vivos.some(function (x) { return x.i === e.alvo; }) && vivos.length) e.alvo = vivos[0].i;
+    var prontas = R.habilidadesTorre(me);
+    if ((e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0) || (e.acao === 'pocao' && me.pocoes <= 0)) { e.acao = 'atacar'; e.hab = null; }   // turno novo: o que não dá mais vira ataque
+    var btn = function (acao, rot, extra, desab) {
+      return '<button class="torre-op' + (e.acao === acao && (acao !== 'habilidade' || e.hab === extra) ? ' sel' : '') + '" data-acao="torre-acao" data-valor="' + acao + '"'
+        + (extra ? ' data-hab="' + esc(extra) + '"' : '') + (desab ? ' disabled' : '') + '>' + rot + '</button>';
+    };
+    var habs = (me.L ? me.L.kit : []).map(function (k) {
+      var pronta = prontas.indexOf(k.def.id) >= 0, falta = Math.max(0, (me.L.pronto[k.def.id] || 0) - (me.L.turno + 1));
+      return btn('habilidade', '✨ ' + esc(k.def.nome) + (pronta ? '' : ' <small>(' + falta + ')</small>'), k.def.id, !pronta);
+    }).join('');
+    var h = '<div class="torre-painel"><h4>Sua ação' + (minha ? ' <span class="online pequeno">✔ enviada: ' + ICO_ACAO[minha.acao] + ' ' + minha.ordem + 'º (pode trocar)</span>' : '') + '</h4>'
+      + '<div class="torre-ops">' + btn('atacar', '⚔ Atacar') + btn('desviar', '💨 Desviar <small>' + R.chanceDesviar(me) + '%</small>')
+      + btn('pocao', '🧪 Poção <small>' + me.pocoes + '</small>', null, me.pocoes <= 0) + '</div>'
+      + (habs ? '<div class="torre-ops habs">' + habs + '</div>' : '');
+    if (vivos.length > 1 && (e.acao === 'atacar' || e.acao === 'habilidade')) h += '<div class="torre-linha"><span class="suave pequeno">Alvo:</span>' + vivos.map(function (x) {
+      return '<button class="torre-op mini' + (e.alvo === x.i ? ' sel' : '') + '" data-acao="torre-alvo" data-valor="' + x.i + '">' + esc(x.m.nome) + '</button>';
+    }).join('') + '</div>';
+    h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {
+      return '<button class="torre-op mini' + (e.ordem === o ? ' sel' : '') + '" data-acao="torre-ordem" data-valor="' + o + '">' + o + 'º</button>';
+    }).join('') + '</div>'
+      + '<div class="botoes"><button class="btn" data-acao="torre-confirmar">' + (minha ? 'Trocar ação' : 'Confirmar') + '</button></div></div>';
+    return h;
+  }
+  function torreConfirmar() {
+    var p = estado.personagem, r = runTorre(), T = torreEst(), e = T.esc;
+    if (!r || !e) return;
+    var esc2 = { acao: e.acao, hab: e.hab || '', alvo: e.alvo || 0, ordem: e.ordem || 4 };
+    C.torre.escolher(p.id, r.id, esc2).then(function () {
+      r.escolhas = Object.assign({}, r.escolhas || {}); r.escolhas[p.id] = esc2;
+      redesenharTorre(); clearTimeout(T.timer); T.timer = setTimeout(carregarTorre, 300);
+    }, function (er) { avisar(er.message); carregarTorre(); });
+  }
   function abaMasmorra() {
     var g = estado.gm, p = estado.personagem;
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }

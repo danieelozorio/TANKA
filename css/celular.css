@@ -596,3 +596,22 @@ html[data-celular] .pacto-detalhe { flex-wrap: wrap; }
 html[data-celular] .pacto-medalhao { width: 52px; height: 52px; }
 html[data-celular] .pacto-detalhe-acao { max-width: none; width: 100%; text-align: center; }
 html[data-celular] .pacto-detalhe-acao .btn { width: 100%; }
+
+/* Torre do Eclipse no celular */
+html[data-celular] .torre-topo > img { width: 64px; height: 78px; }
+html[data-celular] .torre-inimigos, html[data-celular] .torre-herois { grid-template-columns: 1fr 1fr; }
+html[data-celular] .torre-inimigos:has(> :only-child) { grid-template-columns: 1fr; }
+html[data-celular] .torre-heroi { padding: 5px; gap: 5px; align-items: flex-start; }
+html[data-celular] .torre-heroi .moldura { width: 30px; height: 36px; }
+html[data-celular] .torre-heroi .suave.pequeno { display: block; font-size: .7rem; }
+html[data-celular] .torre-heroi .pequeno { font-size: .72rem; }
+html[data-celular] .torre-inimigo img { width: 46px; height: 46px; }
+html[data-celular] .torre-op { flex: 1 1 calc(50% - 6px); }
+html[data-celular] .torre-op.mini { flex: 0 1 auto; }
+html[data-celular] .torre-painel .botoes .btn { width: 100%; }
+html[data-celular] .torre-op { font-size: .82rem; padding: 6px 8px; line-height: 1.2; }
+html[data-celular] .torre-painel { padding: 8px; }
+html[data-celular] .torre-painel h4 { font-size: .95rem; }
+html[data-celular] .torre-heroi strong, html[data-celular] .torre-inimigo strong { font-size: .85rem; }
+html[data-celular] .torre-narracao { max-height: 150px; }
+html[data-celular] .torre-narracao p { font-size: .8rem; }

@@ -4467,6 +4467,20 @@ begin
   select * into r from public.torre_runs where id = run_id;
   if r.id is null then return; end if;
   if andar > 0 then
+    -- Prêmios (iguais a D.TORRE.premios): andar novo para o personagem = ouro e reputação cheios (+ pergaminho no chefe);
+    -- andar repetido = um pouco de ouro. Entregues pelo jogo (créditos e recompensas, origem "torre").
+    insert into public.creditos (personagem_id, ouro, reputacao, motivo)
+      select m, case when coalesce(x.melhor, 0) < andar then 1000 * andar else 150 * andar end,
+             case when coalesce(x.melhor, 0) < andar then 5 * andar else 0 end,
+             'Torre do Eclipse: andar ' || andar || case when coalesce(x.melhor, 0) < andar then ' (primeira vez)' else '' end
+      from unnest(r.membros) m left join public.torre_recordes x on x.personagem_id = m
+      where exists (select 1 from public.personagens where id = m);
+    if andar % 5 = 0 then
+      insert into public.recompensas (personagem_id, item, origem)
+        select m, jsonb_build_object('tipo', 'pergaminho', 'raridade', case when andar <= 10 then 'rara' when andar <= 25 then 'epica' else 'lendaria' end, 'qtd', 1), 'torre'
+        from unnest(r.membros) m left join public.torre_recordes x on x.personagem_id = m
+        where coalesce(x.melhor, 0) < andar and exists (select 1 from public.personagens where id = m);
+    end if;
     insert into public.torre_recordes as x (personagem_id, melhor, semana, melhor_semana)
       select m, andar, sem, andar from unnest(r.membros) m where exists (select 1 from public.personagens where id = m)
     on conflict (personagem_id) do update set

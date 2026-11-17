@@ -1403,11 +1403,15 @@ select public.torre_registrar((select id from public.torre_runs order by id desc
 select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 0, 'derrota');
 select pg_temp.igual((select string_agg(personagem_id || ':' || melhor, ',' order by personagem_id) from public.torre_recordes where personagem_id like 't%'), 't1:27,t2:14,t3:31,t4:12', 'torre: recorde só sobe (t4: 9 -> 12)');
 select pg_temp.igual((select estado from public.torre_runs order by id desc limit 1), 'derrota', 'torre: derrota fecha a subida');
+select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't4' and motivo like 'Torre%' order by id desc limit 1), '12000/60', 'torre: andar novo dá ouro e reputação cheios (12 x 1000, 12 x 5)');
+select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't1' and motivo like 'Torre%' order by id desc limit 1), '1800/0', 'torre: andar repetido dá pouco ouro (12 x 150)');
+select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 15, null);
+select pg_temp.igual((select string_agg(personagem_id || ':' || (item ->> 'raridade'), ',' order by personagem_id) from public.recompensas where origem = 'torre'), 't2:epica,t4:epica', 'torre: chefe do andar 15 dá pergaminho épico só a quem venceu pela 1ª vez');
 set role authenticated;
 select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;
 select pg_temp.comoT('1');
 select public.torre_iniciar('t1');
-select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '13', 'torre: salva andar por andar (menor recorde 12 -> andar 13)');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '16', 'torre: salva andar por andar (menor recorde 15 -> andar 16)');
 select pg_temp.falha($$select public.torre_desistir('t1', 999999)$$, 'Só o líder');
 select public.torre_desistir('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint);
 select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'estado'), 'abandonada', 'torre: o líder desiste');
