@@ -1,0 +1,36 @@
+# Auditoria TEMPORÁRIA (Henri, 17/11/2026): testa o banco em produção como um visitante anônimo (só a chave pública).
+# Só roda no branch henri/seguranca-banco. Não grava nada.
+name: Auditoria do banco
+on:
+  push:
+    branches: ['henri/seguranca-banco']
+jobs:
+  auditar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Testar como anônimo
+        run: |
+          URL=https://cwlcdeqvwzpveduzhaol.supabase.co
+          KEY=$(grep -o "sb_publishable_[A-Za-z0-9_-]*" js/config.js)
+          H1="apikey: $KEY"; H2="Authorization: Bearer $KEY"
+          echo "== OpenAPI (/rest/v1/)"; curl -s -o openapi.json -w "%{http_code}\n" "$URL/rest/v1/" -H "$H1" -H "$H2"
+          python3 - <<'PY'
+          import json
+          try:
+              d=json.load(open('openapi.json')); p=list(d.get('paths',{}).keys())
+              print('caminhos expostos:', len(p)); print(' '.join(x for x in p if not x.startswith('/rpc/')))
+              print('rpc:', len([x for x in p if x.startswith('/rpc/')]))
+          except Exception as e: print('sem openapi', e, open('openapi.json').read()[:300])
+          PY
+          echo "== Tabelas (select direto, anônimo)"
+          for t in $(grep -oiE "create table if not exists public\.[a-z_]+" supabase/schema.sql | sed 's/.*public\.//' | sort -u) $(python3 -c "import json;print(' '.join(x.strip('/') for x in json.load(open('openapi.json')).get('paths',{}) if x.count('/')==1 and x!='/' ))" 2>/dev/null); do
+            R=$(curl -s -w "|%{http_code}" "$URL/rest/v1/$t?select=*&limit=3" -H "$H1" -H "$H2")
+            echo "$t -> ${R##*|} $(echo "${R%|*}" | head -c 160)"
+          done | sort -u
+          echo "== GraphQL (introspecção)"
+          curl -s "$URL/graphql/v1" -H "$H1" -H "$H2" -H "Content-Type: application/json" -d '{"query":"{ __schema { queryType { fields { name } } } }"}' | head -c 1500; echo
+          echo "== Storage (buckets)"; curl -s "$URL/storage/v1/bucket" -H "$H1" -H "$H2" | head -c 500; echo
+          echo "== Auth admin (deve negar)"; curl -s -o /dev/null -w "%{http_code}\n" "$URL/auth/v1/admin/users" -H "$H1" -H "$H2"
+          echo "== RPC anônimas de risco"
+          for f in ranking ranking_clas usuario_livre email_livre; do echo "$f -> $(curl -s -w ' |%{http_code}' -X POST "$URL/rest/v1/rpc/$f" -H "$H1" -H "$H2" -H 'Content-Type: application/json' -d '{"tipo":"nivel","u":"admin","e":"a@a.com"}' | head -c 200)"; done
