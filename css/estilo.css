@@ -1937,3 +1937,10 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .mas-lances p.mas-lance-atual { opacity: 1; animation: mas-linha .35s both; }
 .mas-dano-total { font-size: .78rem; color: #e8b97a; white-space: nowrap; }
 .mas-dano-total.top { color: #ffd34d; font-weight: 700; }
+/* Botão do Discord ao lado do Chat (Henri, 16/11/2026) */
+#chat:not(:has(.chat-janela)) { display: flex; align-items: center; gap: .45rem; }
+.chat-discord { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: #5865f2; color: #fff; opacity: .78; box-shadow: 0 4px 14px rgba(0, 0, 0, .45); transition: opacity .15s, transform .15s, background .15s; }
+.chat-discord svg { width: 1.2rem; height: 1rem; }
+.chat-discord:hover, .chat-discord:focus-visible { opacity: 1; background: #4752c4; transform: translateY(-2px); outline: none; }
+html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular: o chat abre pelo topo */

@@ -1120,3 +1120,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `.missoes-painel` (recriar a caixa repetia a animação de abrir e parecia fechar e abrir).
 - (16/11/2026) Replay: cada lance leva `dh` (dano acumulado de cada herói); a luta guarda classe/raça já convertidas (bot da fila mostra o retrato da classe que faltava). Tela mostra o dano por herói no replay, no diário e no fim.
 - (16/11/2026) Arcane no celular: a ficha compacta escondia os atributos; agora a aba Personagem mostra "Atributos e status" (`atributosAbaHtml` → `fichaDetalhesHtml`, o mesmo da ficha; `atualizarFicha` também troca `.pg-atributos`). Só aparece na Arcane em tela ≤ 760px (css/tema-arcane.css).
+- (16/11/2026) Botãozinho do Discord ao lado do Chat (`discordBotaoHtml`, `.chat-discord`), nas 3 interfaces do computador; escondido na casca do celular.
