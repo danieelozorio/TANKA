@@ -6718,7 +6718,7 @@
       + listaMasmorras(null, false, restam > 0);
     var souLider = gr.lider === p.id, eu = gr.membros.find(function (m) { return m.id === p.id; }) || {};
     var vagas = [];
-    for (var i = 0; i < M.tamanhoGrupo; i++) {
+    for (var i = 0; i < Math.max(M.tamanhoGrupo, gr.membros.length); i++) {   // grupo de 4 (Torre): mostra todos
       var m = gr.membros[i];
       if (!m) { vagas.push('<div class="mas-vaga vazia">Vaga livre' + (gr.convidados[i - gr.membros.length] ? '<div class="suave pequeno">Convidado: ' + esc(gr.convidados[i - gr.membros.length]) + '</div>' : '') + '</div>'); continue; }
       vagas.push('<div class="mas-vaga' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
@@ -6729,7 +6729,9 @@
     }
     var mm = gr.masmorra ? R.masmorra(gr.masmorra) : null;
     var todosProntos = gr.membros.length === M.tamanhoGrupo && gr.membros.every(function (m) { return m.pronto; });
-    html += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + M.tamanhoGrupo + ')</h3><div class="mas-vagas">' + vagas.join('') + '</div>'
+    html += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + M.tamanhoGrupo + ')</h3>'
+      + (gr.membros.length > M.tamanhoGrupo ? '<p class="menos pequeno">A masmorra é para ' + M.tamanhoGrupo + ': com ' + gr.membros.length + ' no grupo, só a Torre do Eclipse.</p>' : '')
+      + '<div class="mas-vagas">' + vagas.join('') + '</div>'
       + '<div class="botoes">' + (eu.pronto
         ? '<button class="btn secundario" data-acao="grupo-pronto" data-valor="nao">Não estou pronto</button>'
         : '<button class="btn" data-acao="grupo-pronto" data-valor="sim"' + (mm ? '' : ' disabled title="O líder precisa escolher a masmorra"') + '>Estou pronto</button>')

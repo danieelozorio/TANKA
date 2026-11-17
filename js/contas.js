@@ -362,6 +362,15 @@ Tanka.contas = (function () {
     filaSair: function (meu) { return chamar('fila_sair', { meu: meu }); },
   };
 
+  // ---------- Torre do Eclipse (Daniel, nov/2026): grupo de 4, turnos ----------
+  // O turno é resolvido pelo servidor: C.acao(id, 'torreAvancar', { run }) (função `acao`). Aqui só o que é do banco.
+  var torre = {
+    estado: function (meu) { return chamar('torre_estado', { meu: meu }); },
+    iniciar: function (meu) { return chamar('torre_iniciar', { meu: meu }); },
+    escolher: function (meu, run, escolha) { return chamar('torre_escolher', { meu: meu, run_id: run, escolha: escolha }); },
+    desistir: function (meu, run) { return chamar('torre_desistir', { meu: meu, run_id: run }); },
+  };
+
   // ---------- Chefe Mundial (Ignaroth): todo dia às 20h, vida de todos ----------
   var boss = {
     estado: function (meu) { return chamar('boss_estado', { meu: meu }); },
@@ -461,6 +470,7 @@ Tanka.contas = (function () {
     alianca: alianca,
     oficina: oficina,
     grupo: grupo,
+    torre: torre,
     boss: boss,
     mercado: mercado,
     amigos: amigos,

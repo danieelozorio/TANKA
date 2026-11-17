@@ -29,7 +29,7 @@ function cabecalhoServidor(): Record<string, string> | null {
 }
 
 // Lutas que o servidor refaz sozinho (Henri, nov/2026): o navegador só mostra; quem diz o resultado é o servidor.
-const LUTAS = ['masmorraConcluir', 'bossClaConcluir', 'bossMundial', 'masmorraAvancar'];
+const LUTAS = ['masmorraConcluir', 'bossClaConcluir', 'bossMundial', 'masmorraAvancar', 'torreAvancar'];
 const MAX_PASSOS_MUNDIAL = 5000;
 
 // Chama uma função do banco com a chave do servidor. Se o banco ainda não tem a função nova (schema não rodado),
@@ -84,6 +84,7 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
     }
     return { erro: 'A masmorra está ocupada; tente de novo.' };
   }
+  if (acao === 'torreAvancar') return await torreAvancar(id, args, base, cab);
   if (acao === 'masmorraConcluir') {
     const run = (await lerServidor(base, cab, 'masmorra_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
     if (!run) return { erro: 'Masmorra não encontrada.' };
@@ -122,6 +123,56 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const r = await rpcServidor(base, cab, 'boss_atacar_servidor', { meu: id, dano, chefe }, 'boss_atacar');
   if (!r.ok) return { erro: r.erro };
   return { resultado: r.dados, eventos, fim: b.fim, chefe, vidaInicial };
+}
+
+// Torre do Eclipse (Daniel, nov/2026): monta a luta, resolve o turno quando os vivos escolheram (ou o prazo acabou),
+// espera a narração e sobe de andar. Tudo com o relógio e a semente do servidor; grava com a proteção de versão.
+const MS_NARRACAO = (n: number) => Math.min(25000, 2000 + n * 1100);   // tempo para a tela contar o turno
+// deno-lint-ignore no-explicit-any
+async function torreAvancar(id: string, args: any, base: string, cab: Record<string, string>) {
+  const TR = Tanka.dados.TORRE;
+  for (let tentativa = 0; tentativa < 3; tentativa++) {
+    const run = (await lerServidor(base, cab, 'torre_runs?id=eq.' + Number(args.run) + '&select=*'))[0];
+    if (!run) return { erro: 'Subida não encontrada.' };
+    if (!(run.membros || []).includes(id)) return { erro: 'Você não está nessa subida.' };
+    const pronto = () => ({ resultado: { id: run.id, estado: run.estado, torre: run.torre, escolhas: run.escolhas || {}, versao: run.versao,
+      prazo: run.prazo ? Date.parse(run.prazo) : null, andar_inicio: run.andar_inicio, membros: run.membros, lider: run.lider, agora: Date.now() } });
+    if (run.estado !== 'andamento') return pronto();
+    const agora = Date.now(), prazo = run.prazo ? Date.parse(run.prazo) : 0;
+    let t = run.torre, esc = run.escolhas || {}, novoPrazo = prazo, mudou = false, vencido = 0, fim: string | null = null;
+    if (!t) {
+      t = R.novaTorre(run.herois.map((h: { dados: unknown }) => h.dados), run.andar_inicio || 1);
+      t.fase = 'escolha'; t.log = []; novoPrazo = agora + TR.segundosEscolha * 1000; mudou = true;
+    } else if (t.fase === 'narrando' && agora >= prazo) {
+      if (t.fim === 'vitoria') R.subirTorre(t);
+      t.fase = 'escolha'; esc = {}; novoPrazo = agora + TR.segundosEscolha * 1000; mudou = true;
+    } else if (t.fase === 'escolha') {
+      // deno-lint-ignore no-explicit-any
+      const vivos = t.herois.filter((h: any) => h.hp > 0).map((h: any) => h.id);
+      if (vivos.every((v: string) => esc[v]) || agora >= prazo) {
+        // deno-lint-ignore no-explicit-any
+        const ev = R.resolverTurnoTorre(t, t.herois.map((h: any) => esc[h.id] || null), Number(run.semente) + t.andar * 1000 + t.turno);
+        t.fase = 'narrando'; esc = {}; novoPrazo = agora + MS_NARRACAO(ev.length); mudou = true;
+        if (t.fim === 'vitoria') vencido = t.andar;
+        if (t.fim === 'derrota') fim = 'derrota';
+      }
+    }
+    if (!mudou) return pronto();
+    const srv = cabecalhoServidor();
+    if (!srv) return { erro: 'Servidor sem chave.' };
+    const corpo: Record<string, unknown> = { torre: t, escolhas: esc, prazo: new Date(novoPrazo).toISOString(), versao: run.versao + 1, atualizado_em: new Date(agora).toISOString() };
+    const w = await fetch(base + '/rest/v1/torre_runs?id=eq.' + run.id + '&versao=eq.' + run.versao, {
+      method: 'PATCH', headers: { ...srv, Prefer: 'return=representation' }, body: JSON.stringify(corpo) });
+    const linhas = w.ok ? await w.json() : [];
+    if (!linhas.length) continue;   // outro jogador avançou ao mesmo tempo: lê de novo
+    Object.assign(run, corpo);
+    if (vencido || fim) {
+      await rpcServidor(base, cab, 'torre_registrar', { run_id: run.id, andar: vencido, fim });
+      if (fim) run.estado = fim;
+    }
+    return pronto();
+  }
+  return { erro: 'A Torre está ocupada; tente de novo.' };
 }
 
 function responder(corpo: unknown, status = 200) {

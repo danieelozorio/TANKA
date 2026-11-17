@@ -55,6 +55,14 @@ g.fetch = (async (url: string, init: any = {}) => {
   }
   if (u.pathname === '/rest/v1/rpc/masmorra_finalizar') { finalizados.push(JSON.parse(init.body)); runCam.estado = JSON.parse(init.body).vitoria ? 'vitoria' : 'derrota'; return json(null); }
   if (u.pathname === '/rest/v1/alianca_boss_runs') return json([runBoss]);
+  if (u.pathname === '/rest/v1/torre_runs') {
+    if (init.method === 'PATCH') {
+      if ('eq.' + runTorre.versao !== u.searchParams.get('versao')) return json([]);
+      Object.assign(runTorre, JSON.parse(init.body)); return json([runTorre]);
+    }
+    return json([JSON.parse(JSON.stringify(runTorre))]);
+  }
+  if (u.pathname === '/rest/v1/rpc/torre_registrar') { torreReg.push(JSON.parse(init.body)); if (JSON.parse(init.body).fim) runTorre.estado = JSON.parse(init.body).fim; return json(null); }
   if (u.pathname === '/rest/v1/rpc/masmorra_concluir' || u.pathname === '/rest/v1/rpc/alianca_boss_concluir' || u.pathname === '/rest/v1/rpc/boss_atacar') {
     lutasRegistradas.push({ rota: u.pathname, corpo: JSON.parse(init.body) });
     return json(u.pathname.endsWith('boss_atacar') ? { dano: JSON.parse(init.body).dano } : u.pathname.endsWith('alianca_boss_concluir') ? { dano: 1 } : null);
@@ -67,6 +75,16 @@ const finalizados: any[] = [];
 const heroi = { id: p0.id, dados: JSON.parse(JSON.stringify(p0)) };
 const runMasmorra = { id: 5, lider: p0.id, membros: [p0.id], grupo_id: 1, estado: 'andamento', masmorra: Tanka.dados.masmorras[0].id, herois: [heroi], semente: 12345 };
 const runCam: any = { id: 8, lider: p0.id, membros: [p0.id], estado: 'andamento', masmorra: 'toca', herois: [heroi], semente: 99, etapa: { fase: 0 }, versao: 0 };
+const fichaT = (c: string, c2: string) => {
+  const p = R.criarPersonagem('T' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, c2);
+  const hs = Tanka.dados.SEGUNDAS_CLASSES[c2].habilidades.filter((h: any) => h.tipo !== 'passiva' && (!h.nivel || p.nivel >= h.nivel));
+  let gg = 0, ii = 0; while (R.pontosHabilidadeLivres(p) > 0 && gg++ < 400) R.mudarPontoHabilidade(p, hs[ii++ % hs.length].id, 1);
+  return p;
+};
+const torreHerois = [heroi.dados, fichaT('cavaleiro', 'paladino'), fichaT('mago', 'curandeiro'), fichaT('mago', 'bruxo')].map((d: any) => ({ id: d.id, dados: d }));
+const runTorre: any = { id: 11, lider: p0.id, membros: torreHerois.map((h) => h.id), herois: torreHerois, andar_inicio: 1, semente: 4242,
+  estado: 'andamento', torre: null, escolhas: {}, prazo: null, versao: 0 };
+const torreReg: any[] = [];
 const runBoss = { id: 9, lider: p0.id, membros: [p0.id], estado: 'andamento', nivel: 1, hp_inicio: 49140, semente: 777, buff: 0, herois: [heroi] };
 
 const base = 'https://x.supabase.co';
@@ -226,6 +244,20 @@ Date.now = real;
 ok(runCam.etapa.fim && finalizados.length === 1 && (runCam.etapa.fim === 'derrota' || finalizados[0].premios.length > 0), 'masmorra: terminou e guardou os prêmios uma vez (' + runCam.etapa.fim + ')');
 x = await pedir({ personagem: 'outro', acao: 'masmorraAvancar', args: { run: 8 } });
 ok(x.j.erro, 'masmorra: quem não é do grupo não avança');
+// Torre do Eclipse: monta, espera as escolhas, resolve, narra e sobe; quem não é do grupo não mexe
+x = await pedir({ personagem: p0.id, acao: 'torreAvancar', args: { run: 11 } });
+ok(x.j.resultado && runTorre.torre && runTorre.torre.fase === 'escolha' && runTorre.versao === 1 && runTorre.torre.herois.length === 4, 'torre: montou o andar 1 (escolha aberta)');
+x = await pedir({ personagem: p0.id, acao: 'torreAvancar', args: { run: 11 } });
+ok(runTorre.versao === 1, 'torre: sem escolhas e antes do prazo, nada muda');
+runTorre.escolhas = Object.fromEntries(runTorre.membros.map((m: string) => [m, { acao: 'atacar', alvo: 0, ordem: 2 }]));
+x = await pedir({ personagem: p0.id, acao: 'torreAvancar', args: { run: 11 } });
+ok(runTorre.torre.fase === 'narrando' && runTorre.torre.turno === 1 && runTorre.torre.log.length > 0 && Object.keys(runTorre.escolhas).length === 0, 'torre: os 4 escolheram e o turno foi resolvido');
+const realT = Date.now; let falsoT = realT(); Date.now = () => (falsoT += 30_000);
+for (let i = 0; i < 400 && runTorre.estado === 'andamento' && runTorre.torre.andar < 3; i++) await pedir({ personagem: p0.id, acao: 'torreAvancar', args: { run: 11 } });
+Date.now = realT;
+ok(torreReg.length > 0 && (torreReg[0].andar === 1 || torreReg[0].fim === 'derrota'), 'torre: andar vencido vai para o recorde (ou derrota registrada): ' + JSON.stringify(torreReg[0]));
+x = await pedir({ personagem: 'outro', acao: 'torreAvancar', args: { run: 11 } });
+ok(x.j.erro, 'torre: quem não é do grupo não avança');
 g.Deno.env.get = () => '';
 
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');

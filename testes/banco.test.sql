@@ -1348,4 +1348,68 @@ select pg_temp.igual((select bool_or(has_function_privilege('authenticated', f, 
 \i supabase/destrancar_fichas.sql
 select pg_temp.igual((select count(*)::text from pg_policies where tablename = 'personagens' and policyname = 'personagem: salvar os seus'), '1', 'tranca: destrancar volta ao normal');
 delete from public.personagens where id = 'ptr';
+
+-- Torre do Eclipse (Daniel, nov/2026): grupo de 4, começo pelo marco de 10 andares, escolha só na hora certa, recorde.
+reset role;
+insert into auth.users (id, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000e1', '{"usuario":"t1","email":"t1@t.com"}'), ('00000000-0000-0000-0000-0000000000e2', '{"usuario":"t2","email":"t2@t.com"}'),
+  ('00000000-0000-0000-0000-0000000000e3', '{"usuario":"t3","email":"t3@t.com"}'), ('00000000-0000-0000-0000-0000000000e4', '{"usuario":"t4","email":"t4@t.com"}'),
+  ('00000000-0000-0000-0000-0000000000e5', '{"usuario":"t5","email":"t5@t.com"}');
+insert into public.personagens (id, conta_id, nome, dados) values
+  ('t1', '00000000-0000-0000-0000-0000000000e1', 'Tor1', '{"nome":"Tor1","nivel":40,"classe":"cavaleiro"}'),
+  ('t2', '00000000-0000-0000-0000-0000000000e2', 'Tor2', '{"nome":"Tor2","nivel":40,"classe":"mago"}'),
+  ('t3', '00000000-0000-0000-0000-0000000000e3', 'Tor3', '{"nome":"Tor3","nivel":29,"classe":"mago"}'),
+  ('t4', '00000000-0000-0000-0000-0000000000e4', 'Tor4', '{"nome":"Tor4","nivel":40,"classe":"arqueiro"}'),
+  ('t5', '00000000-0000-0000-0000-0000000000e5', 'Tor5', '{"nome":"Tor5","nivel":40,"classe":"arqueiro"}');
+insert into public.amizades (de, para, status) values ('t1', 't2', 'aceita'), ('t1', 't3', 'aceita'), ('t1', 't4', 'aceita'), ('t1', 't5', 'aceita');
+insert into public.torre_recordes (personagem_id, melhor) values ('t1', 27), ('t2', 14), ('t3', 31), ('t4', 9);
+create function pg_temp.comoT(n text) returns void language sql as $$ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000e' || n, false); $$;
+grant execute on all functions in schema pg_temp to authenticated;
+set role authenticated;
+select pg_temp.comoT('1');
+select public.grupo_convidar('t1', x) from unnest(array['t2', 't3', 't4']) x;
+select pg_temp.comoT('2'); select public.grupo_responder('t2', (public.grupo_estado('t2') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.comoT('3'); select public.grupo_responder('t3', (public.grupo_estado('t3') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.comoT('1');
+select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'grupo de 4 jogadores');
+select pg_temp.comoT('4'); select public.grupo_responder('t4', (public.grupo_estado('t4') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('t4') -> 'grupo' -> 'membros'), 4, 'torre: grupo aceita 4');
+select pg_temp.comoT('1');
+select pg_temp.falha($$select public.grupo_convidar('t1', 't5')$$, 'O grupo já está cheio');
+select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Todos precisam estar prontos');
+select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;
+select pg_temp.comoT('1');
+select pg_temp.falha($$select public.masmorra_iniciar('t1')$$, 'Escolha a masmorra');
+select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Level mínimo 30 (abaixo: Tor3)');
+reset role; update public.personagens set dados = jsonb_set(dados, '{nivel}', '30') where id = 't3'; set role authenticated;
+select pg_temp.comoT('2'); select pg_temp.falha($$select public.torre_iniciar('t2')$$, 'Só o líder');
+select pg_temp.comoT('1');
+select public.torre_iniciar('t1');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '1', 'torre: começa do marco que todos passaram (recordes 27, 14, 31, 9 -> andar 1)');
+select pg_temp.comoT('4');
+select pg_temp.igual(jsonb_array_length(public.torre_estado('t4') -> 'run' -> 'membros'), 4, 'torre: os 4 na subida');
+select pg_temp.comoT('1');
+select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Todos precisam estar prontos');
+select pg_temp.falha($$select public.torre_escolher('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint, '{"acao":"atacar"}')$$, 'Agora não é hora');
+reset role; update public.torre_runs set torre = '{"fase":"escolha"}'; set role authenticated;
+select pg_temp.falha($$select public.torre_escolher('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint, '{"acao":"voar"}')$$, 'Ação inválida');
+select public.torre_escolher('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint, '{"acao":"habilidade","hab":"grito-de-desafio","ordem":9,"alvo":2}');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' -> 'escolhas' -> 't1' ->> 'ordem'), '4', 'torre: escolha guardada (ordem limitada a 4)');
+select pg_temp.comoT('5');
+select pg_temp.falha($$select public.torre_escolher('t5', (select (public.torre_estado('t1') -> 'run' ->> 'id')::bigint), '{"acao":"atacar"}')$$, 'Personagem inválido');
+select pg_temp.igual(has_function_privilege('authenticated', 'public.torre_registrar(bigint, int, text)', 'execute'), false, 'torre: só o servidor registra andar');
+reset role;
+select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 12, null);
+select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 0, 'derrota');
+select pg_temp.igual((select string_agg(personagem_id || ':' || melhor, ',' order by personagem_id) from public.torre_recordes where personagem_id like 't%'), 't1:27,t2:14,t3:31,t4:12', 'torre: recorde só sobe (t4: 9 -> 12)');
+select pg_temp.igual((select estado from public.torre_runs order by id desc limit 1), 'derrota', 'torre: derrota fecha a subida');
+set role authenticated;
+select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;
+select pg_temp.comoT('1');
+select public.torre_iniciar('t1');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '11', 'torre: nova subida começa do andar 11 (marco 10 de todos)');
+select pg_temp.falha($$select public.torre_desistir('t1', 999999)$$, 'Só o líder');
+select public.torre_desistir('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint);
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'estado'), 'abandonada', 'torre: o líder desiste');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

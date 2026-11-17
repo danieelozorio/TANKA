@@ -784,7 +784,7 @@ begin
   if exists (select 1 from public.grupo_membros where personagem_id = amigo and grupo_id = g) then
     raise exception 'Esse amigo já está no grupo.';
   end if;
-  if (select count(*) from public.grupo_membros where grupo_id = g) >= 3 then raise exception 'O grupo já está cheio.'; end if;
+  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.torre_grupo() then raise exception 'O grupo já está cheio.'; end if;   -- até 4 (Torre); a masmorra começa só com 3
   insert into public.grupo_convites (grupo_id, de, para) values (g, meu, amigo) on conflict (grupo_id, para) do nothing;
   if not found then raise exception 'Convite já enviado.'; end if;
 end $$;
@@ -799,7 +799,7 @@ begin
   delete from public.grupo_convites where id = convite;
   if not aceitar then return; end if;
   if public.meu_grupo(meu) is not null then raise exception 'Saia do seu grupo antes de entrar em outro.'; end if;
-  if (select count(*) from public.grupo_membros where grupo_id = g) >= 3 then raise exception 'O grupo já está cheio.'; end if;
+  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.torre_grupo() then raise exception 'O grupo já está cheio.'; end if;   -- até 4 (Torre); a masmorra começa só com 3
   insert into public.grupo_membros (personagem_id, grupo_id) values (meu, g);
   update public.grupo_membros set pronto = false where grupo_id = g;
   delete from public.grupo_convites where para = meu;
@@ -4299,5 +4299,154 @@ revoke execute on function public.oficina_estado(text), public.oficina_configura
   public.oficina_pedir(text, text, text, text, jsonb), public.oficina_cancelar(text, bigint), public.oficina_fazer(text, bigint) from public, anon;
 grant execute on function public.oficina_estado(text), public.oficina_configurar(text, jsonb, numeric, int),
   public.oficina_pedir(text, text, text, text, jsonb), public.oficina_cancelar(text, bigint), public.oficina_fazer(text, bigint) to authenticated;
+
+-- ---------- Torre do Eclipse (Daniel, nov/2026) ----------
+-- Grupo de 4 jogadores (o grupo da masmorra, que passa a aceitar até 4; a masmorra continua pedindo 3). A luta por
+-- turnos é decidida pela função `acao` (torreAvancar) com a chave do servidor: ela monta o estado (regras.js: novaTorre),
+-- resolve o turno quando os 4 escolheram ou o prazo acabou (resolverTurnoTorre) e grava `torre` com a proteção de versão.
+-- O navegador só manda a escolha (torre_escolher) e mostra. Ilimitada por dia. Números em D.TORRE (js/dados.js).
+create table if not exists public.torre_runs (
+  id bigint generated always as identity primary key,
+  grupo_id bigint references public.grupos (id) on delete set null,
+  lider text not null,
+  membros text[] not null,
+  herois jsonb not null,                       -- [{ id, dados }] na ordem do grupo (cópia do começo da subida)
+  andar_inicio int not null default 1,
+  semente bigint not null,
+  estado text not null default 'andamento' check (estado in ('andamento', 'derrota', 'abandonada')),
+  torre jsonb,                                 -- estado da luta (gravado só pelo servidor)
+  escolhas jsonb not null default '{}'::jsonb, -- { personagem_id: { acao, hab, alvo, ordem } } do turno aberto
+  prazo timestamptz,
+  versao int not null default 0,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  concluido_em timestamptz
+);
+alter table public.torre_runs enable row level security;   -- só pelas funções
+create index if not exists torre_runs_membros on public.torre_runs using gin (membros);
+create table if not exists public.torre_recordes (
+  personagem_id text primary key references public.personagens (id) on delete cascade,
+  melhor int not null default 0,               -- maior andar vencido
+  semana date,                                 -- segunda-feira da semana do melhor_semana
+  melhor_semana int not null default 0,
+  em timestamptz not null default now()
+);
+alter table public.torre_recordes enable row level security;
+
+-- Iguais a D.TORRE.nivelMin, D.TORRE.grupo e D.TORRE.marco.
+create or replace function public.torre_nivel_min() returns int language sql immutable as $$ select 30 $$;
+create or replace function public.torre_grupo() returns int language sql immutable as $$ select 4 $$;
+create or replace function public.torre_marco() returns int language sql immutable as $$ select 10 $$;
+
+-- Subida aberta deste personagem (ou a última, até 10 min depois de acabar).
+create or replace function public.torre_run_de(meu text) returns public.torre_runs
+language sql stable security definer set search_path = public as $$
+  select * from public.torre_runs where meu = any (membros)
+    and (estado = 'andamento' or concluido_em > now() - interval '10 minutes') order by id desc limit 1;
+$$;
+revoke execute on function public.torre_run_de(text) from public, anon, authenticated;
+
+-- O líder começa a subida: 4 no grupo, todos prontos e level 30+. Começa do último marco de 10 andares que TODOS já passaram.
+create or replace function public.torre_iniciar(meu text) returns bigint
+language plpgsql security definer set search_path = public as $$
+declare g bigint; gr public.grupos; problema text; ini int; rid bigint;
+begin
+  perform public.conferir_dono(meu);
+  g := public.meu_grupo(meu);
+  select * into gr from public.grupos where id = g;
+  if gr.id is null or gr.lider <> meu then raise exception 'Só o líder pode começar.'; end if;
+  if (select count(*) from public.grupo_membros where grupo_id = g) <> public.torre_grupo() then
+    raise exception 'A Torre precisa de um grupo de % jogadores.', public.torre_grupo();
+  end if;
+  if exists (select 1 from public.grupo_membros where grupo_id = g and not pronto) then raise exception 'Todos precisam estar prontos.'; end if;
+  select string_agg(p.nome, ', ') into problema from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id
+    where gm.grupo_id = g and coalesce((p.dados ->> 'nivel')::int, 1) < public.torre_nivel_min();
+  if problema is not null then raise exception 'Level mínimo % (abaixo: %).', public.torre_nivel_min(), problema; end if;
+  -- subida largada (ninguém mexe há 15 min) vira abandonada
+  update public.torre_runs set estado = 'abandonada', concluido_em = now()
+    where estado = 'andamento' and atualizado_em < now() - interval '15 minutes'
+      and membros && (select array_agg(personagem_id) from public.grupo_membros where grupo_id = g);
+  if exists (select 1 from public.torre_runs where estado = 'andamento'
+      and membros && (select array_agg(personagem_id) from public.grupo_membros where grupo_id = g)) then
+    raise exception 'Alguém do grupo já está subindo a Torre.';
+  end if;
+  select coalesce(min(floor(coalesce(r.melhor, 0) / public.torre_marco()) * public.torre_marco()), 0)::int + 1 into ini
+    from public.grupo_membros gm left join public.torre_recordes r on r.personagem_id = gm.personagem_id where gm.grupo_id = g;
+  insert into public.torre_runs (grupo_id, lider, membros, herois, andar_inicio, semente)
+  select g, meu, array_agg(p.id order by gm.entrou_em),
+         jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by gm.entrou_em), ini, floor(random() * 2147483647)::bigint
+  from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = g
+  returning id into rid;
+  update public.grupo_membros set pronto = false where grupo_id = g;
+  return rid;
+end $$;
+
+-- Escolha do turno (só durante a escolha). { acao: atacar|habilidade|desviar|pocao, hab, alvo, ordem 1..4 }
+create or replace function public.torre_escolher(meu text, run_id bigint, escolha jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare r public.torre_runs; e jsonb;
+begin
+  perform public.conferir_dono(meu);
+  select * into r from public.torre_runs where id = run_id;
+  if r.id is null or not (meu = any (r.membros)) then raise exception 'Subida não encontrada.'; end if;
+  if r.estado <> 'andamento' or coalesce(r.torre ->> 'fase', '') <> 'escolha' then raise exception 'Agora não é hora de escolher.'; end if;
+  if coalesce(escolha ->> 'acao', '') not in ('atacar', 'habilidade', 'desviar', 'pocao') then raise exception 'Ação inválida.'; end if;
+  e := jsonb_build_object('acao', escolha ->> 'acao',
+    'hab', left(coalesce(escolha ->> 'hab', ''), 60),
+    'alvo', least(9, greatest(0, coalesce((escolha ->> 'alvo')::int, 0))),
+    'ordem', least(4, greatest(1, coalesce((escolha ->> 'ordem')::int, 4))));
+  update public.torre_runs set escolhas = escolhas || jsonb_build_object(meu, e), atualizado_em = now() where id = run_id;
+end $$;
+
+-- Tudo que a tela da Torre precisa: a subida (aberta ou que acabou há pouco) e o recorde do personagem.
+create or replace function public.torre_estado(meu text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare r public.torre_runs;
+begin
+  perform public.conferir_dono(meu);
+  r := public.torre_run_de(meu);
+  return jsonb_build_object(
+    'agora', (extract(epoch from now()) * 1000)::bigint,
+    'recorde', coalesce((select jsonb_build_object('melhor', x.melhor, 'semana', case when x.semana = date_trunc('week', public.dia_jogo())::date then x.melhor_semana else 0 end)
+      from public.torre_recordes x where x.personagem_id = meu), jsonb_build_object('melhor', 0, 'semana', 0)),
+    'run', case when r.id is null then null else jsonb_build_object('id', r.id, 'lider', r.lider, 'membros', r.membros, 'estado', r.estado,
+      'andar_inicio', r.andar_inicio, 'torre', r.torre, 'escolhas', r.escolhas, 'versao', r.versao,
+      'prazo', case when r.prazo is null then null else (extract(epoch from r.prazo) * 1000)::bigint end) end);
+end $$;
+
+-- O líder desiste: a subida acaba (os andares vencidos já ficaram no recorde).
+create or replace function public.torre_desistir(meu text, run_id bigint) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.conferir_dono(meu);
+  update public.torre_runs set estado = 'abandonada', concluido_em = now(), atualizado_em = now()
+    where id = run_id and lider = meu and estado = 'andamento';
+  if not found then raise exception 'Só o líder pode desistir de uma subida em andamento.'; end if;
+end $$;
+
+-- Só o servidor: andar vencido (recorde de cada membro) e fim da subida.
+create or replace function public.torre_registrar(run_id bigint, andar int, fim text) returns void
+language plpgsql security definer set search_path = public as $$
+declare r public.torre_runs; sem date := date_trunc('week', public.dia_jogo())::date;
+begin
+  select * into r from public.torre_runs where id = run_id;
+  if r.id is null then return; end if;
+  if andar > 0 then
+    insert into public.torre_recordes as x (personagem_id, melhor, semana, melhor_semana)
+      select m, andar, sem, andar from unnest(r.membros) m where exists (select 1 from public.personagens where id = m)
+    on conflict (personagem_id) do update set
+      melhor = greatest(x.melhor, excluded.melhor),
+      melhor_semana = case when x.semana = sem then greatest(x.melhor_semana, excluded.melhor_semana) else excluded.melhor_semana end,
+      semana = sem, em = now();
+  end if;
+  if fim is not null then
+    update public.torre_runs set estado = fim, concluido_em = now() where id = run_id and estado = 'andamento';
+  end if;
+end $$;
+revoke execute on function public.torre_registrar(bigint, int, text) from public, anon, authenticated;
+revoke execute on function public.torre_iniciar(text), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
+  public.torre_desistir(text, bigint) from public, anon;
+grant execute on function public.torre_iniciar(text), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
+  public.torre_desistir(text, bigint) to authenticated;
 
 notify pgrst, 'reload schema';

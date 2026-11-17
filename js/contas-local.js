@@ -238,6 +238,13 @@ Tanka.contas = (function () {
         atacar: soServidor, concluir: soServidor },
     },
     grupo: grupo,
+    // Torre do Eclipse: precisa do servidor (grupo de 4 jogadores de verdade).
+    torre: {
+      estado: function () { return Promise.resolve({ local: true, run: null, recorde: { melhor: 0, semana: 0 } }); },
+      iniciar: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
+      escolher: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
+      desistir: function () { return Promise.resolve(); },
+    },
     boss: boss,
     mercado: mercado,
     amigos: amigos,
