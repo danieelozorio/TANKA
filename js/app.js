@@ -8365,8 +8365,8 @@
 
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou)
-      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> 🐉 <strong>' + esc(m.texto) + '</strong></p>';
+    if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou); nivel 1 = recado do admin (SQL Editor)
+      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> ' + (m.nivel === 1 ? '📢 <strong>' + esc(m.personagem || 'Eldrin') + ':</strong> <strong>' : '🐉 <strong>') + esc(m.texto) + '</strong></p>';
     }
     var classe = nomeClasseX(m);
     var acoes = ehAdmin()

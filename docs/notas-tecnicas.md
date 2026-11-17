@@ -1201,3 +1201,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Mensagem do Reino (17/11/2026):** crédito com ouro 0 e reputação 0 (`creditos.motivo` = texto) vira aviso + caixa
   de entrada com origem `admin` (📜). SQL pronto no scratchpad do Daniel (insert em `public.creditos`). O jogo busca os
   pendentes ao entrar e a cada 2 min (`estado.timerPendentes`).
+- **Chat global como admin:** insert em `mensagens` com `set_config('tanka.aviso_sistema','1',true)`, classe 'sistema', nivel 1, conta do admin; a tela mostra "📢 Admin:" (nivel 0 = aviso automático 🐉).
