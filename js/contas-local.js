@@ -212,7 +212,7 @@ Tanka.contas = (function () {
 
   var arena = {
     estado: function () { return Promise.resolve({ local: true }); },
-    perfil: soServidor, desafiar: soServidor, revanche: soServidor, atacar: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
+    perfil: soServidor, desafiar: soServidor, revanche: soServidor, resumo: soServidor, atacar: soServidor, rolar: soServidor, aplicarCredito: soServidor, adminRecarregar: soServidor,
   };
 
   // Na versão sem servidor não existe admin para mandar senha; trocar a senha funciona (hash local).

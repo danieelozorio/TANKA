@@ -1002,6 +1002,10 @@ Tanka.dados = {
   // ferramenta ferramentas/gerar_dados_sql.js: depois de mudar aqui, rode a ferramenta e o schema.
   // dado: multiplicador de dano de cada face do D20 (índice 0 = face 1). 1 erra; 18 a 20 são críticos.
   ARENA: {
+    // Ameaça (Henri, 17/11/2026): o "poder de Arena" mostrado na Arena no lugar do Poder (que é feito para a caçada).
+    // ataque = dano médio x velocidade (sem crítico: na Arena é o D20) contra uma defesa de referência do level
+    // (física ou mágica, pelo tipo de dano); vida = HP x defesa (média das duas) e esquiva. Ameaça = raiz(ataque x vida) x fator.
+    ameaca: { defFisicaNivel: 18, defMagicaNivel: 10.8, esquivaMax: 50, fator: 30 },
     nivelMin: 5, entradasMax: 5, recargaMinutos: 60, alcanceDesafio: 5, tempoDado: 5, limiteTurnos: 200,
     reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],

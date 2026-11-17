@@ -3946,7 +3946,8 @@
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
       + (!estado.loginAberto && pactoNovo() && !estado.batalha && !estado.luta && !estado.lutaArena ? pactoTutorialHtml() : '')
-      + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '');
+      + (estado.desafio && (estado.aba === 'arena' || estado.aba === 'ranking' || (estado.aba === 'social' && estado.desafio.tipo === 'perfil')) && !estado.lutaArena ? desafioHtml() : '')
+      + (estado.resumoArena && estado.aba === 'arena' && !estado.lutaArena ? resumoArenaHtml() : '');
     if (estado.lutaArena) atualizarJanelaDado();
     var reg = document.getElementById('registro');
     if (reg) reg.scrollTop = reg.scrollHeight;
@@ -5181,6 +5182,22 @@
       case 'desafio-cancelar':
         if (el.classList.contains('zoom-fundo') && e.target !== el) break;   // clique dentro da janela
         estado.desafio = null;
+        telaJogo();
+        break;
+      case 'arena-resumo': {
+        // Resumo (Henri, 17/11/2026): a luta já terminada, lance a lance, e o relatório (também de quando te atacaram).
+        var idLuta = Number(el.dataset.luta);
+        estado.resumoArena = { id: idLuta };
+        telaJogo();
+        C.arena.resumo(p.id, idLuta).then(function (l) {
+          if (!estado.resumoArena || estado.resumoArena.id !== idLuta) return;
+          estado.resumoArena.luta = l; telaJogo();
+        }, function (e2) { if (estado.resumoArena && estado.resumoArena.id === idLuta) { estado.resumoArena.erro = e2.message; telaJogo(); } });
+        break;
+      }
+      case 'resumo-fechar':
+        if (el.classList.contains('zoom-fundo') && e.target !== el) break;
+        estado.resumoArena = null;
         telaJogo();
         break;
       case 'arena-revanche':
@@ -7201,7 +7218,10 @@
     if (d.erro) corpo = '<p class="menos">' + esc(d.erro) + '</p>';
     else if (!pf) corpo = '<p class="suave centro">Carregando o perfil…</p>';
     else {
-      var x = personagemDoPerfil(pf), sx = R.status(x), sp = R.status(p), px = R.poder(x), pp = R.poder(p);
+      // Na Arena compara a Ameaça (a força na Arena, calculada no servidor); no perfil de amigo, o Poder.
+      var arena = d.tipo !== 'perfil' && pf.ameaca != null;
+      var x = personagemDoPerfil(pf), sx = R.status(x), sp = R.status(p);
+      var px = arena ? pf.ameaca : R.poder(x), pp = arena ? (pf.minha_ameaca || 0) : R.poder(p);
       var razao = px / Math.max(1, pp);
       var veredito = razao > 1.15 ? ['menos', 'Mais forte que você'] : razao < 0.87 ? ['mais', 'Mais fraco que você'] : ['cor-ouro', 'Força parecida com a sua'];
       function linhaComp(nome, a, b, txtA, txtB) {
@@ -7210,7 +7230,7 @@
       }
       var mediaX = (sx.dano[0] + sx.dano[1]) / 2, mediaP = (sp.dano[0] + sp.dano[1]) / 2;
       var tabela = '<table class="comparar-tabela"><tr><th></th><th>' + esc(pf.nome) + '</th><th>Você</th></tr>'
-        + linhaComp('Poder', px, pp, px.toLocaleString('pt-BR'), pp.toLocaleString('pt-BR'))
+        + linhaComp(arena ? '☠ Ameaça' : 'Poder', px, pp, px.toLocaleString('pt-BR'), pp.toLocaleString('pt-BR'))
         + linhaComp('Vida', sx.hpMax, sp.hpMax)
         + linhaComp('Dano por golpe', mediaX, mediaP, dano(sx.dano), dano(sp.dano))
         + linhaComp('Defesa', sx.defesa, sp.defesa)
@@ -7250,7 +7270,8 @@
     return '<div class="item arena-linha' + (x.id === estado.personagem.id ? ' meu' : '') + '"><div class="arena-pos">' + trofeu(x.posicao) + '</div>'
       + (CELULAR && x.raca ? '<span class="arena-retrato">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</span>' : '')
       + '<div class="amigo-info">' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x)
-      + ' · Lv ' + x.nivel + ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR') + '</div></div>'
+      + ' · Lv ' + x.nivel + (x.ameaca != null ? ' · <span title="Ameaça: a força na Arena">☠ Ameaça ' + Number(x.ameaca).toLocaleString('pt-BR') + '</span>'
+        : ' · Poder ' + Number(x.poder || 0).toLocaleString('pt-BR')) + '</div></div>'
       + '<div class="item-acoes">' + (botao || '') + '</div></div>';
   }
 
@@ -7293,7 +7314,8 @@
         ? (h.venceu_atacante ? 'Você venceu <strong>' + esc(h.oponente) + '</strong>' : 'Você perdeu para <strong>' + esc(h.oponente) + '</strong>')
         : (h.venceu_atacante ? '<strong>' + esc(h.oponente) + '</strong> te atacou e venceu' : '<strong>' + esc(h.oponente) + '</strong> te atacou e perdeu');
       var ouro = h.saque ? ' <span class="' + (h.ataquei === h.venceu_atacante ? 'mais' : 'menos') + '">(' + (h.ataquei === h.venceu_atacante ? '+' : '−') + h.saque.toLocaleString('pt-BR') + ' de ouro)</span>' : '';
-      var botao = h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '" data-id="' + esc(h.oponente_id || '') + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '';
+      var botao = '<button class="btn secundario" data-acao="arena-resumo" data-luta="' + h.id + '" title="Ver como foi a luta">📜 Resumo</button>'
+        + (h.pode_revanche ? '<button class="btn" data-acao="arena-revanche" data-luta="' + h.id + '" data-id="' + esc(h.oponente_id || '') + '"' + (e.valor <= 0 ? ' disabled' : '') + '>Revanche</button>' : '');
       var rep = h.ataquei && h.venceu_atacante && h.reputacao ? ' <span class="mais">(+' + h.reputacao + ' de reputação)</span>' : '';
       var tipo = h.revanche ? 'Revanche · ' : h.tipo === 'livre' ? 'Pelo Ranking · ' : h.tipo === 'top5' ? 'Top 5 · ' : '';
       return '<div class="item"><div>' + (tipo ? '<span class="suave pequeno">' + tipo + '</span>' : '') + texto + ouro + rep
@@ -7494,10 +7516,10 @@
     if (ev.calado) L.registro.push('<p class="errou">🤐 ' + esc(atk.nome) + ' está calado: sem habilidades nesta vez.</p>');
     if (ev.atordoado) {
       L.registro.push('<p class="errou">' + esc(atk.nome) + (atk.sexo === 'feminino' ? ' está atordoada' : ' está atordoado') + ' e perde a vez.</p>');
-      if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
+      if (!L.tudo && L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
       return;
     }
-    if (cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60); return; }
+    if (cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; if (!L.tudo && L.registro.length > 60) L.registro.splice(0, L.registro.length - 60); return; }
     L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20)' : '') + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
@@ -7519,7 +7541,7 @@
     if (ev.cegou) L.registro.push('<p class="destaque">🌫️ ' + esc(alvo.nome) + ' leva pó nos olhos.</p>');
     if (ev.milagre) L.registro.push('<p class="cura">✨ Milagre! ' + esc(alvo.nome) + ' volta à luta.</p>');
     if (ev.atordoou) L.registro.push('<p class="destaque">' + esc(alvo.nome) + (alvo.sexo === 'feminino' ? (ev.congelou ? ' está congelada' : ' está atordoada') : (ev.congelou ? ' está congelado' : ' está atordoado')) + ' por ' + ev.atordoou + (ev.atordoou > 1 ? ' turnos!' : ' turno!') + '</p>');
-    if (L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
+    if (!L.tudo && L.registro.length > 60) L.registro.splice(0, L.registro.length - 60);
   }
 
   // Mostra os eventos novos um a um (o dado do oponente também cai na mesa) e depois espera o jogador.
@@ -7644,6 +7666,28 @@
       + linha('Erros (1)', A.erros, Dd.erros)
       + linha('Vida no fim', f(Math.max(0, hp.a)) + ' / ' + f(est.a.hpMax), f(Math.max(0, hp.d)) + ' / ' + f(est.d.hpMax))
       + '</table></details>';
+  }
+
+  // Janela do Resumo: quem venceu, o relatório e todos os lances (o mesmo texto da luta ao vivo).
+  function resumoArenaHtml() {
+    var R0 = estado.resumoArena, l = R0.luta, corpo;
+    if (R0.erro) corpo = '<p class="menos">' + esc(R0.erro) + '</p>';
+    else if (!l) corpo = '<p class="suave centro">Carregando a luta…</p>';
+    else {
+      var est = l.estado, venceu = l.situacao === 'vitoria' ? est.a : est.d;
+      var antes = estado.lutaArena, L = { luta: l, registro: [], tudo: true, hpA: est.a.hpMax, hpD: est.d.hpMax };
+      var hpMax = { a: est.a.hpMax, d: est.d.hpMax };
+      estado.lutaArena = L;
+      try { (l.eventos || []).forEach(function (ev) { aplicarEventoArena(ev); }); } finally { estado.lutaArena = antes; }
+      est.a.hpMax = hpMax.a; est.d.hpMax = hpMax.d;   // o resumo não muda a vida máxima guardada
+      corpo = '<h3 class="subtitulo">' + esc(est.a.nome) + ' atacou ' + esc(est.d.nome) + '</h3>'
+        + '<p class="destaque centro">🏆 ' + esc(venceu.nome) + ' venceu' + (l.saque ? ' · saque de <strong class="cor-ouro">' + l.saque.toLocaleString('pt-BR') + ' de ouro</strong>' : '') + '</p>'
+        + relatorioArenaHtml(l)
+        + '<details class="resumo-lances"><summary>🎲 Lance a lance (' + L.registro.length + ')</summary><div class="registro">' + L.registro.join('') + '</div></details>';
+    }
+    return '<div class="zoom-fundo" data-acao="resumo-fechar"><div class="zoom-janela desafio-janela" role="dialog" aria-label="Resumo da luta">'
+      + '<button class="zoom-x" data-acao="resumo-fechar" title="Fechar">✕</button><div class="zoom-rotulo">Resumo da luta</div>' + corpo
+      + '<div class="botoes"><button class="btn secundario" data-acao="resumo-fechar">Fechar</button></div></div></div>';
   }
 
   function lutaArenaHtml() {

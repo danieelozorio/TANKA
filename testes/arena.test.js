@@ -75,6 +75,15 @@ async function como(uid, sql, args) {
   const pos3 = (await pool.query("select p.nome from arena_posicoes ap join personagens p on p.id = ap.personagem_id order by posicao")).rows.map((r) => r.nome);
   assert.deepStrictEqual(pos3, pos2); ok('revanche (' + rev.situacao + ') não muda o ranking');
   await assert.rejects(como(vit.uid, 'select public.arena_revanche($1,$2)', [vit.pid, h.id]), /já fez a revanche/); ok('só uma revanche por ataque');
+  // Resumo (17/11/2026): quem foi atacado vê a luta; um terceiro não
+  const res = await como(vit.uid, 'select public.arena_resumo($1,$2)', [vit.pid, h.id]);
+  assert.ok(res.eventos.length > 0 && res.estado.a && res.estado.d); ok('resumo: o atacado vê a luta (' + res.eventos.length + ' eventos)');
+  await assert.rejects(como(ids[4].uid, 'select public.arena_resumo($1,$2)', [ids[4].pid, h.id]), /não encontrada/); ok('resumo: quem não lutou não vê');
+  // Ameaça (17/11/2026): nos alvos da Arena e no perfil
+  const pf = await como(vit.uid, 'select public.arena_perfil($1,$2)', [vit.pid, ult.pid]);
+  assert.ok(pf.ameaca > 0 && pf.minha_ameaca > 0); ok('ameaça no perfil: ' + pf.ameaca + ' (minha ' + pf.minha_ameaca + ')');
+  const est3 = await como(vit.uid, 'select public.arena_estado($1, null)', [vit.pid]);
+  assert.ok(est3.top5.every((x) => x.ameaca > 0)); ok('ameaça nos lutadores da Arena');
   // aplicar crédito
   const c1 = (await pool.query('select id from creditos where personagem_id = $1 and not aplicado order by id limit 1', [ult.pid])).rows[0].id;
   const ap = await como(ult.uid, 'select public.credito_aplicar($1,$2)', [ult.pid, c1]);

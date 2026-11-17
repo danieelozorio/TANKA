@@ -1150,3 +1150,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   na faixa de 1 atributo da arma do mesmo nível (`atributoMao` em regras.js). O Livro perdeu a INT que crescia com o nível.
 - Itens antigos: `normalizar` migra uma vez (marca `atrV3`), com sorteio fixo pelo id (`hashTexto` + `rngSemente`),
   igual no servidor e no navegador. Itens novos já nascem com `atrV3`.
+
+## Arena: Ameaça e Resumo (Henri, 17/11/2026)
+- Na Arena não aparece mais o Poder (ele é da caçada: conta crítico, que na Arena não existe). Aparece a **☠ Ameaça**
+  (`ARENA.ameaca` em dados.js; `arena_ameaca(dados)` no schema, com os status da Arena do `tanka_status`):
+  ataque = dano médio × velocidade ÷ 10 × 100/(100 + level × defesa de referência física 18 ou mágica 10,8);
+  vida = HP × (100 + média das defesas)/100 ÷ (1 − esquiva); Ameaça = √(ataque × vida) × 30. Habilidades ainda não entram.
+- Vai em `arena_estado` (top5 e alvos: `ameaca`) e em `arena_perfil` (`ameaca` e `minha_ameaca`). A janela de desafiar
+  compara a Ameaça (o veredito "mais forte/fraco" também). Ranking e perfil de amigo continuam com o Poder.
+- Histórico da Arena: botão **📜 Resumo** em toda luta (`arena_resumo(meu, luta)`, só quem lutou). Mostra o vencedor,
+  o relatório (`relatorioArenaHtml`) e todos os lances (reusa `aplicarEventoArena` com `L.tudo`, sem o corte de 60 linhas).
