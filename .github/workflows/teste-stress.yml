@@ -1,0 +1,61 @@
+# Teste de stress (Henri, 17/11/2026): jogadores falsos caçando ao mesmo tempo num projeto Supabase SÓ DE TESTE.
+# Rodar em Actions > Teste de stress > Run workflow, com o endereço e a chave publishable do projeto de teste.
+# Antes, no projeto de teste: rodar o supabase/schema.sql, desligar "Confirm email" e aumentar o limite de cadastros
+# (Authentication > Rate Limits). O script recusa o projeto de verdade (cwlcdeqvwzpveduzhaol).
+# Resultado: no resumo da execução (Summary) e no arquivo resultado-stress.md (Artifacts).
+name: Teste de stress
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Endereço do projeto de TESTE (https://xxxx.supabase.co)'
+        required: true
+      chave:
+        description: 'Chave publishable do projeto de teste (sb_publishable_...)'
+        required: true
+      etapas:
+        description: 'Jogadores ao mesmo tempo, por etapa'
+        default: '100,250,500,1000'
+      segundos:
+        description: 'Duração de cada etapa (segundos)'
+        default: '90'
+      enviar_funcoes:
+        description: 'Enviar as funções cacada e acao para o projeto de teste antes'
+        type: boolean
+        default: true
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Conferir o projeto
+        run: |
+          case "${{ inputs.url }}" in *cwlcdeqvwzpveduzhaol*) echo "::error::Esse é o banco de verdade do jogo. Use o projeto de teste."; exit 1;; esac
+          REF=$(echo "${{ inputs.url }}" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')
+          echo "REF=$REF" >> "$GITHUB_ENV"; echo "Projeto de teste: $REF"
+      - uses: supabase/setup-cli@v1
+        if: inputs.enviar_funcoes
+        with: { version: latest }
+      - name: Enviar as funções para o projeto de teste
+        if: inputs.enviar_funcoes
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::warning::Sem SUPABASE_ACCESS_TOKEN: funções não enviadas."; exit 0; fi
+          node ferramentas/gerar_servidor.js
+          supabase functions deploy cacada --project-ref "$REF" --no-verify-jwt --use-api --yes
+          supabase functions deploy acao --project-ref "$REF" --no-verify-jwt --use-api --yes
+      - name: Teste de stress
+        env:
+          STRESS_URL: ${{ inputs.url }}
+          STRESS_CHAVE: ${{ inputs.chave }}
+          STRESS_ETAPAS: ${{ inputs.etapas }}
+          STRESS_SEGUNDOS: ${{ inputs.segundos }}
+          STRESS_CRIAR_JUNTOS: '10'
+        run: node ferramentas/stress/teste-stress.js
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: resultado-stress, path: resultado-stress.md, if-no-files-found: ignore }

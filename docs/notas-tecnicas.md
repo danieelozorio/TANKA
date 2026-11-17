@@ -1208,3 +1208,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `TALENTOS.pontosAteNivel: 46`: `pontosHabilidadeTotal` (regras.js) e `arena_pontos_ok` (schema) contam os levels só
   até o 46 = 60 pontos (dá todas as habilidades +10). Depois, só o Pacto de Ascensão. Quem já passou do 46 com mais
   de 60 pontos distribuídos fica com pontos livres negativos até refazer.
+
+### Teste de stress (Henri, 17/11/2026)
+- `ferramentas/stress/teste-stress.js` + `.github/workflows/teste-stress.yml` (Run workflow, com url e chave publishable
+  de um projeto Supabase SÓ DE TESTE; recusa o cwlcdeqvwzpveduzhaol). Cria `stress0001...` (cavaleiro lv1), cada um
+  caça como o jogo (encontro → 2 s → lutar → 3 s → fim), lê o chat a cada 30 s e o ranking a cada 60 s. Etapas
+  (padrão 100, 250, 500, 1000 por 90 s); mede tempos (metade/95%/99%) e erros por pedido; para se passar de 30% de erros.
+- Projeto de teste: rodar o schema.sql, desligar "Confirm email", subir o limite de cadastros (Auth > Rate Limits).
+  O workflow envia as funções `cacada`/`acao` para ele com o SUPABASE_ACCESS_TOKEN (precisa ser da mesma conta).
