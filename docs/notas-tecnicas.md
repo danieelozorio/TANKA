@@ -519,6 +519,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Caixa: `p.caixa` (até 80, mais novo primeiro, `{t, o, x}`) e `p.caixaVista`. Entra pelos avisos de `resgatarRecompensas`
   (`avisarCaixa`, origem da recompensa → boss/leilao/mercado/oficina/cla/masmorra) e de `aplicarCreditos` (menos os
   que o próprio jogador fez: lance, compra, fundação/doação do clã, pedido na oficina). "Mochila cheia" não entra.
+  Prêmios da masmorra (itens e "mochila cheia" dela) e pergaminhos ganhos não entram (16/11/2026): só no sininho
+  (`avisarSemMasmorra`; masmorra = origem que `origemCaixa` não conhece).
 - Sininho: todo `avisar` (`guardarNotificacao`), até 60, no localStorage por personagem (`eldrin.notificacoes.<id>`).
 
 ## Ficha do item flutuante (Henri, nov/2026)
@@ -1128,3 +1130,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mouse apertado no painel (`missoesUI.apertado`/`pendente`, refaz no `pointerup`). Já aberto, troca só o conteúdo de
   `.missoes-painel` (recriar a caixa repetia a animação de abrir e parecia fechar e abrir).
 - (16/11/2026) Replay: cada lance leva `dh` (dano acumulado de cada herói); a luta guarda classe/raça já convertidas (bot da fila mostra o retrato da classe que faltava). Tela mostra o dano por herói no replay, no diário e no fim.
+- (16/11/2026) Arcane no celular: a ficha compacta escondia os atributos; agora a aba Personagem mostra "Atributos e status" (`atributosAbaHtml` → `fichaDetalhesHtml`, o mesmo da ficha; `atualizarFicha` também troca `.pg-atributos`). Só aparece na Arcane em tela ≤ 760px (css/tema-arcane.css).
+- (16/11/2026) Botãozinho do Discord ao lado do Chat (`discordBotaoHtml`, `.chat-discord`), nas 3 interfaces do computador; escondido na casca do celular.
+
+### Poção automática: opções 10% e 30% (Henri, 16/11/2026)
+- `CACADA.pocaoAuto` = [10, 30] (era [10, 5]); quem tinha 5% vira 10% em `prefsCacada` (app.js).
+
+### Arena: veneno, sangramento e queimadura passam pela defesa (Henri, 17/11/2026)
+- `arena_vez` (schema.sql): no lançamento do `dot` (Corte Vampírico, Flecha Envenenada) e da `queima` (Maldição de
+  Ignaroth), o dano por vez é multiplicado por `k / (k + defesa)` do alvo (defesa física ou mágica pelo tipo de dano de
+  quem lança, com os reforços de defesa do alvo). Antes ignorava a defesa e batia ~9x um golpe normal contra quem tinha
+  muita defesa. Só na Arena; na caçada continua sem defesa.

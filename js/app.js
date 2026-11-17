@@ -913,6 +913,13 @@
         nova.innerHTML = x[1]();
         velho.replaceWith(nova.firstChild);
       });
+      // Arcane no celular: os atributos também ficam na aba Personagem
+      var pa = document.querySelector('.pg-atributos');
+      if (pa && estado.personagem) {
+        var p = estado.personagem, n = document.createElement('div');
+        n.innerHTML = atributosAbaHtml(p);
+        if (n.firstChild) pa.replaceWith(n.firstChild);
+      }
     });
   }
 
@@ -1154,11 +1161,9 @@
     if (sub && tmp.querySelector('#sub-abas')) sub.replaceWith(tmp.querySelector('#sub-abas'));
   }
 
-  function fichaHtml() {
-    var p = estado.personagem, s = R.status(p);
-    var precisa = R.expNecessaria(p.nivel);
-    var arma = R.armaEquipada(p);
-    var emBatalha = !!estado.batalha;
+  // Atributos (com + e −), habilidade, raça e status: na ficha ("Atributos e status") e, na Arcane do celular, também
+  // na aba Personagem (lá a ficha fica compacta e escondia isso; Henri, 16/11/2026).
+  function fichaDetalhesHtml(p, s, emBatalha) {
     var eq = R.bonusEquipamentos(p);
     // Pontos escolhidos mas ainda não confirmados: aparecem em verde e mudam a prévia dos status.
     var pend = pontosPendentes(), usados = totalPendentes(), restam = p.pontosLivres - usados;
@@ -1205,6 +1210,25 @@
       ['Encantamento', mudanca(s.chanceEncantamento, sNovo.chanceEncantamento, pct), 'Bônus na chance de sucesso ao encantar.'],
     ].map(function (l) { return '<dt title="' + l[2] + '">' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
 
+    return '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + restam + ' ponto(s) livre(s)</span>' : '') + '</h3>'
+      + '<p class="suave pequeno dica-texto">Passe o mouse (ou toque) no nome para ver o que cada atributo faz.</p>' + atrs + '</div>'
+      + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
+      + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
+      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
+      + '<div class="secao"><h3>Raça: ' + nomeRaca(p.raca, p.sexo) + '</h3><p class="pequeno tracos-raca">' + tracosRacaHtml(p.raca) + '</p></div>'
+      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div>';
+  }
+
+  function atributosAbaHtml(p) {
+    return '<div class="pg-atributos"><h3 class="subtitulo">Atributos e status' + (p.pontosLivres > 0 ? ' <span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '</h3>'
+      + fichaDetalhesHtml(p, R.status(p), !!estado.batalha) + '</div>';
+  }
+
+  function fichaHtml() {
+    var p = estado.personagem, s = R.status(p);
+    var precisa = R.expNecessaria(p.nivel);
+    var arma = R.armaEquipada(p);
+    var emBatalha = !!estado.batalha;
     return '<aside class="caixa ficha">'
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
@@ -1221,25 +1245,18 @@
       + '<div class="secao"><h3>Arma</h3>' + armaFichaHtml(p, arma, s) + '</div>'
       + '<button class="ficha-sanfona' + (estado.fichaAberta ? ' aberta' : '') + '" data-acao="ficha-status" aria-expanded="' + !!estado.fichaAberta + '">'
       + '<span>Atributos e status</span>' + (p.pontosLivres > 0 ? '<span class="pontos">' + p.pontosLivres + ' ponto(s)</span>' : '') + '<i aria-hidden="true">▾</i></button>'
-      + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">'
-      + '<div class="secao"><h3>Atributos' + (p.pontosLivres > 0 ? ' <span class="pontos">' + restam + ' ponto(s) livre(s)</span>' : '') + '</h3>'
-      + '<p class="suave pequeno dica-texto">Passe o mouse (ou toque) no nome para ver o que cada atributo faz.</p>' + atrs + '</div>'
-      + (!D.HABILIDADES_ATIVAS ? '' : '<div class="secao"><h3>Habilidade <span class="pontos">Nível ' + R.nivelHabilidade(p) + '</span></h3>'
-      + '<div class="nome-habilidade">⚡ ' + D.habilidades[p.classe].nome + '</div>'
-      + '<p class="suave pequeno">' + D.habilidades[p.classe].descricao + ' ' + textoHabilidade(p.classe, R.nivelHabilidade(p)) + '</p></div>')
-      + '<div class="secao"><h3>Raça: ' + nomeRaca(p.raca, p.sexo) + '</h3><p class="pequeno tracos-raca">' + tracosRacaHtml(p.raca) + '</p></div>'
-      + '<div class="secao"><h3>Status</h3><dl class="status">' + status + '</dl></div></div>')
+      + (!estado.fichaAberta ? '' : '<div class="ficha-detalhes">' + fichaDetalhesHtml(p, s, emBatalha) + '</div>')
       + atividadesHtml(p)
       + '</aside>';
   }
 
   // ----- Pontos de atributo: escolher com + e −, conferir a prévia e só então confirmar -----
   var DESCRICAO_ATRIBUTO = {
-    for: 'Aumenta o ataque físico e o dano dos golpes críticos.',
-    des: 'Aumenta a precisão, a evasão e a chance de crítico.',
+    for: 'Cavaleiro e Artesão: dano e precisão. Todos: dano dos golpes críticos.',
+    des: 'Caçador: dano, precisão, crítico e evasão. Outras classes: só 30% do crítico, da evasão e da precisão.',
     res: 'Aumenta a vida (acima de 10), a defesa e a defesa mágica.',
-    int: 'Aumenta o ataque mágico (dano dos magos).',
-    sor: 'Aumenta a chance de drop, o crítico mágico, o dano crítico mágico, o encantamento e o craft.',
+    int: 'Mago: dano, precisão, crítico mágico e dano crítico mágico.',
+    sor: 'Aumenta a chance de drop, de encantamento e de craft.',
   };
   function pontosPendentes() {
     var p = estado.personagem;
@@ -1654,6 +1671,7 @@
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
       + '<div class="lateral"><div class="caixa-interna"><h3>Bônus dos equipamentos</h3>'
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
+      + (temaAtual() === 'arcane' ? atributosAbaHtml(p) : '')
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
       + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
       + baixo + '</div></div>';
@@ -3870,9 +3888,10 @@
         + (({ personagem: abaPersonagem, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
-    // Arcane (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
+    // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
     // (a caçada segue sozinha no servidor e volta ao entrar de novo).
-    var afkArcane = temaAtual() === 'arcane' && CACA_SERVIDOR && !!estado.cacada && !estado.lutaArena && !estado.luta;
+    // Clássica também (Henri, 16/11/2026).
+    var afkArcane = (temaAtual() === 'arcane' || temaAtual() === 'classica') && CACA_SERVIDOR && !!estado.cacada && !estado.lutaArena && !estado.luta;
     var trocar = !livre && afkArcane ? '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>'
       : !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">' + (zealot ? ICONES.trocarPersonagem : '') + 'Trocar personagem</button>'
@@ -4127,7 +4146,9 @@
   // de sempre) → resultado entra no resumo → procura de novo. Para com a vida em ≤5% ou quando o jogador para.
   function prefsCacada() {
     var p = estado.personagem;
-    return p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
+    var pr = p.prefsCacada || (p.prefsCacada = { lutarSempre: false, pocao: 0, chefe: 'perguntar' });
+    if (pr.pocao && D.CACADA.pocaoAuto.indexOf(Number(pr.pocao)) < 0) pr.pocao = D.CACADA.pocaoAuto[0];   // opção que saiu (5%) → 10%
+    return pr;
   }
   function iniciarCacada(areaId, soEstes) {
     if (bloqueadoMinerando('caçar')) return;
@@ -6186,6 +6207,8 @@
   async function resgatarRecompensasAntigo(lista) {
     // os prêmios recebidos também ficam na caixa de entrada (origem da recompensa)
     var avisarCaixa = function (msg, tipo) { avisar(msg, tipo); caixaRegistrar(origemCaixa(rec && rec.origem), msg); };
+    // Masmorra e pergaminhos ganhos: só no sininho, não na caixa de entrada (pedido do Henri, 16/11/2026).
+    var avisarSemMasmorra = function (msg, tipo) { if (origemCaixa(rec && rec.origem) === 'masmorra') avisar(msg, tipo); else avisarCaixa(msg, tipo); };
     var p = estado.personagem, g = estado.gm;
     lista = lista || (g && g.recompensas);
     if (!p || !lista || !lista.length || estado.resgatando) return;
@@ -6252,7 +6275,7 @@
           var nPerg = Math.max(1, Math.floor(perg.qtd || 1));
           R.mudarPergaminho(p, perg.raridade, nPerg);
           salvar();
-          avisarCaixa((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
+          avisar((nPerg > 1 ? nPerg + ' Pergaminhos' : 'Um Pergaminho') + ' para item ' + ITEM_RARIDADE[perg.raridade]
             + (perg.boss ? ' do boss do clã!' : rec.origem === 'boss' ? ' do Chefe Mundial!' : rec.origem === 'mercado' ? ' do mercado chegou!' : ' na masmorra!'), 'item');
           continue;
         }
@@ -6295,7 +6318,7 @@
           continue;
         }
         if (R.mochilaCheia(p)) {
-          if (!avisouCheia) avisarCaixa('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+          if (!avisouCheia) avisarSemMasmorra('Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
           avisouCheia = true;
           continue;
         }
@@ -6303,7 +6326,7 @@
         var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
-        avisarCaixa((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
+        avisarSemMasmorra((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
       }
       if (entregues.length) {
         p.poder = R.poder(p);
@@ -7880,7 +7903,7 @@
     if (vista === 'skills') return html + skillsClaHtml(st);
     if (vista === 'missoes') return html + missoesClaHtml(st);
     // Mural
-    html += '<div class="caixa-interna"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
+    html += '<div class="caixa-interna cla-secao"><h3>Mural</h3>' + (a.mural ? '<p class="alianca-mural">' + esc(a.mural) + '</p>' : '<p class="suave">Nenhum aviso.</p>')
       + (manda ? '<div class="linha-form"><input id="al-mural" maxlength="' + AL.muralMax + '" placeholder="Escreva um aviso para todos" value="' + esc(a.mural) + '">'
         + '<button class="btn secundario" data-acao="al-mural">Salvar</button></div>' : '') + '</div>';
     // Tesouro e bônus
@@ -7892,7 +7915,7 @@
         + '</div>';
     }
     var doado = Number(st.doado_hoje || 0), resta = Math.max(0, AL.doacaoMaxDia - doado);
-    html += '<div class="caixa-interna"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
+    html += '<div class="caixa-interna cla-secao"><h3>Tesouro: <span class="cor-ouro">' + Number(a.tesouro).toLocaleString('pt-BR') + ' de ouro</span></h3>'
       + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave pequeno">Cada ouro doado vira exp do clã e conta como sua contribuição. O líder usa o tesouro para comprar as '
       + '<strong>skills do clã</strong>, que valem para todos os membros para sempre.</p>' + (CELULAR ? '</details>' : '')
@@ -7904,7 +7927,7 @@
       + '</div>';
     // Convidar e pedidos
     if (manda) {
-      html += '<div class="caixa-interna"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
+      html += '<div class="caixa-interna cla-secao"><h3>Convidar</h3><div class="linha-form"><input id="al-convidar" maxlength="16" placeholder="Nome do personagem" autocomplete="off">'
         + '<button class="btn" data-acao="al-convidar">Convidar</button></div>'
         + (st.pedidos.length ? '<h3 class="subtitulo">Pedidos para entrar</h3><div class="itens">' + st.pedidos.map(function (x) {
           return '<div class="item"><div><strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeClasseX(x) + ' · Lv ' + x.nivel
@@ -8296,12 +8319,20 @@
     return '<p class="chat-msg chat-sussurro"><span class="chat-hora">' + hora + '</span> <strong class="chat-nome">' + (m.minha ? 'Você' : esc(nome)) + '</strong>: ' + esc(m.texto) + '</p>';
   }
 
+  // Botãozinho do Discord ao lado do Chat (Henri, 16/11/2026): discreto, na cor do Discord, abre o nosso servidor.
+  var DISCORD_URL = 'https://discord.gg/85ZFvz6ye';
+  function discordBotaoHtml() {
+    return '<a class="chat-discord" href="' + DISCORD_URL + '" target="_blank" rel="noopener" title="Entre no Discord do ' + D.NOME_JOGO + '" aria-label="Discord do ' + D.NOME_JOGO + '">'
+      + '<svg viewBox="0 0 127.14 96.36" aria-hidden="true"><path fill="currentColor" d="M107.7 8.07A105.15 105.15 0 0 0 81.47 0a72.06 72.06 0 0 0-3.36 6.83 97.68 97.68 0 0 0-29.11 0A72.37 72.37 0 0 0 45.64 0a105.89 105.89 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.73 105.73 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.42 68.42 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.57 75.57 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.68 68.68 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.25 105.25 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z"/></svg></a>';
+  }
+
   function desenharChat() {
     var seloC = document.getElementById('casca-chat-selo');
     if (seloC) { seloC.hidden = !chat.naoLidas || chat.aberto; seloC.textContent = chat.naoLidas > 99 ? '99+' : chat.naoLidas; }
     if (!chat.aberto) {
       chat.el.innerHTML = '<button class="chat-botao" data-chat="abrir">💬 Chat'
-        + (chat.naoLidas ? ' <span class="chat-badge">' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas) + '</span>' : '') + '</button>';
+        + (chat.naoLidas ? ' <span class="chat-badge">' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas) + '</span>' : '') + '</button>'
+        + discordBotaoHtml();
       return;
     }
     var texto = document.getElementById('chat-texto');

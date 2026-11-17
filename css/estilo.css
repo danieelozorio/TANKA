@@ -958,6 +958,15 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .alianca-topo { display: grid; grid-template-columns: auto 1fr auto; gap: 1rem; align-items: center; margin-bottom: 1rem; padding: .8rem 1rem;
   border: 1px solid rgba(201, 162, 74, .35); border-radius: 12px; background: radial-gradient(ellipse at 10% 50%, rgba(201, 162, 74, .14), transparent 60%), linear-gradient(180deg, #1b2331, #121822); }
 .alianca-titulo h2 { margin: 0 0 .1rem; }
+/* Clã › geral: Mural, Tesouro e Convidar com respiro entre as caixas e entre o campo e o botão (Henri, 16/11/2026). */
+.cla-secao + .cla-secao { margin-top: .9rem; }
+.cla-secao { padding: 1rem 1.1rem; }
+.cla-secao h3 { margin: 0 0 .6rem; }
+.cla-secao p { margin: .35rem 0; }
+.cla-secao .alianca-mural, .cla-secao > .suave:first-of-type { margin-bottom: .7rem; }
+.cla-secao .linha-form { display: flex; flex-wrap: wrap; gap: .6rem; align-items: stretch; margin-top: .7rem; }
+.cla-secao .linha-form input { flex: 1 1 14rem; min-width: 0; margin: 0; }
+.cla-secao .linha-form .btn { flex: 0 0 auto; margin: 0; }
 .alianca-mural { white-space: pre-wrap; padding: .5rem .7rem; border-left: 3px solid var(--ouro); background: rgba(201, 162, 74, .06); border-radius: 0 8px 8px 0; }
 .alianca-chamada { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
 .alianca-chamada p { margin: 0; }
@@ -1966,3 +1975,10 @@ h3 .selo-pedido { vertical-align: middle; margin-left: .3rem; font-weight: 400; 
 .pacto-resumo summary { cursor: pointer; color: var(--ouro-claro); }
 .pacto-resumo ul { margin: .3em 0; padding-left: 1.2em; }
 .pacto-refazer { margin-top: 12px; }
+/* Botão do Discord ao lado do Chat (Henri, 16/11/2026) */
+#chat:not(:has(.chat-janela)) { display: flex; align-items: center; gap: .45rem; }
+.chat-discord { display: inline-flex; align-items: center; justify-content: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: #5865f2; color: #fff; opacity: .78; box-shadow: 0 4px 14px rgba(0, 0, 0, .45); transition: opacity .15s, transform .15s, background .15s; }
+.chat-discord svg { width: 1.2rem; height: 1rem; }
+.chat-discord:hover, .chat-discord:focus-visible { opacity: 1; background: #4752c4; transform: translateY(-2px); outline: none; }
+html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular: o chat abre pelo topo */

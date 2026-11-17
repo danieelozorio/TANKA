@@ -1583,6 +1583,12 @@ begin
       ev := ev || jsonb_build_object('reforco', true); k := null;
     elsif t = 'dot' then
       pq := ((eu -> 'dano' ->> 0)::numeric + (eu -> 'dano' ->> 1)::numeric) / 2 * coalesce((k ->> 'dotPct2')::numeric, 0) / 100;
+      -- Defesa do alvo vale para o efeito (Henri, 17/11/2026): mesma conta do golpe normal, x 100 / (100 + defesa),
+      -- com a defesa (física ou mágica, pelo tipo de dano de quem lança) e os reforços de defesa na hora do lançamento.
+      def := (case when (eu ->> 'magico')::boolean then outro ->> 'defesaMagica' else outro ->> 'defesa' end)::numeric
+        * (1 + public.arena_buff(outro, 'defesaPct') / 100);
+      pq := pq * coalesce((public.tanka_dados() -> 'DEFESA' ->> 'k')::numeric, 100)
+        / (coalesce((public.tanka_dados() -> 'DEFESA' ->> 'k')::numeric, 100) + greatest(0, coalesce(def, 0)));
       outro := outro || jsonb_build_object('veneno', jsonb_build_object('turnos', coalesce((k ->> 'turnos')::int, 3), 'dano', greatest(1, round(pq)),
         'cura', coalesce((k ->> 'curaDot')::numeric, 0)));
       ev := ev || jsonb_build_object('reforco', true, 'envenenou', true); k := null;
@@ -1700,6 +1706,12 @@ begin
     end if;
     if jsonb_typeof(k -> 'queima') = 'object' then
       pq := ((eu -> 'dano' ->> 0)::numeric + (eu -> 'dano' ->> 1)::numeric) / 2 * (k -> 'queima' ->> 'pct')::numeric / 100;
+      -- Defesa do alvo vale para o efeito (Henri, 17/11/2026): mesma conta do golpe normal, x 100 / (100 + defesa),
+      -- com a defesa (física ou mágica, pelo tipo de dano de quem lança) e os reforços de defesa na hora do lançamento.
+      def := (case when (eu ->> 'magico')::boolean then outro ->> 'defesaMagica' else outro ->> 'defesa' end)::numeric
+        * (1 + public.arena_buff(outro, 'defesaPct') / 100);
+      pq := pq * coalesce((public.tanka_dados() -> 'DEFESA' ->> 'k')::numeric, 100)
+        / (coalesce((public.tanka_dados() -> 'DEFESA' ->> 'k')::numeric, 100) + greatest(0, coalesce(def, 0)));
       outro := outro || jsonb_build_object('queima', jsonb_build_object('turnos', (k -> 'queima' ->> 'turnos')::int, 'dano', greatest(1, round(pq))));
       ev := ev || jsonb_build_object('queimadura', true);
     end if;
