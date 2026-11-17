@@ -1150,11 +1150,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `habilidadesTorre`, `chanceDesviar`, `inimigosTorre`). O estado `t` é JSON (o servidor vai guardar e refazer com a semente).
 - Turno: os 4 escolhem { acao: atacar|habilidade|desviar|pocao, hab, alvo, ordem 1–4 }; inválida ou sem escolha =
   automática. Heróis agem na ordem; depois os inimigos (golpe normal físico; sem ninguém provocando acerta
-  `semProvocar` heróis); aura tira `aura`% de todos por turno; avisos de mecânica (`mecanicas`: mortal, chuva, marca,
+  `semProvocar` heróis, hoje 1); `aura` desligada (0) — Daniel preferiu só o chefe mais forte; avisos de mecânica (`mecanicas`: mortal, chuva, marca,
   escudo, invocar) com `turnos` de antecedência; stun no turno do golpe avisado interrompe a mecânica.
 - Desviar = `desviar.base` + esquiva (máx. `desviar.max`), só contra golpe avisado. Efeitos no inimigo: 100% − resistência
   (`resistencia.base` + 1/andar; stun que pega +`porStun`). Veneno/sangramento e Maldição também tentam corte de cura.
 - Andar: elite (1 mecânica) ou chefe a cada 5 (`chefes`, depois revezam do `chefesRepete` em diante). Vida volta cheia
   entre andares; 2 poções por subida +1 por chefe; curas de habilidade x`multCura`; Fúria do chefe depois do turno 15.
-- Calibragem: `node ferramentas/simular_torre.js` (subidas de bots). Level 30 épico +3 chega ~10–12, level 40 ~22–24,
-  level 60 ~32–34; grupo sem tanque fica bem atrás; sem cura e 4 de dano, atrás do equilibrado.
+- Calibragem: `node ferramentas/simular_torre.js` (subidas de bots). Chefe do andar 1: vida 3800, dano 3400–4400.
+  Level 30 épico +3 chega ~12–14 (chefe do 10 é a 1ª barreira), level 40 ~24, level 60 ~35; equilibrado vai mais longe.

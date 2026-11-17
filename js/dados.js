@@ -735,8 +735,8 @@ Tanka.dados = {
     nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 10, chefeCada: 5, maxTurnos: 30,
     crescimento: 1.06, crescimentoDefesa: 1.03,
     pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
-    semProvocar: 2,                                     // sem ninguém provocando, o golpe normal acerta 2 heróis (o tanque faz falta)
-    aura: 6,                                            // % da vida de todos por turno (não tem defesa; a cura segura)
+    semProvocar: 1,                                     // heróis que o golpe normal acerta quando ninguém provoca (Daniel: 1, sem regra extra)
+    aura: 0,                                            // % da vida de todos por turno (desligada a pedido do Daniel: o chefe é que fica forte)
     multCura: 1.6,                                      // curas de habilidade valem 60% mais na Torre (o curandeiro faz falta)
     entreAndares: 100,                                  // % da vida que volta entre os andares (quem caiu volta com isso)
     desviar: { base: 40, max: 90 },
@@ -744,7 +744,7 @@ Tanka.dados = {
     corteCura: { pct: 50, turnos: 3 },
     furia: { desde: 15, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 12º
     // inimigo do andar 1 (números de calibragem: ferramentas/simular_torre.js)
-    chefe: { vida: 3300, dano: [2150, 2800], defesa: 120 },
+    chefe: { vida: 3800, dano: [3400, 4400], defesa: 120 },
     elite: { vida: 0.85, dano: 0.92, defesa: 0.9 },       // andar sem chefe: x do chefe
     lacaio: { vida: 0.1, dano: 0.3 },
     mecanicas: {
