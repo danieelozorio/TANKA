@@ -732,7 +732,8 @@ Tanka.dados = {
   // (base + porAndar x andar; o stun ganha porStun a cada vez que pega, até o fim da luta).
   // Desviar: chance = desviar.base + porPonto x maior atributo do herói (máx. desviar.max); só evita golpe avisado.
   TORRE: {
-    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 10, chefeCada: 5, maxTurnos: 45,
+    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 1,   // marco 1: salva andar por andar (Daniel)
+    chefeCada: 5, maxTurnos: 45,
     crescimento: 1.06, crescimentoDefesa: 1.03,
     pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
     semProvocar: 1,                                     // heróis que o golpe normal acerta quando ninguém provoca (Daniel: 1, sem regra extra)

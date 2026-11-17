@@ -1385,7 +1385,7 @@ reset role; update public.personagens set dados = jsonb_set(dados, '{nivel}', '3
 select pg_temp.comoT('2'); select pg_temp.falha($$select public.torre_iniciar('t2')$$, 'Só o líder');
 select pg_temp.comoT('1');
 select public.torre_iniciar('t1');
-select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '1', 'torre: começa do marco que todos passaram (recordes 27, 14, 31, 9 -> andar 1)');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '10', 'torre: começa depois do menor recorde do grupo (27, 14, 31, 9 -> andar 10)');
 select pg_temp.comoT('4');
 select pg_temp.igual(jsonb_array_length(public.torre_estado('t4') -> 'run' -> 'membros'), 4, 'torre: os 4 na subida');
 select pg_temp.comoT('1');
@@ -1407,7 +1407,7 @@ set role authenticated;
 select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;
 select pg_temp.comoT('1');
 select public.torre_iniciar('t1');
-select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '11', 'torre: nova subida começa do andar 11 (marco 10 de todos)');
+select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '13', 'torre: salva andar por andar (menor recorde 12 -> andar 13)');
 select pg_temp.falha($$select public.torre_desistir('t1', 999999)$$, 'Só o líder');
 select public.torre_desistir('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint);
 select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'estado'), 'abandonada', 'torre: o líder desiste');

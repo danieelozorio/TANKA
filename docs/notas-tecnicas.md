@@ -1161,7 +1161,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (lutas de ~11–16 turnos). Level 30 épico +3 chega ~10–12, level 40 ~22, level 60 ~32; equilibrado vai mais longe.
 - **Etapa 2 (servidor, nov/2026):** tabelas `torre_runs` (estado `torre` jsonb gravado só pelo servidor, `escolhas`,
   `prazo`, `versao`) e `torre_recordes` (melhor andar e da semana). Funções: `torre_iniciar` (líder, grupo de 4 prontos,
-  level 30+, começa do menor marco de 10 dos 4), `torre_escolher` (só na fase `escolha`), `torre_estado`, `torre_desistir`,
+  level 30+, começa do andar depois do menor recorde dos 4: `torre_marco()` = 1, salva andar por andar), `torre_escolher` (só na fase `escolha`), `torre_estado`, `torre_desistir`,
   `torre_registrar` (só servidor). O grupo da masmorra passou a aceitar 4 (`torre_grupo()`); a masmorra continua com 3.
   Edge `acao` → `torreAvancar` (supabase/functions/acao/index.ts): monta o andar (novaTorre), resolve quando todos os
   vivos escolheram ou o prazo acabou (semente = semente da subida + andar x 1000 + turno), fase `narrando` por
