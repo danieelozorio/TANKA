@@ -2058,20 +2058,8 @@ Tanka.regras = (function () {
     return lista[lista.length - 1].id;
   }
   // Poção automática na luta: abaixo do limite (% da vida), se ainda houver poção.
-  // Poção automática: bebe abaixo de `limite`% da vida OU quando o próximo golpe do monstro pode matar (o maior golpe
-  // possível dele, normal ou mágico, já com a defesa). Assim o herói bebe antes do último golpe (Henri, 16/11/2026).
   function precisaPocao(b, limite) {
-    if (!limite || b.fim || b.pocoes <= 0 || b.pocaoPendente || b.jogador.hp <= 0 || b.jogador.hp >= b.jogador.hpMax) return false;
-    return b.jogador.hp * 100 / b.jogador.hpMax < limite || b.jogador.hp <= golpeMaximoMonstro(b);
-  }
-  function golpeMaximoMonstro(b) {
-    var m = D.monstros[b.monstroId], MG = D.MAGIA_MONSTROS;
-    if (!m || !b.s) return 0;
-    var faixa = b.ataque || m.ataque;
-    var topo = Array.isArray(faixa) ? faixa[1] : Number(faixa) || 0;
-    var maior = danoComDefesa(topo, defesaHeroi(b.s, b.lutador));
-    if (m.magia && MG) maior = Math.max(maior, danoComDefesa(Math.round(topo * MG.mult), Math.round(b.s.defesaMagica * (1 + somaBuff(b.lutador, 'defesaPct') / 100))));
-    return maior;
+    return !!limite && !b.fim && b.pocoes > 0 && !b.pocaoPendente && b.jogador.hp > 0 && b.jogador.hp * 100 / b.jogador.hpMax < limite;
   }
 
   // ---------- Missões diárias e semanais ----------
@@ -3277,7 +3265,6 @@ Tanka.regras = (function () {
     precoPocao: precoPocao,
     comprarPocao: comprarPocao,
     precisaPocao: precisaPocao,
-    golpeMaximoMonstro: golpeMaximoMonstro,
     monstroAnterior: monstroAnterior,
     monstroLiberado: monstroLiberado,
     semanaReset: semanaReset,

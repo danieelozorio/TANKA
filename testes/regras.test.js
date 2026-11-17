@@ -2516,16 +2516,3 @@ teste('Reino do Pesadelo: level 60, chefes por level, 20 de estamina, exp e iten
   assert.ok(s.res.resultado); igual(R.estamina(q).pts <= 20, true);
 });
 
-teste('poção automática: bebe antes do golpe que mataria, mesmo acima de 10% da vida', () => {
-  const p = R.criarPersonagem('Pocao', 'masculino', 'humano', 'cavaleiro');
-  R.admin.subirNivel(p, 9);
-  const b = R.iniciarBatalha(p, 'urso', () => 0.5);
-  b.pocoes = 2;
-  const max = R.golpeMaximoMonstro(b);
-  assert.ok(max > 0, 'golpe máximo calculado');
-  b.jogador.hp = Math.min(b.jogador.hpMax - 1, Math.max(Math.ceil(b.jogador.hpMax * 0.2), max));   // acima de 10%, mas morre no golpe
-  if (b.jogador.hp <= max) assert.ok(R.precisaPocao(b, 10), 'golpe pode matar: bebe');
-  b.jogador.hp = b.jogador.hpMax - 1;
-  if (b.jogador.hp > max && b.jogador.hp * 100 / b.jogador.hpMax >= 10) assert.ok(!R.precisaPocao(b, 10), 'vida alta: não bebe');
-  assert.ok(!R.precisaPocao(b, 0), 'desligada: nunca bebe');
-});

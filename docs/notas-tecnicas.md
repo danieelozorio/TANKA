@@ -1124,8 +1124,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - (16/11/2026) Arcane no celular: a ficha compacta escondia os atributos; agora a aba Personagem mostra "Atributos e status" (`atributosAbaHtml` → `fichaDetalhesHtml`, o mesmo da ficha; `atualizarFicha` também troca `.pg-atributos`). Só aparece na Arcane em tela ≤ 760px (css/tema-arcane.css).
 - (16/11/2026) Botãozinho do Discord ao lado do Chat (`discordBotaoHtml`, `.chat-discord`), nas 3 interfaces do computador; escondido na casca do celular.
 
-### Poção automática antes do último golpe (Henri, 16/11/2026)
-- Opções da poção automática: 10% e 30% (`CACADA.pocaoAuto`; quem tinha 5% vira 10% em `prefsCacada`).
-- `R.precisaPocao(b, limite)`: com a poção automática ligada, também bebe quando a vida é ≤ o maior golpe
-  possível do monstro (`R.golpeMaximoMonstro`: topo da faixa de ataque, normal ou mágico, já com a defesa; sem
-  reduções de habilidades, para errar a favor do herói). Vale na caçada do servidor e na do navegador. Não bebe com a vida cheia.
+### Poção automática: opções 10% e 30% (Henri, 16/11/2026)
+- `CACADA.pocaoAuto` = [10, 30] (era [10, 5]); quem tinha 5% vira 10% em `prefsCacada` (app.js).
