@@ -1198,16 +1198,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Em `tema-arcane.css` (≤760px): o ponto tocado abre num cartão fixo embaixo (`.pacto-detalhe` fixed, ✕ `asc-sel-fechar`),
   só com ícone, tipo e custo em pontos, nome, efeito, custo da Pedra e o botão. Somem o texto do topo, a legenda
   (fica o Aumentar), o caminho domínio › trilha (`.pacto-caminho`) e as regras (`.pacto-regra`). Contador de pontos numa linha.
-<<<<<<< HEAD
-
-### Pontos de habilidade param no level 46 (Henri, 17/11/2026)
-- `TALENTOS.pontosAteNivel: 46`: `pontosHabilidadeTotal` (regras.js) e `arena_pontos_ok` (schema) contam os levels só
-  até o 46 = 60 pontos (dá todas as habilidades +10). Depois, só o Pacto de Ascensão. Quem já passou do 46 com mais
-  de 60 pontos distribuídos fica com pontos livres negativos até refazer.
-=======
 - **Mensagem do Reino (17/11/2026):** crédito com ouro 0 e reputação 0 (`creditos.motivo` = texto) vira aviso + caixa
   de entrada com origem `admin` (📜). SQL pronto no scratchpad do Daniel (insert em `public.creditos`). O jogo busca os
   pendentes ao entrar e a cada 2 min (`estado.timerPendentes`).
 - **Chat global como admin:** insert em `mensagens` com `set_config('tanka.aviso_sistema','1',true)`, classe 'sistema', nivel 1, conta do admin; a tela mostra "📢 Admin:" (nivel 0 = aviso automático 🐉).
 - **Leilão (17/11/2026):** lotes em que o personagem deu lance sobem para o topo (te cobriram > você lidera > o resto). Os lances ficam no navegador (`localStorage` 'eldrin.leilaoLances', por personagem, últimos 40); "Te cobriram!" em vermelho.
->>>>>>> origin/main
+
+### Pontos de habilidade param no level 46 (Henri, 17/11/2026)
+- `TALENTOS.pontosAteNivel: 46`: `pontosHabilidadeTotal` (regras.js) e `arena_pontos_ok` (schema) contam os levels só
+  até o 46 = 60 pontos (dá todas as habilidades +10). Depois, só o Pacto de Ascensão. Quem já passou do 46 com mais
+  de 60 pontos distribuídos fica com pontos livres negativos até refazer.
