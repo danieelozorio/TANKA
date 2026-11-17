@@ -522,6 +522,12 @@
     estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
     estado.loginResultado = null;
     iniciarAtividade();
+    // Créditos e mensagens do Reino (SQL Editor): busca ao entrar e a cada 2 min (fora de luta).
+    clearInterval(estado.timerPendentes);
+    setTimeout(function () { if (ACAO_SERVIDOR && estado.personagem) receberPendentes(); }, 4000);
+    estado.timerPendentes = setInterval(function () {
+      if (ACAO_SERVIDOR && estado.personagem && !estado.luta && !estado.batalha && !estado.lutaArena && document.visibilityState !== 'hidden') receberPendentes();
+    }, 120000);
     var presente = estado.personagem.recomecoPresente === 1, presenteForca = estado.personagem.presenteForcaCacador === 1;
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
     var presenteA3 = estado.personagem.presenteAtributos3 === 1;
@@ -675,7 +681,7 @@
   var ICONE_CARTA = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zm1 2.4V17h16V7.4l-8 5.3zM5.2 7 12 11.5 18.8 7z"/></svg>';
   var ICONE_SINO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a6 6 0 0 1 6 6v3.5l1.8 3.3A1 1 0 0 1 19 16H5a1 1 0 0 1-.9-1.2L6 11.5V8a6 6 0 0 1 6-6zm-2.5 15h5a2.5 2.5 0 0 1-5 0z"/></svg>';
   var ORIGENS_CAIXA = { boss: ['🐉', 'Chefe Mundial'], arena: ['⚔', 'Arena'], leilao: ['🔨', 'Leilão'], mercado: ['💰', 'Mercado'],
-    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'] };
+    cla: ['🛡', 'Clã'], masmorra: ['🗝', 'Masmorra'], oficina: ['⚒', 'Oficina'], admin: ['📜', 'Mensagem do Reino'] };
   function origemCaixa(o) {
     return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla' }[o] || 'masmorra';
   }
@@ -2574,6 +2580,18 @@
     var b = R.bonusItem(it);
     return Object.keys(b).filter(function (k) { return b[k] && D.bonus[k]; }).slice(0, 2).map(function (k) { return D.bonus[k] + ' +' + b[k]; }).join(' · ');
   }
+  // Lotes em que este personagem deu lance (guardado neste navegador): sobem para o topo da lista (Daniel, nov/2026).
+  function lancesLeilao(p) {
+    try { var x = JSON.parse(localStorage.getItem('eldrin.leilaoLances') || '{}'); return Array.isArray(x[p.id]) ? x[p.id] : []; } catch (e) { return []; }
+  }
+  function marcarLanceLeilao(p, id) {
+    try {
+      var x = JSON.parse(localStorage.getItem('eldrin.leilaoLances') || '{}'), l = Array.isArray(x[p.id]) ? x[p.id] : [];
+      if (l.indexOf(String(id)) < 0) l.push(String(id));
+      x[p.id] = l.slice(-40);
+      localStorage.setItem('eldrin.leilaoLances', JSON.stringify(x));
+    } catch (e) { /* sem armazenamento: só não ordena */ }
+  }
   function abaLeilao() {
     var p = estado.personagem, L = D.LEILAO, r = estado.leilao;
     if (p.nivel < L.nivelMin) return '<p class="suave">O Leilão abre no level ' + L.nivelMin + '.</p>';
@@ -2591,16 +2609,19 @@
       + '<small>Tempo</small><strong>' + esc(r.fase.nome) + '</strong></div></div>'
       + '<div class="leilao-barra"><span>Seu ouro: <strong class="cor-ouro">' + ouroTxt(p.ouro) + '</strong></span>'
       + '<button class="btn secundario btn-pequeno" data-acao="leilao-atualizar">Atualizar</button></div>';
-    var lotes = '<div class="leilao-lotes">' + r.lotes.map(function (l) {
+    // Ordem: te cobriram (dá para reagir) > você lidera > o resto (na ordem do leilão)
+    var meus = lancesLeilao(p), peso = function (l) { return l.sou_lider ? 1 : meus.indexOf(String(l.id)) >= 0 ? 0 : 2; };
+    var ordenados = r.lotes.map(function (l, i) { return { l: l, i: i }; }).sort(function (a, b) { return peso(a.l) - peso(b.l) || a.i - b.i; }).map(function (x) { return x.l; });
+    var lotes = '<div class="leilao-lotes">' + ordenados.map(function (l) {
       var it = l.item, prox = l.proximo, usa = it.consumivel || R.podeUsar(p, it);
       var lance = l.lance ? '<div>Lance atual: <strong class="cor-ouro">' + ouroTxt(l.lance) + '</strong>'
-          + (l.sou_lider ? ' <span class="leilao-lider">Você lidera</span>' : ' <span class="suave">· ' + esc(l.lider_nome || '?') + '</span>') + '</div>'
+          + (l.sou_lider ? ' <span class="leilao-lider">Você lidera</span>' : (meus.indexOf(String(l.id)) >= 0 ? ' <span class="leilao-coberto">Te cobriram!</span>' : '') + ' <span class="suave">· ' + esc(l.lider_nome || '?') + '</span>') + '</div>'
         : '<div class="suave">Sem lances · mínimo <strong class="cor-ouro">' + ouroTxt(l.minimo) + '</strong></div>';
       var acao = l.sou_lider ? '<div class="suave pequeno">Espere alguém cobrir para dar outro lance.</div>'
         : '<div class="leilao-acao"><input class="lance-valor" id="lance-' + l.id + '" type="number" inputmode="numeric" min="' + prox + '" step="1" value="' + prox + '"'
           + ' aria-label="Valor do lance">'
           + '<button class="btn" data-acao="leilao-lance" data-id="' + l.id + '"' + (p.ouro < prox ? ' disabled title="Ouro insuficiente"' : '') + '>Dar lance</button></div>';
-      return '<div class="leilao-lote carta-' + l.raridade + (l.sou_lider ? ' liderando' : '') + '">'
+      return '<div class="leilao-lote carta-' + l.raridade + (l.sou_lider ? ' liderando' : meus.indexOf(String(l.id)) >= 0 ? ' coberto' : '') + '">'
         + '<div class="leilao-cab"><button class="icone-pequeno borda-' + l.raridade + aura(it) + '" data-acao="leilao-ver" data-id="' + l.id + '" title="Ver o item">'
         + F.icone(it) + (it.consumivel && it.qtd > 1 ? '<span class="qtd-consumivel">' + it.qtd + '</span>' : '') + '</button>'
         + '<div><div class="leilao-nome raridade-' + l.raridade + '">' + esc(nomeLote(l))
@@ -2636,6 +2657,7 @@
     try {
       await gravarAntesDoBanco(p);           // o servidor confere o ouro salvo
       var r = await C.leilao.lance(p.id, Number(id), valor);
+      marcarLanceLeilao(p, id);
       (r.lotes || []).forEach(function (l) { l.item = R.itemDoLote(l); });
       estado.leilao = r;
       if (campo) campo.blur();
@@ -8359,8 +8381,8 @@
 
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou)
-      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> 🐉 <strong>' + esc(m.texto) + '</strong></p>';
+    if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou); nivel 1 = recado do admin (SQL Editor)
+      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> ' + (m.nivel === 1 ? '📢 <strong>' + esc(m.personagem || 'Eldrin') + ':</strong> <strong>' : '🐉 <strong>') + esc(m.texto) + '</strong></p>';
     }
     var classe = nomeClasseX(m);
     var acoes = ehAdmin()
