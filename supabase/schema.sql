@@ -474,6 +474,9 @@ $$;
 
 revoke execute on function public.senha_pedir(text, text), public.admin_pedidos_senha(), public.admin_senha_temporaria(bigint),
   public.admin_recusar_pedido_senha(bigint), public.senha_trocada() from public;
+-- No Supabase o anon (sem login) tem permissão própria: tirar dele também (conferência de segurança, nov/2026).
+revoke execute on function public.admin_pedidos_senha(), public.admin_senha_temporaria(bigint),
+  public.admin_recusar_pedido_senha(bigint), public.senha_trocada() from anon;
 grant execute on function public.senha_pedir(text, text) to anon, authenticated;
 grant execute on function public.admin_pedidos_senha(), public.admin_senha_temporaria(bigint),
   public.admin_recusar_pedido_senha(bigint), public.senha_trocada() to authenticated;
