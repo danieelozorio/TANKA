@@ -244,6 +244,7 @@ Tanka.contas = (function () {
       iniciar: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
       escolher: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
       desistir: function () { return Promise.resolve(); },
+      posicao: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
     },
     boss: boss,
     mercado: mercado,

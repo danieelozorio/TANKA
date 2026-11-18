@@ -765,6 +765,11 @@ Tanka.dados = {
     chefesRepete: 2,                                    // depois da lista, os chefes revezam do 3º em diante (nunca volta aos fáceis)
     mecanicaElite: ['chuva', 'mortal', 'marca'],        // andar sem chefe: 1 mecânica, em rodízio
     aCada: 3,                                           // turnos entre um aviso e o próximo
+    // Formação (Daniel, 18/11/2026): grade de hexágonos 2-3-2 (casas 0-1 frente, 2-4 meio, 5-6 trás). O golpe normal e os golpes
+    // de um alvo só (Golpe Mortal, Marca) pegam a fileira viva mais da frente; quem está atrás só leva dano em área.
+    formacao: { fileiras: [[0, 1], [2, 3, 4], [5, 6]], nomes: ['Frente', 'Meio', 'Trás'] },
+    golpeAreaPct: 50,                                   // chefe que bate em área: cada herói leva 50% do golpe
+    chefesArea: [false, false, true, false, true],      // quais chefes (mesma ordem de `chefes`) dão o golpe normal em área
     narracao: { base: 1200, porLinha: 450, max: 9000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
     // Prêmios por andar vencido (o servidor dá: torre_registrar em supabase/schema.sql — manter iguais)
     premios: { ouroNovo: 1000, repNovo: 5, ouroRepetido: 150, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },

@@ -2946,7 +2946,9 @@ Tanka.regras = (function () {
       var k = andar / TR.chefeCada - 1, ch = D.PESADELO.chefes[k % D.PESADELO.chefes.length];
       var b = mk(ch.id, 'chefe', { vida: 1, dano: 1, defesa: 1 });
       var r0 = TR.chefesRepete || 0, nC = TR.chefes.length;
-      b.mecanicas = TR.chefes[k < nC ? k : r0 + (k - r0) % (nC - r0)].slice();
+      var kc = k < nC ? k : r0 + (k - r0) % (nC - r0);
+      b.mecanicas = TR.chefes[kc].slice();
+      b.golpeArea = !!(TR.chefesArea && TR.chefesArea[kc]);   // golpe normal em área (pega até quem está atrás)
       lista.push(b);
     } else {
       var area = D.areas[(andar - 1) % nArea];
@@ -2964,11 +2966,34 @@ Tanka.regras = (function () {
       s: s, hp: s.hpMax, hpMax: s.hpMax, L: novoLutador(p, 'masmorra'), pocoes: TR.pocoes,
       maiorAtr: Math.max.apply(null, ATRIBUTOS.map(function (k) { return atributosTotais(p)[k] || 0; })) };
   }
-  // Nova subida: { andar, turno, herois, inimigos, avisos, fim, log }.
-  function novaTorre(fichas, andar) {
+  // Nova subida: { andar, turno, herois, inimigos, avisos, fim, log }. posicoes: casa da grade (0-6) de cada ficha, ou null.
+  function novaTorre(fichas, andar, posicoes) {
     var t = { andar: andar || 1, turno: 0, herois: fichas.map(heroiTorre), fim: null, log: [] };
+    formarTorre(t, posicoes || []);
     prepararAndarTorre(t);
     return t;
+  }
+  // Coloca cada herói na casa escolhida; quem não escolheu (ou repetiu casa) vai para a casa livre mais da frente,
+  // com quem tem mais defesa primeiro.
+  function formarTorre(t, posicoes) {
+    var usadas = {}, sem = [];
+    t.herois.forEach(function (h, i) {
+      var c = posicoes[i];
+      if (typeof c === 'number' && c >= 0 && c <= 6 && !usadas[c]) { h.pos = c; usadas[c] = true; } else sem.push(h);
+    });
+    sem.sort(function (a, b) { return b.s.defesa - a.s.defesa; }).forEach(function (h) {
+      for (var c = 0; c <= 6; c++) if (!usadas[c]) { h.pos = c; usadas[c] = true; return; }
+    });
+  }
+  function fileiraTorre(h) { var F = TR.formacao.fileiras; for (var i = 0; i < F.length; i++) if (F[i].indexOf(h.pos) >= 0) return i; return 0; }
+  // Heróis que um golpe de alvo único pode pegar: os vivos da fileira mais da frente.
+  function alcanceTorre(t) {
+    var vivos = vivosT(t.herois);
+    for (var f = 0; f < TR.formacao.fileiras.length; f++) {
+      var x = vivos.filter(function (h) { return fileiraTorre(h) === f; });
+      if (x.length) return x;
+    }
+    return vivos;
   }
   function prepararAndarTorre(t) {
     t.inimigos = inimigosTorre(t.andar);
@@ -3167,9 +3192,10 @@ Tanka.regras = (function () {
     function golpeNormal(m) {
       // em quem provocou, senão em alguém vivo
       var vivos = vivosT(t.herois), prov = vivos.filter(function (h) { return h.L.provocaAte >= h.L.turno; })[0];
-      var alvosM = prov ? [prov] : [];
-      if (!prov) { var sorteio = vivos.slice(); for (var q = 0; q < (m.tipo === 'lacaio' ? 1 : TR.semProvocar) && sorteio.length; q++) alvosM.push(sorteio.splice(Math.floor(rng() * sorteio.length), 1)[0]); }
-      if (alvosM.length > 1) diz(m.nome + ' ataca sem foco e acerta dois de uma vez!');
+      var alvosM = prov ? [prov] : [], area = m.golpeArea && !prov;
+      if (area) { alvosM = vivos; diz(m.nome + ' golpeia em área: acerta todo o grupo!', { area: true }); }
+      else if (!prov) { var sorteio = alcanceTorre(t).slice(); for (var q = 0; q < (m.tipo === 'lacaio' ? 1 : TR.semProvocar) && sorteio.length; q++) alvosM.push(sorteio.splice(Math.floor(rng() * sorteio.length), 1)[0]); }
+      if (alvosM.length > 1 && !area) diz(m.nome + ' ataca sem foco e acerta dois de uma vez!');
       m.nAtq++;
       var cegoAgora = m.cego > 0 && (m.cego--, rng() * 100 < (m.cegoPct || 0));
       alvosM.forEach(function (h) {
@@ -3177,7 +3203,7 @@ Tanka.regras = (function () {
         if (h.L.furtivo) { h.L.furtivo = false; diz(h.nome + ' some nas sombras e ' + m.nome + ' erra.'); return; }
         if (cegoAgora) { diz(m.nome + ' está cego e erra ' + h.nome + '.'); return; }
         if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - h.s.evasao, 5, 95)) { diz(h.nome + ' esquiva de ' + m.nome + '.'); return; }
-        bater(m, h, rolar(m.ataque, rng) * furia(m));
+        bater(m, h, rolar(m.ataque, rng) * furia(m) * (area ? TR.golpeAreaPct / 100 : 1));
       });
     }
     // Aura da Torre: todos perdem um pouco de vida a cada turno (a cura segura)
@@ -3201,7 +3227,7 @@ Tanka.regras = (function () {
     if (t.turno + 1 >= t.proxAviso) {
       var m0 = t.inimigos.filter(function (m) { return m.hp > 0 && m.mecanicas && m.mecanicas.length; })[0];
       if (m0) {
-        var mec = m0.mecanicas[t.iMec++ % m0.mecanicas.length], M = TR.mecanicas[mec], vivos2 = vivosT(t.herois);
+        var mec = m0.mecanicas[t.iMec++ % m0.mecanicas.length], M = TR.mecanicas[mec], vivos2 = alcanceTorre(t);   // um alvo: fileira da frente
         var a = { mec: mec, de: t.inimigos.indexOf(m0), em: M.turnos, alvo: M.alvo === 'um' ? t.herois.indexOf(vivos2[Math.floor(rng() * vivos2.length)]) : null };
         t.avisos.push(a);
         diz('⚠ ' + m0.nome + ' ' + M.texto.replace('{alvo}', a.alvo != null ? t.herois[a.alvo].nome : '') + (M.turnos > 1 ? ' (em ' + M.turnos + ' turnos)' : ' (no próximo turno)') + '.', { aviso: true });
@@ -3677,7 +3703,7 @@ Tanka.regras = (function () {
     poder: poder,
     tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
-    novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
+    fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
     calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,

@@ -2051,3 +2051,20 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .torre-op.tomada small { display: block; font-size: .65rem; }
 .torre-narracao .n-premio { color: #ffe08a; font-weight: 700; }
 .torre-vida i { transition: width .35s ease-out; }
+/* Formação da Torre: grade de hexágonos 2-3-2 */
+.torre-grade { display: flex; flex-direction: column; gap: 0; margin: 6px auto 10px; max-width: 360px; }
+.torre-fileira { display: grid; grid-template-columns: 52px 1fr; align-items: center; margin-top: -14px; }
+.torre-fileira:first-child { margin-top: 0; }
+.torre-fileira-nome { text-align: left; font-size: .75rem; color: var(--ouro-claro); }
+.torre-hexes { display: flex; gap: 4px; justify-content: center; }
+.torre-hex { --cor: #5a4528; width: 68px; height: 78px; padding: 0; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--cor); position: relative; color: #fff; font: inherit; }
+.torre-hex::before { content: ''; position: absolute; inset: 3px; clip-path: inherit; background: #17120c; z-index: 0; }
+.torre-hex > * { position: relative; z-index: 1; }
+.torre-hex-livre { font-size: 1.6rem; color: #6a5a40; }
+.torre-hex:hover .torre-hex-livre { color: var(--ouro); }
+.torre-hex-rosto { width: 38px; height: 42px; overflow: hidden; border-radius: 6px; }
+.torre-hex-rosto img { width: 100%; height: 100%; object-fit: cover; }
+.torre-hex small { font-size: .62rem; max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cor); }
+.torre-hex.minha { filter: drop-shadow(0 0 8px var(--cor)); }
+.torre-hex:disabled { cursor: default; }

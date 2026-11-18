@@ -2656,3 +2656,28 @@ teste('pontos de habilidade param no level 46 (60 pontos); depois só o Pacto', 
   assert.strictEqual(p.nivel, 60);
   assert.strictEqual(R.pontosHabilidadeTotal(p), 60, 'no 60 continua 60');
 });
+
+teste('Torre: formação 2-3-2 (frente apanha; atrás só leva dano em área) (Daniel, 18/11/2026)', () => {
+  const ficha = (c, c2) => { const p = R.criarPersonagem('F' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2); return p; };
+  const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
+  // posições: paladino frente (0), bruxo meio (3), curandeiro e assassino atrás (5, 6)
+  const t = R.novaTorre(fichas, 1, [0, 5, 3, 6]);
+  assert.deepStrictEqual(t.herois.map((h) => h.pos), [0, 5, 3, 6]);
+  assert.deepStrictEqual(t.herois.map((h) => R.fileiraTorre(h)), [0, 2, 1, 2]);
+  assert.deepStrictEqual(R.alcanceTorre(t).map((h) => h.pos), [0]);
+  // sem escolha: quem tem mais defesa vai para a frente
+  const t2 = R.novaTorre(fichas, 1, []);
+  const maisDef = t2.herois.slice().sort((a, b) => b.s.defesa - a.s.defesa)[0];
+  assert.strictEqual(maisDef.pos, 0);
+  // 30 turnos com o grupo parado (só desviar): o golpe normal nunca acerta quem está atrás enquanto a frente vive
+  for (let k = 0; k < 30 && !t.fim; k++) {
+    const frenteViva = t.herois[0].hp > 0, ev = R.resolverTurnoTorre(t, t.herois.map(() => ({ acao: 'desviar', ordem: 1 })), 500 + k);
+    if (frenteViva) ev.filter((e) => e.de === 'm' && !e.t.includes('Chuva') && !e.t.includes('Marca')).forEach((e) => assert.ok([0].includes(e.alvo) || e.alvo === undefined, 'golpe normal só na frente: ' + e.t));
+    if (!t.herois[0].hp) break;
+  }
+  // chefe com golpe em área (3º chefe, andar 15) acerta todos
+  const t3 = R.novaTorre(fichas, 15, [0, 5, 3, 6]);
+  assert.ok(t3.inimigos[0].golpeArea, 'andar 15: golpe em área');
+  const ev3 = R.resolverTurnoTorre(t3, t3.herois.map(() => ({ acao: 'atacar', ordem: 1 })), 9);
+  assert.ok(ev3.some((e) => e.area), 'avisa o golpe em área');
+});

@@ -141,7 +141,8 @@ async function torreAvancar(id: string, args: any, base: string, cab: Record<str
     const agora = Date.now(), prazo = run.prazo ? Date.parse(run.prazo) : 0;
     let t = run.torre, esc = run.escolhas || {}, novoPrazo = prazo, mudou = false, vencido = 0, fim: string | null = null;
     if (!t) {
-      t = R.novaTorre(run.herois.map((h: { dados: unknown }) => h.dados), run.andar_inicio || 1);
+      t = R.novaTorre(run.herois.map((h: { dados: unknown }) => h.dados), run.andar_inicio || 1,
+        run.herois.map((h: { id: string }) => (run.posicoes && typeof run.posicoes[h.id] === 'number') ? run.posicoes[h.id] : null));   // formação
       t.fase = 'escolha'; t.log = []; novoPrazo = agora + TR.segundosEscolha * 1000; mudou = true;
     } else if (t.fase === 'narrando' && agora >= prazo) {
       if (t.fim === 'vitoria') R.subirTorre(t);

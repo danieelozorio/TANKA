@@ -1234,3 +1234,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - **Torre desligada (18/11/2026):** `D.TORRE.ligada = false` esconde a aba (`abaVisivel`) e o convite automático para quem não é admin; o admin continua vendo para testar. Para ligar: `ligada: true`.
 - **Torre religada e mais forte (18/11/2026):** `ligada: true`; chefe do andar 1 vida 11.000 e dano 3.300–4.300 (andar 1 desafia grupo level 40: ~11–13 turnos; lv40 trava ~10–15, lv60 ~20–24); entrada level 40 (`nivelMin` e `torre_nivel_min()`). O começo já era depois do menor recorde do grupo.
 - **Torre: golpe em toda rodada (18/11/2026):** o chefe/elite dá o golpe normal toda rodada; no turno da mecânica avisada, bate primeiro e solta a mecânica depois (`golpeNormal` em resolverTurnoTorre). Atordoado continua perdendo a vez (e a mecânica).
+
+### Torre: formação em hexágonos (2-3-2)
+- `D.TORRE.formacao` (casas 0-1 frente, 2-4 meio, 5-6 trás), `golpeAreaPct` (50) e `chefesArea` (chefes 3 e 5 do ciclo batem em todos).
+- Regras: golpe normal e golpes de alvo único só pegam a fileira viva mais à frente (`alcanceTorre`); trás só toma dano em área.
+  Provocar continua puxando o golpe. Quem não escolheu casa é posto pelo `formarTorre` (mais defesa na frente).
+- Servidor: `grupo_membros.posicao`, `torre_runs.posicoes`, `torre_posicao(meu, pos)` (null tira); `torre_iniciar` copia as casas.
+  A função `acao` passa as casas para `novaTorre`.
+- Tela: grade no saguão (`gradeFormacao`, toque na sua casa para tirar) e a fileira no cartão do herói; inimigo com 💥 golpe em área.
+- Simulação (grupo lv 40): andar 10 foi de ~50% para ~90-95% de vitória; andar 15 (chefe com golpe em área) segue muro.

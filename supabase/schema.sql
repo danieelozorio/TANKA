@@ -747,7 +747,7 @@ begin
     'grupo', case when g is null then null else (select jsonb_build_object('id', gr.id, 'lider', gr.lider, 'masmorra', gr.masmorra,
         'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'raca', p.dados ->> 'raca',
             'sexo', p.dados ->> 'sexo', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'pronto', gm.pronto,
-            'entradas', public.entradas_usadas(p.id), 'visto_em', p.atualizado_em) order by gm.entrou_em)
+            'entradas', public.entradas_usadas(p.id), 'visto_em', p.atualizado_em, 'posicao', gm.posicao) order by gm.entrou_em)
           from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = gr.id),
         'convidados', coalesce((select jsonb_agg(p.nome) from public.grupo_convites c join public.personagens p on p.id = c.para where c.grupo_id = gr.id), '[]'::jsonb))
       from public.grupos gr where gr.id = g) end,
@@ -4367,6 +4367,9 @@ create table if not exists public.torre_recordes (
   em timestamptz not null default now()
 );
 alter table public.torre_recordes enable row level security;
+-- Formação (Daniel, 18/11/2026): casa da grade de hexágonos de cada membro (0-1 frente, 2-4 meio, 5-6 trás); a subida guarda.
+alter table public.grupo_membros add column if not exists posicao int;
+alter table public.torre_runs add column if not exists posicoes jsonb not null default '{}'::jsonb;
 
 -- Iguais a D.TORRE.nivelMin, D.TORRE.grupo e D.TORRE.marco.
 create or replace function public.torre_nivel_min() returns int language sql immutable as $$ select 40 $$;   -- 18/11/2026: era 30
@@ -4407,9 +4410,10 @@ begin
   end if;
   select coalesce(min(floor(coalesce(r.melhor, 0) / public.torre_marco()) * public.torre_marco()), 0)::int + 1 into ini
     from public.grupo_membros gm left join public.torre_recordes r on r.personagem_id = gm.personagem_id where gm.grupo_id = g;
-  insert into public.torre_runs (grupo_id, lider, membros, herois, andar_inicio, semente)
+  insert into public.torre_runs (grupo_id, lider, membros, herois, andar_inicio, semente, posicoes)
   select g, meu, array_agg(p.id order by gm.entrou_em),
-         jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by gm.entrou_em), ini, floor(random() * 2147483647)::bigint
+         jsonb_agg(jsonb_build_object('id', p.id, 'dados', p.dados) order by gm.entrou_em), ini, floor(random() * 2147483647)::bigint,
+         coalesce(jsonb_object_agg(p.id, gm.posicao) filter (where gm.posicao is not null), '{}'::jsonb)
   from public.grupo_membros gm join public.personagens p on p.id = gm.personagem_id where gm.grupo_id = g
   returning id into rid;
   update public.grupo_membros set pronto = false where grupo_id = g;
@@ -4452,6 +4456,23 @@ begin
       'andar_inicio', r.andar_inicio, 'torre', r.torre, 'escolhas', r.escolhas, 'versao', r.versao,
       'prazo', case when r.prazo is null then null else (extract(epoch from r.prazo) * 1000)::bigint end) end);
 end $$;
+
+-- Escolhe a casa da formação (0 a 6; null tira). Uma casa por membro do grupo.
+create or replace function public.torre_posicao(meu text, pos int) returns void
+language plpgsql security definer set search_path = public as $$
+declare g bigint;
+begin
+  perform public.conferir_dono(meu);
+  g := public.meu_grupo(meu);
+  if g is null then raise exception 'Entre num grupo primeiro.'; end if;
+  if pos is not null and (pos < 0 or pos > 6) then raise exception 'Casa inválida.'; end if;
+  if pos is not null and exists (select 1 from public.grupo_membros where grupo_id = g and posicao = pos and personagem_id <> meu) then
+    raise exception 'Essa casa já é de outro jogador.';
+  end if;
+  update public.grupo_membros set posicao = pos where personagem_id = meu;
+end $$;
+revoke execute on function public.torre_posicao(text, int) from public, anon;
+grant execute on function public.torre_posicao(text, int) to authenticated;
 
 -- O líder desiste: a subida acaba (os andares vencidos já ficaram no recorde).
 create or replace function public.torre_desistir(meu text, run_id bigint) returns void

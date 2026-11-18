@@ -1384,7 +1384,16 @@ select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Level mínimo 40 (a
 reset role; update public.personagens set dados = jsonb_set(dados, '{nivel}', '40') where id = 't3'; set role authenticated;
 select pg_temp.comoT('2'); select pg_temp.falha($$select public.torre_iniciar('t2')$$, 'Só o líder');
 select pg_temp.comoT('1');
+select public.torre_posicao('t1', 0);
+select pg_temp.comoT('2');
+select pg_temp.falha($$select public.torre_posicao('t2', 0)$$, 'Essa casa já é de outro jogador');
+select public.torre_posicao('t2', 5);
+select pg_temp.igual((select string_agg(m ->> 'posicao', ',' order by m ->> 'nome') from jsonb_array_elements(public.grupo_estado('t2') -> 'grupo' -> 'membros') m where m ->> 'posicao' is not null), '0,5', 'torre: formação aparece no grupo');
+select pg_temp.comoT('1');
 select public.torre_iniciar('t1');
+reset role;
+select pg_temp.igual((select posicoes ->> 't2' from public.torre_runs order by id desc limit 1), '5', 'torre: a subida guarda a formação');
+set role authenticated;
 select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '10', 'torre: começa depois do menor recorde do grupo (27, 14, 31, 9 -> andar 10)');
 select pg_temp.comoT('4');
 select pg_temp.igual(jsonb_array_length(public.torre_estado('t4') -> 'run' -> 'membros'), 4, 'torre: os 4 na subida');

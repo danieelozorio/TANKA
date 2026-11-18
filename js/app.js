@@ -5405,6 +5405,13 @@
       case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); marcarEscolhaTorre(); break;
       case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); marcarEscolhaTorre(); break;
       case 'torre-confirmar': torreConfirmar(); break;
+      case 'torre-casa': {
+        var gc = estado.gm && estado.gm.grupo, eu = gc && gc.membros.filter(function (m) { return m.id === p.id; })[0], casa = Number(el.dataset.valor);
+        if (!eu) break;
+        var nova = eu.posicao === casa ? null : casa;
+        C.torre.posicao(p.id, nova).then(function () { eu.posicao = nova; redesenharTorre(true); carregarGrupo(); }, function (er) { avisar(er.message); carregarGrupo(); });
+        break;
+      }
       case 'torre-auto': torreAutoMudar(!torreAuto()); torreEst().autoFeito = null; redesenharTorre(true); autoTorre(); break;
       case 'torre-subir':
         C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
@@ -6814,7 +6821,7 @@
   function assinaturaTorre() {
     var T = torreEst(), st = T.st, r = st && st.run, g = estado.gm && estado.gm.grupo;
     return JSON.stringify([st ? 1 : 0, T.erro, torreAuto(), r && [r.id, r.versao, r.estado, r.escolhas, r.torre && r.torre.fase], T.esc, estado.torreDesistir,
-      st && st.recorde, g && g.membros.map(function (m) { return m.id + (m.pronto ? 1 : 0); })]);
+      st && st.recorde, g && g.membros.map(function (m) { return m.id + (m.pronto ? 1 : 0) + ':' + m.posicao; })]);
   }
   // Toque num botão da ação: só troca a marcação (sem redesenhar a tela inteira).
   function marcarEscolhaTorre() {
@@ -6974,12 +6981,30 @@
         + (m.nivel < TR_.nivelMin ? '<span class="menos pequeno">Precisa do level ' + TR_.nivelMin + '</span>' : '') + '</div>';
     }).join('') + '</div>';
     if (gr.membros.length < TR_.grupo) h += '<p class="suave pequeno">Faltam ' + (TR_.grupo - gr.membros.length) + ': convide pela aba Social.</p>';
+    h += gradeFormacao(gr, p);
     h += '<div class="botoes">' + (eu.pronto ? '<button class="btn secundario" data-acao="grupo-pronto" data-valor="nao">Não estou pronto</button>'
         : '<button class="btn" data-acao="grupo-pronto" data-valor="sim">Estou pronto</button>')
       + (souLider ? '<button class="btn" data-acao="torre-subir"' + (gr.membros.length !== TR_.grupo ? ' disabled' : '') + '>🗼 Subir a Torre</button>' : '<span class="suave pequeno">O líder começa a subida.</span>')
       + '</div>';
     return h;
   }
+  // Formação: grade de hexágonos 2-3-2. Toque numa casa livre para pôr seu herói; toque na sua para tirar.
+  function gradeFormacao(gr, p) {
+    var F = TR_.formacao, dono = {};
+    gr.membros.forEach(function (m, i) { if (typeof m.posicao === 'number') dono[m.posicao] = { m: m, cor: CORES_TORRE[i % 4] }; });
+    var h = '<h3 class="subtitulo">Formação</h3><p class="suave pequeno">Toque numa casa para pôr seu herói. O golpe normal do chefe só pega a fileira da <b>frente</b> '
+      + '(se ela cair, o meio, depois trás). Quem está atrás só leva <b>dano em área</b>. Quem não escolher, o jogo põe sozinho (mais defesa na frente).</p><div class="torre-grade">';
+    F.fileiras.forEach(function (casas, f) {
+      h += '<div class="torre-fileira"><span class="torre-fileira-nome">' + ['🛡', '⚔', '🏹'][f] + ' ' + F.nomes[f] + '</span><div class="torre-hexes">' + casas.map(function (c) {
+        var d = dono[c], minha = d && d.m.id === p.id;
+        return '<button class="torre-hex' + (d ? ' ocupada' : '') + (minha ? ' minha' : '') + '" data-acao="torre-casa" data-valor="' + c + '"' + (d && !minha ? ' disabled' : '')
+          + (d ? ' style="--cor:' + d.cor + '"' : '') + ' title="' + (d ? esc(d.m.nome) : 'Casa livre') + '">'
+          + (d ? '<span class="torre-hex-rosto">' + F_personagemMini(d.m) + '</span><small>' + esc(d.m.nome) + '</small>' : '<span class="torre-hex-livre">+</span>') + '</button>';
+      }).join('') + '</div></div>';
+    });
+    return h + '</div>';
+  }
+  function F_personagemMini(m) { return F.personagem(m.raca, classeRetrato(m), m.sexo); }
   function textoAviso(t, a) {
     var M = TR_.mecanicas[a.mec], quem = a.alvo != null && t.herois[a.alvo] ? ' em ' + esc(t.herois[a.alvo].nome) : '';
     return '<b>' + M.nome + '</b>' + quem + ' — ' + (a.em <= 1 ? '<b>NESTE TURNO!</b>' : 'em ' + a.em + ' turnos');
@@ -6999,6 +7024,7 @@
     // inimigos
     h += '<div class="torre-inimigos">' + t.inimigos.map(function (m, i) {
       var marcas = [];
+      if (m.golpeArea) marcas.push('💥 golpe em área');
       if (m.atordoado > 0 && m.hp > 0) marcas.push('💫 atordoado');
       if (m.escudoOssos > 0) marcas.push('🦴 escudo ' + Number(m.escudoOssos).toLocaleString('pt-BR'));
       if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push('🩸 cura −' + m.cortaCura.pct + '%');
@@ -7011,7 +7037,8 @@
     h += '<div class="torre-herois">' + t.herois.map(function (x, xi) {
       var e = r.escolhas && r.escolhas[x.id], cor = CORES_TORRE[xi % 4];
       return '<div class="torre-heroi' + (x.hp <= 0 ? ' caido' : '') + (x.id === p.id ? ' eu' : '') + '" style="border-left:4px solid ' + cor + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
-        + '<div><strong style="color:' + cor + '">' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(vn && vn.hp[xi] != null ? vn.hp[xi] : x.hp, x.hpMax, '', 'h' + xi)
+        + '<div><strong style="color:' + cor + '">' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x)
+        + (typeof x.pos === 'number' ? ' · ' + ['🛡', '⚔', '🏹'][R.fileiraTorre(x)] + ' ' + TR_.formacao.nomes[R.fileiraTorre(x)] : '') + '</span>' + vidaBarra(vn && vn.hp[xi] != null ? vn.hp[xi] : x.hp, x.hpMax, '', 'h' + xi)
         + '<div class="pequeno">🧪 ' + x.pocoes + (t.fase === 'escolha' && x.hp > 0 ? (e ? ' · <span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : ' · <span class="suave">escolhendo…</span>') : '')
         + (x.hp <= 0 ? ' · <span class="menos">caído</span>' : '') + '</div></div></div>';
     }).join('') + '</div>';
