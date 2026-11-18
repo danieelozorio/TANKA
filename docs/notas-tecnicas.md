@@ -1284,3 +1284,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   buff, 3 turnos: `buffDano`), corrupcao (`corrompidoDe/Ate`: `curarH` vira dano em poção, cura de grupo e curaDano), camadas (−80% de dano,
   4 cargas, cada acerto gasta 1), vinculo (no turno seguinte, 50% do dano no chefe volta no herói ligado), falsoColapso (traço: ao chegar
   a 0, volta com 30%, limpa efeitos, golpe em área e só `TORRE.colapso.mecanicas`). Chefes e elites redistribuídos em `chefesTorre`/`elitesTorre`.
+- Ícones das habilidades dos chefes: `icoMec(id)` → assets/torre/mecanicas/<id>.webp (25: as 19 mecânicas + colapso, despertar,
+  rapido, area, resistencia, furia); sem a arte vira o emoji (`EMOJI_MEC`, `mecSemIcone`). Aparecem no aviso ⚠, nas marcas do chefe
+  (com dica `dicaMec`), na fileira "o que ele sabe" (`.cena-sabe`) e nos males do herói. Prompt único (grade 5x5) entregue ao Daniel.

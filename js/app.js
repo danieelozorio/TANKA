@@ -7174,9 +7174,30 @@
     return h + '</div>';
   }
   function F_personagemMini(m) { return F.personagem(m.raca, classeRetrato(m), m.sexo); }
+  // Ícones das habilidades dos chefes (assets/torre/mecanicas/<id>.webp). Sem a arte, mostra o emoji.
+  var EMOJI_MEC = { mortal: '⚔', chuva: '☄', marca: '💀', escudo: '🦴', invocar: '🌀', pele: '🪨', teia: '🕸', eclipse: '🌑', espelho: '🪞',
+    drenar: '🩸', silencio: '🔇', lentidao: '🐌', carregar: '⚡', iniciativa: '⏩', selo: '🔒', parasita: '🦠', corrupcao: '☠', camadas: '🔰',
+    vinculo: '🔗', colapso: '💀', despertar: '🔥', rapido: '💨', area: '💥', resistencia: '🛡', furia: '😡' };
+  var DICA_MEC = { despertar: 'Abaixo de ' + TR_.despertar.vidaPct + '% da vida, bate ' + TR_.despertar.danoPct + '% mais forte.',
+    rapido: 'Mais chance de agir antes do grupo (+' + TR_.velocidade.rapido + '%).', area: 'O golpe normal pega o grupo todo (' + TR_.golpeAreaPct + '% em cada um).',
+    resistencia: 'Chance de resistir a stun e outros efeitos. Cada stun que pega deixa ele +' + TR_.resistencia.porStun + '% resistente.',
+    furia: 'Depois do turno ' + TR_.furia.desde + ', bate ' + TR_.furia.porTurno + '% mais forte a cada turno.',
+    colapso: 'Falso Colapso: ao cair pela 1ª vez, levanta com ' + TR_.colapso.vidaPct + '% da vida, limpa os efeitos e passa a bater em área.' };
+  function dicaMec(id) {
+    var M = TR_.mecanicas[id];
+    return '<strong>' + (M ? M.nome : ({ despertar: 'Despertar', rapido: 'Rápido', area: 'Golpe em área', resistencia: 'Resistência', furia: 'Fúria', colapso: 'Falso Colapso' })[id] || id) + '</strong>'
+      + '<span>' + (M ? M.texto.replace(/\{alvo\}/g, 'um herói') + (M.turnos ? '. Aviso ' + M.turnos + ' turno' + (M.turnos > 1 ? 's' : '') + ' antes.' : '') : DICA_MEC[id] || '') + '</span>';
+  }
+  var mecSemIcone = {};
+  function icoMec(id, cls) {
+    var dica = cls === 'cena-sabe' ? ' data-dica="' + esc(dicaMec(id)) + '"' : '';
+    if (mecSemIcone[id]) return '<span class="mec-ico mec-emoji' + (cls ? ' ' + cls : '') + '"' + dica + '>' + (EMOJI_MEC[id] || '•') + '</span>';
+    return '<img class="mec-ico' + (cls ? ' ' + cls : '') + '" data-mec="' + id + '" src="assets/torre/mecanicas/' + id + '.webp" alt="' + (EMOJI_MEC[id] || '•') + '"'
+      + dica + '>';
+  }
   function textoAviso(t, a) {
     var M = TR_.mecanicas[a.mec], quem = a.alvo != null && t.herois[a.alvo] ? ' em ' + esc(t.herois[a.alvo].nome) : '';
-    return '<b>' + M.nome + '</b>' + quem + ' — ' + (a.em <= 1 ? '<b>NESTE TURNO!</b>' : 'em ' + a.em + ' turnos');
+    return icoMec(a.mec, 'aviso-ico') + '<b>' + M.nome + '</b>' + quem + ' — ' + (a.em <= 1 ? '<b>NESTE TURNO!</b>' : 'em ' + a.em + ' turnos');
   }
   function torreLuta(r) {
     var p = estado.personagem, T = torreEst(), t = r.torre, eu = t.herois.map(function (h) { return h.id; }).indexOf(p.id), me = t.herois[eu];
@@ -7222,28 +7243,34 @@
     var inimigo = function (x, grande) {
       var m = x.m, marcas = [];
       // vermelho = ruim para o inimigo (debuff); verde = bom para ele (buff)
-      if (grande && m.res) marcas.push(['buff', '🛡 Resist. stun ' + Math.min(95, m.res.stun) + '%']);
-      if (m.golpeArea) marcas.push(['buff', '💥 Golpe em área']);
-      if (m.escudoOssos > 0) marcas.push(['buff', '🦴 Barreira ' + Number(m.escudoOssos).toLocaleString('pt-BR')]);
-      if (m.peleAte >= prox && m.hp > 0) marcas.push(['buff', '🪨 Pele de Pedra']);
-      if (m.espelhoAte === prox && m.hp > 0) marcas.push(['buff', '🪞 Espelho']);
-      if (m.desperto) marcas.push(['buff', '🔥 Desperto']);
-      if (m.rapido) marcas.push(['buff', '⚡ Rápido']);
-      if (m.camadas > 0 && m.hp > 0) marcas.push(['buff', '🔰 Camadas ' + m.camadas]);
-      if (m.duasVezes === prox && m.hp > 0) marcas.push(['buff', '⏩ Age 2x']);
-      if (m.buffDano && m.buffDano.ate >= prox) marcas.push(['buff', '🦠 +' + m.buffDano.pct + '% dano']);
-      if (m.fase2) marcas.push(['buff', '💀 Fase 2']);
-      if (m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h]) marcas.push(['buff', '🔗 ' + t.herois[m.vinculo.h].nome]);
-      if (m.atordoado > 0 && m.hp > 0) marcas.push(['debuff', '💫 Atordoado']);
-      if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push(['debuff', '🩸 Cura −' + m.cortaCura.pct + '%']);
-      if (m.queima && m.queima.turnos > 0) marcas.push(['debuff', '🔥 Sangrando']);
-      if (m.cego > 0) marcas.push(['debuff', '🌑 Cego']);
-      if (m.defQuebra || m.quebraTemp) marcas.push(['debuff', '🛡 Defesa quebrada']);
+      // [tipo, ícone (assets/torre/mecanicas/<id>.webp), texto]; vermelho = ruim para o inimigo, verde = bom para ele
+      if (grande && m.res) marcas.push(['buff', 'resistencia', 'Resist. stun ' + Math.min(95, m.res.stun) + '%']);
+      if (m.golpeArea) marcas.push(['buff', 'area', 'Golpe em área']);
+      if (m.escudoOssos > 0) marcas.push(['buff', 'escudo', 'Barreira ' + Number(m.escudoOssos).toLocaleString('pt-BR')]);
+      if (m.peleAte >= prox && m.hp > 0) marcas.push(['buff', 'pele', 'Pele de Pedra']);
+      if (m.espelhoAte === prox && m.hp > 0) marcas.push(['buff', 'espelho', 'Espelho']);
+      if (m.desperto) marcas.push(['buff', 'despertar', 'Desperto']);
+      if (m.rapido) marcas.push(['buff', 'rapido', 'Rápido']);
+      if (m.camadas > 0 && m.hp > 0) marcas.push(['buff', 'camadas', 'Camadas ' + m.camadas]);
+      if (m.duasVezes === prox && m.hp > 0) marcas.push(['buff', 'iniciativa', 'Age 2x']);
+      if (m.buffDano && m.buffDano.ate >= prox) marcas.push(['buff', 'parasita', '+' + m.buffDano.pct + '% dano']);
+      if (m.fase2) marcas.push(['buff', 'colapso', 'Fase 2']);
+      if (m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h]) marcas.push(['buff', 'vinculo', t.herois[m.vinculo.h].nome]);
+      if (m.chefe && t.turno >= TR_.furia.desde) marcas.push(['buff', 'furia', 'Fúria']);
+      if (m.atordoado > 0 && m.hp > 0) marcas.push(['debuff', null, '💫 Atordoado']);
+      if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push(['debuff', null, '🩸 Cura −' + m.cortaCura.pct + '%']);
+      if (m.queima && m.queima.turnos > 0) marcas.push(['debuff', null, '🔥 Sangrando']);
+      if (m.cego > 0) marcas.push(['debuff', null, '🌑 Cego']);
+      if (m.defQuebra || m.quebraTemp) marcas.push(['debuff', null, '🛡 Defesa quebrada']);
+      // as mecânicas que ele sabe usar (ícones pequenos, com a explicação ao parar o mouse)
+      var sabe = grande && m.hp > 0 ? (m.mecanicas || []).map(function (id) { return icoMec(id, 'cena-sabe'); }).join('') : '';
       return '<div class="cena-inimigo' + (grande ? ' grande' : '') + (m.chefe ? ' chefe' : '') + (hpI(x.i) <= 0 ? ' caido' : '') + (m.atordoado > 0 ? ' tonto' : '') + '" data-alvo="i' + x.i + '">'
         + '<div class="cena-retrato">' + (m.imagem ? '<img src="' + m.imagem + '" alt=""' + (m.reserva ? ' data-reserva="' + m.reserva + '"' : '') + '>' : '') + (m.atordoado > 0 && m.hp > 0 ? '<span class="cena-tonto">💫</span>' : '') + '</div>'
         + '<strong>' + esc(m.nome) + (grande && m.chefe ? ' <small class="cena-tag">CHEFE</small>' : '') + '</strong>'
         + vidaBarra(hpI(x.i), m.hpMax, 'inimigo', 'i' + x.i)
-        + (marcas.length ? '<div class="cena-marcas">' + marcas.map(function (k) { return '<span class="' + k[0] + '">' + k[1] + '</span>'; }).join('') + '</div>' : '') + '</div>';
+        + (marcas.length ? '<div class="cena-marcas">' + marcas.map(function (k) {
+          return '<span class="' + k[0] + '"' + (k[1] ? ' data-dica="' + esc(dicaMec(k[1])) + '"' : '') + '>' + (k[1] ? icoMec(k[1]) : '') + k[2] + '</span>';
+        }).join('') + '</div>' : '') + (sabe ? '<div class="cena-sabe-lista" title="Habilidades dele">' + sabe + '</div>' : '') + '</div>';
     };
     h += '<div class="cena-inimigos">' + lac.slice(0, Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('')
       + (principal ? inimigo(principal, true) : '') + lac.slice(Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('') + '</div>';
@@ -7256,8 +7283,8 @@
         var xi = porCasa[c];
         if (xi == null) return '<div class="cena-casa vazia"><div class="cena-hex"></div></div>';
         var x = t.herois[xi], cor = CORES_TORRE[xi % 4], e = r.escolhas && r.escolhas[x.id], vivo = hpH(xi) > 0;
-        var males = (x.presoAte === prox ? '🕸' : '') + (x.cegoAte === prox ? '🌑' : '') + (x.silencioAte === prox ? '🔇' : '')
-          + (x.corrompidoDe <= prox && x.corrompidoAte >= prox ? '☠' : '') + (t.inimigos.some(function (m) { return m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h] === x; }) ? '🔗' : '');
+        var males = (x.presoAte === prox ? icoMec('teia') : '') + (x.cegoAte === prox ? icoMec('eclipse') : '') + (x.silencioAte === prox ? icoMec('silencio') : '')
+          + (x.corrompidoDe <= prox && x.corrompidoAte >= prox ? icoMec('corrupcao') : '') + (t.inimigos.some(function (m) { return m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h] === x; }) ? icoMec('vinculo') : '');
         var estadoTxt = !vivo ? '<span class="menos">caído</span>' : males && t.fase === 'escolha' ? '<span class="menos" title="Preso / cego / em silêncio neste turno">' + males + '</span>' : t.fase === 'escolha' ? (e ? '<span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : '<span class="suave">…</span>') : '';
         return '<div class="cena-casa' + (vivo ? '' : ' caido') + (x.id === p.id ? ' eu' : '') + '" style="--cor:' + cor + '" data-alvo="h' + xi + '">'
           + '<div class="cena-hex"><span class="torre-hex-rosto">' + F_personagemMini(x) + '</span></div>'
@@ -7271,6 +7298,12 @@
   document.addEventListener('error', function (e) {
     var img = e.target;
     if (img && img.tagName === 'IMG' && img.dataset && img.dataset.reserva && img.src.indexOf(img.dataset.reserva) < 0) { img.src = img.dataset.reserva; }
+    if (img && img.tagName === 'IMG' && img.classList.contains('mec-ico')) {   // sem a arte do ícone: fica o emoji
+      if (img.dataset.mec) mecSemIcone[img.dataset.mec] = true;
+      var sp = document.createElement('span'); sp.className = img.className + ' mec-emoji'; sp.textContent = img.alt;
+      if (img.dataset.dica) sp.dataset.dica = img.dataset.dica;
+      img.replaceWith(sp);
+    }
   }, true);
   // Durante a narração: número de dano/cura saltando sobre quem levou, e quem age dá um brilho.
   function efeitoCenaTorre(caixa, ev) {

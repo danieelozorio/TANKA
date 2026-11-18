@@ -2179,3 +2179,12 @@ body:has(#painel-grupo.aberto) #aviso { right: auto; left: 16px; align-items: fl
 .grupo-convite, .grupo-amigo { display: flex; justify-content: space-between; align-items: center; gap: .4rem; padding: .35rem 0; border-bottom: 1px solid rgba(255, 255, 255, .05); font-size: .85rem; }
 .grupo-convite .btn + .btn { margin-left: .3rem; }
 @media (max-width: 700px) { .grupo-aba { top: auto; bottom: 265px; } #painel-grupo.aberto .grupo-aba { display: none; } }
+/* Ícones das habilidades dos chefes da Torre (assets/torre/mecanicas; sem arte: emoji) */
+.mec-ico { width: 16px; height: 16px; border-radius: 4px; vertical-align: -3px; margin-right: 3px; object-fit: cover; }
+span.mec-ico.mec-emoji { display: inline-block; width: auto; height: auto; font-size: .85em; line-height: 1; }
+.cena-marcas span { display: inline-flex; align-items: center; }
+.aviso-ico { width: 24px; height: 24px; vertical-align: -6px; margin-right: 6px; border-radius: 6px; box-shadow: 0 0 6px rgba(224, 74, 60, .6); }
+.cena-sabe-lista { display: flex; justify-content: center; gap: 4px; margin-top: 3px; }
+.cena-sabe { width: 26px; height: 26px; margin: 0; border-radius: 6px; border: 1px solid rgba(176, 57, 43, .7); box-shadow: 0 0 6px rgba(0, 0, 0, .6); background: rgba(0, 0, 0, .55); cursor: help; }
+span.cena-sabe.mec-emoji { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; font-size: .95rem; }
+.cena-estado .mec-ico { margin: 0 1px; }
