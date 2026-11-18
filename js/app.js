@@ -5401,9 +5401,9 @@
       case 'grupo-recusar':
         acaoGrupo(function () { return C.grupo.responder(p.id, Number(el.dataset.convite), false); });
         break;
-      case 'torre-acao': { var te = torreEst().esc || (torreEst().esc = {}); te.acao = el.dataset.valor; te.hab = el.dataset.hab || null; redesenharTorre(true); break; }
-      case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); redesenharTorre(true); break;
-      case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); redesenharTorre(true); break;
+      case 'torre-acao': { var te = torreEst().esc || (torreEst().esc = {}); te.acao = el.dataset.valor; te.hab = el.dataset.hab || null; marcarEscolhaTorre(); break; }
+      case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); marcarEscolhaTorre(); break;
+      case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); marcarEscolhaTorre(); break;
       case 'torre-confirmar': torreConfirmar(); break;
       case 'torre-subir':
         C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
@@ -6815,9 +6815,22 @@
     return JSON.stringify([st ? 1 : 0, T.erro, r && [r.id, r.versao, r.estado, r.escolhas, r.torre && r.torre.fase], T.esc, estado.torreDesistir,
       st && st.recorde, g && g.membros.map(function (m) { return m.id + (m.pronto ? 1 : 0); })]);
   }
+  // Toque num botão da ação: só troca a marcação (sem redesenhar a tela inteira).
+  function marcarEscolhaTorre() {
+    var caixa = document.getElementById('torre'), e = torreEst().esc;
+    if (!caixa || !e) return;
+    caixa.querySelectorAll('[data-acao="torre-acao"]').forEach(function (b) { b.classList.toggle('sel', b.dataset.valor === e.acao && (e.acao !== 'habilidade' || b.dataset.hab === e.hab)); });
+    caixa.querySelectorAll('[data-acao="torre-alvo"]').forEach(function (b) { b.classList.toggle('sel', Number(b.dataset.valor) === e.alvo); });
+    caixa.querySelectorAll('[data-acao="torre-ordem"]').forEach(function (b) { b.classList.toggle('sel', Number(b.dataset.valor) === e.ordem); });
+    var alvos = caixa.querySelector('.torre-alvos');
+    if (alvos) alvos.hidden = !(e.acao === 'atacar' || e.acao === 'habilidade');
+    torreEst().sig = assinaturaTorre();   // a escolha já está na tela
+  }
   function redesenharTorre(forcar) {
     var caixa = document.getElementById('torre'), T = torreEst();
     if (!caixa) return;
+    // dedo na tela: espera soltar para não trocar o botão no meio do toque
+    if (T.apertado) { T.pendente = true; return; }
     var sig = assinaturaTorre();
     if (!forcar && sig === T.sig) { pulsoTorre(); return; }
     T.sig = sig;
@@ -6837,6 +6850,16 @@
       if (mudou && reg) reg.scrollTop = reg.scrollHeight;
     }
   }
+  document.addEventListener('pointerdown', function (ev) {
+    if (ev.target.closest && ev.target.closest('#torre')) torreEst().apertado = true;
+  }, true);
+  ['pointerup', 'pointercancel'].forEach(function (tipo) {
+    document.addEventListener(tipo, function () {
+      var T = torreEst();
+      if (!T.apertado) return;
+      setTimeout(function () { T.apertado = false; if (T.pendente) { T.pendente = false; redesenharTorre(); } }, 120);
+    }, true);
+  });
   function abaTorre() {
     var T = torreEst();
     setTimeout(function () { if (!T.st) carregarTorre(); else agendarTorre(); }, 0);
@@ -6965,7 +6988,7 @@
       + '<div class="torre-ops">' + btn('atacar', '⚔ Atacar') + btn('desviar', '💨 Desviar <small>' + R.chanceDesviar(me) + '%</small>')
       + btn('pocao', '🧪 Poção <small>' + me.pocoes + '</small>', null, me.pocoes <= 0) + '</div>'
       + (habs ? '<div class="torre-ops habs">' + habs + '</div>' : '');
-    if (vivos.length > 1 && (e.acao === 'atacar' || e.acao === 'habilidade')) h += '<div class="torre-linha"><span class="suave pequeno">Alvo:</span>' + vivos.map(function (x) {
+    if (vivos.length > 1) h += '<div class="torre-linha torre-alvos"' + (e.acao === 'atacar' || e.acao === 'habilidade' ? '' : ' hidden') + '><span class="suave pequeno">Alvo:</span>' + vivos.map(function (x) {
       return '<button class="torre-op mini' + (e.alvo === x.i ? ' sel' : '') + '" data-acao="torre-alvo" data-valor="' + x.i + '">' + esc(x.m.nome) + '</button>';
     }).join('') + '</div>';
     h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {
