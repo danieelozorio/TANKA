@@ -1430,5 +1430,14 @@ select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'andar_inicio'), '1
 select pg_temp.falha($$select public.torre_desistir('t1', 999999)$$, 'Só o líder');
 select public.torre_desistir('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint);
 select pg_temp.igual((public.torre_estado('t1') -> 'run' ->> 'estado'), 'abandonada', 'torre: o líder desiste');
+-- admin sobe sozinho para testar (Daniel, 18/11/2026); jogador comum sem grupo não
+select pg_temp.comoT('5');
+select pg_temp.falha($$select public.torre_iniciar('t5')$$, 'Só o líder');
+reset role; update public.contas set admin = true where id = '00000000-0000-0000-0000-0000000000e5'; set role authenticated;
+select pg_temp.comoT('5');
+select public.torre_iniciar('t5');
+select pg_temp.igual(jsonb_array_length(public.torre_estado('t5') -> 'run' -> 'membros'), 1, 'torre: admin sobe sozinho');
+select pg_temp.falha($$select public.torre_iniciar('t5')$$, 'Você já está subindo');
+reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000e5';
 reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

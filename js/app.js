@@ -1037,7 +1037,7 @@
   function abaVisivel(a) {
     var n = estado.personagem ? estado.personagem.nivel : 0;
     if (a === 'ascensao') return n >= D.ASCENSAO.nivelInicio;
-    if (a === 'torre') return n >= D.TORRE.nivelMin && (D.TORRE.ligada || ehAdmin());   // Torre do Eclipse: level 30+ (desligada: só admin)
+    if (a === 'torre') return ehAdmin() || (n >= D.TORRE.nivelMin && D.TORRE.ligada);   // Torre do Eclipse: level 40+ (o admin vê sempre, para testar)
     return true;
   }
   function abasDe(g) { return g.abas.filter(abaVisivel); }
@@ -6999,7 +6999,8 @@
     if (!g) return h + '<p class="suave">Carregando o grupo…</p>';
     var gr = g.grupo;
     if (!gr) return h + '<div class="secao"><p>Você precisa de um <b>grupo de ' + TR_.grupo + '</b>. Na aba <b>Social</b>, use <b>"Convidar para o grupo"</b> nos seus amigos '
-      + '(level ' + TR_.nivelMin + '+). Quem convida vira o líder 👑.</p></div>';
+      + '(level ' + TR_.nivelMin + '+). Quem convida vira o líder 👑.</p>'
+      + (ehAdmin() ? '<div class="botoes"><button class="btn" data-acao="torre-subir">🗼 Subir sozinho (teste do admin)</button></div>' : '') + '</div>';
     var souLider = gr.lider === p.id, eu = gr.membros.filter(function (m) { return m.id === p.id; })[0] || {};
     h += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + TR_.grupo + ')</h3><div class="torre-grupo">' + gr.membros.map(function (m) {
       return '<div class="torre-membro' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
@@ -7011,7 +7012,8 @@
     h += gradeFormacao(gr, p);
     h += '<div class="botoes">' + (eu.pronto ? '<button class="btn secundario" data-acao="grupo-pronto" data-valor="nao">Não estou pronto</button>'
         : '<button class="btn" data-acao="grupo-pronto" data-valor="sim">Estou pronto</button>')
-      + (souLider ? '<button class="btn" data-acao="torre-subir"' + (gr.membros.length !== TR_.grupo ? ' disabled' : '') + '>🗼 Subir a Torre</button>' : '<span class="suave pequeno">O líder começa a subida.</span>')
+      + (souLider ? '<button class="btn" data-acao="torre-subir"' + (gr.membros.length !== TR_.grupo && !ehAdmin() ? ' disabled' : '') + '>🗼 Subir a Torre'
+        + (gr.membros.length !== TR_.grupo && ehAdmin() ? ' (teste do admin, ' + gr.membros.length + ')' : '') + '</button>' : '<span class="suave pequeno">O líder começa a subida.</span>')
       + '</div>';
     return h;
   }

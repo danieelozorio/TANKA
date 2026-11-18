@@ -1254,3 +1254,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Luta como cena (`cenaTorre`): fundo da torre, inimigo principal grande no centro (lacaios dos lados), grupo na formação 2-3-2 com
   barra mini; `efeitoCenaTorre` solta números de dano/cura (`.cena-num`) e treme quem apanha a cada linha narrada (o evento de golpe
   do herói agora leva `ai`, índice do inimigo).
+- Religada (`ligada: true`). Admin: vê a aba em qualquer level, sobe sozinho sem grupo (`torre_iniciar` cria a subida só com ele,
+  `grupo_id` null) ou com grupo menor que 4 (botão "teste do admin"). Jogador comum continua precisando de 4.

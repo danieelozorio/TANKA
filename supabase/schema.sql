@@ -4391,9 +4391,24 @@ declare g bigint; gr public.grupos; problema text; ini int; rid bigint;
 begin
   perform public.conferir_dono(meu);
   g := public.meu_grupo(meu);
+  -- admin sem grupo: sobe sozinho (teste)
+  if g is null and public.eh_admin() then
+    if exists (select 1 from public.torre_runs where estado = 'andamento' and meu = any (membros) and atualizado_em > now() - interval '15 minutes') then
+      raise exception 'Você já está subindo a Torre.';
+    end if;
+    update public.torre_runs set estado = 'abandonada', concluido_em = now() where estado = 'andamento' and meu = any (membros);
+    insert into public.torre_runs (grupo_id, lider, membros, herois, andar_inicio, semente, posicoes)
+    select null, meu, array[p.id], jsonb_build_array(jsonb_build_object('id', p.id, 'dados', p.dados)),
+           coalesce((select floor(coalesce(r.melhor, 0) / public.torre_marco()) * public.torre_marco() from public.torre_recordes r where r.personagem_id = meu), 0)::int + 1,
+           floor(random() * 2147483647)::bigint, '{}'::jsonb
+    from public.personagens p where p.id = meu
+    returning id into rid;
+    return rid;
+  end if;
   select * into gr from public.grupos where id = g;
   if gr.id is null or gr.lider <> meu then raise exception 'Só o líder pode começar.'; end if;
-  if (select count(*) from public.grupo_membros where grupo_id = g) <> public.torre_grupo() then
+  -- admin: pode subir com grupo menor (teste)
+  if (select count(*) from public.grupo_membros where grupo_id = g) <> public.torre_grupo() and not public.eh_admin() then
     raise exception 'A Torre precisa de um grupo de % jogadores.', public.torre_grupo();
   end if;
   if exists (select 1 from public.grupo_membros where grupo_id = g and not pronto) then raise exception 'Todos precisam estar prontos.'; end if;
