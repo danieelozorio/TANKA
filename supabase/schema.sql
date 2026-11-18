@@ -4704,3 +4704,7 @@ begin
     values ('r' || gen_random_uuid()::text, c, meu, 'retirada', o, case when q > 0 then item end, q);
   return public.bau_estado(meu);
 end $$;
+-- só com login (como as outras funções do jogador; conferência de segurança, nov/2026)
+revoke execute on function public.bau_estado(text), public.bau_retirar(text, bigint, text, int) from public, anon;
+grant execute on function public.bau_estado(text), public.bau_retirar(text, bigint, text, int) to authenticated;
+notify pgrst, 'reload schema';
