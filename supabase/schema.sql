@@ -4369,7 +4369,7 @@ create table if not exists public.torre_recordes (
 alter table public.torre_recordes enable row level security;
 
 -- Iguais a D.TORRE.nivelMin, D.TORRE.grupo e D.TORRE.marco.
-create or replace function public.torre_nivel_min() returns int language sql immutable as $$ select 30 $$;
+create or replace function public.torre_nivel_min() returns int language sql immutable as $$ select 40 $$;   -- 18/11/2026: era 30
 create or replace function public.torre_grupo() returns int language sql immutable as $$ select 4 $$;
 create or replace function public.torre_marco() returns int language sql immutable as $$ select 1 $$;   -- salva andar por andar (Daniel)
 

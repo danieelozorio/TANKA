@@ -1358,7 +1358,7 @@ insert into auth.users (id, raw_user_meta_data) values
 insert into public.personagens (id, conta_id, nome, dados) values
   ('t1', '00000000-0000-0000-0000-0000000000e1', 'Tor1', '{"nome":"Tor1","nivel":40,"classe":"cavaleiro"}'),
   ('t2', '00000000-0000-0000-0000-0000000000e2', 'Tor2', '{"nome":"Tor2","nivel":40,"classe":"mago"}'),
-  ('t3', '00000000-0000-0000-0000-0000000000e3', 'Tor3', '{"nome":"Tor3","nivel":29,"classe":"mago"}'),
+  ('t3', '00000000-0000-0000-0000-0000000000e3', 'Tor3', '{"nome":"Tor3","nivel":39,"classe":"mago"}'),
   ('t4', '00000000-0000-0000-0000-0000000000e4', 'Tor4', '{"nome":"Tor4","nivel":40,"classe":"arqueiro"}'),
   ('t5', '00000000-0000-0000-0000-0000000000e5', 'Tor5', '{"nome":"Tor5","nivel":40,"classe":"arqueiro"}');
 insert into public.amizades (de, para, status) values ('t1', 't2', 'aceita'), ('t1', 't3', 'aceita'), ('t1', 't4', 'aceita'), ('t1', 't5', 'aceita');
@@ -1380,8 +1380,8 @@ select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Todos precisam esta
 select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;
 select pg_temp.comoT('1');
 select pg_temp.falha($$select public.masmorra_iniciar('t1')$$, 'Escolha a masmorra');
-select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Level mínimo 30 (abaixo: Tor3)');
-reset role; update public.personagens set dados = jsonb_set(dados, '{nivel}', '30') where id = 't3'; set role authenticated;
+select pg_temp.falha($$select public.torre_iniciar('t1')$$, 'Level mínimo 40 (abaixo: Tor3)');
+reset role; update public.personagens set dados = jsonb_set(dados, '{nivel}', '40') where id = 't3'; set role authenticated;
 select pg_temp.comoT('2'); select pg_temp.falha($$select public.torre_iniciar('t2')$$, 'Só o líder');
 select pg_temp.comoT('1');
 select public.torre_iniciar('t1');

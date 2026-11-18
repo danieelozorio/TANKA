@@ -737,8 +737,8 @@ Tanka.dados = {
   // (base + porAndar x andar; o stun ganha porStun a cada vez que pega, até o fim da luta).
   // Desviar: chance = desviar.base + porPonto x maior atributo do herói (máx. desviar.max); só evita golpe avisado.
   TORRE: {
-    ligada: false,   // Daniel (18/11/2026): desligada para os jogadores por enquanto; só o admin vê (para testar)
-    nome: 'Torre do Eclipse', nivelMin: 30, grupo: 4, segundosEscolha: 20, marco: 1,   // marco 1: salva andar por andar (Daniel)
+    ligada: true,    // false = só o admin vê (Daniel, 18/11/2026: religada)
+    nome: 'Torre do Eclipse', nivelMin: 40,   // 18/11/2026: era 30; o andar 1 agora é para grupo level 40 grupo: 4, segundosEscolha: 20, marco: 1,   // marco 1: salva andar por andar (Daniel)
     chefeCada: 5, maxTurnos: 45,
     crescimento: 1.06, crescimentoDefesa: 1.03,
     pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
@@ -750,7 +750,7 @@ Tanka.dados = {
     corteCura: { pct: 50, turnos: 3 },
     furia: { desde: 25, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 25º
     // inimigo do andar 1 (números de calibragem: ferramentas/simular_torre.js)
-    chefe: { vida: 7500, dano: [1500, 2000], defesa: 120 },
+    chefe: { vida: 11000, dano: [3300, 4300], defesa: 120 },   // 18/11/2026: mais forte (andar 1 desafia grupo level 40)
     elite: { vida: 0.85, dano: 0.92, defesa: 0.9 },       // andar sem chefe: x do chefe
     lacaio: { vida: 0.1, dano: 0.3 },
     mecanicas: {
