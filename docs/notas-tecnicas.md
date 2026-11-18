@@ -1333,7 +1333,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `arena_vez`, tipo `furtivo`: só fica nas sombras (`furtivo` + `critEm`) com o dado >= `ARENA.sombraDado` (18).
   Abaixo, `ev.sombraFalhou` e fica só o ataque normal do turno (a Sombra não gasta a vez). Recarga gasta igual.
 
-### Subir de level mais devagar e exp em % (Henri, 18/11/2026)
+### Exp em % (Henri, 18/11/2026; o EXP_MULT foi desfeito no mesmo dia)
+- DESFEITO: `D.EXP_MULT` voltou para null (curva antiga). O código continua aceitando o multiplicador.
 - `D.EXP_MULT` (faixa pelo level atual): 1–9 ×4, 10–19 ×5, 20–29 ×6, 30–39 ×9, 40+ ×12 sobre a curva antiga em
   `R.expNecessaria(nivel)`. `R.expNecessaria(nivel, true)` = curva antiga (usada pela Ascensão, que não encareceu).
   A exp dos chefes do Pesadelo (calculada em dados.js pela curva antiga) e dos monstros não mudou.

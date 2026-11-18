@@ -8,8 +8,6 @@ const ctx = {};
 vm.createContext(ctx);
 ['dados.js', 'historia.js', 'regras.js'].forEach((f) => vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', f), 'utf8'), ctx));
 const { dados: D, regras: R } = vm.runInContext('Tanka', ctx);
-// A curva mais lenta (EXP_MULT, 18/11/2026) tem teste próprio no fim; os testes antigos usam a curva base.
-const EXP_MULT_JOGO = D.EXP_MULT; D.EXP_MULT = null;
 D.HABILIDADES_ATIVAS = true; // os testes de habilidade continuam valendo para quando religar
 
 const fixo = (v) => () => v; // rng que sempre devolve v (0 = sucesso, 0.999 = falha)
@@ -2820,14 +2818,4 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   assert.strictEqual(R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 19, 15)).entradas, 0);
 });
 
-teste('exp mais lenta (18/11/2026): EXP_MULT por faixa; a Ascensão usa a curva base', () => {
-  D.EXP_MULT = EXP_MULT_JOGO;
-  try {
-    const base = (n) => R.expNecessaria(n, true);
-    [[1, 4], [9, 4], [10, 5], [19, 5], [25, 6], [35, 9], [53, 12]].forEach(([n, m]) =>
-      assert.ok(Math.abs(R.expNecessaria(n) - base(n) * m) <= m, 'level ' + n + ' pede ' + m + 'x'));
-    const p = R.criarPersonagem('Lento', 'masculino', 'humano', 'cavaleiro');
-    R.ganharExp(p, 39); assert.strictEqual(p.nivel, 1, 'com 39 de exp ainda é level 1 (pede 40)');
-    R.ganharExp(p, 1); assert.strictEqual(p.nivel, 2);
-  } finally { D.EXP_MULT = null; }
-});
+

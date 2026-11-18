@@ -24,10 +24,9 @@ Tanka.dados = {
   // Henri (nov/2026): depois do 19 a curva cresce menos, para cada level pedir mais ou menos os mesmos monstros
   // (a exp dos monstros triplica a cada área de 5 levels): +30% por level do 20 ao 29 e +12% do 30 em diante.
   EXP_FAIXAS: [{ ate: 19, crescimento: 1.5 }, { ate: 29, crescimento: 1.3 }, { ate: 99, crescimento: 1.12 }],
-  // Subir de level mais devagar (Henri, 18/11/2026): a exp de cada level (pela curva acima) vezes `mult`, pela faixa do
-  // level atual. Caçando sem parar: level 10 em ~4 h, 20 em ~1,5 dia, 40 em ~2 semanas, 60 em ~2 meses.
-  // A exp dos monstros e dos chefes do Pesadelo NÃO muda (o Pesadelo usa a curva sem o mult); a Ascensão também não.
-  EXP_MULT: [{ ate: 9, mult: 4 }, { ate: 19, mult: 5 }, { ate: 29, mult: 6 }, { ate: 39, mult: 9 }, { ate: 99, mult: 12 }],
+  // EXP_MULT (opcional): multiplica a exp de cada level pela faixa do level atual, ex.: [{ ate: 9, mult: 4 }, ...].
+  // Testado em 18/11/2026 (4x a 12x) e desfeito no mesmo dia a pedido do Henri: hoje a curva é a de cima, sem multiplicar.
+  EXP_MULT: null,
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,
