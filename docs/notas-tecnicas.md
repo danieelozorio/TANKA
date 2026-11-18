@@ -1227,3 +1227,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   reputação (créditos "Torre do Eclipse: andar N"); repetido = 150 x andar de ouro; chefe (andar múltiplo de 5) novo =
   1 pergaminho (até 10 raro, até 25 épico, depois lendário) em `recompensas` origem 'torre'. `D.TORRE.premios` só para a
   tela (manter igual ao SQL). Caixa de entrada: origem 'torre' (🗼).
+- **Torre sem lag (18/11/2026):** narração em `D.TORRE.narracao` (1,2 s + 0,45 s por linha, máx. 9 s; antes 2 s + 1,1 s, ~15 s por turno). A tela só redesenha quando muda (`assinaturaTorre`); relógio e linhas da narração andam pelo `pulsoTorre` (250 ms); o próximo pedido acompanha o prazo.

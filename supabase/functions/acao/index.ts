@@ -127,7 +127,7 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
 
 // Torre do Eclipse (Daniel, nov/2026): monta a luta, resolve o turno quando os vivos escolheram (ou o prazo acabou),
 // espera a narração e sobe de andar. Tudo com o relógio e a semente do servidor; grava com a proteção de versão.
-const MS_NARRACAO = (n: number) => Math.min(25000, 2000 + n * 1100);   // tempo para a tela contar o turno
+const MS_NARRACAO = (n: number) => { const N = Tanka.dados.TORRE.narracao; return Math.min(N.max, N.base + n * N.porLinha); };   // tempo para a tela contar o turno
 // deno-lint-ignore no-explicit-any
 async function torreAvancar(id: string, args: any, base: string, cab: Record<string, string>) {
   const TR = Tanka.dados.TORRE;

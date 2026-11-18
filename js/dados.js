@@ -764,6 +764,7 @@ Tanka.dados = {
     chefesRepete: 2,                                    // depois da lista, os chefes revezam do 3º em diante (nunca volta aos fáceis)
     mecanicaElite: ['chuva', 'mortal', 'marca'],        // andar sem chefe: 1 mecânica, em rodízio
     aCada: 3,                                           // turnos entre um aviso e o próximo
+    narracao: { base: 1200, porLinha: 450, max: 9000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
     // Prêmios por andar vencido (o servidor dá: torre_registrar em supabase/schema.sql — manter iguais)
     premios: { ouroNovo: 1000, repNovo: 5, ouroRepetido: 150, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
   },

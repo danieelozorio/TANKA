@@ -5401,15 +5401,15 @@
       case 'grupo-recusar':
         acaoGrupo(function () { return C.grupo.responder(p.id, Number(el.dataset.convite), false); });
         break;
-      case 'torre-acao': { var te = torreEst().esc || (torreEst().esc = {}); te.acao = el.dataset.valor; te.hab = el.dataset.hab || null; redesenharTorre(); break; }
-      case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); redesenharTorre(); break;
-      case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); redesenharTorre(); break;
+      case 'torre-acao': { var te = torreEst().esc || (torreEst().esc = {}); te.acao = el.dataset.valor; te.hab = el.dataset.hab || null; redesenharTorre(true); break; }
+      case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); redesenharTorre(true); break;
+      case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); redesenharTorre(true); break;
       case 'torre-confirmar': torreConfirmar(); break;
       case 'torre-subir':
         C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
         break;
-      case 'torre-desistir-pedir': estado.torreDesistir = true; redesenharTorre(); break;
-      case 'torre-desistir-nao': estado.torreDesistir = false; redesenharTorre(); break;
+      case 'torre-desistir-pedir': estado.torreDesistir = true; redesenharTorre(true); break;
+      case 'torre-desistir-nao': estado.torreDesistir = false; redesenharTorre(true); break;
       case 'torre-desistir': {
         var rd = runTorre(); estado.torreDesistir = false;
         if (rd) C.torre.desistir(p.id, rd.id).then(carregarTorre, function (er) { avisar(er.message); });
@@ -6805,17 +6805,45 @@
     var T = torreEst();
     clearTimeout(T.timer);
     if (estado.aba !== 'torre' || !estado.personagem) return;
-    T.timer = setTimeout(carregarTorre, torreAndando() ? 1500 : 5000);
+    var r = runTorre(), espera = 5000;
+    if (torreAndando()) espera = r.torre && r.prazo ? Math.max(300, Math.min(1500, r.prazo - agoraServ() + 150)) : 800;
+    T.timer = setTimeout(carregarTorre, espera);
   }
-  function redesenharTorre() {
-    var caixa = document.getElementById('torre');
+  // Só redesenha quando algo mudou (sem piscar as imagens); o relógio e a narração andam pelo pulso (250 ms).
+  function assinaturaTorre() {
+    var T = torreEst(), st = T.st, r = st && st.run, g = estado.gm && estado.gm.grupo;
+    return JSON.stringify([st ? 1 : 0, T.erro, r && [r.id, r.versao, r.estado, r.escolhas, r.torre && r.torre.fase], T.esc, estado.torreDesistir,
+      st && st.recorde, g && g.membros.map(function (m) { return m.id + (m.pronto ? 1 : 0); })]);
+  }
+  function redesenharTorre(forcar) {
+    var caixa = document.getElementById('torre'), T = torreEst();
     if (!caixa) return;
-    var foco = document.activeElement && document.activeElement.closest && document.activeElement.closest('#torre') ? null : null;
+    var sig = assinaturaTorre();
+    if (!forcar && sig === T.sig) { pulsoTorre(); return; }
+    T.sig = sig;
     caixa.innerHTML = torreConteudo();
-    var reg = caixa.querySelector('.torre-narracao');
-    if (reg) reg.scrollTop = reg.scrollHeight;
+    pulsoTorre();
   }
-  function abaTorre() { setTimeout(function () { if (!torreEst().st) carregarTorre(); else agendarTorre(); }, 0); return '<section class="caixa torre" id="torre">' + torreConteudo() + '</section>'; }
+  function pulsoTorre() {
+    var caixa = document.getElementById('torre'), T = torreEst(), r = runTorre();
+    if (!caixa) { clearInterval(T.pulso); T.pulso = null; return; }
+    var rel = caixa.querySelector('.torre-relogio');
+    if (rel && r) { var resta = Math.max(0, Math.ceil((r.prazo - agoraServ()) / 1000)); rel.textContent = resta + 's'; rel.classList.toggle('fim', resta <= 5); }
+    var linhas = caixa.querySelectorAll('.torre-narracao p.oculta');
+    if (linhas.length && T.narr) {
+      var N = TR_.narracao, n = 1 + Math.floor((Date.now() - T.narr.inicio) / N.porLinha), mudou = false;
+      linhas.forEach(function (l) { if (Number(l.dataset.i) < n) { l.classList.remove('oculta'); mudou = true; } });
+      var reg = caixa.querySelector('.torre-narracao');
+      if (mudou && reg) reg.scrollTop = reg.scrollHeight;
+    }
+  }
+  function abaTorre() {
+    var T = torreEst();
+    setTimeout(function () { if (!T.st) carregarTorre(); else agendarTorre(); }, 0);
+    clearInterval(T.pulso); T.pulso = setInterval(pulsoTorre, 250);
+    T.sig = assinaturaTorre();
+    return '<section class="caixa torre" id="torre">' + torreConteudo() + '</section>';
+  }
   function vidaBarra(hp, max, cls) {
     var pc = Math.max(0, Math.min(100, Math.round(hp * 100 / Math.max(1, max))));
     return '<div class="torre-vida ' + (cls || '') + '"><i style="width:' + pc + '%"></i><span>' + Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + Number(max).toLocaleString('pt-BR') + '</span></div>';
@@ -6898,9 +6926,9 @@
     // narração do último turno (aparece uma linha por segundo)
     var log = t.log || [], chave = t.andar + ':' + t.turno;
     if (!T.narr || T.narr.chave !== chave) T.narr = { chave: chave, inicio: Date.now() };
-    var n = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min(log.length, 1 + Math.floor((Date.now() - T.narr.inicio) / 1000)) : log.length;
-    if (log.length) h += '<div class="torre-narracao">' + log.slice(0, n).map(function (ev) {
-      return '<p class="' + (ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + esc(ev.t) + '</p>';
+    var n = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min(log.length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : log.length;
+    if (log.length) h += '<div class="torre-narracao">' + log.map(function (ev, i) {
+      return '<p data-i="' + i + '" class="' + (i >= n ? 'oculta ' : '') + (ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + esc(ev.t) + '</p>';
     }).join('') + '</div>';
     // fim
     if (r.estado !== 'andamento' || t.fim === 'derrota') {

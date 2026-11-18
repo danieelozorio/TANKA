@@ -2044,3 +2044,4 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .torre-op.mini { padding: 5px 10px; }
 .torre-espera { text-align: center; margin: 10px 0; }
 .torre-desistir { text-align: right; margin-top: 10px; }
+.torre-narracao p.oculta { display: none; }
