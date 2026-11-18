@@ -1251,3 +1251,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   sorteada no fim de cada turno e mostrada no painel (⚡/🐢 na fila da ordem). Quem desvia fica pronto no começo do turno.
   O resolver agora tem `faseHerois` e `faseInimigos` (agirInimigos chamado na vez certa). Simulação lv 40, andar 10: equilibrado 93% → 73%.
 - Narração: a tela continua contando mesmo se o servidor já passou para a escolha (chave = assinatura do log); `narracao.max` 9000 → 16000.
+- Luta como cena (`cenaTorre`): fundo da torre, inimigo principal grande no centro (lacaios dos lados), grupo na formação 2-3-2 com
+  barra mini; `efeitoCenaTorre` solta números de dano/cura (`.cena-num`) e treme quem apanha a cada linha narrada (o evento de golpe
+  do herói agora leva `ai`, índice do inimigo).

@@ -3090,7 +3090,7 @@ Tanka.regras = (function () {
       alvo.hp = Math.max(0, alvo.hp - dano);
       aoCausar(h.L, h, g.dano);
       sangrar(alvo, g);
-      diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), dano: g.dano, critico: g.critico });
+      diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), ai: t.inimigos.indexOf(alvo), dano: g.dano, critico: g.critico });
       if (alvo.hp === 0) {
         diz(alvo.nome + ' caiu!', { caiu: true });
         // chefe caiu: os lacaios fogem pelo portal

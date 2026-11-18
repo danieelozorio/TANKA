@@ -2083,3 +2083,61 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .dica-torre em { color: #b9a77f; font-size: .72rem; }
 .torre-vez { margin: 6px 0 2px; color: #e6c27a; }
 .torre-vez-marca { display: inline-flex; align-items: center; font-size: 1rem; filter: drop-shadow(0 0 4px #f0c56a); }
+/* Torre: a luta como cena (fundo da torre, inimigos em cima, grupo na formação embaixo) */
+.torre-cena { position: relative; margin: 8px 0; padding: 12px 10px 14px; border-radius: 14px; border: 1px solid #4a3a5e; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 0, rgba(120, 70, 190, .28), transparent 60%), linear-gradient(rgba(8, 6, 12, .55), rgba(8, 6, 12, .8)),
+    url(../assets/torre/formacao-fundo.webp) center 30% / cover no-repeat, #0d0a12; }
+.cena-avisos .torre-aviso { margin: 0 auto 6px; max-width: 520px; text-align: center; font-size: .85rem; }
+.cena-inimigos { display: flex; justify-content: center; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.cena-inimigo { position: relative; width: 120px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.cena-inimigo.grande { width: 240px; }
+.cena-retrato { position: relative; width: 72px; height: 72px; border-radius: 50%; overflow: hidden; border: 2px solid #6a4f8a; box-shadow: 0 0 14px rgba(0, 0, 0, .7); background: #000; }
+.cena-inimigo.grande .cena-retrato { width: 130px; height: 130px; border: 3px solid #b0392b; box-shadow: 0 0 22px rgba(200, 50, 40, .55), 0 0 4px #000; }
+.cena-retrato img { width: 100%; height: 100%; object-fit: cover; }
+.cena-tonto { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; background: rgba(0, 0, 0, .35); animation: asc-pulsa 1.2s infinite; }
+.cena-inimigo strong { font-size: .8rem; color: #f3e3c3; text-shadow: 0 1px 3px #000; }
+.cena-inimigo.grande strong { font-size: 1.05rem; color: #ffd27a; }
+.cena-tag { font-size: .6rem; padding: 1px 5px; border-radius: 4px; background: #8a2018; color: #fff; vertical-align: middle; letter-spacing: .08em; }
+.cena-inimigo .torre-vida { width: 100%; }
+.cena-marcas { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.cena-marcas span { font-size: .68rem; padding: 1px 6px; border-radius: 10px; background: rgba(0, 0, 0, .6); border: 1px solid #4a3a5e; color: #e6d6f5; }
+.cena-inimigo.caido, .cena-casa.caido { opacity: .35; filter: grayscale(1); }
+.cena-vez { margin: 6px auto 0; width: fit-content; padding: 2px 10px; border-radius: 12px; font-size: .78rem; background: rgba(0, 0, 0, .6); color: #f0d08a; border: 1px solid #6a5530; }
+.cena-grupo { margin-top: 12px; display: flex; flex-direction: column; gap: 4px; }
+.cena-fileira { display: grid; grid-template-columns: 34px 1fr; align-items: center; }
+.cena-fileira-nome { display: flex; flex-direction: column; align-items: center; font-size: 1rem; color: #e6c27a; text-shadow: 0 1px 3px #000; }
+.cena-fileira-nome small { font-size: .58rem; letter-spacing: .05em; text-transform: uppercase; }
+.cena-casas { display: flex; justify-content: center; gap: 6px; }
+.cena-casa { --cor: #d9a441; position: relative; width: 92px; display: flex; flex-direction: column; align-items: center; }
+.cena-hex { position: relative; width: 56px; height: 64px; filter: drop-shadow(0 0 3px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
+.cena-casa.vazia .cena-hex { background: url(../assets/torre/hex-vazio.webp) center / contain no-repeat; opacity: .35; filter: none; }
+.cena-casa:not(.vazia) .cena-hex::after { content: ''; position: absolute; inset: 0; background: url(../assets/torre/hex-moldura.webp) center / contain no-repeat; }
+.cena-casa.eu .cena-hex { filter: drop-shadow(0 0 8px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
+.cena-info { width: 100%; text-align: center; line-height: 1.1; }
+.cena-info strong { display: block; font-size: .72rem; color: var(--cor); text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.torre-vida.mini { height: 9px; margin: 2px 0; }
+.torre-vida.mini span { display: none; }
+.cena-estado { font-size: .65rem; color: #d8cbb0; text-shadow: 0 1px 2px #000; }
+/* números saltando e reações */
+.cena-num { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); z-index: 5; pointer-events: none; font-weight: 800; font-size: 1.05rem;
+  text-shadow: 0 2px 3px #000, 0 0 6px #000; animation: cena-sobe 1.25s ease-out forwards; white-space: nowrap; }
+.cena-inimigo.grande .cena-num { font-size: 1.4rem; top: 30%; }
+.cena-num.dano { color: #ff6a55; }
+.cena-num.crit { color: #ffd23f; font-size: 1.5rem; }
+.cena-num.cura { color: #7dff9a; }
+.cena-num.desvio { color: #bfe3ff; font-size: .9rem; }
+@keyframes cena-sobe { 0% { opacity: 0; transform: translate(-50%, 6px) scale(.8); } 15% { opacity: 1; transform: translate(-50%, 0) scale(1.15); } 100% { opacity: 0; transform: translate(-50%, -38px) scale(1); } }
+.apanha .cena-retrato, .apanha .cena-hex { animation: cena-treme .35s; }
+@keyframes cena-treme { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.cena-casa.age .cena-hex { animation: cena-brilha .6s; }
+@keyframes cena-brilha { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+html[data-celular] .cena-inimigo.grande { width: 200px; }
+html[data-celular] .cena-inimigo.grande .cena-retrato { width: 104px; height: 104px; }
+html[data-celular] .cena-inimigo { width: 92px; }
+html[data-celular] .cena-retrato { width: 56px; height: 56px; }
+html[data-celular] .cena-casa { width: 74px; }
+html[data-celular] .cena-casas { gap: 2px; }
+html[data-celular] .cena-fileira { grid-template-columns: 28px 1fr; }
+.cena-casa .torre-vida.mini { width: 84%; margin: 2px auto; }
+.cena-fileira-nome small { white-space: nowrap; }
+html[data-celular] .cena-fileira-nome small { font-size: .48rem; letter-spacing: 0; }
