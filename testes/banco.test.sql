@@ -289,8 +289,13 @@ begin
     'esquiva', 0, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2},"ordem":{"arena":["sombra","golpe-fatal"]}}')),
     'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
   d := a || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"cacador","pontos":{"flecha-na-perna":1},"ordem":{"arena":["flecha-na-perna"]}}')));
-  r := public.arena_vez(a, d, 10); a := r -> 'eu'; d := r -> 'outro';
-  if r -> 'ev' ->> 'hab' <> 'Sombra' then raise exception 'FALHA arena: 1ª vez devia usar Sombra: %', r -> 'ev'; end if;
+  -- Sombra com 10 no dado (18/11/2026): não some, só ataca
+  r := public.arena_vez(a, d, 10);
+  if r -> 'ev' ->> 'hab' <> 'Sombra' or not (r -> 'ev' ? 'sombraFalhou') or coalesce((r -> 'eu' ->> 'furtivo')::boolean, false) then
+    raise exception 'FALHA arena: Sombra com 10 devia falhar (só ataque): %', r -> 'ev'; end if;
+  raise notice 'ok   arena: Sombra com 10 no dado não esquiva';
+  r := public.arena_vez(a, d, 18); a := r -> 'eu'; d := r -> 'outro';
+  if r -> 'ev' ->> 'hab' <> 'Sombra' or not coalesce((a ->> 'furtivo')::boolean, false) then raise exception 'FALHA arena: Sombra com 18 devia sumir: %', r -> 'ev'; end if;
   r := public.arena_vez(d, a, 10); d := r -> 'eu'; a := r -> 'outro';
   if not (r -> 'ev' ? 'sombra') or (r -> 'ev' ->> 'dano')::int <> 0 then raise exception 'FALHA arena: ataque devia errar na Sombra: %', r -> 'ev'; end if;
   r := public.arena_vez(a, d, 2); a := r -> 'eu'; d := r -> 'outro';

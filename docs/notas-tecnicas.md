@@ -1328,3 +1328,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Correção (18/11/2026): `arena_finalizar` quebrava com "column reference a is ambiguous" (a variável `a` = lado do atacante e o
   alias `a` do jsonb_array_elements no jackpot por arena). Alias virou `ar_cfg`; já rodado no Supabase. Quem tinha luta abandonada
   ficava com a Arena travada (arena_estado → encerrar_abandonadas → finalizar).
+
+### Arena: Sombra do Assassino pelo D20 (Henri, 18/11/2026)
+- `arena_vez`, tipo `furtivo`: só fica nas sombras (`furtivo` + `critEm`) com o dado >= `ARENA.sombraDado` (18).
+  Abaixo, `ev.sombraFalhou` e fica só o ataque normal do turno (a Sombra não gasta a vez). Recarga gasta igual.

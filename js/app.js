@@ -2287,7 +2287,7 @@
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3>' + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
-        + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p>' + (CELULAR ? '</details>' : '') + '<div class="ordem-hab">'
+        + 'a Sombra (só com 18, 19 ou 20 no dado) desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p>' + (CELULAR ? '</details>' : '') + '<div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
@@ -8467,6 +8467,8 @@
     if (cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; if (!L.tudo && L.registro.length > 60) L.registro.splice(0, L.registro.length - 60); return; }
     L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20)' : '') + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
+    if (ev.sombraFalhou) L.registro.push('<p class="suave">🌑 ' + (ev.dado ? '🎲 <strong>' + ev.dado + '</strong> ' : '') + esc(atk.nome)
+      + ' não conseguiu sumir nas sombras (precisa de ' + (D.ARENA.sombraDado || 18) + ' ou mais): só o ataque.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
       + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? (ev.hab ? ' (vale o 20!)' : ' (Sombra: vale o 20!)') : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
