@@ -864,7 +864,7 @@ Tanka.dados = {
     // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda. Os elementos NÃO se gastam ao pegar
     // uma carta (Daniel): ficam na mão para a próxima. Combo: cada carta seguida na mesma mão (antes de rolar) ganha
     // +combo x (cartas que já pegou nessa mão).
-    pontos: { porElemento: 10, monte: 50, linha: 100, mesa: 300, combo: 15 },
+    pontos: { porElemento: 10, monte: 50, linha: 100, coluna: 250, mesa: 300, combo: 15 },   // coluna completa: 250 (Daniel); linha e diagonal: 100
     premios: [
       { ate: 1, ouro: 2000000, pergaminho: 'lendaria', qtd: 3 }, { ate: 3, ouro: 1000000, pergaminho: 'lendaria', qtd: 2 },
       { ate: 10, ouro: 500000, pergaminho: 'epica', qtd: 2 }, { ate: 50, ouro: 100000, pergaminho: 'rara', qtd: 1 },

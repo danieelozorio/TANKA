@@ -3375,6 +3375,8 @@ Tanka.regras = (function () {
     for (i = 0; i < n; i++) { var lin = [], col = []; for (j = 0; j < n; j++) { lin.push(i * n + j); col.push(j * n + i); } L.push(lin, col); d1.push(i * n + i); d2.push(i * n + n - 1 - i); }
     return L.concat([d1, d2]);
   })(EVA.lado || 3);
+  // as colunas são as posições ímpares antes das diagonais (linha, coluna, linha, coluna...)
+  function ehColunaAltar(li) { return li < 2 * (EVA.lado || 3) && li % 2 === 1; }
   var MONTES_ALTAR = (EVA.lado || 3) * (EVA.lado || 3);
   function elementoAltar(rng) { return EVA.elementos[Math.floor(rng() * EVA.elementos.length)].id; }
   function cartaAltar(rng) {
@@ -3420,7 +3422,10 @@ Tanka.regras = (function () {
     if (combo) extras.push('combo');
     if (!pt.mesa[monte].length) { ganho += EVA.pontos.monte; extras.push('monte'); }
     LINHAS_ALTAR.forEach(function (l, li) {
-      if (pt.linhas.indexOf(li) < 0 && l.every(function (k) { return !pt.mesa[k].length; })) { pt.linhas.push(li); ganho += EVA.pontos.linha; extras.push('linha'); }
+      if (pt.linhas.indexOf(li) < 0 && l.every(function (k) { return !pt.mesa[k].length; })) {
+        pt.linhas.push(li);
+        if (ehColunaAltar(li)) { ganho += EVA.pontos.coluna || EVA.pontos.linha; extras.push('coluna'); } else { ganho += EVA.pontos.linha; extras.push('linha'); }
+      }
     });
     if (pt.mesa.every(function (x) { return !x.length; })) { ganho += EVA.pontos.mesa; extras.push('mesa'); pt.mesas++; pt.mesa = mesaAltar(rng); pt.linhas = []; }
     pt.pontos += ganho;

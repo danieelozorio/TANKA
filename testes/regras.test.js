@@ -2815,6 +2815,12 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   pt.dados = ['luz', 'luz', 'luz', 'luz', 'agua'];
   let r2; for (let k = 1; k < E.lado; k++) r2 = R.pagarAltar(pt, k, [0, 1], rng);
   assert.ok(r2.extras.includes('linha'), 'linha de cima completa');
+  // coluna da esquerda completa: 250
+  const p2 = R.novaPartidaAltar(rng); for (let k = 0; k < E.lado * E.lado; k++) p2.mesa[k] = [{ custo: { fogo: 1 } }, { custo: { fogo: 1 } }];
+  for (let k = 1; k < E.lado; k++) p2.mesa[k * E.lado] = [];
+  p2.mesa[0] = [{ custo: { agua: 1 } }]; p2.dados = ['agua', 'luz', 'luz', 'luz', 'luz']; p2.combo = 0;
+  const rcol = R.pagarAltar(p2, 0, [0], rng);
+  assert.ok(rcol.extras.includes('coluna') && rcol.ganho === E.pontos.porElemento + E.pontos.monte + E.pontos.coluna, 'coluna completa: +' + E.pontos.coluna);
   // mesa toda: dá o bônus e põe uma mesa nova
   const ult = E.lado * E.lado - 1;
   for (let k = E.lado; k < ult; k++) pt.mesa[k] = [];

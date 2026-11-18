@@ -1337,3 +1337,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   continuam marcados depois de rolar (vão para o começo da mão).
 - Mesa 4x4 nova (18/11/2026): assets/eventos/altar/mesa.webp (recortada só na mesa); centros dos encaixes x 21,3/40,4/59,6/78,8 e
   y 20,8/40,3/59,8/79,6 (%), carta 17,6% (no app.js, abaEventos).
+- Altar: coluna completa vale `pontos.coluna` (250); linha e diagonal continuam `pontos.linha` (100). `ehColunaAltar(li)`.

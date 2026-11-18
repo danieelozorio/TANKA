@@ -7625,7 +7625,7 @@
       + '<li>Cada carta pede <b>1 a 3 do mesmo elemento</b> (ex.: 2 💧). Toque num <b>monte</b> que brilha para pegar a carta do topo (' + EVA_.pontos.porElemento + ' pontos por elemento).</li>'
       + '<li>Os elementos <b>não se gastam</b>: ficam na mão para a próxima carta. Cada carta seguida antes de rolar é <b>combo</b> (+' + EVA_.pontos.combo + ' pontos por carta já pega nessa mão).</li>'
       + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher.</li>'
-      + '<li>Monte zerado +' + EVA_.pontos.monte + ', linha completa (como jogo da velha) +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
+      + '<li>Monte zerado +' + EVA_.pontos.monte + ', <b>coluna completa +' + EVA_.pontos.coluna + '</b>, linha ou diagonal completa +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
       + '<li><b>' + EVA_.entradasDia + ' partidas por dia</b>. Os pontos de todas somam no <b>ranking</b>; no fim do evento os melhores ganham prêmios.</li></ul></details>';
     if (!pt) {
       h += '<div class="botoes"><button class="btn" data-acao="altar-entrar"' + (!ev || usadas >= EVA_.entradasDia ? ' disabled' : '') + '>🎲 Começar partida</button></div>'
@@ -7701,7 +7701,7 @@
         acaoServidor('altarPagar', { monte: m, dados: idx }, local(function () { R.pagarAltar(pt, m, idx, Math.random); })).then(function (r) {
           var res = r && r.resultado;
           if (res && res.extras && res.extras.length) avisar((res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! ' : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! ' : res.extras.indexOf('monte') >= 0 ? '✔ Monte zerado! ' : '')
-            + (res.combo > 1 ? '🔥 Combo x' + res.combo + '! ' : '') + '+' + res.ganho, 'nivel');
+            + (res.extras.indexOf('coluna') >= 0 ? '🏛 Coluna completa! ' : '') + (res.combo > 1 ? '🔥 Combo x' + res.combo + '! ' : '') + '+' + res.ganho, 'nivel');
           depois();
         });
         return true;
