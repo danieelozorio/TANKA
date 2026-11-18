@@ -2307,7 +2307,7 @@ begin
         update public.arena_jackpot set valor = 0, top1 = L.atacante, ultima_soma = now(), ultima_paga = now() where arena = ar;
       end if;
     elsif not vitoria and pd = 1 then
-      update public.arena_jackpot set valor = valor + coalesce((select (a ->> 'jackpotDefesa')::int from jsonb_array_elements(cfg -> 'arenas') a where a ->> 'id' = ar),
+      update public.arena_jackpot set valor = valor + coalesce((select (ar_cfg ->> 'jackpotDefesa')::int from jsonb_array_elements(cfg -> 'arenas') ar_cfg where ar_cfg ->> 'id' = ar),   -- ar_cfg: 'a' é variável (luta) e quebrava (18/11/2026)
         (cfg ->> 'jackpotPorDefesa')::int) where arena = ar;   -- por arena (18/11/2026)
     end if;
   end if;

@@ -1325,3 +1325,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `evento_admin(meu, acao, dias)` (ligar/desligar/religar/premiar; prêmios iguais a `D.EVENTO_ALTAR.premios`).
 - Tela: `abaEventos`/`cliqueAltar` (toque no monte que brilha paga sozinho com os dados certos; marcar = guardar ao rolar ou trocar 2).
   Admin: ligar com dias, sem data, desligar, religar, dar prêmios (confirma).
+- Correção (18/11/2026): `arena_finalizar` quebrava com "column reference a is ambiguous" (a variável `a` = lado do atacante e o
+  alias `a` do jsonb_array_elements no jackpot por arena). Alias virou `ar_cfg`; já rodado no Supabase. Quem tinha luta abandonada
+  ficava com a Arena travada (arena_estado → encerrar_abandonadas → finalizar).
