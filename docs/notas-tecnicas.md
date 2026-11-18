@@ -1301,5 +1301,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   o histórico mostra o dado.
 
 ### Leilão: faixas 10–20, 21–39 e 40–60 (Henri, 18/11/2026)
-- `LEILAO.faixas`: l1 [10,20] itens 18–22; l2 [21,39] itens 34–40; l3 [40,999] itens 40–60 (antes 10–19/20–29/30+,
+- `LEILAO.faixas`: l1 [10,20] itens 18–22; l2 [21,39] itens 30–40; l3 [40,999] itens 40–60 (antes 10–19/20–29/30+,
   itens 18–22/28–32/42–50). Mercado Negro segue a faixa: 10–20 até 22; 21–39 até 40; 40+ sem limite.

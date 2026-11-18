@@ -1339,7 +1339,7 @@ Tanka.dados = {
     faixas: [
       { id: 'l1', nome: 'Leilão do Mercador', nivel: [10, 20], mult: 1, itemNivel: [18, 22],
         raridades: { comum: 30, rara: 45, epica: 22, lendaria: 3 } },
-      { id: 'l2', nome: 'Leilão da Coroa', nivel: [21, 39], mult: 10, itemNivel: [34, 40],
+      { id: 'l2', nome: 'Leilão da Coroa', nivel: [21, 39], mult: 10, itemNivel: [30, 40],
         raridades: { comum: 15, rara: 45, epica: 32, lendaria: 8 } },
       { id: 'l3', nome: 'Leilão dos Reis', nivel: [40, 999], mult: 40, itemNivel: [40, 60],
         raridades: { comum: 0, rara: 35, epica: 45, lendaria: 20 } },
