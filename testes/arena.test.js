@@ -95,15 +95,15 @@ async function como(uid, sql, args) {
   assert.strictEqual((await como(ids[6].uid, 'select public.arena_estado($1, null)', [ids[6].pid])).entradas.valor, 2); ok('+1 entrada por hora (2h depois: 2)');
   // jackpot
   await pool.query("update arena_jackpot set valor = 0, ultima_soma = now() - interval '35 minutes', ultima_paga = now() where arena = 'a1'");
-  assert.strictEqual((await como(ult.uid, 'select public.arena_estado($1, null)', [ult.pid])).jackpot.valor, 150); ok('jackpot +50 a cada 10 min na Arena 5~10 (35 min = 150)');
+  assert.strictEqual((await como(ult.uid, 'select public.arena_estado($1, null)', [ult.pid])).jackpot.valor, 375); ok('jackpot +125 a cada 10 min na Arena 5~10 (35 min = 375)');
   await pool.query("update arena_jackpot set ultima_paga = now() - interval '1 hour 1 minute' where arena = 'a1'");
-  assert.strictEqual((await como(ult.uid, 'select public.arena_estado($1, null)', [ult.pid])).jackpot.valor, 135);
+  assert.strictEqual((await como(ult.uid, 'select public.arena_estado($1, null)', [ult.pid])).jackpot.valor, 338);
   const pago = (await pool.query("select ouro from creditos where personagem_id = $1 and motivo like 'Jackpot da Arena (1 hora%'", [ids[0].pid])).rows[0].ouro;
-  assert.strictEqual(pago, 15); ok('Top 1 recebe 10% do jackpot por hora (15)');
+  assert.strictEqual(pago, 37); ok('Top 1 recebe 10% do jackpot por hora (37)');
   await pool.query("update arena_jackpot set ultimo_dia = ultimo_dia - 1 where arena = 'a1'");
   await como(ult.uid, 'select public.arena_estado($1, null)', [ult.pid]);
   const diario = (await pool.query("select ouro, reputacao from creditos where personagem_id = $1 and motivo like 'Prêmio diário%'", [ids[0].pid])).rows[0];
-  assert.deepStrictEqual([diario.ouro, diario.reputacao], [135, 500]); assert.strictEqual((await pool.query("select valor from arena_jackpot where arena='a1'")).rows[0].valor, 0);
+  assert.deepStrictEqual([diario.ouro, diario.reputacao], [338, 500]); assert.strictEqual((await pool.query("select valor from arena_jackpot where arena='a1'")).rows[0].valor, 0);
   ok('00:00: Top 1 recebe o jackpot + 500 de reputação e o jackpot zera');
   // lendário sobe até o Top 1 e leva o jackpot
   await pool.query("update arena_jackpot set valor = 400, ultima_soma = now(), ultima_paga = now() where arena = 'a1'");

@@ -1130,11 +1130,13 @@ Tanka.dados = {
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
     // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.
     saque: { ate: 30, minimo: 5, desde: 80, maximo: 10, meio: [5, 8] },
+    // Jackpot (Henri, 18/11/2026, nível "médio"): um dia inteiro no Top 1 ≈ 6 h de caçada da faixa da arena.
+    // jackpotDefesa: soma a cada ataque perdido contra o Top 1 (sem ele, vale o jackpotPorDefesa geral).
     arenas: [
-      { id: 'a1', nome: 'Arena 5~10', nivel: [5, 10], jackpotPor10min: 50 },
-      { id: 'a2', nome: 'Arena 11~20', nivel: [11, 20], jackpotPor10min: 100 },
-      { id: 'a3', nome: 'Arena 21~30', nivel: [21, 30], jackpotPor10min: 150 },
-      { id: 'a4', nome: 'Arena 30+', nivel: [31, 60], jackpotPor10min: 200 },   // até o 60 (Reino do Pesadelo)
+      { id: 'a1', nome: 'Arena 5~10', nivel: [5, 10], jackpotPor10min: 125, jackpotDefesa: 100 },
+      { id: 'a2', nome: 'Arena 11~20', nivel: [11, 20], jackpotPor10min: 850, jackpotDefesa: 500 },
+      { id: 'a3', nome: 'Arena 21~30', nivel: [21, 30], jackpotPor10min: 3500, jackpotDefesa: 2000 },
+      { id: 'a4', nome: 'Arena 30+', nivel: [31, 60], jackpotPor10min: 10500, jackpotDefesa: 5000 },   // até o 60 (Reino do Pesadelo)
     ],
   },
 

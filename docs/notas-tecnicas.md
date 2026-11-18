@@ -1288,3 +1288,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   rapido, area, resistencia, furia); sem a arte vira o emoji (`EMOJI_MEC`, `mecSemIcone`). Aparecem no aviso ⚠, nas marcas do chefe
   (com dica `dicaMec`), na fileira "o que ele sabe" (`.cena-sabe`) e nos males do herói. Prompt único (grade 5x5) entregue ao Daniel.
 - Artes chegaram (18/11/2026): 40 monstros em assets/torre/monstros (420px) e 25 ícones em assets/torre/mecanicas (96px, recortados da grade sem o texto).
+
+### Jackpot da Arena mais alto (Henri, 18/11/2026, nível "médio")
+- `ARENA.arenas[].jackpotPor10min` 125 / 850 / 3.500 / 10.500 (era 50/100/150/200) e `jackpotDefesa` por arena
+  100 / 500 / 2.000 / 5.000 (soma a cada ataque perdido contra o Top 1; o `jackpotPorDefesa` geral vira reserva).
+  Meta: um dia inteiro no Top 1 ≈ 6 h de caçada da faixa (Arena 30+: ~1,5 milhão/dia; ~570 mil à meia-noite).
