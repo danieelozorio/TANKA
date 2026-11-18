@@ -1037,7 +1037,7 @@
   function abaVisivel(a) {
     var n = estado.personagem ? estado.personagem.nivel : 0;
     if (a === 'ascensao') return n >= D.ASCENSAO.nivelInicio;
-    if (a === 'torre') return n >= D.TORRE.nivelMin;   // Torre do Eclipse: level 30+
+    if (a === 'torre') return n >= D.TORRE.nivelMin && (D.TORRE.ligada || ehAdmin());   // Torre do Eclipse: level 30+ (desligada: só admin)
     return true;
   }
   function abasDe(g) { return g.abas.filter(abaVisivel); }
@@ -6257,7 +6257,7 @@
       estado.gm = g;
       estado.gmErro = null;
       // Torre: grupo de 4 e alguém começou a subida fora da aba: avisa e leva para a Torre (fora de luta).
-      if (g.grupo && g.grupo.membros.length === D.TORRE.grupo && estado.aba !== 'torre' && p.nivel >= D.TORRE.nivelMin) {
+      if (g.grupo && g.grupo.membros.length === D.TORRE.grupo && estado.aba !== 'torre' && abaVisivel('torre')) {
         C.torre.estado(p.id).then(function (st) {
           var rt = st && st.run;
           if (!rt || rt.estado !== 'andamento' || torreAvisadas[rt.id] || estado.personagem !== p) return;
@@ -7123,7 +7123,7 @@
     var mm = gr.masmorra ? R.masmorra(gr.masmorra) : null;
     var todosProntos = gr.membros.length === M.tamanhoGrupo && gr.membros.every(function (m) { return m.pronto; });
     html += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + M.tamanhoGrupo + ')</h3>'
-      + (gr.membros.length > M.tamanhoGrupo ? '<p class="menos pequeno">A masmorra é para ' + M.tamanhoGrupo + ': com ' + gr.membros.length + ' no grupo, só a Torre do Eclipse.</p>' : '')
+      + (gr.membros.length > M.tamanhoGrupo ? '<p class="menos pequeno">A masmorra é para ' + M.tamanhoGrupo + ': com ' + gr.membros.length + ' no grupo, ' + (abaVisivel('torre') ? 'só a Torre do Eclipse.' : 'alguém precisa sair do grupo.') + '</p>' : '')
       + '<div class="mas-vagas">' + vagas.join('') + '</div>'
       + '<div class="botoes">' + (eu.pronto
         ? '<button class="btn secundario" data-acao="grupo-pronto" data-valor="nao">Não estou pronto</button>'
