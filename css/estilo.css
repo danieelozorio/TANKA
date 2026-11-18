@@ -2188,3 +2188,13 @@ span.mec-ico.mec-emoji { display: inline-block; width: auto; height: auto; font-
 .cena-sabe { width: 26px; height: 26px; margin: 0; border-radius: 6px; border: 1px solid rgba(176, 57, 43, .7); box-shadow: 0 0 6px rgba(0, 0, 0, .6); background: rgba(0, 0, 0, .55); cursor: help; }
 span.cena-sabe.mec-emoji { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; font-size: .95rem; }
 .cena-estado .mec-ico { margin: 0 1px; }
+
+/* Baú da conta (Henri, 18/11/2026) */
+.bau-conta .bau-linha { display: flex; align-items: center; gap: .6rem; padding: .35rem 0; border-bottom: 1px solid rgba(255,255,255,.06); flex-wrap: wrap; }
+.bau-conta .bau-linha:last-child { border-bottom: 0; }
+.bau-conta .bau-ico { width: 2.4rem; height: 2.4rem; display: inline-flex; align-items: center; justify-content: center; border: 1px solid; border-radius: 4px; flex: 0 0 auto; }
+.bau-conta .bau-ico img { width: 100%; height: 100%; object-fit: contain; }
+.bau-conta .bau-nome { flex: 1 1 10rem; min-width: 0; }
+.bau-conta .bau-linha input { width: 5.5rem; margin: 0; }
+.bau-conta .bau-historico { margin: 0; padding-left: 1.1rem; }
+.bau-conta .bau-historico li { margin: .2rem 0; }

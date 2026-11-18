@@ -390,6 +390,11 @@ Tanka.contas = (function () {
     cancelar: function (meu, pedido) { return chamar('oficina_cancelar', { meu: meu, pedido: pedido }); },
     fazer: function (meu, pedido) { return chamar('oficina_fazer', { meu: meu, pedido: pedido }); },
   };
+  // Baú da conta (Henri, 18/11/2026): guardar é pela função `acao` (bauDepositar); ver e retirar, por aqui.
+  var bau = {
+    estado: function (meu) { return chamar('bau_estado', { meu: meu }); },
+    retirar: function (meu, ouro, item, qtd) { return chamar('bau_retirar', { meu: meu, ouro: ouro || 0, item: item || null, qtd: qtd || 0 }); },
+  };
   var alianca = {
     estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
     criar: function (meu, nome, sigla, brasao) { return chamar('alianca_criar', { meu: meu, nome: nome, sigla: sigla, brasao: brasao }); },
@@ -471,6 +476,7 @@ Tanka.contas = (function () {
     leilao: leilao,
     arena: arena,
     alianca: alianca,
+    bau: bau,
     oficina: oficina,
     grupo: grupo,
     torre: torre,

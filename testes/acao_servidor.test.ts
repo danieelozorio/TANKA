@@ -19,6 +19,7 @@ const banco: Record<string, { conta_id: string; dados: any }> = {
 let recusarGravacao = '';
 let pendentes: any = { recompensas: [], creditos: [] };
 const marcados: string[] = [];
+const bauGuardados: any[] = [];
 g.fetch = (async (url: string, init: any = {}) => {
   const u = new URL(url), h = init.headers || {};
   const token = String(h.Authorization || '').replace('Bearer ', '');
@@ -66,6 +67,7 @@ g.fetch = (async (url: string, init: any = {}) => {
     }
     return json([JSON.parse(JSON.stringify(runTorre))]);
   }
+  if (u.pathname === '/rest/v1/rpc/bau_guardar') { bauGuardados.push(JSON.parse(init.body)); return json(true); }
   if (u.pathname === '/rest/v1/rpc/torre_registrar') { torreReg.push(JSON.parse(init.body)); if (JSON.parse(init.body).fim) runTorre.estado = JSON.parse(init.body).fim; return json(null); }
   if (u.pathname === '/rest/v1/rpc/masmorra_concluir' || u.pathname === '/rest/v1/rpc/alianca_boss_concluir' || u.pathname === '/rest/v1/rpc/boss_atacar') {
     lutasRegistradas.push({ rota: u.pathname, corpo: JSON.parse(init.body) });
@@ -281,6 +283,29 @@ ok(torreReg.length > 0 && (torreReg[0].andar === 1 || torreReg[0].fim === 'derro
 x = await pedir({ personagem: 'outro', acao: 'torreAvancar', args: { run: 11 } });
 ok(x.j.erro, 'torre: quem não é do grupo não avança');
 g.Deno.env.get = () => '';
+
+// Baú da conta (Henri, 18/11/2026): guardar tira da ficha; com a chave do servidor vai para o banco e a fila zera
+{
+  const pb = banco[p0.id].dados; pb.ouro = 10000; R.mudarConsumivel(pb, 'pergaminho', 'rara', 4);
+  const pergAntes = R.qtdConsumivel(pb, 'pergaminho', 'rara');
+  let y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { ouro: 99999 } });
+  ok(y.j.erro, 'baú: não guarda ouro que não tem');
+  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { tipo: 'arma', raridade: 'rara', qtd: 1 } });
+  ok(y.j.erro, 'baú: item não entra');
+  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { ouro: 3000 } });   // sem a chave: fica na fila
+  ok(!y.j.erro && banco[p0.id].dados.ouro === 7000 && banco[p0.id].dados.bauSaida.length === 1 && !bauGuardados.length, 'baú: sem a chave do servidor o depósito espera na fila');
+  g.Deno.env.get = (k: string) => k === 'SUPABASE_SERVICE_ROLE_KEY' ? 'chave-teste' : '';
+  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { tipo: 'pergaminho', raridade: 'rara', qtd: 3 } });
+  const fim = banco[p0.id].dados;
+  ok(!y.j.erro && bauGuardados.length === 2 && fim.bauSaida.length === 0 && R.qtdConsumivel(fim, 'pergaminho', 'rara') === pergAntes - 3,
+    'baú: com a chave os dois depósitos vão para o banco e a fila zera');
+  ok(bauGuardados[0].mov.ouro === 3000 && bauGuardados[1].mov.qtd === 3, 'baú: o banco recebe o que saiu da ficha');
+  g.Deno.env.get = () => '';
+  pendentes = { recompensas: [{ id: 901, origem: 'bau', item: { tipo: 'bau', ctipo: 'pergaminho', raridade: 'rara', qtd: 2 } }], creditos: [] };
+  y = await pedir({ personagem: p0.id, acao: 'receber' });
+  ok(R.qtdConsumivel(banco[p0.id].dados, 'pergaminho', 'rara') === pergAntes - 1, 'baú: o que foi retirado chega na ficha pelo receber');
+  pendentes = { recompensas: [], creditos: [] };
+}
 
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');
 if (falhas) (g.Deno?.exit ?? g.process?.exit)?.(1);

@@ -76,6 +76,13 @@ Tanka.servidorAcoes = (function () {
         aviso(rec, ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
         return;
       }
+      if (it.tipo === 'bau') {   // Baú da conta: consumível retirado (Henri, 18/11/2026)
+        var rb = pegar(rec), nb = Math.max(1, Math.floor(rb.qtd || 1));
+        if (!D.CONSUMIVEIS[rb.ctipo]) return;
+        R.mudarConsumivel(p, rb.ctipo, rb.raridade, nb);
+        aviso(rec, nb + 'x ' + R.nomeConsumivel({ tipo: rb.ctipo, raridade: rb.raridade }) + ' retirado do Baú da conta.', 'item', true);
+        return;
+      }
       if (it.tipo === 'exp') {   // boss do clã: exp limitada a uma parte da exp do level
         var rx = pegar(rec);
         var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
@@ -265,6 +272,24 @@ Tanka.servidorAcoes = (function () {
     // ---- Etapa 4: prêmios e progresso ----
     // Prêmios e créditos guardados no banco: a lista vem de ctx.pendentes (a função `acao` lê do banco; o que o
     // navegador mandar é ignorado). Depois de gravar, a função marca os entregues como recebidos.
+    // Baú da conta (Henri, 18/11/2026): só ouro e consumíveis. Tira da ficha e põe na fila bauSaida; a função `acao`
+    // manda para o banco (bau_guardar) depois de gravar.
+    bauDepositar: function (p, a, ctx) {
+      a = a || {};
+      var ouro = Math.floor(Number(a.ouro) || 0), qtd = Math.floor(Number(a.qtd) || 0), tipo = texto(a.tipo), rar = texto(a.raridade);
+      if (ouro < 0 || qtd < 0) return 'Quantidade inválida.';
+      if (!ouro && !qtd) return 'Escolha o que guardar.';
+      if (ouro > (p.ouro || 0)) return 'Ouro insuficiente.';
+      if (qtd) {
+        if (!D.CONSUMIVEIS[tipo] || !rar) return 'Só ouro e consumíveis vão para o baú.';
+        if (R.qtdConsumivel(p, tipo, rar) < qtd) return 'Você não tem essa quantidade.';
+      }
+      p.ouro -= ouro;
+      if (qtd) R.mudarConsumivel(p, tipo, rar, -qtd);
+      var mov = { id: 'd' + ctx.agora + '-' + Math.floor(ctx.rng() * 1e9), ouro: ouro, tipo: qtd ? tipo : null, raridade: qtd ? rar : null, qtd: qtd };
+      p.bauSaida = (Array.isArray(p.bauSaida) ? p.bauSaida : []).concat(mov).slice(-50);
+      return { resultado: { deposito: mov } };
+    },
     receber: function (p, a, ctx) {
       var pd = ctx.pendentes || {};
       var rec = entregarRecompensas(p, pd.recompensas, ctx.rng), cr = aplicarCreditos(p, pd.creditos);

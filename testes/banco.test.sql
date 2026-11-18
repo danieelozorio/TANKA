@@ -1483,4 +1483,31 @@ select pg_temp.igual(jsonb_array_length(public.grupo_estado('g4') -> 'grupo' -> 
 select pg_temp.comoG('1');
 select pg_temp.falha($$select public.grupo_objetivo('g1', 'masmorra')$$, 'gente demais');
 reset role;
+-- Baú da conta (Henri, 18/11/2026): o servidor guarda (idempotente), o dono retira (crédito/recompensa), outro não mexe
+select public.bau_guardar('pa', '{"id":"d1","ouro":5000,"tipo":"pergaminho","raridade":"rara","qtd":3}');
+select public.bau_guardar('pa', '{"id":"d1","ouro":5000,"tipo":"pergaminho","raridade":"rara","qtd":3}');   -- repetido: não soma
+select pg_temp.igual((select ouro from public.bau_conta where conta_id = '00000000-0000-0000-0000-00000000000a')::int, 5000, 'baú: guardar o mesmo depósito duas vezes soma uma vez');
+set role authenticated;
+select pg_temp.como('b');
+select pg_temp.falha($$select public.bau_estado('pa')$$, '');   -- outra conta não abre
+select pg_temp.falha($$select public.bau_guardar('pb', '{"id":"x","ouro":1}')$$, 'permission denied');   -- só o servidor guarda
+select pg_temp.como('a');
+select pg_temp.igual((public.bau_estado('pa') -> 'consumiveis' ->> 'pergaminho:rara')::int, 3, 'baú: 3 pergaminhos raros guardados');
+select pg_temp.falha($$select public.bau_retirar('pa', 9999, null, 0)$$, 'não tem esse ouro');
+select pg_temp.falha($$select public.bau_retirar('pa', 0, 'pergaminho:rara', 4)$$, 'não tem essa quantidade');
+select pg_temp.falha($$select public.bau_retirar('pa', 0, 'espada:rara', 1)$$, 'Consumível inválido');
+select public.bau_retirar('pa', 2000, 'pergaminho:rara', 2);
+select pg_temp.igual((public.bau_estado('pa') ->> 'ouro')::int, 3000, 'baú: retirou 2000 de ouro');
+select pg_temp.igual((public.bau_estado('pa') -> 'consumiveis' ->> 'pergaminho:rara')::int, 1, 'baú: sobrou 1 pergaminho');
+reset role;
+select pg_temp.igual((select count(*) from public.creditos where personagem_id = 'pa' and ouro = 2000 and motivo = 'Retirado do Baú da conta')::int, 1, 'baú: ouro retirado vira crédito');
+select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and origem = 'bau' and item ->> 'ctipo' = 'pergaminho' and (item ->> 'qtd')::int = 2)::int, 1, 'baú: consumível retirado vira recompensa');
+-- a fila de depósitos (bauSaida) só o servidor escreve: gravação direta do jogador mantém a antiga
+update public.personagens set dados = dados || '{"bauSaida":[{"id":"srv","ouro":1}]}' where id = 'pa';
+set role authenticated;
+select pg_temp.como('a');
+update public.personagens set dados = dados || '{"bauSaida":[{"id":"forjado","ouro":999999}]}' where id = 'pa';
+reset role;
+select pg_temp.igual((select dados -> 'bauSaida' -> 0 ->> 'id' from public.personagens where id = 'pa'), 'srv', 'baú: o jogador não forja depósitos');
+update public.personagens set dados = dados - 'bauSaida' where id = 'pa';
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -608,6 +608,7 @@
   // Ícones das abas de cima (sub-abas de cada grupo).
   var ICONES_SUB = {
     personagem: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+    bau: svg('<rect x="3" y="9" width="18" height="11" rx="1"/><path d="M3 13h18M5 9V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2"/><rect x="10.5" y="11.5" width="3" height="3" rx=".5"/>'),
     encantar: svg('<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M18 6l-2.5 2.5m-7 7L6 18"/>'),
     torre: svg('<path d="M7 21V9l-2-2V3h3v2h2V3h4v2h2V3h3v4l-2 2v12Z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4M11 11h2"/>'),
     habilidades: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'),
@@ -1017,14 +1018,14 @@
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
-    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao'] },
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao', 'bau'] },   // Baú da conta (Henri, 18/11/2026)
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
   ];
-  var NOME_ABA = { oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { bau: 'Baú', oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1723,6 +1724,78 @@
     for (var n = lista.length; n < 8; n++) celulas.push('<div class="celula vazia"></div>');
     return '<p class="suave pequeno">Clique num consumível para ver para que serve. Não ocupam espaço na mochila.</p>'
       + '<div class="mochila consumiveis">' + celulas.join('') + '</div>';
+  }
+  // ---------------- Baú da conta (Henri, 18/11/2026) ----------------
+  // Ouro e consumíveis guardados pela conta: qualquer personagem dela guarda e retira. Itens não entram.
+  function carregarBau() {
+    var p = estado.personagem;
+    if (!p || estado.bauCarregando) return;
+    estado.bauCarregando = true;
+    C.bau.estado(p.id).then(function (b) {
+      estado.bauCarregando = false; estado.bau = b; estado.bauErro = null;
+      if (estado.aba === 'bau') telaJogo();
+    }, function (e) {
+      estado.bauCarregando = false; estado.bauErro = (e && e.message) || 'Não foi possível abrir o baú.';
+      if (estado.aba === 'bau') telaJogo();
+    });
+  }
+  function abaBau() {
+    var p = estado.personagem, b = estado.bau;
+    if (!b && !estado.bauErro) carregarBau();
+    var tit = '<h2>Baú da conta</h2><p class="suave">Compartilhado pelos personagens da sua conta. Guarde e retire <strong>ouro</strong> e '
+      + '<strong>consumíveis</strong> (pergaminhos, cristais, materiais, receitas). Itens equipáveis não entram.</p>';
+    if (!ACAO_SERVIDOR) return '<section class="caixa">' + tit + '<p class="suave">O baú precisa do servidor do jogo.</p></section>';
+    if (estado.bauErro) return '<section class="caixa">' + tit + '<p class="erro">' + esc(estado.bauErro) + '</p>'
+      + '<button class="btn" data-acao="bau-recarregar">Tentar de novo</button></section>';
+    if (!b) return '<section class="caixa">' + tit + '<p class="suave">Abrindo o baú…</p></section>';
+    var ouroBau = Number(b.ouro) || 0, cons = b.consumiveis || {};
+    var ouro = '<div class="caixa-interna cla-secao"><h3>Ouro</h3>'
+      + '<p>No baú: <strong class="cor-ouro">' + ouroBau.toLocaleString('pt-BR') + '</strong> · com ' + esc(p.nome) + ': <strong class="cor-ouro">'
+      + (p.ouro || 0).toLocaleString('pt-BR') + '</strong></p>'
+      + '<div class="linha-form"><input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
+      + '<button class="btn" data-acao="bau-guardar-ouro">Guardar</button><button class="btn secundario" data-acao="bau-retirar-ouro">Retirar</button></div></div>';
+    var linha = function (tipo, rar, qtd, onde) {
+      var c = { tipo: tipo, raridade: rar, qtd: qtd };
+      return '<div class="bau-linha"><span class="bau-ico borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + '</span>'
+        + '<span class="bau-nome">' + esc(R.nomeConsumivel(c)) + ' <span class="suave">× ' + qtd.toLocaleString('pt-BR') + '</span></span>'
+        + '<input type="number" min="1" max="' + qtd + '" value="' + qtd + '" id="bau-q-' + onde + '-' + tipo + '-' + rar + '" aria-label="Quantidade">'
+        + '<button class="btn btn-pequeno' + (onde === 'eu' ? '' : ' secundario') + '" data-acao="' + (onde === 'eu' ? 'bau-guardar-item' : 'bau-retirar-item')
+        + '" data-tipo="' + tipo + '" data-raridade="' + rar + '">' + (onde === 'eu' ? 'Guardar' : 'Retirar') + '</button></div>';
+    };
+    var meus = R.consumiveis(p).filter(function (c) { return c.qtd > 0 && D.CONSUMIVEIS[c.tipo]; })
+      .map(function (c) { return linha(c.tipo, c.raridade, c.qtd, 'eu'); }).join('');
+    var noBau = Object.keys(cons).filter(function (k) { return cons[k] > 0; }).sort().map(function (k) {
+      var x = k.split(':'); return linha(x[0], x[1], Number(cons[k]), 'bau');
+    }).join('');
+    var itens = '<div class="caixa-interna cla-secao"><h3>Consumíveis no baú</h3>' + (noBau || '<p class="suave">Nada guardado ainda.</p>') + '</div>'
+      + '<div class="caixa-interna cla-secao"><h3>Consumíveis de ' + esc(p.nome) + '</h3>' + (meus || '<p class="suave">Este personagem não tem consumíveis.</p>') + '</div>';
+    var hist = (b.historico || []).map(function (h) {
+      var o = []; if (Number(h.ouro)) o.push(Number(h.ouro).toLocaleString('pt-BR') + ' de ouro');
+      if (h.item && h.qtd) { var x = h.item.split(':'); o.push(h.qtd + 'x ' + R.nomeConsumivel({ tipo: x[0], raridade: x[1] })); }
+      return '<li>' + (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ')
+        + ' <span class="suave">· ' + new Date(h.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</span></li>';
+    }).join('');
+    return '<section class="caixa bau-conta">' + tit + ouro + itens
+      + (hist ? '<div class="caixa-interna cla-secao"><h3>Últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
+  }
+  function bauDepositar(args, msg) {
+    if (estado.bauOcupado) return;
+    estado.bauOcupado = true;
+    acaoServidor('bauDepositar', args).then(function (r) {
+      estado.bauOcupado = false;
+      if (r && !r.erro) { avisar(msg, 'item'); estado.bau = null; carregarBau(); }
+    });
+  }
+  function bauRetirar(ouro, item, qtd, msg) {
+    var p = estado.personagem;
+    if (estado.bauOcupado) return;
+    estado.bauOcupado = true;
+    C.bau.retirar(p.id, ouro, item, qtd).then(function (b) {
+      estado.bauOcupado = false; estado.bau = b;
+      avisar(msg, 'item');
+      return receberPendentes();
+    }, function (e) { estado.bauOcupado = false; avisar((e && e.message) || 'Não foi possível retirar.'); })
+      .then(function () { if (estado.aba === 'bau') telaJogo(); });
   }
   function fichaConsumivelHtml(c) {
     var def = D.CONSUMIVEIS[c.tipo] || {};
@@ -4066,7 +4139,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, bau: abaBau, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -4945,6 +5018,7 @@
   }
 
   function abrirAba(aba) {
+    if (aba === 'bau') { estado.bau = null; estado.bauErro = null; }   // abre sempre com o baú atualizado
     if (estado.personagem) {
       var gAntes = estado.personagem.guia && !estado.personagem.guia.fim && !estado.personagem.guia.loja;
       R.registrarGuia(estado.personagem, 'aba', aba);
@@ -5248,6 +5322,28 @@
       case 'cascata': estado.cascata = !estado.cascata; estado.cascataGrupo = null; telaJogo(); break;
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
+      case 'bau-recarregar': estado.bau = null; estado.bauErro = null; carregarBau(); telaJogo(); break;
+      case 'bau-guardar-ouro': case 'bau-retirar-ouro': {
+        var vo = parseInt((document.getElementById('bau-ouro') || {}).value, 10);
+        if (!(vo > 0)) { avisar('Digite quanto ouro.'); break; }
+        if (el.dataset.acao === 'bau-guardar-ouro') {
+          if (vo > estado.personagem.ouro) { avisar('Você não tem esse ouro.'); break; }
+          bauDepositar({ ouro: vo }, vo.toLocaleString('pt-BR') + ' de ouro guardado no baú.');
+        } else {
+          if (vo > Number((estado.bau || {}).ouro || 0)) { avisar('O baú não tem esse ouro.'); break; }
+          bauRetirar(vo, null, 0, vo.toLocaleString('pt-BR') + ' de ouro retirado do baú.');
+        }
+        break;
+      }
+      case 'bau-guardar-item': case 'bau-retirar-item': {
+        var eu = el.dataset.acao === 'bau-guardar-item', tb = el.dataset.tipo, rb = el.dataset.raridade;
+        var qb = parseInt((document.getElementById('bau-q-' + (eu ? 'eu' : 'bau') + '-' + tb + '-' + rb) || {}).value, 10);
+        if (!(qb > 0)) { avisar('Digite a quantidade.'); break; }
+        var nomeB = qb + 'x ' + R.nomeConsumivel({ tipo: tb, raridade: rb });
+        if (eu) bauDepositar({ tipo: tb, raridade: rb, qtd: qb }, nomeB + ' guardado no baú.');
+        else bauRetirar(0, tb + ':' + rb, qb, nomeB + ' retirado do baú.');
+        break;
+      }
       case 'personagem-vista':
         estado.vistaPersonagem = el.dataset.valor;
         telaJogo();

@@ -180,6 +180,24 @@ function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
+// Baú da conta (Henri, 18/11/2026): manda os depósitos da ficha (dados.bauSaida) para o banco (bau_guardar, só o
+// servidor; idempotente pelo id) e, se todos foram, limpa a fila com mais uma gravação. Se falhar, tenta na próxima ação.
+async function esvaziarBau(base: string, cab: Record<string, string>, id: string, p: Record<string, unknown>) {
+  const fila = Array.isArray(p.bauSaida) ? p.bauSaida : [];
+  if (!fila.length) return p;
+  for (const mov of fila) {
+    const r = await rpcServidor(base, cab, 'bau_guardar', { pid: id, mov }).catch(() => null);
+    if (!r || !r.ok) return p;
+  }
+  const v = Number(p.versao) || 0;
+  const limpo = { ...p, bauSaida: [], versao: v + 1 };
+  const g = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&dados->>versao=eq.' + v + '&select=id', {
+    method: 'PATCH', headers: { ...(cabecalhoServidor() ?? cab), Prefer: 'return=representation' }, body: JSON.stringify({ dados: limpo }),
+  }).catch(() => null);
+  if (g && g.ok && (await g.json()).length) return limpo;
+  return p;
+}
+
 export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Date.now(), sorteio = Math.random): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return responder({ erro: 'Use POST.' }, 405);
@@ -241,7 +259,9 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   if (saida.erro) return responder({ erro: saida.erro, personagem: linhas[0].dados, agora: t });
 
   // nada mudou (ex.: prêmio que não cabe na mochila): não grava de novo (preferências gravam sempre: marca "online")
-  if (acao !== 'preferencias' && JSON.stringify(p) === antes) return responder({ personagem: linhas[0].dados, agora: t, resultado: saida.resultado });
+  if (acao !== 'preferencias' && JSON.stringify(p) === antes) {
+    return responder({ personagem: await esvaziarBau(base, cab, id, linhas[0].dados), agora: t, resultado: saida.resultado });
+  }
 
   // 4. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
   p.versao = versao + 1;
@@ -264,7 +284,8 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   }
   // missão do clã: o encanto conta aqui (o navegador não manda mais)
   if (acao === 'encantar' && saida.resultado) await rpcServidor(base, cab, 'alianca_missao_servidor', { pid: id, tipo: 'encantar', qtd: 1 }).catch(() => null);
-  return responder({ personagem: p, agora: t, resultado: saida.resultado });
+  const final = await esvaziarBau(base, cab, id, p);   // depósitos do baú
+  return responder({ personagem: final, agora: t, resultado: saida.resultado });
 }
 
 if (import.meta.main) Deno.serve((req) => tratar(req));

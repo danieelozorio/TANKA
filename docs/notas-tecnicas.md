@@ -1303,3 +1303,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ### Leilão: faixas 10–20, 21–39 e 40–60 (Henri, 18/11/2026)
 - `LEILAO.faixas`: l1 [10,20] itens 18–22; l2 [21,39] itens 30–40; l3 [40,999] itens 40–60 (antes 10–19/20–29/30+,
   itens 18–22/28–32/42–50). Mercado Negro segue a faixa: 10–20 até 22; 21–39 até 40; 40+ sem limite.
+
+### Baú da conta (Henri, 18/11/2026)
+- Aba Herói › Baú (`abaBau`, app.js). Por conta: `bau_conta` (ouro, consumiveis {"tipo:raridade": qtd}) e
+  `bau_movimentos` (histórico; id único). Só ouro e consumíveis (D.CONSUMIVEIS); itens equipáveis e poções não.
+- Guardar: ação `bauDepositar` (servidor-acoes.js) tira da ficha e põe em `dados.bauSaida`; a função `acao`
+  (`esvaziarBau`, index.ts) chama `bau_guardar` (só o servidor; idempotente) depois de gravar e limpa a fila. Se falhar,
+  tenta de novo na próxima ação. O gatilho da ficha não deixa gravação direta mexer em `bauSaida`.
+- Retirar: `bau_retirar(meu, ouro, item, qtd)` (o jogador) tira do baú e cria crédito (ouro) ou recompensa
+  `{tipo:'bau', ctipo, raridade, qtd}`; o cliente chama `receber` em seguida. Tipos aceitos no SQL: lista fixa
+  (pergaminho, cristal, protecao, material, receita) — tipo novo de consumível: pôr lá também.

@@ -207,6 +207,11 @@ begin
   end if;
   -- quem grava a ficha (para conferir, antes de trancar, que as funções do servidor gravam com a chave delas)
   if tg_op = 'UPDATE' then perform public.anotar_gravacao(); end if;
+  -- Baú da conta (Henri, 18/11/2026): a fila de depósitos (bauSaida) só o servidor escreve; gravação direta mantém a antiga.
+  if current_user = 'authenticated' then
+    new.dados := (new.dados - 'bauSaida') || case when tg_op = 'UPDATE' and old.dados ? 'bauSaida'
+      then jsonb_build_object('bauSaida', old.dados -> 'bauSaida') else '{}'::jsonb end;
+  end if;
   -- trava contra ficha forjada: só nas gravações diretas pela API, e não para administradores
   if tg_op = 'UPDATE' then
     new.trava := old.trava;
@@ -4606,3 +4611,96 @@ grant execute on function public.torre_iniciar(text, int), public.torre_escolher
   public.torre_desistir(text, bigint) to authenticated;
 
 notify pgrst, 'reload schema';
+
+
+-- ============================================================================================================
+-- Baú da conta (Henri, 18/11/2026): ouro e consumíveis guardados por conta (os 3 personagens usam). Itens não entram.
+-- Depósito: a função `acao` (bauDepositar) tira da ficha e põe em dados.bauSaida; depois de gravar, chama
+-- bau_guardar (só o servidor) para cada um; bau_movimentos.id único = nunca soma duas vezes. Retirada: bau_retirar
+-- (o jogador) tira do baú e cria um crédito (ouro) ou uma recompensa {tipo:'bau'} que o `receber` entrega na ficha.
+-- ============================================================================================================
+create table if not exists public.bau_conta (
+  conta_id uuid primary key references public.contas (id) on delete cascade,
+  ouro bigint not null default 0 check (ouro >= 0),
+  consumiveis jsonb not null default '{}'::jsonb,   -- { "pergaminho:rara": 3, "material:floresta": 10, ... }
+  atualizado_em timestamptz not null default now()
+);
+create table if not exists public.bau_movimentos (
+  id text primary key,
+  conta_id uuid not null references public.contas (id) on delete cascade,
+  personagem_id text,
+  tipo text not null check (tipo in ('deposito', 'retirada')),
+  ouro bigint not null default 0,
+  item text,
+  qtd int not null default 0,
+  criado_em timestamptz not null default now()
+);
+create index if not exists bau_movimentos_conta on public.bau_movimentos (conta_id, criado_em desc);
+alter table public.bau_conta enable row level security;
+alter table public.bau_movimentos enable row level security;
+
+create or replace function public.bau_estado(meu text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare c uuid; b public.bau_conta;
+begin
+  perform public.conferir_dono(meu);
+  select conta_id into c from public.personagens where id = meu;
+  select * into b from public.bau_conta where conta_id = c;
+  return jsonb_build_object('ouro', coalesce(b.ouro, 0), 'consumiveis', coalesce(b.consumiveis, '{}'::jsonb),
+    'historico', coalesce((select jsonb_agg(x order by x.criado_em desc) from (
+      select m.tipo, m.ouro, m.item, m.qtd, m.criado_em, p.nome from public.bau_movimentos m
+      left join public.personagens p on p.id = m.personagem_id where m.conta_id = c order by m.criado_em desc limit 20) x), '[]'::jsonb));
+end $$;
+
+-- Só o servidor (função `acao`): soma o depósito ao baú da conta do personagem. Idempotente pelo id do movimento.
+create or replace function public.bau_guardar(pid text, mov jsonb) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c uuid; o bigint := greatest(0, coalesce((mov ->> 'ouro')::bigint, 0)); q int := greatest(0, coalesce((mov ->> 'qtd')::int, 0));
+  item text := case when q > 0 then (mov ->> 'tipo') || ':' || (mov ->> 'raridade') end;
+begin
+  select conta_id into c from public.personagens where id = pid;
+  if c is null or coalesce(mov ->> 'id', '') = '' then return false; end if;
+  insert into public.bau_movimentos (id, conta_id, personagem_id, tipo, ouro, item, qtd)
+    values (mov ->> 'id', c, pid, 'deposito', o, item, q) on conflict (id) do nothing;
+  if not found then return true; end if;   -- já guardado antes
+  insert into public.bau_conta (conta_id) values (c) on conflict (conta_id) do nothing;
+  update public.bau_conta set ouro = ouro + o, atualizado_em = now(),
+    consumiveis = case when item is null then consumiveis
+      else jsonb_set(consumiveis, array[item], to_jsonb(coalesce((consumiveis ->> item)::int, 0) + q)) end
+    where conta_id = c;
+  return true;
+end $$;
+revoke execute on function public.bau_guardar(text, jsonb) from public, anon, authenticated;
+
+-- O jogador tira do baú: ouro vira crédito; consumível vira recompensa (o `receber` põe na ficha).
+create or replace function public.bau_retirar(meu text, ouro bigint, item text, qtd int) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare c uuid; b public.bau_conta; tipo text := split_part(coalesce(item, ''), ':', 1); rar text := split_part(coalesce(item, ''), ':', 2);
+  o bigint := greatest(0, coalesce(ouro, 0)); q int := greatest(0, coalesce(qtd, 0)); tem int;
+begin
+  perform public.conferir_dono(meu);
+  if o = 0 and q = 0 then raise exception 'Escolha quanto retirar.'; end if;
+  if o > 2000000000 then raise exception 'Retire no máximo 2.000.000.000 de ouro por vez.'; end if;
+  select conta_id into c from public.personagens where id = meu;
+  select * into b from public.bau_conta where conta_id = c for update;
+  if b.conta_id is null then raise exception 'O baú está vazio.'; end if;
+  if o > b.ouro then raise exception 'O baú não tem esse ouro.'; end if;
+  if q > 0 then
+    -- tipos de D.CONSUMIVEIS (js/dados.js): se criar um tipo novo, pôr aqui também
+    if tipo not in ('pergaminho', 'cristal', 'protecao', 'material', 'receita') or rar = '' then raise exception 'Consumível inválido.'; end if;
+    tem := coalesce((b.consumiveis ->> item)::int, 0);
+    if q > tem then raise exception 'O baú não tem essa quantidade.'; end if;
+  end if;
+  update public.bau_conta set ouro = bau_conta.ouro - o, atualizado_em = now(),
+    consumiveis = case when q = 0 then consumiveis when tem - q <= 0 then consumiveis - item
+      else jsonb_set(consumiveis, array[item], to_jsonb(tem - q)) end
+    where conta_id = c;
+  if o > 0 then perform public.creditar(meu, o::int, 0, 'Retirado do Baú da conta'); end if;
+  if q > 0 then
+    insert into public.recompensas (personagem_id, origem, item)
+      values (meu, 'bau', jsonb_build_object('tipo', 'bau', 'ctipo', tipo, 'raridade', rar, 'qtd', q));
+  end if;
+  insert into public.bau_movimentos (id, conta_id, personagem_id, tipo, ouro, item, qtd)
+    values ('r' || gen_random_uuid()::text, c, meu, 'retirada', o, case when q > 0 then item end, q);
+  return public.bau_estado(meu);
+end $$;
