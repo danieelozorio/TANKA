@@ -3372,8 +3372,9 @@ Tanka.regras = (function () {
   var LINHAS_ALTAR = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
   function elementoAltar(rng) { return EVA.elementos[Math.floor(rng() * EVA.elementos.length)].id; }
   function cartaAltar(rng) {
+    // um tipo de elemento só, de custo[0] a custo[1] dele (ex.: 2 Água)
     var n = EVA.custo[0] + Math.floor(rng() * (EVA.custo[1] - EVA.custo[0] + 1)), custo = {};
-    for (var i = 0; i < n; i++) { var e = elementoAltar(rng); custo[e] = (custo[e] || 0) + 1; }
+    custo[elementoAltar(rng)] = n;
     return { custo: custo };
   }
   function mesaAltar(rng) {

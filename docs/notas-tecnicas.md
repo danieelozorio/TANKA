@@ -1316,7 +1316,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ### Eventos: Altar dos Elementos (18/11/2026)
 - Sub-aba "Evento" em Aventura (só com evento aberto, ou admin). `D.EVENTO_ALTAR`: 5 elementos, mesa 3x3 de montes com 3 cartas
-  (custo 2-4 elementos), 25 rolagens por partida, 5 dados, trocar 2→1, pontos (10/elemento, monte +50, linha +100, mesa +300 e mesa
+  (1 tipo de elemento por carta, de 1 a 3 dele), 25 rolagens por partida, 5 dados, trocar 2→1, pontos (10/elemento, monte +50, linha +100, mesa +300 e mesa
   nova), 5 partidas/dia, prêmios do ranking.
 - Regras: `novaPartidaAltar/pagarAltar/trocarAltar/rolarAltar/altarDoDia`. Servidor (`acao`): altarEntrar (precisa de
   `evento_atual`), altarPagar, altarTrocar, altarRolar, altarEncerrar → `eventoSaida` → `evento_registrar` (só o servidor; id

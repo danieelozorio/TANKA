@@ -7615,7 +7615,7 @@
       + '</div><div class="altar-placar"><span>Partidas hoje <b>' + usadas + '/' + EVA_.entradasDia + '</b></span><span>Seus pontos <b>' + Number((al && ev && al.ev === ev.id ? al.total : 0) || 0).toLocaleString('pt-BR') + '</b></span></div></div>';
     h += '<details class="regras-celular"' + (CELULAR ? '' : ' open') + '><summary>Como jogar</summary><ul>'
       + '<li>Cada partida tem <b>' + EVA_.rolagens + ' rolagens</b> de ' + EVA_.dados + ' elementos: ' + EVA_.elementos.map(function (e) { return e.ico + ' ' + e.nome; }).join(', ') + '.</li>'
-      + '<li>Toque num <b>monte</b> que brilha para pagar a carta do topo com os seus elementos (' + EVA_.pontos.porElemento + ' pontos por elemento).</li>'
+      + '<li>Cada carta pede <b>1 a 3 do mesmo elemento</b> (ex.: 2 💧). Toque num <b>monte</b> que brilha para pagar a carta do topo (' + EVA_.pontos.porElemento + ' pontos).</li>'
       + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher.</li>'
       + '<li>Monte zerado +' + EVA_.pontos.monte + ', linha completa (como jogo da velha) +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
       + '<li><b>' + EVA_.entradasDia + ' partidas por dia</b>. Os pontos de todas somam no <b>ranking</b>; no fim do evento os melhores ganham prêmios.</li></ul></details>';

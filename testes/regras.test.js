@@ -2790,6 +2790,7 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   const E = D.EVENTO_ALTAR; let s = 7; const rng = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const pt = R.novaPartidaAltar(rng);
   assert.strictEqual(pt.mesa.length, 9); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.rolagens, E.rolagens);
+  pt.mesa.forEach((m) => m.forEach((c) => { const k = Object.keys(c.custo); assert.ok(k.length === 1 && c.custo[k[0]] >= 1 && c.custo[k[0]] <= 3, 'carta: 1 tipo de elemento, 1 a 3 dele'); }));
   // carta feita de propósito: paga com os dados certos
   pt.mesa[0] = [{ custo: { fogo: 2, agua: 1 } }]; pt.dados = ['fogo', 'agua', 'luz', 'fogo', 'trevas'];
   assert.ok(typeof R.pagarAltar(pt, 0, [0, 2, 3], rng) === 'string', 'elementos errados: recusa');

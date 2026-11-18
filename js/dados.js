@@ -848,8 +848,8 @@ Tanka.dados = {
     premios: { base: 60000, porAndar: 2500, repetidoPct: 10, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
   },
   // ---------- Evento: Altar dos Elementos (Daniel, 18/11/2026) ----------
-  // Minigame de evento (o admin liga e desliga): mesa 3x3 de montes; cada carta do topo pede uma combinação dos 5
-  // elementos. O jogador rola 5 elementos e paga as cartas com eles; pode trocar 2 elementos quaisquer por 1 que escolher
+  // Minigame de evento (o admin liga e desliga): mesa 3x3 de montes; cada carta do topo pede 1 a 3 de UM dos 5
+  // elementos (ex.: 2 Água). O jogador rola 5 elementos e paga as cartas com eles; pode trocar 2 elementos quaisquer por 1 que escolher
   // e rolar de novo os que não guardou (cada rolagem gasta 1 das 25 da partida). 5 partidas por dia; os pontos somam
   // no ranking do evento. Prêmios do ranking: evento_premiar() no schema.sql (manter iguais a `premios`).
   EVENTO_ALTAR: {
@@ -859,7 +859,7 @@ Tanka.dados = {
       { id: 'folha', nome: 'Folha', ico: '🍃', cor: '#5fcf6a' }, { id: 'luz', nome: 'Luz', ico: '☀️', cor: '#ffd84a' },
       { id: 'trevas', nome: 'Escuridão', ico: '🌑', cor: '#a77bff' },
     ],
-    entradasDia: 5, rolagens: 25, dados: 5, cartasPorMonte: 3, custo: [2, 4],
+    entradasDia: 5, rolagens: 25, dados: 5, cartasPorMonte: 3, custo: [1, 3],   // cada carta pede 1 tipo de elemento só, de 1 a 3 dele (ex.: 2 Água) (Daniel)
     pontos: { porElemento: 10, monte: 50, linha: 100, mesa: 300 },   // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda
     premios: [
       { ate: 1, ouro: 2000000, pergaminho: 'lendaria', qtd: 3 }, { ate: 3, ouro: 1000000, pergaminho: 'lendaria', qtd: 2 },

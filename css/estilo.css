@@ -2234,3 +2234,6 @@ html[data-celular] .altar-custo { font-size: 1rem; padding: 2px 4px; }
 html[data-celular] .altar-mesa { gap: 6px; }
 html[data-celular] .altar-carta { gap: 3px; }
 html[data-celular] .altar-custo { font-size: .9rem; padding: 1px 4px; }
+/* carta de 1 elemento: grande no centro do monte */
+.altar-carta .altar-custo:only-child { font-size: 2rem; padding: 6px 10px; border-width: 2px; border-radius: 14px; }
+html[data-celular] .altar-carta .altar-custo:only-child { font-size: 1.7rem; }
