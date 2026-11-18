@@ -2073,3 +2073,13 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .torre-hex.ocupada { filter: drop-shadow(0 0 3px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
 .torre-hex.minha { filter: drop-shadow(0 0 9px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
 .torre-hex:disabled { cursor: default; }
+/* Torre: ícone da habilidade, dica (parar o mouse em cima) e a vez do inimigo */
+.torre-op.com-dica { display: inline-flex; align-items: center; gap: 6px; }
+.torre-hab-ico { width: 26px; height: 26px; border-radius: 6px; flex: none; box-shadow: 0 0 0 1px rgba(240, 197, 106, .4); }
+.torre-op:disabled .torre-hab-ico { filter: grayscale(1); }
+.dica-torre { position: fixed; z-index: 9999; max-width: 260px; padding: 9px 11px; border-radius: 9px; background: #15100a; border: 1px solid #8a6a32;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .6); color: #e9dcc0; font-size: .8rem; line-height: 1.35; pointer-events: none; display: flex; flex-direction: column; gap: 4px; }
+.dica-torre strong { color: var(--ouro-claro, #f0c56a); }
+.dica-torre em { color: #b9a77f; font-size: .72rem; }
+.torre-vez { margin: 6px 0 2px; color: #e6c27a; }
+.torre-vez-marca { display: inline-flex; align-items: center; font-size: 1rem; filter: drop-shadow(0 0 4px #f0c56a); }

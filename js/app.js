@@ -6873,6 +6873,33 @@
       setTimeout(function () { T.apertado = false; if (T.pendente) { T.pendente = false; redesenharTorre(); } }, 120);
     }, true);
   });
+  // Dica dos botões da Torre: parar o mouse ~1,5 s em cima (ou segurar o dedo) mostra o que a habilidade faz.
+  var dicaTorre = { timer: null, el: null };
+  function mostrarDica(btn) {
+    esconderDica();
+    var d = document.createElement('div'); d.className = 'dica-torre'; d.innerHTML = btn.dataset.dica; document.body.appendChild(d);
+    var r = btn.getBoundingClientRect(), w = d.offsetWidth, x = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+    var y = r.top - d.offsetHeight - 8; if (y < 8) y = r.bottom + 8;
+    d.style.left = x + 'px'; d.style.top = y + 'px'; dicaTorre.el = d;
+  }
+  function esconderDica() { clearTimeout(dicaTorre.timer); if (dicaTorre.el) { dicaTorre.el.remove(); dicaTorre.el = null; } }
+  document.addEventListener('mouseover', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-dica]');
+    if (!b) return;
+    if (b.contains(ev.relatedTarget)) return;
+    esconderDica(); dicaTorre.timer = setTimeout(function () { if (document.body.contains(b)) mostrarDica(b); }, 1500);
+  });
+  document.addEventListener('mouseout', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-dica]');
+    if (b && !b.contains(ev.relatedTarget)) esconderDica();
+  });
+  document.addEventListener('pointerdown', function (ev) {
+    if (ev.pointerType === 'mouse') { esconderDica(); return; }
+    var b = ev.target.closest && ev.target.closest('[data-dica]');
+    esconderDica();
+    if (b) dicaTorre.timer = setTimeout(function () { mostrarDica(b); setTimeout(esconderDica, 3500); }, 550);
+  });
+  ['pointerup', 'pointercancel'].forEach(function (tipo) { document.addEventListener(tipo, function (ev) { if (ev.pointerType !== 'mouse' && !dicaTorre.el) clearTimeout(dicaTorre.timer); }); });
   function abaTorre() {
     var T = torreEst();
     setTimeout(function () { if (!T.st) carregarTorre(); else agendarTorre(); }, 0);
@@ -6888,7 +6915,7 @@
   // Durante a narração, a vida mostrada é a da última linha já contada (cada linha guarda a vida de todos naquele momento).
   function vidaNaNarracao(t, n) {
     var log = t.log || [];
-    if (t.fase !== 'narrando' || !log.length || n >= log.length) return null;
+    if (!log.length || n >= log.length) return null;
     var ev = log[Math.max(0, n - 1)];
     return ev && ev.hp && ev.hpI ? ev : null;
   }
@@ -7012,9 +7039,11 @@
   function torreLuta(r) {
     var p = estado.personagem, T = torreEst(), t = r.torre, eu = t.herois.map(function (h) { return h.id; }).indexOf(p.id), me = t.herois[eu];
     var agora = agoraServ(), resta = Math.max(0, Math.ceil((r.prazo - agora) / 1000));
-    var chaveN = t.andar + ':' + t.turno;
-    if (!T.narr || T.narr.chave !== chaveN) T.narr = { chave: chaveN, inicio: Date.now() };
-    var nVis = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min((t.log || []).length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : (t.log || []).length;
+    // A narração segue o relógio da tela: se o servidor já passou para a escolha antes de a tela terminar de contar,
+    // continua contando (senão a vida pulava para o fim antes das linhas dos golpes).
+    var lg = t.log || [], sigLog = lg.length + ':' + (lg[0] ? lg[0].t : '') + ':' + (lg.length ? lg[lg.length - 1].t : '');
+    if (t.fase === 'narrando' && (!T.narr || T.narr.chave !== sigLog)) T.narr = { chave: sigLog, inicio: Date.now() };
+    var nVis = T.narr && T.narr.chave === sigLog && r.estado === 'andamento' ? Math.min(lg.length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : lg.length;
     var vn = vidaNaNarracao(t, nVis);
     var chefe = R.ehChefeTorre(t.andar);
     var h = '<div class="torre-cab"><div><small>' + TR_.nome + '</small><strong>Andar ' + t.andar + (chefe ? ' · Chefe' : '') + '</strong></div>'
@@ -7069,14 +7098,17 @@
     var e = T.esc || (T.esc = { acao: 'atacar', hab: null, alvo: vivos.length ? vivos[0].i : 0, ordem: me.L && me.L.kit.some(function (k) { return k.def.tipo === 'provocar'; }) ? 1 : me.classe2 === 'curandeiro' ? 4 : 2 });
     if (!vivos.some(function (x) { return x.i === e.alvo; }) && vivos.length) e.alvo = vivos[0].i;
     var prontas = R.habilidadesTorre(me);
-    if ((e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0) || (e.acao === 'pocao' && me.pocoes <= 0)) { e.acao = 'atacar'; e.hab = null; }   // turno novo: o que não dá mais vira ataque
-    var btn = function (acao, rot, extra, desab) {
-      return '<button class="torre-op' + (e.acao === acao && (acao !== 'habilidade' || e.hab === extra) ? ' sel' : '') + '" data-acao="torre-acao" data-valor="' + acao + '"'
-        + (extra ? ' data-hab="' + esc(extra) + '"' : '') + (desab ? ' disabled' : '') + '>' + rot + '</button>';
+    var podeDesv = R.podeDesviar(t, me), faltaDesv = Math.max(0, (me.desviarEm || 0) - (t.turno + 1));
+    if ((e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0) || (e.acao === 'pocao' && me.pocoes <= 0) || (e.acao === 'desviar' && !podeDesv)) { e.acao = 'atacar'; e.hab = null; }   // turno novo: o que não dá mais vira ataque
+    var btn = function (acao, rot, extra, desab, dica) {
+      return '<button class="torre-op' + (dica ? ' com-dica' : '') + (e.acao === acao && (acao !== 'habilidade' || e.hab === extra) ? ' sel' : '') + '" data-acao="torre-acao" data-valor="' + acao + '"'
+        + (extra ? ' data-hab="' + esc(extra) + '"' : '') + (dica ? ' data-dica="' + esc(dica) + '"' : '') + (desab ? ' disabled' : '') + '>' + rot + '</button>';
     };
     var habs = (me.L ? me.L.kit : []).map(function (k) {
       var pronta = prontas.indexOf(k.def.id) >= 0, falta = Math.max(0, (me.L.pronto[k.def.id] || 0) - (me.L.turno + 1));
-      return btn('habilidade', '✨ ' + esc(k.def.nome) + (pronta ? '' : ' <small>(' + falta + ')</small>'), k.def.id, !pronta);
+      var dica = '<strong>' + esc(k.def.nome) + '</strong><span>' + efeitoHabilidade(k.def, k.pts || 0) + '</span><em>Recarga: ' + (k.def.recarga || 1) + ' turno' + ((k.def.recarga || 1) > 1 ? 's' : '')
+        + (pronta ? '' : ' · pronta em ' + falta) + '</em>';
+      return btn('habilidade', (iconeHab(k.def, 'torre-hab-ico') || '✨ ') + '<span>' + esc(k.def.nome) + '</span>' + (pronta ? '' : ' <small>(' + falta + ')</small>'), k.def.id, !pronta, dica);
     }).join('');
     var tomadas = ordensTomadas(r, me.id);
     if (tomadas[e.ordem] && !(minha && minha.ordem === e.ordem)) e.ordem = ordemLivre(r, me.id, e.ordem);
@@ -7085,17 +7117,22 @@
       + '<button class="torre-op mini' + (auto ? ' sel' : '') + '" data-acao="torre-auto">🤖 Automático ' + (auto ? 'ligado' : 'desligado') + '</button></div>';
     if (auto) return h + '<p class="suave pequeno">O jogo escolhe sozinho a cada turno: desvia do golpe avisado, bebe poção com pouca vida, cura o grupo e usa a melhor habilidade pronta.</p></div>';
     h += ''
-      + '<div class="torre-ops">' + btn('atacar', '⚔ Atacar') + btn('desviar', '💨 Desviar <small>' + R.chanceDesviar(me) + '%</small>')
+      + '<div class="torre-ops">' + btn('atacar', '⚔ Atacar') + btn('desviar', '💨 Desviar <small>' + (podeDesv ? R.chanceDesviar(me) + '%' : '(' + faltaDesv + ')') + '</small>', null, !podeDesv,
+        '<strong>Desviar</strong><span>Tenta escapar do golpe avisado (⚠) deste turno: ' + R.chanceDesviar(me) + '% de chance, pelo seu maior atributo.</span><em>Recarga: ' + (TR_.desviar.recarga || 0) + ' turnos'
+        + (podeDesv ? '' : ' · pronto em ' + faltaDesv) + '</em>')
       + btn('pocao', '🧪 Poção <small>' + me.pocoes + '</small>', null, me.pocoes <= 0) + '</div>'
       + (habs ? '<div class="torre-ops habs">' + habs + '</div>' : '');
     if (vivos.length > 1) h += '<div class="torre-linha torre-alvos"' + (e.acao === 'atacar' || e.acao === 'habilidade' ? '' : ' hidden') + '><span class="suave pequeno">Alvo:</span>' + vivos.map(function (x) {
       return '<button class="torre-op mini' + (e.alvo === x.i ? ' sel' : '') + '" data-acao="torre-alvo" data-valor="' + x.i + '">' + esc(x.m.nome) + '</button>';
     }).join('') + '</div>';
+    var vz = t.vezInimigos || 5;
+    h += '<p class="torre-vez pequeno">' + (vz < 5 ? '⚡ Neste turno o inimigo é <b>rápido</b>: age antes do <b>' + vz + 'º</b>. Quem quer atordoar ou proteger precisa vir antes.'
+      : '🐢 Neste turno o inimigo age <b>por último</b>.') + '</p>';
     h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {
       var dono = tomadas[o];
       return '<button class="torre-op mini' + (e.ordem === o ? ' sel' : '') + (dono ? ' tomada' : '') + '" data-acao="torre-ordem" data-valor="' + o + '"' + (dono ? ' disabled title="Já é de ' + esc(dono) + '"' : '') + '>'
-        + o + 'º' + (dono ? ' <small>' + esc(dono) + '</small>' : '') + '</button>';
-    }).join('') + '</div>'
+        + o + 'º' + (dono ? ' <small>' + esc(dono) + '</small>' : '') + '</button>' + (vz === o ? '<span class="torre-vez-marca" title="O inimigo age aqui">⚡</span>' : '');
+    }).join('') + (vz === 5 ? '<span class="torre-vez-marca" title="O inimigo age aqui">🐢</span>' : '') + '</div>'
       + '<div class="botoes"><button class="btn" data-acao="torre-confirmar">' + (minha ? 'Trocar ação' : 'Confirmar') + '</button></div></div>';
     return h;
   }

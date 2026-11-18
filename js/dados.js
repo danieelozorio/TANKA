@@ -745,7 +745,10 @@ Tanka.dados = {
     semProvocar: 1,                                     // heróis que o golpe normal acerta quando ninguém provoca (Daniel: 1, sem regra extra)
     aura: 0,                                            // % da vida de todos por turno (desligada a pedido do Daniel: o chefe é que fica forte)
     entreAndares: 100,                                  // % da vida que volta entre os andares (quem caiu volta com isso)
-    desviar: { base: 20, porPonto: 0.25, max: 90 },    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
+    desviar: { base: 20, porPonto: 0.25, max: 90, recarga: 2 },   // ... e depois de desviar, fica 2 turnos sem poder desviar de novo
+    // Velocidade dos inimigos: a cada turno, chance (%) de agir ANTES de alguém do grupo (sorteia antes do 1º ao 4º);
+    // senão age por último. Sorteada no fim do turno anterior e mostrada na tela, para o grupo se planejar.
+    velocidade: { elite: 25, chefe: 40, porAndar: 1, max: 70 },    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
     resistencia: { base: 20, porAndar: 1, porStun: 25, max: 95 },
     corteCura: { pct: 50, turnos: 3 },
     furia: { desde: 25, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 25º
@@ -770,7 +773,7 @@ Tanka.dados = {
     formacao: { fileiras: [[0, 1], [2, 3, 4], [5, 6]], nomes: ['Frente', 'Meio', 'Trás'] },
     golpeAreaPct: 50,                                   // chefe que bate em área: cada herói leva 50% do golpe
     chefesArea: [false, false, true, false, true],      // quais chefes (mesma ordem de `chefes`) dão o golpe normal em área
-    narracao: { base: 1200, porLinha: 450, max: 9000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
+    narracao: { base: 1200, porLinha: 450, max: 16000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
     // Prêmios por andar vencido (o servidor dá: torre_registrar em supabase/schema.sql — manter iguais)
     premios: { ouroNovo: 1000, repNovo: 5, ouroRepetido: 150, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
   },

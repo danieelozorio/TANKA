@@ -2681,3 +2681,31 @@ teste('Torre: formação 2-3-2 (frente apanha; atrás só leva dano em área) (D
   const ev3 = R.resolverTurnoTorre(t3, t3.herois.map(() => ({ acao: 'atacar', ordem: 1 })), 9);
   assert.ok(ev3.some((e) => e.area), 'avisa o golpe em área');
 });
+
+teste('Torre: desviar tem recarga de 2 turnos e o chefe rápido pode agir antes do grupo (Daniel, 18/11/2026)', () => {
+  const ficha = (c, c2) => { const p = R.criarPersonagem('V' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2); return p; };
+  const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
+  const t = R.novaTorre(fichas, 1, [0, 1, 2, 3]);
+  t.vezInimigos = 5;
+  const h = t.herois[1];
+  assert.ok(R.podeDesviar(t, h));
+  const ev = R.resolverTurnoTorre(t, [null, { acao: 'desviar', ordem: 2 }, null, null], 3);
+  assert.ok(ev.some((e) => e.desviar && e.i === 1), 'desviou no turno 1');
+  assert.ok(!R.podeDesviar(t, h), 'turno 2: em recarga');
+  // pedir desviar em recarga vira ação automática
+  t.vezInimigos = 5;
+  const ev2 = R.resolverTurnoTorre(t, [null, { acao: 'desviar', ordem: 2 }, null, null], 4);
+  assert.ok(!ev2.some((e) => e.desviar && e.i === 1), 'não desvia em recarga');
+  assert.ok(!R.podeDesviar(t, h), 'turno 3: ainda em recarga');
+  t.vezInimigos = 5; R.resolverTurnoTorre(t, [null, null, null, null], 5);
+  assert.ok(R.podeDesviar(t, h) || t.fim, 'turno 4: pode desviar de novo');
+  // velocidade: chefe mais rápido que elite e cresce com o andar
+  const tc = R.novaTorre(fichas, 5, []), te = R.novaTorre(fichas, 1, []), tc2 = R.novaTorre(fichas, 25, []);
+  assert.ok(R.velocidadeTorre(tc) > R.velocidadeTorre(te) && R.velocidadeTorre(tc2) > R.velocidadeTorre(tc));
+  // vez 1: o chefe age antes do primeiro herói
+  const t4 = R.novaTorre(fichas, 5, [0, 1, 2, 3]); t4.vezInimigos = 1;
+  const ev4 = R.resolverTurnoTorre(t4, t4.herois.map((x, i) => ({ acao: 'atacar', ordem: i + 1 })), 11);
+  const iRapido = ev4.findIndex((e) => e.rapido), iHeroi = ev4.findIndex((e) => e.de === 'h');
+  assert.ok(iRapido >= 0 && iRapido < iHeroi, 'chefe rápido age antes');
+  assert.ok([1, 2, 3, 4, 5].includes(t4.vezInimigos), 'sorteia a vez do próximo turno');
+});

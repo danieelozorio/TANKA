@@ -2998,8 +2998,18 @@ Tanka.regras = (function () {
   function prepararAndarTorre(t) {
     t.inimigos = inimigosTorre(t.andar);
     t.avisos = []; t.turno = 0; t.fim = null; t.proxAviso = 2; t.iMec = 0;
-    t.herois.forEach(function (h) { h.L.turno = 0; h.L.pronto = {}; h.L.buffs = []; h.L.dot = null; h.L.escudo = 0; h.L.furtivo = false; h.L.provocaAte = -1; h.L.milagreUsado = false; h.L.bolsoUsado = false; h.L.primeiroGolpe = !!h.L.ex.primeiroGolpe; });
+    t.herois.forEach(function (h) { h.L.turno = 0; h.L.pronto = {}; h.L.buffs = []; h.L.dot = null; h.L.escudo = 0; h.L.furtivo = false; h.L.provocaAte = -1; h.L.milagreUsado = false; h.L.bolsoUsado = false; h.L.primeiroGolpe = !!h.L.ex.primeiroGolpe; h.desviarEm = 0; });
+    sortearVezTorre(t, rngSemente(t.andar * 7919 + 13));
   }
+  // Velocidade dos inimigos: vez = 1..4 (age antes do herói dessa vez) ou 5 (por último).
+  function velocidadeTorre(t) {
+    var V = TR.velocidade, m = vivosT(t.inimigos || []).filter(function (x) { return x.chefe || x.tipo === 'elite'; })[0];
+    if (!V || !m) return 0;
+    return Math.min(V.max, (m.chefe ? V.chefe : V.elite) + V.porAndar * (t.andar - 1));
+  }
+  function sortearVezTorre(t, rng) { t.vezInimigos = rng() * 100 < velocidadeTorre(t) ? 1 + Math.floor(rng() * 4) : 5; }
+  // Desviar tem recarga: quem desviou fica `recarga` turnos sem poder desviar.
+  function podeDesviar(t, h) { return (h.desviarEm || 0) <= t.turno + 1; }
   // Depois de vencer o andar: sobe, a vida volta um pouco (quem caiu levanta com isso), chefe vencido dá +1 poção.
   function subirTorre(t) {
     if (t.fim !== 'vitoria') return false;
@@ -3033,8 +3043,9 @@ Tanka.regras = (function () {
     var ordem = { provocar: 1 }[(kit(function (d) { return d.tipo === 'provocar'; }) || { def: {} }).def.tipo] || (h.classe2 === 'curandeiro' ? 4 : 2);
     // marcado (Marca da Ruína / Golpe Mortal em mim): tenta desviar sempre que o golpe pode derrubar; área: só quem desvia bem
     var emMim = agora.filter(function (a) { return a.alvo === i; })[0];
-    if (emMim && (emMim.mec === 'marca' || h.hp * 100 < h.hpMax * (TR.mecanicas.mortal.vidaPct + 5))) return { acao: 'desviar', ordem: ordem };
-    if (contra && chanceDesviar(h) >= 50) return { acao: 'desviar', ordem: ordem };
+    var desvia = podeDesviar(t, h);
+    if (desvia && emMim && (emMim.mec === 'marca' || h.hp * 100 < h.hpMax * (TR.mecanicas.mortal.vidaPct + 5))) return { acao: 'desviar', ordem: ordem };
+    if (desvia && contra && chanceDesviar(h) >= 50) return { acao: 'desviar', ordem: ordem };
     if (h.hp * 100 < h.hpMax * 35 && h.pocoes > 0) return { acao: 'pocao', ordem: 1 };
     var ferido = vivosT(t.herois).some(function (x) { return x.hp * 100 < x.hpMax * 70; });
     var k = (ferido && kit(function (d) { return d.tipo === 'cura'; }))
@@ -3043,6 +3054,7 @@ Tanka.regras = (function () {
       || kit(function (d) { return d.tipo === 'escudo' && contra; })
       || kit(function (d) { return d.tipo !== 'cura' && d.tipo !== 'provocar' && !(d.atordoa && !agora.length) && d.tipo !== 'escudo'; });
     if (contra && !k && h.pocoes > 0 && h.hp * 100 < h.hpMax * 60) return { acao: 'pocao', ordem: 1 };
+    if (k && k.def.atordoa && agora.length) ordem = 1;   // o stun precisa sair antes do chefe agir
     return k ? { acao: 'habilidade', hab: k.def.id, alvo: idxAlvo, ordem: ordem } : { acao: 'atacar', alvo: idxAlvo, ordem: ordem };
   }
   function txtNum(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
@@ -3051,15 +3063,24 @@ Tanka.regras = (function () {
     if (t.fim) return [];
     var rng = rngSemente(semente || (t.andar * 1000 + t.turno + 1)), ev = [];
     var diz = function (texto, x) { var e = Object.assign({ t: texto }, x || {}); e.hp = t.herois.map(function (h) { return h.hp; }); e.hpI = t.inimigos.map(function (m) { return m.hp; }); ev.push(e); };
-    t.turno++;
     // escolhas válidas (ou automáticas), na ordem que o grupo escolheu
     var acoes = t.herois.map(function (h, i) {
       var e = escolhas && escolhas[i], prontas = habilidadesTorre(h);
       if (!e || ['atacar', 'habilidade', 'desviar', 'pocao'].indexOf(e.acao) < 0 || (e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0)
-        || (e.acao === 'pocao' && h.pocoes <= 0)) e = Object.assign(escolhaAutoTorre(t, i), { auto: true });
+        || (e.acao === 'pocao' && h.pocoes <= 0) || (e.acao === 'desviar' && !podeDesviar(t, h))) e = Object.assign(escolhaAutoTorre(t, i), { auto: true });
       return { i: i, e: e, ordem: Math.max(1, Math.min(4, Math.floor(Number(e.ordem) || 4))) };
     }).sort(function (a, b) { return a.ordem - b.ordem || a.i - b.i; });
+    t.turno++;
+    // quem vai desviar já fica pronto no começo do turno (vale mesmo se o chefe agir antes dele)
     t.herois.forEach(function (h) { h.desvia = false; });
+    acoes.forEach(function (x) { var h = t.herois[x.i]; if (x.e.acao === 'desviar' && h.hp > 0) { h.desvia = true; h.desviarEm = t.turno + 1 + (TR.desviar.recarga || 0); } });
+    var vez = t.vezInimigos || 5, inimigosAgiram = false;
+    var agirInimigos = function () {
+      if (inimigosAgiram || t.fim || !vivosT(t.inimigos).length) return;
+      inimigosAgiram = true;
+      if (vez < 5) diz('⚡ ' + (vivosT(t.inimigos).filter(function (m) { return m.chefe || m.tipo === 'elite'; })[0] || vivosT(t.inimigos)[0]).nome + ' é rápido e age antes!', { rapido: true });
+      faseInimigos();
+    };
     var alvoDe = function (e) { var m = t.inimigos[e.alvo]; return m && m.hp > 0 ? m : vivosT(t.inimigos)[0]; };
     var golpe = function (h, alvo, opc, quem) {
       var g = calcularGolpe(h.s, h.L, alvo, opc, rng);
@@ -3092,14 +3113,15 @@ Tanka.regras = (function () {
         if (efeitoPega(alvo, 'cura', rng)) { alvo.cortaCura = { pct: def.cortaCura || TR.corteCura.pct, ate: t.turno + TR.corteCura.turnos }; diz(alvo.nome + ' vai curar menos (corte de cura).', { corte: true }); }
       }
     };
-    acoes.forEach(function (x) {
+    function faseHerois() { acoes.forEach(function (x, pos) {
+      if (pos + 1 >= vez) agirInimigos();
       var h = t.herois[x.i], e = x.e, L = h.L, quem = h.nome;
-      if (h.hp <= 0 || t.fim) return;
+      if (h.hp <= 0 || t.fim || !vivosT(t.herois).length) return;
       inicioVez(L, h);
       var tk = tickDot(L, h, function () { return vivosT(t.inimigos)[0] || null; });
       if (tk) diz('O veneno de ' + quem + ' tira ' + txtNum(tk.dano) + ' de ' + tk.alvo.nome + '.', { de: 'h', i: x.i, dano: tk.dano, dot: true });
       if (!vivosT(t.inimigos).length) return;
-      if (e.acao === 'desviar') { h.desvia = true; diz(quem + ' se prepara para desviar (' + chanceDesviar(h) + '%).', { de: 'h', i: x.i, desviar: true }); return; }
+      if (e.acao === 'desviar') { diz(quem + ' se prepara para desviar (' + chanceDesviar(h) + '%).', { de: 'h', i: x.i, desviar: true }); return; }
       if (e.acao === 'pocao') {
         h.pocoes--;
         var c = Math.min(h.hpMax - h.hp, Math.round(h.hpMax * TR.pocaoCura / 100 * (L.ex.pocaoMetade ? 0.5 : 1)));
@@ -3138,8 +3160,7 @@ Tanka.regras = (function () {
         if (def.nivel) depoisDoGolpeNivel(def, m, h.s, k.pts);
         efeitos(h, def, m, antes);
       });
-    });
-    if (!vivosT(t.inimigos).length) { t.fim = 'vitoria'; diz('Andar ' + t.andar + ' vencido!', { vitoria: true }); t.log = ev; return ev; }
+    }); }
     // inimigos
     var furia = function (m) { return m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1; };
     var bater = function (m, h, bruto, ignoraDef, nomeGolpe) {
@@ -3174,7 +3195,8 @@ Tanka.regras = (function () {
       });
       if (marcaFalhou) vivosT(t.herois).forEach(function (h) { bater(m, h, Math.round(h.hpMax * M.vidaPct / 100 * furia(m)), true, 'A Marca da Ruína'); });
     };
-    t.inimigos.slice().forEach(function (m) {
+    faseHerois(); agirInimigos();
+    function faseInimigos() { t.inimigos.slice().forEach(function (m) {
       if (m.hp <= 0 || !vivosT(t.herois).length) return;
       var qm = tickQueima(m);
       if (qm) { diz(m.nome + ' sofre ' + txtNum(qm) + ' de queimadura/sangramento.', { dot: true }); if (m.hp <= 0) { diz(m.nome + ' caiu!', { caiu: true }); return; } }
@@ -3188,7 +3210,7 @@ Tanka.regras = (function () {
       // golpe normal em toda rodada (Daniel, 18/11/2026): no turno da mecânica avisada, bate primeiro e solta a mecânica depois
       golpeNormal(m);
       if (avisoAgora && vivosT(t.herois).length) { t.avisos.splice(t.avisos.indexOf(avisoAgora), 1); mecanica(m, avisoAgora); }
-    });
+    }); }
     function golpeNormal(m) {
       // em quem provocou, senão em alguém vivo
       var vivos = vivosT(t.herois), prov = vivos.filter(function (h) { return h.L.provocaAte >= h.L.turno; })[0];
@@ -3234,6 +3256,8 @@ Tanka.regras = (function () {
       }
       t.proxAviso = t.turno + 1 + TR.aCada;
     }
+    sortearVezTorre(t, rng);
+    if (t.vezInimigos < 5) diz('⚡ No próximo turno, ' + (vivosT(t.inimigos).filter(function (m) { return m.chefe || m.tipo === 'elite'; })[0] || vivosT(t.inimigos)[0]).nome + ' age antes do ' + t.vezInimigos + 'º.', { aviso: true });
     t.log = ev;
     return ev;
   }
@@ -3704,7 +3728,7 @@ Tanka.regras = (function () {
     tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
-    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
+    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, velocidadeTorre: velocidadeTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
     calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,

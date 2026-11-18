@@ -1243,3 +1243,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   A função `acao` passa as casas para `novaTorre`.
 - Tela: grade no saguão (`gradeFormacao`, toque na sua casa para tirar; artes em `assets/torre/`: hex-vazio, hex-moldura com miolo vazado, formacao-fundo) e a fileira no cartão do herói; inimigo com 💥 golpe em área.
 - Simulação (grupo lv 40): andar 10 foi de ~50% para ~90-95% de vitória; andar 15 (chefe com golpe em área) segue muro.
+
+### Torre: ícones/dicas, recarga do desviar, velocidade dos inimigos (18/11/2026)
+- Painel: habilidades com o ícone (`iconeHab`) e dica (`data-dica`, mostra após 1,5 s de mouse parado ou segurando o dedo; `.dica-torre`).
+- Desviar: `TORRE.desviar.recarga` (2). `h.desviarEm` = turno a partir do qual pode de novo; `podeDesviar(t, h)`. Pedido em recarga vira automático.
+- Velocidade: `TORRE.velocidade` (elite 25%, chefe 40%, +1%/andar, máx 70%). `t.vezInimigos` (1-4: age antes desse herói; 5: por último),
+  sorteada no fim de cada turno e mostrada no painel (⚡/🐢 na fila da ordem). Quem desvia fica pronto no começo do turno.
+  O resolver agora tem `faseHerois` e `faseInimigos` (agirInimigos chamado na vez certa). Simulação lv 40, andar 10: equilibrado 93% → 73%.
+- Narração: a tela continua contando mesmo se o servidor já passou para a escolha (chave = assinatura do log); `narracao.max` 9000 → 16000.
