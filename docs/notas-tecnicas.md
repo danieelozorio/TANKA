@@ -1287,3 +1287,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Ícones das habilidades dos chefes: `icoMec(id)` → assets/torre/mecanicas/<id>.webp (25: as 19 mecânicas + colapso, despertar,
   rapido, area, resistencia, furia); sem a arte vira o emoji (`EMOJI_MEC`, `mecSemIcone`). Aparecem no aviso ⚠, nas marcas do chefe
   (com dica `dicaMec`), na fileira "o que ele sabe" (`.cena-sabe`) e nos males do herói. Prompt único (grade 5x5) entregue ao Daniel.
+- Artes chegaram (18/11/2026): 40 monstros em assets/torre/monstros (420px) e 25 ícones em assets/torre/mecanicas (96px, recortados da grade sem o texto).
