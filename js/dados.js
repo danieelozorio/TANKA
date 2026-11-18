@@ -1127,6 +1127,9 @@ Tanka.dados = {
     ameaca: { defFisicaNivel: 18, defMagicaNivel: 10.8, esquivaMax: 50, fator: 30 },
     nivelMin: 5, entradasMax: 5, recargaMinutos: 60, alcanceDesafio: 5, tempoDado: 5, limiteTurnos: 200,
     reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
+    // Veneno, sangramento e queimadura na Arena (18/11/2026): o D20 conta (1 falha, 10 = metade, 20 = tudo) e o dano
+    // da habilidade é multiplicado por efeitoDadoMult (2: na média do dado fica como antes; com 20, o dobro).
+    efeitoDadoMult: 2,
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
     // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.
     saque: { ate: 30, minimo: 5, desde: 80, maximo: 10, meio: [5, 8] },

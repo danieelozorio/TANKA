@@ -8215,8 +8215,13 @@
     if (ev.curou) L.registro.push('<p class="cura">💚 ' + esc(atk.nome) + ' recupera <strong>' + ev.curou + '</strong> de vida com a luz.</p>');
     if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−' + (ev.quebraPct || 30) + '%'
       + (ev.quebraTurnos ? ' por ' + ev.quebraTurnos + ' turnos' : '') + ').</p>');
-    if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + esc(alvo.nome) + ' está queimando e as curas dele caem pela metade.</p>');
-    if (ev.envenenou) L.registro.push('<p class="destaque">☠️ ' + esc(alvo.nome) + ' foi envenenado.</p>');
+    // Veneno/sangramento/queimadura: o D20 decide o dano (18/11/2026); 1 = falha.
+    var dadoEf = ev.dado ? '🎲 <strong>' + ev.dado + '</strong> ' : '';
+    if (ev.queimadura) L.registro.push('<p class="destaque">🔥 ' + dadoEf + esc(alvo.nome) + ' está queimando'
+      + (ev.efeitoDano ? ' (<strong>' + ev.efeitoDano + '</strong> por vez)' : '') + ' e as curas dele caem pela metade.</p>');
+    if (ev.envenenou) L.registro.push('<p class="destaque">☠️ ' + dadoEf + esc(alvo.nome) + ' foi envenenado'
+      + (ev.efeitoDano ? ' (<strong>' + ev.efeitoDano + '</strong> por vez)' : '') + '.</p>');
+    if (ev.efeitoFalhou) L.registro.push('<p class="suave">☠️ ' + dadoEf + 'O efeito de ' + esc(ev.hab || 'habilidade') + ' falhou.</p>');
     if (ev.escudo) L.registro.push('<p class="destaque">🧊 ' + esc(atk.nome) + ' levanta um escudo de gelo.</p>');
     if (ev.escudoSegurou) L.registro.push('<p class="suave">🧊 O escudo de ' + esc(alvo.nome) + ' segura <strong>' + ev.escudoSegurou + '</strong>.</p>');
     if (ev.congelouEu) L.registro.push('<p class="destaque">🧊 ' + esc(atk.nome) + ' congela ao bater no escudo!</p>');

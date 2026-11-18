@@ -1293,3 +1293,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `ARENA.arenas[].jackpotPor10min` 125 / 850 / 3.500 / 10.500 (era 50/100/150/200) e `jackpotDefesa` por arena
   100 / 500 / 2.000 / 5.000 (soma a cada ataque perdido contra o Top 1; o `jackpotPorDefesa` geral vira reserva).
   Meta: um dia inteiro no Top 1 ≈ 6 h de caçada da faixa (Arena 30+: ~1,5 milhão/dia; ~570 mil à meia-noite).
+
+### Arena: o D20 conta no veneno, sangramento e queimadura (Henri, 18/11/2026)
+- `arena_vez`: o dano por vez do `dot` (Corte Vampírico, Flecha Envenenada) e da `queima` (Maldição) é multiplicado por
+  `arena_fator_dado(dado)` (1 = 0 → o efeito falha e não é aplicado, `ev.efeitoFalhou`; até 10 = (d−1)/18; acima =
+  0,5 + (d−10)/20; 20 = 1) e por `ARENA.efeitoDadoMult` (2): na média do dado (~0,51) fica como antes; com 20, o dobro.
+  Depois vem a defesa do alvo. `ev.efeitoDano` = dano por vez; o histórico mostra o dado.
