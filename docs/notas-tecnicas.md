@@ -1328,3 +1328,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Correção (18/11/2026): `arena_finalizar` quebrava com "column reference a is ambiguous" (a variável `a` = lado do atacante e o
   alias `a` do jsonb_array_elements no jackpot por arena). Alias virou `ar_cfg`; já rodado no Supabase. Quem tinha luta abandonada
   ficava com a Arena travada (arena_estado → encerrar_abandonadas → finalizar).
+- Artes do Altar (18/11/2026): assets/eventos/altar (el-<elemento>.webp 128px recortadas da fileira, banner, mesa com os 9 encaixes,
+  moldura = carta do topo, verso = cartas de baixo). As cartas ficam em cima dos encaixes (centros a 27,7/49,9/72,1% da mesa).

@@ -7603,14 +7603,16 @@
     });
     return ok ? usados : null;
   }
+  // arte dos elementos (assets/eventos/altar/el-<id>.webp); o emoji fica no alt
+  function imgEl(id, cls) { var e = elAltar(id); return '<img class="' + (cls || 'altar-el') + '" src="assets/eventos/altar/el-' + id + '.webp" alt="' + e.ico + '" title="' + e.nome + '">'; }
   function custoHtml(custo) {
-    return Object.keys(custo).map(function (el) { var e = elAltar(el); return '<span class="altar-custo" style="--cor:' + e.cor + '">' + e.ico + (custo[el] > 1 ? '<b>' + custo[el] + '</b>' : '') + '</span>'; }).join('');
+    return Object.keys(custo).map(function (el) { return '<span class="altar-custo">' + imgEl(el) + (custo[el] > 1 ? '<b>×' + custo[el] + '</b>' : '') + '</span>'; }).join('');
   }
   function abaEventos() {
     var p = estado.personagem, ev = estado.eventoAtual, al = p.altar, pt = al && al.partida;
     if (!estado.eventoRankingEm || Date.now() - estado.eventoRankingEm > 60000) { estado.eventoRankingEm = Date.now(); carregarRankingEvento(); }
     var hojeOk = al && ev && al.ev === ev.id && al.dia === R.diaReset(C.agora()), usadas = hojeOk ? al.entradas : 0;
-    var h = '<section class="caixa altar"><div class="altar-topo"><div><small>Evento</small><h3 class="subtitulo">✨ ' + EVA_.nome + '</h3>'
+    var h = '<section class="caixa altar"><div class="altar-topo"><div><small>Evento</small><h3 class="subtitulo">' + EVA_.nome + '</h3>'
       + (ev ? '<p class="suave pequeno">' + (ev.fim ? 'Acaba em ' + tempoTexto(Math.max(0, Date.parse(ev.fim) - C.agora())) : 'Aberto') + '</p>' : '<p class="menos pequeno">Nenhum evento aberto agora.</p>')
       + '</div><div class="altar-placar"><span>Partidas hoje <b>' + usadas + '/' + EVA_.entradasDia + '</b></span><span>Seus pontos <b>' + Number((al && ev && al.ev === ev.id ? al.total : 0) || 0).toLocaleString('pt-BR') + '</b></span></div></div>';
     h += '<details class="regras-celular"' + (CELULAR ? '' : ' open') + '><summary>Como jogar</summary><ul>'
@@ -7625,18 +7627,21 @@
     } else {
       var sel = estado.altarSel || [];
       h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
+      // cada carta em cima de um encaixe da mesa (centros a 27,7%, 49,9% e 72,1% da arte)
+      var centro = [27.7, 49.9, 72.1];
       h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
-        if (!monte.length) return '<div class="altar-monte vazio"><span>✔</span></div>';
+        var pos = ' style="left:' + centro[i % 3] + '%;top:' + centro[Math.floor(i / 3)] + '%"';
+        if (!monte.length) return '<div class="altar-monte vazio"' + pos + '><span>✔</span></div>';
         var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
-        return '<button class="altar-monte' + (paga ? ' paga' : '') + '" data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
+        return '<button class="altar-monte pilha-' + Math.min(3, monte.length) + (paga ? ' paga' : '') + '"' + pos + ' data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
           + '<span class="altar-pilha">' + monte.length + '</span><span class="altar-carta">' + custoHtml(topo.custo) + '</span></button>';
       }).join('') + '</div>';
       h += '<div class="altar-dados">' + pt.dados.map(function (d, i) {
         var e = elAltar(d);
-        return '<button class="altar-dado' + (sel.indexOf(i) >= 0 ? ' sel' : '') + '" style="--cor:' + e.cor + '" data-acao="altar-dado" data-valor="' + i + '" title="' + e.nome + '">' + e.ico + '</button>';
+        return '<button class="altar-dado' + (sel.indexOf(i) >= 0 ? ' sel' : '') + '" style="--cor:' + e.cor + '" data-acao="altar-dado" data-valor="' + i + '" title="' + e.nome + '">' + imgEl(d, 'altar-dado-img') + '</button>';
       }).join('') + (!pt.dados.length ? '<span class="suave pequeno">Sem elementos: role de novo.</span>' : '') + '</div>';
       if (estado.altarTroca && sel.length === 2) h += '<div class="altar-troca"><span class="suave pequeno">Trocar os 2 marcados por:</span>' + EVA_.elementos.map(function (e) {
-        return '<button class="altar-dado" style="--cor:' + e.cor + '" data-acao="altar-trocar" data-valor="' + e.id + '" title="' + e.nome + '">' + e.ico + '</button>';
+        return '<button class="altar-dado" style="--cor:' + e.cor + '" data-acao="altar-trocar" data-valor="' + e.id + '" title="' + e.nome + '">' + imgEl(e.id, 'altar-dado-img') + '</button>';
       }).join('') + '<button class="btn secundario btn-pequeno" data-acao="altar-troca-nao">Cancelar</button></div>';
       h += '<div class="botoes altar-botoes"><button class="btn" data-acao="altar-rolar"' + (pt.rolagens > 0 ? '' : ' disabled') + '>🎲 Rolar' + (sel.length ? ' (guarda ' + sel.length + ')' : '') + '</button>'
         + '<button class="btn secundario" data-acao="altar-troca"' + (sel.length === 2 ? '' : ' disabled') + ' title="Marque 2 elementos">🔁 Trocar 2 → 1</button>'
