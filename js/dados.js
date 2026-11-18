@@ -1331,16 +1331,17 @@ Tanka.dados = {
     fases: [{ id: 'muitoLongo', nome: 'Muito longo', acimaMin: 180 }, { id: 'longo', nome: 'Longo', acimaMin: 60 },
       { id: 'medio', nome: 'Médio', acimaMin: 20 }, { id: 'curto', nome: 'Curto', acimaMin: 0 }],
     nomeMuitoCurto: 'Muito curto',
-    // Mercado Negro: na última faixa (30+) o limite é o item mais alto dela (50); do level 40 (Reino do Pesadelo) em diante, sem limite.
+    // Mercado Negro: limite = item mais alto da faixa do herói (10–20: 22; 21–39: 40); do level 40 (Reino do Pesadelo) em diante, sem limite.
     mercadoSemLimite: 40,
     minimo: { comum: 1000, rara: 5000, epica: 10000, lendaria: 50000 },
     pacotePergaminho: { comum: 10, rara: 5, epica: 3, lendaria: 1 },
+    // Faixas (Henri, 18/11/2026): 10–20, 21–39 e 40–60; itens perto do topo de cada faixa.
     faixas: [
-      { id: 'l1', nome: 'Leilão do Mercador', nivel: [10, 19], mult: 1, itemNivel: [18, 22],
+      { id: 'l1', nome: 'Leilão do Mercador', nivel: [10, 20], mult: 1, itemNivel: [18, 22],
         raridades: { comum: 30, rara: 45, epica: 22, lendaria: 3 } },
-      { id: 'l2', nome: 'Leilão da Coroa', nivel: [20, 29], mult: 10, itemNivel: [28, 32],
+      { id: 'l2', nome: 'Leilão da Coroa', nivel: [21, 39], mult: 10, itemNivel: [34, 40],
         raridades: { comum: 15, rara: 45, epica: 32, lendaria: 8 } },
-      { id: 'l3', nome: 'Leilão dos Reis', nivel: [30, 999], mult: 40, itemNivel: [42, 50],
+      { id: 'l3', nome: 'Leilão dos Reis', nivel: [40, 999], mult: 40, itemNivel: [52, 60],
         raridades: { comum: 0, rara: 35, epica: 45, lendaria: 20 } },
     ],
   },

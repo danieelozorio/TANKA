@@ -1758,7 +1758,7 @@ teste('cristais: item que quebra na Forja vira cristais da raridade dele (100/15
 
 teste('leilão: faixa por level, item do lote igual para todos (semente) e próximo lance +5%', () => {
   assert.strictEqual(R.faixaLeilao(9), null);
-  assert.deepStrictEqual([10, 19, 20, 29, 30, 40].map((n) => R.faixaLeilao(n).id), ['l1', 'l1', 'l2', 'l2', 'l3', 'l3']);
+  assert.deepStrictEqual([10, 20, 21, 39, 40, 60].map((n) => R.faixaLeilao(n).id), ['l1', 'l1', 'l2', 'l2', 'l3', 'l3']);   // 10–20, 21–39, 40+ (18/11/2026)
   const lotes = [
     { tipo: 'arma', classe: 'mago', raridade: 'epica', nivel: 20, semente: 123456 },
     { tipo: 'armadura', classe: 'cavaleiro', raridade: 'lendaria', nivel: 45, semente: 99 },

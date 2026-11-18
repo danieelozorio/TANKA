@@ -547,11 +547,13 @@ begin
   if public.ouro_real('pa') <> 1000000 then raise exception 'FALHA leilão: a Ana devia receber o ouro de volta: %', public.ouro_real('pa'); end if;
   if (select count(*) from public.creditos where personagem_id = 'pa' and ouro = prox and motivo like 'Seu lance foi coberto%') <> 1 then
     raise exception 'FALHA leilão: crédito de devolução da Ana'; end if;
-  -- Duda (level 20, faixa l2) não pode dar lance no leilão da faixa l1
+  -- Duda (level 21, faixa l2 desde 18/11/2026: 21–39) não pode dar lance no leilão da faixa l1
+  update public.personagens set dados = jsonb_set(dados, '{nivel}', '21') where id = 'pd';
   perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000d', false);
   begin perform public.leilao_lance('pd', lote, prox * 3); raise exception 'X'; exception when others then
     if position('não é da sua faixa' in sqlerrm) = 0 then raise exception 'FALHA leilão: faixa errada: %', sqlerrm; end if; end;
-  if public.leilao_estado('pd') ->> 'faixa' <> 'l2' then raise exception 'FALHA leilão: level 20 é l2'; end if;
+  if public.leilao_estado('pd') ->> 'faixa' <> 'l2' then raise exception 'FALHA leilão: level 21 é l2'; end if;
+  update public.personagens set dados = jsonb_set(dados, '{nivel}', '20') where id = 'pd';
   -- Fases
   update public.leiloes set fim = now() + interval '2 hours', muito_curto_em = now() + interval '2 hours' - interval '3 minutes'
     where id = (e ->> 'id')::bigint;

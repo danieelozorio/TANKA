@@ -1299,3 +1299,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `arena_fator_efeito(dado)`, pelas faixas de `ARENA.efeitoDado`: 1 = falha (efeito não aplicado, `ev.efeitoFalhou`);
   2–6 ×0,5; 7–12 ×1; 13–17 ×1,5; 18–20 ×2 (média ≈ ×1,1). Depois vem a defesa do alvo. `ev.efeitoDano` = dano por vez;
   o histórico mostra o dado.
+
+### Leilão: faixas 10–20, 21–39 e 40–60 (Henri, 18/11/2026)
+- `LEILAO.faixas`: l1 [10,20] itens 18–22; l2 [21,39] itens 34–40; l3 [40,999] itens 52–60 (antes 10–19/20–29/30+,
+  itens 18–22/28–32/42–50). Mercado Negro segue a faixa: 10–20 até 22; 21–39 até 40; 40+ sem limite.

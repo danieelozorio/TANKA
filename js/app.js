@@ -2319,7 +2319,7 @@
     var L = D.LEILAO, f = R.faixaLeilao(nivel), ult = L.faixas[L.faixas.length - 1];
     if (!f) return L.nivelMin + 2;           // antes do level do Leilão: itens até o nível 12
     if (f === ult && nivel >= (L.mercadoSemLimite || 0)) return null;   // level 40+: sem limite
-    return f.itemNivel[1];   // 30–39: até o 50 (o teto do Leilão dos Reis)
+    return f.itemNivel[1];   // até o item mais alto do leilão da faixa (10–20: 22; 21–39: 40)
   }
   function abaMercadoNegro() {
     var p = estado.personagem, lim = nivelMaxMercadoNegro(p.nivel);
