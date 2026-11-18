@@ -1256,3 +1256,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   do herói agora leva `ai`, índice do inimigo).
 - Religada (`ligada: true`). Admin: vê a aba em qualquer level, sobe sozinho sem grupo (`torre_iniciar` cria a subida só com ele,
   `grupo_id` null) ou com grupo menor que 4 (botão "teste do admin"). Jogador comum continua precisando de 4.
+- Admin sozinho escolhe a casa no saguão (`estado.torreCasaSolo`, só na tela) e `torre_iniciar(meu, pos)` grava em `posicoes`.
+  Sem os nomes Frente/Meio/Trás do lado das grades. Marcas do inimigo: `.buff` verde (resist. stun, golpe em área, barreira),
+  `.debuff` vermelho (atordoado, corte de cura, sangrando, cego, defesa quebrada). Redesenho adiado pelo toque agora respeita o "forçar".

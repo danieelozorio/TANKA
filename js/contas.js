@@ -366,7 +366,7 @@ Tanka.contas = (function () {
   // O turno é resolvido pelo servidor: C.acao(id, 'torreAvancar', { run }) (função `acao`). Aqui só o que é do banco.
   var torre = {
     estado: function (meu) { return chamar('torre_estado', { meu: meu }); },
-    iniciar: function (meu) { return chamar('torre_iniciar', { meu: meu }); },
+    iniciar: function (meu, pos) { return chamar('torre_iniciar', { meu: meu, pos: typeof pos === 'number' ? pos : null }); },
     escolher: function (meu, run, escolha) { return chamar('torre_escolher', { meu: meu, run_id: run, escolha: escolha }); },
     desistir: function (meu, run) { return chamar('torre_desistir', { meu: meu, run_id: run }); },
     posicao: function (meu, pos) { return chamar('torre_posicao', { meu: meu, pos: pos }); },

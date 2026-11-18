@@ -2141,3 +2141,8 @@ html[data-celular] .cena-fileira { grid-template-columns: 28px 1fr; }
 .cena-casa .torre-vida.mini { width: 84%; margin: 2px auto; }
 .cena-fileira-nome small { white-space: nowrap; }
 html[data-celular] .cena-fileira-nome small { font-size: .48rem; letter-spacing: 0; }
+/* sem os nomes das fileiras do lado (Daniel, 18/11/2026); buff do inimigo em verde, debuff em vermelho */
+.torre-fileira, .cena-fileira { grid-template-columns: 1fr; }
+html[data-celular] .cena-fileira { grid-template-columns: 1fr; }
+.cena-marcas span.buff { background: rgba(20, 70, 35, .85); border-color: #3fa35a; color: #b9f5c6; }
+.cena-marcas span.debuff { background: rgba(90, 18, 14, .85); border-color: #d0453a; color: #ffc4bc; }

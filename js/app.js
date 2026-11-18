@@ -5407,6 +5407,7 @@
       case 'torre-confirmar': torreConfirmar(); break;
       case 'torre-casa': {
         var gc = estado.gm && estado.gm.grupo, eu = gc && gc.membros.filter(function (m) { return m.id === p.id; })[0], casa = Number(el.dataset.valor);
+        if (!gc) { estado.torreCasaSolo = estado.torreCasaSolo === casa ? null : casa; redesenharTorre(true); break; }   // sozinho (admin): só guarda na tela
         if (!eu) break;
         var nova = eu.posicao === casa ? null : casa;
         C.torre.posicao(p.id, nova).then(function () { eu.posicao = nova; redesenharTorre(true); carregarGrupo(); }, function (er) { avisar(er.message); carregarGrupo(); });
@@ -5414,7 +5415,7 @@
       }
       case 'torre-auto': torreAutoMudar(!torreAuto()); torreEst().autoFeito = null; redesenharTorre(true); autoTorre(); break;
       case 'torre-subir':
-        C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
+        C.torre.iniciar(p.id, estado.gm && estado.gm.grupo ? null : estado.torreCasaSolo).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
         break;
       case 'torre-desistir-pedir': estado.torreDesistir = true; redesenharTorre(true); break;
       case 'torre-desistir-nao': estado.torreDesistir = false; redesenharTorre(true); break;
@@ -6838,7 +6839,7 @@
     var caixa = document.getElementById('torre'), T = torreEst();
     if (!caixa) return;
     // dedo na tela: espera soltar para não trocar o botão no meio do toque
-    if (T.apertado) { T.pendente = true; return; }
+    if (T.apertado) { T.pendente = true; if (forcar) T.pendenteForcar = true; return; }
     var sig = assinaturaTorre();
     if (!forcar && sig === T.sig) { pulsoTorre(); return; }
     T.sig = sig;
@@ -6870,7 +6871,7 @@
     document.addEventListener(tipo, function () {
       var T = torreEst();
       if (!T.apertado) return;
-      setTimeout(function () { T.apertado = false; if (T.pendente) { T.pendente = false; redesenharTorre(); } }, 120);
+      setTimeout(function () { T.apertado = false; if (T.pendente) { var f = T.pendenteForcar; T.pendente = false; T.pendenteForcar = false; redesenharTorre(f); } }, 120);
     }, true);
   });
   // Dica dos botões da Torre: parar o mouse ~1,5 s em cima (ou segurar o dedo) mostra o que a habilidade faz.
@@ -7000,7 +7001,8 @@
     var gr = g.grupo;
     if (!gr) return h + '<div class="secao"><p>Você precisa de um <b>grupo de ' + TR_.grupo + '</b>. Na aba <b>Social</b>, use <b>"Convidar para o grupo"</b> nos seus amigos '
       + '(level ' + TR_.nivelMin + '+). Quem convida vira o líder 👑.</p>'
-      + (ehAdmin() ? '<div class="botoes"><button class="btn" data-acao="torre-subir">🗼 Subir sozinho (teste do admin)</button></div>' : '') + '</div>';
+      + (ehAdmin() ? gradeFormacao({ membros: [Object.assign({}, p, { posicao: estado.torreCasaSolo })] }, p)
+        + '<div class="botoes"><button class="btn" data-acao="torre-subir">🗼 Subir sozinho (teste do admin)</button></div>' : '') + '</div>';
     var souLider = gr.lider === p.id, eu = gr.membros.filter(function (m) { return m.id === p.id; })[0] || {};
     h += '<h3 class="subtitulo">Seu grupo (' + gr.membros.length + '/' + TR_.grupo + ')</h3><div class="torre-grupo">' + gr.membros.map(function (m) {
       return '<div class="torre-membro' + (m.pronto ? ' pronto' : '') + '"><div class="moldura">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</div>'
@@ -7021,10 +7023,10 @@
   function gradeFormacao(gr, p) {
     var F = TR_.formacao, dono = {};
     gr.membros.forEach(function (m, i) { if (typeof m.posicao === 'number') dono[m.posicao] = { m: m, cor: CORES_TORRE[i % 4] }; });
-    var h = '<h3 class="subtitulo">Formação</h3><p class="suave pequeno">Toque numa casa para pôr seu herói. O golpe normal do chefe só pega a fileira da <b>frente</b> '
+    var h = '<h3 class="subtitulo">Formação</h3><p class="suave pequeno">Toque numa casa para pôr seu herói. O golpe normal do chefe só pega a fileira da <b>frente</b> (a de cima) '
       + '(se ela cair, o meio, depois trás). Quem está atrás só leva <b>dano em área</b>. Quem não escolher, o jogo põe sozinho (mais defesa na frente).</p><div class="torre-grade">';
     F.fileiras.forEach(function (casas, f) {
-      h += '<div class="torre-fileira"><span class="torre-fileira-nome">' + ['🛡', '⚔', '🏹'][f] + ' ' + F.nomes[f] + '</span><div class="torre-hexes">' + casas.map(function (c) {
+      h += '<div class="torre-fileira"><div class="torre-hexes">' + casas.map(function (c) {
         var d = dono[c], minha = d && d.m.id === p.id;
         return '<button class="torre-hex' + (d ? ' ocupada' : '') + (minha ? ' minha' : '') + '" data-acao="torre-casa" data-valor="' + c + '"' + (d && !minha ? ' disabled' : '')
           + (d ? ' style="--cor:' + d.cor + '"' : '') + ' title="' + (d ? esc(d.m.nome) : 'Casa livre') + '">'
@@ -7080,17 +7082,20 @@
     var lac = lista.filter(function (x) { return x !== principal; });
     var inimigo = function (x, grande) {
       var m = x.m, marcas = [];
-      if (m.golpeArea) marcas.push('💥 área');
-      if (m.atordoado > 0 && m.hp > 0) marcas.push('💫 atordoado');
-      if (m.escudoOssos > 0) marcas.push('🦴 ' + Number(m.escudoOssos).toLocaleString('pt-BR'));
-      if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push('🩸 cura −' + m.cortaCura.pct + '%');
-      if (m.queima && m.queima.turnos > 0) marcas.push('🔥');
-      if (grande && m.res) marcas.push('🛡 stun ' + Math.min(95, m.res.stun) + '%');
+      // vermelho = ruim para o inimigo (debuff); verde = bom para ele (buff)
+      if (grande && m.res) marcas.push(['buff', '🛡 Resist. stun ' + Math.min(95, m.res.stun) + '%']);
+      if (m.golpeArea) marcas.push(['buff', '💥 Golpe em área']);
+      if (m.escudoOssos > 0) marcas.push(['buff', '🦴 Barreira ' + Number(m.escudoOssos).toLocaleString('pt-BR')]);
+      if (m.atordoado > 0 && m.hp > 0) marcas.push(['debuff', '💫 Atordoado']);
+      if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push(['debuff', '🩸 Cura −' + m.cortaCura.pct + '%']);
+      if (m.queima && m.queima.turnos > 0) marcas.push(['debuff', '🔥 Sangrando']);
+      if (m.cego > 0) marcas.push(['debuff', '🌑 Cego']);
+      if (m.defQuebra || m.quebraTemp) marcas.push(['debuff', '🛡 Defesa quebrada']);
       return '<div class="cena-inimigo' + (grande ? ' grande' : '') + (m.chefe ? ' chefe' : '') + (hpI(x.i) <= 0 ? ' caido' : '') + (m.atordoado > 0 ? ' tonto' : '') + '" data-alvo="i' + x.i + '">'
         + '<div class="cena-retrato">' + (m.imagem ? '<img src="' + m.imagem + '" alt="">' : '') + (m.atordoado > 0 && m.hp > 0 ? '<span class="cena-tonto">💫</span>' : '') + '</div>'
         + '<strong>' + esc(m.nome) + (grande && m.chefe ? ' <small class="cena-tag">CHEFE</small>' : '') + '</strong>'
         + vidaBarra(hpI(x.i), m.hpMax, 'inimigo', 'i' + x.i)
-        + (marcas.length ? '<div class="cena-marcas">' + marcas.map(function (k) { return '<span>' + k + '</span>'; }).join('') + '</div>' : '') + '</div>';
+        + (marcas.length ? '<div class="cena-marcas">' + marcas.map(function (k) { return '<span class="' + k[0] + '">' + k[1] + '</span>'; }).join('') + '</div>' : '') + '</div>';
     };
     h += '<div class="cena-inimigos">' + lac.slice(0, Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('')
       + inimigo(principal, true) + lac.slice(Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('') + '</div>';
@@ -7099,7 +7104,7 @@
     var porCasa = {};
     t.herois.forEach(function (x, xi) { porCasa[typeof x.pos === 'number' ? x.pos : xi] = xi; });
     h += '<div class="cena-grupo">' + F.fileiras.map(function (casas, f) {
-      return '<div class="cena-fileira"><span class="cena-fileira-nome">' + ['🛡', '⚔', '🏹'][f] + '<small>' + F.nomes[f] + '</small></span><div class="cena-casas">' + casas.map(function (c) {
+      return '<div class="cena-fileira"><div class="cena-casas">' + casas.map(function (c) {
         var xi = porCasa[c];
         if (xi == null) return '<div class="cena-casa vazia"><div class="cena-hex"></div></div>';
         var x = t.herois[xi], cor = CORES_TORRE[xi % 4], e = r.escolhas && r.escolhas[x.id], vivo = hpH(xi) > 0;

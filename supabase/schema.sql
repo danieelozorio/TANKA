@@ -4385,7 +4385,8 @@ $$;
 revoke execute on function public.torre_run_de(text) from public, anon, authenticated;
 
 -- O líder começa a subida: 4 no grupo, todos prontos e level 30+. Começa do último marco de 10 andares que TODOS já passaram.
-create or replace function public.torre_iniciar(meu text) returns bigint
+drop function if exists public.torre_iniciar(text);   -- virou (meu, pos): a casa de quem sobe sozinho
+create or replace function public.torre_iniciar(meu text, pos int default null) returns bigint
 language plpgsql security definer set search_path = public as $$
 declare g bigint; gr public.grupos; problema text; ini int; rid bigint;
 begin
@@ -4400,7 +4401,8 @@ begin
     insert into public.torre_runs (grupo_id, lider, membros, herois, andar_inicio, semente, posicoes)
     select null, meu, array[p.id], jsonb_build_array(jsonb_build_object('id', p.id, 'dados', p.dados)),
            coalesce((select floor(coalesce(r.melhor, 0) / public.torre_marco()) * public.torre_marco() from public.torre_recordes r where r.personagem_id = meu), 0)::int + 1,
-           floor(random() * 2147483647)::bigint, '{}'::jsonb
+           floor(random() * 2147483647)::bigint,
+           case when pos between 0 and 6 then jsonb_build_object(meu, pos) else '{}'::jsonb end
     from public.personagens p where p.id = meu
     returning id into rid;
     return rid;
@@ -4545,9 +4547,9 @@ begin
   end if;
 end $$;
 revoke execute on function public.torre_registrar(bigint, int, text) from public, anon, authenticated;
-revoke execute on function public.torre_iniciar(text), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
+revoke execute on function public.torre_iniciar(text, int), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
   public.torre_desistir(text, bigint) from public, anon;
-grant execute on function public.torre_iniciar(text), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
+grant execute on function public.torre_iniciar(text, int), public.torre_escolher(text, bigint, jsonb), public.torre_estado(text),
   public.torre_desistir(text, bigint) to authenticated;
 
 notify pgrst, 'reload schema';
