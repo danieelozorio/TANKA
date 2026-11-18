@@ -5405,6 +5405,7 @@
       case 'torre-alvo': torreEst().esc.alvo = Number(el.dataset.valor); marcarEscolhaTorre(); break;
       case 'torre-ordem': torreEst().esc.ordem = Number(el.dataset.valor); marcarEscolhaTorre(); break;
       case 'torre-confirmar': torreConfirmar(); break;
+      case 'torre-auto': torreAutoMudar(!torreAuto()); torreEst().autoFeito = null; redesenharTorre(true); autoTorre(); break;
       case 'torre-subir':
         C.torre.iniciar(p.id).then(function () { torreEst().esc = null; avisar('🗼 A subida começou!', 'nivel'); carregarTorre(); }, function (er) { avisar(er.message); });
         break;
@@ -6778,7 +6779,7 @@
       if (estado.personagem !== p) return;
       T.st = st; if (st && st.agora) T.dif = st.agora - Date.now();
       return avancarTorreSePreciso();
-    }, function (e) { T.carregando = false; T.erro = e.message; }).then(function () { redesenharTorre(); agendarTorre(); });
+    }, function (e) { T.carregando = false; T.erro = e.message; }).then(function () { redesenharTorre(); autoTorre(); agendarTorre(); });
   }
   // Pede ao servidor para andar: monta o andar, resolve o turno (todos escolheram ou acabou o prazo) ou sai da narração.
   function avancarTorreSePreciso() {
@@ -6812,7 +6813,7 @@
   // Só redesenha quando algo mudou (sem piscar as imagens); o relógio e a narração andam pelo pulso (250 ms).
   function assinaturaTorre() {
     var T = torreEst(), st = T.st, r = st && st.run, g = estado.gm && estado.gm.grupo;
-    return JSON.stringify([st ? 1 : 0, T.erro, r && [r.id, r.versao, r.estado, r.escolhas, r.torre && r.torre.fase], T.esc, estado.torreDesistir,
+    return JSON.stringify([st ? 1 : 0, T.erro, torreAuto(), r && [r.id, r.versao, r.estado, r.escolhas, r.torre && r.torre.fase], T.esc, estado.torreDesistir,
       st && st.recorde, g && g.membros.map(function (m) { return m.id + (m.pronto ? 1 : 0); })]);
   }
   // Toque num botão da ação: só troca a marcação (sem redesenhar a tela inteira).
@@ -6872,6 +6873,49 @@
     return '<div class="torre-vida ' + (cls || '') + '"><i style="width:' + pc + '%"></i><span>' + Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + Number(max).toLocaleString('pt-BR') + '</span></div>';
   }
   var ICO_ACAO = { atacar: '⚔', habilidade: '✨', desviar: '💨', pocao: '🧪' };
+  // Uma cor para cada jogador (posição no grupo): cartão, narração e prêmios.
+  var CORES_TORRE = ['#f0c56a', '#6fb7ff', '#7fdc94', '#e88ae8'];
+  function torreAuto() { try { return localStorage.getItem('eldrin.torreAuto') === '1'; } catch (e) { return false; } }
+  function torreAutoMudar(v) { try { localStorage.setItem('eldrin.torreAuto', v ? '1' : '0'); } catch (e) { /* sem armazenamento */ } }
+  // Ordens já tomadas pelos outros: { 2: 'Lyra', ... }
+  function ordensTomadas(r, meuId) {
+    var t = r.torre, x = {};
+    Object.keys(r.escolhas || {}).forEach(function (id) {
+      if (id === meuId) return;
+      var h = t.herois.filter(function (y) { return y.id === id; })[0];
+      x[r.escolhas[id].ordem] = h ? h.nome : '?';
+    });
+    return x;
+  }
+  function ordemLivre(r, meuId, quer) {
+    var tom = ordensTomadas(r, meuId);
+    if (!tom[quer]) return quer;
+    for (var o = 1; o <= 4; o++) if (!tom[o]) return o;
+    return quer;
+  }
+  // Automático: escolhe sozinho (a mesma lógica dos bots) assim que abre a escolha.
+  function autoTorre() {
+    var p = estado.personagem, r = runTorre(), T = torreEst();
+    if (!torreAuto() || !r || r.estado !== 'andamento' || !r.torre || r.torre.fase !== 'escolha') return;
+    var t = r.torre, i = t.herois.map(function (h) { return h.id; }).indexOf(p.id);
+    if (i < 0 || t.herois[i].hp <= 0 || (r.escolhas && r.escolhas[p.id])) return;
+    var chave = r.id + ':' + t.andar + ':' + t.turno;
+    if (T.autoFeito === chave) return;
+    T.autoFeito = chave;
+    var e = R.escolhaAutoTorre(t, i);
+    e.ordem = ordemLivre(r, p.id, e.ordem || 4);
+    T.esc = { acao: e.acao, hab: e.hab || null, alvo: e.alvo || 0, ordem: e.ordem };
+    torreConfirmar();
+  }
+  // Pinta os nomes dos heróis na narração com a cor de cada um.
+  function pintarNomes(texto, herois) {
+    var h = esc(texto);
+    herois.forEach(function (x, i) {
+      var n = esc(x.nome);
+      if (n) h = h.split(n).join('<b style="color:' + CORES_TORRE[i % 4] + '">' + n + '</b>');
+    });
+    return h;
+  }
   function torreConteudo() {
     var p = estado.personagem, T = torreEst(), st = T.st;
     if (!st) return '<p class="suave">' + (T.erro ? esc(T.erro) : 'Abrindo os portões da Torre…') + '</p>';
@@ -6939,10 +6983,10 @@
         + '<div class="suave pequeno">🛡 Resistência a stun ' + Math.min(95, m.res ? m.res.stun : 0) + '%' + (marcas.length ? ' · ' + marcas.join(' · ') : '') + '</div></div></div>';
     }).join('') + '</div>';
     // heróis
-    h += '<div class="torre-herois">' + t.herois.map(function (x) {
-      var e = r.escolhas && r.escolhas[x.id];
-      return '<div class="torre-heroi' + (x.hp <= 0 ? ' caido' : '') + (x.id === p.id ? ' eu' : '') + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
-        + '<div><strong>' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(x.hp, x.hpMax)
+    h += '<div class="torre-herois">' + t.herois.map(function (x, xi) {
+      var e = r.escolhas && r.escolhas[x.id], cor = CORES_TORRE[xi % 4];
+      return '<div class="torre-heroi' + (x.hp <= 0 ? ' caido' : '') + (x.id === p.id ? ' eu' : '') + '" style="border-left:4px solid ' + cor + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
+        + '<div><strong style="color:' + cor + '">' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(x.hp, x.hpMax)
         + '<div class="pequeno">🧪 ' + x.pocoes + (t.fase === 'escolha' && x.hp > 0 ? (e ? ' · <span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : ' · <span class="suave">escolhendo…</span>') : '')
         + (x.hp <= 0 ? ' · <span class="menos">caído</span>' : '') + '</div></div></div>';
     }).join('') + '</div>';
@@ -6951,7 +6995,7 @@
     if (!T.narr || T.narr.chave !== chave) T.narr = { chave: chave, inicio: Date.now() };
     var n = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min(log.length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : log.length;
     if (log.length) h += '<div class="torre-narracao">' + log.map(function (ev, i) {
-      return '<p data-i="' + i + '" class="' + (i >= n ? 'oculta ' : '') + (ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + esc(ev.t) + '</p>';
+      return '<p data-i="' + i + '" class="' + (i >= n ? 'oculta ' : '') + (ev.premio ? 'n-premio' : ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + pintarNomes(ev.t, t.herois) + '</p>';
     }).join('') + '</div>';
     // fim
     if (r.estado !== 'andamento' || t.fim === 'derrota') {
@@ -6984,7 +7028,13 @@
       var pronta = prontas.indexOf(k.def.id) >= 0, falta = Math.max(0, (me.L.pronto[k.def.id] || 0) - (me.L.turno + 1));
       return btn('habilidade', '✨ ' + esc(k.def.nome) + (pronta ? '' : ' <small>(' + falta + ')</small>'), k.def.id, !pronta);
     }).join('');
-    var h = '<div class="torre-painel"><h4>Sua ação' + (minha ? ' <span class="online pequeno">✔ enviada: ' + ICO_ACAO[minha.acao] + ' ' + minha.ordem + 'º (pode trocar)</span>' : '') + '</h4>'
+    var tomadas = ordensTomadas(r, me.id);
+    if (tomadas[e.ordem] && !(minha && minha.ordem === e.ordem)) e.ordem = ordemLivre(r, me.id, e.ordem);
+    var auto = torreAuto();
+    var h = '<div class="torre-painel"><div class="torre-painel-cab"><h4>Sua ação' + (minha ? ' <span class="online pequeno">✔ enviada: ' + ICO_ACAO[minha.acao] + ' ' + minha.ordem + 'º' + (auto ? '' : ' (pode trocar)') + '</span>' : '') + '</h4>'
+      + '<button class="torre-op mini' + (auto ? ' sel' : '') + '" data-acao="torre-auto">🤖 Automático ' + (auto ? 'ligado' : 'desligado') + '</button></div>';
+    if (auto) return h + '<p class="suave pequeno">O jogo escolhe sozinho a cada turno: desvia do golpe avisado, bebe poção com pouca vida, cura o grupo e usa a melhor habilidade pronta.</p></div>';
+    h += ''
       + '<div class="torre-ops">' + btn('atacar', '⚔ Atacar') + btn('desviar', '💨 Desviar <small>' + R.chanceDesviar(me) + '%</small>')
       + btn('pocao', '🧪 Poção <small>' + me.pocoes + '</small>', null, me.pocoes <= 0) + '</div>'
       + (habs ? '<div class="torre-ops habs">' + habs + '</div>' : '');
@@ -6992,7 +7042,9 @@
       return '<button class="torre-op mini' + (e.alvo === x.i ? ' sel' : '') + '" data-acao="torre-alvo" data-valor="' + x.i + '">' + esc(x.m.nome) + '</button>';
     }).join('') + '</div>';
     h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {
-      return '<button class="torre-op mini' + (e.ordem === o ? ' sel' : '') + '" data-acao="torre-ordem" data-valor="' + o + '">' + o + 'º</button>';
+      var dono = tomadas[o];
+      return '<button class="torre-op mini' + (e.ordem === o ? ' sel' : '') + (dono ? ' tomada' : '') + '" data-acao="torre-ordem" data-valor="' + o + '"' + (dono ? ' disabled title="Já é de ' + esc(dono) + '"' : '') + '>'
+        + o + 'º' + (dono ? ' <small>' + esc(dono) + '</small>' : '') + '</button>';
     }).join('') + '</div>'
       + '<div class="botoes"><button class="btn" data-acao="torre-confirmar">' + (minha ? 'Trocar ação' : 'Confirmar') + '</button></div></div>';
     return h;
@@ -7004,7 +7056,7 @@
     C.torre.escolher(p.id, r.id, esc2).then(function () {
       r.escolhas = Object.assign({}, r.escolhas || {}); r.escolhas[p.id] = esc2;
       redesenharTorre(); clearTimeout(T.timer); T.timer = setTimeout(carregarTorre, 300);
-    }, function (er) { avisar(er.message); carregarTorre(); });
+    }, function (er) { avisar(er.message); T.autoFeito = null; carregarTorre(); });
   }
   function abaMasmorra() {
     var g = estado.gm, p = estado.personagem;

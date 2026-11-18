@@ -1395,6 +1395,10 @@ reset role; update public.torre_runs set torre = '{"fase":"escolha"}'; set role 
 select pg_temp.falha($$select public.torre_escolher('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint, '{"acao":"voar"}')$$, 'Ação inválida');
 select public.torre_escolher('t1', (public.torre_estado('t1') -> 'run' ->> 'id')::bigint, '{"acao":"habilidade","hab":"grito-de-desafio","ordem":9,"alvo":2}');
 select pg_temp.igual((public.torre_estado('t1') -> 'run' -> 'escolhas' -> 't1' ->> 'ordem'), '4', 'torre: escolha guardada (ordem limitada a 4)');
+select pg_temp.comoT('2');
+select pg_temp.falha($$select public.torre_escolher('t2', (public.torre_estado('t2') -> 'run' ->> 'id')::bigint, '{"acao":"atacar","ordem":4}')$$, 'A ordem 4º já é de outro jogador');
+select public.torre_escolher('t2', (public.torre_estado('t2') -> 'run' ->> 'id')::bigint, '{"acao":"atacar","ordem":2}');
+select pg_temp.comoT('1');
 select pg_temp.comoT('5');
 select pg_temp.falha($$select public.torre_escolher('t5', (select (public.torre_estado('t1') -> 'run' ->> 'id')::bigint), '{"acao":"atacar"}')$$, 'Personagem inválido');
 select pg_temp.igual(has_function_privilege('authenticated', 'public.torre_registrar(bigint, int, text)', 'execute'), false, 'torre: só o servidor registra andar');
@@ -1405,7 +1409,9 @@ select pg_temp.igual((select string_agg(personagem_id || ':' || melhor, ',' orde
 select pg_temp.igual((select estado from public.torre_runs order by id desc limit 1), 'derrota', 'torre: derrota fecha a subida');
 select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't4' and motivo like 'Torre%' order by id desc limit 1), '12000/60', 'torre: andar novo dá ouro e reputação cheios (12 x 1000, 12 x 5)');
 select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't1' and motivo like 'Torre%' order by id desc limit 1), '1800/0', 'torre: andar repetido dá pouco ouro (12 x 150)');
+update public.torre_runs set torre = '{"fase":"narrando","log":[{"t":"Andar 15 vencido!"}]}' where id = (select id from public.torre_runs order by id desc limit 1);
 select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 15, null);
+select pg_temp.igual((select torre -> 'log' -> 2 ->> 't' from public.torre_runs order by id desc limit 1), '🏆 Tor2: +15.000 de ouro e +75 de reputação + 1 pergaminho épico (andar novo!)', 'torre: prêmios aparecem na narração');
 select pg_temp.igual((select string_agg(personagem_id || ':' || (item ->> 'raridade'), ',' order by personagem_id) from public.recompensas where origem = 'torre'), 't2:epica,t4:epica', 'torre: chefe do andar 15 dá pergaminho épico só a quem venceu pela 1ª vez');
 set role authenticated;
 select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;

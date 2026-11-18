@@ -153,7 +153,7 @@ async function torreAvancar(id: string, args: any, base: string, cab: Record<str
         // deno-lint-ignore no-explicit-any
         const ev = R.resolverTurnoTorre(t, t.herois.map((h: any) => esc[h.id] || null), Number(run.semente) + t.andar * 1000 + t.turno);
         t.fase = 'narrando'; esc = {}; novoPrazo = agora + MS_NARRACAO(ev.length); mudou = true;
-        if (t.fim === 'vitoria') vencido = t.andar;
+        if (t.fim === 'vitoria') { vencido = t.andar; novoPrazo += 4 * Tanka.dados.TORRE.narracao.porLinha; }   // + tempo para as linhas dos prêmios
         if (t.fim === 'derrota') fim = 'derrota';
       }
     }

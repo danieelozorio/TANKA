@@ -2045,3 +2045,8 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .torre-espera { text-align: center; margin: 10px 0; }
 .torre-desistir { text-align: right; margin-top: 10px; }
 .torre-narracao p.oculta { display: none; }
+.torre-painel-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.torre-painel-cab h4 { margin: 0; }
+.torre-op.tomada { opacity: .55; text-decoration: none; }
+.torre-op.tomada small { display: block; font-size: .65rem; }
+.torre-narracao .n-premio { color: #ffe08a; font-weight: 700; }

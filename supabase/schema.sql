@@ -4430,6 +4430,10 @@ begin
     'hab', left(coalesce(escolha ->> 'hab', ''), 60),
     'alvo', least(9, greatest(0, coalesce((escolha ->> 'alvo')::int, 0))),
     'ordem', least(4, greatest(1, coalesce((escolha ->> 'ordem')::int, 4))));
+  -- cada ordem (1º a 4º) é de um jogador só (Daniel, nov/2026)
+  if exists (select 1 from jsonb_each(r.escolhas) x where x.key <> meu and (x.value ->> 'ordem')::int = (e ->> 'ordem')::int) then
+    raise exception 'A ordem %º já é de outro jogador.', e ->> 'ordem';
+  end if;
   update public.torre_runs set escolhas = escolhas || jsonb_build_object(meu, e), atualizado_em = now() where id = run_id;
 end $$;
 
@@ -4480,6 +4484,18 @@ begin
         select m, jsonb_build_object('tipo', 'pergaminho', 'raridade', case when andar <= 10 then 'rara' when andar <= 25 then 'epica' else 'lendaria' end, 'qtd', 1), 'torre'
         from unnest(r.membros) m left join public.torre_recordes x on x.personagem_id = m
         where coalesce(x.melhor, 0) < andar and exists (select 1 from public.personagens where id = m);
+    end if;
+    -- os prêmios aparecem na narração da luta (uma linha por jogador, com a cor dele: i = posição no grupo)
+    if r.torre is not null then
+      update public.torre_runs set torre = jsonb_set(torre, '{log}', coalesce(torre -> 'log', '[]'::jsonb) || coalesce((
+        select jsonb_agg(jsonb_build_object('premio', true, 'i', k - 1, 't', '🏆 ' || coalesce(p.nome, '?') || ': +'
+          || replace(to_char(case when coalesce(x.melhor, 0) < andar then 1000 * andar else 150 * andar end, 'FM999,999,999'), ',', '.') || ' de ouro'
+          || case when coalesce(x.melhor, 0) < andar then ' e +' || (5 * andar) || ' de reputação' else '' end
+          || case when coalesce(x.melhor, 0) < andar and andar % 5 = 0 then ' + 1 pergaminho ' || case when andar <= 10 then 'raro' when andar <= 25 then 'épico' else 'lendário' end else '' end
+          || case when coalesce(x.melhor, 0) < andar then ' (andar novo!)' else '' end) order by k)
+        from unnest(r.membros) with ordinality as u(m, k) left join public.personagens p on p.id = u.m left join public.torre_recordes x on x.personagem_id = u.m), '[]'::jsonb)),
+        versao = versao + 1
+      where id = run_id;
     end if;
     insert into public.torre_recordes as x (personagem_id, melhor, semana, melhor_semana)
       select m, andar, sem, andar from unnest(r.membros) m where exists (select 1 from public.personagens where id = m)
