@@ -20,6 +20,8 @@ let recusarGravacao = '';
 let pendentes: any = { recompensas: [], creditos: [] };
 const marcados: string[] = [];
 const bauGuardados: any[] = [];
+const eventoRegistros: any[] = [];
+let eventoAberto: any = null;
 g.fetch = (async (url: string, init: any = {}) => {
   const u = new URL(url), h = init.headers || {};
   const token = String(h.Authorization || '').replace('Bearer ', '');
@@ -68,6 +70,8 @@ g.fetch = (async (url: string, init: any = {}) => {
     return json([JSON.parse(JSON.stringify(runTorre))]);
   }
   if (u.pathname === '/rest/v1/rpc/bau_guardar') { bauGuardados.push(JSON.parse(init.body)); return json(true); }
+  if (u.pathname === '/rest/v1/rpc/evento_atual') return json(eventoAberto);
+  if (u.pathname === '/rest/v1/rpc/evento_registrar') { eventoRegistros.push(JSON.parse(init.body)); return json(true); }
   if (u.pathname === '/rest/v1/rpc/torre_registrar') { torreReg.push(JSON.parse(init.body)); if (JSON.parse(init.body).fim) runTorre.estado = JSON.parse(init.body).fim; return json(null); }
   if (u.pathname === '/rest/v1/rpc/masmorra_concluir' || u.pathname === '/rest/v1/rpc/alianca_boss_concluir' || u.pathname === '/rest/v1/rpc/boss_atacar') {
     lutasRegistradas.push({ rota: u.pathname, corpo: JSON.parse(init.body) });
@@ -305,6 +309,30 @@ g.Deno.env.get = () => '';
   y = await pedir({ personagem: p0.id, acao: 'receber' });
   ok(R.qtdConsumivel(banco[p0.id].dados, 'pergaminho', 'rara') === pergAntes - 1, 'baú: o que foi retirado chega na ficha pelo receber');
   pendentes = { recompensas: [], creditos: [] };
+}
+
+// Evento Altar dos Elementos (Daniel, 18/11/2026): só entra com o evento aberto; 5 partidas por dia; pontos vão para o banco
+{
+  let y = await pedir({ personagem: p0.id, acao: 'altarEntrar' });
+  ok(y.j.erro, 'evento: fechado, não entra');
+  eventoAberto = { id: 'altar-teste', tipo: 'altar', nome: 'Altar' };
+  y = await pedir({ personagem: p0.id, acao: 'altarEntrar' });
+  const pt = banco[p0.id].dados.altar.partida;
+  ok(!y.j.erro && pt && pt.dados.length === 5 && pt.rolagens === 25, 'evento: entra e o servidor sorteia a mesa e os elementos');
+  y = await pedir({ personagem: p0.id, acao: 'altarEntrar' });
+  ok(y.j.erro, 'evento: não abre outra com uma aberta');
+  y = await pedir({ personagem: p0.id, acao: 'altarRolar', args: { manter: [0] } });
+  ok(!y.j.erro && banco[p0.id].dados.altar.partida.rolagens === 24, 'evento: rolar gasta 1');
+  y = await pedir({ personagem: p0.id, acao: 'altarPagar', args: { monte: 0, dados: [0, 1, 2, 3, 4] } });
+  ok(y.j.erro || y.j.resultado, 'evento: pagar responde (aceita só se bater)');
+  g.Deno.env.get = (k: string) => k === 'SUPABASE_SERVICE_ROLE_KEY' ? 'chave-teste' : '';
+  y = await pedir({ personagem: p0.id, acao: 'altarEncerrar' });
+  ok(!y.j.erro && eventoRegistros.length === 1 && eventoRegistros[0].reg.evento === 'altar-teste' && !banco[p0.id].dados.altar.partida
+    && banco[p0.id].dados.eventoSaida.length === 0, 'evento: encerrar manda os pontos para o ranking e a fila zera');
+  g.Deno.env.get = () => '';
+  for (let k = 0; k < 4; k++) { await pedir({ personagem: p0.id, acao: 'altarEntrar' }); await pedir({ personagem: p0.id, acao: 'altarEncerrar' }); }
+  y = await pedir({ personagem: p0.id, acao: 'altarEntrar' });
+  ok(y.j.erro && /5 partidas/.test(y.j.erro), 'evento: só 5 partidas por dia');
 }
 
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');

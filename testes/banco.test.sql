@@ -1510,4 +1510,41 @@ update public.personagens set dados = dados || '{"bauSaida":[{"id":"forjado","ou
 reset role;
 select pg_temp.igual((select dados -> 'bauSaida' -> 0 ->> 'id' from public.personagens where id = 'pa'), 'srv', 'baú: o jogador não forja depósitos');
 update public.personagens set dados = dados - 'bauSaida' where id = 'pa';
+-- Eventos: Altar dos Elementos (Daniel, 18/11/2026)
+set role authenticated;
+select pg_temp.comoG('2');
+select pg_temp.igual(public.evento_atual() is null, true, 'evento: nenhum aberto');
+select pg_temp.falha($$select public.evento_admin('g2', 'ligar', 7)$$, 'Só o admin');
+reset role; update public.contas set admin = true where id = '00000000-0000-0000-0000-0000000000f1'; set role authenticated;
+select pg_temp.comoG('1');
+select public.evento_admin('g1', 'ligar', 7);
+select pg_temp.comoG('2');
+select pg_temp.igual(public.evento_atual() ->> 'tipo', 'altar', 'evento: admin liga e todos veem');
+reset role;
+select public.evento_registrar('g2', jsonb_build_object('id', 'g2:' || (public.evento_atual() ->> 'id') || ':1', 'evento', public.evento_atual() ->> 'id', 'pontos', 700));
+select public.evento_registrar('g2', jsonb_build_object('id', 'g2:' || (public.evento_atual() ->> 'id') || ':1', 'evento', public.evento_atual() ->> 'id', 'pontos', 700));
+select public.evento_registrar('g3', jsonb_build_object('id', 'g3:' || (public.evento_atual() ->> 'id') || ':1', 'evento', public.evento_atual() ->> 'id', 'pontos', 900));
+select public.evento_registrar('g3', jsonb_build_object('id', 'g2:' || (public.evento_atual() ->> 'id') || ':9', 'evento', public.evento_atual() ->> 'id', 'pontos', 99999));
+select public.evento_registrar('g4', jsonb_build_object('id', 'g4:' || (public.evento_atual() ->> 'id') || ':1', 'evento', public.evento_atual() ->> 'id', 'pontos', 99999));
+select pg_temp.igual((select pontos from public.evento_pontos where personagem_id = 'g2'), 700::bigint, 'evento: o mesmo registro não conta duas vezes');
+select pg_temp.igual((select pontos from public.evento_pontos where personagem_id = 'g3'), 900::bigint, 'evento: registro com id de outro não conta');
+select pg_temp.igual((select pontos from public.evento_pontos where personagem_id = 'g4'), 20000::bigint, 'evento: pontos de uma partida têm teto');
+set role authenticated;
+select pg_temp.comoT('1');
+select pg_temp.falha($$select public.evento_registrar('t1', '{"id":"t1:x:1","evento":"x","pontos":5}')$$, 'permission denied');
+select pg_temp.comoG('2');
+select pg_temp.igual(public.evento_ranking('g2') -> 'top' -> 0 ->> 'nome', 'Gru4', 'evento: ranking em ordem');
+select pg_temp.igual((public.evento_ranking('g2') -> 'eu' ->> 'pos')::int, 3, 'evento: minha posição');
+select pg_temp.comoG('1');
+select pg_temp.igual((public.evento_admin('g1', 'premiar') ->> 'premiados')::int, 3, 'evento: admin dá os prêmios (admin fora)');
+reset role;
+select pg_temp.igual((select ouro from public.creditos where personagem_id = 'g4' and motivo like 'Evento%'), 2000000, 'evento: 1º lugar ganha o ouro do topo');
+select pg_temp.igual((select item ->> 'raridade' from public.recompensas where personagem_id = 'g2' and origem = 'evento'), 'lendaria', 'evento: 3º lugar ganha pergaminho lendário');
+select pg_temp.igual((select public.evento_atual()) is null, true, 'evento: premiado fecha');
+-- a ficha: partida e fila de pontos só o servidor escreve
+update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
+set role authenticated; select pg_temp.comoG('2');
+update public.personagens set dados = dados || '{"eventoSaida":[{"id":"g2:x:1","evento":"x","pontos":20000}],"altar":{"total":999999}}' where id = 'g2';
+reset role;
+select pg_temp.igual((select dados ? 'eventoSaida' or dados ? 'altar' from public.personagens where id = 'g2'), false, 'evento: o jogador não escreve a partida nem os pontos na ficha');
 \echo TODOS OS TESTES DO BANCO PASSARAM

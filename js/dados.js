@@ -847,6 +847,25 @@ Tanka.dados = {
     // Andares 10, 20, 30...: o item novo que ainda está sendo criado (por enquanto, nada a mais).
     premios: { base: 60000, porAndar: 2500, repetidoPct: 10, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
   },
+  // ---------- Evento: Altar dos Elementos (Daniel, 18/11/2026) ----------
+  // Minigame de evento (o admin liga e desliga): mesa 3x3 de montes; cada carta do topo pede uma combinação dos 5
+  // elementos. O jogador rola 5 elementos e paga as cartas com eles; pode trocar 2 elementos quaisquer por 1 que escolher
+  // e rolar de novo os que não guardou (cada rolagem gasta 1 das 25 da partida). 5 partidas por dia; os pontos somam
+  // no ranking do evento. Prêmios do ranking: evento_premiar() no schema.sql (manter iguais a `premios`).
+  EVENTO_ALTAR: {
+    nome: 'Altar dos Elementos',
+    elementos: [
+      { id: 'agua', nome: 'Água', ico: '💧', cor: '#4aa3ff' }, { id: 'fogo', nome: 'Fogo', ico: '🔥', cor: '#ff6a3d' },
+      { id: 'folha', nome: 'Folha', ico: '🍃', cor: '#5fcf6a' }, { id: 'luz', nome: 'Luz', ico: '☀️', cor: '#ffd84a' },
+      { id: 'trevas', nome: 'Escuridão', ico: '🌑', cor: '#a77bff' },
+    ],
+    entradasDia: 5, rolagens: 25, dados: 5, cartasPorMonte: 3, custo: [2, 4],
+    pontos: { porElemento: 10, monte: 50, linha: 100, mesa: 300 },   // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda
+    premios: [
+      { ate: 1, ouro: 2000000, pergaminho: 'lendaria', qtd: 3 }, { ate: 3, ouro: 1000000, pergaminho: 'lendaria', qtd: 2 },
+      { ate: 10, ouro: 500000, pergaminho: 'epica', qtd: 2 }, { ate: 50, ouro: 100000, pergaminho: 'rara', qtd: 1 },
+    ],
+  },
   // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
   // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).
   // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (2 por par).

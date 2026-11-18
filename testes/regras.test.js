@@ -2785,3 +2785,34 @@ teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corru
   t = nova(45); const tk = t.inimigos[0]; tk.hp = 1; ev = turno(t, null, 42);
   assert.ok(tk.fase2 && tk.hp > 0 && tk.golpeArea && ev.some((e) => /FASE 2/.test(e.t)), 'falso colapso');
 });
+
+teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte/linha/mesa (Daniel, 18/11/2026)', () => {
+  const E = D.EVENTO_ALTAR; let s = 7; const rng = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const pt = R.novaPartidaAltar(rng);
+  assert.strictEqual(pt.mesa.length, 9); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.rolagens, E.rolagens);
+  // carta feita de propósito: paga com os dados certos
+  pt.mesa[0] = [{ custo: { fogo: 2, agua: 1 } }]; pt.dados = ['fogo', 'agua', 'luz', 'fogo', 'trevas'];
+  assert.ok(typeof R.pagarAltar(pt, 0, [0, 2, 3], rng) === 'string', 'elementos errados: recusa');
+  assert.ok(typeof R.pagarAltar(pt, 0, [0, 0, 1], rng) === 'string', 'dado repetido: recusa');
+  const r = R.pagarAltar(pt, 0, [0, 1, 3], rng);
+  assert.strictEqual(r.ganho, 3 * E.pontos.porElemento + E.pontos.monte, 'carta + monte zerado');
+  assert.deepStrictEqual(pt.dados, ['luz', 'trevas']);
+  // trocar 2 por 1
+  assert.strictEqual(R.trocarAltar(pt, [0, 1], 'folha'), true); assert.deepStrictEqual(pt.dados, ['folha']);
+  // rolar: guarda o escolhido e completa até 5, gasta 1
+  assert.strictEqual(R.rolarAltar(pt, [0], rng), true); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.dados[0], 'folha'); assert.strictEqual(pt.rolagens, E.rolagens - 1);
+  // linha: zerar 1, 2 (0 já vazio) dá a linha de cima
+  pt.mesa[1] = [{ custo: { luz: 2 } }]; pt.mesa[2] = [{ custo: { luz: 2 } }]; pt.dados = ['luz', 'luz', 'luz', 'luz', 'agua'];
+  R.pagarAltar(pt, 1, [0, 1], rng); const r2 = R.pagarAltar(pt, 2, [0, 1], rng);
+  assert.ok(r2.extras.includes('linha'), 'linha de cima completa');
+  // mesa toda: dá o bônus e põe uma mesa nova
+  for (let k = 3; k < 9; k++) pt.mesa[k] = [];
+  pt.mesa[8] = [{ custo: { agua: 1 } }]; pt.dados = ['agua'];
+  const r3 = R.pagarAltar(pt, 8, [0], rng);
+  assert.ok(r3.extras.includes('mesa') && pt.mesas === 1 && pt.mesa.every((m) => m.length === E.cartasPorMonte), 'mesa nova');
+  // rolagens acabam
+  pt.rolagens = 0; assert.ok(typeof R.rolarAltar(pt, [], rng) === 'string');
+  // entradas zeram no dia seguinte
+  const p = { }; const a = R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 18, 15)); a.entradas = 5;
+  assert.strictEqual(R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 19, 15)).entradas, 0);
+});

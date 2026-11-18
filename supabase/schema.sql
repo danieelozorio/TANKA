@@ -211,6 +211,9 @@ begin
   if current_user = 'authenticated' then
     new.dados := (new.dados - 'bauSaida') || case when tg_op = 'UPDATE' and old.dados ? 'bauSaida'
       then jsonb_build_object('bauSaida', old.dados -> 'bauSaida') else '{}'::jsonb end;
+    -- Evento (Daniel, 18/11/2026): a partida (altar) e a fila de pontos (eventoSaida) também só o servidor escreve.
+    new.dados := (new.dados - 'altar' - 'eventoSaida') || case when tg_op = 'UPDATE'
+      then jsonb_strip_nulls(jsonb_build_object('altar', old.dados -> 'altar', 'eventoSaida', old.dados -> 'eventoSaida')) else '{}'::jsonb end;
   end if;
   -- trava contra ficha forjada: só nas gravações diretas pela API, e não para administradores
   if tg_op = 'UPDATE' then
@@ -4707,4 +4710,131 @@ end $$;
 -- só com login (como as outras funções do jogador; conferência de segurança, nov/2026)
 revoke execute on function public.bau_estado(text), public.bau_retirar(text, bigint, text, int) from public, anon;
 grant execute on function public.bau_estado(text), public.bau_retirar(text, bigint, text, int) to authenticated;
+notify pgrst, 'reload schema';
+
+
+-- ============================================================================================================
+-- Eventos (Daniel, 18/11/2026): o admin liga e desliga; o 1º é o Altar dos Elementos (minigame; regras em js/regras.js,
+-- partida na ficha, sorteios na função `acao`). Os pontos de cada partida chegam por evento_registrar (só o servidor,
+-- idempotente pelo id) e somam no ranking. No fim, o admin dá os prêmios (evento_premiar; tabela = D.EVENTO_ALTAR.premios).
+-- ============================================================================================================
+create table if not exists public.eventos (
+  id text primary key,
+  tipo text not null,
+  nome text not null,
+  ativo boolean not null default false,
+  fim timestamptz,
+  premiado boolean not null default false,
+  criado_em timestamptz not null default now()
+);
+create table if not exists public.evento_pontos (
+  evento text not null references public.eventos (id) on delete cascade,
+  personagem_id text not null references public.personagens (id) on delete cascade,
+  pontos bigint not null default 0,
+  partidas int not null default 0,
+  atualizado_em timestamptz not null default now(),
+  primary key (evento, personagem_id)
+);
+create table if not exists public.evento_registros (
+  id text primary key,
+  evento text not null,
+  personagem_id text not null,
+  pontos int not null,
+  criado_em timestamptz not null default now()
+);
+alter table public.eventos enable row level security;
+alter table public.evento_pontos enable row level security;
+alter table public.evento_registros enable row level security;
+
+-- O evento aberto agora (ou null).
+create or replace function public.evento_atual() returns jsonb
+language sql stable security definer set search_path = public as $$
+  select jsonb_build_object('id', e.id, 'tipo', e.tipo, 'nome', e.nome, 'fim', e.fim)
+  from public.eventos e where e.ativo and not e.premiado and (e.fim is null or e.fim > now()) order by e.criado_em desc limit 1;
+$$;
+revoke execute on function public.evento_atual() from public, anon;
+grant execute on function public.evento_atual() to authenticated;
+
+-- Só o servidor: soma os pontos de uma partida. reg = { id: '<personagem>:<evento>:<n>', evento, pontos }.
+create or replace function public.evento_registrar(pid text, reg jsonb) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare ev text := reg ->> 'evento'; pts int := least(greatest(coalesce((reg ->> 'pontos')::int, 0), 0), 20000);
+begin
+  if coalesce(reg ->> 'id', '') = '' or left(reg ->> 'id', length(pid) + 1) <> pid || ':' then return true; end if;
+  if not exists (select 1 from public.eventos where id = ev and not premiado) then return true; end if;   -- evento acabou: descarta
+  insert into public.evento_registros (id, evento, personagem_id, pontos) values (reg ->> 'id', ev, pid, pts) on conflict (id) do nothing;
+  if not found then return true; end if;   -- já contado
+  insert into public.evento_pontos as x (evento, personagem_id, pontos, partidas) values (ev, pid, pts, 1)
+  on conflict (evento, personagem_id) do update set pontos = x.pontos + excluded.pontos, partidas = x.partidas + 1, atualizado_em = now();
+  return true;
+end $$;
+revoke execute on function public.evento_registrar(text, jsonb) from public, anon, authenticated;
+
+-- Ranking do evento aberto (ou do último): top 50 (sem bots e sem admin) e a minha posição.
+create or replace function public.evento_ranking(meu text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare e public.eventos;
+begin
+  perform public.conferir_dono(meu);
+  select * into e from public.eventos order by (ativo and not premiado) desc, criado_em desc limit 1;
+  if e.id is null then return jsonb_build_object('evento', null); end if;
+  return jsonb_build_object(
+    'evento', jsonb_build_object('id', e.id, 'tipo', e.tipo, 'nome', e.nome, 'fim', e.fim, 'ativo', e.ativo and (e.fim is null or e.fim > now()), 'premiado', e.premiado),
+    'top', coalesce((select jsonb_agg(r order by r.pos) from (
+        select row_number() over (order by x.pontos desc, x.atualizado_em) as pos, p.nome, coalesce((p.dados ->> 'nivel')::int, 1) as nivel, x.pontos, x.partidas
+        from public.evento_pontos x join public.personagens p on p.id = x.personagem_id join public.contas c on c.id = p.conta_id
+        where x.evento = e.id and not c.bot and not c.admin order by x.pontos desc, x.atualizado_em limit 50) r), '[]'::jsonb),
+    'eu', (select jsonb_build_object('pontos', x.pontos, 'partidas', x.partidas,
+        'pos', (select count(*) + 1 from public.evento_pontos y join public.personagens p2 on p2.id = y.personagem_id join public.contas c2 on c2.id = p2.conta_id
+                where y.evento = e.id and not c2.bot and not c2.admin and y.pontos > x.pontos))
+      from public.evento_pontos x where x.evento = e.id and x.personagem_id = meu));
+end $$;
+revoke execute on function public.evento_ranking(text) from public, anon;
+grant execute on function public.evento_ranking(text) to authenticated;
+
+-- Admin: 'ligar' (abre um evento novo, ou muda o fim do aberto; dias = quantos dias até acabar, null = sem data),
+-- 'desligar' (fecha; o ranking fica), 'religar' (abre de novo o último sem prêmio), 'premiar' (dá os prêmios e encerra).
+create or replace function public.evento_admin(meu text, acao text, dias int default null) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare e public.eventos; premios jsonb := '[{"ate":1,"ouro":2000000,"pergaminho":"lendaria","qtd":3},{"ate":3,"ouro":1000000,"pergaminho":"lendaria","qtd":2},
+  {"ate":10,"ouro":500000,"pergaminho":"epica","qtd":2},{"ate":50,"ouro":100000,"pergaminho":"rara","qtd":1}]'::jsonb;
+  r record; t jsonb; n int := 0;
+begin
+  perform public.conferir_dono(meu);
+  if not public.eh_admin() then raise exception 'Só o admin.'; end if;
+  select * into e from public.eventos where not premiado order by criado_em desc limit 1;
+  if acao = 'ligar' then
+    if e.id is not null and e.ativo then
+      update public.eventos set fim = case when dias is null then null else now() + make_interval(days => dias) end where id = e.id;
+    else
+      insert into public.eventos (id, tipo, nome, ativo, fim)
+      values ('altar-' || to_char(now() at time zone 'America/Sao_Paulo', 'YYYYMMDD-HH24MI'), 'altar', 'Altar dos Elementos', true,
+              case when dias is null then null else now() + make_interval(days => dias) end);
+    end if;
+  elsif acao = 'desligar' then
+    update public.eventos set ativo = false where id = e.id;
+  elsif acao = 'religar' then
+    if e.id is null then raise exception 'Não há evento para religar.'; end if;
+    update public.eventos set ativo = true, fim = case when dias is null then fim else now() + make_interval(days => dias) end where id = e.id;
+  elsif acao = 'premiar' then
+    if e.id is null then raise exception 'Não há evento para premiar.'; end if;
+    for r in select row_number() over (order by x.pontos desc, x.atualizado_em) as pos, x.personagem_id
+             from public.evento_pontos x join public.personagens p on p.id = x.personagem_id join public.contas c on c.id = p.conta_id
+             where x.evento = e.id and not c.bot and not c.admin and x.pontos > 0 order by x.pontos desc, x.atualizado_em limit 50 loop
+      select v into t from jsonb_array_elements(premios) v where r.pos <= (v ->> 'ate')::int order by (v ->> 'ate')::int limit 1;
+      if t is null then continue; end if;
+      perform public.creditar(r.personagem_id, (t ->> 'ouro')::int, 0, 'Evento ' || e.nome || ': ' || r.pos || 'º lugar');
+      insert into public.recompensas (personagem_id, item, origem)
+        values (r.personagem_id, jsonb_build_object('tipo', 'pergaminho', 'raridade', t ->> 'pergaminho', 'qtd', (t ->> 'qtd')::int), 'evento');
+      n := n + 1;
+    end loop;
+    update public.eventos set premiado = true, ativo = false where id = e.id;
+  else
+    raise exception 'Ação inválida.';
+  end if;
+  return jsonb_build_object('ok', true, 'premiados', n);
+end $$;
+revoke execute on function public.evento_admin(text, text, int) from public, anon;
+grant execute on function public.evento_admin(text, text, int) to authenticated;
+
 notify pgrst, 'reload schema';

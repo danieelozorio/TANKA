@@ -3365,6 +3365,87 @@ Tanka.regras = (function () {
     return ev;
   }
 
+  // ---------- Evento: Altar dos Elementos (Daniel, 18/11/2026) ----------
+  // Partida: { mesa: [9 montes: [cartas: { custo: { fogo: 2, agua: 1 } }]], dados: ['fogo', ...], rolagens, pontos, mesas, linhas }.
+  // A carta do topo de cada monte é a última da lista. Puro: o servidor guarda em p.altar.partida e sorteia com o rng dele.
+  var EVA = D.EVENTO_ALTAR;
+  var LINHAS_ALTAR = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+  function elementoAltar(rng) { return EVA.elementos[Math.floor(rng() * EVA.elementos.length)].id; }
+  function cartaAltar(rng) {
+    var n = EVA.custo[0] + Math.floor(rng() * (EVA.custo[1] - EVA.custo[0] + 1)), custo = {};
+    for (var i = 0; i < n; i++) { var e = elementoAltar(rng); custo[e] = (custo[e] || 0) + 1; }
+    return { custo: custo };
+  }
+  function mesaAltar(rng) {
+    var m = [];
+    for (var i = 0; i < 9; i++) { var monte = []; for (var c = 0; c < EVA.cartasPorMonte; c++) monte.push(cartaAltar(rng)); m.push(monte); }
+    return m;
+  }
+  function novaPartidaAltar(rng) {
+    var dados = []; for (var i = 0; i < EVA.dados; i++) dados.push(elementoAltar(rng));
+    return { mesa: mesaAltar(rng), dados: dados, rolagens: EVA.rolagens, pontos: 0, mesas: 0, linhas: [] };
+  }
+  function custoTotal(custo) { return Object.keys(custo).reduce(function (s, k) { return s + custo[k]; }, 0); }
+  // índices (dos dados) válidos e sem repetir
+  function idxAltar(pt, idxs) {
+    if (!Array.isArray(idxs)) return null;
+    var vistos = {};
+    for (var i = 0; i < idxs.length; i++) {
+      var k = idxs[i];
+      if (typeof k !== 'number' || k % 1 || k < 0 || k >= pt.dados.length || vistos[k]) return null;
+      vistos[k] = true;
+    }
+    return idxs;
+  }
+  function tirarDados(pt, idxs) { pt.dados = pt.dados.filter(function (d, i) { return idxs.indexOf(i) < 0; }); }
+  // Paga a carta do topo do monte com os dados escolhidos (precisam bater exatamente com o custo).
+  function pagarAltar(pt, monte, idxs, rng) {
+    if (!pt || typeof monte !== 'number' || monte < 0 || monte > 8 || !pt.mesa[monte] || !pt.mesa[monte].length) return 'Monte vazio.';
+    idxs = idxAltar(pt, idxs);
+    if (!idxs) return 'Escolha os elementos.';
+    var carta = pt.mesa[monte][pt.mesa[monte].length - 1], conta = {};
+    idxs.forEach(function (i) { conta[pt.dados[i]] = (conta[pt.dados[i]] || 0) + 1; });
+    var ok = Object.keys(carta.custo).every(function (k) { return conta[k] === carta.custo[k]; }) && Object.keys(conta).every(function (k) { return carta.custo[k] === conta[k]; });
+    if (!ok) return 'Os elementos não batem com a carta.';
+    tirarDados(pt, idxs);
+    pt.mesa[monte].pop();
+    var ganho = custoTotal(carta.custo) * EVA.pontos.porElemento, extras = [];
+    if (!pt.mesa[monte].length) { ganho += EVA.pontos.monte; extras.push('monte'); }
+    LINHAS_ALTAR.forEach(function (l, li) {
+      if (pt.linhas.indexOf(li) < 0 && l.every(function (k) { return !pt.mesa[k].length; })) { pt.linhas.push(li); ganho += EVA.pontos.linha; extras.push('linha'); }
+    });
+    if (pt.mesa.every(function (x) { return !x.length; })) { ganho += EVA.pontos.mesa; extras.push('mesa'); pt.mesas++; pt.mesa = mesaAltar(rng); pt.linhas = []; }
+    pt.pontos += ganho;
+    return { ganho: ganho, extras: extras };
+  }
+  // Troca 2 elementos quaisquer por 1 escolhido.
+  function trocarAltar(pt, idxs, elemento) {
+    idxs = pt && idxAltar(pt, idxs);
+    if (!idxs || idxs.length !== 2) return 'Escolha 2 elementos para trocar.';
+    if (!EVA.elementos.some(function (e) { return e.id === elemento; })) return 'Elemento inválido.';
+    tirarDados(pt, idxs);
+    pt.dados.push(elemento);
+    return true;
+  }
+  // Rola de novo: guarda os escolhidos e completa até 5 (gasta 1 rolagem).
+  function rolarAltar(pt, manter, rng) {
+    if (!pt) return 'Sem partida.';
+    if (pt.rolagens <= 0) return 'Acabaram as rolagens desta partida.';
+    manter = idxAltar(pt, manter || []);
+    if (!manter) return 'Escolha o que guardar.';
+    pt.dados = manter.map(function (i) { return pt.dados[i]; });
+    while (pt.dados.length < EVA.dados) pt.dados.push(elementoAltar(rng));
+    pt.rolagens--;
+    return true;
+  }
+  // Estado do evento na ficha (zera as entradas a cada dia e quando o evento muda).
+  function altarDoDia(p, evento, agora) {
+    var dia = diaReset(agora), a = p.altar;
+    if (!a || a.ev !== evento) a = p.altar = { ev: evento, dia: dia, entradas: 0, total: 0, partida: null, n: 0 };
+    if (a.dia !== dia) { a.dia = dia; a.entradas = 0; }
+    return a;
+  }
+
   // ---------- Masmorra com caminhos (Henri, 16/11/2026) ----------
   // Monstros de cada luta: luta1 (os 3 da área), luta2 (2º, 3º, 3º), elite (3º, 3º, elite), chefe, corredor (3º, 3º).
   function salaMasmorra(id, tipo) {
@@ -3831,7 +3912,7 @@ Tanka.regras = (function () {
     tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
-    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
+    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
     calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,

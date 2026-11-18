@@ -180,6 +180,24 @@ function responder(corpo: unknown, status = 200) {
   return new Response(JSON.stringify(corpo), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 }
 
+// Evento (Daniel, 18/11/2026): manda os pontos das partidas encerradas (dados.eventoSaida) para o ranking (evento_registrar,
+// só o servidor; idempotente pelo id) e limpa a fila com mais uma gravação. Se falhar, tenta na próxima ação.
+async function esvaziarEvento(base: string, cab: Record<string, string>, id: string, p: Record<string, unknown>) {
+  const fila = Array.isArray(p.eventoSaida) ? p.eventoSaida : [];
+  if (!fila.length) return p;
+  for (const reg of fila) {
+    const r = await rpcServidor(base, cab, 'evento_registrar', { pid: id, reg }).catch(() => null);
+    if (!r || !r.ok) return p;
+  }
+  const v = Number(p.versao) || 0;
+  const limpo = { ...p, eventoSaida: [], versao: v + 1 };
+  const g = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&dados->>versao=eq.' + v + '&select=id', {
+    method: 'PATCH', headers: { ...(cabecalhoServidor() ?? cab), Prefer: 'return=representation' }, body: JSON.stringify({ dados: limpo }),
+  }).catch(() => null);
+  if (g && g.ok && (await g.json()).length) return limpo;
+  return p;
+}
+
 // Baú da conta (Henri, 18/11/2026): manda os depósitos da ficha (dados.bauSaida) para o banco (bau_guardar, só o
 // servidor; idempotente pelo id) e, se todos foram, limpa a fila com mais uma gravação. Se falhar, tenta na próxima ação.
 async function esvaziarBau(base: string, cab: Record<string, string>, id: string, p: Record<string, unknown>) {
@@ -244,6 +262,11 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
       if (m && (m.membros || []).includes(id) && m.estado === 'vitoria') extra.luta = { id: String(m.id), masmorra: m.masmorra };
     }
   }
+  // Evento (Daniel, 18/11/2026): qual evento está aberto vem do banco.
+  if (acao === 'altarEntrar') {
+    const ev = await rpc('evento_atual', {});
+    extra.evento = ev.ok ? await ev.json() : null;
+  }
   if (acao === 'sincronizarCla') {
     const b = await rpc('cacada_bonus', { meu: id });
     if (b.ok) { const cla = await b.json(); extra.cla = cla && cla.cla ? cla.cla : null; }
@@ -260,7 +283,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
 
   // nada mudou (ex.: prêmio que não cabe na mochila): não grava de novo (preferências gravam sempre: marca "online")
   if (acao !== 'preferencias' && JSON.stringify(p) === antes) {
-    return responder({ personagem: await esvaziarBau(base, cab, id, linhas[0].dados), agora: t, resultado: saida.resultado });
+    return responder({ personagem: await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, linhas[0].dados)), agora: t, resultado: saida.resultado });
   }
 
   // 4. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
@@ -284,7 +307,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   }
   // missão do clã: o encanto conta aqui (o navegador não manda mais)
   if (acao === 'encantar' && saida.resultado) await rpcServidor(base, cab, 'alianca_missao_servidor', { pid: id, tipo: 'encantar', qtd: 1 }).catch(() => null);
-  const final = await esvaziarBau(base, cab, id, p);   // depósitos do baú
+  const final = await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, p));   // depósitos do baú e pontos do evento
   return responder({ personagem: final, agora: t, resultado: saida.resultado });
 }
 

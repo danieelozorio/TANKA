@@ -290,6 +290,48 @@ Tanka.servidorAcoes = (function () {
       p.bauSaida = (Array.isArray(p.bauSaida) ? p.bauSaida : []).concat(mov).slice(-50);
       return { resultado: { deposito: mov } };
     },
+    // Evento Altar dos Elementos (Daniel, 18/11/2026): a partida fica em p.altar.partida e tudo é sorteado aqui. ctx.evento
+    // vem do banco (evento_atual). Ao encerrar, os pontos vão para a fila eventoSaida; a função `acao` manda para o banco.
+    altarEntrar: function (p, a, ctx) {
+      var ev = ctx.evento;
+      if (!ev || ev.tipo !== 'altar') return 'O evento não está aberto.';
+      var al = R.altarDoDia(p, ev.id, ctx.agora);
+      if (al.partida) return 'Termine a partida que está aberta.';
+      if (al.entradas >= D.EVENTO_ALTAR.entradasDia) return 'Suas ' + D.EVENTO_ALTAR.entradasDia + ' partidas de hoje acabaram. Volte amanhã!';
+      al.entradas++; al.n = (al.n || 0) + 1;
+      al.partida = R.novaPartidaAltar(ctx.rng);
+      return { resultado: true };
+    },
+    altarPagar: function (p, a, ctx) {
+      a = a || {};
+      var pt = p.altar && p.altar.partida;
+      if (!pt) return 'Sem partida aberta.';
+      var r = R.pagarAltar(pt, Number(a.monte), a.dados, ctx.rng);
+      return typeof r === 'string' ? r : { resultado: r };
+    },
+    altarTrocar: function (p, a) {
+      a = a || {};
+      var pt = p.altar && p.altar.partida;
+      if (!pt) return 'Sem partida aberta.';
+      var r = R.trocarAltar(pt, a.dados, texto(a.elemento));
+      return typeof r === 'string' ? r : { resultado: true };
+    },
+    altarRolar: function (p, a, ctx) {
+      a = a || {};
+      var pt = p.altar && p.altar.partida;
+      if (!pt) return 'Sem partida aberta.';
+      var r = R.rolarAltar(pt, a.manter || [], ctx.rng);
+      return typeof r === 'string' ? r : { resultado: true };
+    },
+    altarEncerrar: function (p) {
+      var al = p.altar, pt = al && al.partida;
+      if (!pt) return 'Sem partida aberta.';
+      al.total = (al.total || 0) + pt.pontos;
+      var reg = { id: p.id + ':' + al.ev + ':' + al.n, evento: al.ev, pontos: pt.pontos };
+      p.eventoSaida = (Array.isArray(p.eventoSaida) ? p.eventoSaida : []).concat(reg).slice(-20);
+      al.partida = null;
+      return { resultado: { pontos: pt.pontos, mesas: pt.mesas, total: al.total } };
+    },
     receber: function (p, a, ctx) {
       var pd = ctx.pendentes || {};
       var rec = entregarRecompensas(p, pd.recompensas, ctx.rng), cr = aplicarCreditos(p, pd.creditos);
