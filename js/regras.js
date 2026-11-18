@@ -3160,8 +3160,12 @@ Tanka.regras = (function () {
         else diz(m.nome + ' está atordoado e perde a vez.', { stun: true });
         return;
       }
-      if (avisoAgora) { t.avisos.splice(t.avisos.indexOf(avisoAgora), 1); mecanica(m, avisoAgora); return; }
-      // golpe normal: em quem provocou, senão em alguém vivo
+      // golpe normal em toda rodada (Daniel, 18/11/2026): no turno da mecânica avisada, bate primeiro e solta a mecânica depois
+      golpeNormal(m);
+      if (avisoAgora && vivosT(t.herois).length) { t.avisos.splice(t.avisos.indexOf(avisoAgora), 1); mecanica(m, avisoAgora); }
+    });
+    function golpeNormal(m) {
+      // em quem provocou, senão em alguém vivo
       var vivos = vivosT(t.herois), prov = vivos.filter(function (h) { return h.L.provocaAte >= h.L.turno; })[0];
       var alvosM = prov ? [prov] : [];
       if (!prov) { var sorteio = vivos.slice(); for (var q = 0; q < (m.tipo === 'lacaio' ? 1 : TR.semProvocar) && sorteio.length; q++) alvosM.push(sorteio.splice(Math.floor(rng() * sorteio.length), 1)[0]); }
@@ -3175,7 +3179,7 @@ Tanka.regras = (function () {
         if (rng() * 100 >= limitar(80 + m.indiceArea * 2 - h.s.evasao, 5, 95)) { diz(h.nome + ' esquiva de ' + m.nome + '.'); return; }
         bater(m, h, rolar(m.ataque, rng) * furia(m));
       });
-    });
+    }
     // Aura da Torre: todos perdem um pouco de vida a cada turno (a cura segura)
     if (TR.aura && vivosT(t.inimigos).length) {
       var pa = vivosT(t.herois).map(function (h) { var d = Math.max(1, Math.round(h.hpMax * TR.aura / 100)); h.hp = Math.max(1, h.hp - d); return d; });
