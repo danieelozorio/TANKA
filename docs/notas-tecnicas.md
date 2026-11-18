@@ -1241,5 +1241,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Provocar continua puxando o golpe. Quem não escolheu casa é posto pelo `formarTorre` (mais defesa na frente).
 - Servidor: `grupo_membros.posicao`, `torre_runs.posicoes`, `torre_posicao(meu, pos)` (null tira); `torre_iniciar` copia as casas.
   A função `acao` passa as casas para `novaTorre`.
-- Tela: grade no saguão (`gradeFormacao`, toque na sua casa para tirar) e a fileira no cartão do herói; inimigo com 💥 golpe em área.
+- Tela: grade no saguão (`gradeFormacao`, toque na sua casa para tirar; artes em `assets/torre/`: hex-vazio, hex-moldura com miolo vazado, formacao-fundo) e a fileira no cartão do herói; inimigo com 💥 golpe em área.
 - Simulação (grupo lv 40): andar 10 foi de ~50% para ~90-95% de vitória; andar 15 (chefe com golpe em área) segue muro.

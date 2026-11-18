@@ -2051,20 +2051,25 @@ html[data-celular] #chat .chat-discord { display: none; }   /* casca do celular:
 .torre-op.tomada small { display: block; font-size: .65rem; }
 .torre-narracao .n-premio { color: #ffe08a; font-weight: 700; }
 .torre-vida i { transition: width .35s ease-out; }
-/* Formação da Torre: grade de hexágonos 2-3-2 */
-.torre-grade { display: flex; flex-direction: column; gap: 0; margin: 6px auto 10px; max-width: 360px; }
-.torre-fileira { display: grid; grid-template-columns: 52px 1fr; align-items: center; margin-top: -14px; }
+/* Formação da Torre: grade de hexágonos 2-3-2 (artes em assets/torre) */
+.torre-grade { display: flex; flex-direction: column; margin: 6px auto 10px; max-width: 380px; padding: 18px 8px 22px; border-radius: 14px;
+  background: linear-gradient(rgba(10, 8, 14, .35), rgba(10, 8, 14, .55)), url(../assets/torre/formacao-fundo.webp) center 40% / cover no-repeat; }
+.torre-fileira { display: grid; grid-template-columns: 52px 1fr; align-items: center; margin-top: -18px; }
 .torre-fileira:first-child { margin-top: 0; }
-.torre-fileira-nome { text-align: left; font-size: .75rem; color: var(--ouro-claro); }
-.torre-hexes { display: flex; gap: 4px; justify-content: center; }
-.torre-hex { --cor: #5a4528; width: 68px; height: 78px; padding: 0; border: 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: var(--cor); position: relative; color: #fff; font: inherit; }
-.torre-hex::before { content: ''; position: absolute; inset: 3px; clip-path: inherit; background: #17120c; z-index: 0; }
-.torre-hex > * { position: relative; z-index: 1; }
-.torre-hex-livre { font-size: 1.6rem; color: #6a5a40; }
-.torre-hex:hover .torre-hex-livre { color: var(--ouro); }
-.torre-hex-rosto { width: 38px; height: 42px; overflow: hidden; border-radius: 6px; }
-.torre-hex-rosto img { width: 100%; height: 100%; object-fit: cover; }
-.torre-hex small { font-size: .62rem; max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cor); }
-.torre-hex.minha { filter: drop-shadow(0 0 8px var(--cor)); }
+.torre-fileira-nome { font-size: .75rem; color: var(--ouro-claro); text-shadow: 0 1px 3px #000; }
+.torre-hexes { display: flex; gap: 2px; justify-content: center; }
+.torre-hex { --cor: #d9a441; width: 70px; height: 80px; padding: 0; border: 0; cursor: pointer; position: relative; color: #fff; font: inherit;
+  display: flex; align-items: center; justify-content: center; background: url(../assets/torre/hex-vazio.webp) center / contain no-repeat;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); transition: transform .12s; }
+.torre-hex:not(:disabled):active { transform: scale(.94); }
+.torre-hex-livre { font-size: 1.1rem; color: #b79cf0; opacity: .75; text-shadow: 0 0 6px #7a4fd0; }
+.torre-hex:hover .torre-hex-livre { opacity: 1; }
+.torre-hex.ocupada { background: none; }
+.torre-hex-rosto { position: absolute; inset: 9% 8%; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background: #17120c; }
+.torre-hex-rosto img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.torre-hex.ocupada::after { content: ''; position: absolute; inset: 0; background: url(../assets/torre/hex-moldura.webp) center / contain no-repeat; pointer-events: none; }
+.torre-hex small { position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: .6rem; font-weight: 700; max-width: 52px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cor); background: rgba(0, 0, 0, .7); padding: 0 4px; border-radius: 4px; }
+.torre-hex.ocupada { filter: drop-shadow(0 0 3px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
+.torre-hex.minha { filter: drop-shadow(0 0 9px var(--cor)) drop-shadow(0 3px 4px rgba(0, 0, 0, .7)); }
 .torre-hex:disabled { cursor: default; }
