@@ -2741,3 +2741,47 @@ teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', 
   assert.ok(ev3.some((e) => /DESPERTA/.test(e.t)), 'despertar abaixo de 50%');
   assert.ok(ev3.some((e) => /bebe a vida/.test(e.t)) && mv.hp > hpAntes, 'dreno cura o chefe');
 });
+
+teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corrupção, Camadas, Vínculo e Falso Colapso (Daniel, 18/11/2026)', () => {
+  const ficha = (c, c2) => { const p = R.criarPersonagem('N' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2);
+    const hs = D.SEGUNDAS_CLASSES[c2].habilidades.filter((h) => h.tipo !== 'passiva' && (!h.nivel || p.nivel >= h.nivel)); let g = 0, i = 0;
+    while (R.pontosHabilidadeLivres(p) > 0 && g++ < 400) R.mudarPontoHabilidade(p, hs[i++ % hs.length].id, 1); return p; };
+  const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
+  const nova = (andar) => { const t = R.novaTorre(fichas, andar, [0, 1, 2, 3]); t.avisos = []; t.proxAviso = 999; t.herois.forEach((h) => { h.hp = h.hpMax = 1e7; h.desviarEm = 99; }); return t; };
+  const turno = (t, esc, s) => { t.vezInimigos = t.vezInimigos || 5; return R.resolverTurnoTorre(t, esc || t.herois.map(() => ({ acao: 'atacar', ordem: 1 })), s); };
+  const mec = (t, nome, alvo) => { t.avisos = [{ mec: nome, de: 0, em: 1, alvo: alvo == null ? null : alvo }]; };
+  // Lentidão: recarga sobe
+  let t = nova(10); const h0 = t.herois[0], k0 = h0.L.kit[0].def.id; mec(t, 'lentidao');
+  turno(t, null, 31); assert.ok((h0.L.pronto[k0] || 0) >= h0.L.turno + 2, 'lentidão: habilidade mais demorada');
+  // Golpe Carregado: no turno de carregar o chefe não ataca
+  t = nova(15); t.avisos = [{ mec: 'carregar', de: 0, em: 2, alvo: null }];
+  let ev = turno(t, null, 32);
+  assert.ok(ev.some((e) => /acumula energia/.test(e.t)) && !ev.some((e) => e.de === 'm' && /acerta/.test(e.t) && !/Carregado/.test(e.t)), 'carregando: sem golpe normal');
+  ev = turno(t, null, 33); assert.ok(ev.some((e) => /GOLPE CARREGADO/.test(e.t)), 'golpe carregado sai no turno seguinte');
+  // Rugido do Tempo: no turno seguinte age primeiro e bate duas vezes
+  t = nova(40); mec(t, 'iniciativa'); turno(t, null, 34);
+  assert.strictEqual(t.vezInimigos, 1, 'age primeiro');
+  ev = turno(t, null, 35); assert.ok(ev.some((e) => /ataca de novo/.test(e.t)), 'bate duas vezes');
+  // Selo: tranca a última habilidade
+  t = nova(20); const h1 = t.herois[1]; h1.ultimaHab = h1.L.kit[0].def.id; mec(t, 'selo');
+  turno(t, t.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 36);
+  assert.ok((h1.L.pronto[h1.ultimaHab] || 0) >= h1.L.turno + 3, 'selo tranca 3 turnos');
+  // Parasita: rouba o escudo e cura o chefe
+  t = nova(50); const m = t.inimigos[0]; m.hp = Math.round(m.hpMax / 2); const hpM = m.hp;
+  t.herois[0].L.escudo = 500; t.herois[0].L.escudoAte = 99; mec(t, 'parasita');
+  ev = turno(t, t.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 37);
+  assert.ok(t.herois[0].L.escudo === 0 && ev.some((e) => /rouba/.test(e.t)), 'parasita rouba o escudo');
+  // Corrupção: poção vira dano
+  t = nova(25); mec(t, 'corrupcao'); turno(t, t.herois.map(() => ({ acao: 'atacar', ordem: 1 })), 38);
+  const vida = t.herois[2].hp; ev = turno(t, t.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 39);
+  assert.ok(ev.some((e) => /corrompido: a cura vira/.test(e.t)), 'corrupção: cura vira dano');
+  // Barreira de Camadas: −80% e cargas
+  t = nova(35); t.inimigos[0].camadas = 4; ev = turno(t, null, 40);
+  assert.ok(ev.some((e) => /Barreira de Camadas/.test(e.t)) && t.inimigos[0].camadas < 4, 'camadas gastam cargas');
+  // Vínculo: metade do dano volta no ligado
+  t = nova(25); t.inimigos[0].vinculo = { h: 3, ate: 1 }; ev = turno(t, null, 41);
+  assert.ok(ev.some((e) => /vínculo de sangue fere/.test(e.t)), 'vínculo fere o ligado');
+  // Falso Colapso: levanta na fase 2
+  t = nova(45); const tk = t.inimigos[0]; tk.hp = 1; ev = turno(t, null, 42);
+  assert.ok(tk.fase2 && tk.hp > 0 && tk.golpeArea && ev.some((e) => /FASE 2/.test(e.t)), 'falso colapso');
+});

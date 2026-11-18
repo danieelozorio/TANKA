@@ -1278,3 +1278,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   do dano no turno seguinte), drenar (cura o chefe com o dano), silencio (sem habilidades; `habilidadesTorre(h, t)`). Traços: `rapido`
   (+25% de velocidade), `despertar` (abaixo de 50% da vida, +30% de dano). Lacaio com nome do chefe (`lacaio`).
 - Saíram `chefes`, `chefesRepete`, `mecanicaElite`, `chefesArea` (antigos).
+- Mais 8 mecânicas + Falso Colapso (18/11/2026): lentidao (+2 de recarga em todas as habilidades), carregar (aviso de 2 turnos; no 1º o
+  chefe só acumula, no 2º 70% da vida em todos; escudo do herói segura, cegar corta pela metade, stun cancela), iniciativa (próximo turno
+  age 1º e bate 2x: `duasVezes`), selo (tranca `h.ultimaHab` 3 turnos), parasita (rouba buffs/escudo: +5% de vida e +10% de dano por
+  buff, 3 turnos: `buffDano`), corrupcao (`corrompidoDe/Ate`: `curarH` vira dano em poção, cura de grupo e curaDano), camadas (−80% de dano,
+  4 cargas, cada acerto gasta 1), vinculo (no turno seguinte, 50% do dano no chefe volta no herói ligado), falsoColapso (traço: ao chegar
+  a 0, volta com 30%, limpa efeitos, golpe em área e só `TORRE.colapso.mecanicas`). Chefes e elites redistribuídos em `chefesTorre`/`elitesTorre`.

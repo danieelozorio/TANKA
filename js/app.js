@@ -7229,6 +7229,11 @@
       if (m.espelhoAte === prox && m.hp > 0) marcas.push(['buff', '🪞 Espelho']);
       if (m.desperto) marcas.push(['buff', '🔥 Desperto']);
       if (m.rapido) marcas.push(['buff', '⚡ Rápido']);
+      if (m.camadas > 0 && m.hp > 0) marcas.push(['buff', '🔰 Camadas ' + m.camadas]);
+      if (m.duasVezes === prox && m.hp > 0) marcas.push(['buff', '⏩ Age 2x']);
+      if (m.buffDano && m.buffDano.ate >= prox) marcas.push(['buff', '🦠 +' + m.buffDano.pct + '% dano']);
+      if (m.fase2) marcas.push(['buff', '💀 Fase 2']);
+      if (m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h]) marcas.push(['buff', '🔗 ' + t.herois[m.vinculo.h].nome]);
       if (m.atordoado > 0 && m.hp > 0) marcas.push(['debuff', '💫 Atordoado']);
       if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push(['debuff', '🩸 Cura −' + m.cortaCura.pct + '%']);
       if (m.queima && m.queima.turnos > 0) marcas.push(['debuff', '🔥 Sangrando']);
@@ -7251,7 +7256,8 @@
         var xi = porCasa[c];
         if (xi == null) return '<div class="cena-casa vazia"><div class="cena-hex"></div></div>';
         var x = t.herois[xi], cor = CORES_TORRE[xi % 4], e = r.escolhas && r.escolhas[x.id], vivo = hpH(xi) > 0;
-        var males = (x.presoAte === prox ? '🕸' : '') + (x.cegoAte === prox ? '🌑' : '') + (x.silencioAte === prox ? '🔇' : '');
+        var males = (x.presoAte === prox ? '🕸' : '') + (x.cegoAte === prox ? '🌑' : '') + (x.silencioAte === prox ? '🔇' : '')
+          + (x.corrompidoDe <= prox && x.corrompidoAte >= prox ? '☠' : '') + (t.inimigos.some(function (m) { return m.vinculo && m.vinculo.ate === prox && t.herois[m.vinculo.h] === x; }) ? '🔗' : '');
         var estadoTxt = !vivo ? '<span class="menos">caído</span>' : males && t.fase === 'escolha' ? '<span class="menos" title="Preso / cego / em silêncio neste turno">' + males + '</span>' : t.fase === 'escolha' ? (e ? '<span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : '<span class="suave">…</span>') : '';
         return '<div class="cena-casa' + (vivo ? '' : ' caido') + (x.id === p.id ? ' eu' : '') + '" style="--cor:' + cor + '" data-alvo="h' + xi + '">'
           + '<div class="cena-hex"><span class="torre-hex-rosto">' + F_personagemMini(x) + '</span></div>'
@@ -7327,6 +7333,7 @@
     if (me.presoAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🕸 Você está preso na teia: perde a vez neste turno.</p>';
     if (me.cegoAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🌑 Você está cego: metade dos seus golpes erra neste turno.</p>';
     if (me.silencioAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🔇 Silêncio: sem habilidades neste turno.</p>';
+    if (me.corrompidoDe <= t.turno + 1 && me.corrompidoAte >= t.turno + 1) h += '<p class="torre-vez pequeno menos">☠ Corrompido: cura e poção viram dano em você neste turno.</p>';
     h += '<p class="torre-vez pequeno">' + (vz < 5 ? '⚡ Neste turno o inimigo é <b>rápido</b>: age antes do <b>' + vz + 'º</b>. Quem quer atordoar ou proteger precisa vir antes.'
       : '🐢 Neste turno o inimigo age <b>por último</b>.') + '</p>';
     h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {

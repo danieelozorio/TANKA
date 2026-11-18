@@ -2949,7 +2949,7 @@ Tanka.regras = (function () {
         ataque: [Math.round(C0.dano[0] * g * f.dano), Math.round(C0.dano[1] * g * f.dano)],
         defesa: Math.round(C0.defesa * gd * (f.defesa || 1)), defesaMagica: Math.round(C0.defesa * gd * (f.defesa || 1)), indiceArea: 6, chefe: tipo === 'chefe',
         res: { stun: r, cura: r, defesa: r, dot: r, cegar: r }, atordoado: 0, nAtq: 0,
-        rapido: !!def.rapido, despertar: !!def.despertar, lacaio: def.lacaio || null };
+        rapido: !!def.rapido, despertar: !!def.despertar, falsoColapso: !!def.falsoColapso, lacaio: def.lacaio || null };
     };
     if (ehChefeTorre(andar)) {
       var k = andar / TR.chefeCada - 1, nC = TR.chefesTorre.length, r0 = TR.chefesTorreRepete || 0;
@@ -3061,14 +3061,15 @@ Tanka.regras = (function () {
     var desvia = podeDesviar(t, h);
     if (desvia && emMim && (emMim.mec === 'marca' || h.hp * 100 < h.hpMax * (TR.mecanicas.mortal.vidaPct + 5))) return { acao: 'desviar', ordem: ordem };
     if (desvia && contra && chanceDesviar(h) >= 50) return { acao: 'desviar', ordem: ordem };
-    if (h.hp * 100 < h.hpMax * 35 && h.pocoes > 0) return { acao: 'pocao', ordem: 1 };
+    var corr = h.corrompidoDe <= t.turno + 1 && h.corrompidoAte >= t.turno + 1;
+    if (h.hp * 100 < h.hpMax * 35 && h.pocoes > 0 && !corr) return { acao: 'pocao', ordem: 1 };
     var ferido = vivosT(t.herois).some(function (x) { return x.hp * 100 < x.hpMax * 70; });
-    var k = (ferido && kit(function (d) { return d.tipo === 'cura'; }))
+    var k = (ferido && !corr && kit(function (d) { return d.tipo === 'cura'; }))
       || kit(function (d) { return d.tipo === 'provocar'; })
       || (agora.length && kit(function (d) { return d.atordoa; }))
       || kit(function (d) { return d.tipo === 'escudo' && contra; })
       || kit(function (d) { return d.tipo !== 'cura' && d.tipo !== 'provocar' && !(d.atordoa && !agora.length) && d.tipo !== 'escudo'; });
-    if (contra && !k && h.pocoes > 0 && h.hp * 100 < h.hpMax * 60) return { acao: 'pocao', ordem: 1 };
+    if (contra && !k && h.pocoes > 0 && !corr && h.hp * 100 < h.hpMax * 60) return { acao: 'pocao', ordem: 1 };
     if (k && k.def.atordoa && agora.length) ordem = 1;   // o stun precisa sair antes do chefe agir
     return k ? { acao: 'habilidade', hab: k.def.id, alvo: idxAlvo, ordem: ordem } : { acao: 'atacar', alvo: idxAlvo, ordem: ordem };
   }
@@ -3097,24 +3098,59 @@ Tanka.regras = (function () {
       faseInimigos();
     };
     var alvoDe = function (e) { var m = t.inimigos[e.alvo]; return m && m.hp > 0 ? m : vivosT(t.inimigos)[0]; };
+    // Corrupção: neste turno a cura no herói vira dano.
+    var corrompido = function (o) { return o.corrompidoDe <= t.turno && o.corrompidoAte >= t.turno; };
+    var curarH = function (o, valor) {
+      valor = Math.round(valor);
+      if (o.hp <= 0 || valor <= 0) return 0;
+      if (corrompido(o)) {
+        var d = Math.min(o.hp, valor); o.hp -= d;
+        diz('☠ ' + o.nome + ' está corrompido: a cura vira ' + txtNum(d) + ' de dano!', { de: 'm', alvo: t.herois.indexOf(o), dano: d });
+        if (o.hp === 0) diz(o.nome + ' caiu!', { caiuH: true });
+        return -d;
+      }
+      var c = Math.min(o.hpMax - o.hp, valor); o.hp += c; return c;
+    };
+    // Falso Colapso: o chefe cai a 0 pela 1ª vez e levanta na fase 2.
+    var colapso = function (m) {
+      if (!m.falsoColapso || m.fase2) return false;
+      var C = TR.colapso, idx = t.inimigos.indexOf(m);
+      m.fase2 = true; m.hp = Math.round(m.hpMax * C.vidaPct / 100);
+      m.atordoado = 0; m.cortaCura = null; m.queima = null; m.defQuebra = 0; m.quebraTemp = 0; m.cego = 0;
+      m.mecanicas = C.mecanicas.slice(); m.golpeArea = true;
+      t.avisos = t.avisos.filter(function (a) { return a.de !== idx; });
+      diz('💀 ' + m.nome + ' cai... e se levanta! FASE 2: limpa os efeitos, volta com ' + C.vidaPct + '% da vida e passa a bater em área!', { mec: 'colapso' });
+      return true;
+    };
     var golpe = function (h, alvo, opc, quem) {
       if (h.cegoAte === t.turno && rng() * 100 < TR.mecanicas.eclipse.erroPct) { diz(quem + ' está cego pelo eclipse e erra.', { de: 'h', i: t.herois.indexOf(h) }); return { acerto: false }; }
       var g = calcularGolpe(h.s, h.L, alvo, opc, rng);
       if (!g.acerto) { diz(quem + ' erra ' + alvo.nome + '.', { de: 'h', i: t.herois.indexOf(h) }); return g; }
       if (alvo.peleAte >= t.turno) g.dano = Math.max(1, Math.round(g.dano * (1 - TR.mecanicas.pele.reducao / 100)));   // Pele de Pedra
+      var camada = alvo.camadas > 0;
+      if (camada) { g.dano = Math.max(1, Math.round(g.dano * (1 - TR.mecanicas.camadas.reducao / 100))); alvo.camadas--; }   // Barreira de Camadas: cada acerto gasta 1 carga
       var dano = g.dano;
       if (alvo.escudoOssos > 0) { var a = Math.min(alvo.escudoOssos, dano); alvo.escudoOssos -= a; dano -= a; if (!alvo.escudoOssos) diz('O Escudo de Ossos de ' + alvo.nome + ' quebrou!', { quebrou: true }); }
       alvo.hp = Math.max(0, alvo.hp - dano);
       aoCausar(h.L, h, g.dano);
       sangrar(alvo, g);
       diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + (alvo.peleAte >= t.turno ? ' (pele de pedra)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), ai: t.inimigos.indexOf(alvo), dano: g.dano, critico: g.critico });
+      if (camada) diz(alvo.camadas > 0 ? 'A Barreira de Camadas segura o golpe (' + alvo.camadas + ' carga' + (alvo.camadas > 1 ? 's' : '') + ').' : 'A Barreira de Camadas de ' + alvo.nome + ' quebrou!', { quebrou: alvo.camadas === 0 });
+      if (alvo.vinculo && alvo.vinculo.ate === t.turno) {   // Vínculo de Sangue: metade volta no herói ligado
+        var lig = t.herois[alvo.vinculo.h];
+        if (lig && lig.hp > 0) {
+          var dv = Math.max(1, Math.round(g.dano * TR.mecanicas.vinculo.pct / 100)); lig.hp = Math.max(0, lig.hp - dv);
+          diz('🔗 O vínculo de sangue fere ' + lig.nome + ': ' + txtNum(dv) + '.', { de: 'm', alvo: t.herois.indexOf(lig), dano: dv });
+          if (lig.hp === 0) diz(lig.nome + ' caiu!', { caiuH: true });
+        }
+      }
       if (alvo.espelhoAte === t.turno && h.hp > 0) {   // Espelho: devolve parte do dano
         var refl = Math.max(1, Math.round(g.dano * TR.mecanicas.espelho.reflete / 100));
         h.hp = Math.max(0, h.hp - refl);
         diz('O Espelho de ' + alvo.nome + ' devolve ' + txtNum(refl) + ' a ' + h.nome + '.', { de: 'm', alvo: t.herois.indexOf(h), dano: refl });
         if (h.hp === 0) diz(h.nome + ' caiu!', { caiuH: true });
       }
-      if (alvo.hp === 0) {
+      if (alvo.hp === 0 && !colapso(alvo)) {
         diz(alvo.nome + ' caiu!', { caiu: true });
         // chefe caiu: os lacaios fogem pelo portal
         if (alvo.chefe) t.inimigos.forEach(function (x) { if (x.tipo === 'lacaio' && x.hp > 0) { x.hp = 0; diz(x.nome + ' foge pelo portal.'); } });
@@ -3146,22 +3182,22 @@ Tanka.regras = (function () {
       if (h.presoAte === t.turno) { diz(quem + ' está preso na teia e perde a vez.', { de: 'h', i: x.i, preso: true }); return; }
       inicioVez(L, h);
       var tk = tickDot(L, h, function () { return vivosT(t.inimigos)[0] || null; });
-      if (tk) diz('O veneno de ' + quem + ' tira ' + txtNum(tk.dano) + ' de ' + tk.alvo.nome + '.', { de: 'h', i: x.i, dano: tk.dano, dot: true });
+      if (tk) { diz('O veneno de ' + quem + ' tira ' + txtNum(tk.dano) + ' de ' + tk.alvo.nome + '.', { de: 'h', i: x.i, dano: tk.dano, dot: true }); if (tk.alvo.hp <= 0) colapso(tk.alvo); }
       if (!vivosT(t.inimigos).length) return;
       if (e.acao === 'desviar') { diz(quem + ' se prepara para desviar (' + chanceDesviar(h) + '%).', { de: 'h', i: x.i, desviar: true }); return; }
       if (e.acao === 'pocao') {
         h.pocoes--;
-        var c = Math.min(h.hpMax - h.hp, Math.round(h.hpMax * TR.pocaoCura / 100 * (L.ex.pocaoMetade ? 0.5 : 1)));
-        h.hp += c; diz(quem + ' bebe uma poção: +' + txtNum(c) + ' de vida.', { de: 'h', i: x.i, cura: c }); return;
+        var c = curarH(h, h.hpMax * TR.pocaoCura / 100 * (L.ex.pocaoMetade ? 0.5 : 1));
+        if (c >= 0) diz(quem + ' bebe uma poção: +' + txtNum(c) + ' de vida.', { de: 'h', i: x.i, cura: c }); return;
       }
       var alvo = alvoDe(e);
       if (e.acao === 'atacar') { golpe(h, alvo, { mult: 100, normal: true }, quem); return; }
       var k = L.kit.filter(function (y) { return y.def.id === e.hab; })[0], def = k.def;
-      gastarHabilidade(L, k); curaAoUsar(L, h);
+      gastarHabilidade(L, k); curaAoUsar(L, h); h.ultimaHab = def.id;
       diz(quem + ' usa ' + def.nome + '!', { de: 'h', i: x.i, hab: def.nome });
       if (def.tipo === 'cura') {
         var pct = valorBonus(def, 'vidaPct', k.pts);
-        vivosT(t.herois).forEach(function (o) { o.hp = Math.min(o.hpMax, o.hp + Math.round(o.hpMax * pct / 100)); });
+        vivosT(t.herois).forEach(function (o) { curarH(o, o.hpMax * pct / 100); });
         diz('O grupo recupera ' + Math.round(pct) + '% da vida.', { curaGrupo: pct }); return;
       }
       if (ehReforco(def)) {
@@ -3183,13 +3219,13 @@ Tanka.regras = (function () {
         var antes = { defQuebra: m.defQuebra, quebraTemp: m.quebraTemp, queima: m.queima };
         var g = golpe(h, m, Object.assign({ mult: mult }, def.nivel ? opcoesNivel(def, h, m) : {}), quem);
         if (!g.acerto) return;
-        if (def.curaDano && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100));
+        if (def.curaDano && h.hp > 0) curarH(h, g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
         if (def.nivel) depoisDoGolpeNivel(def, m, h.s, k.pts);
         efeitos(h, def, m, antes);
       });
     }); }
     // inimigos
-    var furia = function (m) { return (m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1) * (m.desperto ? 1 + TR.despertar.danoPct / 100 : 1); };
+    var furia = function (m) { return (m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1) * (m.desperto ? 1 + TR.despertar.danoPct / 100 : 1) * (m.buffDano && m.buffDano.ate >= t.turno ? 1 + m.buffDano.pct / 100 : 1); };
     var bater = function (m, h, bruto, ignoraDef, nomeGolpe) {
       var dano = ignoraDef ? bruto : danoComDefesa(bruto, Math.round(h.s.defesa * (1 + defesaExtraPct(h.L) / 100)));   // golpe normal: físico (o tanque segura)
       dano = aoReceber(h.L, Math.round(dano), m, rng);
@@ -3204,6 +3240,8 @@ Tanka.regras = (function () {
       var M = TR.mecanicas[a.mec], alvos = M.alvo === 'todos' ? vivosT(t.herois) : [t.herois[a.alvo]].filter(function (h) { return h && h.hp > 0; });
       if (a.mec === 'escudo') { m.escudoOssos = Math.round(m.hpMax * M.escudoPct / 100); m.escudoAte = t.turno + 2; diz(m.nome + ' se cobre com o Escudo de Ossos (' + txtNum(m.escudoOssos) + ').', { mec: a.mec }); return; }
       if (a.mec === 'pele') { m.peleAte = t.turno + M.duracao; diz(m.nome + ' endurece a Pele de Pedra: metade do dano por ' + M.duracao + ' turnos!', { mec: a.mec }); return; }
+      if (a.mec === 'camadas') { m.camadas = M.cargas; diz(m.nome + ' ergue a Barreira de Camadas: −' + M.reducao + '% de dano até levar ' + M.cargas + ' acertos!', { mec: a.mec }); return; }
+      if (a.mec === 'iniciativa') { m.duasVezes = t.turno + 1; diz(m.nome + ' distorce o tempo: no próximo turno age primeiro e bate duas vezes!', { mec: a.mec }); return; }
       if (a.mec === 'espelho') { m.espelhoAte = t.turno + 1; diz(m.nome + ' ergue o Espelho: no próximo turno devolve ' + M.reflete + '% do dano!', { mec: a.mec }); return; }
       if (a.mec === 'invocar') {
         var jaTem = t.inimigos.filter(function (x) { return x.tipo === 'lacaio' && x.hp > 0; }).length;
@@ -3221,8 +3259,28 @@ Tanka.regras = (function () {
         if (h.desvia && rng() * 100 < chanceDesviar(h)) { diz(h.nome + ' desviou!', { desviou: true, alvo: t.herois.indexOf(h) }); return; }
         if (h.desvia) diz(h.nome + ' tentou desviar, mas não deu.', { alvo: t.herois.indexOf(h) });
         if (a.mec === 'marca') { marcaFalhou = true; return; }
-        var levou = bater(m, h, Math.round(h.hpMax * M.vidaPct / 100 * furia(m)), true, M.nome);
+        var bruto = M.vidaPct ? h.hpMax * M.vidaPct / 100 * furia(m) * (a.mec === 'carregar' && m.cego > 0 ? 0.5 : 1) : 0;
+        var levou = bruto ? bater(m, h, Math.round(bruto), true, M.nome) : 0;
         if (h.hp <= 0) return;
+        var L2 = h.L;
+        if (a.mec === 'lentidao') { L2.kit.forEach(function (k) { L2.pronto[k.def.id] = Math.max(L2.pronto[k.def.id] || 0, L2.turno + 1) + M.recargaMais; }); diz('🐌 ' + h.nome + ' ficou lento: habilidades ' + M.recargaMais + ' turnos mais demoradas.', { alvo: t.herois.indexOf(h) }); }
+        if (a.mec === 'selo' && h.ultimaHab) {
+          var ks = L2.kit.filter(function (k) { return k.def.id === h.ultimaHab; })[0];
+          if (ks) { L2.pronto[ks.def.id] = Math.max(L2.pronto[ks.def.id] || 0, L2.turno + 1 + M.travaTurnos); diz('🔒 ' + h.nome + ': ' + ks.def.nome + ' trancada por ' + M.travaTurnos + ' turnos.', { alvo: t.herois.indexOf(h) }); }
+        }
+        if (a.mec === 'parasita') {
+          var nb = L2.buffs.length + (L2.escudo > 0 && L2.turno <= L2.escudoAte ? 1 : 0);
+          L2.buffs.forEach(function (b) { if (b.vidaExtra) { h.hpMax -= b.vidaExtra; h.hp = Math.min(h.hp, h.hpMax); } });
+          L2.buffs = []; L2.escudo = 0;
+          if (nb && m.hp > 0) {
+            var corteP = m.cortaCura && m.cortaCura.ate >= t.turno ? m.cortaCura.pct : 0, cp = Math.round(m.hpMax * M.curaPorBuff * nb / 100 * (1 - corteP / 100));
+            m.hp = Math.min(m.hpMax, m.hp + cp);
+            m.buffDano = { pct: ((m.buffDano && m.buffDano.ate >= t.turno) ? m.buffDano.pct : 0) + M.danoPorBuff * nb, ate: t.turno + M.duracao };
+            diz('🦠 ' + m.nome + ' rouba ' + nb + ' reforço' + (nb > 1 ? 's' : '') + ' de ' + h.nome + ': +' + txtNum(cp) + ' de vida e mais dano.', { curaChefe: cp });
+          } else diz(h.nome + ' não tinha reforços para o Parasita roubar.');
+        }
+        if (a.mec === 'corrupcao') { h.corrompidoDe = t.turno + 1; h.corrompidoAte = t.turno + M.duracao; diz('☠ ' + h.nome + ' foi corrompido: cura vira dano por ' + M.duracao + ' turnos.', { alvo: t.herois.indexOf(h) }); }
+        if (a.mec === 'vinculo') { m.vinculo = { h: t.herois.indexOf(h), ate: t.turno + 1 }; diz('🔗 ' + m.nome + ' liga a vida a ' + h.nome + '.', { alvo: t.herois.indexOf(h) }); }
         if (a.mec === 'teia') { h.presoAte = t.turno + 1; diz(h.nome + ' ficou preso na teia: perde a próxima vez.', { alvo: t.herois.indexOf(h) }); }
         if (a.mec === 'eclipse') { h.cegoAte = t.turno + 1; diz(h.nome + ' ficou cego pelo eclipse.', { alvo: t.herois.indexOf(h) }); }
         if (a.mec === 'silencio') { h.silencioAte = t.turno + 1; diz(h.nome + ' ficou em silêncio: sem habilidades no próximo turno.', { alvo: t.herois.indexOf(h) }); }
@@ -3237,7 +3295,7 @@ Tanka.regras = (function () {
     function faseInimigos() { t.inimigos.slice().forEach(function (m) {
       if (m.hp <= 0 || !vivosT(t.herois).length) return;
       var qm = tickQueima(m);
-      if (qm) { diz(m.nome + ' sofre ' + txtNum(qm) + ' de queimadura/sangramento.', { dot: true }); if (m.hp <= 0) { diz(m.nome + ' caiu!', { caiu: true }); return; } }
+      if (qm) { diz(m.nome + ' sofre ' + txtNum(qm) + ' de queimadura/sangramento.', { dot: true }); if (m.hp <= 0 && !colapso(m)) { diz(m.nome + ' caiu!', { caiu: true }); return; } }
       if (m.despertar && !m.desperto && m.hp * 100 < m.hpMax * TR.despertar.vidaPct) { m.desperto = true; diz('🔥 ' + m.nome + ' DESPERTA: bate ' + TR.despertar.danoPct + '% mais forte!', { mec: 'despertar' }); }
       var avisoAgora = m.tipo !== 'lacaio' && t.avisos.filter(function (a) { return a.em === 1 && a.de === t.inimigos.indexOf(m); })[0];
       if (m.atordoado > 0) {
@@ -3247,7 +3305,12 @@ Tanka.regras = (function () {
         return;
       }
       // golpe normal em toda rodada (Daniel, 18/11/2026): no turno da mecânica avisada, bate primeiro e solta a mecânica depois
-      golpeNormal(m);
+      var carregando = t.avisos.some(function (a) { return a.mec === 'carregar' && a.em === 2 && a.de === t.inimigos.indexOf(m); });
+      if (carregando) diz('⚡ ' + m.nome + ' acumula energia e não ataca... o golpe carregado vem no próximo turno!', { aviso: true });
+      else {
+        golpeNormal(m);
+        if (m.duasVezes === t.turno && vivosT(t.herois).length) { diz(m.nome + ' ataca de novo!', { rapido: true }); golpeNormal(m); }
+      }
       if (avisoAgora && vivosT(t.herois).length) { t.avisos.splice(t.avisos.indexOf(avisoAgora), 1); mecanica(m, avisoAgora); }
     }); }
     function golpeNormal(m) {
@@ -3291,11 +3354,12 @@ Tanka.regras = (function () {
         var mec = m0.mecanicas[t.iMec++ % m0.mecanicas.length], M = TR.mecanicas[mec], vivos2 = alcanceTorre(t);   // um alvo: fileira da frente
         var a = { mec: mec, de: t.inimigos.indexOf(m0), em: M.turnos, alvo: M.alvo === 'um' ? t.herois.indexOf(vivos2[Math.floor(rng() * vivos2.length)]) : null };
         t.avisos.push(a);
-        diz('⚠ ' + m0.nome + ' ' + M.texto.replace('{alvo}', a.alvo != null ? t.herois[a.alvo].nome : '') + (M.turnos > 1 ? ' (em ' + M.turnos + ' turnos)' : ' (no próximo turno)') + '.', { aviso: true });
+        diz('⚠ ' + m0.nome + ' ' + M.texto.replace(/\{alvo\}/g, a.alvo != null ? t.herois[a.alvo].nome : '') + (M.turnos > 1 ? ' (em ' + M.turnos + ' turnos)' : ' (no próximo turno)') + '.', { aviso: true });
       }
       t.proxAviso = t.turno + 1 + TR.aCada;
     }
     sortearVezTorre(t, rng);
+    if (t.inimigos.some(function (m) { return m.hp > 0 && m.duasVezes === t.turno + 1; })) t.vezInimigos = 1;   // Rugido do Tempo
     if (t.vezInimigos < 5) diz('⚡ No próximo turno, ' + (vivosT(t.inimigos).filter(function (m) { return m.chefe || m.tipo === 'elite'; })[0] || vivosT(t.inimigos)[0]).nome + ' age antes do ' + t.vezInimigos + 'º.', { aviso: true });
     t.log = ev;
     return ev;
