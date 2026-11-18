@@ -7634,7 +7634,7 @@
         if (!monte.length) return '<div class="altar-monte vazio"' + pos + '><span>✔</span></div>';
         var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
         return '<button class="altar-monte pilha-' + Math.min(3, monte.length) + (paga ? ' paga' : '') + '"' + pos + ' data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
-          + '<span class="altar-pilha">' + monte.length + '</span><span class="altar-carta">' + custoHtml(topo.custo) + '</span></button>';
+          + '<span class="altar-face"><span class="altar-pilha">' + monte.length + '</span><span class="altar-carta">' + custoHtml(topo.custo) + '</span></span></button>';
       }).join('') + '</div>';
       h += '<div class="altar-dados">' + pt.dados.map(function (d, i) {
         var e = elAltar(d);

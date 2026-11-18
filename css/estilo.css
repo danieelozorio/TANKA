@@ -2269,3 +2269,7 @@ html[data-celular] .altar-dados { gap: 5px; flex-wrap: nowrap; }
 html[data-celular] .altar-dado { width: 46px; height: 46px; }
 html[data-celular] .altar-el { width: 32px; height: 32px; }
 .altar-monte { width: 20%; height: 22%; }
+/* frente da carta num span por cima do verso (o verso do ::before ficava na frente do fundo do botão) */
+.altar-monte:not(.vazio) { background: none; }
+.altar-face { position: absolute; inset: 0; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  background: url(../assets/eventos/altar/moldura.webp) center / 100% 100% no-repeat; }
