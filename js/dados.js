@@ -738,7 +738,7 @@ Tanka.dados = {
   // Desviar: chance = desviar.base + porPonto x maior atributo do herói (máx. desviar.max); só evita golpe avisado.
   TORRE: {
     ligada: true,    // false = só o admin vê (Daniel, 18/11/2026: religada)
-    nome: 'Torre do Eclipse', nivelMin: 40,   // 18/11/2026: era 30; o andar 1 agora é para grupo level 40 grupo: 4, segundosEscolha: 20, marco: 1,   // marco 1: salva andar por andar (Daniel)
+    nome: 'Torre do Eclipse', nivelMin: 40, grupo: 4, segundosEscolha: 20, marco: 1,   // nivelMin era 30 (18/11/2026: andar 1 para grupo level 40); marco 1 = salva andar por andar
     chefeCada: 5, maxTurnos: 45,
     crescimento: 1.06, crescimentoDefesa: 1.03,
     pocoes: 2, pocaoChefe: 1, pocaoCura: 30,           // poções por subida (+1 a cada chefe vencido), cura % da vida
