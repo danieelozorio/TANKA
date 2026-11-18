@@ -7617,7 +7617,8 @@
       + '</div><div class="altar-placar"><span>Partidas hoje <b>' + usadas + '/' + EVA_.entradasDia + '</b></span><span>Seus pontos <b>' + Number((al && ev && al.ev === ev.id ? al.total : 0) || 0).toLocaleString('pt-BR') + '</b></span></div></div>';
     h += '<details class="regras-celular"' + (CELULAR ? '' : ' open') + '><summary>Como jogar</summary><ul>'
       + '<li>Cada partida tem <b>' + EVA_.rolagens + ' rolagens</b> de ' + EVA_.dados + ' elementos: ' + EVA_.elementos.map(function (e) { return e.ico + ' ' + e.nome; }).join(', ') + '.</li>'
-      + '<li>Cada carta pede <b>1 a 3 do mesmo elemento</b> (ex.: 2 💧). Toque num <b>monte</b> que brilha para pagar a carta do topo (' + EVA_.pontos.porElemento + ' pontos).</li>'
+      + '<li>Cada carta pede <b>1 a 3 do mesmo elemento</b> (ex.: 2 💧). Toque num <b>monte</b> que brilha para pegar a carta do topo (' + EVA_.pontos.porElemento + ' pontos por elemento).</li>'
+      + '<li>Os elementos <b>não se gastam</b>: ficam na mão para a próxima carta. Cada carta seguida antes de rolar é <b>combo</b> (+' + EVA_.pontos.combo + ' pontos por carta já pega nessa mão).</li>'
       + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher.</li>'
       + '<li>Monte zerado +' + EVA_.pontos.monte + ', linha completa (como jogo da velha) +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
       + '<li><b>' + EVA_.entradasDia + ' partidas por dia</b>. Os pontos de todas somam no <b>ranking</b>; no fim do evento os melhores ganham prêmios.</li></ul></details>';
@@ -7626,7 +7627,7 @@
         + (usadas >= EVA_.entradasDia ? '<p class="suave pequeno">Suas partidas de hoje acabaram. Volte amanhã!</p>' : '');
     } else {
       var sel = estado.altarSel || [];
-      h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
+      h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.combo ? '<span class="altar-combo">🔥 Combo x' + pt.combo + '</span>' : '') + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
       // cada carta em cima de um encaixe da mesa (centros a 27,7%, 49,9% e 72,1% da arte)
       var centro = [27.7, 49.9, 72.1];
       h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
@@ -7693,7 +7694,8 @@
         estado.altarSel = []; estado.altarTroca = false;
         acaoServidor('altarPagar', { monte: m, dados: idx }, local(function () { R.pagarAltar(pt, m, idx, Math.random); })).then(function (r) {
           var res = r && r.resultado;
-          if (res && res.extras && res.extras.length) avisar(res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! +' + res.ganho : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! +' + res.ganho : '✔ Monte zerado! +' + res.ganho, 'nivel');
+          if (res && res.extras && res.extras.length) avisar((res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! ' : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! ' : res.extras.indexOf('monte') >= 0 ? '✔ Monte zerado! ' : '')
+            + (res.combo > 1 ? '🔥 Combo x' + res.combo + '! ' : '') + '+' + res.ganho, 'nivel');
           depois();
         });
         return true;

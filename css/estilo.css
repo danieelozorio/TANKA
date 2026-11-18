@@ -2273,3 +2273,6 @@ html[data-celular] .altar-el { width: 32px; height: 32px; }
 .altar-monte:not(.vazio) { background: none; }
 .altar-face { position: absolute; inset: 0; border-radius: 6px; display: flex; align-items: center; justify-content: center;
   background: url(../assets/eventos/altar/moldura.webp) center / 100% 100% no-repeat; }
+/* fundo do evento: o templo do altar (Daniel: sem o fundo preto) */
+.caixa.altar { background: linear-gradient(rgba(14, 8, 22, .78), rgba(14, 8, 22, .9)), url(../assets/eventos/altar/banner.webp) center top / cover no-repeat; }
+.altar-combo { color: #ff9b4a; font-weight: 700; text-shadow: 0 0 8px rgba(255, 120, 40, .6); }

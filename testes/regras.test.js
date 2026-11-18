@@ -2797,11 +2797,19 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   assert.ok(typeof R.pagarAltar(pt, 0, [0, 0, 1], rng) === 'string', 'dado repetido: recusa');
   const r = R.pagarAltar(pt, 0, [0, 1, 3], rng);
   assert.strictEqual(r.ganho, 3 * E.pontos.porElemento + E.pontos.monte, 'carta + monte zerado');
-  assert.deepStrictEqual(pt.dados, ['luz', 'trevas']);
+  assert.strictEqual(pt.dados.length, 5, 'os elementos ficam na mão');
+  // combo: a 2ª carta na mesma mão ganha +combo
+  pt.mesa[4] = [{ custo: { luz: 1 } }, { custo: { fogo: 2 } }];
+  const rc = R.pagarAltar(pt, 4, [0, 3], rng);
+  assert.strictEqual(rc.ganho, 2 * E.pontos.porElemento + E.pontos.combo, 'combo +1');
+  const rc2 = R.pagarAltar(pt, 4, [2], rng);
+  assert.ok(rc2.extras.includes('combo') && rc2.combo === 3, 'combo 3');
+  pt.dados = ['luz', 'trevas'];
   // trocar 2 por 1
   assert.strictEqual(R.trocarAltar(pt, [0, 1], 'folha'), true); assert.deepStrictEqual(pt.dados, ['folha']);
   // rolar: guarda o escolhido e completa até 5, gasta 1
   assert.strictEqual(R.rolarAltar(pt, [0], rng), true); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.dados[0], 'folha'); assert.strictEqual(pt.rolagens, E.rolagens - 1);
+  assert.strictEqual(pt.combo, 0, 'rolar zera o combo');
   // linha: zerar 1, 2 (0 já vazio) dá a linha de cima
   pt.mesa[1] = [{ custo: { luz: 2 } }]; pt.mesa[2] = [{ custo: { luz: 2 } }]; pt.dados = ['luz', 'luz', 'luz', 'luz', 'agua'];
   R.pagarAltar(pt, 1, [0, 1], rng); const r2 = R.pagarAltar(pt, 2, [0, 1], rng);

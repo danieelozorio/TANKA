@@ -3384,7 +3384,7 @@ Tanka.regras = (function () {
   }
   function novaPartidaAltar(rng) {
     var dados = []; for (var i = 0; i < EVA.dados; i++) dados.push(elementoAltar(rng));
-    return { mesa: mesaAltar(rng), dados: dados, rolagens: EVA.rolagens, pontos: 0, mesas: 0, linhas: [] };
+    return { mesa: mesaAltar(rng), dados: dados, rolagens: EVA.rolagens, pontos: 0, mesas: 0, linhas: [], combo: 0 };
   }
   function custoTotal(custo) { return Object.keys(custo).reduce(function (s, k) { return s + custo[k]; }, 0); }
   // índices (dos dados) válidos e sem repetir
@@ -3408,16 +3408,17 @@ Tanka.regras = (function () {
     idxs.forEach(function (i) { conta[pt.dados[i]] = (conta[pt.dados[i]] || 0) + 1; });
     var ok = Object.keys(carta.custo).every(function (k) { return conta[k] === carta.custo[k]; }) && Object.keys(conta).every(function (k) { return carta.custo[k] === conta[k]; });
     if (!ok) return 'Os elementos não batem com a carta.';
-    tirarDados(pt, idxs);
-    pt.mesa[monte].pop();
-    var ganho = custoTotal(carta.custo) * EVA.pontos.porElemento, extras = [];
+    pt.mesa[monte].pop();   // os elementos ficam na mão (Daniel): servem para a próxima carta
+    var combo = pt.combo || 0, ganho = custoTotal(carta.custo) * EVA.pontos.porElemento + EVA.pontos.combo * combo, extras = [];
+    pt.combo = combo + 1;
+    if (combo) extras.push('combo');
     if (!pt.mesa[monte].length) { ganho += EVA.pontos.monte; extras.push('monte'); }
     LINHAS_ALTAR.forEach(function (l, li) {
       if (pt.linhas.indexOf(li) < 0 && l.every(function (k) { return !pt.mesa[k].length; })) { pt.linhas.push(li); ganho += EVA.pontos.linha; extras.push('linha'); }
     });
     if (pt.mesa.every(function (x) { return !x.length; })) { ganho += EVA.pontos.mesa; extras.push('mesa'); pt.mesas++; pt.mesa = mesaAltar(rng); pt.linhas = []; }
     pt.pontos += ganho;
-    return { ganho: ganho, extras: extras };
+    return { ganho: ganho, extras: extras, combo: pt.combo };
   }
   // Troca 2 elementos quaisquer por 1 escolhido.
   function trocarAltar(pt, idxs, elemento) {
@@ -3437,6 +3438,7 @@ Tanka.regras = (function () {
     pt.dados = manter.map(function (i) { return pt.dados[i]; });
     while (pt.dados.length < EVA.dados) pt.dados.push(elementoAltar(rng));
     pt.rolagens--;
+    pt.combo = 0;   // mão nova: o combo recomeça
     return true;
   }
   // Estado do evento na ficha (zera as entradas a cada dia e quando o evento muda).

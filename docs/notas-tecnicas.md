@@ -1316,7 +1316,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ### Eventos: Altar dos Elementos (18/11/2026)
 - Sub-aba "Evento" em Aventura (só com evento aberto, ou admin). `D.EVENTO_ALTAR`: 5 elementos, mesa 3x3 de montes com 3 cartas
-  (1 tipo de elemento por carta, de 1 a 3 dele), 25 rolagens por partida, 5 dados, trocar 2→1, pontos (10/elemento, monte +50, linha +100, mesa +300 e mesa
+  (1 tipo de elemento por carta, de 1 a 3 dele), 25 rolagens por partida, 5 dados, trocar 2→1, pontos (10/elemento, combo +15 por carta seguida na mesma mão, monte +50, linha +100, mesa +300 e mesa
   nova), 5 partidas/dia, prêmios do ranking.
 - Regras: `novaPartidaAltar/pagarAltar/trocarAltar/rolarAltar/altarDoDia`. Servidor (`acao`): altarEntrar (precisa de
   `evento_atual`), altarPagar, altarTrocar, altarRolar, altarEncerrar → `eventoSaida` → `evento_registrar` (só o servidor; id
@@ -1330,3 +1330,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ficava com a Arena travada (arena_estado → encerrar_abandonadas → finalizar).
 - Artes do Altar (18/11/2026): assets/eventos/altar (el-<elemento>.webp 128px recortadas da fileira, banner, mesa com os 9 encaixes,
   moldura = carta do topo, verso = cartas de baixo). As cartas ficam em cima dos encaixes (centros a 27,7/49,9/72,1% da mesa).
+- Altar (18/11/2026, Daniel): os elementos NÃO se gastam ao pegar carta (ficam na mão); `pt.combo` conta as cartas da mão e zera ao
+  rolar; fundo da aba = arte do templo (sem preto). Página de teste avulsa gerada por scratchpad/gerar_teste.py (não vai para o repo).

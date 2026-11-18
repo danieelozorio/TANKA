@@ -860,7 +860,10 @@ Tanka.dados = {
       { id: 'trevas', nome: 'Escuridão', ico: '🌑', cor: '#a77bff' },
     ],
     entradasDia: 5, rolagens: 25, dados: 5, cartasPorMonte: 3, custo: [1, 3],   // cada carta pede 1 tipo de elemento só, de 1 a 3 dele (ex.: 2 Água) (Daniel)
-    pontos: { porElemento: 10, monte: 50, linha: 100, mesa: 300 },   // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda
+    // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda. Os elementos NÃO se gastam ao pegar
+    // uma carta (Daniel): ficam na mão para a próxima. Combo: cada carta seguida na mesma mão (antes de rolar) ganha
+    // +combo x (cartas que já pegou nessa mão).
+    pontos: { porElemento: 10, monte: 50, linha: 100, mesa: 300, combo: 15 },
     premios: [
       { ate: 1, ouro: 2000000, pergaminho: 'lendaria', qtd: 3 }, { ate: 3, ouro: 1000000, pergaminho: 'lendaria', qtd: 2 },
       { ate: 10, ouro: 500000, pergaminho: 'epica', qtd: 2 }, { ate: 50, ouro: 100000, pergaminho: 'rara', qtd: 1 },
