@@ -6849,6 +6849,11 @@
       linhas.forEach(function (l) { if (Number(l.dataset.i) < n) { l.classList.remove('oculta'); mudou = true; } });
       var reg = caixa.querySelector('.torre-narracao');
       if (mudou && reg) reg.scrollTop = reg.scrollHeight;
+      if (mudou && r && r.torre && r.torre.log) {
+        var vis = Math.min(r.torre.log.length, n), ev = r.torre.log[vis - 1];
+        if (vis >= r.torre.log.length) ev = { hp: r.torre.herois.map(function (h) { return h.hp; }), hpI: r.torre.inimigos.map(function (m) { return m.hp; }) };
+        if (ev && ev.hp && ev.hpI) atualizarBarrasTorre(caixa, ev);
+      }
     }
   }
   document.addEventListener('pointerdown', function (ev) {
@@ -6868,9 +6873,25 @@
     T.sig = assinaturaTorre();
     return '<section class="caixa torre" id="torre">' + torreConteudo() + '</section>';
   }
-  function vidaBarra(hp, max, cls) {
+  function vidaBarra(hp, max, cls, chave) {
     var pc = Math.max(0, Math.min(100, Math.round(hp * 100 / Math.max(1, max))));
-    return '<div class="torre-vida ' + (cls || '') + '"><i style="width:' + pc + '%"></i><span>' + Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + Number(max).toLocaleString('pt-BR') + '</span></div>';
+    return '<div class="torre-vida ' + (cls || '') + '"' + (chave ? ' data-vida="' + chave + '" data-max="' + max + '"' : '') + '><i style="width:' + pc + '%"></i><span>'
+      + Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + Number(max).toLocaleString('pt-BR') + '</span></div>';
+  }
+  // Durante a narração, a vida mostrada é a da última linha já contada (cada linha guarda a vida de todos naquele momento).
+  function vidaNaNarracao(t, n) {
+    var log = t.log || [];
+    if (t.fase !== 'narrando' || !log.length || n >= log.length) return null;
+    var ev = log[Math.max(0, n - 1)];
+    return ev && ev.hp && ev.hpI ? ev : null;
+  }
+  function atualizarBarrasTorre(caixa, ev) {
+    caixa.querySelectorAll('.torre-vida[data-vida]').forEach(function (b) {
+      var k = b.dataset.vida, idx = Number(k.slice(1)), hp = k[0] === 'h' ? ev.hp[idx] : ev.hpI[idx], max = Number(b.dataset.max);
+      if (hp == null) return;
+      b.querySelector('i').style.width = Math.max(0, Math.min(100, Math.round(hp * 100 / Math.max(1, max)))) + '%';
+      b.querySelector('span').textContent = Number(Math.max(0, hp)).toLocaleString('pt-BR') + ' / ' + max.toLocaleString('pt-BR');
+    });
   }
   var ICO_ACAO = { atacar: '⚔', habilidade: '✨', desviar: '💨', pocao: '🧪' };
   // Uma cor para cada jogador (posição no grupo): cartão, narração e prêmios.
@@ -6966,6 +6987,10 @@
   function torreLuta(r) {
     var p = estado.personagem, T = torreEst(), t = r.torre, eu = t.herois.map(function (h) { return h.id; }).indexOf(p.id), me = t.herois[eu];
     var agora = agoraServ(), resta = Math.max(0, Math.ceil((r.prazo - agora) / 1000));
+    var chaveN = t.andar + ':' + t.turno;
+    if (!T.narr || T.narr.chave !== chaveN) T.narr = { chave: chaveN, inicio: Date.now() };
+    var nVis = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min((t.log || []).length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : (t.log || []).length;
+    var vn = vidaNaNarracao(t, nVis);
     var chefe = R.ehChefeTorre(t.andar);
     var h = '<div class="torre-cab"><div><small>' + TR_.nome + '</small><strong>Andar ' + t.andar + (chefe ? ' · Chefe' : '') + '</strong></div>'
       + '<div class="torre-turno">Turno ' + (t.turno + (t.fase === 'escolha' ? 1 : 0)) + (t.fase === 'escolha' && r.estado === 'andamento' ? '<b class="torre-relogio' + (resta <= 5 ? ' fim' : '') + '">' + resta + 's</b>' : '') + '</div></div>';
@@ -6979,21 +7004,19 @@
       if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push('🩸 cura −' + m.cortaCura.pct + '%');
       if (m.queima && m.queima.turnos > 0) marcas.push('🔥 sangrando');
       return '<div class="torre-inimigo' + (m.hp <= 0 ? ' caido' : '') + (m.chefe ? ' chefe' : '') + '">' + (m.imagem ? '<img src="' + m.imagem + '" alt="">' : '')
-        + '<div><strong>' + esc(m.nome) + '</strong>' + vidaBarra(m.hp, m.hpMax, 'inimigo')
+        + '<div><strong>' + esc(m.nome) + '</strong>' + vidaBarra(vn && vn.hpI[i] != null ? vn.hpI[i] : m.hp, m.hpMax, 'inimigo', 'i' + i)
         + '<div class="suave pequeno">🛡 Resistência a stun ' + Math.min(95, m.res ? m.res.stun : 0) + '%' + (marcas.length ? ' · ' + marcas.join(' · ') : '') + '</div></div></div>';
     }).join('') + '</div>';
     // heróis
     h += '<div class="torre-herois">' + t.herois.map(function (x, xi) {
       var e = r.escolhas && r.escolhas[x.id], cor = CORES_TORRE[xi % 4];
       return '<div class="torre-heroi' + (x.hp <= 0 ? ' caido' : '') + (x.id === p.id ? ' eu' : '') + '" style="border-left:4px solid ' + cor + '"><div class="moldura">' + F.personagem(x.raca, classeRetrato(x), x.sexo) + '</div>'
-        + '<div><strong style="color:' + cor + '">' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(x.hp, x.hpMax)
+        + '<div><strong style="color:' + cor + '">' + esc(x.nome) + '</strong> <span class="suave pequeno">' + nomeClasseX(x) + '</span>' + vidaBarra(vn && vn.hp[xi] != null ? vn.hp[xi] : x.hp, x.hpMax, '', 'h' + xi)
         + '<div class="pequeno">🧪 ' + x.pocoes + (t.fase === 'escolha' && x.hp > 0 ? (e ? ' · <span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : ' · <span class="suave">escolhendo…</span>') : '')
         + (x.hp <= 0 ? ' · <span class="menos">caído</span>' : '') + '</div></div></div>';
     }).join('') + '</div>';
     // narração do último turno (aparece uma linha por segundo)
-    var log = t.log || [], chave = t.andar + ':' + t.turno;
-    if (!T.narr || T.narr.chave !== chave) T.narr = { chave: chave, inicio: Date.now() };
-    var n = t.fase === 'narrando' && r.estado === 'andamento' ? Math.min(log.length, 1 + Math.floor((Date.now() - T.narr.inicio) / TR_.narracao.porLinha)) : log.length;
+    var log = t.log || [], n = nVis;
     if (log.length) h += '<div class="torre-narracao">' + log.map(function (ev, i) {
       return '<p data-i="' + i + '" class="' + (i >= n ? 'oculta ' : '') + (ev.premio ? 'n-premio' : ev.aviso ? 'n-aviso' : ev.mec ? 'n-mec' : ev.caiuH || ev.derrota ? 'n-ruim' : ev.vitoria || ev.caiu || ev.interrompeu || ev.desviou ? 'n-bom' : '') + '">' + pintarNomes(ev.t, t.herois) + '</p>';
     }).join('') + '</div>';
