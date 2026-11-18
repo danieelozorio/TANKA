@@ -611,6 +611,7 @@
     bau: svg('<rect x="3" y="9" width="18" height="11" rx="1"/><path d="M3 13h18M5 9V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2"/><rect x="10.5" y="11.5" width="3" height="3" rx=".5"/>'),
     encantar: svg('<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M18 6l-2.5 2.5m-7 7L6 18"/>'),
     torre: svg('<path d="M7 21V9l-2-2V3h3v2h2V3h4v2h2V3h3v4l-2 2v12Z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4M11 11h2"/>'),
+    eventos: svg('<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/><circle cx="7" cy="7" r="1"/><circle cx="15.5" cy="15.5" r="1"/><circle cx="18.5" cy="18.5" r="1"/><path d="M14 4h3l3 3v3M10 20H7l-3-3v-3"/>'),
     habilidades: svg('<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>'),
     ascensao: svg('<circle cx="12" cy="12" r="3"/><circle cx="12" cy="3.5" r="1.6"/><circle cx="19.4" cy="16.2" r="1.6"/><circle cx="4.6" cy="16.2" r="1.6"/><path d="M12 9V5.1m2.6 8.4 3.4 2m-8.6-2-3.4 2"/>'),
     cacar: svg('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v4m0 12v4M2 12h4m12 0h4"/>'),
@@ -1019,13 +1020,13 @@
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
     { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao', 'bau'] },   // Baú da conta (Henri, 18/11/2026)
-    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },
+    { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'eventos', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },   // Eventos: só com evento aberto
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
   ];
-  var NOME_ABA = { bau: 'Baú', oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { bau: 'Baú', oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1038,7 +1039,8 @@
   function abaVisivel(a) {
     var n = estado.personagem ? estado.personagem.nivel : 0;
     if (a === 'ascensao') return n >= D.ASCENSAO.nivelInicio;
-    if (a === 'torre') return ehAdmin() || (n >= D.TORRE.nivelMin && D.TORRE.ligada);   // Torre do Eclipse: level 40+ (o admin vê sempre, para testar)
+    if (a === 'torre') return ehAdmin() || (n >= D.TORRE.nivelMin && D.TORRE.ligada);
+    if (a === 'eventos') return ehAdmin() || !!(estado.eventoAtual || (estado.personagem && estado.personagem.altar && estado.personagem.altar.partida));   // evento aberto (ou partida por terminar)   // Torre do Eclipse: level 40+ (o admin vê sempre, para testar)
     return true;
   }
   function abasDe(g) { return g.abas.filter(abaVisivel); }
@@ -4139,7 +4141,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, bau: abaBau, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, bau: abaBau, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -5186,6 +5188,7 @@
     var p = estado.personagem;
     if (el.dataset.acao.indexOf('al-') === 0 && cliqueAlianca(el.dataset.acao, el)) return;
     if (el.dataset.acao.indexOf('of-') === 0 && cliqueOficinas(el.dataset.acao, el)) return;
+    if (el.dataset.acao.indexOf('altar-') === 0 && cliqueAltar(el.dataset.acao, el)) return;
     switch (el.dataset.acao) {
       case 'auth': telaAuth(el.dataset.modo); break;
       case 'trocar-senha': telaTrocarSenha(false); break;
@@ -7562,12 +7565,175 @@
     ciclosGrupo++;
     var emGrupo = estado.gm && (estado.gm.grupo || estado.gm.fila);
     if (estado.aba === 'masmorra' || emGrupo || grupoUI.aberto || ciclosGrupo % 8 === 0) carregarGrupo();
+    if (estado.eventoAtual === undefined || ciclosGrupo % 60 === 1) carregarEvento();   // evento aberto: a cada 4 min
     // Boss da aliança: a cada 4 s na tela dele ou com o boss aberto; senão a cada 32 s (aviso e prêmios).
     if (estado.aba === 'oficinas' && ciclosGrupo % 2 === 0 && !estado.contratar) carregarOficinas();
     var bossAberto = estado.bossAl && estado.bossAl.boss && estado.bossAl.boss.estado === 'aberto';
     if ((estado.aba === 'alianca' && estado.aliancaVista === 'boss') || bossAberto || ciclosGrupo % 8 === 6) carregarBossAl();
     if (!estado.lutaArena && (ciclosGrupo % 8 === 4 || (estado.aba === 'arena' && ciclosGrupo % 3 === 0))) carregarArena();
   }, 4000);
+
+  // ---------------- Aventura › Evento: Altar dos Elementos (Daniel, 18/11/2026) ----------------
+  // Mesa 3x3 de montes; a carta do topo pede elementos. Toque num monte que dá para pagar e o jogo usa os elementos certos.
+  // Marque elementos para guardar ao rolar, ou marque 2 para trocar por 1. A partida e os sorteios são do servidor.
+  var EVA_ = D.EVENTO_ALTAR;
+  function elAltar(id) { return EVA_.elementos.filter(function (e) { return e.id === id; })[0] || { ico: '?', nome: id, cor: '#888' }; }
+  function carregarEvento() {
+    var p = estado.personagem;
+    if (!p || estado.eventoCarregando) return;
+    estado.eventoCarregando = true;
+    C.evento.atual().then(function (ev) {
+      estado.eventoCarregando = false;
+      var mudou = JSON.stringify(ev || null) !== JSON.stringify(estado.eventoAtual || null);
+      estado.eventoAtual = ev || null;
+      if (mudou && !estado.batalha && !estado.luta && !estado.lutaArena) atualizarNav();
+    }, function () { estado.eventoCarregando = false; if (estado.eventoAtual === undefined) estado.eventoAtual = null; });
+  }
+  function carregarRankingEvento() {
+    var p = estado.personagem;
+    if (!p) return;
+    C.evento.ranking(p.id).then(function (r) { estado.eventoRanking = r; if (estado.aba === 'eventos') telaJogo(); }, function () {});
+  }
+  // índices dos dados que pagam a carta (ou null)
+  function dadosParaCarta(dados, custo) {
+    var usados = [], ok = Object.keys(custo).every(function (el) {
+      var falta = custo[el];
+      for (var i = 0; i < dados.length && falta; i++) if (dados[i] === el && usados.indexOf(i) < 0) { usados.push(i); falta--; }
+      return !falta;
+    });
+    return ok ? usados : null;
+  }
+  function custoHtml(custo) {
+    return Object.keys(custo).map(function (el) { var e = elAltar(el); return '<span class="altar-custo" style="--cor:' + e.cor + '">' + e.ico + (custo[el] > 1 ? '<b>' + custo[el] + '</b>' : '') + '</span>'; }).join('');
+  }
+  function abaEventos() {
+    var p = estado.personagem, ev = estado.eventoAtual, al = p.altar, pt = al && al.partida;
+    if (!estado.eventoRankingEm || Date.now() - estado.eventoRankingEm > 60000) { estado.eventoRankingEm = Date.now(); carregarRankingEvento(); }
+    var hojeOk = al && ev && al.ev === ev.id && al.dia === R.diaReset(C.agora()), usadas = hojeOk ? al.entradas : 0;
+    var h = '<section class="caixa altar"><div class="altar-topo"><div><small>Evento</small><h3 class="subtitulo">✨ ' + EVA_.nome + '</h3>'
+      + (ev ? '<p class="suave pequeno">' + (ev.fim ? 'Acaba em ' + tempoTexto(Math.max(0, Date.parse(ev.fim) - C.agora())) : 'Aberto') + '</p>' : '<p class="menos pequeno">Nenhum evento aberto agora.</p>')
+      + '</div><div class="altar-placar"><span>Partidas hoje <b>' + usadas + '/' + EVA_.entradasDia + '</b></span><span>Seus pontos <b>' + Number((al && ev && al.ev === ev.id ? al.total : 0) || 0).toLocaleString('pt-BR') + '</b></span></div></div>';
+    h += '<details class="regras-celular"' + (CELULAR ? '' : ' open') + '><summary>Como jogar</summary><ul>'
+      + '<li>Cada partida tem <b>' + EVA_.rolagens + ' rolagens</b> de ' + EVA_.dados + ' elementos: ' + EVA_.elementos.map(function (e) { return e.ico + ' ' + e.nome; }).join(', ') + '.</li>'
+      + '<li>Toque num <b>monte</b> que brilha para pagar a carta do topo com os seus elementos (' + EVA_.pontos.porElemento + ' pontos por elemento).</li>'
+      + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher.</li>'
+      + '<li>Monte zerado +' + EVA_.pontos.monte + ', linha completa (como jogo da velha) +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
+      + '<li><b>' + EVA_.entradasDia + ' partidas por dia</b>. Os pontos de todas somam no <b>ranking</b>; no fim do evento os melhores ganham prêmios.</li></ul></details>';
+    if (!pt) {
+      h += '<div class="botoes"><button class="btn" data-acao="altar-entrar"' + (!ev || usadas >= EVA_.entradasDia ? ' disabled' : '') + '>🎲 Começar partida</button></div>'
+        + (usadas >= EVA_.entradasDia ? '<p class="suave pequeno">Suas partidas de hoje acabaram. Volte amanhã!</p>' : '');
+    } else {
+      var sel = estado.altarSel || [];
+      h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
+      h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
+        if (!monte.length) return '<div class="altar-monte vazio"><span>✔</span></div>';
+        var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
+        return '<button class="altar-monte' + (paga ? ' paga' : '') + '" data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
+          + '<span class="altar-pilha">' + monte.length + '</span><span class="altar-carta">' + custoHtml(topo.custo) + '</span></button>';
+      }).join('') + '</div>';
+      h += '<div class="altar-dados">' + pt.dados.map(function (d, i) {
+        var e = elAltar(d);
+        return '<button class="altar-dado' + (sel.indexOf(i) >= 0 ? ' sel' : '') + '" style="--cor:' + e.cor + '" data-acao="altar-dado" data-valor="' + i + '" title="' + e.nome + '">' + e.ico + '</button>';
+      }).join('') + (!pt.dados.length ? '<span class="suave pequeno">Sem elementos: role de novo.</span>' : '') + '</div>';
+      if (estado.altarTroca && sel.length === 2) h += '<div class="altar-troca"><span class="suave pequeno">Trocar os 2 marcados por:</span>' + EVA_.elementos.map(function (e) {
+        return '<button class="altar-dado" style="--cor:' + e.cor + '" data-acao="altar-trocar" data-valor="' + e.id + '" title="' + e.nome + '">' + e.ico + '</button>';
+      }).join('') + '<button class="btn secundario btn-pequeno" data-acao="altar-troca-nao">Cancelar</button></div>';
+      h += '<div class="botoes altar-botoes"><button class="btn" data-acao="altar-rolar"' + (pt.rolagens > 0 ? '' : ' disabled') + '>🎲 Rolar' + (sel.length ? ' (guarda ' + sel.length + ')' : '') + '</button>'
+        + '<button class="btn secundario" data-acao="altar-troca"' + (sel.length === 2 ? '' : ' disabled') + ' title="Marque 2 elementos">🔁 Trocar 2 → 1</button>'
+        + (estado.altarFim ? '<button class="btn perigo" data-acao="altar-encerrar">Confirmar: encerrar</button><button class="btn secundario" data-acao="altar-fim-nao">Voltar</button>'
+          : '<button class="btn secundario" data-acao="altar-fim">Encerrar partida</button>') + '</div>';
+      if (estado.altarFim && (pt.rolagens > 0 || pt.mesa.some(function (m) { return m.length && dadosParaCarta(pt.dados, m[m.length - 1].custo); })))
+        h += '<p class="menos pequeno">Você ainda tem jogadas. Encerrando, os pontos desta partida (' + pt.pontos + ') vão para o ranking.</p>';
+    }
+    // ranking
+    var rk = estado.eventoRanking;
+    h += '<h3 class="subtitulo">🏆 Ranking do evento</h3>';
+    if (!rk) h += '<p class="suave">Carregando…</p>';
+    else if (!rk.top || !rk.top.length) h += '<p class="suave pequeno">Ninguém pontuou ainda.</p>';
+    else h += '<ol class="altar-ranking">' + rk.top.slice(0, estado.altarRankTudo ? 50 : 10).map(function (x) {
+      return '<li' + (x.nome === p.nome ? ' class="eu"' : '') + '><span>' + x.pos + 'º</span><b>' + esc(x.nome) + '</b><small class="suave">Lv ' + x.nivel + '</small><em>' + Number(x.pontos).toLocaleString('pt-BR') + '</em></li>';
+    }).join('') + '</ol>' + (rk.top.length > 10 ? '<button class="btn secundario btn-pequeno" data-acao="altar-rank-tudo">' + (estado.altarRankTudo ? 'Ver menos' : 'Ver os ' + rk.top.length) + '</button>' : '');
+    if (rk && rk.eu) h += '<p class="pequeno">Você: <b>' + rk.eu.pos + 'º</b> com ' + Number(rk.eu.pontos).toLocaleString('pt-BR') + ' pontos em ' + rk.eu.partidas + ' partida(s).</p>';
+    h += '<p class="suave pequeno">Prêmios no fim: ' + EVA_.premios.map(function (x, i) {
+      var de = i ? EVA_.premios[i - 1].ate + 1 : 1;
+      return (de === x.ate ? x.ate + 'º' : de + 'º–' + x.ate + 'º') + ' ' + x.ouro.toLocaleString('pt-BR') + ' de ouro + ' + x.qtd + ' pergaminho' + (x.qtd > 1 ? 's' : '') + ' ' + ({ rara: 'raro', epica: 'épico', lendaria: 'lendário' }[x.pergaminho] || x.pergaminho) + (x.qtd > 1 ? 's' : '');
+    }).join(' · ') + '.</p>';
+    if (ehAdmin()) h += '<div class="secao altar-admin"><h4>👑 Admin do evento</h4><p class="suave pequeno">' + (ev ? 'Aberto' + (ev.fim ? ' até ' + new Date(ev.fim).toLocaleString('pt-BR') : ' (sem data de fim)') : 'Fechado') + '.</p>'
+      + '<div class="botoes"><label class="pequeno">Dias <input type="number" id="altar-dias" min="1" max="60" value="7" style="width:4rem"></label>'
+      + '<button class="btn" data-acao="altar-admin" data-valor="ligar">' + (ev ? 'Mudar o fim' : 'Ligar evento') + '</button>'
+      + '<button class="btn secundario" data-acao="altar-admin" data-valor="ligar-sem">' + (ev ? 'Tirar a data de fim' : 'Ligar sem data') + '</button>'
+      + (ev ? '<button class="btn secundario" data-acao="altar-admin" data-valor="desligar">Desligar</button>' : '<button class="btn secundario" data-acao="altar-admin" data-valor="religar">Religar o último</button>')
+      + (estado.altarPremiar ? '<button class="btn perigo" data-acao="altar-admin" data-valor="premiar">Confirmar: dar prêmios e encerrar</button>'
+        : '<button class="btn secundario" data-acao="altar-premiar-pedir">Dar os prêmios…</button>') + '</div></div>';
+    return h + '</section>';
+  }
+  function cliqueAltar(acao, el) {
+    var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { telaJogo(); };
+    var local = function (fn) { return function () { fn(); }; };
+    switch (acao) {
+      case 'altar-entrar':
+        estado.altarSel = []; estado.altarTroca = false; estado.altarFim = false;
+        acaoServidor('altarEntrar', null, local(function () { var a = R.altarDoDia(p, 'local', C.agora()); a.entradas++; a.n = (a.n || 0) + 1; a.partida = R.novaPartidaAltar(Math.random); })).then(depois);
+        return true;
+      case 'altar-dado': {
+        var i = Number(el.dataset.valor), sel = estado.altarSel || (estado.altarSel = []), k = sel.indexOf(i);
+        if (k >= 0) sel.splice(k, 1); else sel.push(i);
+        if (sel.length !== 2) estado.altarTroca = false;
+        telaJogo(); return true;
+      }
+      case 'altar-pagar': {
+        if (!pt) return true;
+        var m = Number(el.dataset.valor), monte = pt.mesa[m], idx = monte && monte.length && dadosParaCarta(pt.dados, monte[monte.length - 1].custo);
+        if (!idx) { avisar('Seus elementos não pagam essa carta.'); return true; }
+        estado.altarSel = []; estado.altarTroca = false;
+        acaoServidor('altarPagar', { monte: m, dados: idx }, local(function () { R.pagarAltar(pt, m, idx, Math.random); })).then(function (r) {
+          var res = r && r.resultado;
+          if (res && res.extras && res.extras.length) avisar(res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! +' + res.ganho : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! +' + res.ganho : '✔ Monte zerado! +' + res.ganho, 'nivel');
+          depois();
+        });
+        return true;
+      }
+      case 'altar-rolar': {
+        if (!pt) return true;
+        var manter = (estado.altarSel || []).slice();
+        estado.altarSel = []; estado.altarTroca = false;
+        acaoServidor('altarRolar', { manter: manter }, local(function () { R.rolarAltar(pt, manter, Math.random); })).then(depois);
+        return true;
+      }
+      case 'altar-troca': estado.altarTroca = true; telaJogo(); return true;
+      case 'altar-troca-nao': estado.altarTroca = false; telaJogo(); return true;
+      case 'altar-trocar': {
+        var dois = (estado.altarSel || []).slice(), elx = el.dataset.valor;
+        estado.altarSel = []; estado.altarTroca = false;
+        acaoServidor('altarTrocar', { dados: dois, elemento: elx }, local(function () { R.trocarAltar(pt, dois, elx); })).then(depois);
+        return true;
+      }
+      case 'altar-fim': estado.altarFim = true; telaJogo(); return true;
+      case 'altar-fim-nao': estado.altarFim = false; telaJogo(); return true;
+      case 'altar-encerrar':
+        estado.altarFim = false; estado.altarSel = [];
+        acaoServidor('altarEncerrar', null, local(function () { var a = p.altar; a.total = (a.total || 0) + a.partida.pontos; a.partida = null; })).then(function (r) {
+          var res = r && r.resultado;
+          if (res) avisar('Partida encerrada: ' + res.pontos.toLocaleString('pt-BR') + ' pontos (total ' + res.total.toLocaleString('pt-BR') + ').', 'nivel');
+          setTimeout(carregarRankingEvento, 1500);
+          depois();
+        });
+        return true;
+      case 'altar-rank-tudo': estado.altarRankTudo = !estado.altarRankTudo; telaJogo(); return true;
+      case 'altar-premiar-pedir': estado.altarPremiar = true; telaJogo(); return true;
+      case 'altar-admin': {
+        var v = el.dataset.valor, campo = document.getElementById('altar-dias'), dias = campo ? Math.max(1, Math.min(60, Number(campo.value) || 7)) : 7;
+        var acaoA = v === 'ligar-sem' ? 'ligar' : v, d = v === 'ligar' || v === 'religar' ? dias : null;
+        estado.altarPremiar = false;
+        C.evento.admin(p.id, acaoA, d).then(function (r) {
+          avisar(v === 'premiar' ? 'Prêmios entregues para ' + (r && r.premiados || 0) + ' jogadores.' : 'Evento atualizado.', 'nivel');
+          estado.eventoAtual = undefined; carregarEvento(); carregarRankingEvento();
+        }, function (e) { avisar(e.message); telaJogo(); });
+        return true;
+      }
+    }
+    return false;
+  }
 
   // ---------------- Aventura › Mineração (Henri, nov/2026) ----------------
   // Escolhe o tempo e a mina no mapa (janelinha com o drop e a média), Minerar / Parar de Minerar e histórico.

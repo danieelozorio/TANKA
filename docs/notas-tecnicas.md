@@ -1313,3 +1313,15 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Retirar: `bau_retirar(meu, ouro, item, qtd)` (o jogador) tira do baú e cria crédito (ouro) ou recompensa
   `{tipo:'bau', ctipo, raridade, qtd}`; o cliente chama `receber` em seguida. Tipos aceitos no SQL: lista fixa
   (pergaminho, cristal, protecao, material, receita) — tipo novo de consumível: pôr lá também.
+
+### Eventos: Altar dos Elementos (18/11/2026)
+- Sub-aba "Evento" em Aventura (só com evento aberto, ou admin). `D.EVENTO_ALTAR`: 5 elementos, mesa 3x3 de montes com 3 cartas
+  (custo 2-4 elementos), 25 rolagens por partida, 5 dados, trocar 2→1, pontos (10/elemento, monte +50, linha +100, mesa +300 e mesa
+  nova), 5 partidas/dia, prêmios do ranking.
+- Regras: `novaPartidaAltar/pagarAltar/trocarAltar/rolarAltar/altarDoDia`. Servidor (`acao`): altarEntrar (precisa de
+  `evento_atual`), altarPagar, altarTrocar, altarRolar, altarEncerrar → `eventoSaida` → `evento_registrar` (só o servidor; id
+  `<personagem>:<evento>:<n>`, teto 20.000 por partida). Gatilho da ficha: `altar` e `eventoSaida` só o servidor escreve.
+- Banco: `eventos`, `evento_pontos`, `evento_registros`; `evento_atual()`, `evento_ranking(meu)` (sem bots/admin),
+  `evento_admin(meu, acao, dias)` (ligar/desligar/religar/premiar; prêmios iguais a `D.EVENTO_ALTAR.premios`).
+- Tela: `abaEventos`/`cliqueAltar` (toque no monte que brilha paga sozinho com os dados certos; marcar = guardar ao rolar ou trocar 2).
+  Admin: ligar com dias, sem data, desligar, religar, dar prêmios (confirma).

@@ -480,6 +480,12 @@ Tanka.contas = (function () {
     oficina: oficina,
     grupo: grupo,
     torre: torre,
+    // Eventos (Daniel, 18/11/2026): a partida é jogada pela função `acao` (altarEntrar, altarPagar...); aqui o resto.
+    evento: {
+      atual: function () { return chamar('evento_atual', {}); },
+      ranking: function (meu) { return chamar('evento_ranking', { meu: meu }); },
+      admin: function (meu, acao, dias) { return chamar('evento_admin', { meu: meu, acao: acao, dias: dias == null ? null : dias }); },
+    },
     boss: boss,
     mercado: mercado,
     amigos: amigos,

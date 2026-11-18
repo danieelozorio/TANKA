@@ -239,6 +239,10 @@ Tanka.contas = (function () {
     },
     grupo: grupo,
     // Torre do Eclipse: precisa do servidor (grupo de 4 jogadores de verdade).
+    evento: {   // prévia: um evento de mentira para ver a tela
+      atual: function () { return Promise.resolve({ id: 'local', tipo: 'altar', nome: Tanka.dados.EVENTO_ALTAR.nome, fim: null }); },
+      ranking: function () { return Promise.resolve({ evento: null, top: [], eu: null }); }, admin: soServidor,
+    },
     torre: {
       estado: function () { return Promise.resolve({ local: true, run: null, recorde: { melhor: 0, semana: 0 } }); },
       iniciar: function () { return Promise.reject(new Error('A Torre precisa do servidor.')); },
@@ -284,7 +288,8 @@ Tanka.contas = (function () {
       var guardado = contas[chave].personagens.find(function (x) { return x.id === personagemId; });
       if (!guardado) throw new Error('Personagem não encontrado.');
       var t = Date.now(), p = Tanka.regras.normalizar(JSON.parse(JSON.stringify(guardado)));
-      var saida = Tanka.servidorAcoes.executar(p, nome, args, t, Math.random);
+      var extra = nome === 'altarEntrar' ? { evento: { id: 'local', tipo: 'altar', nome: Tanka.dados.EVENTO_ALTAR.nome, fim: null } } : undefined;   // prévia: evento de mentira
+      var saida = Tanka.servidorAcoes.executar(p, nome, args, t, Math.random, extra);
       if (saida.erro) return { erro: saida.erro, personagem: JSON.parse(JSON.stringify(guardado)), agora: t, diferenca: 0 };
       p.versao = (Number(p.versao) || 0) + 1;
       salvarPersonagem(p);
