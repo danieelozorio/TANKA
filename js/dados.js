@@ -775,7 +775,10 @@ Tanka.dados = {
     chefesArea: [false, false, true, false, true],      // quais chefes (mesma ordem de `chefes`) dão o golpe normal em área
     narracao: { base: 1200, porLinha: 450, max: 16000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
     // Prêmios por andar vencido (o servidor dá: torre_registrar em supabase/schema.sql — manter iguais)
-    premios: { ouroNovo: 1000, repNovo: 5, ouroRepetido: 150, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
+    // Prêmios (Daniel, 18/11/2026; iguais a torre_premio() no schema.sql): andar novo = ouro e EXP de 60.000 no andar 1,
+    // +2.500 por andar; andar repetido = 10% disso. Pergaminho nos andares 5, 15, 25, 35... (andar novo).
+    // Andares 10, 20, 30...: o item novo que ainda está sendo criado (por enquanto, nada a mais).
+    premios: { base: 60000, porAndar: 2500, repetidoPct: 10, pergaminhoChefe: [[10, 'rara'], [25, 'epica'], [999, 'lendaria']] },
   },
   // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
   // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).

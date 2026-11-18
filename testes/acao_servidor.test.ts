@@ -203,6 +203,11 @@ pendentes = { recompensas: [], creditos: [{ id: 31, ouro: 0, reputacao: 0, motiv
 x = await pedir({ personagem: p0.id, acao: 'receber' });
 ok(x.j.resultado && x.j.resultado.avisos[0].texto === 'Obrigado por testar!' && x.j.resultado.avisos[0].origem === 'admin' && d().ouro === 1500 && marcados.includes('c31'),
   'mensagem do Reino: só o texto, na caixa, sem mexer no ouro, e marcada como entregue');
+{ const nivelAntes = d().nivel, expAntes = d().exp;
+  pendentes = { recompensas: [], creditos: [{ id: 41, ouro: 60000, reputacao: 0, exp: 60000, motivo: 'Torre do Eclipse: andar 1 (primeira vez)' }] };
+  x = await pedir({ personagem: p0.id, acao: 'receber' });
+  ok(!x.j.erro && d().ouro === 61500 && (d().nivel > nivelAntes || d().exp === expAntes + 60000) && /EXP/.test(x.j.resultado.avisos[0].texto),
+    'torre: crédito com EXP sobe a experiência e avisa'); }
 x = await pedir({ personagem: p0.id, acao: 'sincronizarCla', args: { id: 1, skills: { exp: 10 } } });
 ok(!x.j.erro && d().cla.skills.exp === 3, 'clã: as skills vêm do banco, não do navegador');
 x = await pedir({ personagem: p0.id, acao: 'missao', args: ['diarias', 'monstros'] });
@@ -221,7 +226,7 @@ x = await pedir({ personagem: p0.id, acao: 'eventoJogo', args: { tipo: 'masmorra
 ok(x.j.resultado && x.j.resultado.ignorado, 'masmorra: número inventado não conta');
 const ouroPref = d().ouro;
 x = await pedir({ personagem: p0.id, acao: 'preferencias', args: { ouro: 99999999, nivel: 60, caixaVista: 123, prefsCacada: { pocao: 30, chefe: 'lutar' } } });
-ok(!x.j.erro && d().ouro === ouroPref && d().nivel === 12 && d().caixaVista === 123 && d().prefsCacada.pocao === 30, 'preferências: grava só os campos permitidos');
+ok(!x.j.erro && d().ouro === ouroPref && d().nivel < 60 && d().caixaVista === 123 && d().prefsCacada.pocao === 30, 'preferências: grava só os campos permitidos');
 x = await pedir({ personagem: p0.id, acao: 'acampar', args: true });
 ok(!x.j.erro && !!d().acampado === (Tanka.dados.ESTAMINA.acampar !== false), 'acampar');
 

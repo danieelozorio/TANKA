@@ -1259,3 +1259,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Admin sozinho escolhe a casa no saguão (`estado.torreCasaSolo`, só na tela) e `torre_iniciar(meu, pos)` grava em `posicoes`.
   Sem os nomes Frente/Meio/Trás do lado das grades. Marcas do inimigo: `.buff` verde (resist. stun, golpe em área, barreira),
   `.debuff` vermelho (atordoado, corte de cura, sangrando, cego, defesa quebrada). Redesenho adiado pelo toque agora respeita o "forçar".
+- Prêmios novos (18/11/2026): sem reputação. Andar novo = ouro e EXP de 60.000 + 2.500 por andar (`torre_premio()` no schema,
+  `D.TORRE.premios`); repetido = 10%. Pergaminho nos andares 5, 15, 25... (andar % 10 = 5). Andares 10, 20, 30: item novo ainda
+  em criação (nada por enquanto). `creditos.exp` novo: a função `acao` aplica com `R.ganharExp` ao receber.

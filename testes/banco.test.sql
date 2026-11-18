@@ -1416,11 +1416,11 @@ select public.torre_registrar((select id from public.torre_runs order by id desc
 select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 0, 'derrota');
 select pg_temp.igual((select string_agg(personagem_id || ':' || melhor, ',' order by personagem_id) from public.torre_recordes where personagem_id like 't%'), 't1:27,t2:14,t3:31,t4:12', 'torre: recorde só sobe (t4: 9 -> 12)');
 select pg_temp.igual((select estado from public.torre_runs order by id desc limit 1), 'derrota', 'torre: derrota fecha a subida');
-select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't4' and motivo like 'Torre%' order by id desc limit 1), '12000/60', 'torre: andar novo dá ouro e reputação cheios (12 x 1000, 12 x 5)');
-select pg_temp.igual((select ouro || '/' || reputacao from public.creditos where personagem_id = 't1' and motivo like 'Torre%' order by id desc limit 1), '1800/0', 'torre: andar repetido dá pouco ouro (12 x 150)');
+select pg_temp.igual((select ouro || '/' || exp || '/' || reputacao from public.creditos where personagem_id = 't4' and motivo like 'Torre%' order by id desc limit 1), '87500/87500/0', 'torre: andar novo dá ouro e EXP (60.000 + 11 x 2.500), sem reputação');
+select pg_temp.igual((select ouro || '/' || exp from public.creditos where personagem_id = 't1' and motivo like 'Torre%' order by id desc limit 1), '8750/8750', 'torre: andar repetido dá 10%');
 update public.torre_runs set torre = '{"fase":"narrando","log":[{"t":"Andar 15 vencido!"}]}' where id = (select id from public.torre_runs order by id desc limit 1);
 select public.torre_registrar((select id from public.torre_runs order by id desc limit 1), 15, null);
-select pg_temp.igual((select torre -> 'log' -> 2 ->> 't' from public.torre_runs order by id desc limit 1), '🏆 Tor2: +15.000 de ouro e +75 de reputação + 1 pergaminho épico (andar novo!)', 'torre: prêmios aparecem na narração');
+select pg_temp.igual((select torre -> 'log' -> 2 ->> 't' from public.torre_runs order by id desc limit 1), '🏆 Tor2: +95.000 de ouro e +95.000 de EXP + 1 pergaminho épico (andar novo!)', 'torre: prêmios aparecem na narração');
 select pg_temp.igual((select string_agg(personagem_id || ':' || (item ->> 'raridade'), ',' order by personagem_id) from public.recompensas where origem = 'torre'), 't2:epica,t4:epica', 'torre: chefe do andar 15 dá pergaminho épico só a quem venceu pela 1ª vez');
 set role authenticated;
 select pg_temp.comoT(n), public.grupo_pronto('t' || n, true) from unnest(array['1', '2', '3', '4']) n;

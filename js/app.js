@@ -6993,8 +6993,8 @@
       + '<li>⚠ Quando o chefe avisa um golpe, <b>desvie</b> ou use um <b>stun</b> logo antes: o chefe atordoado perde o golpe.</li>'
       + '<li>Os efeitos (stun, corte de cura...) pegam com <b>100% − a resistência</b> do inimigo, que sobe a cada andar.</li>'
       + '<li>Salva andar por andar: a subida começa depois do <b>menor recorde</b> do grupo.</li>'
-      + '<li><b>Prêmios por andar:</b> andar novo = ' + TR_.premios.ouroNovo.toLocaleString('pt-BR') + ' de ouro x andar e ' + TR_.premios.repNovo + ' de reputação x andar '
-      + '(chefe: + 1 pergaminho); andar repetido = ' + TR_.premios.ouroRepetido + ' de ouro x andar.</li></ul></details>';
+      + '<li><b>Prêmios por andar:</b> andar novo = ouro e EXP (' + TR_.premios.base.toLocaleString('pt-BR') + ' no andar 1, +' + TR_.premios.porAndar.toLocaleString('pt-BR')
+      + ' por andar); pergaminho nos andares 5, 15, 25…; andar repetido = ' + TR_.premios.repetidoPct + '% do ouro e da EXP.</li></ul></details>';
     var r = st.run;
     if (r && r.estado !== 'andamento' && r.torre) h += '<p class="aviso-nivel">Última subida: o grupo chegou ao andar <b>' + r.torre.andar + '</b>.</p>';
     if (!g) return h + '<p class="suave">Carregando o grupo…</p>';

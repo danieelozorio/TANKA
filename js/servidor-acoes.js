@@ -110,15 +110,17 @@ Tanka.servidorAcoes = (function () {
       aplicados.push(c.id);
       if (p.creditosRecebidos && p.creditosRecebidos.indexOf(c.id) >= 0) return;
       p.creditosRecebidos = (p.creditosRecebidos || []).concat(c.id).slice(-200);
-      var ouro = Math.round(Number(c.ouro) || 0), rep = Math.round(Number(c.reputacao) || 0);
+      var ouro = Math.round(Number(c.ouro) || 0), rep = Math.round(Number(c.reputacao) || 0), exp = Math.max(0, Math.round(Number(c.exp) || 0));
       p.ouro = Math.max(0, (p.ouro || 0) + ouro);
       p.reputacao = Math.max(0, (p.reputacao || 0) + rep);
+      if (exp) R.ganharExp(p, exp);   // prêmios da Torre
       var partes = [];
       if (ouro) partes.push((ouro > 0 ? '+' : '−') + Math.abs(ouro).toLocaleString('pt-BR') + ' de ouro');
       if (rep) partes.push('+' + rep + ' de reputação');
+      if (exp) partes.push('+' + exp.toLocaleString('pt-BR') + ' de EXP');
       var semCaixa = /^(Lance no leilão|Compra no mercado|Fundação do clã|Doação ao tesouro|Oficina: serviço pedido)/.test(c.motivo || '');
       // Mensagem do admin (crédito sem ouro nem reputação, criado pelo SQL Editor): só o texto, na caixa como "Mensagem do Reino".
-      if (!ouro && !rep) { avisos.push({ texto: String(c.motivo || '').replace(/^Mensagem( do Reino)?:\s*/i, ''), tipo: 'nivel', origem: 'admin' }); return; }
+      if (!ouro && !rep && !exp) { avisos.push({ texto: String(c.motivo || '').replace(/^Mensagem( do Reino)?:\s*/i, ''), tipo: 'nivel', origem: 'admin' }); return; }
       avisos.push({ texto: (c.motivo || 'Crédito') + ': ' + partes.join(' e ') + '.', tipo: '', origem: semCaixa ? null : origemCredito(c.motivo) });
     });
     return { aplicados: aplicados, avisos: avisos };

@@ -1333,7 +1333,7 @@ begin
   return jsonb_build_object(
     'recompensas', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'item', x.item, 'origem', x.origem) order by x.id)
       from public.recompensas x where x.personagem_id = meu and not x.resgatada), '[]'::jsonb),
-    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'ouro', c.ouro, 'reputacao', c.reputacao, 'motivo', c.motivo) order by c.id)
+    'creditos', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'ouro', c.ouro, 'reputacao', c.reputacao, 'exp', c.exp, 'motivo', c.motivo) order by c.id)
       from public.creditos c where c.personagem_id = meu and not c.aplicado), '[]'::jsonb));
 end $$;
 revoke execute on function public.pendentes(text) from public, anon;   -- só com login (conferência de segurança, nov/2026)
@@ -1991,6 +1991,7 @@ create table if not exists public.creditos (
   criado_em timestamptz not null default now()
 );
 create index if not exists creditos_pendentes on public.creditos (personagem_id) where not aplicado;
+alter table public.creditos add column if not exists exp int not null default 0;   -- EXP (prêmios da Torre)
 alter table public.arena_posicoes enable row level security;
 alter table public.arena_entradas enable row level security;
 alter table public.arena_lutas enable row level security;
@@ -4502,6 +4503,13 @@ begin
 end $$;
 
 -- Só o servidor: andar vencido (recorde de cada membro) e fim da subida.
+-- Prêmio de ouro e de EXP do andar (igual a D.TORRE.premios): novo = 60.000 + 2.500 por andar; repetido = 10%.
+create or replace function public.torre_premio(andar int, novo boolean) returns int
+language sql immutable set search_path = public as $$
+  select case when novo then 60000 + 2500 * (andar - 1) else ((60000 + 2500 * (andar - 1)) * 10 / 100) end;
+$$;
+revoke execute on function public.torre_premio(int, boolean) from public, anon, authenticated;
+
 create or replace function public.torre_registrar(run_id bigint, andar int, fim text) returns void
 language plpgsql security definer set search_path = public as $$
 declare r public.torre_runs; sem date := date_trunc('week', public.dia_jogo())::date;
@@ -4509,15 +4517,14 @@ begin
   select * into r from public.torre_runs where id = run_id;
   if r.id is null then return; end if;
   if andar > 0 then
-    -- Prêmios (iguais a D.TORRE.premios): andar novo para o personagem = ouro e reputação cheios (+ pergaminho no chefe);
-    -- andar repetido = um pouco de ouro. Entregues pelo jogo (créditos e recompensas, origem "torre").
-    insert into public.creditos (personagem_id, ouro, reputacao, motivo)
-      select m, case when coalesce(x.melhor, 0) < andar then 1000 * andar else 150 * andar end,
-             case when coalesce(x.melhor, 0) < andar then 5 * andar else 0 end,
+    -- Prêmios (iguais a D.TORRE.premios): andar novo para o personagem = ouro e EXP cheios (+ pergaminho nos andares 5, 15, 25...);
+    -- andar repetido = 10%. Sem reputação. Entregues pelo jogo (créditos e recompensas, origem "torre").
+    insert into public.creditos (personagem_id, ouro, exp, motivo)
+      select m, public.torre_premio(andar, coalesce(x.melhor, 0) < andar), public.torre_premio(andar, coalesce(x.melhor, 0) < andar),
              'Torre do Eclipse: andar ' || andar || case when coalesce(x.melhor, 0) < andar then ' (primeira vez)' else '' end
       from unnest(r.membros) m left join public.torre_recordes x on x.personagem_id = m
       where exists (select 1 from public.personagens where id = m);
-    if andar % 5 = 0 then
+    if andar % 10 = 5 then
       insert into public.recompensas (personagem_id, item, origem)
         select m, jsonb_build_object('tipo', 'pergaminho', 'raridade', case when andar <= 10 then 'rara' when andar <= 25 then 'epica' else 'lendaria' end, 'qtd', 1), 'torre'
         from unnest(r.membros) m left join public.torre_recordes x on x.personagem_id = m
@@ -4527,9 +4534,9 @@ begin
     if r.torre is not null then
       update public.torre_runs set torre = jsonb_set(torre, '{log}', coalesce(torre -> 'log', '[]'::jsonb) || coalesce((
         select jsonb_agg(jsonb_build_object('premio', true, 'i', k - 1, 't', '🏆 ' || coalesce(p.nome, '?') || ': +'
-          || replace(to_char(case when coalesce(x.melhor, 0) < andar then 1000 * andar else 150 * andar end, 'FM999,999,999'), ',', '.') || ' de ouro'
-          || case when coalesce(x.melhor, 0) < andar then ' e +' || (5 * andar) || ' de reputação' else '' end
-          || case when coalesce(x.melhor, 0) < andar and andar % 5 = 0 then ' + 1 pergaminho ' || case when andar <= 10 then 'raro' when andar <= 25 then 'épico' else 'lendário' end else '' end
+          || replace(to_char(public.torre_premio(andar, coalesce(x.melhor, 0) < andar), 'FM999,999,999'), ',', '.') || ' de ouro e +'
+          || replace(to_char(public.torre_premio(andar, coalesce(x.melhor, 0) < andar), 'FM999,999,999'), ',', '.') || ' de EXP'
+          || case when coalesce(x.melhor, 0) < andar and andar % 10 = 5 then ' + 1 pergaminho ' || case when andar <= 10 then 'raro' when andar <= 25 then 'épico' else 'lendário' end else '' end
           || case when coalesce(x.melhor, 0) < andar then ' (andar novo!)' else '' end) order by k)
         from unnest(r.membros) with ordinality as u(m, k) left join public.personagens p on p.id = u.m left join public.torre_recordes x on x.personagem_id = u.m), '[]'::jsonb)),
         versao = versao + 1
