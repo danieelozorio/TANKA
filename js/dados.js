@@ -1341,7 +1341,7 @@ Tanka.dados = {
         raridades: { comum: 30, rara: 45, epica: 22, lendaria: 3 } },
       { id: 'l2', nome: 'Leilão da Coroa', nivel: [21, 39], mult: 10, itemNivel: [34, 40],
         raridades: { comum: 15, rara: 45, epica: 32, lendaria: 8 } },
-      { id: 'l3', nome: 'Leilão dos Reis', nivel: [40, 999], mult: 40, itemNivel: [52, 60],
+      { id: 'l3', nome: 'Leilão dos Reis', nivel: [40, 999], mult: 40, itemNivel: [40, 60],
         raridades: { comum: 0, rara: 35, epica: 45, lendaria: 20 } },
     ],
   },
