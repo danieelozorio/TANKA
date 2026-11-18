@@ -615,3 +615,11 @@ html[data-celular] .torre-painel h4 { font-size: .95rem; }
 html[data-celular] .torre-heroi strong, html[data-celular] .torre-inimigo strong { font-size: .85rem; }
 html[data-celular] .torre-narracao { max-height: 150px; }
 html[data-celular] .torre-narracao p { font-size: .8rem; }
+/* Painel do Grupo: igual ao de Missões (abre pelo 👥 do topo, folha que sobe de baixo) */
+html[data-celular] #painel-grupo:not(.aberto) { display: none; }
+html[data-celular] #painel-grupo.aberto .missoes-aba { display: none; }
+html[data-celular] #painel-grupo.aberto { z-index: 30; }
+html[data-celular] body:has(#painel-grupo.aberto)::after { content: ''; position: fixed; inset: 0; z-index: 29; background: rgba(0, 0, 0, .55); }
+html[data-celular] #painel-grupo.aberto .missoes-painel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 82dvh; z-index: 31;
+  padding: 1.1rem .7rem calc(1rem + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; border: 1px solid #4a3f33; border-bottom: 0; background: #12100e;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, .7); animation: none; }

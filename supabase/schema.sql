@@ -620,6 +620,7 @@ create table if not exists public.grupos (
   masmorra text,
   criado_em timestamptz not null default now()
 );
+alter table public.grupos add column if not exists objetivo text;   -- para que o grupo serve: masmorra, torre (painel Grupo, 18/11/2026)
 create table if not exists public.grupo_membros (
   personagem_id text primary key references public.personagens (id) on delete cascade,
   grupo_id bigint not null references public.grupos (id) on delete cascade,
@@ -744,7 +745,7 @@ begin
     'convites', coalesce((select jsonb_agg(jsonb_build_object('id', c.id, 'de', pd.nome,
         'membros', (select count(*) from public.grupo_membros gm where gm.grupo_id = c.grupo_id)) order by c.criado_em)
       from public.grupo_convites c join public.personagens pd on pd.id = c.de where c.para = meu), '[]'::jsonb),
-    'grupo', case when g is null then null else (select jsonb_build_object('id', gr.id, 'lider', gr.lider, 'masmorra', gr.masmorra,
+    'grupo', case when g is null then null else (select jsonb_build_object('id', gr.id, 'lider', gr.lider, 'masmorra', gr.masmorra, 'objetivo', gr.objetivo,
         'membros', (select jsonb_agg(jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'raca', p.dados ->> 'raca',
             'sexo', p.dados ->> 'sexo', 'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'pronto', gm.pronto,
             'entradas', public.entradas_usadas(p.id), 'visto_em', p.atualizado_em, 'posicao', gm.posicao) order by gm.entrou_em)
@@ -767,6 +768,32 @@ begin
   return resultado;
 end $$;
 
+-- Tamanho máximo do grupo pelo objetivo: masmorra 3; torre (ou sem objetivo) 4.
+create or replace function public.grupo_limite(g bigint) returns int
+language plpgsql stable security definer set search_path = public as $$   -- plpgsql: torre_grupo() vem mais abaixo no arquivo
+begin
+  return case (select objetivo from public.grupos where id = g) when 'masmorra' then 3 else public.torre_grupo() end;
+end $$;
+revoke execute on function public.grupo_limite(bigint) from public, anon, authenticated;
+
+-- O líder escolhe para que o grupo serve (painel Grupo): 'masmorra', 'torre' ou null.
+create or replace function public.grupo_objetivo(meu text, objetivo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare g bigint;
+begin
+  perform public.conferir_dono(meu);
+  g := public.meu_grupo(meu);
+  if g is null or (select lider from public.grupos where id = g) <> meu then raise exception 'Só o líder escolhe para que o grupo serve.'; end if;
+  if objetivo is not null and objetivo not in ('masmorra', 'torre') then raise exception 'Objetivo inválido.'; end if;
+  if objetivo = 'masmorra' and (select count(*) from public.grupo_membros where grupo_id = g) > 3 then
+    raise exception 'A masmorra é para 3: o grupo tem gente demais.';
+  end if;
+  update public.grupos set objetivo = grupo_objetivo.objetivo where id = g;
+  update public.grupo_membros set pronto = false where grupo_id = g;
+end $$;
+revoke execute on function public.grupo_objetivo(text, text) from public, anon;
+grant execute on function public.grupo_objetivo(text, text) to authenticated;
+
 -- Convida um amigo. Quem convida sem grupo cria um e vira o líder.
 create or replace function public.grupo_convidar(meu text, amigo text) returns void
 language plpgsql security definer set search_path = public as $$
@@ -787,7 +814,7 @@ begin
   if exists (select 1 from public.grupo_membros where personagem_id = amigo and grupo_id = g) then
     raise exception 'Esse amigo já está no grupo.';
   end if;
-  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.torre_grupo() then raise exception 'O grupo já está cheio.'; end if;   -- até 4 (Torre); a masmorra começa só com 3
+  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.grupo_limite(g) then raise exception 'O grupo já está cheio.'; end if;   -- 4 (Torre) ou 3 (masmorra)
   insert into public.grupo_convites (grupo_id, de, para) values (g, meu, amigo) on conflict (grupo_id, para) do nothing;
   if not found then raise exception 'Convite já enviado.'; end if;
 end $$;
@@ -802,7 +829,7 @@ begin
   delete from public.grupo_convites where id = convite;
   if not aceitar then return; end if;
   if public.meu_grupo(meu) is not null then raise exception 'Saia do seu grupo antes de entrar em outro.'; end if;
-  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.torre_grupo() then raise exception 'O grupo já está cheio.'; end if;   -- até 4 (Torre); a masmorra começa só com 3
+  if (select count(*) from public.grupo_membros where grupo_id = g) >= public.grupo_limite(g) then raise exception 'O grupo já está cheio.'; end if;   -- 4 (Torre) ou 3 (masmorra)
   insert into public.grupo_membros (personagem_id, grupo_id) values (meu, g);
   update public.grupo_membros set pronto = false where grupo_id = g;
   delete from public.grupo_convites where para = meu;

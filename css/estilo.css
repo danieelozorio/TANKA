@@ -2146,3 +2146,36 @@ html[data-celular] .cena-fileira-nome small { font-size: .48rem; letter-spacing:
 html[data-celular] .cena-fileira { grid-template-columns: 1fr; }
 .cena-marcas span.buff { background: rgba(20, 70, 35, .85); border-color: #3fa35a; color: #b9f5c6; }
 .cena-marcas span.debuff { background: rgba(90, 18, 14, .85); border-color: #d0453a; color: #ffc4bc; }
+/* Painel do Grupo (abre e fecha como Missões, abaixo dela) */
+#painel-grupo[hidden] { display: none; }
+.grupo-aba { top: calc(46% + 140px); }
+#painel-grupo.aberto .grupo-aba { right: min(360px, 92vw); }
+body:has(#painel-grupo.aberto) #aviso { right: auto; left: 16px; align-items: flex-start; }
+.grupo-bloco { margin-bottom: .7rem; padding: .6rem; border: 1px solid rgba(201, 162, 74, .28); border-radius: 10px; background: rgba(0, 0, 0, .2); }
+.grupo-bloco h4 { margin: 0 0 .45rem; font: 700 .95rem var(--titulo); color: var(--ouro-claro); display: flex; justify-content: space-between; align-items: baseline; }
+.grupo-bloco p { margin: .2rem 0; }
+.grupo-objetivos { display: grid; grid-template-columns: repeat(3, 1fr); gap: .4rem; }
+.grupo-obj { display: flex; flex-direction: column; align-items: center; gap: .1rem; padding: .5rem .3rem; border: 1px solid var(--borda); border-radius: 9px;
+  background: linear-gradient(180deg, #1b2331, #141b26); color: var(--texto, #e8dcc4); font: inherit; cursor: pointer; text-align: center; }
+.grupo-obj span { font-size: 1.4rem; line-height: 1.1; }
+.grupo-obj b { font-size: .78rem; }
+.grupo-obj small { font-size: .65rem; color: var(--suave); }
+.grupo-obj.sel { border-color: #f2c94c; background: linear-gradient(180deg, #3a2c14, #20180c); box-shadow: 0 0 10px rgba(242, 201, 76, .3); }
+.grupo-obj:disabled { cursor: default; }
+.grupo-obj:disabled:not(.sel) { opacity: .55; }
+.grupo-obj.breve { opacity: .4; cursor: default; }
+.grupo-ir { width: 100%; margin-top: .55rem; }
+.grupo-membro { display: flex; align-items: center; gap: .5rem; padding: .4rem; margin-bottom: .35rem; border: 1px solid var(--borda); border-radius: 8px; background: #141b26; }
+.grupo-membro.pronto { border-color: rgba(111, 211, 131, .55); }
+.grupo-rosto { width: 38px; height: 44px; flex: none; overflow: hidden; border-radius: 6px; }
+.grupo-rosto img { width: 100%; height: 100%; object-fit: cover; }
+.grupo-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.grupo-info b { font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grupo-info small { font-size: .7rem; color: var(--suave); }
+.grupo-estado { display: flex; align-items: center; gap: .3rem; font-size: .72rem; }
+.grupo-x { background: none; border: 1px solid #6a2a22; border-radius: 6px; color: #ff8a7a; cursor: pointer; padding: 0 .35rem; }
+.grupo-botoes { display: flex; gap: .4rem; flex-wrap: wrap; margin-top: .45rem; }
+.grupo-botoes .btn { flex: 1; }
+.grupo-convite, .grupo-amigo { display: flex; justify-content: space-between; align-items: center; gap: .4rem; padding: .35rem 0; border-bottom: 1px solid rgba(255, 255, 255, .05); font-size: .85rem; }
+.grupo-convite .btn + .btn { margin-left: .3rem; }
+@media (max-width: 700px) { .grupo-aba { top: auto; bottom: 265px; } #painel-grupo.aberto .grupo-aba { display: none; } }

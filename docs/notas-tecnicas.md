@@ -1262,3 +1262,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Prêmios novos (18/11/2026): sem reputação. Andar novo = ouro e EXP de 60.000 + 2.500 por andar (`torre_premio()` no schema,
   `D.TORRE.premios`); repetido = 10%. Pergaminho nos andares 5, 15, 25... (andar % 10 = 5). Andares 10, 20, 30: item novo ainda
   em criação (nada por enquanto). `creditos.exp` novo: a função `acao` aplica com `R.ganharExp` ao receber.
+
+### Painel do Grupo (18/11/2026)
+- Aba lateral "👥 Grupo" (abaixo de Missões; no celular, ícone 👥 no topo e no menu): `desenharGrupo`/`cliqueGrupo`, fora do #app.
+  Convites, membros (online, pronto, 👑, ✕ do líder), pronto/sair, convidar amigos e "Para que é o grupo?" (Masmorra 3 / Torre 4 /
+  mais conteúdos em breve) com botão "Ir para...". Abrir um fecha o outro (Missões).
+- Servidor: `grupos.objetivo`, `grupo_objetivo(meu, objetivo)` (só o líder; masmorra recusa grupo com mais de 3),
+  `grupo_limite(g)` (masmorra 3, senão 4) usado em convidar/responder; `grupo_estado` devolve `objetivo`.

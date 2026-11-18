@@ -47,7 +47,7 @@
   // O cenário fica fora do #app: trocar entre Entrar e Cadastrar não recomeça o vídeo.
   var cenarioEl = null;
   function mostrarCenario(sim) {
-    desenharMissoes(false);
+    desenharMissoes(false); desenharGrupo(false);
     if (sim && !cenarioEl) {
       var tmp = document.createElement('div');
       tmp.innerHTML = cenarioEntrada();
@@ -1075,6 +1075,7 @@
       + '<i class="casca-exp" title="' + (maximo ? 'Level máximo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
+      + '<button class="casca-ico" data-acao="casca-grupo" aria-label="Grupo">👥<span class="casca-selo" id="casca-grupo-selo" hidden></span></button>'
       + '<button class="casca-ico" data-acao="casca-missoes" aria-label="Missões">📜<span class="casca-selo" id="casca-missoes-selo"' + (prontas ? '' : ' hidden') + '>' + (prontas || '') + '</span></button>'
       + (menu || '') + '</div></header>';
   }
@@ -1099,6 +1100,7 @@
       + '<div class="menu-cel-grupo menu-cel-grade"><small>Jogo</small>'
       + item('data-acao="casca-missoes"', '📜', 'Missões', prontas ? seloNumero(prontas) : '')
       + item('data-acao="casca-chat"', '💬', 'Chat', chat.naoLidas ? seloNumero(chat.naoLidas) : '')
+      + item('data-acao="casca-grupo"', '👥', 'Grupo', estado.gm && estado.gm.convites && estado.gm.convites.length ? seloNumero(estado.gm.convites.length) : '')
       + item('id="btn-caixa" data-acao="painel-topo" data-valor="caixa"', ICONE_CARTA, 'Caixa de entrada', seloNumero(cx))
       + item('id="btn-sino" data-acao="painel-topo" data-valor="sino"', ICONE_SINO, 'Avisos', seloNumero(nn)) + '</div>'
       + '<div class="menu-cel-grupo menu-cel-grade"><small>Configurações</small>'
@@ -3297,7 +3299,7 @@
     var el = e.target.closest('[data-missao]'), p = estado.personagem;
     if (!el || !p) return;
     var acao = el.dataset.missao;
-    if (acao === 'painel') missoesUI.aberto = !missoesUI.aberto;
+    if (acao === 'painel') { missoesUI.aberto = !missoesUI.aberto; if (missoesUI.aberto && grupoUI.aberto) { grupoUI.aberto = false; desenharGrupo(); } }
     else if (acao === 'login') { missoesUI.aberto = false; estado.loginAberto = true; estado.loginResultado = null; telaJogo(); }
     else if (acao === 'secao') missoesUI[el.dataset.tipo] = !missoesUI[el.dataset.tipo];
     else if (acao === 'resgatar' || acao === 'bau') {
@@ -3310,6 +3312,134 @@
       });
     }
     desenharMissoes();
+  }
+
+  // ----- Painel do Grupo (Daniel, 18/11/2026) -----
+  // Aba fixa na direita (abaixo de Missões) que abre o grupo de qualquer tela: convites, membros, pronto, sair,
+  // convidar amigos e para que o grupo serve (Masmorra 3 / Torre 4). Fica fora do #app, como as Missões.
+  var grupoUI = { el: null, aberto: false, sair: false };
+  var OBJETIVOS_GRUPO = [
+    { id: 'masmorra', nome: 'Masmorra', ico: '🏰', max: 3, aba: 'masmorra' },
+    { id: 'torre', nome: 'Torre do Eclipse', ico: '🗼', max: D.TORRE.grupo, aba: 'torre' },
+  ];
+  function objetivoGrupo(id) { return OBJETIVOS_GRUPO.filter(function (o) { return o.id === id; })[0] || null; }
+  function estaOnline(visto) { return visto && C.agora() - Date.parse(visto) < ONLINE_MS; }
+  function desenharGrupo(visivel) {
+    var p = estado.personagem;
+    if (!grupoUI.el) {
+      grupoUI.el = document.createElement('div');
+      grupoUI.el.id = 'painel-grupo';
+      grupoUI.el.addEventListener('click', cliqueGrupo);
+      grupoUI.el.addEventListener('pointerdown', function () { grupoUI.apertado = true; });
+      document.addEventListener('pointerup', function () {
+        if (!grupoUI.apertado) return;
+        grupoUI.apertado = false;
+        if (grupoUI.pendente) setTimeout(function () { grupoUI.pendente = false; desenharGrupo(); }, 0);
+      });
+      document.body.appendChild(grupoUI.el);
+    }
+    if (visivel === false || !p) { grupoUI.el.hidden = true; return; }
+    grupoUI.el.hidden = false;
+    var g = estado.gm, gr = g && g.grupo, nConv = g && g.convites ? g.convites.length : 0;
+    var seloG = document.getElementById('casca-grupo-selo');
+    if (seloG) { seloG.hidden = !nConv; seloG.textContent = nConv || ''; }
+    var aba = '<button class="missoes-aba grupo-aba" data-grupo="painel" aria-expanded="' + grupoUI.aberto + '" title="Grupo">'
+      + '<span class="missoes-aba-ico">👥</span><span class="missoes-aba-txt">Grupo' + (gr ? ' ' + gr.membros.length : '') + '</span>'
+      + (nConv ? '<span class="selo-pedidos">' + nConv + '</span>' : '') + '</button>';
+    if (!grupoUI.aberto) { grupoUI.el.className = ''; grupoUI.el.innerHTML = aba; grupoUI.html = null; return; }
+    if (!g && !estado.gmCarregando) carregarGrupo();
+    var social = socialAtual();
+    if (!social && !estado.socialCarregando) carregarSocial();
+    var h = '';
+    if (nConv) h += '<section class="grupo-bloco"><h4>📨 Convites</h4>' + g.convites.map(function (c) {
+      return '<div class="grupo-convite"><span><b>' + esc(c.de) + '</b> chamou você <span class="suave pequeno">(' + c.membros + ' no grupo)</span></span>'
+        + '<span><button class="btn btn-pequeno" data-grupo="aceitar" data-convite="' + c.id + '">Entrar</button>'
+        + '<button class="btn btn-pequeno secundario" data-grupo="recusar" data-convite="' + c.id + '">✕</button></span></div>';
+    }).join('') + '</section>';
+    var souLider = gr && gr.lider === p.id, obj = gr && objetivoGrupo(gr.objetivo), max = obj ? obj.max : D.TORRE.grupo;
+    if (!g) h += '<p class="suave">Carregando…</p>';
+    else if (g.local) h += '<p class="suave">Grupos precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + '.</p>';
+    else if (!gr) h += '<section class="grupo-bloco"><p class="suave">Você está sem grupo. Convide um amigo aqui embaixo: quem convida vira o líder 👑 e escolhe para que o grupo serve.</p></section>';
+    else {
+      // para que serve
+      h += '<section class="grupo-bloco"><h4>🎯 Para que é o grupo?</h4><div class="grupo-objetivos">' + OBJETIVOS_GRUPO.map(function (o) {
+        var sel = gr.objetivo === o.id, cheio = o.max < gr.membros.length;
+        return '<button class="grupo-obj' + (sel ? ' sel' : '') + '" data-grupo="objetivo" data-valor="' + o.id + '"' + (!souLider || cheio ? ' disabled' : '')
+          + (cheio ? ' title="O grupo tem gente demais para isso"' : '') + '><span>' + o.ico + '</span><b>' + o.nome + '</b><small>' + o.max + ' jogadores</small></button>';
+      }).join('') + '<div class="grupo-obj breve"><span>✨</span><b>Mais conteúdos</b><small>em breve</small></div></div>'
+        + (obj ? '<button class="btn grupo-ir" data-grupo="ir">' + obj.ico + ' Ir para a ' + obj.nome + ' ›</button>'
+          : '<p class="suave pequeno">' + (souLider ? 'Escolha acima para onde o grupo vai.' : 'O líder 👑 ainda não escolheu para onde o grupo vai.') + '</p>')
+        + '</section>';
+      // membros
+      h += '<section class="grupo-bloco"><h4>👥 Membros <span class="suave pequeno">' + gr.membros.length + '/' + max + '</span></h4>' + gr.membros.map(function (m) {
+        return '<div class="grupo-membro' + (m.pronto ? ' pronto' : '') + '"><span class="grupo-rosto">' + F.personagem(m.raca, classeRetrato(m), m.sexo) + '</span>'
+          + '<span class="grupo-info"><b>' + (m.id === gr.lider ? '👑 ' : '') + esc(m.nome) + (m.id === p.id ? ' <small class="suave">(você)</small>' : '') + '</b>'
+          + '<small>' + nomeClasseX(m) + ' · Lv ' + m.nivel + ' · ' + (estaOnline(m.visto_em) ? '<span class="online">● online</span>' : '<span class="suave">○ offline</span>') + '</small></span>'
+          + '<span class="grupo-estado">' + (m.pronto ? '<span class="online">✔ Pronto</span>' : '<span class="suave">Aguardando</span>')
+          + (souLider && m.id !== p.id ? '<button class="grupo-x" data-grupo="expulsar" data-id="' + esc(m.id) + '" title="Tirar do grupo">✕</button>' : '') + '</span></div>';
+      }).join('')
+        + (gr.convidados && gr.convidados.length ? '<p class="suave pequeno">Convidados: ' + gr.convidados.map(esc).join(', ') + '</p>' : '');
+      var eu = gr.membros.filter(function (m) { return m.id === p.id; })[0] || {};
+      h += '<div class="grupo-botoes">' + (eu.pronto ? '<button class="btn secundario" data-grupo="pronto" data-valor="nao">Não estou pronto</button>'
+          : '<button class="btn" data-grupo="pronto" data-valor="sim">✔ Estou pronto</button>')
+        + (grupoUI.sair ? '<button class="btn perigo" data-grupo="sair-sim">Confirmar saída</button><button class="btn secundario" data-grupo="sair-nao">Cancelar</button>'
+          : '<button class="btn secundario" data-grupo="sair">Sair do grupo</button>') + '</div></section>';
+    }
+    // convidar amigos (sem grupo: qualquer um; em grupo: o líder, se tiver vaga)
+    if (g && !g.local && (!gr || (souLider && gr.membros.length < max))) {
+      var noGrupo = gr ? gr.membros.map(function (m) { return m.id; }) : [], convidados = gr ? gr.convidados || [] : [];
+      var amigos = social && social.lista ? social.lista.filter(function (x) { return x.situacao === 'amigo' && noGrupo.indexOf(x.id) < 0; }) : null;
+      if (amigos) amigos.sort(function (a, b) { return (estaOnline(b.visto_em) ? 1 : 0) - (estaOnline(a.visto_em) ? 1 : 0) || Date.parse(b.visto_em || 0) - Date.parse(a.visto_em || 0); });
+      h += '<section class="grupo-bloco"><h4>➕ Convidar amigos' + (gr ? ' <span class="suave pequeno">' + (max - gr.membros.length) + ' vaga(s)</span>' : '') + '</h4>'
+        + (!amigos ? '<p class="suave">Carregando amigos…</p>' : !amigos.length ? '<p class="suave pequeno">Sem amigos para chamar. Adicione na aba Social.</p>'
+          : amigos.map(function (x) {
+            var ja = convidados.indexOf(x.nome) >= 0;
+            return '<div class="grupo-amigo"><span><b>' + esc(x.nome) + '</b> <small class="suave">Lv ' + x.nivel + '</small> ' + (estaOnline(x.visto_em) ? '<small class="online">● online</small>' : '') + '</span>'
+              + (ja ? '<small class="suave">convidado</small>' : '<button class="btn btn-pequeno" data-grupo="convidar" data-id="' + esc(x.id) + '" data-nome="' + esc(x.nome) + '">Convidar</button>') + '</div>';
+          }).join('')) + '</section>';
+    }
+    var html = aba + '<div class="missoes-painel grupo-painel" role="dialog" aria-label="Grupo"><div class="missoes-titulo"><span>👥 Grupo</span>'
+      + '<button data-grupo="painel" title="Fechar">✕</button></div>' + h + '</div>';
+    if (grupoUI.el.className === 'aberto' && grupoUI.html === html) return;
+    if (grupoUI.apertado) { grupoUI.pendente = true; return; }
+    var antigo = grupoUI.el.className === 'aberto' && grupoUI.el.querySelector('.grupo-painel');
+    grupoUI.html = html;
+    if (antigo) {
+      var molde = document.createElement('div'); molde.innerHTML = html;
+      var rolagem = antigo.scrollTop;
+      antigo.innerHTML = molde.querySelector('.grupo-painel').innerHTML;
+      antigo.scrollTop = rolagem;
+      return;
+    }
+    grupoUI.el.className = 'aberto';
+    grupoUI.el.innerHTML = html;
+  }
+  function cliqueGrupo(e) {
+    var el = e.target.closest('[data-grupo]'), p = estado.personagem;
+    if (!el || !p || el.disabled) return;
+    var a = el.dataset.grupo, feito = function () { desenharGrupo(); };
+    if (a === 'painel') {
+      grupoUI.aberto = !grupoUI.aberto; grupoUI.sair = false;
+      if (grupoUI.aberto) { missoesUI.aberto = false; desenharMissoes(); carregarGrupo(); carregarSocial(); }
+    }
+    else if (a === 'aceitar') acaoGrupo(function () { return C.grupo.responder(p.id, Number(el.dataset.convite), true); }, 'Você entrou no grupo!');
+    else if (a === 'recusar') acaoGrupo(function () { return C.grupo.responder(p.id, Number(el.dataset.convite), false); });
+    else if (a === 'convidar') acaoGrupo(function () { return C.grupo.convidar(p.id, el.dataset.id); }, 'Convite enviado para ' + el.dataset.nome + '.');
+    else if (a === 'expulsar') acaoGrupo(function () { return C.grupo.expulsar(p.id, el.dataset.id); });
+    else if (a === 'pronto') acaoGrupo(function () { return C.grupo.pronto(p.id, el.dataset.valor === 'sim'); });
+    else if (a === 'objetivo') {
+      var gr = estado.gm && estado.gm.grupo, novo = gr && gr.objetivo === el.dataset.valor ? null : el.dataset.valor;
+      acaoGrupo(function () { return C.grupo.objetivo(p.id, novo); });
+    }
+    else if (a === 'sair') grupoUI.sair = true;
+    else if (a === 'sair-nao') grupoUI.sair = false;
+    else if (a === 'sair-sim') { grupoUI.sair = false; acaoGrupo(function () { return C.grupo.sair(p.id); }, 'Você saiu do grupo.'); }
+    else if (a === 'ir') {
+      var o = objetivoGrupo(estado.gm && estado.gm.grupo && estado.gm.grupo.objetivo);
+      if (o && abaVisivel(o.aba)) { grupoUI.aberto = false; estado.aba = o.aba; telaJogo(); }
+      else if (o) avisar(o.id === 'torre' ? 'A Torre abre no level ' + D.TORRE.nivelMin + '.' : 'Essa área ainda não está liberada para você.');
+    }
+    feito();
   }
 
   // ----- Forja: a barra do encantamento enche; no sucesso chega a 100%, na falha para no meio e racha -----
@@ -3593,6 +3723,7 @@
     }).then(function (r) {
       estado.socialCarregando = false;
       estado.social = r;
+      if (grupoUI.aberto) desenharGrupo();
       if (estado.personagem !== p || estado.batalha || estado.resultado || estado.chefeAviso) return;
       if (estado.aba === 'social') telaJogo();
       else {
@@ -3982,6 +4113,7 @@
     if (reg) reg.scrollTop = reg.scrollHeight;
     chatVisivel(true);
     desenharMissoes(true);
+    desenharGrupo(true);
   }
   // Depois de redesenhar, a ficha flutuante (se aberta) volta a se prender ao item; some se o item saiu da tela.
   var telaJogoSemFicha = telaJogo;
@@ -5014,7 +5146,12 @@
         fecharMenuJogo(); chat.aberto = true; chat.naoLidas = 0; desenharChat();
         break;
       case 'casca-missoes':
-        fecharMenuJogo(); missoesUI.aberto = !missoesUI.aberto; desenharMissoes(true);
+        fecharMenuJogo(); missoesUI.aberto = !missoesUI.aberto; if (missoesUI.aberto) grupoUI.aberto = false; desenharGrupo(true); desenharMissoes(true);
+        break;
+      case 'casca-grupo':
+        fecharMenuJogo(); grupoUI.aberto = !grupoUI.aberto; grupoUI.sair = false;
+        if (grupoUI.aberto) { missoesUI.aberto = false; desenharMissoes(true); carregarGrupo(); carregarSocial(); }
+        desenharGrupo(true);
         break;
       case 'menu-interface':
         if (document.getElementById('menu-jogo')) document.getElementById('menu-jogo').open = false;
@@ -6264,6 +6401,7 @@
       if (estado.personagem !== p) return;
       estado.gm = g;
       estado.gmErro = null;
+      if (grupoUI.el) desenharGrupo();
       // Torre: grupo de 4 e alguém começou a subida fora da aba: avisa e leva para a Torre (fora de luta).
       if (g.grupo && g.grupo.membros.length === D.TORRE.grupo && estado.aba !== 'torre' && abaVisivel('torre')) {
         C.torre.estado(p.id).then(function (st) {
@@ -7273,7 +7411,7 @@
     if (!estado.personagem || estado.batalha || estado.luta || estado.lutaArena || document.hidden) return;
     ciclosGrupo++;
     var emGrupo = estado.gm && (estado.gm.grupo || estado.gm.fila);
-    if (estado.aba === 'masmorra' || emGrupo || ciclosGrupo % 8 === 0) carregarGrupo();
+    if (estado.aba === 'masmorra' || emGrupo || grupoUI.aberto || ciclosGrupo % 8 === 0) carregarGrupo();
     // Boss da aliança: a cada 4 s na tela dele ou com o boss aberto; senão a cada 32 s (aviso e prêmios).
     if (estado.aba === 'oficinas' && ciclosGrupo % 2 === 0 && !estado.contratar) carregarOficinas();
     var bossAberto = estado.bossAl && estado.bossAl.boss && estado.bossAl.boss.estado === 'aberto';

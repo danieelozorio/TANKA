@@ -1441,4 +1441,33 @@ select pg_temp.igual(jsonb_array_length(public.torre_estado('t5') -> 'run' -> 'm
 select pg_temp.falha($$select public.torre_iniciar('t5')$$, 'Você já está subindo');
 reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000e5';
 reset role;
+-- Painel do Grupo: para que o grupo serve (masmorra 3 / torre 4) (Daniel, 18/11/2026)
+insert into auth.users (id, raw_user_meta_data) values
+  ('00000000-0000-0000-0000-0000000000f1', '{"usuario":"g1","email":"g1@t.com"}'), ('00000000-0000-0000-0000-0000000000f2', '{"usuario":"g2","email":"g2@t.com"}'),
+  ('00000000-0000-0000-0000-0000000000f3', '{"usuario":"g3","email":"g3@t.com"}'), ('00000000-0000-0000-0000-0000000000f4', '{"usuario":"g4","email":"g4@t.com"}');
+insert into public.personagens (id, conta_id, nome, dados) values
+  ('g1', '00000000-0000-0000-0000-0000000000f1', 'Gru1', '{"nome":"Gru1","nivel":40}'), ('g2', '00000000-0000-0000-0000-0000000000f2', 'Gru2', '{"nome":"Gru2","nivel":40}'),
+  ('g3', '00000000-0000-0000-0000-0000000000f3', 'Gru3', '{"nome":"Gru3","nivel":40}'), ('g4', '00000000-0000-0000-0000-0000000000f4', 'Gru4', '{"nome":"Gru4","nivel":40}');
+insert into public.amizades (de, para, status) values ('g1', 'g2', 'aceita'), ('g1', 'g3', 'aceita'), ('g1', 'g4', 'aceita');
+create function pg_temp.comoG(n text) returns void language sql as $$ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000f' || n, false); $$;
+grant execute on all functions in schema pg_temp to authenticated;
+set role authenticated;
+select pg_temp.comoG('1');
+select public.grupo_convidar('g1', x) from unnest(array['g2', 'g3']) x;
+select pg_temp.comoG('2'); select public.grupo_responder('g2', (public.grupo_estado('g2') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.falha($$select public.grupo_objetivo('g2', 'torre')$$, 'Só o líder');
+select pg_temp.comoG('1');
+select pg_temp.falha($$select public.grupo_objetivo('g1', 'pvp')$$, 'Objetivo inválido');
+select public.grupo_objetivo('g1', 'masmorra');
+select pg_temp.comoG('2'); select pg_temp.igual(public.grupo_estado('g2') -> 'grupo' ->> 'objetivo', 'masmorra', 'grupo: objetivo aparece para todos');
+select pg_temp.comoG('3'); select public.grupo_responder('g3', (public.grupo_estado('g3') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.comoG('1');
+select pg_temp.falha($$select public.grupo_convidar('g1', 'g4')$$, 'O grupo já está cheio');
+select public.grupo_objetivo('g1', 'torre');
+select public.grupo_convidar('g1', 'g4');
+select pg_temp.comoG('4'); select public.grupo_responder('g4', (public.grupo_estado('g4') -> 'convites' -> 0 ->> 'id')::bigint, true);
+select pg_temp.igual(jsonb_array_length(public.grupo_estado('g4') -> 'grupo' -> 'membros'), 4, 'grupo: torre aceita 4');
+select pg_temp.comoG('1');
+select pg_temp.falha($$select public.grupo_objetivo('g1', 'masmorra')$$, 'gente demais');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

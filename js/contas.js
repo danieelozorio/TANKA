@@ -351,6 +351,7 @@ Tanka.contas = (function () {
     expulsar: function (meu, alvo) { return chamar('grupo_expulsar', { meu: meu, alvo: alvo }); },
     pronto: function (meu, pronto) { return chamar('grupo_pronto', { meu: meu, pronto: pronto }); },
     escolher: function (meu, masmorra) { return chamar('grupo_escolher', { meu: meu, masmorra: masmorra }); },
+    objetivo: function (meu, objetivo) { return chamar('grupo_objetivo', { meu: meu, objetivo: objetivo || null }); },
     iniciar: function (meu) { return chamar('masmorra_iniciar', { meu: meu }); },
     concluir: function (meu, run, vitoria) { return chamar('masmorra_concluir', { meu: meu, run_id: run, vitoria: vitoria }); },
     votar: function (meu, run, opcao) { return chamar('masmorra_votar', { meu: meu, run_id: run, opcao: opcao }); },
