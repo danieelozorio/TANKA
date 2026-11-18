@@ -748,7 +748,7 @@ Tanka.dados = {
     desviar: { base: 20, porPonto: 0.25, max: 90, recarga: 2 },   // ... e depois de desviar, fica 2 turnos sem poder desviar de novo
     // Velocidade dos inimigos: a cada turno, chance (%) de agir ANTES de alguém do grupo (sorteia antes do 1º ao 4º);
     // senão age por último. Sorteada no fim do turno anterior e mostrada na tela, para o grupo se planejar.
-    velocidade: { elite: 25, chefe: 40, porAndar: 1, max: 70 },    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
+    velocidade: { elite: 25, chefe: 40, porAndar: 1, max: 70, rapido: 25 },   // rapido: elite marcada como rápida ganha +25%    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
     resistencia: { base: 20, porAndar: 1, porStun: 25, max: 95 },
     corteCura: { pct: 50, turnos: 3 },
     furia: { desde: 25, porTurno: 10 },                 // chefe: +10% de dano por turno depois do 25º
@@ -762,17 +762,72 @@ Tanka.dados = {
       marca: { nome: 'Marca da Ruína', turnos: 2, alvo: 'um', vidaPct: 40, texto: 'põe a MARCA DA RUÍNA em {alvo}: se não desviar, explode em todos' },
       escudo: { nome: 'Escudo de Ossos', turnos: 2, escudoPct: 12, curaPct: 15, texto: 'se cobre com o ESCUDO DE OSSOS: quebrem antes que ele se cure' },
       invocar: { nome: 'Invocação', turnos: 1, qtd: 2, texto: 'abre um portal: vão sair 2 lacaios' },
+      // novas (Daniel, 18/11/2026: chefes, elites e bandos próprios da Torre)
+      pele: { nome: 'Pele de Pedra', turnos: 1, alvo: 'self', reducao: 50, duracao: 2, texto: 'endurece a PELE DE PEDRA: metade do dano por 2 turnos (um stun quebra)' },
+      teia: { nome: 'Teia', turnos: 1, alvo: 'um', vidaPct: 15, texto: 'mira a TEIA em {alvo}: se não desviar, perde a próxima vez' },
+      eclipse: { nome: 'Eclipse Total', turnos: 1, alvo: 'todos', vidaPct: 20, erroPct: 50, texto: 'apaga a luz: ECLIPSE TOTAL, quem não desviar fica cego (erra metade) no turno seguinte' },
+      espelho: { nome: 'Espelho', turnos: 1, alvo: 'self', reflete: 40, texto: 'ergue o ESPELHO: no turno seguinte devolve 40% do dano a quem bater nele' },
+      drenar: { nome: 'Dreno de Vida', turnos: 1, alvo: 'um', vidaPct: 50, texto: 'vai DRENAR A VIDA de {alvo} e se curar com ela' },
+      silencio: { nome: 'Silêncio', turnos: 1, alvo: 'todos', vidaPct: 15, texto: 'puxa o SILÊNCIO: quem não desviar fica sem habilidades no turno seguinte' },
     },
-    // mecânicas dos chefes pela ordem (o 1º chefe, andar 5, usa a 1ª lista)
-    chefes: [['mortal', 'chuva'], ['mortal', 'invocar'], ['marca', 'escudo'], ['marca', 'mortal', 'chuva'], ['escudo', 'invocar', 'mortal']],
-    chefesRepete: 2,                                    // depois da lista, os chefes revezam do 3º em diante (nunca volta aos fáceis)
-    mecanicaElite: ['chuva', 'mortal', 'marca'],        // andar sem chefe: 1 mecânica, em rodízio
+    despertar: { vidaPct: 50, danoPct: 30 },            // chefe/elite com "despertar": abaixo de 50% da vida bate 30% mais forte
+    // Monstros próprios da Torre (Daniel, 18/11/2026). Arte em assets/torre/monstros/<id>.webp; enquanto não existe,
+    // a tela usa uma arte reserva do jogo. Chefe a cada 5 andares (10 diferentes até o 50; depois revezam do `chefesTorreRepete`
+    // em diante); bando nos andares 3, 8, 13... (5 em rodízio); elite nos outros (25 em rodízio).
+    chefesTorre: [
+      { id: 'sentinela-obsidiana', nome: 'Sentinela de Obsidiana', mecanicas: ['mortal', 'pele'] },
+      { id: 'viuva-eclipse', nome: 'A Viúva do Eclipse', mecanicas: ['teia', 'invocar'], lacaio: 'Aranha do Véu' },
+      { id: 'kharzul', nome: 'Kharzul, o Devorador de Luz', mecanicas: ['eclipse', 'chuva'], area: true },
+      { id: 'sylveth', nome: 'Sylveth, a Rainha Espelhada', mecanicas: ['espelho', 'marca'] },
+      { id: 'morvhal', nome: 'Morvhal, o Sangue-Frio', mecanicas: ['drenar', 'mortal', 'invocar'], lacaio: 'Cria de Sangue' },
+      { id: 'coro-silencioso', nome: 'O Coro Silencioso', mecanicas: ['silencio', 'chuva', 'marca'], area: true },
+      { id: 'gorvath', nome: 'Gorvath, Colosso das Correntes', mecanicas: ['pele', 'mortal', 'teia'], despertar: true },
+      { id: 'nyxara', nome: 'Nyxara, Bruxa do Véu Partido', mecanicas: ['eclipse', 'silencio', 'espelho'] },
+      { id: 'tharok', nome: 'Tharok, o Último Dragão do Eclipse', mecanicas: ['chuva', 'drenar', 'escudo', 'mortal'], area: true, despertar: true },
+      { id: 'arauto-sol-negro', nome: 'O Arauto do Sol Negro', mecanicas: ['escudo', 'invocar', 'mortal', 'espelho', 'eclipse'], area: true, despertar: true, lacaio: 'Servo do Sol Negro' },
+    ],
+    chefesTorreRepete: 5,                               // depois do andar 50: revezam do 6º chefe (andar 30) em diante
+    elitesTorre: [
+      { id: 'cavaleiro-sem-rosto', nome: 'Cavaleiro Sem Rosto', mec: ['mortal'] },
+      { id: 'bruxa-lua-negra', nome: 'Bruxa da Lua Negra', mec: ['chuva'] },
+      { id: 'cao-eclipse', nome: 'Cão do Eclipse', mec: ['mortal'], rapido: true },
+      { id: 'sentinela-rachada', nome: 'Sentinela Rachada', mec: ['pele'] },
+      { id: 'tecela-sombras', nome: 'Tecelã de Sombras', mec: ['teia'] },
+      { id: 'arqueiro-fantasma', nome: 'Arqueiro Fantasma', mec: ['marca'] },
+      { id: 'monge-mudo', nome: 'Monge Mudo', mec: ['silencio'] },
+      { id: 'lamina-cega', nome: 'Lâmina Cega', mec: ['eclipse'] },
+      { id: 'sanguessuga-alada', nome: 'Sanguessuga Alada', mec: ['drenar'] },
+      { id: 'golem-cinzas', nome: 'Golem de Cinzas', mec: ['escudo'] },
+      { id: 'necromante-menor', nome: 'Necromante Menor', mec: ['invocar'] },
+      { id: 'espectro-espelhado', nome: 'Espectro Espelhado', mec: ['espelho'] },
+      { id: 'carrasco-eclipse', nome: 'Carrasco do Eclipse', mec: ['mortal'], rapido: true },
+      { id: 'harpia-uivante', nome: 'Harpia Uivante', mec: ['chuva'], rapido: true },
+      { id: 'guardiao-ambar', nome: 'Guardião de Âmbar', mec: ['pele'] },
+      { id: 'serpente-nevoa', nome: 'Serpente de Névoa', mec: ['teia'] },
+      { id: 'oraculo-cego', nome: 'Oráculo Cego', mec: ['eclipse'] },
+      { id: 'cantor-tumbas', nome: 'Cantor das Tumbas', mec: ['silencio'] },
+      { id: 'senhor-moscas', nome: 'Senhor das Moscas', mec: ['invocar'] },
+      { id: 'lobo-vampiro', nome: 'Lobo Vampiro', mec: ['drenar'], rapido: true },
+      { id: 'cavaleira-vidro', nome: 'Cavaleira de Vidro', mec: ['espelho'] },
+      { id: 'ogro-acorrentado', nome: 'Ogro Acorrentado', mec: ['mortal'], despertar: true },
+      { id: 'feiticeiro-ossos', nome: 'Feiticeiro de Ossos', mec: ['escudo'] },
+      { id: 'sombra-rei-caido', nome: 'Sombra do Rei Caído', mec: ['marca'] },
+      { id: 'quimera-eclipse', nome: 'Quimera do Eclipse', mec: ['chuva', 'mortal'], despertar: true },
+    ],
+    // bando: qtd monstros, cada um com vida/dano x do chefe (sem mecânica: o perigo é apanhar de vários)
+    bandosTorre: [
+      { id: 'sombras-famintas', nome: 'Sombra Faminta', qtd: 3, vida: 0.3, dano: 0.35 },
+      { id: 'esqueletos-eclipse', nome: 'Esqueleto do Eclipse', qtd: 3, vida: 0.32, dano: 0.33 },
+      { id: 'diabretes-cinza', nome: 'Diabrete de Cinza', qtd: 4, vida: 0.22, dano: 0.26 },
+      { id: 'cultistas-sol-negro', nome: 'Cultista do Sol Negro', qtd: 3, vida: 0.3, dano: 0.36 },
+      { id: 'gargulas-rachadas', nome: 'Gárgula Rachada', qtd: 2, vida: 0.45, dano: 0.5 },
+    ],
+    bandoCada: 5, bandoNo: 3,                           // bando quando andar % 5 = 3 (3, 8, 13...)
     aCada: 3,                                           // turnos entre um aviso e o próximo
     // Formação (Daniel, 18/11/2026): grade de hexágonos 2-3-2 (casas 0-1 frente, 2-4 meio, 5-6 trás). O golpe normal e os golpes
     // de um alvo só (Golpe Mortal, Marca) pegam a fileira viva mais da frente; quem está atrás só leva dano em área.
     formacao: { fileiras: [[0, 1], [2, 3, 4], [5, 6]], nomes: ['Frente', 'Meio', 'Trás'] },
     golpeAreaPct: 50,                                   // chefe que bate em área: cada herói leva 50% do golpe
-    chefesArea: [false, false, true, false, true],      // quais chefes (mesma ordem de `chefes`) dão o golpe normal em área
     narracao: { base: 1200, porLinha: 450, max: 16000 },  // ms que a tela leva para contar o turno (servidor e tela iguais)
     // Prêmios por andar vencido (o servidor dá: torre_registrar em supabase/schema.sql — manter iguais)
     // Prêmios (Daniel, 18/11/2026; iguais a torre_premio() no schema.sql): andar novo = ouro e EXP de 60.000 no andar 1,

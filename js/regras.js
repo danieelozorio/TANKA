@@ -2931,29 +2931,43 @@ Tanka.regras = (function () {
   var TR = D.TORRE;
   function resTorre(andar, tipo) { return Math.min(TR.resistencia.max, TR.resistencia.base + TR.resistencia.porAndar * (andar - 1)) + (tipo === 'chefe' ? 5 : 0); }
   function ehChefeTorre(andar) { return andar % TR.chefeCada === 0; }
-  // Inimigos do andar (arte e nome dos monstros do jogo, em rodízio).
+  // Inimigos do andar (Daniel, 18/11/2026): monstros próprios da Torre. Chefe a cada 5 andares (10 diferentes até o 50),
+  // bando nos andares 3, 8, 13..., elite nos outros. imagem = arte própria (assets/torre/monstros); reserva = arte do jogo
+  // que a tela mostra enquanto a própria não existe.
+  function artesReserva() {
+    var a = [];
+    D.areas.forEach(function (ar) { ar.monstros.forEach(function (x) { var m = D.monstros[x.id]; if (m && m.imagem) a.push(m.imagem); }); });
+    return a;
+  }
+  function ehBandoTorre(andar) { return !ehChefeTorre(andar) && andar % TR.bandoCada === TR.bandoNo; }
   function inimigosTorre(andar) {
     var g = Math.pow(TR.crescimento, andar - 1), gd = Math.pow(TR.crescimentoDefesa, andar - 1), C0 = TR.chefe;
-    var nArea = D.areas.length, chefe = ehChefeTorre(andar), lista = [];
-    var mk = function (id, tipo, f) {
-      var m = D.monstros[id] || {}, v = Math.round(C0.vida * g * f.vida), r = resTorre(andar, tipo);
-      return { id: id, nome: m.nome || id, imagem: m.imagem || null, tipo: tipo, hp: v, hpMax: v,
+    var reservas = artesReserva(), lista = [];
+    var mk = function (def, nome, tipo, f, reserva) {
+      var v = Math.round(C0.vida * g * f.vida), r = resTorre(andar, tipo === 'chefe' ? 'chefe' : 'elite');
+      return { id: def.id, nome: nome, imagem: 'assets/torre/monstros/' + def.id + '.webp', reserva: reserva, tipo: tipo, hp: v, hpMax: v,
         ataque: [Math.round(C0.dano[0] * g * f.dano), Math.round(C0.dano[1] * g * f.dano)],
-        defesa: Math.round(C0.defesa * gd * f.defesa), defesaMagica: Math.round(C0.defesa * gd * f.defesa), indiceArea: 6, chefe: tipo === 'chefe',
-        res: { stun: r, cura: r, defesa: r, dot: r, cegar: r }, atordoado: 0, nAtq: 0 };
+        defesa: Math.round(C0.defesa * gd * (f.defesa || 1)), defesaMagica: Math.round(C0.defesa * gd * (f.defesa || 1)), indiceArea: 6, chefe: tipo === 'chefe',
+        res: { stun: r, cura: r, defesa: r, dot: r, cegar: r }, atordoado: 0, nAtq: 0,
+        rapido: !!def.rapido, despertar: !!def.despertar, lacaio: def.lacaio || null };
     };
-    if (chefe) {
-      var k = andar / TR.chefeCada - 1, ch = D.PESADELO.chefes[k % D.PESADELO.chefes.length];
-      var b = mk(ch.id, 'chefe', { vida: 1, dano: 1, defesa: 1 });
-      var r0 = TR.chefesRepete || 0, nC = TR.chefes.length;
-      var kc = k < nC ? k : r0 + (k - r0) % (nC - r0);
-      b.mecanicas = TR.chefes[kc].slice();
-      b.golpeArea = !!(TR.chefesArea && TR.chefesArea[kc]);   // golpe normal em área (pega até quem está atrás)
+    if (ehChefeTorre(andar)) {
+      var k = andar / TR.chefeCada - 1, nC = TR.chefesTorre.length, r0 = TR.chefesTorreRepete || 0;
+      var kc = k < nC ? k : r0 + (k - r0) % (nC - r0), ch = TR.chefesTorre[kc], pes = D.PESADELO.chefes[kc % D.PESADELO.chefes.length];
+      var b = mk(ch, ch.nome, 'chefe', { vida: 1, dano: 1, defesa: 1 }, (D.monstros[pes.id] || {}).imagem || null);
+      b.mecanicas = ch.mecanicas.slice();
+      b.golpeArea = !!ch.area;   // golpe normal em área (pega até quem está atrás)
       lista.push(b);
+    } else if (ehBandoTorre(andar)) {
+      var nb = Math.floor(andar / TR.bandoCada), bd = TR.bandosTorre[nb % TR.bandosTorre.length], rb = reservas[(nb * 3) % reservas.length] || null;
+      for (var q = 0; q < bd.qtd; q++) lista.push(mk(bd, bd.nome + ' ' + ['I', 'II', 'III', 'IV', 'V'][q], 'bando', { vida: bd.vida, dano: bd.dano, defesa: 0.7 }, rb));
     } else {
-      var area = D.areas[(andar - 1) % nArea];
-      var e = mk(area.monstros[2].id, 'elite', TR.elite);
-      e.mecanicas = [TR.mecanicaElite[Math.floor((andar - 1) / TR.chefeCada) % TR.mecanicaElite.length]];
+      // n = quantos andares de elite vieram antes deste (as 25 elites revezam)
+      var n = 0;
+      for (var x = 1; x < andar; x++) if (!ehChefeTorre(x) && !ehBandoTorre(x)) n++;
+      var el = TR.elitesTorre[n % TR.elitesTorre.length];
+      var e = mk(el, el.nome, 'elite', TR.elite, reservas[(n * 7 + 2) % reservas.length] || null);
+      e.mecanicas = el.mec.slice();
       lista.push(e);
     }
     return lista;
@@ -3003,9 +3017,9 @@ Tanka.regras = (function () {
   }
   // Velocidade dos inimigos: vez = 1..4 (age antes do herói dessa vez) ou 5 (por último).
   function velocidadeTorre(t) {
-    var V = TR.velocidade, m = vivosT(t.inimigos || []).filter(function (x) { return x.chefe || x.tipo === 'elite'; })[0];
+    var V = TR.velocidade, vivos = vivosT(t.inimigos || []), m = vivos.filter(function (x) { return x.chefe || x.tipo === 'elite'; })[0] || vivos[0];
     if (!V || !m) return 0;
-    return Math.min(V.max, (m.chefe ? V.chefe : V.elite) + V.porAndar * (t.andar - 1));
+    return Math.min(V.max, (m.chefe ? V.chefe : V.elite) + (m.rapido ? V.rapido || 0 : 0) + V.porAndar * (t.andar - 1));
   }
   function sortearVezTorre(t, rng) { t.vezInimigos = rng() * 100 < velocidadeTorre(t) ? 1 + Math.floor(rng() * 4) : 5; }
   // Desviar tem recarga: quem desviou fica `recarga` turnos sem poder desviar.
@@ -3029,14 +3043,15 @@ Tanka.regras = (function () {
     return ok;
   }
   // Habilidades prontas do herói neste turno (a tela mostra; o servidor confere).
-  function habilidadesTorre(h) {
+  function habilidadesTorre(h, t) {
+    if (t && h.silencioAte === t.turno + 1) return [];   // Silêncio: sem habilidades neste turno
     return h.L.kit.filter(function (k) { return (h.L.pronto[k.def.id] || 0) <= h.L.turno + 1; }).map(function (k) { return k.def.id; });
   }
   // Escolha automática (quem não escolheu a tempo, e os simuladores): desvia do golpe avisado deste turno,
   // bebe poção com pouca vida, cura o grupo, provoca, usa o stun no turno do golpe, senão a melhor habilidade.
   function escolhaAutoTorre(t, i) {
     var h = t.herois[i], L = h.L, alvos = vivosT(t.inimigos), principal = alvos.filter(function (m) { return m.chefe || m.tipo === 'elite'; })[0] || alvos[0];
-    var idxAlvo = t.inimigos.indexOf(principal), prontas = habilidadesTorre(h);
+    var idxAlvo = t.inimigos.indexOf(principal), prontas = habilidadesTorre(h, t);
     var kit = function (fn) { return L.kit.filter(function (k) { return prontas.indexOf(k.def.id) >= 0 && fn(k.def); })[0]; };
     var agora = t.avisos.filter(function (a) { return a.em === 1; });
     var contra = agora.some(function (a) { var M = TR.mecanicas[a.mec]; return M.alvo === 'todos' || a.alvo === i; });
@@ -3065,7 +3080,7 @@ Tanka.regras = (function () {
     var diz = function (texto, x) { var e = Object.assign({ t: texto }, x || {}); e.hp = t.herois.map(function (h) { return h.hp; }); e.hpI = t.inimigos.map(function (m) { return m.hp; }); ev.push(e); };
     // escolhas válidas (ou automáticas), na ordem que o grupo escolheu
     var acoes = t.herois.map(function (h, i) {
-      var e = escolhas && escolhas[i], prontas = habilidadesTorre(h);
+      var e = escolhas && escolhas[i], prontas = habilidadesTorre(h, t);
       if (!e || ['atacar', 'habilidade', 'desviar', 'pocao'].indexOf(e.acao) < 0 || (e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0)
         || (e.acao === 'pocao' && h.pocoes <= 0) || (e.acao === 'desviar' && !podeDesviar(t, h))) e = Object.assign(escolhaAutoTorre(t, i), { auto: true });
       return { i: i, e: e, ordem: Math.max(1, Math.min(4, Math.floor(Number(e.ordem) || 4))) };
@@ -3073,7 +3088,7 @@ Tanka.regras = (function () {
     t.turno++;
     // quem vai desviar já fica pronto no começo do turno (vale mesmo se o chefe agir antes dele)
     t.herois.forEach(function (h) { h.desvia = false; });
-    acoes.forEach(function (x) { var h = t.herois[x.i]; if (x.e.acao === 'desviar' && h.hp > 0) { h.desvia = true; h.desviarEm = t.turno + 1 + (TR.desviar.recarga || 0); } });
+    acoes.forEach(function (x) { var h = t.herois[x.i]; if (x.e.acao === 'desviar' && h.hp > 0 && h.presoAte !== t.turno) { h.desvia = true; h.desviarEm = t.turno + 1 + (TR.desviar.recarga || 0); } });
     var vez = t.vezInimigos || 5, inimigosAgiram = false;
     var agirInimigos = function () {
       if (inimigosAgiram || t.fim || !vivosT(t.inimigos).length) return;
@@ -3083,14 +3098,22 @@ Tanka.regras = (function () {
     };
     var alvoDe = function (e) { var m = t.inimigos[e.alvo]; return m && m.hp > 0 ? m : vivosT(t.inimigos)[0]; };
     var golpe = function (h, alvo, opc, quem) {
+      if (h.cegoAte === t.turno && rng() * 100 < TR.mecanicas.eclipse.erroPct) { diz(quem + ' está cego pelo eclipse e erra.', { de: 'h', i: t.herois.indexOf(h) }); return { acerto: false }; }
       var g = calcularGolpe(h.s, h.L, alvo, opc, rng);
       if (!g.acerto) { diz(quem + ' erra ' + alvo.nome + '.', { de: 'h', i: t.herois.indexOf(h) }); return g; }
+      if (alvo.peleAte >= t.turno) g.dano = Math.max(1, Math.round(g.dano * (1 - TR.mecanicas.pele.reducao / 100)));   // Pele de Pedra
       var dano = g.dano;
       if (alvo.escudoOssos > 0) { var a = Math.min(alvo.escudoOssos, dano); alvo.escudoOssos -= a; dano -= a; if (!alvo.escudoOssos) diz('O Escudo de Ossos de ' + alvo.nome + ' quebrou!', { quebrou: true }); }
       alvo.hp = Math.max(0, alvo.hp - dano);
       aoCausar(h.L, h, g.dano);
       sangrar(alvo, g);
-      diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), ai: t.inimigos.indexOf(alvo), dano: g.dano, critico: g.critico });
+      diz(quem + ' acerta ' + alvo.nome + ': ' + txtNum(g.dano) + (g.critico ? ' (crítico!)' : '') + (alvo.peleAte >= t.turno ? ' (pele de pedra)' : '') + '.', { de: 'h', i: t.herois.indexOf(h), ai: t.inimigos.indexOf(alvo), dano: g.dano, critico: g.critico });
+      if (alvo.espelhoAte === t.turno && h.hp > 0) {   // Espelho: devolve parte do dano
+        var refl = Math.max(1, Math.round(g.dano * TR.mecanicas.espelho.reflete / 100));
+        h.hp = Math.max(0, h.hp - refl);
+        diz('O Espelho de ' + alvo.nome + ' devolve ' + txtNum(refl) + ' a ' + h.nome + '.', { de: 'm', alvo: t.herois.indexOf(h), dano: refl });
+        if (h.hp === 0) diz(h.nome + ' caiu!', { caiuH: true });
+      }
       if (alvo.hp === 0) {
         diz(alvo.nome + ' caiu!', { caiu: true });
         // chefe caiu: os lacaios fogem pelo portal
@@ -3102,7 +3125,10 @@ Tanka.regras = (function () {
     var efeitos = function (h, def, alvo, antes) {
       if (!alvo || alvo.hp <= 0) return;
       if (def.atordoa) {
-        if (efeitoPega(alvo, 'stun', rng)) { alvo.atordoado = Math.max(alvo.atordoado, alvo.chefe ? 1 : def.atordoa); diz(alvo.nome + (def.congela ? ' ficou congelado!' : ' ficou atordoado!'), { stun: true }); }
+        if (efeitoPega(alvo, 'stun', rng)) {
+          alvo.atordoado = Math.max(alvo.atordoado, alvo.chefe ? 1 : def.atordoa); diz(alvo.nome + (def.congela ? ' ficou congelado!' : ' ficou atordoado!'), { stun: true, ai: t.inimigos.indexOf(alvo) });
+          if (alvo.peleAte >= t.turno) { alvo.peleAte = 0; diz('A Pele de Pedra de ' + alvo.nome + ' rachou!', { quebrou: true }); }
+        }
         else diz(alvo.nome + ' resistiu ao ' + (def.congela ? 'congelamento' : 'atordoamento') + '.', { resistiu: true });
       }
       if ((def.quebraDefesaPct) && (alvo.defQuebra !== antes.defQuebra || alvo.quebraTemp !== antes.quebraTemp) && !efeitoPega(alvo, 'defesa', rng)) {
@@ -3117,6 +3143,7 @@ Tanka.regras = (function () {
       if (pos + 1 >= vez) agirInimigos();
       var h = t.herois[x.i], e = x.e, L = h.L, quem = h.nome;
       if (h.hp <= 0 || t.fim || !vivosT(t.herois).length) return;
+      if (h.presoAte === t.turno) { diz(quem + ' está preso na teia e perde a vez.', { de: 'h', i: x.i, preso: true }); return; }
       inicioVez(L, h);
       var tk = tickDot(L, h, function () { return vivosT(t.inimigos)[0] || null; });
       if (tk) diz('O veneno de ' + quem + ' tira ' + txtNum(tk.dano) + ' de ' + tk.alvo.nome + '.', { de: 'h', i: x.i, dano: tk.dano, dot: true });
@@ -3162,7 +3189,7 @@ Tanka.regras = (function () {
       });
     }); }
     // inimigos
-    var furia = function (m) { return m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1; };
+    var furia = function (m) { return (m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1) * (m.desperto ? 1 + TR.despertar.danoPct / 100 : 1); };
     var bater = function (m, h, bruto, ignoraDef, nomeGolpe) {
       var dano = ignoraDef ? bruto : danoComDefesa(bruto, Math.round(h.s.defesa * (1 + defesaExtraPct(h.L) / 100)));   // golpe normal: físico (o tanque segura)
       dano = aoReceber(h.L, Math.round(dano), m, rng);
@@ -3171,16 +3198,19 @@ Tanka.regras = (function () {
       diz((nomeGolpe || m.nome) + ' acerta ' + h.nome + ': ' + txtNum(dano) + '.', { de: 'm', alvo: t.herois.indexOf(h), dano: dano });
       if (dr === 'milagre') diz('Milagre! ' + h.nome + ' volta à luta.');
       if (h.hp === 0) diz(h.nome + ' caiu!', { caiuH: true });
+      return dano;
     };
     var mecanica = function (m, a) {
       var M = TR.mecanicas[a.mec], alvos = M.alvo === 'todos' ? vivosT(t.herois) : [t.herois[a.alvo]].filter(function (h) { return h && h.hp > 0; });
       if (a.mec === 'escudo') { m.escudoOssos = Math.round(m.hpMax * M.escudoPct / 100); m.escudoAte = t.turno + 2; diz(m.nome + ' se cobre com o Escudo de Ossos (' + txtNum(m.escudoOssos) + ').', { mec: a.mec }); return; }
+      if (a.mec === 'pele') { m.peleAte = t.turno + M.duracao; diz(m.nome + ' endurece a Pele de Pedra: metade do dano por ' + M.duracao + ' turnos!', { mec: a.mec }); return; }
+      if (a.mec === 'espelho') { m.espelhoAte = t.turno + 1; diz(m.nome + ' ergue o Espelho: no próximo turno devolve ' + M.reflete + '% do dano!', { mec: a.mec }); return; }
       if (a.mec === 'invocar') {
         var jaTem = t.inimigos.filter(function (x) { return x.tipo === 'lacaio' && x.hp > 0; }).length;
         if (jaTem >= M.qtd) { diz('O portal se abre, mas os lacaios de antes ainda estão de pé.', { mec: a.mec }); return; }
         for (var q = jaTem; q < M.qtd; q++) {
           var area = D.areas[(t.andar + q) % D.areas.length], lm = D.monstros[area.monstros[0].id], g = Math.pow(TR.crescimento, t.andar - 1), v = Math.round(TR.chefe.vida * g * TR.lacaio.vida);
-          t.inimigos.push({ id: lm.id, nome: lm.nome, imagem: lm.imagem, tipo: 'lacaio', hp: v, hpMax: v, ataque: [Math.round(TR.chefe.dano[0] * g * TR.lacaio.dano), Math.round(TR.chefe.dano[1] * g * TR.lacaio.dano)],
+          t.inimigos.push({ id: lm.id, nome: m.lacaio || lm.nome, imagem: lm.imagem, tipo: 'lacaio', hp: v, hpMax: v, ataque: [Math.round(TR.chefe.dano[0] * g * TR.lacaio.dano), Math.round(TR.chefe.dano[1] * g * TR.lacaio.dano)],
             defesa: Math.round(TR.chefe.defesa * 0.5), defesaMagica: Math.round(TR.chefe.defesa * 0.5), indiceArea: 6, res: { stun: 0, cura: 0, defesa: 0, dot: 0, cegar: 0 }, atordoado: 0, nAtq: 0 });
         }
         diz('Do portal saem ' + M.qtd + ' lacaios!', { mec: a.mec }); return;
@@ -3191,7 +3221,15 @@ Tanka.regras = (function () {
         if (h.desvia && rng() * 100 < chanceDesviar(h)) { diz(h.nome + ' desviou!', { desviou: true, alvo: t.herois.indexOf(h) }); return; }
         if (h.desvia) diz(h.nome + ' tentou desviar, mas não deu.', { alvo: t.herois.indexOf(h) });
         if (a.mec === 'marca') { marcaFalhou = true; return; }
-        bater(m, h, Math.round(h.hpMax * M.vidaPct / 100 * furia(m)), true, M.nome);
+        var levou = bater(m, h, Math.round(h.hpMax * M.vidaPct / 100 * furia(m)), true, M.nome);
+        if (h.hp <= 0) return;
+        if (a.mec === 'teia') { h.presoAte = t.turno + 1; diz(h.nome + ' ficou preso na teia: perde a próxima vez.', { alvo: t.herois.indexOf(h) }); }
+        if (a.mec === 'eclipse') { h.cegoAte = t.turno + 1; diz(h.nome + ' ficou cego pelo eclipse.', { alvo: t.herois.indexOf(h) }); }
+        if (a.mec === 'silencio') { h.silencioAte = t.turno + 1; diz(h.nome + ' ficou em silêncio: sem habilidades no próximo turno.', { alvo: t.herois.indexOf(h) }); }
+        if (a.mec === 'drenar' && m.hp > 0) {
+          var corteD = m.cortaCura && m.cortaCura.ate >= t.turno ? m.cortaCura.pct : 0, cd = Math.round(levou * (1 - corteD / 100));
+          m.hp = Math.min(m.hpMax, m.hp + cd); diz(m.nome + ' bebe a vida: +' + txtNum(cd) + (corteD ? ' (corte de cura: −' + corteD + '%)' : '') + '.', { curaChefe: cd });
+        }
       });
       if (marcaFalhou) vivosT(t.herois).forEach(function (h) { bater(m, h, Math.round(h.hpMax * M.vidaPct / 100 * furia(m)), true, 'A Marca da Ruína'); });
     };
@@ -3200,6 +3238,7 @@ Tanka.regras = (function () {
       if (m.hp <= 0 || !vivosT(t.herois).length) return;
       var qm = tickQueima(m);
       if (qm) { diz(m.nome + ' sofre ' + txtNum(qm) + ' de queimadura/sangramento.', { dot: true }); if (m.hp <= 0) { diz(m.nome + ' caiu!', { caiu: true }); return; } }
+      if (m.despertar && !m.desperto && m.hp * 100 < m.hpMax * TR.despertar.vidaPct) { m.desperto = true; diz('🔥 ' + m.nome + ' DESPERTA: bate ' + TR.despertar.danoPct + '% mais forte!', { mec: 'despertar' }); }
       var avisoAgora = m.tipo !== 'lacaio' && t.avisos.filter(function (a) { return a.em === 1 && a.de === t.inimigos.indexOf(m); })[0];
       if (m.atordoado > 0) {
         m.atordoado--;
@@ -3728,7 +3767,7 @@ Tanka.regras = (function () {
     tracosRaca: tracosRaca,
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
-    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, velocidadeTorre: velocidadeTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
+    habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
     calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,

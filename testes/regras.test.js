@@ -2709,3 +2709,35 @@ teste('Torre: desviar tem recarga de 2 turnos e o chefe rápido pode agir antes 
   assert.ok(iRapido >= 0 && iRapido < iHeroi, 'chefe rápido age antes');
   assert.ok([1, 2, 3, 4, 5].includes(t4.vezInimigos), 'sorteia a vez do próximo turno');
 });
+
+teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', () => {
+  const TR = D.TORRE;
+  const ficha = (c, c2) => { const p = R.criarPersonagem('M' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2); return p; };
+  const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
+  // quem aparece: chefe a cada 5 (10 diferentes até o 50), bando no 3, 8, 13..., elite nos outros
+  const chefes = []; for (let a = 5; a <= 50; a += 5) chefes.push(R.inimigosTorre(a)[0].id);
+  assert.strictEqual(new Set(chefes).size, 10, '10 chefes diferentes até o 50');
+  assert.strictEqual(R.inimigosTorre(55)[0].id, TR.chefesTorre[5].id, 'depois do 50 volta do 6º chefe');
+  assert.strictEqual(R.inimigosTorre(3).length, TR.bandosTorre[0].qtd, 'andar 3: bando');
+  const elites = new Set(); for (let a = 1; a <= 60; a++) if (!R.ehChefeTorre(a) && !R.ehBandoTorre(a)) elites.add(R.inimigosTorre(a)[0].id);
+  assert.strictEqual(elites.size, 25, '25 elites diferentes');
+  const turno = (t, esc, s) => { t.vezInimigos = 5; return R.resolverTurnoTorre(t, esc || t.herois.map(() => ({ acao: 'atacar', ordem: 1 })), s); };
+  // Pele de Pedra: metade do dano; Espelho: devolve dano
+  const t = R.novaTorre(fichas, 5, [0, 1, 2, 3]); t.avisos = []; t.proxAviso = 999;
+  const m = t.inimigos[0]; m.peleAte = 1; m.espelhoAte = 1;
+  const ev = turno(t, null, 21);
+  assert.ok(ev.some((e) => /pele de pedra/.test(e.t)), 'pele aparece na narração');
+  assert.ok(ev.some((e) => /Espelho .* devolve/.test(e.t)), 'espelho devolve dano');
+  // Teia: perde a vez; Silêncio: sem habilidades; Eclipse: cego erra
+  const t2 = R.novaTorre(fichas, 1, [0, 1, 2, 3]); t2.avisos = []; t2.proxAviso = 999;
+  t2.herois[0].presoAte = 1; t2.herois[1].silencioAte = 1;
+  assert.strictEqual(R.habilidadesTorre(t2.herois[1], t2).length, 0, 'silêncio: sem habilidades');
+  const ev2 = turno(t2, null, 22);
+  assert.ok(ev2.some((e) => e.preso && e.i === 0), 'teia: perde a vez');
+  // Dreno e despertar: o chefe se cura e fica mais forte
+  const t3 = R.novaTorre(fichas, 25, [0, 1, 2, 3]); const mv = t3.inimigos[0]; mv.hp = Math.round(mv.hpMax * 0.4); mv.despertar = true;
+  t3.avisos = [{ mec: 'drenar', de: 0, em: 1, alvo: 0 }]; t3.proxAviso = 999; t3.herois.forEach((h) => { h.desviarEm = 99; h.hp = h.hpMax = 1e7; });
+  const hpAntes = mv.hp, ev3 = turno(t3, t3.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 23);
+  assert.ok(ev3.some((e) => /DESPERTA/.test(e.t)), 'despertar abaixo de 50%');
+  assert.ok(ev3.some((e) => /bebe a vida/.test(e.t)) && mv.hp > hpAntes, 'dreno cura o chefe');
+});

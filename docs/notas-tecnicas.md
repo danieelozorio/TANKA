@@ -1269,3 +1269,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   mais conteúdos em breve) com botão "Ir para...". Abrir um fecha o outro (Missões).
 - Servidor: `grupos.objetivo`, `grupo_objetivo(meu, objetivo)` (só o líder; masmorra recusa grupo com mais de 3),
   `grupo_limite(g)` (masmorra 3, senão 4) usado em convidar/responder; `grupo_estado` devolve `objetivo`.
+
+### Torre: monstros próprios (18/11/2026)
+- `TORRE.chefesTorre` (10, andares 5 a 50; depois revezam do 6º), `elitesTorre` (25, em rodízio nos andares sem chefe/bando),
+  `bandosTorre` (5; andar % 5 = 3, 2 a 4 monstros sem mecânica). Arte: `assets/torre/monstros/<id>.webp`; sem ela a tela troca pela
+  `reserva` (arte do jogo) pelo `data-reserva` + listener de erro. Prompts das 40 artes: entregues ao Daniel (prompts-monstros-torre.txt).
+- Mecânicas novas: pele (−50% de dano por 2 turnos; stun quebra), teia (perde a vez), eclipse (cego: 50% de erro), espelho (devolve 40%
+  do dano no turno seguinte), drenar (cura o chefe com o dano), silencio (sem habilidades; `habilidadesTorre(h, t)`). Traços: `rapido`
+  (+25% de velocidade), `despertar` (abaixo de 50% da vida, +30% de dano). Lacaio com nome do chefe (`lacaio`).
+- Saíram `chefes`, `chefesRepete`, `mecanicaElite`, `chefesArea` (antigos).

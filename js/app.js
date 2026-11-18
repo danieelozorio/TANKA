@@ -7216,27 +7216,32 @@
     h += '<div class="cena-avisos">' + (t.avisos || []).map(function (a) { return '<div class="torre-aviso' + (a.em <= 1 ? ' agora' : '') + '">⚠ ' + textoAviso(t, a) + '</div>'; }).join('') + '</div>';
     // inimigos: o principal grande no centro, lacaios menores dos lados
     var lista = t.inimigos.map(function (m, i) { return { m: m, i: i }; });
-    var principal = lista.filter(function (x) { return x.m.chefe || x.m.tipo === 'elite'; })[0] || lista[0];
+    var principal = lista.filter(function (x) { return x.m.chefe || x.m.tipo === 'elite'; })[0] || null;   // bando: todos do mesmo tamanho
     var lac = lista.filter(function (x) { return x !== principal; });
+    var prox = t.turno + (t.fase === 'escolha' ? 1 : 0);
     var inimigo = function (x, grande) {
       var m = x.m, marcas = [];
       // vermelho = ruim para o inimigo (debuff); verde = bom para ele (buff)
       if (grande && m.res) marcas.push(['buff', '🛡 Resist. stun ' + Math.min(95, m.res.stun) + '%']);
       if (m.golpeArea) marcas.push(['buff', '💥 Golpe em área']);
       if (m.escudoOssos > 0) marcas.push(['buff', '🦴 Barreira ' + Number(m.escudoOssos).toLocaleString('pt-BR')]);
+      if (m.peleAte >= prox && m.hp > 0) marcas.push(['buff', '🪨 Pele de Pedra']);
+      if (m.espelhoAte === prox && m.hp > 0) marcas.push(['buff', '🪞 Espelho']);
+      if (m.desperto) marcas.push(['buff', '🔥 Desperto']);
+      if (m.rapido) marcas.push(['buff', '⚡ Rápido']);
       if (m.atordoado > 0 && m.hp > 0) marcas.push(['debuff', '💫 Atordoado']);
       if (m.cortaCura && m.cortaCura.ate >= t.turno) marcas.push(['debuff', '🩸 Cura −' + m.cortaCura.pct + '%']);
       if (m.queima && m.queima.turnos > 0) marcas.push(['debuff', '🔥 Sangrando']);
       if (m.cego > 0) marcas.push(['debuff', '🌑 Cego']);
       if (m.defQuebra || m.quebraTemp) marcas.push(['debuff', '🛡 Defesa quebrada']);
       return '<div class="cena-inimigo' + (grande ? ' grande' : '') + (m.chefe ? ' chefe' : '') + (hpI(x.i) <= 0 ? ' caido' : '') + (m.atordoado > 0 ? ' tonto' : '') + '" data-alvo="i' + x.i + '">'
-        + '<div class="cena-retrato">' + (m.imagem ? '<img src="' + m.imagem + '" alt="">' : '') + (m.atordoado > 0 && m.hp > 0 ? '<span class="cena-tonto">💫</span>' : '') + '</div>'
+        + '<div class="cena-retrato">' + (m.imagem ? '<img src="' + m.imagem + '" alt=""' + (m.reserva ? ' data-reserva="' + m.reserva + '"' : '') + '>' : '') + (m.atordoado > 0 && m.hp > 0 ? '<span class="cena-tonto">💫</span>' : '') + '</div>'
         + '<strong>' + esc(m.nome) + (grande && m.chefe ? ' <small class="cena-tag">CHEFE</small>' : '') + '</strong>'
         + vidaBarra(hpI(x.i), m.hpMax, 'inimigo', 'i' + x.i)
         + (marcas.length ? '<div class="cena-marcas">' + marcas.map(function (k) { return '<span class="' + k[0] + '">' + k[1] + '</span>'; }).join('') + '</div>' : '') + '</div>';
     };
     h += '<div class="cena-inimigos">' + lac.slice(0, Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('')
-      + inimigo(principal, true) + lac.slice(Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('') + '</div>';
+      + (principal ? inimigo(principal, true) : '') + lac.slice(Math.ceil(lac.length / 2)).map(function (x) { return inimigo(x, false); }).join('') + '</div>';
     if (t.fase === 'escolha' && !t.fim) h += '<div class="cena-vez">' + (vz < 5 ? '⚡ Rápido: age antes do <b>' + vz + 'º</b>' : '🐢 Age por último') + '</div>';
     // grupo na formação
     var porCasa = {};
@@ -7246,7 +7251,8 @@
         var xi = porCasa[c];
         if (xi == null) return '<div class="cena-casa vazia"><div class="cena-hex"></div></div>';
         var x = t.herois[xi], cor = CORES_TORRE[xi % 4], e = r.escolhas && r.escolhas[x.id], vivo = hpH(xi) > 0;
-        var estadoTxt = !vivo ? '<span class="menos">caído</span>' : t.fase === 'escolha' ? (e ? '<span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : '<span class="suave">…</span>') : '';
+        var males = (x.presoAte === prox ? '🕸' : '') + (x.cegoAte === prox ? '🌑' : '') + (x.silencioAte === prox ? '🔇' : '');
+        var estadoTxt = !vivo ? '<span class="menos">caído</span>' : males && t.fase === 'escolha' ? '<span class="menos" title="Preso / cego / em silêncio neste turno">' + males + '</span>' : t.fase === 'escolha' ? (e ? '<span class="online">✔ ' + ICO_ACAO[e.acao] + ' ' + e.ordem + 'º</span>' : '<span class="suave">…</span>') : '';
         return '<div class="cena-casa' + (vivo ? '' : ' caido') + (x.id === p.id ? ' eu' : '') + '" style="--cor:' + cor + '" data-alvo="h' + xi + '">'
           + '<div class="cena-hex"><span class="torre-hex-rosto">' + F_personagemMini(x) + '</span></div>'
           + '<div class="cena-info"><strong>' + esc(x.nome) + '</strong>' + vidaBarra(hpH(xi), x.hpMax, 'mini', 'h' + xi)
@@ -7255,6 +7261,11 @@
     }).join('') + '</div></div>';
     return h;
   }
+  // Arte própria da Torre ainda não feita: troca pela reserva (arte do jogo).
+  document.addEventListener('error', function (e) {
+    var img = e.target;
+    if (img && img.tagName === 'IMG' && img.dataset && img.dataset.reserva && img.src.indexOf(img.dataset.reserva) < 0) { img.src = img.dataset.reserva; }
+  }, true);
   // Durante a narração: número de dano/cura saltando sobre quem levou, e quem age dá um brilho.
   function efeitoCenaTorre(caixa, ev) {
     var num = function (chave, txt, cls) {
@@ -7284,7 +7295,7 @@
     var minha = r.escolhas && r.escolhas[me.id];
     var e = T.esc || (T.esc = { acao: 'atacar', hab: null, alvo: vivos.length ? vivos[0].i : 0, ordem: me.L && me.L.kit.some(function (k) { return k.def.tipo === 'provocar'; }) ? 1 : me.classe2 === 'curandeiro' ? 4 : 2 });
     if (!vivos.some(function (x) { return x.i === e.alvo; }) && vivos.length) e.alvo = vivos[0].i;
-    var prontas = R.habilidadesTorre(me);
+    var prontas = R.habilidadesTorre(me, t);
     var podeDesv = R.podeDesviar(t, me), faltaDesv = Math.max(0, (me.desviarEm || 0) - (t.turno + 1));
     if ((e.acao === 'habilidade' && prontas.indexOf(e.hab) < 0) || (e.acao === 'pocao' && me.pocoes <= 0) || (e.acao === 'desviar' && !podeDesv)) { e.acao = 'atacar'; e.hab = null; }   // turno novo: o que não dá mais vira ataque
     var btn = function (acao, rot, extra, desab, dica) {
@@ -7313,6 +7324,9 @@
       return '<button class="torre-op mini' + (e.alvo === x.i ? ' sel' : '') + '" data-acao="torre-alvo" data-valor="' + x.i + '">' + esc(x.m.nome) + '</button>';
     }).join('') + '</div>';
     var vz = t.vezInimigos || 5;
+    if (me.presoAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🕸 Você está preso na teia: perde a vez neste turno.</p>';
+    if (me.cegoAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🌑 Você está cego: metade dos seus golpes erra neste turno.</p>';
+    if (me.silencioAte === t.turno + 1) h += '<p class="torre-vez pequeno menos">🔇 Silêncio: sem habilidades neste turno.</p>';
     h += '<p class="torre-vez pequeno">' + (vz < 5 ? '⚡ Neste turno o inimigo é <b>rápido</b>: age antes do <b>' + vz + 'º</b>. Quem quer atordoar ou proteger precisa vir antes.'
       : '🐢 Neste turno o inimigo age <b>por último</b>.') + '</p>';
     h += '<div class="torre-linha"><span class="suave pequeno">Ordem:</span>' + [1, 2, 3, 4].map(function (o) {
