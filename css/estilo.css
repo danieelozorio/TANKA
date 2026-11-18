@@ -2276,3 +2276,16 @@ html[data-celular] .altar-el { width: 32px; height: 32px; }
 /* fundo do evento: o templo do altar (Daniel: sem o fundo preto) */
 .caixa.altar { background: linear-gradient(rgba(14, 8, 22, .78), rgba(14, 8, 22, .9)), url(../assets/eventos/altar/banner.webp) center top / cover no-repeat; }
 .altar-combo { color: #ff9b4a; font-weight: 700; text-shadow: 0 0 8px rgba(255, 120, 40, .6); }
+/* mesa 4x4 com cartas grandes e bolinhas dentro (Daniel, 18/11/2026) */
+.altar-mesa { max-width: 520px; }
+.altar-monte { width: var(--tam, 20%); height: var(--tam, 22%); }
+.altar-carta { position: absolute; inset: 10% 12%; }
+.altar-pips { position: absolute; inset: 0; }
+.altar-pip { position: absolute; width: 44%; height: auto; aspect-ratio: 1; transform: translate(-50%, -50%); filter: drop-shadow(0 0 4px rgba(0, 0, 0, .9)); }
+.altar-pips.q1 .altar-pip { left: 50%; top: 50%; width: 58%; }
+.altar-pips.q2 .altar-pip:nth-child(1) { left: 27%; top: 50%; }
+.altar-pips.q2 .altar-pip:nth-child(2) { left: 73%; top: 50%; }
+.altar-pips.q3 .altar-pip { width: 40%; }
+.altar-pips.q3 .altar-pip:nth-child(1) { left: 24%; top: 24%; }
+.altar-pips.q3 .altar-pip:nth-child(2) { left: 50%; top: 50%; }
+.altar-pips.q3 .altar-pip:nth-child(3) { left: 76%; top: 76%; }

@@ -3369,7 +3369,13 @@ Tanka.regras = (function () {
   // Partida: { mesa: [9 montes: [cartas: { custo: { fogo: 2, agua: 1 } }]], dados: ['fogo', ...], rolagens, pontos, mesas, linhas }.
   // A carta do topo de cada monte é a última da lista. Puro: o servidor guarda em p.altar.partida e sorteia com o rng dele.
   var EVA = D.EVENTO_ALTAR;
-  var LINHAS_ALTAR = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+  // linhas da mesa (lado x lado): todas as linhas, colunas e as 2 diagonais
+  var LINHAS_ALTAR = (function (n) {
+    var L = [], i, j, d1 = [], d2 = [];
+    for (i = 0; i < n; i++) { var lin = [], col = []; for (j = 0; j < n; j++) { lin.push(i * n + j); col.push(j * n + i); } L.push(lin, col); d1.push(i * n + i); d2.push(i * n + n - 1 - i); }
+    return L.concat([d1, d2]);
+  })(EVA.lado || 3);
+  var MONTES_ALTAR = (EVA.lado || 3) * (EVA.lado || 3);
   function elementoAltar(rng) { return EVA.elementos[Math.floor(rng() * EVA.elementos.length)].id; }
   function cartaAltar(rng) {
     // um tipo de elemento só, de custo[0] a custo[1] dele (ex.: 2 Água)
@@ -3379,7 +3385,7 @@ Tanka.regras = (function () {
   }
   function mesaAltar(rng) {
     var m = [];
-    for (var i = 0; i < 9; i++) { var monte = []; for (var c = 0; c < EVA.cartasPorMonte; c++) monte.push(cartaAltar(rng)); m.push(monte); }
+    for (var i = 0; i < MONTES_ALTAR; i++) { var monte = []; for (var c = 0; c < EVA.cartasPorMonte; c++) monte.push(cartaAltar(rng)); m.push(monte); }
     return m;
   }
   function novaPartidaAltar(rng) {
@@ -3401,7 +3407,7 @@ Tanka.regras = (function () {
   function tirarDados(pt, idxs) { pt.dados = pt.dados.filter(function (d, i) { return idxs.indexOf(i) < 0; }); }
   // Paga a carta do topo do monte com os dados escolhidos (precisam bater exatamente com o custo).
   function pagarAltar(pt, monte, idxs, rng) {
-    if (!pt || typeof monte !== 'number' || monte < 0 || monte > 8 || !pt.mesa[monte] || !pt.mesa[monte].length) return 'Monte vazio.';
+    if (!pt || typeof monte !== 'number' || monte < 0 || monte >= MONTES_ALTAR || !pt.mesa[monte] || !pt.mesa[monte].length) return 'Monte vazio.';
     idxs = idxAltar(pt, idxs);
     if (!idxs) return 'Escolha os elementos.';
     var carta = pt.mesa[monte][pt.mesa[monte].length - 1], conta = {};

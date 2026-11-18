@@ -7605,8 +7605,13 @@
   }
   // arte dos elementos (assets/eventos/altar/el-<id>.webp); o emoji fica no alt
   function imgEl(id, cls) { var e = elAltar(id); return '<img class="' + (cls || 'altar-el') + '" src="assets/eventos/altar/el-' + id + '.webp" alt="' + e.ico + '" title="' + e.nome + '">'; }
+  // a carta mostra a quantidade em bolinhas, como num dado: 1 no meio, 2 lado a lado, 3 na diagonal (Daniel)
   function custoHtml(custo) {
-    return Object.keys(custo).map(function (el) { return '<span class="altar-custo">' + imgEl(el) + (custo[el] > 1 ? '<b>×' + custo[el] + '</b>' : '') + '</span>'; }).join('');
+    return Object.keys(custo).map(function (el) {
+      var n = Math.max(1, Math.min(3, custo[el])), h = '';
+      for (var i = 0; i < n; i++) h += imgEl(el, 'altar-pip');
+      return '<span class="altar-pips q' + n + '">' + h + '</span>';
+    }).join('');
   }
   function abaEventos() {
     var p = estado.personagem, ev = estado.eventoAtual, al = p.altar, pt = al && al.partida;
@@ -7628,10 +7633,11 @@
     } else {
       var sel = estado.altarSel || [];
       h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.combo ? '<span class="altar-combo">🔥 Combo x' + pt.combo + '</span>' : '') + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
-      // cada carta em cima de um encaixe da mesa (centros a 27,7%, 49,9% e 72,1% da arte)
-      var centro = [27.7, 49.9, 72.1];
+      // mesa lado x lado (4x4): as cartas ocupam a mesa toda
+      var lado = EVA_.lado || 3, centro = [];
+      for (var ci = 0; ci < lado; ci++) centro.push(Math.round((100 / lado) * (ci + 0.5) * 10) / 10);
       h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
-        var pos = ' style="left:' + centro[i % 3] + '%;top:' + centro[Math.floor(i / 3)] + '%"';
+        var pos = ' style="left:' + centro[i % lado] + '%;top:' + centro[Math.floor(i / lado)] + '%;--tam:' + (92 / lado) + '%"';
         if (!monte.length) return '<div class="altar-monte vazio"' + pos + '><span>✔</span></div>';
         var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
         return '<button class="altar-monte pilha-' + Math.min(3, monte.length) + (paga ? ' paga' : '') + '"' + pos + ' data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
@@ -7703,7 +7709,8 @@
       case 'altar-rolar': {
         if (!pt) return true;
         var manter = (estado.altarSel || []).slice();
-        estado.altarSel = []; estado.altarTroca = false;
+        // os guardados continuam marcados depois de rolar (o servidor põe eles no começo da mão)
+        estado.altarSel = manter.map(function (x, k) { return k; }); estado.altarTroca = false;
         acaoServidor('altarRolar', { manter: manter }, local(function () { R.rolarAltar(pt, manter, Math.random); })).then(depois);
         return true;
       }

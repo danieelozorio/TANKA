@@ -2789,7 +2789,7 @@ teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corru
 teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte/linha/mesa (Daniel, 18/11/2026)', () => {
   const E = D.EVENTO_ALTAR; let s = 7; const rng = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   const pt = R.novaPartidaAltar(rng);
-  assert.strictEqual(pt.mesa.length, 9); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.rolagens, E.rolagens);
+  assert.strictEqual(pt.mesa.length, E.lado * E.lado); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.rolagens, E.rolagens);
   pt.mesa.forEach((m) => m.forEach((c) => { const k = Object.keys(c.custo); assert.ok(k.length === 1 && c.custo[k[0]] >= 1 && c.custo[k[0]] <= 3, 'carta: 1 tipo de elemento, 1 a 3 dele'); }));
   // carta feita de propósito: paga com os dados certos
   pt.mesa[0] = [{ custo: { fogo: 2, agua: 1 } }]; pt.dados = ['fogo', 'agua', 'luz', 'fogo', 'trevas'];
@@ -2810,15 +2810,17 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   // rolar: guarda o escolhido e completa até 5, gasta 1
   assert.strictEqual(R.rolarAltar(pt, [0], rng), true); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.dados[0], 'folha'); assert.strictEqual(pt.rolagens, E.rolagens - 1);
   assert.strictEqual(pt.combo, 0, 'rolar zera o combo');
-  // linha: zerar 1, 2 (0 já vazio) dá a linha de cima
-  pt.mesa[1] = [{ custo: { luz: 2 } }]; pt.mesa[2] = [{ custo: { luz: 2 } }]; pt.dados = ['luz', 'luz', 'luz', 'luz', 'agua'];
-  R.pagarAltar(pt, 1, [0, 1], rng); const r2 = R.pagarAltar(pt, 2, [0, 1], rng);
+  // linha: zerar a linha de cima inteira (0 já vazio)
+  for (let k = 1; k < E.lado; k++) pt.mesa[k] = [{ custo: { luz: 2 } }];
+  pt.dados = ['luz', 'luz', 'luz', 'luz', 'agua'];
+  let r2; for (let k = 1; k < E.lado; k++) r2 = R.pagarAltar(pt, k, [0, 1], rng);
   assert.ok(r2.extras.includes('linha'), 'linha de cima completa');
   // mesa toda: dá o bônus e põe uma mesa nova
-  for (let k = 3; k < 9; k++) pt.mesa[k] = [];
-  pt.mesa[8] = [{ custo: { agua: 1 } }]; pt.dados = ['agua'];
-  const r3 = R.pagarAltar(pt, 8, [0], rng);
-  assert.ok(r3.extras.includes('mesa') && pt.mesas === 1 && pt.mesa.every((m) => m.length === E.cartasPorMonte), 'mesa nova');
+  const ult = E.lado * E.lado - 1;
+  for (let k = E.lado; k < ult; k++) pt.mesa[k] = [];
+  pt.mesa[ult] = [{ custo: { agua: 1 } }]; pt.dados = ['agua'];
+  const r3 = R.pagarAltar(pt, ult, [0], rng);
+  assert.ok(r3.extras.includes('mesa') && pt.mesas === 1 && pt.mesa.length === E.lado * E.lado && pt.mesa.every((m) => m.length === E.cartasPorMonte), 'mesa nova');
   // rolagens acabam
   pt.rolagens = 0; assert.ok(typeof R.rolarAltar(pt, [], rng) === 'string');
   // entradas zeram no dia seguinte

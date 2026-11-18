@@ -1332,3 +1332,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   moldura = carta do topo, verso = cartas de baixo). As cartas ficam em cima dos encaixes (centros a 27,7/49,9/72,1% da mesa).
 - Altar (18/11/2026, Daniel): os elementos NÃO se gastam ao pegar carta (ficam na mão); `pt.combo` conta as cartas da mão e zera ao
   rolar; fundo da aba = arte do templo (sem preto). Página de teste avulsa gerada por scratchpad/gerar_teste.py (não vai para o repo).
+- Altar 4x4 (18/11/2026): `EVENTO_ALTAR.lado` = 4 (16 montes; LINHAS_ALTAR gerado: 4 linhas, 4 colunas, 2 diagonais); cartas do
+  tamanho da mesa (`--tam`); a carta mostra a quantidade em bolinhas (1 meio, 2 lado a lado, 3 diagonal); os elementos guardados
+  continuam marcados depois de rolar (vão para o começo da mão).

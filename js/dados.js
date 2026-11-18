@@ -859,6 +859,7 @@ Tanka.dados = {
       { id: 'folha', nome: 'Folha', ico: '🍃', cor: '#5fcf6a' }, { id: 'luz', nome: 'Luz', ico: '☀️', cor: '#ffd84a' },
       { id: 'trevas', nome: 'Escuridão', ico: '🌑', cor: '#a77bff' },
     ],
+    lado: 4,   // mesa 4x4 (16 montes; Daniel)
     entradasDia: 5, rolagens: 25, dados: 5, cartasPorMonte: 3, custo: [1, 3],   // cada carta pede 1 tipo de elemento só, de 1 a 3 dele (ex.: 2 Água) (Daniel)
     // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda. Os elementos NÃO se gastam ao pegar
     // uma carta (Daniel): ficam na mão para a próxima. Combo: cada carta seguida na mesma mão (antes de rolar) ganha
