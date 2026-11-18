@@ -7633,11 +7633,11 @@
     } else {
       var sel = estado.altarSel || [];
       h += '<div class="altar-status"><span>⭐ <b>' + pt.pontos.toLocaleString('pt-BR') + '</b> pontos</span><span>🎲 <b>' + pt.rolagens + '</b> rolagens</span>' + (pt.combo ? '<span class="altar-combo">🔥 Combo x' + pt.combo + '</span>' : '') + (pt.mesas ? '<span>🏆 ' + pt.mesas + ' mesa(s)</span>' : '') + '</div>';
-      // mesa lado x lado (4x4): as cartas ocupam a mesa toda
-      var lado = EVA_.lado || 3, centro = [];
-      for (var ci = 0; ci < lado; ci++) centro.push(Math.round((100 / lado) * (ci + 0.5) * 10) / 10);
+      // mesa 4x4 (arte assets/eventos/altar/mesa.webp): cada carta em cima de um encaixe
+      var lado = EVA_.lado || 3, cx = [21.3, 40.4, 59.6, 78.8], cy = [20.8, 40.3, 59.8, 79.6];
+      if (lado !== 4) { cx = []; for (var ci = 0; ci < lado; ci++) cx.push(Math.round((100 / lado) * (ci + 0.5) * 10) / 10); cy = cx; }
       h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
-        var pos = ' style="left:' + centro[i % lado] + '%;top:' + centro[Math.floor(i / lado)] + '%;--tam:' + (92 / lado) + '%"';
+        var pos = ' style="left:' + cx[i % lado] + '%;top:' + cy[Math.floor(i / lado)] + '%;--tam:' + (lado === 4 ? 17.6 : 92 / lado) + '%"';
         if (!monte.length) return '<div class="altar-monte vazio"' + pos + '><span>✔</span></div>';
         var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
         return '<button class="altar-monte pilha-' + Math.min(3, monte.length) + (paga ? ' paga' : '') + '"' + pos + ' data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'

@@ -1335,3 +1335,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Altar 4x4 (18/11/2026): 20 rolagens, 6 cartas por monte (simulação: ~0,25% completa a mesa); `EVENTO_ALTAR.lado` = 4 (16 montes; LINHAS_ALTAR gerado: 4 linhas, 4 colunas, 2 diagonais); cartas do
   tamanho da mesa (`--tam`); a carta mostra a quantidade em bolinhas (1 meio, 2 lado a lado, 3 diagonal); os elementos guardados
   continuam marcados depois de rolar (vão para o começo da mão).
+- Mesa 4x4 nova (18/11/2026): assets/eventos/altar/mesa.webp (recortada só na mesa); centros dos encaixes x 21,3/40,4/59,6/78,8 e
+  y 20,8/40,3/59,8/79,6 (%), carta 17,6% (no app.js, abaEventos).
