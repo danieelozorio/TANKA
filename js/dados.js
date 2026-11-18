@@ -737,7 +737,7 @@ Tanka.dados = {
   // (base + porAndar x andar; o stun ganha porStun a cada vez que pega, até o fim da luta).
   // Desviar: chance = desviar.base + porPonto x maior atributo do herói (máx. desviar.max); só evita golpe avisado.
   TORRE: {
-    ligada: true,    // false = só o admin vê (Daniel, 18/11/2026: religada)
+    ligada: false,   // false = só o admin vê (Daniel, 18/11/2026: desligada de novo)
     nome: 'Torre do Eclipse', nivelMin: 40, grupo: 4, segundosEscolha: 20, marco: 1,   // nivelMin era 30 (18/11/2026: andar 1 para grupo level 40); marco 1 = salva andar por andar
     chefeCada: 5, maxTurnos: 45,
     crescimento: 1.06, crescimentoDefesa: 1.03,
