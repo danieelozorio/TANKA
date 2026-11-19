@@ -865,7 +865,8 @@ select pg_temp.igual((select item ->> 'nome' from public.recompensas where item 
 select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 2003::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
-select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('epica', 'lendaria'))::int, 0, 'boss: item só épico ou lendário');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('rara', 'epica', 'lendaria'))::int, 0, 'boss: item raro, épico ou lendário');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item')::int, 3, 'boss: todo o top 10 ganha 1 item');
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');

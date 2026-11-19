@@ -1177,7 +1177,7 @@ alter table public.boss_mundial_dano enable row level security;
 create or replace function public.boss_cfg() returns jsonb
 language sql immutable as $$
   select '{"hora": 20, "minutos": 60, "vidaPorJogador": 50000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximo": 200000, "entradas": 5,
-    "lendaria": 5, "epica": 30, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões"}'::jsonb
+    "lendaria": 5, "epica": 80, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões"}'::jsonb
 $$;
 
 -- Vida do despertar: 50 mil por jogador (conta) que jogou nos últimos 3 dias, sem bots nem admins.
@@ -1205,11 +1205,11 @@ begin
       insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
         jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
     elsif posicao <= 10 then
+      -- Top 10: sempre ganha um item (Henri, 19/11/2026): 5% lendário, 80% épico, o resto (15%) raro.
       sorte := random() * 100;
-      if sorte < (cfg ->> 'lendaria')::numeric + (cfg ->> 'epica')::numeric then
-        insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
-          jsonb_build_object('tipo', 'boss_item', 'raridade', case when sorte < (cfg ->> 'lendaria')::numeric then 'lendaria' else 'epica' end), 'boss');
-      end if;
+      insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
+        jsonb_build_object('tipo', 'boss_item', 'raridade', case when sorte < (cfg ->> 'lendaria')::numeric then 'lendaria'
+          when sorte < (cfg ->> 'lendaria')::numeric + (cfg ->> 'epica')::numeric then 'epica' else 'rara' end), 'boss');
       insert into public.recompensas (personagem_id, item, origem) values (r.personagem_id,
         jsonb_build_object('tipo', 'pergaminho', 'raridade', public.sortear_raridade_drop()), 'boss');
     end if;

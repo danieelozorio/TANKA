@@ -1753,13 +1753,16 @@ Tanka.regras = (function () {
     res.niveis = ganharExp(p, res.exp);
     return res;
   }
-  // Item do top 10: épico ou lendário, arma (50%) ou peça de armadura/secundária, como o drop de chefe.
+  // Item do top 10 (Henri, 19/11/2026): arma (50%) ou peça de armadura (50%), sempre de 3 a 10 levels acima do herói
+  // (até o máximo do jogo). A raridade (lendária/épica/rara) é sorteada no servidor (boss_premiar).
   function itemDoChefeMundial(p, raridade, rng) {
     rng = rng || Math.random;
     if (!D.raridades[raridade]) raridade = 'epica';
-    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
-    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
-    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
+    var nivel = limitarNivel(p.nivel + 3 + Math.floor(rng() * 8));
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivel);
+    var tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
+    var item = novoItem(tipo, p.classe, raridade, rng, null, nivel);
+    return conjuntoPara(p, 1) && rng() < D.CONJUNTO_CHANCE / 100 ? marcarConjunto(p, item) : item;
   }
 
   // ---------- Combate ----------

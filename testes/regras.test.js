@@ -1957,8 +1957,10 @@ teste('chefe mundial: luta contra o chefe da área do level e prêmio x ataques'
   const c = R.premioChefeMundial(q, { chefe: 'velgrath', ataques: 3, fator: 70 });
   assert.strictEqual(c.ouro, Math.floor(m.ouro * 3 * 0.7));
   for (let i = 0; i < 20; i++) {
-    const it = R.itemDoChefeMundial(p, i % 2 ? 'lendaria' : 'epica');
-    assert.strictEqual(it.raridade, i % 2 ? 'lendaria' : 'epica');
+    const it = R.itemDoChefeMundial(p, i % 2 ? 'lendaria' : 'rara');
+    assert.strictEqual(it.raridade, i % 2 ? 'lendaria' : 'rara');
+    assert.ok(it.nivel >= p.nivel + 3 && it.nivel <= p.nivel + 10, 'nível do item ' + it.nivel + ' (herói ' + p.nivel + ')');
+    assert.ok(it.tipo !== 'secundaria');
   }
 });
 

@@ -8061,7 +8061,8 @@
     else if (al) h += '<h3>Clãs</h3><table class="boss-rank"><tr><th></th><th>Clã</th><th>Dano</th></tr>' + al + '</table>';
     h += (CELULAR ? '<details class="regras-celular boss-premios-gaveta"><summary>🏆 Prêmios</summary>' : '<h3>Prêmios</h3>') + '<ul class="boss-premios">'
       + '<li>Se cair a tempo: todos que atacaram ganham o ouro e a exp de ' + esc(chefe.nome) + ' × número de ataques.</li>'
-      + '<li>Top 10 de dano: ' + cfg.epica + '% de chance de item épico ou ' + cfg.lendaria + '% de lendário, e 1 pergaminho.</li>'
+      + '<li>Top 10 de dano: sempre 1 item (arma ou armadura, de 3 a 10 levels acima do seu): ' + cfg.lendaria + '% lendário, ' + cfg.epica + '% épico, '
+      + Math.max(0, 100 - cfg.lendaria - cfg.epica) + '% raro; e 1 pergaminho.</li>'
       + '<li>Golpe final: o título "' + esc(cfg.titulo) + '".</li>'
       + '<li>Clã com mais dano: ' + cfg.aliancaPct + '% do dano dele em ouro no tesouro.</li>'
       + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>' + (CELULAR ? '</details>' : '');

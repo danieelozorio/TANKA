@@ -297,7 +297,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026)
 - Servidor (`supabase/schema.sql`): tabelas `boss_mundial` e `boss_mundial_dano` (RLS sem políticas, só via funções).
   Números em `boss_cfg()` (hora 20, 60 min, 50 mil de vida por conta ativa nos últimos 3 dias sem bots/admins,
-  15 s entre ataques, dano máx. 200 mil por ataque, 5% lendário / 30% épico no top 10, consolação 70%, aliança 1%).
+  15 s entre ataques, dano máx. 200 mil por ataque, top 10 sempre ganha 1 item: 5% lendário / 80% épico / 15% raro (19/11), arma ou armadura de +3 a +10 levels (`R.itemDoChefeMundial`), consolação 70%, aliança 1%).
 - Tudo é preguiçoso: `boss_garantir()` (chamado por `boss_estado`/`boss_atacar`) cria o despertar do dia a partir das 20h
   (anuncia no chat com `classe = 'sistema'`; o trigger `validar_mensagem` deixa passar quando `tanka.aviso_sistema = '1'`)
   e encerra os que passaram da hora (`dormindo` + `boss_premiar(id, false)`).
