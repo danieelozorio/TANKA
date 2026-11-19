@@ -9,6 +9,9 @@ const URL_ = (process.env.STRESS_URL || '').replace(/\/$/, ''), CHAVE = process.
 const SENHA = process.env.STRESS_SENHA || 'stress-' + 'eldrin-teste';
 const ETAPAS = (process.env.STRESS_ETAPAS || '100,250,500,1000').split(',').map(Number);
 const SEG = Number(process.env.STRESS_SEGUNDOS || 90), JUNTOS = Number(process.env.STRESS_CRIAR_JUNTOS || 10);
+// STRESS_POR_CONTA (Daniel, 19/11/2026): N heróis por conta (contas stresscNN marcadas como bot no projeto de teste).
+// O Supabase só deixa 30 logins a cada 5 min por IP; assim 1000 heróis precisam de só 1000/N logins.
+const POR_CONTA = Number(process.env.STRESS_POR_CONTA || 0);
 if (!URL_ || !CHAVE) { console.error('Faltam STRESS_URL e STRESS_CHAVE (projeto de teste).'); process.exit(1); }
 if (/cwlcdeqvwzpveduzhaol/.test(URL_)) { console.error('Recusado: este é o banco de verdade do jogo. Use um projeto de teste.'); process.exit(1); }
 
@@ -41,7 +44,28 @@ const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 const nomeDe = (i) => 'stress' + String(i).padStart(4, '0');
 const emailDe = (u) => u.toLowerCase() + '@jogador.tankaarena.com';
 
+const contas = {};   // conta → Promise<{ token, ids }>
+async function entrarConta(c) {
+  const u = 'stressc' + String(c).padStart(2, '0');
+  const s = await pedir('login', '/auth/v1/token?grant_type=password', { metodo: 'POST', corpo: { email: emailDe(u), password: SENHA }, medir: false });
+  if (!s.ok) throw new Error('login ' + u + ': ' + s.status + ' ' + JSON.stringify(s.json).slice(0, 150));
+  const token = s.json.access_token;
+  const ps = await pedir('personagens', '/rest/v1/personagens?select=id&order=id', { token, medir: false });
+  return { u, token, ids: (ps.json || []).map((x) => x.id) };
+}
 async function prepararJogador(i) {
+  if (POR_CONTA) {
+    const c = Math.floor((i - 1) / POR_CONTA) + 1, k = (i - 1) % POR_CONTA;
+    const conta = await (contas[c] || (contas[c] = entrarConta(c)));
+    let id = conta.ids[k];
+    if (!id) {
+      const p = R.criarPersonagem('Stress' + String(i).padStart(4, '0'), 'masculino', 'humano', 'cavaleiro');
+      const cr = await pedir('criar', '/rest/v1/personagens', { metodo: 'POST', token: conta.token, corpo: { id: p.id, nome: p.nome, dados: p }, medir: false });
+      if (!cr.ok) throw new Error('personagem ' + i + ': ' + cr.status + ' ' + JSON.stringify(cr.json).slice(0, 150));
+      id = p.id;
+    }
+    return { u: conta.u, token: conta.token, id };
+  }
   const u = nomeDe(i);
   let s = await pedir('login', '/auth/v1/token?grant_type=password', { metodo: 'POST', corpo: { email: emailDe(u), password: SENHA }, medir: false });
   if (!s.ok) {

@@ -23,10 +23,13 @@ on:
         description: 'Enviar as funções cacada e acao para o projeto de teste antes'
         type: boolean
         default: true
+      por_conta:
+        description: 'Heróis por conta (contas stresscNN do projeto de teste); 0 = uma conta por herói'
+        default: '40'
       preparar_projeto:
         description: 'Preparar o projeto de teste antes (rodar o schema.sql, desligar a confirmação de e-mail e subir os limites de cadastro)'
         type: boolean
-        default: true
+        default: false
 jobs:
   stress:
     runs-on: ubuntu-latest
@@ -72,6 +75,7 @@ jobs:
           STRESS_ETAPAS: ${{ inputs.etapas }}
           STRESS_SEGUNDOS: ${{ inputs.segundos }}
           STRESS_CRIAR_JUNTOS: '10'
+          STRESS_POR_CONTA: ${{ inputs.por_conta }}
         run: node ferramentas/stress/teste-stress.js
       - uses: actions/upload-artifact@v4
         if: always()
