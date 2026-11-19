@@ -7684,7 +7684,7 @@
       + '<li>Cada partida tem <b>' + EVA_.rolagens + ' rolagens</b> de ' + EVA_.dados + ' elementos: ' + EVA_.elementos.map(function (e) { return e.ico + ' ' + e.nome; }).join(', ') + '.</li>'
       + '<li>Cada carta pede <b>1 a 3 do mesmo elemento</b> (ex.: 2 💧). Toque num <b>monte</b> que brilha para pegar a carta do topo (' + EVA_.pontos.porElemento + ' pontos por elemento).</li>'
       + '<li>Os elementos <b>não se gastam</b>: ficam na mão para a próxima carta. Cada carta seguida antes de rolar é <b>combo</b> (+' + EVA_.pontos.combo + ' pontos por carta já pega nessa mão).</li>'
-      + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher.</li>'
+      + '<li>Marque elementos e <b>role</b>: os marcados ficam, os outros mudam. Marque <b>2</b> para <b>trocar por 1</b> que você escolher (' + (EVA_.trocasPorPartida || 2) + ' trocas por partida).</li>'
       + '<li>Monte zerado +' + EVA_.pontos.monte + ', <b>coluna completa +' + EVA_.pontos.coluna + '</b>, linha ou diagonal completa +' + EVA_.pontos.linha + ', mesa toda +' + EVA_.pontos.mesa + ' (e vem uma mesa nova).</li>'
       + '<li><b>' + EVA_.entradasDia + ' partidas por dia</b>. Os pontos de todas somam no <b>ranking</b>; no fim do evento os melhores ganham prêmios.</li></ul></details>';
     if (!pt) {
@@ -7712,7 +7712,8 @@
         return '<button class="altar-dado" style="--cor:' + e.cor + '" data-acao="altar-trocar" data-valor="' + e.id + '" title="' + e.nome + '">' + imgEl(e.id, 'altar-dado-img') + '</button>';
       }).join('') + '<button class="btn secundario btn-pequeno" data-acao="altar-troca-nao">Cancelar</button></div>';
       h += '<div class="botoes altar-botoes"><button class="btn" data-acao="altar-rolar"' + (pt.rolagens > 0 ? '' : ' disabled') + '>🎲 Rolar' + (sel.length ? ' (guarda ' + sel.length + ')' : '') + '</button>'
-        + '<button class="btn secundario" data-acao="altar-troca"' + (sel.length === 2 ? '' : ' disabled') + ' title="Marque 2 elementos">🔁 Trocar 2 → 1</button>'
+        + (function () { var resta = Math.max(0, (EVA_.trocasPorPartida || 99) - (pt.trocas || 0));
+          return '<button class="btn secundario" data-acao="altar-troca"' + (sel.length === 2 && resta > 0 ? '' : ' disabled') + ' title="' + (resta > 0 ? 'Marque 2 elementos' : 'Acabaram as trocas desta partida') + '">🔁 Trocar 2 → 1 (' + resta + ')</button>'; })()
         + (estado.altarFim ? '<button class="btn perigo" data-acao="altar-encerrar">Confirmar: encerrar</button><button class="btn secundario" data-acao="altar-fim-nao">Voltar</button>'
           : '<button class="btn secundario" data-acao="altar-fim">Encerrar partida</button>') + '</div>';
       if (estado.altarFim && (pt.rolagens > 0 || pt.mesa.some(function (m) { return m.length && dadosParaCarta(pt.dados, m[m.length - 1].custo); })))
@@ -7814,7 +7815,7 @@
         }, true);
         return true;
       }
-      case 'altar-troca': estado.altarTroca = true; telaJogo(); return true;
+      case 'altar-troca': if (pt && (pt.trocas || 0) >= (EVA_.trocasPorPartida || 99)) { avisar('Você já usou as trocas desta partida.'); return true; } estado.altarTroca = true; telaJogo(); return true;
       case 'altar-troca-nao': estado.altarTroca = false; telaJogo(); return true;
       case 'altar-trocar': {
         if (!pt || estado.altarBloq) return true;

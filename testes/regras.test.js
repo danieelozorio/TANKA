@@ -2807,6 +2807,16 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   pt.dados = ['luz', 'trevas'];
   // trocar 2 por 1
   assert.strictEqual(R.trocarAltar(pt, [0, 1], 'folha'), true); assert.deepStrictEqual(pt.dados, ['folha']);
+  // só 2 trocas por partida (Daniel, 19/11/2026)
+  assert.strictEqual(E.trocasPorPartida, 2);
+  const pt2 = R.novaPartidaAltar(rng);
+  assert.strictEqual(pt2.trocas, 0);
+  pt2.dados = ['luz', 'luz', 'agua', 'agua', 'fogo'];
+  assert.strictEqual(R.trocarAltar(pt2, [0, 1], 'fogo'), true);
+  assert.strictEqual(R.trocarAltar(pt2, [0, 1], 'fogo'), true);
+  assert.strictEqual(pt2.trocas, 2);
+  const n2 = pt2.dados.length;
+  assert.ok(typeof R.trocarAltar(pt2, [0, 1], 'fogo') === 'string' && pt2.dados.length === n2, '3ª troca recusada');
   // rolar: guarda o escolhido e completa até 5, gasta 1
   assert.strictEqual(R.rolarAltar(pt, [0], rng), true); assert.strictEqual(pt.dados.length, 5); assert.strictEqual(pt.dados[0], 'folha'); assert.strictEqual(pt.rolagens, E.rolagens - 1);
   assert.strictEqual(pt.combo, 0, 'rolar zera o combo');

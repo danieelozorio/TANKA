@@ -1397,3 +1397,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Diagnóstico (19/11): `registrarPush` mostra na tela onde travou (APK antigo, sem pushDesde, permissão,
   `registrationError` do Firebase, servidor recusou o token); sucesso aparece uma vez ("Notificações ligadas") e o
   estado fica em `EldrinNativo.push`.
+
+### Altar: só 2 trocas por partida (Daniel, 19/11/2026)
+- `EVENTO_ALTAR.trocasPorPartida: 2`; `pt.trocas` conta (partida nova começa em 0; partida antiga sem o campo = 0).
+  `trocarAltar` recusa a 3ª (vale no servidor, que usa a mesma regra). Tela: botão "Trocar 2 → 1 (N)" desliga em 0.

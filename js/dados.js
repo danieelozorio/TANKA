@@ -863,6 +863,7 @@ Tanka.dados = {
       { id: 'trevas', nome: 'Escuridão', ico: '🌑', cor: '#a77bff' },
     ],
     lado: 4,   // mesa 4x4 (16 montes; Daniel)
+    trocasPorPartida: 2,   // "Trocar 2 → 1" só 2 vezes por partida (Daniel, 19/11/2026: o pessoal abusava)
     entradasDia: 5, rolagens: 20, dados: 5, cartasPorMonte: 6, custo: [1, 3],   // 20 rolagens e 6 cartas por monte (Daniel: mesa difícil de completar)   // cada carta pede 1 tipo de elemento só, de 1 a 3 dele (ex.: 2 Água) (Daniel)
     // carta = 10 por elemento; monte zerado; linha (como jogo da velha); mesa toda. Os elementos NÃO se gastam ao pegar
     // uma carta (Daniel): ficam na mão para a próxima. Combo: cada carta seguida na mesma mão (antes de rolar) ganha

@@ -3398,7 +3398,7 @@ Tanka.regras = (function () {
   }
   function novaPartidaAltar(rng) {
     var dados = []; for (var i = 0; i < EVA.dados; i++) dados.push(elementoAltar(rng));
-    return { mesa: mesaAltar(rng), dados: dados, rolagens: EVA.rolagens, pontos: 0, mesas: 0, linhas: [], combo: 0 };
+    return { mesa: mesaAltar(rng), dados: dados, rolagens: EVA.rolagens, pontos: 0, mesas: 0, linhas: [], combo: 0, trocas: 0 };
   }
   function custoTotal(custo) { return Object.keys(custo).reduce(function (s, k) { return s + custo[k]; }, 0); }
   // índices (dos dados) válidos e sem repetir
@@ -3439,11 +3439,13 @@ Tanka.regras = (function () {
   }
   // Troca 2 elementos quaisquer por 1 escolhido.
   function trocarAltar(pt, idxs, elemento) {
+    if (pt && (pt.trocas || 0) >= (EVA.trocasPorPartida || Infinity)) return 'Você já usou as ' + EVA.trocasPorPartida + ' trocas desta partida.';
     idxs = pt && idxAltar(pt, idxs);
     if (!idxs || idxs.length !== 2) return 'Escolha 2 elementos para trocar.';
     if (!EVA.elementos.some(function (e) { return e.id === elemento; })) return 'Elemento inválido.';
     tirarDados(pt, idxs);
     pt.dados.push(elemento);
+    pt.trocas = (pt.trocas || 0) + 1;
     return true;
   }
   // Rola de novo: guarda os escolhidos e completa até 5 (gasta 1 rolagem).
