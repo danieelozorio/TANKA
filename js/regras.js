@@ -1206,10 +1206,11 @@ Tanka.regras = (function () {
   }
 
   // Status vêm dos atributos (básicos + equipamentos) e dos bônus diretos das armaduras.
-  // pve = true: soma as skills de combate do clã (só contra monstros: caçada, masmorra e bosses; nunca na Arena).
+  // Skills do clã e Pacto de Ascensão valem sempre, também na Arena (Henri, 19/11/2026; no servidor: arena_com_cla e
+  // arena_com_pacto). pve = true: soma também as runas (só contra monstros: caçada, masmorra e bosses).
   function status(p, pve) {
-    var s = statusBase(p);
-    return pve ? comAscensao(comRunas(comCla(s, p), p), p) : s;
+    var s = comCla(statusBase(p), p);
+    return comAscensao(pve ? comRunas(s, p) : s, p);
   }
   // Runas das Relíquias equipadas (só contra monstros).
   function comRunas(s, p) {

@@ -1237,17 +1237,17 @@ Tanka.dados = {
     doacaoMaxDia: 3000,
     // Skills do clã (Daniel, nov/2026): compradas pelo líder com o ouro do tesouro e PERMANENTES para todos os membros.
     // O nível da skill nunca passa do nível do clã (clã nível 2 libera as skills nível 2). Preço do nível n = precos[n-1].
-    // porNivel: quanto cada nível soma. Combate (dano, crítico, resistência, vida, velocidade, esquiva) vale só contra
-    // monstros (caçada, masmorra e bosses), nunca na Arena. Ícones: assets/cla/skill-<id>.webp (sem a arte, um símbolo).
+    // porNivel: quanto cada nível soma. Combate (dano, crítico, resistência, vida, velocidade, esquiva) vale contra
+    // monstros; dano, vida, resistência e velocidade também na Arena (19/11/2026, arena_com_cla). Crítico e esquiva não. Ícones: assets/cla/skill-<id>.webp (sem a arte, um símbolo).
     skillPrecos: [25000, 40000, 65000, 100000, 150000, 225000, 325000, 475000, 700000, 1000000],
     skills: [
       { id: 'exp', nome: 'Sabedoria', simbolo: '📖', porNivel: 2, unidade: '% de exp', descricao: 'Mais exp na caçada.' },
       { id: 'ouro', nome: 'Cofre Cheio', simbolo: '💰', porNivel: 2, unidade: '% de ouro', descricao: 'Mais ouro na caçada.' },
-      { id: 'dano', nome: 'Fúria do Clã', simbolo: '⚔', porNivel: 1.5, unidade: '% de dano', descricao: 'Mais dano contra monstros.' },
+      { id: 'dano', nome: 'Fúria do Clã', simbolo: '⚔', porNivel: 1.5, unidade: '% de dano', descricao: 'Mais dano (também na Arena).' },
       { id: 'critico', nome: 'Olho de Águia', simbolo: '🎯', porNivel: 0.5, unidade: '% de chance de crítico', descricao: 'Mais chance de acerto crítico.' },
       { id: 'danoCritico', nome: 'Golpe Brutal', simbolo: '💥', porNivel: 3, unidade: '% de dano crítico', descricao: 'Críticos mais fortes.' },
       { id: 'resistencia', nome: 'Muralha', simbolo: '🛡', porNivel: 2, unidade: '% de defesa', descricao: 'Mais defesa e defesa mágica.' },
-      { id: 'vida', nome: 'Vigor', simbolo: '❤', porNivel: 2, unidade: '% de vida', descricao: 'Mais vida máxima contra monstros.' },
+      { id: 'vida', nome: 'Vigor', simbolo: '❤', porNivel: 2, unidade: '% de vida', descricao: 'Mais vida máxima (também na Arena).' },
       { id: 'velocidade', nome: 'Passo Ligeiro', simbolo: '💨', porNivel: 1, unidade: '% de velocidade', descricao: 'Ataca mais vezes.' },
       { id: 'esquiva', nome: 'Sombra Ágil', simbolo: '🌀', porNivel: 0.5, unidade: '% de esquiva', descricao: 'Desvia de mais golpes.' },
       { id: 'fortuna', nome: 'Fortuna', simbolo: '🍀', porNivel: 2, unidade: '% de chance de drop', descricao: 'Mais chance de itens caírem.' },
