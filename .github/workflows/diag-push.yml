@@ -1,0 +1,13 @@
+# Diagnóstico TEMPORÁRIO das notificações (Henri, 19/11/2026). Só roda no branch henri/diag-push. Não grava nada no banco
+# (só chama a função push, que manda o que já estiver na fila).
+name: Diagnostico push
+on:
+  push:
+    branches: ['henri/diag-push']
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar a função push
+        run: |
+          curl -s -i -X POST https://cwlcdeqvwzpveduzhaol.supabase.co/functions/v1/push -H 'Content-Type: application/json' -d '{}' | head -c 1500; echo
