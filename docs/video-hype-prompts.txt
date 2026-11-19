@@ -1,0 +1,32 @@
+ELDRIN - HYPE TRAILER (30 s) - PROMPTS
+======================================
+
+1) NARRATION (voice AI: ElevenLabs or similar)
+----------------------------------------------
+Voice direction (paste in the voice settings / prompt):
+Deep, epic male trailer voice, Brazilian Portuguese, dark fantasy movie trailer style.
+Slow and heavy on the first line, then faster and more intense, short dramatic pauses
+between lines, final line confident and energetic. No background music, no effects,
+clean voice only. Export MP3.
+
+Script (Brazilian Portuguese - one line per cut, keep the pauses):
+
+[0-3 s - HOOK]  Dez chefes. Cinquenta andares. So um grupo chega ao topo.
+[3-5 s]         Bem-vindo a Eldrin.
+[5-9 s]         Crie seu heroi. Escolha sua raca. Sua classe. Seu destino.
+[9-13 s]        Cace monstros. Forje armas lendarias. Arrisque tudo no encanto.
+[13-17 s]       Na Arena, um dado decide quem cai.
+[17-21 s]       Junte seu cla... e derrube o chefe que ninguem derrubou.
+[21-25 s]       A Torre esta aberta.
+[25-27 s]       Voce sobe?
+[27-30 s]       Eldrin. Jogue agora: eldrin online ponto com ponto be erre.
+
+(If the voice reads a word wrong, tell Claudia and she sends the version with accents.)
+
+
+2) MUSIC (Suno)
+---------------
+Epic dark fantasy trailer music, 30 seconds, starts with a deep low boom and silence
+for the hook, then building war drums and choir, heavy hits on every cut, massive
+climax at 21 seconds, sudden stop at 27 seconds, one final boom on the logo.
+Orchestral, cinematic, no vocals, no lyrics.
