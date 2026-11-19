@@ -1372,3 +1372,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   velocidade dos nós se o custo couber nos pontos do level (+extras, até o limite) e no máximo de pedras; nó
   desconhecido = ignora o Pacto. Crítico, dano crítico, precisão e esquiva por pontos não contam (crítico na Arena é o D20).
 - O gatilho da ficha agora força `dados.id = id da linha` (o clã da Arena é lido por ele).
+
+### Notificações no app Android (Henri, 19/11/2026)
+- Locais (`@capacitor/local-notifications`, em `js/app-nativo.js` → `window.EldrinNativo`): Chefe Mundial às 20h de
+  Brasília e boss do clã na hora do clã (`st.boss.hora`), agendados para os próximos 7 dias a cada abertura (ids
+  10020–10026 e 10030–10036); estamina/caçada parou: ao ir para o fundo, `cacada` ação `previsao` (servidor-cacada.js,
+  simula numa cópia, não grava) devolve quando a caçada ligada para → agenda (id 1001); volta → cancela.
+- Do servidor (Firebase/FCM): `push_registrar(token)` (app), `push_avisar(pid, titulo, corpo)` (só o banco: fila
+  `push_fila` + chama a função `push` por pg_net), hooks no lance coberto do leilão e no `arena_finalizar` (defensor).
+  Função `supabase/functions/push` (segredo `FIREBASE_CONTA` = JSON da conta de serviço) manda os pendentes da última
+  hora e apaga tokens inválidos. O app só registra no Firebase com APK >= `ELDRIN_APP.pushDesde` (versão do 1º APK
+  montado com `app-android/google-services.json`; guardado no versao.json do release app-web).
