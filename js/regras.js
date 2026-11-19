@@ -24,14 +24,19 @@ Tanka.regras = (function () {
 
   // Exp para passar do `nivel` atual ao próximo: dobra até o level 5 (10, 20, 40, 80, 160)
   // e depois cresce 50% por level (240, 360, 540...).
-  function expNecessaria(nivel) {
-    if (nivel <= 5) return D.EXP_BASE * Math.pow(2, nivel - 1);
-    var v = D.EXP_BASE * 16;   // level 5
-    for (var n = 6; n <= nivel; n++) {
-      var f = D.EXP_FAIXAS.filter(function (x) { return n <= x.ate; })[0];
-      v *= f ? f.crescimento : D.EXP_CRESCIMENTO;
+  // semMult: a curva antiga, sem o EXP_MULT (usada pela Ascensão, que não ficou mais cara).
+  function expNecessaria(nivel, semMult) {
+    var v;
+    if (nivel <= 5) v = D.EXP_BASE * Math.pow(2, nivel - 1);
+    else {
+      v = D.EXP_BASE * 16;   // level 5
+      for (var n = 6; n <= nivel; n++) {
+        var f = D.EXP_FAIXAS.filter(function (x) { return n <= x.ate; })[0];
+        v *= f ? f.crescimento : D.EXP_CRESCIMENTO;
+      }
     }
-    return Math.round(v);
+    var m = !semMult && D.EXP_MULT ? D.EXP_MULT.filter(function (x) { return nivel <= x.ate; })[0] : null;
+    return Math.round(v * (m ? m.mult : 1));
   }
 
   var RARIDADES = Object.keys(D.raridades);         // comum, rara, epica, lendaria
@@ -1366,7 +1371,7 @@ Tanka.regras = (function () {
     return (ARVORE_ASC = nos);
   }
   function nosAscensao(p) { return p && p.ascensao && Array.isArray(p.ascensao.nos) ? p.ascensao.nos : []; }
-  function expPorPontoAscensao() { return Math.round(expNecessaria(D.NIVEL_MAXIMO - 1) * AS.expPorPonto); }
+  function expPorPontoAscensao() { return Math.round(expNecessaria(D.NIVEL_MAXIMO - 1, true) * AS.expPorPonto); }   // sem o EXP_MULT
   // Pontos ganhos: 1 por level do 41 ao 60 + os da exp no level máximo, até o limite.
   function pontosAscensaoTotal(p) {
     if (!p || p.nivel < AS.nivelInicio) return 0;

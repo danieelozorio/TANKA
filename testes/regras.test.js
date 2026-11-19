@@ -2833,3 +2833,5 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   const p = { }; const a = R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 18, 15)); a.entradas = 5;
   assert.strictEqual(R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 19, 15)).entradas, 0);
 });
+
+

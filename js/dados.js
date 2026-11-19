@@ -24,6 +24,9 @@ Tanka.dados = {
   // Henri (nov/2026): depois do 19 a curva cresce menos, para cada level pedir mais ou menos os mesmos monstros
   // (a exp dos monstros triplica a cada área de 5 levels): +30% por level do 20 ao 29 e +12% do 30 em diante.
   EXP_FAIXAS: [{ ate: 19, crescimento: 1.5 }, { ate: 29, crescimento: 1.3 }, { ate: 99, crescimento: 1.12 }],
+  // EXP_MULT (opcional): multiplica a exp de cada level pela faixa do level atual, ex.: [{ ate: 9, mult: 4 }, ...].
+  // Testado em 18/11/2026 (4x a 12x) e desfeito no mesmo dia a pedido do Henri: hoje a curva é a de cima, sem multiplicar.
+  EXP_MULT: null,
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,
@@ -1152,6 +1155,7 @@ Tanka.dados = {
     reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
     // Veneno, sangramento e queimadura na Arena (Henri, 18/11/2026): o D20 multiplica o dano do efeito, por faixa
     // (até o número `ate`): 1 falha; 2 a 6 reduz; 7 a 12 normal; 13 a 17 aumenta; 18 a 20 o dobro.
+    sombraDado: 18,   // Sombra do Assassino na Arena (18/11/2026): só esquiva com o D20 em 18, 19 ou 20; abaixo, só o ataque
     efeitoDado: [{ ate: 1, fator: 0 }, { ate: 6, fator: 0.5 }, { ate: 12, fator: 1 }, { ate: 17, fator: 1.5 }, { ate: 20, fator: 2 }],
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
     // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.

@@ -1338,3 +1338,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Mesa 4x4 nova (18/11/2026): assets/eventos/altar/mesa.webp (recortada só na mesa); centros dos encaixes x 21,3/40,4/59,6/78,8 e
   y 20,8/40,3/59,8/79,6 (%), carta 17,6% (no app.js, abaEventos).
 - Altar: coluna completa vale `pontos.coluna` (250); linha e diagonal continuam `pontos.linha` (100). `ehColunaAltar(li)`.
+
+### Arena: Sombra do Assassino pelo D20 (Henri, 18/11/2026)
+- `arena_vez`, tipo `furtivo`: só fica nas sombras (`furtivo` + `critEm`) com o dado >= `ARENA.sombraDado` (18).
+  Abaixo, `ev.sombraFalhou` e fica só o ataque normal do turno (a Sombra não gasta a vez). Recarga gasta igual.
+
+### Exp em % (Henri, 18/11/2026; o EXP_MULT foi desfeito no mesmo dia)
+- DESFEITO: `D.EXP_MULT` voltou para null (curva antiga). O código continua aceitando o multiplicador.
+- `D.EXP_MULT` (faixa pelo level atual): 1–9 ×4, 10–19 ×5, 20–29 ×6, 30–39 ×9, 40+ ×12 sobre a curva antiga em
+  `R.expNecessaria(nivel)`. `R.expNecessaria(nivel, true)` = curva antiga (usada pela Ascensão, que não encareceu).
+  A exp dos chefes do Pesadelo (calculada em dados.js pela curva antiga) e dos monstros não mudou.
+  Caçando sem parar (160 de estamina/h): 10 em ~4 h, 20 ~1,5 dia, 30 ~6 dias, 40 ~2 semanas, 53 ~1,5 mês, 60 ~2 meses.
+- Tela: barra de exp e mensagens mostram só % do level atual (`expPct(p, valor)` em app.js); os números ficam no servidor.
+- testes/regras.test.js zera o EXP_MULT no começo (testes antigos usam a curva base) e tem um teste próprio dele.

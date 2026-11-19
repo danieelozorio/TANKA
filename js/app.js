@@ -1259,7 +1259,7 @@
       + estaminaHtml(p)
       + '<div class="suave">Experiência</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp maximo', 1, 1, 'Level máximo')
-        : barra('exp', p.exp, precisa, p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR'))) + '</div>'
+        : barra('exp', p.exp, precisa, Math.floor(Math.min(100, p.exp * 100 / precisa)) + '%')) + '</div>'
       + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
       + poderHtml(p) + bonusFichaHtml()
@@ -1364,7 +1364,7 @@
     // celular: carta deitada com o resumo (estamina, exp, ouro, vida, dano); a ficha completa fica em "Ver detalhes".
     // Também na Arcane em tela estreita (Henri, nov/2026).
     var curto = CELULAR || (temaAtual() === 'arcane' && window.innerWidth <= 760);
-    var resumo = curto ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span>✦ ' + m.exp.toLocaleString('pt-BR') + ' exp</span>'
+    var resumo = curto ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span title="Exp por vitória, em % do seu level">✦ ' + expPct(estado.personagem, m.exp) + '</span>'
       + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + dano(m.ataque) + '</span></div>' : '';
     return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3>' + (curto ? resumo + '<details class="monstro-detalhes"><summary>Ver detalhes</summary><p class="suave">' + m.descricao + '</p>' : '<p class="suave">' + m.descricao + '</p>')
@@ -2287,7 +2287,7 @@
       var ativas = c.habilidades.filter(function (x) { return x.tipo !== 'passiva'; });
       h += '<h3 class="subtitulo">Ordem de uso</h3>' + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave pequeno">Na luta, a cada vez do herói, ele usa a primeira habilidade pronta desta lista. '
         + 'Se nenhuma estiver pronta, ataca normalmente. <b>Arena · Defesa</b> é a ordem usada quando outro jogador desafia você.</p><p class="suave pequeno">Na Arena não existe crítico: os bônus de crítico viram dano, '
-        + 'a Sombra desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p>' + (CELULAR ? '</details>' : '') + '<div class="ordem-hab">'
+        + 'a Sombra (só com 18, 19 ou 20 no dado) desvia do próximo golpe e faz o seguinte valer o 20 do dado. Fora isso, esquiva e precisão não contam: só o 1 do dado erra.</p>' + (CELULAR ? '</details>' : '') + '<div class="ordem-hab">'
         + [['cacada', 'Caçada'], ['masmorra', 'Masmorra'], ['arena', 'Arena · Ataque'], ['defesa', 'Arena · Defesa']].map(function (m) {
           var lista = R.talentos(p).ordem[m[0]], fora = ativas.filter(function (x) { return lista.indexOf(x.id) < 0; });
           return '<div class="ordem-col"><h4>' + m[1] + '' + '</h4><ol>'
@@ -4030,7 +4030,7 @@
     var m = D.monstros[r.monstroId];
     var cacarDeNovo = r.escolhido ? '<button class="btn" data-acao="cacar" data-monstro="' + r.escolhido + '">Caçar de novo</button>' : '';
     if (r.resultado === 'vitoria') {
-      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + r.exp + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzidos e sem drops: área abaixo do seu nível)</span>' : '') + '.</p>'
+      return '<div class="resultado' + (m.chefe ? ' vitoria-chefe' : '') + '"><h2>' + (m.chefe ? 'CHEFE DERROTADO!' : 'Vitória!') + '</h2><p>Você derrotou ' + m.nome + ' e ganhou <strong>' + expPct(estado.personagem, r.exp) + ' de exp</strong> e <strong class="cor-ouro">' + r.ouro + ' de ouro</strong>' + (r.fatorExp < 100 ? ' <span class="suave">(reduzidos e sem drops: área abaixo do seu nível)</span>' : '') + '.</p>'
         + (r.niveis ? '<p class="destaque">Subiu para o level ' + estado.personagem.nivel + '! +' + r.niveis * D.PONTOS_POR_NIVEL + ' pontos de atributo.</p>' : '')
         + (r.habilidadeEvoluiu ? '<p class="habilidade-usada">⚡ Sua habilidade evoluiu para o nível ' + r.habilidadeEvoluiu + '!</p>' : '')
         + (r.drop ? '<p>Drop: ' + dropHtml(r.drop, false) + '</p>' : '')
@@ -4041,7 +4041,7 @@
         + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     if (r.resultado === 'derrota') {
-      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você perde a estamina da luta' + (r.expPerdida ? ' e <strong class="menos">' + r.expPerdida.toLocaleString('pt-BR') + ' de exp</strong>' : '') + '. Cuidado com monstros difíceis demais!</p>'
+      return '<div class="resultado derrota"><h2>Derrota</h2><p>' + m.nome + ' foi mais forte. Você perde a estamina da luta' + (r.expPerdida ? ' e <strong class="menos">' + expPct(estado.personagem, r.expPerdida) + ' de exp</strong>' : '') + '. Cuidado com monstros difíceis demais!</p>'
         + '<div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
     }
     return '<div class="resultado"><p>Você fugiu de ' + m.nome + '.</p><div class="botoes">' + cacarDeNovo + '<button class="btn secundario" data-acao="fechar-resultado">Voltar</button></div></div>';
@@ -4359,10 +4359,10 @@
     }
     }
     if (estado.cacada) {
-      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + res.exp + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.' + (res.estamina ? ' −' + res.estamina + ' de estamina.' : '')
+      if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + expPct(estado.personagem, res.exp) + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.' + (res.estamina ? ' −' + res.estamina + ' de estamina.' : '')
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
       if (res.material && estado.cacada) estado.cacada.materiais = (estado.cacada.materiais || 0) + res.material.qtd;
-      if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.' + (res.expPerdida ? ' −' + res.expPerdida + ' de exp.' : '') + (res.estamina ? ' −' + res.estamina + ' de estamina.' : ''));
+      if (res.resultado === 'vitoria') { /* já escreveu acima */ } else if (res.resultado === 'derrota') linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha.' + (res.expPerdida ? ' −' + expPct(estado.personagem, res.expPerdida) + ' de exp.' : '') + (res.estamina ? ' −' + res.estamina + ' de estamina.' : ''));
       else linha('errou', esc(estado.personagem.nome) + ' fugiu.');
       fimLutaCacada(res, b, primeiraVez);
       return;
@@ -4372,7 +4372,7 @@
     res.monstroId = b.monstroId;
     res.escolhido = estado.escolhido;
     if (res.resultado === 'vitoria') {
-      linha('destaque', 'Vitória! +' + res.exp + ' de exp' + (res.fatorExp < 100 ? ' (exp e ouro reduzidos, sem drops: área abaixo do seu nível)' : '') + '.');
+      linha('destaque', 'Vitória! +' + expPct(estado.personagem, res.exp) + ' de exp' + (res.fatorExp < 100 ? ' (exp e ouro reduzidos, sem drops: área abaixo do seu nível)' : '') + '.');
       if (res.niveis) linha('destaque', 'Level up! Agora você é level ' + estado.personagem.nivel + '.');
       if (res.habilidadeEvoluiu) linha('habilidade-usada', '⚡ Sua habilidade evoluiu para o nível ' + res.habilidadeEvoluiu + '!');
       if (res.drop) linha('destaque', 'Drop: ' + R.nomeItem(res.drop) + ' (' + nomeRaridadeItem(res.drop) + ')!');
@@ -4381,7 +4381,7 @@
       if (res.pergaminho) linha('destaque', 'Drop: ' + (res.qtdPergaminhos > 1 ? res.qtdPergaminhos + ' Pergaminhos' : 'Pergaminho') + ' para item ' + ITEM_RARIDADE[res.pergaminho] + '!');
       if (res.material) linha('destaque', '⛏ Material: ' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + ' (Oficina).');
     } else if (res.resultado === 'derrota') {
-      linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + res.expPerdida + ' de exp' : '') + '.');
+      linha('dano-recebido', esc(estado.personagem.nome) + ' caiu em batalha' + (res.expPerdida ? ' e perdeu ' + expPct(estado.personagem, res.expPerdida) + ' de exp' : '') + '.');
     } else {
       linha('errou', esc(estado.personagem.nome) + ' fugiu.');
     }
@@ -4391,7 +4391,7 @@
     salvar();
     telaJogo();
     if (res.resultado === 'vitoria') {
-      avisar('Vitória! +' + res.exp + ' de exp', 'vitoria');
+      avisar('Vitória! +' + expPct(estado.personagem, res.exp) + ' de exp', 'vitoria');
       if (res.niveis) avisar('Level up! Level ' + estado.personagem.nivel, 'nivel');
       var proximo = primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
       if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
@@ -4601,7 +4601,7 @@
     var proximo = res.resultado === 'vitoria' && primeiraVez && Object.keys(D.monstros).filter(function (k) { return R.monstroAnterior(k) === b.monstroId; })[0];
     if (proximo) avisar('Nova caçada liberada: ' + D.monstros[proximo].nome + '!', 'nivel');
     itens.forEach(function (it) { if (!it.consumivel) avisarItem(it); });   // pergaminho tem aviso próprio
-    if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha: perdeu a estamina da luta' + (res.expPerdida ? ' e ' + res.expPerdida + ' de exp' : '') + '. A caçada parou.'); return; }
+    if (res.resultado === 'derrota') { pararCacada(esc(p.nome) + ' caiu em batalha: perdeu a estamina da luta' + (res.expPerdida ? ' e ' + expPct(p, res.expPerdida) + ' de exp' : '') + '. A caçada parou.'); return; }
     if (!c.ativa) { c.fase = 'parada'; clearInterval(c.relogio); telaJogo(); return; }
     if (b.replay && b.replay.parou) { pararCacada(b.replay.parou); return; }
     c.fase = 'pausa';
@@ -4804,7 +4804,7 @@
       var s = r.ausente || {};
       if (s.lutas || s.fugas) {
         avisar('⚔ Enquanto você esteve fora: ' + s.lutas + ' luta' + (s.lutas === 1 ? '' : 's') + ', ' + (s.vitorias || 0) + ' vitória' + (s.vitorias === 1 ? '' : 's')
-          + ', +' + (s.exp || 0).toLocaleString('pt-BR') + ' de exp e +' + (s.ouro || 0).toLocaleString('pt-BR') + ' de ouro'
+          + ', +' + expPct(estado.personagem, s.exp || 0) + ' de exp e +' + (s.ouro || 0).toLocaleString('pt-BR') + ' de ouro'
           + ((s.itens || []).length ? ', ' + s.itens.length + ' ' + (s.itens.length === 1 ? 'item' : 'itens') : '')
           + (s.niveis ? '. Level up! Level ' + estado.personagem.nivel : '') + '.', s.niveis ? 'nivel' : 'item');
       }
@@ -4917,12 +4917,20 @@
     return '<div class="vit-fina" role="progressbar" aria-label="' + esc(texto) + '" title="' + esc(texto) + '" aria-valuenow="' + v.pts
       + '" aria-valuemin="0" aria-valuemax="' + max + '"><i style="width:' + (v.pts / max * 100) + '%"></i></div>';
   }
+  // Exp em % do level atual (Henri, 18/11/2026): o jogador vê só a porcentagem; os números ficam para o servidor.
+  function expPct(p, valor) {
+    if (!p || p.nivel >= D.NIVEL_MAXIMO) return Math.round(Number(valor) || 0).toLocaleString('pt-BR');
+    var v = (Number(valor) || 0) * 100 / R.expNecessaria(p.nivel);
+    var casas = v >= 10 ? 0 : v >= 1 ? 1 : 2;
+    v = Math.max(v > 0 ? 0.01 : 0, Number(v.toFixed(casas)));
+    return v.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: casas }) + '%';
+  }
   // Barrinha fina de experiência embaixo da vida, na caçada (só para ter uma noção de quanto falta para o level).
   function expFinaHtml(p) {
     var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
     var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
-    var texto = maximo ? 'Level máximo' : 'Experiência: ' + p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR') + ' (' + Math.floor(pct) + '%)';
-    var numero = maximo ? 'Level máximo' : '✦ ' + p.exp.toLocaleString('pt-BR') + ' / ' + precisa.toLocaleString('pt-BR') + ' (' + Math.floor(pct) + '%)';
+    var texto = maximo ? 'Level máximo' : 'Experiência: ' + Math.floor(pct) + '%';
+    var numero = maximo ? 'Level máximo' : '✦ ' + Math.floor(pct) + '%';
     return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
       + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i><b>' + numero + '</b></div>';
   }
@@ -4993,7 +5001,7 @@
     }).join('') + '</div>' : '';
     var historico = '<div class="cacada-historico"><h4>Últimos combates</h4>' + (c.historico.length ? c.historico.map(function (h) {
       var nome = D.monstros[h.monstro].nome;
-      if (h.resultado === 'vitoria') return '<p class="mais">✔ ' + nome + ' <span class="suave">+' + h.exp + ' exp · +' + h.ouro + ' ouro'
+      if (h.resultado === 'vitoria') return '<p class="mais">✔ ' + nome + ' <span class="suave">+' + expPct(estado.personagem, h.exp) + ' exp · +' + h.ouro + ' ouro'
         + (h.itens.length ? ' · ' + h.itens.map(function (it) { return dropHtml(it, false); }).join(', ') : '') + '</span></p>';
       if (h.resultado === 'derrota') return '<p class="menos">✖ ' + nome + ' <span class="suave">derrota</span></p>';
       return '<p class="suave">↷ ' + nome + ' <span>' + (h.resultado === 'evitou' ? 'evitado' : 'fugiu') + '</span></p>';
@@ -6601,7 +6609,7 @@
           var ganhoBoss = R.premioChefeMundial(p, bp);
           salvar();
           avisarCaixa('🐉 Chefe Mundial' + (bp.venceu ? '' : ' (consolação)') + ': +' + ganhoBoss.ouro.toLocaleString('pt-BR') + ' de ouro e +'
-            + ganhoBoss.exp.toLocaleString('pt-BR') + ' de exp!', 'vitoria');
+            + expPct(estado.personagem, ganhoBoss.exp) + ' de exp!', 'vitoria');
           if (ganhoBoss.niveis) avisarCaixa('Level up! Level ' + p.nivel, 'nivel');
           continue;
         }
@@ -6647,7 +6655,7 @@
           var xp = Math.min(Number(rx.valor) || 0, Math.floor(R.expNecessaria(p.nivel) * D.BOSS_ALIANCA.premio.expMaxPct / 100));
           var subiu = R.ganharExp(p, xp);
           salvar();
-          avisarCaixa('Boss do clã derrotado! +' + xp.toLocaleString('pt-BR') + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
+          avisarCaixa('Boss do clã derrotado! +' + expPct(p, xp) + ' de exp.' + (subiu ? ' Você subiu de level!' : ''), 'nivel');
           continue;
         }
         if (rec.item && rec.item.tipo === 'bossItem') {
@@ -8481,6 +8489,8 @@
     if (cura) { L.ultimo = { numero: ev.dado, quem: ev.de, texto: ev.hab + ': +' + ev.cura + ' de vida' }; if (!L.tudo && L.registro.length > 60) L.registro.splice(0, L.registro.length - 60); return; }
     L.ultimo = { numero: ev.dado, quem: ev.de, texto: efeitoDado(ev.dado) + (ev.garantido ? ' (Sombra: vale o 20)' : '') + (ev.dano ? ' → ' + ev.dano + ' de dano' : '') };
     if (ev.sombra) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' está nas sombras: o golpe passa direto.</p>');
+    if (ev.sombraFalhou) L.registro.push('<p class="suave">🌑 ' + (ev.dado ? '🎲 <strong>' + ev.dado + '</strong> ' : '') + esc(atk.nome)
+      + ' não conseguiu sumir nas sombras (precisa de ' + (D.ARENA.sombraDado || 18) + ' ou mais): só o ataque.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
       + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? (ev.hab ? ' (vale o 20!)' : ' (Sombra: vale o 20!)') : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
