@@ -23,6 +23,10 @@ on:
         description: 'Enviar as funções cacada e acao para o projeto de teste antes'
         type: boolean
         default: true
+      preparar_projeto:
+        description: 'Preparar o projeto de teste antes (rodar o schema.sql, desligar a confirmação de e-mail e subir os limites de cadastro)'
+        type: boolean
+        default: true
 jobs:
   stress:
     runs-on: ubuntu-latest
@@ -38,6 +42,19 @@ jobs:
           case "${{ inputs.url }}" in *cwlcdeqvwzpveduzhaol*) echo "::error::Esse é o banco de verdade do jogo. Use o projeto de teste."; exit 1;; esac
           REF=$(echo "${{ inputs.url }}" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')
           echo "REF=$REF" >> "$GITHUB_ENV"; echo "Projeto de teste: $REF"
+      # (Daniel, 19/11/2026) prepara o projeto de teste pela API do Supabase com o SUPABASE_ACCESS_TOKEN: sem mexer no painel.
+      - name: Preparar o projeto de teste (schema e login)
+        if: inputs.preparar_projeto
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then echo "::warning::Sem SUPABASE_ACCESS_TOKEN: projeto não preparado."; exit 0; fi
+          API="https://api.supabase.com/v1/projects/$REF"
+          jq -Rs '{query: .}' supabase/schema.sql > /tmp/schema.json
+          code=$(curl -s -o /tmp/schema-saida.txt -w '%{http_code}' -X POST "$API/database/query" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' --data-binary @/tmp/schema.json)
+          echo "schema.sql: HTTP $code"; head -c 600 /tmp/schema-saida.txt; echo
+          if [ "$code" -ge 300 ]; then echo "::error::O schema não rodou no projeto de teste."; exit 1; fi
+          code=$(curl -s -o /tmp/auth-saida.txt -w '%{http_code}' -X PATCH "$API/config/auth" -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H 'Content-Type: application/json' \
+            --data '{"mailer_autoconfirm":true,"rate_limit_otp":100000,"rate_limit_verify":100000,"rate_limit_token_refresh":100000,"rate_limit_anonymous_users":100000}')
+          echo "login do projeto de teste: HTTP $code"; head -c 400 /tmp/auth-saida.txt; echo
       - uses: supabase/setup-cli@v1
         if: inputs.enviar_funcoes
         with: { version: latest }

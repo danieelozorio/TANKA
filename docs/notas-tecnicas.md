@@ -1351,3 +1351,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Caçando sem parar (160 de estamina/h): 10 em ~4 h, 20 ~1,5 dia, 30 ~6 dias, 40 ~2 semanas, 53 ~1,5 mês, 60 ~2 meses.
 - Tela: barra de exp e mensagens mostram só % do level atual (`expPct(p, valor)` em app.js); os números ficam no servidor.
 - testes/regras.test.js zera o EXP_MULT no começo (testes antigos usam a curva base) e tem um teste próprio dele.
+- Teste de stress (Daniel, 19/11/2026): o workflow ganhou `preparar_projeto` (roda o schema.sql e acerta o login do projeto de
+  teste pela API do Supabase com o SUPABASE_ACCESS_TOKEN). Projeto de teste usado: "Trup da ofensa" (teqwyugpsuegvalfruwb).
