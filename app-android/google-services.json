@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "308068057528",
+    "project_id": "eldrin-e04ec",
+    "storage_bucket": "eldrin-e04ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:308068057528:android:078fc9ec71e7548d230f4d",
+        "android_client_info": {
+          "package_name": "br.com.eldrinonline.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA9UjBxM_rk0wkn5w5efSBqNzLVZoR__go"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
