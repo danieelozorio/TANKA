@@ -1989,15 +1989,15 @@ teste('boss da aliança: do 2º boss em diante, golpe em área tira % da vida de
   golpes.filter((e) => e.acerto).forEach((e) => assert.strictEqual(e.dano, Math.max(1, Math.round(hpMax[e.alvo] * area.vidaPct / 100))));
 });
 
-teste('skills do clã: valem contra monstros (status pve), não no status normal', () => {
+teste('skills do clã: valem sempre, também na Arena (19/11/2026); só as runas ficam no status pve', () => {
   const p = R.criarPersonagem('C', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 14);
   const antes = R.status(p), semCla = R.status(p, true);
   assert.deepStrictEqual(semCla.dano, antes.dano, 'sem clã, igual');
   p.cla = { id: 1, skills: { dano: 2, vida: 3, critico: 4, resistencia: 1, velocidade: 2, esquiva: 2, danoCritico: 1, fortuna: 5 } };
   const s = R.status(p, true), n = R.status(p);
-  assert.deepStrictEqual(n.dano, antes.dano, 'fora do combate contra monstros (Arena, poder) não muda');
-  assert.strictEqual(R.poder(p), R.poder(Object.assign({}, p, { cla: undefined })));
+  assert.deepStrictEqual(n.dano, s.dano, 'o status normal (Arena, poder) também tem o clã');
+  assert.ok(R.poder(p) > R.poder(Object.assign({}, p, { cla: undefined })), 'o poder sobe com o clã');
   assert.strictEqual(s.hpMax, Math.round(antes.hpMax * (1 + 3 * 2 / 100)));
   assert.strictEqual(s.dano[1], Math.round(antes.dano[1] * (1 + 2 * 1.5 / 100)));
   assert.strictEqual(s.chanceCritico, antes.chanceCritico + 4 * 0.5);
@@ -2557,8 +2557,8 @@ teste('Pacto de Ascensão: pontos do 41 ao 60 e pela exp, trilhas ligadas, Pedra
   assert.strictEqual(R.comprarAscensao(p, 'furia-t0'), true);
   ['furia-t1', 'furia-0-0', 'furia-0-1', 'furia-0-3', 'furia-0-4'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
   igualA(R.pontosAscensaoLivres(p), 14);
-  // dano só contra monstros (a Arena não usa)
-  const sem = R.status(p).dano[1], com = R.status(p, true).dano[1];
+  // o Pacto vale sempre, também na Arena (19/11/2026)
+  const sem = R.status(Object.assign({}, p, { ascensao: undefined })).dano[1], com = R.status(p).dano[1];
   assert.ok(com > sem * 1.08, sem + ' ' + com);
   assert.strictEqual(R.comprarAscensao(p, 'furia-0-p'), true);   // Sede de Sangue: +25% dano, -15% vida
   assert.ok(/outra Pedra/.test(R.comprarAscensao(p, 'furia-1-p')), 'a outra Pedra do domínio');

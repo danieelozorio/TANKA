@@ -1213,14 +1213,14 @@
     // Mostra "atual → novo" quando há pontos para confirmar.
     function mudanca(a, b, texto) { return a === b ? texto(a) : texto(a) + ' <span class="mais">→ ' + texto(b) + '</span>'; }
     function pct(v) { return fmt(v) + '%'; }
-    // Contra monstros (caçada, masmorra, chefes) ainda somam o Pacto de Ascensão, as runas e as skills do clã; na Arena, não.
+    // O Pacto de Ascensão e as skills do clã já estão nos status (valem também na Arena). As runas só contra monstros.
     var sPve = R.status(p, true);
     function pve(a, b, texto) {
-      return a === b ? '' : ' <small class="mais" title="Com o Pacto de Ascensão, as runas e as skills do clã: vale contra monstros (caçada, masmorra e chefes), não na Arena.">(contra monstros: ' + texto(b) + ')</small>';
+      return a === b ? '' : ' <small class="mais" title="Com as runas: vale contra monstros (caçada, masmorra e chefes), não na Arena.">(contra monstros: ' + texto(b) + ')</small>';
     }
     var status = [
       ['Poder', '<strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong>' + (usados ? ' <span class="mais">→ ' + R.poder(comPendentes(p, pend)).toLocaleString('pt-BR') + '</span>' : ''), 'Força geral do personagem: ataque e resistência somados.'],
-      ['Vida máxima', mudanca(s.hpMax, sNovo.hpMax, String) + pve(s.hpMax, sPve.hpMax, String), 'Vida cheia do personagem. Contra monstros, soma o Pacto de Ascensão, as runas e as skills do clã.'],
+      ['Vida máxima', mudanca(s.hpMax, sNovo.hpMax, String) + pve(s.hpMax, sPve.hpMax, String), 'Vida cheia do personagem, já com o Pacto de Ascensão e as skills do clã. Contra monstros, soma também as runas.'],
       ['Dano por golpe', mudanca(dano(s.dano), dano(sNovo.dano), String) + (magico ? ' (mágico)' : '') + pve(dano(s.dano), dano(sPve.dano), String), 'Quanto cada golpe tira, antes da defesa do inimigo.'],
       [magico ? 'Ataque mágico' : 'Ataque', mudanca(magico ? s.ataqueMagico : s.ataque, magico ? sNovo.ataqueMagico : sNovo.ataque, function (v) { return '+' + v; }), 'Somado ao dano da arma em cada golpe.'],
       ['Defesa', mudanca(s.defesa, sNovo.defesa, String) + ' <small class="suave">(−' + R.cortePct(sNovo.defesa) + '% de dano)</small>' + pve(s.defesa, sPve.defesa, String), 'Diminui em porcentagem o dano físico que você recebe: 100 de defesa = −50%, 200 = −67%, 300 = −75%.'],
@@ -1252,7 +1252,7 @@
 
   function fichaHtml() {
     var p = estado.personagem, s = R.status(p);
-    var sV = R.status(p, true);   // a barra de vida mostra a vida contra monstros (com o Pacto de Ascensão, runas e clã)
+    var sV = R.status(p, true);   // a barra de vida mostra a vida contra monstros (com as runas)
     var precisa = R.expNecessaria(p.nivel);
     var arma = R.armaEquipada(p);
     var emBatalha = !!estado.batalha;
@@ -2194,7 +2194,7 @@
     }).join('');
     var simples = {};
     ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaMenos', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
-    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (contra monstros)</summary>'
+    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (vida, dano, defesas e velocidade valem também na Arena)</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
   function pactoHtml() {
@@ -8749,8 +8749,8 @@
   function skillsClaHtml(st) {
     var a = st.alianca, chefe = st.meu_cargo === 'lider' || st.meu_cargo === 'vice', sk = st.skills || {}, max = AL.skillPrecos.length;
     var html = '<div class="caixa-interna"><h3>Skills do clã</h3><p class="suave pequeno">Compradas pelo líder ou pelo vice-líder com o ouro do tesouro (<span class="cor-ouro">'
-      + Number(a.tesouro).toLocaleString('pt-BR') + '</span>). Valem para todos os membros, para sempre, contra monstros, masmorras e bosses '
-      + '(não valem na Arena). O nível de cada skill vai até o nível do clã (agora ' + a.nivel + ').</p></div><div class="skills-cla">';
+      + Number(a.tesouro).toLocaleString('pt-BR') + '</span>). Valem para todos os membros, para sempre: as de combate (dano, vida, resistência e velocidade) valem também na Arena; '
+      + 'crítico e esquiva, só contra monstros. O nível de cada skill vai até o nível do clã (agora ' + a.nivel + ').</p></div><div class="skills-cla">';
     html += AL.skills.map(function (k) {
       var n = sk[k.id] || 0, prox = n + 1, preco = AL.skillPrecos[n], fmt = function (v) { return (Math.round(v * 10) / 10).toLocaleString('pt-BR'); };
       var botao = '';

@@ -1356,3 +1356,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - O Pacto de Ascensão (e runas e skills do clã) só entra em `status(p, true)` (contra monstros). A ficha usava
   `status(p)`, então a vida do Pacto (ex.: Vigor +2%) não aparecia. Agora: a barra de vida da ficha usa `status(p, true)`
   e os detalhes mostram "(contra monstros: X)" em Vida máxima, Dano e Defesa quando muda. Na Arena continua sem o Pacto.
+
+### Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026)
+- Cliente: `status(p)` já soma `comCla` e `comAscensao` (aparecem na ficha e no poder na hora da compra); `status(p, true)`
+  soma também as runas (só contra monstros).
+- Servidor: `tanka_status` termina com `arena_com_pacto(arena_com_cla(res, p), p)`. Clã: lido do banco
+  (`alianca_skills` + `alianca_membros` pelo `dados.id`); vida, dano, resistência (defesas) e velocidade, em %.
+  Pacto: `ASC_NOS` (id → custo, tipo, ef) e `ASCENSAO` no tanka_dados; soma vida, dano, defesa, defesaMagica e
+  velocidade dos nós se o custo couber nos pontos do level (+extras, até o limite) e no máximo de pedras; nó
+  desconhecido = ignora o Pacto. Crítico, dano crítico, precisão e esquiva por pontos não contam (crítico na Arena é o D20).
+- O gatilho da ficha agora força `dados.id = id da linha` (o clã da Arena é lido por ele).

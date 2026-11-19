@@ -1552,4 +1552,32 @@ set role authenticated; select pg_temp.comoG('2');
 update public.personagens set dados = dados || '{"eventoSaida":[{"id":"g2:x:1","evento":"x","pontos":20000}],"altar":{"total":999999}}' where id = 'g2';
 reset role;
 select pg_temp.igual((select dados ? 'eventoSaida' or dados ? 'altar' from public.personagens where id = 'g2'), false, 'evento: o jogador não escreve a partida nem os pontos na ficha');
+-- Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026): tanka_status soma as skills do clã (do banco) e o Pacto
+do $$
+declare d jsonb; s0 jsonb; s1 jsonb; al bigint;
+begin
+  d := (select dados from public.personagens where id = 'pa') || '{"nivel": 45}';
+  s0 := public.tanka_status(d - 'ascensao');
+  s1 := public.tanka_status(d || '{"ascensao": {"nos": ["vigor-t0", "vigor-t1"], "exp": 0, "extras": 0}}');
+  if (s1 ->> 'hpMax')::int <> round((s0 ->> 'hpMax')::numeric * 1.04) then raise exception 'FALHA pacto na Arena: % → %', s0 ->> 'hpMax', s1 ->> 'hpMax'; end if;
+  s1 := public.tanka_status(d || '{"ascensao": {"nos": ["vigor-t0", "naoexiste"], "exp": 0, "extras": 0}}');
+  if (s1 ->> 'hpMax') <> (s0 ->> 'hpMax') then raise exception 'FALHA pacto: nó estranho deveria ser ignorado'; end if;
+  -- um membro de clã qualquer dos testes
+  select m.alianca_id, p.dados || '{"nivel": 45}' into al, d from public.alianca_membros m join public.personagens p on p.id = m.personagem_id
+    where p.dados ? 'atributos' and p.dados ? 'inventario' limit 1;
+  if al is null then
+    insert into public.aliancas (nome, sigla) values ('Teste Pacto', 'TPC') returning id into al;
+    delete from public.alianca_membros where personagem_id = 'pa';
+    insert into public.alianca_membros (alianca_id, personagem_id, cargo) values (al, 'pa', 'lider');
+    d := (select dados from public.personagens where id = 'pa') || '{"nivel": 45}';
+  end if;
+  s0 := public.tanka_status(d - 'ascensao');
+  insert into public.alianca_skills (alianca_id, skill, nivel) values (al, 'dano', 2), (al, 'vida', 1)
+    on conflict (alianca_id, skill) do update set nivel = excluded.nivel;
+  s1 := public.tanka_status(d - 'ascensao');
+  if (s1 -> 'dano' ->> 1)::int <= (s0 -> 'dano' ->> 1)::int or (s1 ->> 'hpMax')::int <> round((s0 ->> 'hpMax')::numeric * 1.02) then
+    raise exception 'FALHA clã na Arena: % → %', s0, s1; end if;
+  delete from public.alianca_skills where alianca_id = al and skill in ('dano', 'vida');
+  raise notice 'ok   arena: clã e Pacto de Ascensão somam nos status';
+end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM

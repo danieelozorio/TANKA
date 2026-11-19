@@ -31,6 +31,9 @@ const dados = {
   bonusPorNivel: D.encantamento.bonusPorNivel,
   encantoPct: D.encantamento.pctPorNivel,
   ARENA: D.ARENA,
+  // Pacto de Ascensão na Arena (19/11/2026): regras e efeito/custo de cada nó (arena_com_pacto)
+  ASCENSAO: { nivelInicio: D.ASCENSAO.nivelInicio, pontosPorNivel: D.ASCENSAO.pontosPorNivel, limitePontos: D.ASCENSAO.limitePontos, maxPedras: D.ASCENSAO.maxPedras },
+  ASC_NOS: Object.fromEntries(Object.entries(R.arvoreAscensao()).map(([id, n]) => [id, { custo: n.custo, tipo: n.tipo, ef: n.ef || {} }])),
   ALIANCA: D.ALIANCA,
   CONJUNTOS: Object.fromEntries(Object.entries(D.CONJUNTOS).map(([k, c]) => [k, { bonus: c.bonus }])),
   LEILAO: D.LEILAO,
