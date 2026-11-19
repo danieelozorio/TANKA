@@ -522,6 +522,7 @@
     estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
     estado.loginResultado = null;
     iniciarAtividade();
+    if (window.EldrinNativo) EldrinNativo.entrou(estado.personagem);   // notificações do app (19/11/2026)
     // Créditos e mensagens do Reino (SQL Editor): busca ao entrar e a cada 2 min (fora de luta).
     clearInterval(estado.timerPendentes);
     setTimeout(function () { if (ACAO_SERVIDOR && estado.personagem) receberPendentes(); }, 4000);
@@ -4815,12 +4816,14 @@
     c.fora = true;
     clearTimeout(c.timer);
     clearTimeout(estado.timer);
+    if (window.EldrinNativo && estado.personagem) EldrinNativo.cacadaFundo(estado.personagem);   // avisa quando a estamina acabar
   }
   function retomarCacada() {
     var p = estado.personagem, velho = estado.cacada;
     if (!CACA_SERVIDOR || !p || estado.retomando) return;
     if (velho && !velho.fora) return;
     if (!velho && !p.cacadaAuto) return;
+    if (window.EldrinNativo) EldrinNativo.cacadaVoltou();
     var c = null;
     if (velho) {
       // Troca o objeto da caçada: respostas atrasadas da aba escondida não mexem mais na tela.
@@ -9168,6 +9171,7 @@
       st.desvio = Date.parse(st.agora) - Date.now();
       var antes = estado.bossAl;
       estado.bossAl = st;
+      if (window.EldrinNativo) EldrinNativo.bossCla(st);
       estado.bossAlErro = null;
       var run = st.run;
       // Investida nova do meu grupo (começada por outro membro): assisto junto.

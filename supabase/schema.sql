@@ -2378,6 +2378,9 @@ begin
     estado = jsonb_set(estado, '{pendente}', 'false')
   where id = luta_id;
   perform public.alianca_missao_de(L.atacante, 'arena', 1);   -- missão do clã (contada aqui, não pelo navegador)
+  -- notificação no app de quem foi atacado (19/11/2026)
+  perform public.push_avisar(L.defensor, 'Arena', 'Você foi atacado por ' || coalesce(L.nome_atacante, 'alguém') || ' e '
+    || case when vitoria then 'perdeu.' else 'venceu!' end);
 end $$;
 
 -- Avança a luta até a próxima vez do atacante (que rola o dado) ou até o fim.
@@ -3264,6 +3267,9 @@ begin
   if public.ouro_real(meu) < valor then raise exception 'Ouro insuficiente.'; end if;
   perform public.creditar(meu, -valor::int, 0, 'Lance no leilão');
   if lt.lider is not null then perform public.creditar(lt.lider, lt.lance::int, 0, 'Seu lance foi coberto no leilão (ouro devolvido)'); end if;
+  if lt.lider is not null and lt.lider <> meu then   -- notificação no app (19/11/2026)
+    perform public.push_avisar(lt.lider, 'Leilão', 'Seu lance foi coberto! Dê um lance maior antes que o leilão acabe.');
+  end if;
   update public.leilao_lotes set lance = valor, lider = meu, lances = lances + 1, atualizado_em = now() where id = lt.id;
   return public.leilao_estado(meu);
 end $$;
@@ -4918,3 +4924,64 @@ revoke execute on function public.evento_admin(text, text, int) from public, ano
 grant execute on function public.evento_admin(text, text, int) to authenticated;
 
 notify pgrst, 'reload schema';
+
+
+-- ============================================================================================================
+-- Notificações no app (Henri, 19/11/2026): Firebase (FCM). O app registra o token do aparelho (push_registrar);
+-- o banco põe o aviso na fila (push_avisar) e chama a função `push` (pg_net), que manda pelo Firebase e marca como
+-- enviado. Sem pg_net ou sem Firebase configurado, o aviso só fica na fila (nada quebra).
+-- ============================================================================================================
+do $$ begin create extension if not exists pg_net; exception when others then null; end $$;
+create table if not exists public.push_tokens (
+  token text primary key,
+  conta_id uuid not null references public.contas (id) on delete cascade,
+  atualizado_em timestamptz not null default now()
+);
+create index if not exists push_tokens_conta on public.push_tokens (conta_id);
+create table if not exists public.push_fila (
+  id bigint generated always as identity primary key,
+  conta_id uuid not null references public.contas (id) on delete cascade,
+  titulo text not null,
+  corpo text not null,
+  criado_em timestamptz not null default now(),
+  enviado_em timestamptz
+);
+create index if not exists push_fila_pendentes on public.push_fila (criado_em) where enviado_em is null;
+alter table public.push_tokens enable row level security;
+alter table public.push_fila enable row level security;
+insert into public.ajustes (chave, valor) values ('push_url', '"https://cwlcdeqvwzpveduzhaol.supabase.co/functions/v1/push"')
+  on conflict (chave) do nothing;
+
+-- O app manda o token do aparelho (um aparelho = uma conta por vez).
+create or replace function public.push_registrar(token text) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or coalesce(length(push_registrar.token), 0) < 20 or length(push_registrar.token) > 4096 then raise exception 'Token inválido.'; end if;
+  insert into public.push_tokens as t (token, conta_id) values (push_registrar.token, auth.uid())
+    on conflict on constraint push_tokens_pkey do update set conta_id = excluded.conta_id, atualizado_em = now();
+end $$;
+create or replace function public.push_remover(token text) returns void
+language sql security definer set search_path = public as $$
+  delete from public.push_tokens where push_tokens.token = push_remover.token and conta_id = auth.uid();
+$$;
+
+-- Põe o aviso na fila para a conta do personagem e chama a função `push` (só se a conta tem aparelho registrado).
+create or replace function public.push_avisar(pid text, titulo text, corpo text) returns void
+language plpgsql security definer set search_path = public as $$
+declare c uuid; u text;
+begin
+  select p.conta_id into c from public.personagens p join public.contas ct on ct.id = p.conta_id where p.id = pid and not ct.bot;
+  if c is null or not exists (select 1 from public.push_tokens where conta_id = c) then return; end if;
+  insert into public.push_fila (conta_id, titulo, corpo) values (c, titulo, corpo);
+  begin
+    select valor #>> '{}' into u from public.ajustes where chave = 'push_url';
+    if u is not null then
+      perform net.http_post(url := u, body := '{}'::jsonb, headers := '{"Content-Type": "application/json"}'::jsonb);
+    end if;
+  exception when others then null;   -- sem pg_net: fica na fila
+  end;
+exception when others then null;   -- notificação nunca atrapalha o jogo
+end $$;
+revoke execute on function public.push_avisar(text, text, text) from public, anon, authenticated;
+revoke execute on function public.push_registrar(text), public.push_remover(text) from public, anon;
+grant execute on function public.push_registrar(text), public.push_remover(text) to authenticated;

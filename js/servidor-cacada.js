@@ -331,5 +331,13 @@ Tanka.servidorCacada = (function () {
   // O resultado vai pela internet: só dados (os itens já estão na mochila do personagem devolvido).
   function limparRes(res) { return JSON.parse(JSON.stringify(res)); }
 
-  return { encontro: encontro, lutar: lutar, pocao: pocao, fim: fim, fugir: fugir, parar: parar, retomar: retomar, sorteioSemente: sorteioSemente, TOLERANCIA: TOLERANCIA };
+  // Previsão (Henri, 19/11/2026): quando a caçada ligada vai parar (estamina, derrota...), simulando numa cópia. Não grava.
+  // O app usa para agendar a notificação "a estamina acabou" quando vai para o fundo.
+  function previsao(p, agora, rng) {
+    if (!p.cacadaAuto) return { previsao: null };
+    var c = JSON.parse(JSON.stringify(p)), a = retomar(c, agora + 72 * 3600000, rng, { exp: 0, ouro: 0 }).ausente;
+    if (a.ligada) return { previsao: null };
+    return { previsao: { em: Math.max(agora, c.cacadaLivreEm || agora), motivo: a.parou || '', semEstamina: a.parou === SEM_ESTAMINA } };
+  }
+  return { encontro: encontro, lutar: lutar, pocao: pocao, fim: fim, fugir: fugir, parar: parar, retomar: retomar, previsao: previsao, sorteioSemente: sorteioSemente, TOLERANCIA: TOLERANCIA };
 })();

@@ -87,6 +87,100 @@
       });
     }).catch(function () {});
   }
+  // ---------------- Notificações (Henri, 19/11/2026) ----------------
+  // Locais (o próprio celular agenda): estamina da caçada acabou, Chefe Mundial (20h de Brasília) e boss do clã.
+  // Do servidor (Firebase): lance coberto no leilão e ataque na Arena. Só depois que o APK tem o Firebase
+  // (window.ELDRIN_APP.pushDesde = versão do APK) — antes disso, registrar derrubaria o app.
+  var LN = P.LocalNotifications, PN = P.PushNotifications, ID = { cacada: 1001, mundial: 1002, cla: 1003 };
+  var BRT = -3;   // Brasília, sem horário de verão
+  var permitido = null;
+  function permissao() {
+    if (permitido) return permitido;
+    permitido = !LN ? Promise.resolve(false) : LN.checkPermissions().then(function (r) {
+      if (r.display === 'granted') return true;
+      return LN.requestPermissions().then(function (x) { return x.display === 'granted'; });
+    }).then(function (ok) {
+      if (ok && LN.createChannel) LN.createChannel({ id: 'eldrin', name: 'Eldrin', description: 'Avisos do jogo', importance: 4, sound: 'default', vibration: true }).catch(function () {});
+      return ok;
+    }).catch(function () { return false; });
+    return permitido;
+  }
+  function agendar(id, quando, titulo, corpo, extra) {
+    return permissao().then(function (ok) {
+      if (!ok) return;
+      return LN.cancel({ notifications: [{ id: id }] }).catch(function () {}).then(function () {
+        return LN.schedule({ notifications: [Object.assign({ id: id, title: titulo, body: corpo, channelId: 'eldrin',
+          schedule: { at: new Date(quando), allowWhileIdle: true } }, extra || {})] });
+      });
+    }).catch(function () {});
+  }
+  function cancelar(id) { if (LN) LN.cancel({ notifications: [{ id: id }] }).catch(function () {}); }
+  // Próximo horário (hora cheia de Brasília) a partir de agora.
+  function proximaHoraBrt(hora) {
+    var d = new Date(), alvo = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), (hora - BRT) % 24, 0, 0));
+    if (hora - BRT >= 24) alvo = new Date(alvo.getTime() + 86400000);
+    while (alvo.getTime() <= Date.now() + 30000) alvo = new Date(alvo.getTime() + 86400000);
+    return alvo;
+  }
+  function agendarDiario(id, hora, titulo, corpo) {
+    // agenda os próximos 7 dias (cada abertura do app renova)
+    return permissao().then(function (ok) {
+      if (!ok) return;
+      var ids = [], lista = [], primeiro = proximaHoraBrt(hora).getTime();
+      for (var i = 0; i < 7; i++) { ids.push({ id: id * 10 + i }); lista.push({ id: id * 10 + i, title: titulo, body: corpo, channelId: 'eldrin',
+        schedule: { at: new Date(primeiro + i * 86400000), allowWhileIdle: true } }); }
+      return LN.cancel({ notifications: ids }).catch(function () {}).then(function () { return LN.schedule({ notifications: lista }); });
+    }).catch(function () {});
+  }
+  function cancelarDiario(id) { if (!LN) return; var ids = []; for (var i = 0; i < 7; i++) ids.push({ id: id * 10 + i }); LN.cancel({ notifications: ids }).catch(function () {}); }
+  var contas = function () { return window.Tanka && window.Tanka.contas; };
+
+  function registrarPush() {
+    if (!PN || !A || !A.getInfo || !(Number(local.pushDesde) > 0)) return;
+    A.getInfo().then(function (i) {
+      if ((Number(i.build) || 0) < Number(local.pushDesde)) return;   // APK sem o Firebase: não registra
+      PN.checkPermissions().then(function (r) {
+        return r.receive === 'granted' ? r : PN.requestPermissions();
+      }).then(function (r) {
+        if (r.receive !== 'granted') return;
+        if (PN.createChannel) PN.createChannel({ id: 'eldrin', name: 'Eldrin', description: 'Avisos do jogo', importance: 4, sound: 'default', vibration: true }).catch(function () {});
+        PN.addListener('registration', function (t) {
+          var C = contas(); if (C && C.push && t && t.value) C.push.registrar(t.value).catch(function () {});
+        });
+        PN.register();
+      }).catch(function () {});
+    }).catch(function () {});
+  }
+
+  window.EldrinNativo = {
+    entrou: function (p) {
+      permissao().then(function (ok) {
+        if (!ok) return;
+        agendarDiario(ID.mundial, 20, 'Chefe Mundial nasceu!', 'Ignaroth despertou! Todos à Aventura › Chefe Mundial.');
+        var C = contas();
+        if (C && C.alianca && C.alianca.boss && p) C.alianca.boss.estado(p.id).then(function (st) { window.EldrinNativo.bossCla(st); }, function () { cancelarDiario(ID.cla); });
+      });
+      registrarPush();
+    },
+    bossCla: function (st) {
+      var h = st && st.boss && st.boss.hora;
+      if (h === null || h === undefined || h === '') { cancelarDiario(ID.cla); return; }
+      agendarDiario(ID.cla, Number(h), 'Chefe do clã nasceu!', 'O boss do seu clã apareceu: chame o grupo e ataque!');
+    },
+    cacadaFundo: function (p) {
+      var C = contas();
+      if (!C || !C.cacada || !p) return;
+      C.cacada('previsao', { personagem: p.id }).then(function (r) {
+        var pv = r && r.previsao;
+        if (!pv || !pv.em) return;
+        var quando = Number(pv.em) + (Date.now() - (Number(r.agora) || Date.now()));   // relógio do servidor → do celular
+        agendar(ID.cacada, quando, pv.semEstamina ? 'A estamina acabou' : 'A caçada parou',
+          pv.semEstamina ? 'A caçada de ' + p.nome + ' parou: a estamina acabou.' : (pv.motivo || 'A caçada de ' + p.nome + ' parou.'));
+      }).catch(function () {});
+    },
+    cacadaVoltou: function () { cancelar(ID.cacada); },
+  };
+
   function quandoPronto() { setTimeout(conferir, 2500); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', quandoPronto); else quandoPronto();
   // Voltou para o app depois de um tempo: confere de novo.

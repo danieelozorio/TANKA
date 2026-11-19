@@ -102,6 +102,14 @@ ok(Math.abs(banco[p0.id].dados.estamina.pts - (est0 - lutas2min + regen2min)) <=
 ok(banco[p0.id].dados.nivel > niv0 || banco[p0.id].dados.exp > exp0, 'ganhou exp no banco');
 r = await pedir({ acao: 'retomar', personagem: p0.id });
 ok((await r.json()).ausente.lutas === 0, 'retomar de novo na hora: nenhuma luta a mais');
+// previsão (19/11/2026): quando a caçada ligada vai parar, sem gravar nada
+{
+  const antesPrev = JSON.stringify(banco[p0.id].dados), grav0 = gravacoes;
+  r = await pedir({ acao: 'previsao', personagem: p0.id });
+  const pv = (await r.json()).previsao;
+  ok(pv && pv.em > relogio && pv.em < relogio + 72 * 3600000 && pv.motivo, 'previsão: a caçada para em ' + (pv ? Math.round((pv.em - relogio) / 60000) + ' min (' + pv.motivo.slice(0, 30) + ')' : '?'));
+  ok(gravacoes === grav0 && JSON.stringify(banco[p0.id].dados) === antesPrev, 'previsão não grava nada');
+}
 // horas fora: para quando a estamina acaba
 relogio += 6 * 60 * 60 * 1000;
 r = await pedir({ acao: 'retomar', personagem: p0.id });

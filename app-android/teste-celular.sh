@@ -2,6 +2,7 @@
 # Teste no celular virtual (GitHub, branch de teste): abre o app, aperta "Atualizar agora" e guarda prints e registros.
 set -x
 adb install -r Eldrin-app.apk
+adb shell pm grant br.com.eldrinonline.app android.permission.POST_NOTIFICATIONS || true
 adb logcat -c
 adb shell am start -n br.com.eldrinonline.app/.MainActivity
 sleep 20
