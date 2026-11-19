@@ -13,6 +13,9 @@ const banco: Record<string, { conta_id: string; dados: any }> = {
   [p0.id]: { conta_id: 'u1', dados: JSON.parse(JSON.stringify(p0)) },
   outro: { conta_id: 'u2', dados: JSON.parse(JSON.stringify(R.criarPersonagem('Outro', 'masculino', 'humano', 'mago'))) },
 };
+// chave do servidor de mentira: a missão do clã só é mandada com ela (como no Supabase de verdade)
+try { Deno.env.set('SUPABASE_SERVICE_ROLE_KEY', 'srv-teste'); } catch { /* sem permissão de env */ }
+let missaoMonstros = 0;
 let bonusCla: any = { cla: null, exp: 0, ouro: 0 };
 let gravacoes = 0;
 let naFila = false;           // simula o herói na fila da masmorra
@@ -24,6 +27,7 @@ globalThis.fetch = (async (url: string, init: any = {}) => {
   if (u.pathname === '/auth/v1/user') return token === 'tok-u1' ? json({ id: 'u1' }) : json({ msg: 'bad' }, 401);
   if (u.pathname === '/rest/v1/rpc/cacada_bonus') return json(bonusCla);
   if (u.pathname === '/rest/v1/rpc/na_fila') return json(naFila);
+  if (u.pathname === '/rest/v1/rpc/alianca_missao_servidor') { const b = JSON.parse(init.body); if (b.tipo === 'monstros') missaoMonstros += b.qtd; return new Response(null, { status: 204 }); }
   if (u.pathname === '/rest/v1/personagens') {
     const id = (u.searchParams.get('id') || '').replace('eq.', '');
     const linha = banco[id];
@@ -68,6 +72,7 @@ const vit = Tanka.dados.VITALIDADE.ligada ? 2 : 1;
 ok(j.res.exp === Math.floor(Tanka.dados.monstros.lobo.exp * 1.15) * vit && !!j.res.vitalidade === (vit === 2), 'bônus de 15% do clã vindo do banco' + (vit === 2 ? ' + Vitalidade x2' : ' (Vitalidade desligada)') + ' (exp ' + j.res.exp + ')');
 ok(banco[p0.id].dados.estamina.pts === 239 && j.res.estamina === 1, 'Estamina: o lobo gastou 1 (gravado no banco)');
 ok(banco[p0.id].dados.hpAtual === R.status(banco[p0.id].dados).hpMax, 'vida cheia depois da luta');
+ok(missaoMonstros === 1, 'missão do clã: o lobo vencido conta 1 monstro (contou ' + missaoMonstros + ')');
 ok(j.personagem.ouro > 0 && banco[p0.id].dados.ouro === j.personagem.ouro, 'ouro gravado no banco');
 ok(j.proximo && banco[p0.id].dados.encontro, 'já veio o próximo encontro');
 ok(banco[p0.id].dados.versao === 2, 'versão 2 depois da luta');

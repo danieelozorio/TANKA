@@ -58,6 +58,10 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const r = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&select=conta_id,dados', { headers: cab });
   const linhas = r.ok ? await r.json() : [];
   if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 403);
+  // mortes antes da luta: contadas ANTES do normalizar, que mexe no mesmo objeto (sem isso a conta dava sempre 0 e a
+  // missão do clã "monstros" parou de contar em 16/11/2026)
+  const abates = (d: { abates?: Record<string, number> }) => Object.values(d.abates || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+  const abatesAntes = abates(linhas[0].dados);
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
 
@@ -100,8 +104,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const gravou = g.ok ? await g.json() : [];
   if (!gravou.length) return responder({ erro: 'Este personagem foi jogado em outra aba ou aparelho. Recarregando...', conflito: true }, 409);
   // missão do clã: os monstros vencidos contam aqui, pelo servidor (Henri, nov/2026)
-  const abates = (d: { abates?: Record<string, number> }) => Object.values(d.abates || {}).reduce((s, n) => s + (Number(n) || 0), 0);
-  const novos = abates(p) - abates(linhas[0].dados);
+  const novos = abates(p) - abatesAntes;
   const srv = cabecalhoServidor();
   if (novos > 0 && srv) {
     await fetch(base + '/rest/v1/rpc/alianca_missao_servidor', { method: 'POST', headers: srv,

@@ -1378,3 +1378,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   velocidade dos nós se o custo couber nos pontos do level (+extras, até o limite) e no máximo de pedras; nó
   desconhecido = ignora o Pacto. Crítico, dano crítico, precisão e esquiva por pontos não contam (crítico na Arena é o D20).
 - O gatilho da ficha agora força `dados.id = id da linha` (o clã da Arena é lido por ele).
+
+### Missão do clã "monstros" voltou a contar (Daniel, 19/11/2026)
+- Desde 16/11 a função `cacada` contava `abates(p) - abates(linhas[0].dados)`, mas `R.normalizar` mexe no MESMO objeto e
+  devolve ele: a conta dava sempre 0 e nenhum monstro chegava em `alianca_missao_servidor`. Agora as mortes de antes são
+  contadas antes do `normalizar` (`abatesAntes`). Teste em cacada_servidor.test.ts (com chave de servidor de mentira).
+  Sem Deno: `node --experimental-strip-types --import <shim que cria globalThis.Deno.env> testes/cacada_servidor.test.ts`.
