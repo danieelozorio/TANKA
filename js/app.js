@@ -995,7 +995,21 @@
       if (el && el.className === r.cls) el.scrollTop = r.top;
     });
   }
+  // Campos de preço da oficina: a tela se redesenha sozinha (ex.: a cada carga do servidor) e apagava o que o
+  // jogador estava digitando. Guarda o que foi mudado e devolve depois de redesenhar (Daniel, 19/11/2026).
   function manterRolagem(desenhar) {
+    var campos = Array.prototype.filter.call(app.querySelectorAll('input[id^="of-"]'), function (c) { return c.value !== c.defaultValue; })
+      .map(function (c) { return { id: c.id, v: c.value, foco: document.activeElement === c }; });
+    if (campos.length) {
+      var desenharSo = desenhar;
+      desenhar = function () {
+        desenharSo();
+        campos.forEach(function (x) {
+          var c = document.getElementById(x.id);
+          if (c && c.value === c.defaultValue) { c.value = x.v; if (x.foco) c.focus({ preventScroll: true }); }
+        });
+      };
+    }
     var y = window.scrollY, vez = ++rolagemVez, internas = rolagensInternas();
     if (!y) { desenhar(); voltarRolagensInternas(internas); return; }
     var chave = ancoraRolagem();
@@ -7682,6 +7696,7 @@
       h += '<div class="altar-mesa">' + pt.mesa.map(function (monte, i) {
         var pos = ' style="left:' + cx[i % lado] + '%;top:' + cy[Math.floor(i / lado)] + '%;--tam:' + (lado === 4 ? 17.6 : 92 / lado) + '%"';
         if (!monte.length) return '<div class="altar-monte vazio"' + pos + '><span>✔</span></div>';
+        if (estado.altarMesaNova) return '<div class="altar-monte pilha-3"' + pos + '></div>';
         var topo = monte[monte.length - 1], paga = dadosParaCarta(pt.dados, topo.custo);
         return '<button class="altar-monte pilha-' + Math.min(3, monte.length) + (paga ? ' paga' : '') + '"' + pos + ' data-acao="altar-pagar" data-valor="' + i + '"' + (paga ? '' : ' aria-disabled="true"') + '>'
           + '<span class="altar-face"><span class="altar-pilha">' + monte.length + '</span><span class="altar-carta">' + custoHtml(topo.custo) + '</span></span></button>';
@@ -7689,7 +7704,7 @@
       h += '<div class="altar-dados">' + pt.dados.map(function (d, i) {
         var e = elAltar(d);
         return '<button class="altar-dado' + (sel.indexOf(i) >= 0 ? ' sel' : '') + '" style="--cor:' + e.cor + '" data-acao="altar-dado" data-valor="' + i + '" title="' + e.nome + '">' + imgEl(d, 'altar-dado-img') + '</button>';
-      }).join('') + (!pt.dados.length ? '<span class="suave pequeno">Sem elementos: role de novo.</span>' : '') + '</div>';
+      }).join('') + new Array((estado.altarBloq && estado.altarGirando) || 0).fill('<span class="altar-dado girando">🎲</span>').join('') + (!pt.dados.length && !estado.altarGirando ? '<span class="suave pequeno">Sem elementos: role de novo.</span>' : '') + '</div>';
       if (estado.altarTroca && sel.length === 2) h += '<div class="altar-troca"><span class="suave pequeno">Trocar os 2 marcados por:</span>' + EVA_.elementos.map(function (e) {
         return '<button class="altar-dado" style="--cor:' + e.cor + '" data-acao="altar-trocar" data-valor="' + e.id + '" title="' + e.nome + '">' + imgEl(e.id, 'altar-dado-img') + '</button>';
       }).join('') + '<button class="btn secundario btn-pequeno" data-acao="altar-troca-nao">Cancelar</button></div>';
@@ -7722,6 +7737,38 @@
         : '<button class="btn secundario" data-acao="altar-premiar-pedir">Dar os prêmios…</button>') + '</div></div>';
     return h + '</section>';
   }
+  // Jogadas do Altar sem esperar o servidor (Daniel, 19/11/2026: as cartas demoravam a responder). A jogada vale na
+  // tela na hora e vai para uma fila que manda uma por vez; cada resposta do servidor substitui a partida e as jogadas
+  // que ainda estão na fila são refeitas por cima. O que é sorteado (rolar, mesa nova) trava a mesa até a resposta.
+  var altarFila = [], altarEnviando = false;
+  function altarJogada(nome, args, aplicar, trava, aviso) {
+    var p = estado.personagem, pt = p.altar && p.altar.partida;
+    if (!pt) return;
+    var res = aplicar(pt);
+    if (aviso) aviso(res);
+    if (trava) estado.altarBloq = true;
+    altarFila.push({ nome: nome, args: args, aplicar: aplicar });
+    telaJogo();
+    altarEnviar();
+  }
+  function altarEnviar() {
+    if (altarEnviando || !altarFila.length) return;
+    altarEnviando = true;
+    var op = altarFila[0], p = estado.personagem;
+    acaoServidor(op.nome, op.args, function () { /* já aplicada na tela */ }).then(function (r) {
+      altarEnviando = false;
+      altarFila.shift();
+      if (estado.personagem !== p) { altarFila = []; return; }
+      if (!r) { altarFila = []; sincronizarFicha().then(function () { if (estado.personagem === p) telaJogo(); }); }   // recusada ou sem rede: volta ao que está no servidor
+      else {
+        var pt = p.altar && p.altar.partida;
+        if (pt) altarFila.forEach(function (o) { o.aplicar(pt); });   // refaz por cima as que ainda vão
+      }
+      if (!altarFila.length) { estado.altarBloq = false; estado.altarGirando = 0; estado.altarMesaNova = false; }
+      telaJogo();
+      altarEnviar();
+    });
+  }
   function cliqueAltar(acao, el) {
     var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { telaJogo(); };
     var local = function (fn) { return function () { fn(); }; };
@@ -7731,43 +7778,52 @@
         acaoServidor('altarEntrar', null, local(function () { var a = R.altarDoDia(p, 'local', C.agora()); a.entradas++; a.n = (a.n || 0) + 1; a.partida = R.novaPartidaAltar(Math.random); })).then(depois);
         return true;
       case 'altar-dado': {
+        if (estado.altarBloq) return true;
         var i = Number(el.dataset.valor), sel = estado.altarSel || (estado.altarSel = []), k = sel.indexOf(i);
         if (k >= 0) sel.splice(k, 1); else sel.push(i);
         if (sel.length !== 2) estado.altarTroca = false;
         telaJogo(); return true;
       }
       case 'altar-pagar': {
-        if (!pt) return true;
+        if (!pt || estado.altarBloq) return true;
         var m = Number(el.dataset.valor), monte = pt.mesa[m], idx = monte && monte.length && dadosParaCarta(pt.dados, monte[monte.length - 1].custo);
         if (!idx) { avisar('Seus elementos não pagam essa carta.'); return true; }
         estado.altarSel = []; estado.altarTroca = false;
-        acaoServidor('altarPagar', { monte: m, dados: idx }, local(function () { R.pagarAltar(pt, m, idx, Math.random); })).then(function (r) {
-          var res = r && r.resultado;
-          if (res && res.extras && res.extras.length) avisar((res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! ' : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! ' : res.extras.indexOf('monte') >= 0 ? '✔ Monte zerado! ' : '')
+        // na hora (sem esperar o servidor): a carta sai e os pontos sobem; mesa toda = mesa nova sorteada no servidor
+        var vazias = pt.mesa.filter(function (x) { return !x.length; }).length + (monte.length === 1 ? 1 : 0);
+        var mesaToda = vazias === pt.mesa.length;
+        if (mesaToda) estado.altarMesaNova = true;   // a mesa nova vem do servidor: fica virada até ele responder
+        altarJogada('altarPagar', { monte: m, dados: idx }, function (q) { return R.pagarAltar(q, m, idx, Math.random); }, mesaToda, function (res) {
+          if (res && res.extras && res.extras.length) avisar((res.extras.indexOf('mesa') >= 0 ? '🏆 Mesa toda! ' : res.extras.indexOf('linha') >= 0 ? '✨ Linha completa! ' : res.extras.indexOf('monte') >= 0 ? '✔ Monte completo! ' : '')
             + (res.extras.indexOf('coluna') >= 0 ? '🏛 Coluna completa! ' : '') + (res.combo > 1 ? '🔥 Combo x' + res.combo + '! ' : '') + '+' + res.ganho, 'nivel');
-          depois();
         });
         return true;
       }
       case 'altar-rolar': {
-        if (!pt) return true;
+        if (!pt || estado.altarBloq || pt.rolagens <= 0) return true;
         var manter = (estado.altarSel || []).slice();
         // os guardados continuam marcados depois de rolar (o servidor põe eles no começo da mão)
         estado.altarSel = manter.map(function (x, k) { return k; }); estado.altarTroca = false;
-        acaoServidor('altarRolar', { manter: manter }, local(function () { R.rolarAltar(pt, manter, Math.random); })).then(depois);
+        // na hora: os guardados ficam e os outros giram até o servidor mandar o sorteio
+        altarJogada('altarRolar', { manter: manter }, function (q) {
+          q.dados = manter.map(function (i) { return q.dados[i]; }); q.rolagens--; q.combo = 0;
+          estado.altarGirando = Math.max(0, (EVA_.dados || 5) - q.dados.length);
+        }, true);
         return true;
       }
       case 'altar-troca': estado.altarTroca = true; telaJogo(); return true;
       case 'altar-troca-nao': estado.altarTroca = false; telaJogo(); return true;
       case 'altar-trocar': {
+        if (!pt || estado.altarBloq) return true;
         var dois = (estado.altarSel || []).slice(), elx = el.dataset.valor;
         estado.altarSel = []; estado.altarTroca = false;
-        acaoServidor('altarTrocar', { dados: dois, elemento: elx }, local(function () { R.trocarAltar(pt, dois, elx); })).then(depois);
+        altarJogada('altarTrocar', { dados: dois, elemento: elx }, function (q) { return R.trocarAltar(q, dois, elx); }, false);
         return true;
       }
-      case 'altar-fim': estado.altarFim = true; telaJogo(); return true;
+      case 'altar-fim': if (altarFila.length) return true; estado.altarFim = true; telaJogo(); return true;
       case 'altar-fim-nao': estado.altarFim = false; telaJogo(); return true;
       case 'altar-encerrar':
+        if (altarFila.length) { avisar('Espere a última jogada terminar.'); return true; }
         estado.altarFim = false; estado.altarSel = [];
         acaoServidor('altarEncerrar', null, local(function () { var a = p.altar; a.total = (a.total || 0) + a.partida.pontos; a.partida = null; })).then(function (r) {
           var res = r && r.resultado;

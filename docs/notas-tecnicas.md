@@ -1357,6 +1357,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   número (antigo, preço único) ou objeto `{ "1": preço, ..., "10": preço }` (só os níveis com preço > 0). `oficina_pedir` cobra
   o nível que o item vai tentar (encanto + 1) e recusa se o Ferreiro não tem preço para ele. Tela: 10 campos em "Seus preços"
   (`of-enc-N`), `precoEncantar(v, nivel)`, `precoServicoTxt` mostra a faixa ("100 a 700 (+1 ao +10)").
+  Correção: a tela se redesenhava sozinha e apagava o que estava digitado; `manterRolagem` guarda os `input[id^="of-"]`
+  mudados (value ≠ defaultValue) e devolve depois de redesenhar.
+- Altar sem atraso (19/11/2026): `altarJogada` aplica pagar/trocar na tela na hora e manda para uma fila (`altarFila`,
+  uma por vez); cada resposta substitui a partida e refaz por cima as jogadas que ainda estão na fila. Rolar (sorteio) e a
+  mesa toda (mesa nova) travam a mesa (`estado.altarBloq`) até a resposta: dados novos aparecem girando 🎲, mesa nova
+  fica virada (`altarMesaNova`). Recusa ou erro: limpa a fila e `sincronizarFicha()`. Encerrar espera a fila.
 
 ### Ficha mostra o Pacto (Henri, 19/11/2026)
 - O Pacto de Ascensão (e runas e skills do clã) só entra em `status(p, true)` (contra monstros). A ficha usava
