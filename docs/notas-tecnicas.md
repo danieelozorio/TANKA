@@ -1353,3 +1353,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - testes/regras.test.js zera o EXP_MULT no começo (testes antigos usam a curva base) e tem um teste próprio dele.
 - Teste de stress (Daniel, 19/11/2026): `STRESS_POR_CONTA` (input por_conta, padrão 40): 25 contas stresscNN (bot, criadas por SQL no projeto de teste) com 40 heróis cada = 1000 heróis com só 25 logins (o Supabase limita 30 logins/5 min por IP). O token do jogo (SUPABASE_ACCESS_TOKEN) dá 403 no projeto de teste (nem SQL nem deploy de função): o workflow usa o secret SUPABASE_ACCESS_TOKEN_TESTE se existir (token do Daniel com acesso ao projeto de teste). O workflow ganhou `preparar_projeto` (roda o schema.sql e acerta o login do projeto de
   teste pela API do Supabase com o SUPABASE_ACCESS_TOKEN). Projeto de teste usado: "Trup da ofensa" (teqwyugpsuegvalfruwb).
+- Oficina (19/11/2026, Daniel): o Ferreiro põe um preço por nível do encanto (+1 ao +10). `oficinas.servicos.encantar` pode ser
+  número (antigo, preço único) ou objeto `{ "1": preço, ..., "10": preço }` (só os níveis com preço > 0). `oficina_pedir` cobra
+  o nível que o item vai tentar (encanto + 1) e recusa se o Ferreiro não tem preço para ele. Tela: 10 campos em "Seus preços"
+  (`of-enc-N`), `precoEncantar(v, nivel)`, `precoServicoTxt` mostra a faixa ("100 a 700 (+1 ao +10)").

@@ -988,6 +988,15 @@ select pg_temp.como('a');
 select pg_temp.falha($$select public.oficina_configurar('pa', '{"encantar": 10}', 0, 0)$$, 'Só Ferreiros e Coletores');
 select pg_temp.como('d');
 select pg_temp.falha($$select public.oficina_configurar('pd', '{"receita": 10}', 0, 0)$$, 'não oferece');
+-- preço do encanto por nível (Daniel, 19/11/2026): guarda só +1..+10 com preço > 0; o pedido cobra o nível que o item vai tentar
+select public.oficina_configurar('pd', '{"encantar": {"1": 100, "4": 700, "11": 5, "x": 3, "2": 0}, "forjar": 1000}', 30, 100);
+reset role;
+select pg_temp.igual((select servicos -> 'encantar' from public.oficinas where personagem_id = 'pd'), '{"1": 100, "4": 700}'::jsonb, 'oficina: preço do encanto por nível');
+set role authenticated;
+select public.oficina_configurar('pd', '{"encantar": {"1": 100}, "forjar": 1000}', 30, 100);
+select pg_temp.como('a');
+select pg_temp.falha($$select public.oficina_pedir('pa', 'pd', 'encantar', 'esp9', '{}')$$, 'não encanta para o +4');
+select pg_temp.como('d');
 select public.oficina_configurar('pd', '{"encantar": 500, "forjar": 1000, "reliquia": 5000}', 30, 100);
 select pg_temp.como('b'); select public.oficina_configurar('pb', '{"receita": 100}', 0, 0);
 select pg_temp.como('a');

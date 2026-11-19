@@ -2289,3 +2289,10 @@ html[data-celular] .altar-el { width: 32px; height: 32px; }
 .altar-pips.q3 .altar-pip:nth-child(1) { left: 24%; top: 24%; }
 .altar-pips.q3 .altar-pip:nth-child(2) { left: 50%; top: 50%; }
 .altar-pips.q3 .altar-pip:nth-child(3) { left: 76%; top: 76%; }
+/* Oficina: preço do encanto por nível (+1 ao +10) */
+.loja-preco-niveis { grid-column: 1 / -1; }
+.loja-niveis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-top: 6px; }
+.loja-niveis label { display: flex; align-items: center; gap: 4px; font-size: .8rem; }
+.loja-niveis label b { color: var(--ouro-claro); min-width: 2.1em; }
+.loja-niveis input { width: 100%; min-width: 0; }
+html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }

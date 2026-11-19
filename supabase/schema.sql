@@ -4191,16 +4191,29 @@ end $$;
 -- O artesão abre/atualiza a oficina: servicos = { tipo: preço } (0 ou vazio = não oferece).
 create or replace function public.oficina_configurar(meu text, servicos jsonb, bonus numeric, sorte int) returns void
 language plpgsql security definer set search_path = public as $$
-declare d jsonb; c2 text; k text; v bigint; ok jsonb := '{}'::jsonb; cfg jsonb := public.craft_cfg() -> 'oficina' -> 'servicos';
+declare d jsonb; c2 text; k text; v bigint; n int; enc jsonb; ok jsonb := '{}'::jsonb; cfg jsonb := public.craft_cfg() -> 'oficina' -> 'servicos';
 begin
   perform public.conferir_dono(meu);
   select dados into d from public.personagens where id = meu;
   c2 := d -> 'talentos' ->> 'classe2';
   if c2 not in ('ferreiro', 'coletor') then raise exception 'Só Ferreiros e Coletores abrem uma oficina.'; end if;
   for k in select jsonb_object_keys(coalesce(servicos, '{}'::jsonb)) loop
-    v := floor(coalesce((servicos ->> k)::numeric, 0));
-    continue when v <= 0 or cfg -> k is null;
+    continue when cfg -> k is null;
     if cfg -> k ->> 'de' <> c2 then raise exception '% não oferece "%".', initcap(c2), cfg -> k ->> 'nome'; end if;
+    -- Encantar com preço por nível (Daniel, 19/11/2026): { "1": preço do +1, ..., "10": preço do +10 }
+    if k = 'encantar' and jsonb_typeof(servicos -> k) = 'object' then
+      enc := '{}'::jsonb;
+      for n in 1..10 loop
+        v := floor(coalesce((servicos -> k ->> n::text)::numeric, 0));
+        continue when v <= 0;
+        if v > 2000000000 then raise exception 'Preço muito alto.'; end if;
+        enc := enc || jsonb_build_object(n::text, v);
+      end loop;
+      if enc <> '{}'::jsonb then ok := ok || jsonb_build_object(k, enc); end if;
+      continue;
+    end if;
+    v := floor(coalesce((servicos ->> k)::numeric, 0));
+    continue when v <= 0;
     if v > 2000000000 then raise exception 'Preço muito alto.'; end if;
     ok := ok || jsonb_build_object(k, v);
   end loop;
@@ -4220,7 +4233,8 @@ begin
   perform public.conferir_dono(meu);
   opcoes := coalesce(opcoes, '{}'::jsonb);
   select * into o from public.oficinas where personagem_id = artesao;
-  preco := (o.servicos ->> tipo)::bigint;
+  -- preço: número; encantar pode ter preço por nível (objeto), escolhido mais abaixo pelo nível que o item vai tentar
+  preco := case jsonb_typeof(o.servicos -> tipo) when 'number' then (o.servicos ->> tipo)::bigint when 'object' then 0 end;
   if o.personagem_id is null or preco is null then raise exception 'Essa oficina não oferece esse serviço.'; end if;
   if not public.oficina_ativa(artesao) then raise exception 'Esse artesão não entra no jogo há mais de % h: a oficina saiu da lista.',
     coalesce(cfg -> 'oficina' ->> 'sumirHoras', '24'); end if;
@@ -4235,6 +4249,10 @@ begin
     if (it ->> 'travado') = 'true' then raise exception 'Destrave o item antes.'; end if;
     if tipo = 'encantar' and coalesce((it ->> 'encanto')::int, 0) >= (e ->> 'maximo')::int then raise exception 'Esse item já está no máximo.'; end if;
     if tipo = 'encantar' and it ? 'runa' then raise exception 'Relíquias não podem mais ser encantadas.'; end if;
+    if tipo = 'encantar' and jsonb_typeof(o.servicos -> 'encantar') = 'object' then
+      preco := (o.servicos -> 'encantar' ->> (coalesce((it ->> 'encanto')::int, 0) + 1)::text)::bigint;
+      if preco is null then raise exception 'Esse Ferreiro não encanta para o +%.', coalesce((it ->> 'encanto')::int, 0) + 1; end if;
+    end if;
     if tipo = 'quebrar' then
       if it ? 'runa' then raise exception 'Relíquias não podem ser quebradas.'; end if;
       if (it ->> 'raridade') not in ('comum', 'rara', 'epica', 'lendaria') then raise exception 'Esse item não pode ser quebrado.'; end if;

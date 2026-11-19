@@ -3053,7 +3053,17 @@
   var CRISTAIS_NOME = { comum: 'comuns', rara: 'raros', epica: 'épicos', lendaria: 'lendários' };   // "10 cristais raros"
   var ICONE_SERVICO = { encantar: '✨', forjar: '🔨', reliquia: '💠', receita: '📜', protecao: '🛡', quebrar: '⚒' };
   // preço mostrado do serviço: o de "quebrar" é por level do item
-  function precoServicoTxt(k, v) { return ouroTxt(v) + (OF.servicos[k] && OF.servicos[k].porNivel ? ' por level' : ''); }
+  // Encantar pode ter preço por nível do encanto (Daniel, 19/11/2026): { 1: preço do +1, ..., 10: preço do +10 }.
+  function precoEncantar(v, nivel) { return v && typeof v === 'object' ? (Number(v[String(nivel)]) || null) : (Number(v) || null); }
+  function precoServicoTxt(k, v) {
+    if (v && typeof v === 'object') {
+      var ns = Object.keys(v).map(Number).sort(function (a, b) { return a - b; }), vs = ns.map(function (n) { return Number(v[n]); });
+      if (!ns.length) return '—';
+      var mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs);
+      return (mn === mx ? ouroTxt(mn) : ouroTxt(mn) + ' a ' + ouroTxt(mx)) + ' (+' + ns[0] + (ns.length > 1 ? ' ao +' + ns[ns.length - 1] : '') + ')';
+    }
+    return ouroTxt(v) + (OF.servicos[k] && OF.servicos[k].porNivel ? ' por level' : '');
+  }
   // Situação de um pedido, como selo colorido.
   function seloPedido(x) {
     var r = x.resultado || {};
@@ -3092,6 +3102,15 @@
         + (eu ? statsLoja(eu) : '')
         + '<h4>Seus preços <span class="suave pequeno">· deixe em branco o que não quer oferecer</span></h4><div class="loja-precos">' + meus.map(function (k) {
           var off = k === 'reliquia' && R.podeReliquia(p) !== true;
+          if (k === 'encantar') {   // um preço para cada nível (+1 ao +10)
+            var pe = precos.encantar;
+            return '<div class="loja-preco loja-preco-niveis"><span class="loja-preco-nome">' + ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome
+              + '<small class="suave">um preço para cada nível (deixe em branco o nível que não quer fazer)</small></span><div class="loja-niveis">'
+              + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(function (n) {
+                var val = pe && typeof pe === 'object' ? pe[String(n)] : pe;
+                return '<label><b>+' + n + '</b><input type="number" min="0" step="1" inputmode="numeric" id="of-enc-' + n + '" value="' + (val || '') + '" placeholder="—"></label>';
+              }).join('') + '</div></div>';
+          }
           return '<label class="loja-preco' + (off ? ' off' : '') + '"><span class="loja-preco-nome">' + ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome
             + (off ? '<small class="suave">' + esc(R.podeReliquia(p)) + '</small>' : '') + '</span>'
             + (OF.servicos[k].porNivel ? '<small class="suave">por level do item (um item level 30 custa 30x)</small>' : '')
@@ -3163,7 +3182,9 @@
         + '<span class="suave pequeno">(' + (temProt ? 'você tem ' + R.qtdConsumivel(p, 'protecao', it.raridade) : 'você não tem da raridade ' + D.raridades[it.raridade].nome) + ')</span></label>'
         + (temPerg ? '' : '<p class="menos pequeno">Você precisa de 1 Pergaminho ' + D.raridades[it.raridade].nome + ' para entregar.</p>');
       pode = temPerg;
-      aviso = 'Chance deste artesão: <strong>' + fmtDec(chance) + '%</strong> para o +' + (it.encanto + 1) + '. '
+      preco = precoEncantar(x.servicos.encantar, it.encanto + 1);
+      if (!preco) { pode = false; h += '<p class="menos pequeno">Este Ferreiro não encanta para o +' + (it.encanto + 1) + '. Escolha outro item ou outro Ferreiro.</p>'; preco = 0; }
+      aviso = 'Preço para o +' + (it.encanto + 1) + ': <strong>' + ouroTxt(preco) + '</strong>. Chance deste artesão: <strong>' + fmtDec(chance) + '%</strong> para o +' + (it.encanto + 1) + '. '
         + (risco === 'nada' ? 'Sem risco.' : prot ? 'Com Proteção: se falhar, o item fica como está.' : risco === 'zera' ? 'Se falhar, o item <strong>volta a +0</strong>.' : 'Se falhar, o item <strong>QUEBRA</strong>.')
         + ' Você confia na sorte d' + (x.sexo === 'feminino' ? 'a ' : 'o ') + esc(nomeRacaCurto(x).toLowerCase() || 'artesão') + '?';
     } else if (tipo === 'forjar') {
@@ -3264,7 +3285,15 @@
     switch (acao) {
       case 'of-salvar': {
         var sv = {};
-        servicosDe(p).forEach(function (k) { var c = document.getElementById('of-preco-' + k), v = c && Math.floor(Number(c.value)); if (v > 0) sv[k] = v; });
+        servicosDe(p).forEach(function (k) {
+          if (k === 'encantar') {
+            var en = {};
+            for (var n = 1; n <= 10; n++) { var ce = document.getElementById('of-enc-' + n), ve = ce && Math.floor(Number(ce.value)); if (ve > 0) en[n] = ve; }
+            if (Object.keys(en).length) sv.encantar = en;
+            return;
+          }
+          var c = document.getElementById('of-preco-' + k), v = c && Math.floor(Number(c.value)); if (v > 0) sv[k] = v;
+        });
         configurarOficina(sv);
         return true;
       }
