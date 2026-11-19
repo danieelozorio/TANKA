@@ -29,13 +29,14 @@ on:
       preparar_projeto:
         description: 'Preparar o projeto de teste antes (rodar o schema.sql, desligar a confirmação de e-mail e subir os limites de cadastro)'
         type: boolean
-        default: false
+        default: true
 jobs:
   stress:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      # SUPABASE_ACCESS_TOKEN_TESTE: token com acesso ao projeto de teste (o do jogo só alcança o projeto de verdade)
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN_TESTE || secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
