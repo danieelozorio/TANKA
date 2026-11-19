@@ -47,7 +47,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   try { pedido = await req.json(); } catch { return responder({ erro: 'Pedido inválido.' }, 400); }
   const id = String(pedido.personagem ?? '');
   const acao = String(pedido.acao ?? '');
-  if (!id || !['encontro', 'lutar', 'pocao', 'fim', 'fugir', 'parar', 'retomar'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
+  if (!id || !['encontro', 'lutar', 'pocao', 'fim', 'fugir', 'parar', 'retomar', 'previsao'].includes(acao)) return responder({ erro: 'Pedido inválido.' }, 400);
 
   // 1. login
   const u = await fetch(base + '/auth/v1/user', { headers: cab });
@@ -86,6 +86,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const t = agora();
   let saida: Record<string, unknown>;
   if (acao === 'retomar' && !p.cacadaAuto) return responder({ ausente: { lutas: 0, ligada: false }, personagem: linhas[0].dados, agora: t });
+  if (acao === 'previsao') return responder({ ...S.previsao(p, t, sorteio), agora: t });   // só lê (notificação do app)
   if (acao === 'encontro') saida = S.encontro(p, pedido.alvos, t, sorteio, pedido.auto);
   else if (acao === 'parar') saida = S.parar(p, t);
   else if (acao === 'retomar') saida = S.retomar(p, t, sorteio, bonus);

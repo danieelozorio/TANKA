@@ -390,6 +390,11 @@ Tanka.contas = (function () {
     cancelar: function (meu, pedido) { return chamar('oficina_cancelar', { meu: meu, pedido: pedido }); },
     fazer: function (meu, pedido) { return chamar('oficina_fazer', { meu: meu, pedido: pedido }); },
   };
+  // Notificações do app (Henri, 19/11/2026): token do aparelho (Firebase) na conta.
+  var push = {
+    registrar: function (token) { return chamar('push_registrar', { token: token }); },
+    remover: function (token) { return chamar('push_remover', { token: token }); },
+  };
   // Baú da conta (Henri, 18/11/2026): guardar é pela função `acao` (bauDepositar); ver e retirar, por aqui.
   var bau = {
     estado: function (meu) { return chamar('bau_estado', { meu: meu }); },
@@ -477,6 +482,7 @@ Tanka.contas = (function () {
     arena: arena,
     alianca: alianca,
     bau: bau,
+    push: push,
     oficina: oficina,
     grupo: grupo,
     torre: torre,

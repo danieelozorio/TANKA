@@ -32,6 +32,10 @@ cmd('Runtime.enable')
 print('ELDRIN_APP:', js('JSON.stringify(window.ELDRIN_APP)'))
 print('plugins:', js('Object.keys((window.Capacitor||{}).Plugins||{}).join(",")'))
 print('updater atual:', js('Capacitor.Plugins.CapacitorUpdater.current().then(r=>JSON.stringify(r))'))
+# Firebase (19/11/2026): o app registra no Firebase sem cair e recebe um token
+print('firebase:', js('new Promise(function(ok){var P=Capacitor.Plugins.PushNotifications;P.addListener("registration",function(t){ok("token "+String(t.value).slice(0,12)+"…")});P.addListener("registrationError",function(e){ok("erro "+JSON.stringify(e))});P.register().catch(function(e){ok("erro "+e.message)});setTimeout(function(){ok("sem resposta em 20 s")},20000)})'))
+# notificações locais (19/11/2026): agenda o boss do clã às 20h e confere a lista do Android
+print('notificações:', js('window.EldrinNativo ? EldrinNativo.bossCla({boss:{hora:21}}) || new Promise(r=>setTimeout(r,2500)).then(()=>Capacitor.Plugins.LocalNotifications.getPending()).then(x=>JSON.stringify(x.notifications.map(n=>[n.id,n.title,n.schedule&&n.schedule.at]))) : "sem EldrinNativo"'))
 for _ in range(15):
     if js('!!document.querySelector("#app-atualizar button")'): break
     time.sleep(2)

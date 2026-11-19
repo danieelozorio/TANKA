@@ -1589,4 +1589,18 @@ begin
   delete from public.alianca_skills where alianca_id = al and skill in ('dano', 'vida');
   raise notice 'ok   arena: clã e Pacto de Ascensão somam nos status';
 end $$;
+-- Notificações (Henri, 19/11/2026): só vai para a fila quem tem aparelho registrado
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.falha($$select public.push_registrar('curto')$$, 'Token inválido');
+select public.push_registrar('token-de-teste-do-aparelho-0001');
+reset role;
+select public.push_avisar('pa', 'Leilão', 'Seu lance foi coberto!');
+select public.push_avisar('pb', 'Arena', 'Você foi atacado');   -- conta b sem aparelho
+select pg_temp.igual((select count(*) from public.push_fila where titulo = 'Leilão')::int, 1, 'push: aviso na fila de quem tem aparelho');
+select pg_temp.igual((select count(*) from public.push_fila where titulo = 'Arena')::int, 0, 'push: sem aparelho, sem fila');
+set role authenticated;
+select pg_temp.como('b');
+select pg_temp.falha($$select public.push_avisar('pa', 'x', 'y')$$, 'permission denied');
+reset role;
 \echo TODOS OS TESTES DO BANCO PASSARAM

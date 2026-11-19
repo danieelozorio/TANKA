@@ -37,15 +37,6 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
 
-      - name: Montar o jogo para o app
-        run: |
-          # No branch de teste o jogo do APK fica com versão 1, para o app oferecer a atualização do main e o teste apertar.
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then ELDRIN_VERSAO_WEB=$N node ferramentas/montar_app.js
-          else ELDRIN_VERSAO_WEB=1 ELDRIN_VERSOES_URL=$REPO_URL/app-teste/versao.json node ferramentas/montar_app.js; fi
-          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
-            node -e "const f='app-android/capacitor.config.json',c=require('./'+f);c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
-          fi
-
       - name: Precisa montar o APK?
         id: decide
         run: |
@@ -58,6 +49,28 @@ jobs:
           echo "apk=$APK" >> "$GITHUB_OUTPUT"
           echo "Montar APK: $APK"
 
+      - name: Firebase (notificações do servidor)
+        id: firebase
+        run: |
+          # pushDesde = a versão do primeiro APK com o Firebase (app-android/google-services.json). O jogo só registra o
+          # aparelho no Firebase com o APK dessa versão em diante (antes disso, registrar derrubaria o app).
+          D=0
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            gh release download app-web -p versao.json -O antigo.json 2>/dev/null || echo '{}' > antigo.json
+            D=$(node -e "console.log(require('./antigo.json').pushDesde||0)")
+            if [ "$D" = "0" ] && [ -f app-android/google-services.json ] && [ "${{ steps.decide.outputs.apk }}" = "sim" ]; then D=$N; fi
+          elif [ -f app-android/google-services.json ]; then D=1; fi
+          echo "PUSH_DESDE=$D" >> "$GITHUB_ENV"; echo "pushDesde=$D"
+
+      - name: Montar o jogo para o app
+        run: |
+          # No branch de teste o jogo do APK fica com versão 1, para o app oferecer a atualização do main e o teste apertar.
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then ELDRIN_VERSAO_WEB=$N ELDRIN_PUSH_DESDE=$PUSH_DESDE node ferramentas/montar_app.js
+          else ELDRIN_VERSAO_WEB=1 ELDRIN_PUSH_DESDE=$PUSH_DESDE ELDRIN_VERSOES_URL=$REPO_URL/app-teste/versao.json node ferramentas/montar_app.js; fi
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            node -e "const f='app-android/capacitor.config.json',c=require('./'+f);c.android.webContentsDebuggingEnabled=true;require('fs').writeFileSync(f,JSON.stringify(c,null,2))"
+          fi
+
       - uses: actions/setup-java@v5
         if: steps.decide.outputs.apk == 'sim'
         with: { distribution: temurin, java-version: 21 }
@@ -68,6 +81,7 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npx cap add android
+          if [ -f google-services.json ]; then cp google-services.json android/app/; echo 'Firebase: ligado'; else echo 'Firebase: sem google-services.json (só notificações locais)'; fi
           grep -rq adjustMarginsForEdgeToEdge node_modules/@capacitor/android/capacitor/src && echo 'margem da barra do celular: ok' || { echo '::error::Capacitor sem adjustMarginsForEdgeToEdge'; exit 1; }
           # Faixas da barra de notificações e da barra de baixo: pretas, com ícones claros.
           sed -i '/name="AppTheme.NoActionBar"/a\        <item name="android:windowBackground">@android:color/black</item>\n        <item name="android:windowLightStatusBar">false</item>\n        <item name="android:windowLightNavigationBar">false</item>' android/app/src/main/res/values/styles.xml
@@ -119,7 +133,7 @@ jobs:
           MB=$(node -e "console.log((require('fs').statSync('eldrin-web.zip').size/1048576).toFixed(1))")
           SOMA=$(sha256sum eldrin-web.zip | cut -d' ' -f1)   # o app confere o arquivo baixado (o plugin exige)
           gh release upload app-web eldrin-web.zip --clobber
-          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: $MB, apk: $APK_NUM, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
+          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: $MB, apk: $APK_NUM, pushDesde: Number('$PUSH_DESDE') || 0, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0 }, null, 1))"
           cat versao.json
           gh release upload app-web versao.json --clobber
 
@@ -134,7 +148,7 @@ jobs:
         if: steps.decide.outputs.apk == 'sim' && github.ref != 'refs/heads/main'
         run: |
           pip install websocket-client
-          ELDRIN_VERSAO_WEB=2 ELDRIN_VERSOES_URL=$REPO_URL/app-teste/versao.json node ferramentas/montar_app.js
+          ELDRIN_VERSAO_WEB=2 ELDRIN_PUSH_DESDE=$PUSH_DESDE ELDRIN_VERSOES_URL=$REPO_URL/app-teste/versao.json node ferramentas/montar_app.js
           (cd app-android/www && zip -qr -9 ../../eldrin-web.zip .)
           SOMA=$(sha256sum eldrin-web.zip | cut -d' ' -f1)
           node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: 2, webUrl: '$REPO_URL/app-teste/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: 43, apk: 0 }))"
