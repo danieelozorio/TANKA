@@ -1378,6 +1378,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   velocidade dos nós se o custo couber nos pontos do level (+extras, até o limite) e no máximo de pedras; nó
   desconhecido = ignora o Pacto. Crítico, dano crítico, precisão e esquiva por pontos não contam (crítico na Arena é o D20).
 - O gatilho da ficha agora força `dados.id = id da linha` (o clã da Arena é lido por ele).
+- (19/11) Efeitos de luta do Pacto na Arena: `arena_pacto_ef(p)` (validação compartilhada com `arena_com_pacto`);
+  `arena_lutador` soma no `ex` reflete, rouboVida, reducaoDano, danoHab, danoMeiaVida e execucao; `arena_vez` devolve
+  `buff reflete + ex.reflete` e aplica Sem Piedade/Execução/Arcano no fator (iguais ao regras.js). Regen, Inabalável,
+  Primeiro Golpe, Eco, Foco e os de crítico/esquiva/precisão/ouro/exp/drop continuam só contra monstros.
 
 ### Missão do clã "monstros" voltou a contar (Daniel, 19/11/2026)
 - Desde 16/11 a função `cacada` contava `abates(p) - abates(linhas[0].dados)`, mas `R.normalizar` mexe no MESMO objeto e

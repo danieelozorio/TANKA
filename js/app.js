@@ -2209,7 +2209,7 @@
     }).join('');
     var simples = {};
     ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaMenos', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
-    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (vida, dano, defesas e velocidade valem também na Arena)</summary>'
+    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (na Arena valem vida, dano, defesas, velocidade, devolver dano, roubo de vida, menos dano recebido, dano de habilidade, Sem Piedade e Execução)</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
   function pactoHtml() {

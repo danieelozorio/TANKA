@@ -1562,6 +1562,17 @@ set role authenticated; select pg_temp.comoG('2');
 update public.personagens set dados = dados || '{"eventoSaida":[{"id":"g2:x:1","evento":"x","pontos":20000}],"altar":{"total":999999}}' where id = 'g2';
 reset role;
 select pg_temp.igual((select dados ? 'eventoSaida' or dados ? 'altar' from public.personagens where id = 'g2'), false, 'evento: o jogador não escreve a partida nem os pontos na ficha');
+-- Pacto na Arena, efeitos de luta (19/11/2026): Farpas (5%) + Couraça de Espinhos (20%) = devolve 25% do dano.
+do $$
+declare d0 jsonb; l jsonb;
+begin
+  select dados into d0 from public.personagens where id = 'pa';
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": ["bastiao-t0", "bastiao-1-2", "bastiao-1-p"], "exp": 0, "extras": 0}}' where id = 'pa';
+  l := public.arena_lutador('pa');
+  if coalesce((l -> 'ex' ->> 'reflete')::numeric, 0) <> 25 then raise exception 'FALHA pacto na Arena: devolve % (esperado 25)', l -> 'ex' ->> 'reflete'; end if;
+  update public.personagens set dados = d0 where id = 'pa';
+  raise notice 'ok   pacto na Arena: Farpas + Couraça devolvem 25%%';
+end $$;
 -- Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026): tanka_status soma as skills do clã (do banco) e o Pacto
 do $$
 declare d jsonb; s0 jsonb; s1 jsonb; al bigint;

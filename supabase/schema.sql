@@ -1677,6 +1677,16 @@ begin
   end if;
   fator := (case when k is null then 100 else (k ->> 'mult')::numeric end) / 100 * (1 + public.arena_buff(eu, 'dano') / 100)
     * (1 + coalesce((eu -> 'ex' ->> 'danoExtraPct')::numeric, 0) / 100);
+  -- Pacto (19/11/2026): Sem Piedade (alvo com menos da metade da vida), Execução (+40% abaixo de 30%, -10% com vida cheia)
+  -- e Arcano (habilidades), iguais aos da luta contra monstros (js/regras.js).
+  if coalesce((eu -> 'ex' ->> 'danoMeiaVida')::numeric, 0) > 0 and (outro ->> 'hp')::numeric * 2 < (outro ->> 'hpMax')::numeric then
+    fator := fator * (1 + (eu -> 'ex' ->> 'danoMeiaVida')::numeric / 100);
+  end if;
+  if coalesce((eu -> 'ex' ->> 'execucao')::numeric, 0) > 0 then
+    fator := fator * case when (outro ->> 'hp')::numeric * 100 < (outro ->> 'hpMax')::numeric * 30 then 1.4
+      when (outro ->> 'hp')::numeric >= (outro ->> 'hpMax')::numeric then 0.9 else 1 end;
+  end if;
+  if k is not null and coalesce((eu -> 'ex' ->> 'danoHab')::numeric, 0) > 0 then fator := fator * (1 + (eu -> 'ex' ->> 'danoHab')::numeric / 100); end if;
   if k is not null then
     -- Golpe Apocalíptico: +x% para cada 1% de vida que falta. Execução: +bônus com o outro abaixo de x% da vida.
     fator := fator * (1 + coalesce((k ->> 'vidaFaltando')::numeric, 0) * (100 - (eu ->> 'hp')::numeric * 100 / (eu ->> 'hpMax')::numeric) / 100);
@@ -1735,7 +1745,7 @@ begin
       ev := ev || jsonb_build_object('bolso', true);
     end if;
     -- Defesa Suprema: devolve parte do dano para quem bateu.
-    refl := round(golpe * public.arena_buff(outro, 'reflete') / 100);
+    refl := round(golpe * (public.arena_buff(outro, 'reflete') + coalesce((outro -> 'ex' ->> 'reflete')::numeric, 0)) / 100);   -- + Pacto (Espinhos)
     if refl > 0 then
       eu := jsonb_set(eu, '{hp}', to_jsonb(greatest(0, (eu ->> 'hp')::int - refl)));
       ev := ev || jsonb_build_object('devolvido', coalesce((ev ->> 'devolvido')::int, 0) + refl);
@@ -1817,24 +1827,33 @@ end $$;
 
 -- Pacto de Ascensão na Arena (Henri, 19/11/2026): soma os efeitos dos nós da ficha (ASC_NOS no tanka_dados), só se o
 -- custo deles couber nos pontos do level (e no máximo de pedras). Vida, dano, defesas e velocidade, em %.
-create or replace function public.arena_com_pacto(s jsonb, p jsonb) returns jsonb
+-- Efeitos somados do Pacto (validado: nós que existem, pontos e pedras dentro do limite); '{}' se não vale.
+create or replace function public.arena_pacto_ef(p jsonb) returns jsonb
 language plpgsql stable as $$
 declare T jsonb := public.tanka_dados(); A jsonb := T -> 'ASCENSAO'; N jsonb := T -> 'ASC_NOS';
   nos jsonb := coalesce(p -> 'ascensao' -> 'nos', '[]'::jsonb); nivel int := coalesce((p ->> 'nivel')::int, 1);
   tot int; custo int := 0; pedras int := 0; ef jsonb := '{}'::jsonb; id text; k text; v numeric;
 begin
-  if A is null or N is null or jsonb_typeof(nos) <> 'array' or jsonb_array_length(nos) = 0 or nivel < (A ->> 'nivelInicio')::int then return s; end if;
+  if A is null or N is null or jsonb_typeof(nos) <> 'array' or jsonb_array_length(nos) = 0 or nivel < (A ->> 'nivelInicio')::int then return '{}'::jsonb; end if;
   tot := least((A ->> 'limitePontos')::int, (least(nivel, (T ->> 'NIVEL_MAXIMO')::int) - (A ->> 'nivelInicio')::int) * (A ->> 'pontosPorNivel')::int
     + greatest(0, coalesce((p -> 'ascensao' ->> 'extras')::int, 0)));
   for id in select distinct jsonb_array_elements_text(nos) loop
-    if not N ? id then return s; end if;   -- nó que não existe: ficha estranha, ignora o Pacto
+    if not N ? id then return '{}'::jsonb; end if;   -- nó que não existe: ficha estranha, ignora o Pacto
     custo := custo + (N -> id ->> 'custo')::int;
     if N -> id ->> 'tipo' = 'pedra' then pedras := pedras + 1; end if;
     for k, v in select key, value::numeric from jsonb_each_text(N -> id -> 'ef') where value ~ '^-?[0-9.]+$' loop
       ef := ef || jsonb_build_object(k, coalesce((ef ->> k)::numeric, 0) + v);
     end loop;
   end loop;
-  if custo > tot or pedras > (A ->> 'maxPedras')::int then return s; end if;
+  if custo > tot or pedras > (A ->> 'maxPedras')::int then return '{}'::jsonb; end if;
+  return ef;
+end $$;
+
+create or replace function public.arena_com_pacto(s jsonb, p jsonb) returns jsonb
+language plpgsql stable as $$
+declare ef jsonb := public.arena_pacto_ef(p);
+begin
+  if ef = '{}'::jsonb then return s; end if;
   if (ef ->> 'vida') is not null then s := s || jsonb_build_object('hpMax', greatest(1, round((s ->> 'hpMax')::numeric * (1 + (ef ->> 'vida')::numeric / 100)))); end if;
   if (ef ->> 'dano') is not null then s := s || jsonb_build_object('dano', jsonb_build_array(
     greatest(1, round((s -> 'dano' ->> 0)::numeric * (1 + (ef ->> 'dano')::numeric / 100))), greatest(1, round((s -> 'dano' ->> 1)::numeric * (1 + (ef ->> 'dano')::numeric / 100))))); end if;
@@ -2283,10 +2302,22 @@ $$;
 -- Lutador da luta a partir dos dados salvos do personagem. modo: 'arena' (atacante) ou 'defesa' (desafiado).
 create or replace function public.arena_lutador(pid text, modo text) returns jsonb
 language plpgsql stable as $$
-declare p public.personagens; s jsonb;
+declare p public.personagens; s jsonb; ex jsonb; pe jsonb; k text;
 begin
   select * into p from public.personagens where id = pid;
   s := public.tanka_status(p.dados || jsonb_build_object('id', p.id));   -- o clã é lido pelo id da linha
+  ex := public.arena_extras(p.dados);
+  if coalesce((s ->> 'rouboVida')::numeric, 0) > 0 then
+    ex := ex || jsonb_build_object('rouboVida', coalesce((ex ->> 'rouboVida')::numeric, 0) + (s ->> 'rouboVida')::numeric);
+  end if;
+  -- Pacto na Arena (Henri, 19/11/2026): devolver dano, roubo de vida, menos dano recebido, dano de habilidade,
+  -- dano no alvo com menos da metade da vida e Execução. Crítico, precisão e esquiva não contam (na Arena manda o D20).
+  pe := public.arena_pacto_ef(p.dados);
+  foreach k in array array['reflete', 'rouboVida', 'reducaoDano', 'danoHab', 'danoMeiaVida', 'execucao'] loop
+    if coalesce((pe ->> k)::numeric, 0) <> 0 then
+      ex := ex || jsonb_build_object(k, coalesce((ex ->> k)::numeric, 0) + (pe ->> k)::numeric);
+    end if;
+  end loop;
   return jsonb_build_object('id', p.id, 'nome', p.nome, 'classe', p.dados ->> 'classe', 'sexo', p.dados ->> 'sexo', 'raca', p.dados ->> 'raca',
     'skin', coalesce(p.dados ->> 'skinDado', 'vermelho'),
     'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'hp', s -> 'hpMax', 'hpMax', s -> 'hpMax', 'dano', s -> 'dano', 'magico', s -> 'magico',
@@ -2294,9 +2325,7 @@ begin
     'velBase', greatest(1, (s ->> 'velocidade')::numeric), 'esquiva', coalesce(s -> 'esquiva', '0'::jsonb),
     'classe2', case when public.arena_pontos_ok(p.dados) then p.dados -> 'talentos' -> 'classe2' else 'null'::jsonb end,
     'kit', public.arena_kit(p.dados, modo), 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1,
-    'milagre', public.arena_milagre(p.dados), 'ex', public.arena_extras(p.dados)
-      || case when coalesce((s ->> 'rouboVida')::numeric, 0) > 0 then jsonb_build_object('rouboVida',
-        coalesce((public.arena_extras(p.dados) ->> 'rouboVida')::numeric, 0) + (s ->> 'rouboVida')::numeric) else '{}'::jsonb end);
+    'milagre', public.arena_milagre(p.dados), 'ex', ex);
 end $$;
 create or replace function public.arena_lutador(pid text) returns jsonb
 language sql stable as $$ select public.arena_lutador(pid, 'arena'); $$;
