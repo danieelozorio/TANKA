@@ -2296,3 +2296,6 @@ html[data-celular] .altar-el { width: 32px; height: 32px; }
 .loja-niveis label b { color: var(--ouro-claro); min-width: 2.1em; }
 .loja-niveis input { width: 100%; min-width: 0; }
 html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }
+/* Altar: dados girando enquanto o servidor sorteia (Daniel, 19/11/2026) */
+.altar-dado.girando { display: inline-flex; align-items: center; justify-content: center; font-size: 30px; animation: altar-gira .5s linear infinite; }
+@keyframes altar-gira { to { transform: rotate(360deg); } }
