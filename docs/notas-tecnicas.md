@@ -1389,3 +1389,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Função `supabase/functions/push` (segredo `FIREBASE_CONTA` = JSON da conta de serviço) manda os pendentes da última
   hora e apaga tokens inválidos. O app só registra no Firebase com APK >= `ELDRIN_APP.pushDesde` (versão do 1º APK
   montado com `app-android/google-services.json`; guardado no versao.json do release app-web).
+- Diagnóstico (19/11): `registrarPush` mostra na tela onde travou (APK antigo, sem pushDesde, permissão,
+  `registrationError` do Firebase, servidor recusou o token); sucesso aparece uma vez ("Notificações ligadas") e o
+  estado fica em `EldrinNativo.push`.

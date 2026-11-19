@@ -135,21 +135,44 @@
   function cancelarDiario(id) { if (!LN) return; var ids = []; for (var i = 0; i < 7; i++) ids.push({ id: id * 10 + i }); LN.cancel({ notifications: ids }).catch(function () {}); }
   var contas = function () { return window.Tanka && window.Tanka.contas; };
 
+  // Diagnóstico (19/11/2026): cada etapa do registro fica em EldrinNativo.push; se travar, mostra o motivo na tela.
+  function avisoPush(txt, ok) {
+    window.EldrinNativo.push = txt;
+    try { if (ok && localStorage.getItem('eldrin.pushOk') === txt) return; if (ok) localStorage.setItem('eldrin.pushOk', txt); } catch (e) {}
+    var d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:12px;right:12px;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:99999;padding:10px 14px;border-radius:8px;'
+      + 'background:#14110c;border:1px solid ' + (ok ? '#5c9e5c' : '#c0504d') + ';color:#e8dcc4;font:14px/1.4 Georgia,serif';
+    d.textContent = (ok ? '🔔 ' : '⚠ Notificações: ') + txt;
+    document.body.appendChild(d);
+    setTimeout(function () { d.remove(); }, ok ? 4000 : 12000);
+  }
+  function erroTxt(e) { return (e && (e.message || e.error || (typeof e === 'string' ? e : JSON.stringify(e)))) || 'erro desconhecido'; }
+  var pushLigado = false;
   function registrarPush() {
-    if (!PN || !A || !A.getInfo || !(Number(local.pushDesde) > 0)) return;
+    if (!PN) return avisoPush('o app não tem o plugin de notificações (APK antigo?)');
+    if (!A || !A.getInfo) return avisoPush('o app não informa a versão (APK antigo?)');
+    if (!(Number(local.pushDesde) > 0)) return avisoPush('pacote do jogo sem pushDesde (web ' + local.web + ')');
     A.getInfo().then(function (i) {
-      if ((Number(i.build) || 0) < Number(local.pushDesde)) return;   // APK sem o Firebase: não registra
-      PN.checkPermissions().then(function (r) {
+      if ((Number(i.build) || 0) < Number(local.pushDesde)) return avisoPush('APK ' + i.build + ' é anterior ao ' + local.pushDesde + ': instale o APK novo');
+      return PN.checkPermissions().then(function (r) {
         return r.receive === 'granted' ? r : PN.requestPermissions();
       }).then(function (r) {
-        if (r.receive !== 'granted') return;
+        if (r.receive !== 'granted') return avisoPush('permissão negada (' + r.receive + ')');
         if (PN.createChannel) PN.createChannel({ id: 'eldrin', name: 'Eldrin', description: 'Avisos do jogo', importance: 4, sound: 'default', vibration: true }).catch(function () {});
-        PN.addListener('registration', function (t) {
-          var C = contas(); if (C && C.push && t && t.value) C.push.registrar(t.value).catch(function () {});
-        });
-        PN.register();
-      }).catch(function () {});
-    }).catch(function () {});
+        if (!pushLigado) {
+          pushLigado = true;
+          PN.addListener('registrationError', function (e) { avisoPush('o Firebase recusou o registro: ' + erroTxt(e)); });
+          PN.addListener('registration', function (t) {
+            var C = contas();
+            if (!t || !t.value) return avisoPush('o Firebase não devolveu o código do aparelho');
+            if (!C || !C.push) return avisoPush('jogo sem Tanka.contas.push');
+            C.push.registrar(t.value).then(function () { avisoPush('Notificações ligadas neste aparelho.', true); },
+              function (e) { avisoPush('o servidor recusou o aparelho: ' + erroTxt(e)); });
+          });
+        }
+        return PN.register();
+      });
+    }).catch(function (e) { avisoPush('falhou: ' + erroTxt(e)); });
   }
 
   window.EldrinNativo = {
