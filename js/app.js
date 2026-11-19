@@ -1213,12 +1213,17 @@
     // Mostra "atual → novo" quando há pontos para confirmar.
     function mudanca(a, b, texto) { return a === b ? texto(a) : texto(a) + ' <span class="mais">→ ' + texto(b) + '</span>'; }
     function pct(v) { return fmt(v) + '%'; }
+    // Contra monstros (caçada, masmorra, chefes) ainda somam o Pacto de Ascensão, as runas e as skills do clã; na Arena, não.
+    var sPve = R.status(p, true);
+    function pve(a, b, texto) {
+      return a === b ? '' : ' <small class="mais" title="Com o Pacto de Ascensão, as runas e as skills do clã: vale contra monstros (caçada, masmorra e chefes), não na Arena.">(contra monstros: ' + texto(b) + ')</small>';
+    }
     var status = [
       ['Poder', '<strong class="cor-ouro">' + R.poder(p).toLocaleString('pt-BR') + '</strong>' + (usados ? ' <span class="mais">→ ' + R.poder(comPendentes(p, pend)).toLocaleString('pt-BR') + '</span>' : ''), 'Força geral do personagem: ataque e resistência somados.'],
-      ['Vida máxima', mudanca(s.hpMax, sNovo.hpMax, String), 'Vida cheia do personagem.'],
-      ['Dano por golpe', mudanca(dano(s.dano), dano(sNovo.dano), String) + (magico ? ' (mágico)' : ''), 'Quanto cada golpe tira, antes da defesa do inimigo.'],
+      ['Vida máxima', mudanca(s.hpMax, sNovo.hpMax, String) + pve(s.hpMax, sPve.hpMax, String), 'Vida cheia do personagem. Contra monstros, soma o Pacto de Ascensão, as runas e as skills do clã.'],
+      ['Dano por golpe', mudanca(dano(s.dano), dano(sNovo.dano), String) + (magico ? ' (mágico)' : '') + pve(dano(s.dano), dano(sPve.dano), String), 'Quanto cada golpe tira, antes da defesa do inimigo.'],
       [magico ? 'Ataque mágico' : 'Ataque', mudanca(magico ? s.ataqueMagico : s.ataque, magico ? sNovo.ataqueMagico : sNovo.ataque, function (v) { return '+' + v; }), 'Somado ao dano da arma em cada golpe.'],
-      ['Defesa', mudanca(s.defesa, sNovo.defesa, String) + ' <small class="suave">(−' + R.cortePct(sNovo.defesa) + '% de dano)</small>', 'Diminui em porcentagem o dano físico que você recebe: 100 de defesa = −50%, 200 = −67%, 300 = −75%.'],
+      ['Defesa', mudanca(s.defesa, sNovo.defesa, String) + ' <small class="suave">(−' + R.cortePct(sNovo.defesa) + '% de dano)</small>' + pve(s.defesa, sPve.defesa, String), 'Diminui em porcentagem o dano físico que você recebe: 100 de defesa = −50%, 200 = −67%, 300 = −75%.'],
       ['Defesa mágica', mudanca(s.defesaMagica, sNovo.defesaMagica, String) + ' <small class="suave">(−' + R.cortePct(sNovo.defesaMagica) + '% de dano)</small>', 'Diminui em porcentagem o dano mágico que você recebe (na Arena): 100 = −50%.'],
       ['Velocidade', mudanca(s.velocidade, sNovo.velocidade, String), 'Quem é mais rápido ataca mais vezes. Sobe com o level.'],
       ['Precisão', mudanca(s.precisao, sNovo.precisao, pct), 'Chance de acertar o golpe.'],
@@ -1247,6 +1252,7 @@
 
   function fichaHtml() {
     var p = estado.personagem, s = R.status(p);
+    var sV = R.status(p, true);   // a barra de vida mostra a vida contra monstros (com o Pacto de Ascensão, runas e clã)
     var precisa = R.expNecessaria(p.nivel);
     var arma = R.armaEquipada(p);
     var emBatalha = !!estado.batalha;
@@ -1255,7 +1261,7 @@
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
       + '<div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
-      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : s.hpMax, emBatalha ? estado.batalha.jogador.hpMax : s.hpMax, (emBatalha ? estado.batalha.jogador.hp : s.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : s.hpMax), 'ficha') + '</div>'
+      + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : sV.hpMax, emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax, (emBatalha ? estado.batalha.jogador.hp : sV.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
       + '<div class="suave">Experiência</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
         ? barra('exp maximo', 1, 1, 'Level máximo')

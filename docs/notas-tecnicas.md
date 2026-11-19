@@ -1351,3 +1351,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Caçando sem parar (160 de estamina/h): 10 em ~4 h, 20 ~1,5 dia, 30 ~6 dias, 40 ~2 semanas, 53 ~1,5 mês, 60 ~2 meses.
 - Tela: barra de exp e mensagens mostram só % do level atual (`expPct(p, valor)` em app.js); os números ficam no servidor.
 - testes/regras.test.js zera o EXP_MULT no começo (testes antigos usam a curva base) e tem um teste próprio dele.
+
+### Ficha mostra o Pacto (Henri, 19/11/2026)
+- O Pacto de Ascensão (e runas e skills do clã) só entra em `status(p, true)` (contra monstros). A ficha usava
+  `status(p)`, então a vida do Pacto (ex.: Vigor +2%) não aparecia. Agora: a barra de vida da ficha usa `status(p, true)`
+  e os detalhes mostram "(contra monstros: X)" em Vida máxima, Dano e Defesa quando muda. Na Arena continua sem o Pacto.
