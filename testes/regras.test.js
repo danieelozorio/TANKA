@@ -1042,16 +1042,34 @@ teste('masmorra: 3 salas (monstros da área, Elite, Chefe da Masmorra) e luta de
   assert.ok(herois.every((p) => p.hpAtual === R.status(p).hpMax), 'a luta não mexe na vida de fora');
 });
 
-teste('skins do dado: comprar com ouro, usar e não comprar duas vezes', () => {
+teste('skins do dado: vendidas na Loja de Éter (não com ouro), usar e ganhar da loja', () => {
   const p = R.criarPersonagem('Skin', 'masculino', 'humano', 'mago');
   assert.deepStrictEqual([...R.skinsDoPersonagem(p)], ['vermelho']);
-  assert.strictEqual(R.comprarSkin(p, 'azul'), 'Ouro insuficiente.');
   p.ouro = 600;
-  assert.strictEqual(R.comprarSkin(p, 'azul'), true);
-  assert.strictEqual(p.ouro, 100); assert.strictEqual(p.skinDado, 'azul');
+  assert.ok(/Loja de Éter/.test(R.comprarSkin(p, 'azul')));
+  assert.strictEqual(p.ouro, 600);
+  assert.strictEqual(R.ganharSkin(p, 'azul'), true);
+  assert.strictEqual(p.skinDado, 'azul');
   assert.strictEqual(R.comprarSkin(p, 'azul'), 'Você já tem essa skin.');
   assert.strictEqual(R.usarSkin(p, 'vermelho'), true); assert.strictEqual(p.skinDado, 'vermelho');
   assert.strictEqual(R.usarSkin(p, 'obsidiana'), false);
+  assert.strictEqual(R.ganharSkin(p, 'naoexiste'), false);
+});
+
+teste('Loja de Éter: Starter Pack e estamina do VIP', () => {
+  const p = R.criarPersonagem('Novo', 'feminino', 'elfo', 'arqueiro'), S = D.LOJA.starter;
+  const its = R.itensStarter(p);
+  assert.deepStrictEqual([...its.map((i) => i.tipo)], ['arma', 'elmo', 'peitoral', 'luvas', 'botas', 'colar', 'anel']);
+  const f = D.ITEM_NIVEL.faixaQualidade[S.raridade];
+  its.forEach((i) => {
+    assert.strictEqual(i.raridade, S.raridade);
+    assert.strictEqual(i.nivel, i.tipo === 'colar' || i.tipo === 'anel' ? S.nivelJoias : S.nivelItens);
+    assert.ok(Math.abs(i.qualidade - (f[0] + (f[1] - f[0]) * S.qualidadePct / 100)) < 0.001, 'qualidade ' + i.qualidade);
+  });
+  assert.strictEqual(its[0].classe, 'arqueiro');
+  const q = R.criarPersonagem('Vip', 'masculino', 'humano', 'mago');
+  const normal = R.estaminaPorMinuto(q); q.vip = true;
+  assert.ok(Math.abs(R.estaminaPorMinuto(q) - normal * D.LOJA.vip.estaminaMult) < 1e-9);
 });
 
 teste('mochila: força do item, ordem com desempate e filtro', () => {

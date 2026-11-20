@@ -1340,6 +1340,22 @@ Tanka.dados = {
   TRAVA: { ouro: { balde: 8000000, porMinuto: 800000 }, niveis: { balde: 5, porMinuto: 0.5 },
     itensFortes: { balde: 12, porMinuto: 1 }, itensNovos: 60, avisarOuro: 1500000, avisarNiveis: 2 },
 
+  // Loja de Éter (Henri, 19/11/2026): Éter é comprado com dinheiro (1 Éter = R$ 1) e fica só no servidor, por conta.
+  // VIP (conta toda, `dias` a partir da compra): Arcane, estamina x`estaminaMult`, +`arenaExtra` entradas na Arena,
+  // +`masmorraExtra` na masmorra por dia, doação ao clã x`doacaoMult`, Oficina na hora com qualquer artesão, nome brilhante.
+  // boosts: +pct% de exp/ouro na caçada por `minutos`. starter: 1 por conta (itens raros com qualidade `qualidadePct`%
+  // da faixa da raridade). Preços dos boosts, do Starter e das skins: provisórios (Henri define).
+  // Também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
+  LOJA: {
+    vip: { preco: 30, dias: 30, estaminaMult: 2, arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
+    boosts: {
+      exp: { nome: 'Boost de EXP', preco: 3, pct: 50, minutos: 60 },
+      ouro: { nome: 'Boost de Ouro', preco: 3, pct: 50, minutos: 60 },
+    },
+    starter: { nome: 'Starter Pack', preco: 50, boostsExp: 10, boostsOuro: 10, vipDias: 30, nivelItens: 10, nivelJoias: 5,
+      raridade: 'rara', qualidadePct: 80 },
+  },
+
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.
   RECOMECO: { nome: 'Pergaminho do Recomeço', precoOuro: 2000 },
   // Troca de pergaminhos de encantamento no Mercado: 10 de uma raridade = 1 da seguinte (comum → rara → épica → lendária).
@@ -1374,12 +1390,13 @@ Tanka.dados = {
     ],
   },
 
+  // Skins de dado (Henri, 19/11/2026): saíram do Mercado (ouro) e vão para a Loja de Éter (`eter`: preço em Éter).
   SKINS_DADO: [
     { id: 'vermelho', nome: 'Rubi', preco: 0 },
-    { id: 'azul', nome: 'Safira', preco: 500 },
-    { id: 'dourada', nome: 'Ouro Real', preco: 1500 },
-    { id: 'obsidiana', nome: 'Obsidiana', preco: 3000 },
-    { id: 'dragao', nome: 'Dragão Cinzento', preco: 5000 },
+    { id: 'azul', nome: 'Safira', preco: 500, eter: 5 },
+    { id: 'dourada', nome: 'Ouro Real', preco: 1500, eter: 10 },
+    { id: 'obsidiana', nome: 'Obsidiana', preco: 3000, eter: 15 },
+    { id: 'dragao', nome: 'Dragão Cinzento', preco: 5000, eter: 20 },
     // Prêmio do último capítulo da História (não se compra).
     { id: 'selos', nome: 'Sete Selos', preco: 0, historia: true },
   ],

@@ -1403,3 +1403,22 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Diagnóstico (19/11): `registrarPush` mostra na tela onde travou (APK antigo, sem pushDesde, permissão,
   `registrationError` do Firebase, servidor recusou o token); sucesso aparece uma vez ("Notificações ligadas") e o
   estado fica em `EldrinNativo.push`.
+
+## Loja de Éter (Henri, 19/11/2026)
+- Moeda **Éter** (1 Éter = R$ 1), só no servidor, por conta: `eter_contas` (saldo) + `eter_movimentos` (histórico).
+  Beta: sem compra com dinheiro; o admin dá Éter na aba Admin (`admin_dar_eter(nome, valor, motivo)`, só com
+  `ajustes.eter_beta = true`; para desligar no lançamento: `update ajustes set valor = 'false' where chave = 'eter_beta'`).
+- Números em `D.LOJA` (vip, boosts, starter) e `SKINS_DADO[].eter` → `tanka_dados()` (rodar gerar_dados_sql.js).
+- `loja_conta` (vip_ate, starter_em, estoque de boosts) e `loja_ativos` (boost ativo por personagem). Funções:
+  `loja_estado`, `loja_comprar(meu, 'vip'|'boost:exp'|'boost:ouro'|'starter'|'skin:<id>')`, `loja_usar_boost`, `loja_vips`.
+- VIP: o gatilho da ficha força `dados.vip = conta_vip(conta)` (o jogador não grava). Efeitos: `R.estaminaPorMinuto`
+  x2; `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
+  `alianca_doar` x2; `oficina_pedir` faz na hora com qualquer artesão; Arcane só VIP (`conferirArcane`, ⚙); nome brilhante
+  (`VIPS` + MutationObserver pinta os nomes de `loja_vips()` em toda a página; CSS `.nome-vip.vip-m/.vip-f`).
+- Boosts: `cacada_bonus` soma `loja_boost_pct` (+50%) ao bônus do clã na caçada do servidor. Obs.: a caçada AFK
+  (`retomar`) usa o bônus da hora em que é chamada.
+- Starter (1 por conta): VIP 30 dias + 10+10 boosts na conta; itens via recompensa `{tipo:'starter'}` → `R.itensStarter`
+  (arma + 4 armaduras level 10, colar + anel level 5, raros com qualidade 80% da faixa). Skin: recompensa `{tipo:'skin'}`
+  → `R.ganharSkin` (fica no personagem que comprou). Skins saíram do Mercado (`comprarSkin` com ouro recusa).
+- Abas: Social à esquerda do Leilão e a nova Loja à direita; a aba do Mercado de NPC passou a se chamar "Mercado".
+- Pendente: Passe de Batalha (mensal, 49 Éter, Grátis + Premium) e a compra real (Google Play Billing).

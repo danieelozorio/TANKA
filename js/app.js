@@ -523,6 +523,9 @@
     estado.loginResultado = null;
     iniciarAtividade();
     if (window.EldrinNativo) EldrinNativo.entrou(estado.personagem);   // notificações do app (19/11/2026)
+    estado.loja = null; estado.lojaErro = null; estado.lojaConfirma = null;
+    guardarVip(!!estado.personagem.vip); conferirArcane();
+    if (ACAO_SERVIDOR) { carregarLoja(); carregarVips(); }
     // Créditos e mensagens do Reino (SQL Editor): busca ao entrar e a cada 2 min (fora de luta).
     clearInterval(estado.timerPendentes);
     setTimeout(function () { if (ACAO_SERVIDOR && estado.personagem) receberPendentes(); }, 4000);
@@ -636,6 +639,7 @@
     heroi: svg('<path d="M12 3l7 3v5.5c0 4.3-3 8-7 9.5-4-1.5-7-5.2-7-9.5V6z"/><path d="M12 8v8M9 11h6"/>'),
     aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
     leilao: svg('<path d="m8 4 8 8m-6-10 8 8m-7-1-7 7m9 3h8m-8 3h8"/>'),
+    loja: svg('<path d="M12 2 19 9 12 22 5 9Z"/><path d="M5 9h14M9.5 9 12 2l2.5 7L12 22Z"/>'),
     mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
     oficinas: svg('<path d="M3 21h18M5 21V11l7-5 7 5v10"/><path d="m10 14 4 4m0-4-4 4"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
@@ -1038,10 +1042,11 @@
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'eventos', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },   // Eventos: só com evento aberto
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
-    { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
+    { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },   // Henri, 19/11/2026: Social à esquerda do Leilão e a Loja à direita
+    { id: 'loja', nome: 'Loja', abas: ['loja'] },   // Loja de Éter (VIP, boosts, Starter Pack, skins)
   ];
-  var NOME_ABA = { bau: 'Baú', oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { loja: 'Loja de Éter', bau: 'Baú', oficinas: 'Oficinas', mercado: 'Mercado', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1750,6 +1755,181 @@
   }
   // ---------------- Baú da conta (Henri, 18/11/2026) ----------------
   // Ouro e consumíveis guardados pela conta: qualquer personagem dela guarda e retira. Itens não entram.
+  // ---------------- Loja de Éter (Henri, 19/11/2026) ----------------
+  // Éter: moeda comprada com dinheiro (1 Éter = R$ 1), guardada no servidor por conta. Aqui: VIP, boosts, Starter Pack
+  // e skins de dado. No beta não há compra com dinheiro: o admin dá Éter (aba Admin). Preços em D.LOJA e D.SKINS_DADO.
+  var ETER_IMG = '<img class="eter-ico" src="assets/eter.webp" alt="Éter">';
+  function ehVip() {
+    var l = estado.loja;
+    if (l && estado.personagem && l.pid === estado.personagem.id) return !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
+    return !!(estado.personagem && estado.personagem.vip);
+  }
+  function guardarVip(v) { guardar('eldrin.vip', v ? '1' : '0'); }
+  function vipGuardado() { try { return localStorage.getItem('eldrin.vip') === '1' || ehAdmin(); } catch (e) { return ehVip() || ehAdmin(); } }
+  // Arcane é do VIP: sem VIP volta para a Clássica (no celular, a Zealot).
+  function conferirArcane() {
+    if (temaAtual() !== 'arcane' || ehVip() || ehAdmin()) return;
+    var t = ehCelularAparelho() ? 'zealot' : 'classica';
+    guardar('eldrin.interface', t);
+    try { document.cookie = 'eldrin_interface=' + t + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
+    avisar('👑 A interface Arcane agora é exclusiva do VIP. Voltando para a ' + (t === 'zealot' ? 'Zealot' : 'Clássica') + '…');
+    setTimeout(function () { location.reload(); }, 2500);
+  }
+  function carregarLoja() {
+    var p = estado.personagem;
+    if (!p || estado.lojaCarregando || !C.loja) return;
+    estado.lojaCarregando = true;
+    C.loja.estado(p.id).then(function (l) {
+      estado.lojaCarregando = false;
+      if (estado.personagem !== p) return;
+      l.pid = p.id; estado.loja = l; estado.lojaErro = null;
+      p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
+      guardarVip(p.vip); conferirArcane();
+      if (estado.aba === 'loja') telaJogo();
+    }, function (e) {
+      estado.lojaCarregando = false; estado.lojaErro = (e && e.message) || 'Não foi possível abrir a loja.';
+      if (estado.aba === 'loja') telaJogo();
+    });
+  }
+  function dataCurta(d) { return new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+  function precoEter(n) { return '<span class="preco-eter">' + ETER_IMG + '<b>' + n + '</b></span>'; }
+  // Botão de compra em 2 toques: o 1º pede confirmação (mostra o preço), o 2º compra.
+  function botaoCompra(item, preco, texto, desligado) {
+    var conf = estado.lojaConfirma === item, l = estado.loja, falta = l && l.saldo < preco;
+    if (desligado) return '<button class="btn" disabled>' + texto + '</button>';
+    if (conf) return '<button class="btn btn-confirmar" data-acao="loja-comprar" data-valor="' + item + '">Confirmar: gastar ' + preco + ' Éter</button>'
+      + '<button class="btn secundario" data-acao="loja-cancelar">Cancelar</button>';
+    return '<button class="btn" data-acao="loja-pedir" data-valor="' + item + '"' + (falta ? ' title="Éter insuficiente"' : '') + '>' + texto + ' · ' + precoEter(preco) + '</button>';
+  }
+  function abaLoja() {
+    var p = estado.personagem, l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, L = D.LOJA;
+    if (!l && !estado.lojaErro) carregarLoja();
+    var tit = '<div class="loja-topo">' + '<img class="eter-grande" src="assets/eter.webp" alt="">'
+      + '<div><h2>Loja de Éter</h2><p class="suave">O Éter é a moeda especial do Reino. Vale para a <strong>conta toda</strong> (todos os seus personagens).</p></div></div>';
+    if (!ACAO_SERVIDOR || !C.loja) return '<section class="caixa loja">' + tit + '<p class="suave">A loja precisa do servidor do jogo.</p></section>';
+    if (estado.lojaErro) return '<section class="caixa loja">' + tit + '<p class="erro">' + esc(estado.lojaErro) + '</p>'
+      + '<button class="btn" data-acao="loja-recarregar">Tentar de novo</button></section>';
+    if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
+    var vip = ehVip(), agora = C.agora();
+    var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
+      + '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro chega com o app na Play Store.' : 'Comprar Éter: em breve.') + '</span></div>';
+    var V = L.vip;
+    var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
+      + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
+      + '<ul class="loja-lista">'
+      + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
+      + '<li>Estamina recupera <strong>' + V.estaminaMult + 'x</strong> mais rápido</li>'
+      + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
+      + '<li>Oficina: <strong>qualquer</strong> Coletor ou Ferreiro faz o seu pedido na hora, sem ser amigo</li>'
+      + '<li>Doação ao clã: até <strong>' + V.doacaoMult + 'x</strong> o limite do dia</li>'
+      + '<li>Nome em destaque em todo o jogo: <span class="nome-vip vip-m">Nevasca</span> (herói) ou <span class="nome-vip vip-f">Rosa</span> (heroína)</li>'
+      + '</ul><p class="suave pequeno">Vale ' + V.dias + ' dias a partir da compra, para a conta toda. Comprar de novo soma mais ' + V.dias + ' dias.</p>'
+      + '<div class="item-acoes">' + botaoCompra('vip', V.preco, vip ? 'Renovar VIP' : 'Tornar-se VIP') + '</div></div>';
+    var cartaPasse = '<div class="caixa-interna loja-carta"><h3>🎖 Passe de Batalha</h3><p class="suave">Em breve: uma temporada por mês (do dia 1 ao último dia), '
+      + 'com pontos por tudo o que você faz no jogo e prêmios do lado Grátis e do Premium.</p></div>';
+    var boosts = Object.keys(L.boosts).map(function (k) {
+      var b = L.boosts[k], tem = Number((l.boosts || {})[k]) || 0, ate = (l.ativos || {})[k], ativo = ate && Date.parse(ate) > agora;
+      return '<div class="caixa-interna loja-carta"><h3>' + (k === 'exp' ? '✨ ' : '💰 ') + b.nome + '</h3>'
+        + '<p>+' + b.pct + '% de ' + (k === 'exp' ? 'exp' : 'ouro') + ' na caçada por ' + (b.minutos >= 60 ? (b.minutos / 60) + ' hora' + (b.minutos > 60 ? 's' : '') : b.minutos + ' min')
+        + ', no personagem que usar. Usar de novo soma o tempo.</p>'
+        + (ativo ? '<p class="online pequeno">Ativo em ' + esc(p.nome) + ' até ' + dataCurta(ate) + '</p>' : '')
+        + '<p class="suave pequeno">Na conta: <strong>' + tem + '</strong></p>'
+        + '<div class="item-acoes">' + botaoCompra('boost:' + k, b.preco, 'Comprar')
+        + '<button class="btn secundario" data-acao="loja-usar-boost" data-valor="' + k + '"' + (tem ? '' : ' disabled') + '>Usar em ' + esc(p.nome) + '</button></div></div>';
+    }).join('');
+    var S = L.starter;
+    var cartaStarter = '<div class="caixa-interna loja-carta loja-starter"><h3>🎁 ' + S.nome + '</h3><ul class="loja-lista">'
+      + '<li>' + S.boostsExp + ' Boosts de EXP e ' + S.boostsOuro + ' Boosts de Ouro</li>'
+      + '<li>Arma e armadura completa ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelItens + ' (qualidade ' + S.qualidadePct + '%)</li>'
+      + '<li>Colar e anel ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelJoias + '</li>'
+      + '<li><strong>VIP por ' + S.vipDias + ' dias</strong></li></ul>'
+      + '<p class="suave pequeno">1 por conta. Os itens vão para a mochila de ' + esc(p.nome) + ' (precisa de 7 espaços livres).</p>'
+      + '<div class="item-acoes">' + (l.starter ? '<span class="suave">Esta conta já comprou.</span>' : botaoCompra('starter', S.preco, 'Comprar')) + '</div></div>';
+    var skins = '<div class="caixa-interna loja-carta loja-skins-caixa"><h3>🎲 Skins do Dado (Arena)</h3>'
+      + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin. A skin fica com o personagem que comprou.</p><div class="skins">'
+      + D.SKINS_DADO.map(function (k) {
+        var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
+        var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
+          : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
+          : k.historia ? '<span class="suave pequeno">Prêmio da História</span>'
+          : k.eter ? botaoCompra('skin:' + k.id, k.eter, 'Comprar') : '';
+        return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
+          + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.eter ? k.eter + ' Éter' : 'Grátis') + '</span>' + botao + '</div>';
+      }).join('') + '</div></div>';
+    var hist = (l.historico || []).map(function (h) {
+      return '<li><span class="' + (h.valor > 0 ? 'online' : '') + '">' + (h.valor > 0 ? '+' : '−') + Math.abs(h.valor) + ' Éter</span> · ' + esc(h.motivo)
+        + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
+    }).join('');
+    return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaPasse + '</div>' + skins
+      + (hist ? '<div class="caixa-interna cla-secao"><h3>Seu Éter: últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
+  }
+  function lojaChamar(prom, msg) {
+    var p = estado.personagem;
+    if (estado.lojaOcupado) return;
+    estado.lojaOcupado = true; estado.lojaConfirma = null;
+    prom.then(function (l) {
+      estado.lojaOcupado = false;
+      if (estado.personagem !== p) return;
+      l.pid = p.id; estado.loja = l;
+      p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora()); guardarVip(p.vip);
+      avisar(msg, 'item');
+      carregarVips();
+      return receberPendentes();
+    }, function (e) { estado.lojaOcupado = false; avisar((e && e.message) || 'Não foi possível concluir.'); })
+      .then(function () { if (estado.aba === 'loja') telaJogo(); });
+  }
+
+  // Nome em destaque do VIP (Henri, 19/11/2026): em todo lugar onde aparece o nome de um personagem VIP, ele ganha o
+  // brilho (azul "Nevasca" para herói, rosa para heroína). A lista de nomes vem do servidor (loja_vips) e um observador
+  // pinta os textos da página sempre que ela muda.
+  var VIPS = { nomes: {}, re: null, pintando: false, pedido: false };
+  function carregarVips() {
+    if (!C.loja || !C.loja.vips) return;
+    C.loja.vips().then(function (m) {
+      VIPS.nomes = m || {};
+      var ks = Object.keys(VIPS.nomes).filter(function (n) { return n && n.length >= 2; }).sort(function (a, b) { return b.length - a.length; });
+      VIPS.re = ks.length ? new RegExp('(^|[^\\p{L}\\p{N}_])(' + ks.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?=$|[^\\p{L}\\p{N}_])', 'gu') : null;
+      pintarVips();
+    }, function () { /* sem lista: nomes normais */ });
+  }
+  setInterval(function () { if (estado.personagem && document.visibilityState !== 'hidden') carregarVips(); }, 5 * 60000);
+  function pintarVips() {
+    if (!VIPS.re || VIPS.pintando || !document.body) return;
+    VIPS.pintando = true;
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
+        var pai = n.parentNode;
+        if (!pai || !n.nodeValue || n.nodeValue.length < 2) return NodeFilter.FILTER_REJECT;
+        if (pai.closest && pai.closest('.nome-vip, script, style, textarea, input, select, option, title, canvas, svg')) return NodeFilter.FILTER_REJECT;
+        VIPS.re.lastIndex = 0;
+        return VIPS.re.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      } });
+      var lista = [];
+      while (w.nextNode()) lista.push(w.currentNode);
+      lista.forEach(function (n) {
+        var txt = n.nodeValue, frag = document.createDocumentFragment(), ult = 0, m;
+        VIPS.re.lastIndex = 0;
+        while ((m = VIPS.re.exec(txt))) {
+          var ini = m.index + m[1].length;
+          if (ini > ult) frag.appendChild(document.createTextNode(txt.slice(ult, ini)));
+          var sp = document.createElement('span');
+          sp.className = 'nome-vip ' + (VIPS.nomes[m[2]] === 'feminino' ? 'vip-f' : 'vip-m');
+          sp.textContent = m[2];
+          frag.appendChild(sp);
+          ult = ini + m[2].length;
+        }
+        if (ult < txt.length) frag.appendChild(document.createTextNode(txt.slice(ult)));
+        n.parentNode.replaceChild(frag, n);
+      });
+    } catch (e) { /* navegador sem \p{L}: fica sem brilho */ }
+    VIPS.pintando = false;
+  }
+  if (window.MutationObserver) new MutationObserver(function () {
+    if (!VIPS.re || VIPS.pintando || VIPS.pedido) return;
+    VIPS.pedido = true;
+    requestAnimationFrame(function () { VIPS.pedido = false; pintarVips(); });
+  }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
   function carregarBau() {
     var p = estado.personagem;
     if (!p || estado.bauCarregando) return;
@@ -2360,7 +2540,7 @@
   }
 
   // Celular: a Loja vira seções (fichas no topo) em vez de uma página comprida.
-  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['skins', '🎲 Skins'], ['especiais', '📜 Especiais']];
+  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['especiais', '📜 Especiais']];   // skins: Loja de Éter (19/11/2026)
   function abaMercado() {
     var p = estado.personagem;
     if (CELULAR) {
@@ -2406,7 +2586,7 @@
   function mercadoPartesTudo(p) {
     var x = mercadoPartes(p);
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.skins + x.troca;
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.troca;
   }
 
   // ---------------- Mercado Negro (Mercado > Mercado Negro): comércio entre jogadores ----------------
@@ -4019,6 +4199,10 @@
     }
     return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
       + '<div class="itens">'
+      + grupo('Éter (beta)', 'Dá Éter para a conta de um personagem (pelo nome). Valor negativo tira. Só funciona durante o beta.',
+        '<input id="admin-eter-nome" type="text" placeholder="Nome do personagem" value="' + esc(estado.personagem.nome) + '">'
+        + '<input id="admin-eter-valor" type="number" placeholder="Éter" value="100" style="max-width:6em">'
+        + '<button class="btn" data-acao="admin-dar-eter">Dar Éter</button>')
       + grupo('Chefe Mundial', 'Invoca Ignaroth agora por 1 hora (para testar). Vida: a do despertar (50 mil por jogador ativo) ou um valor.',
         '<button class="btn" data-acao="boss-invocar" data-valor="0">Invocar</button>'
         + '<button class="btn" data-acao="boss-invocar" data-valor="5000">Vida 5 mil</button>'
@@ -4191,7 +4375,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, bau: abaBau, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, bau: abaBau, loja: abaLoja, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -5386,6 +5570,29 @@
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
       case 'bau-recarregar': estado.bau = null; estado.bauErro = null; carregarBau(); telaJogo(); break;
+      case 'loja-recarregar': estado.loja = null; estado.lojaErro = null; carregarLoja(); telaJogo(); break;
+      case 'loja-pedir': estado.lojaConfirma = el.dataset.valor; telaJogo(); break;
+      case 'loja-cancelar': estado.lojaConfirma = null; telaJogo(); break;
+      case 'loja-comprar': {
+        var itL = el.dataset.valor, nomeL = itL === 'vip' ? 'VIP ativado! 👑' : itL === 'starter' ? 'Starter Pack comprado! 🎁'
+          : /^boost:/.test(itL) ? D.LOJA.boosts[itL.split(':')[1]].nome + ' comprado: use quando quiser.' : 'Skin comprada e em uso no seu D20! 🎲';
+        lojaChamar(C.loja.comprar(p.id, itL), nomeL);
+        break;
+      }
+      case 'loja-usar-boost': {
+        var bL = D.LOJA.boosts[el.dataset.valor];
+        lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
+        break;
+      }
+      case 'admin-dar-eter': {
+        var nE = (document.getElementById('admin-eter-nome') || {}).value, vE = parseInt((document.getElementById('admin-eter-valor') || {}).value, 10);
+        if (!nE || !vE) { avisar('Escreva o nome e o valor.'); break; }
+        C.loja.darEter(nE, vE).then(function (r) {
+          avisar((vE > 0 ? '+' : '') + vE + ' Éter para ' + r.nome + ' (saldo: ' + r.saldo + ').', 'item');
+          estado.loja = null; carregarLoja();
+        }, function (e) { avisar((e && e.message) || 'Não foi possível.'); });
+        break;
+      }
       case 'bau-guardar-ouro': case 'bau-retirar-ouro': {
         var vo = parseInt((document.getElementById('bau-ouro') || {}).value, 10);
         if (!(vo > 0)) { avisar('Digite quanto ouro.'); break; }
@@ -7549,7 +7756,7 @@
     var g = estado.gm, p = estado.personagem;
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
-    var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
+    var M = Object.assign({}, D.MASMORRA, { entradasPorDia: D.MASMORRA.entradasPorDia + (ehVip() ? D.LOJA.vip.masmorraExtra : 0) }), restam = M.entradasPorDia - g.entradas;
     var html = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Grupo de 3. As lutas são automáticas e, entre elas, o grupo <strong>vota o caminho</strong> ('
       + M.votoSeg + ' s; empate: vale o líder 👑): <strong>Porta selada</strong> (baú ou armadilha), <strong>Corredor escuro</strong> (luta a mais, mais prêmio) ou '
       + '<strong>Fonte antiga</strong> (cura o grupo, menos drop). A vida passa de uma luta para a outra; a da masmorra é separada da sua. '
@@ -9829,6 +10036,7 @@
     p.querySelectorAll('[data-interface]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (b.dataset.interface === temaAtual()) return;
+        if (b.dataset.interface === 'arcane' && !vipGuardado()) { avisar('👑 A interface Arcane é exclusiva do VIP. Veja na aba Loja.'); return; }
         guardar('eldrin.interface', b.dataset.interface);
         try { document.cookie = 'eldrin_interface=' + b.dataset.interface + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
         setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
@@ -9851,12 +10059,12 @@
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
         + (ehCelularAparelho() ? '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
+          + [['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>'
           : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
+          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>');
