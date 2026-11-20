@@ -1342,13 +1342,14 @@ Tanka.dados = {
     itensFortes: { balde: 12, porMinuto: 1 }, itensNovos: 60, avisarOuro: 1500000, avisarNiveis: 2 },
 
   // Loja de Éter (Henri, 19/11/2026): Éter é comprado com dinheiro (1 Éter = R$ 1) e fica só no servidor, por conta.
-  // VIP (conta toda, `dias` a partir da compra): Arcane, estamina x`estaminaMult`, +`arenaExtra` entradas na Arena,
+  // VIP (conta toda, `dias` a partir da compra): Arcane, estamina cheia em `estaminaMinutos` min, +`arenaExtra` entradas na Arena,
   // +`masmorraExtra` na masmorra por dia, doação ao clã x`doacaoMult`, Oficina na hora com qualquer artesão, nome brilhante.
   // boosts: +pct% de exp/ouro na caçada por `minutos`. starter: 1 por conta (itens raros com qualidade `qualidadePct`%
   // da faixa da raridade). Preços (Henri, 19/11/2026): boost 10, Starter 100, skin 20.
   // Também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
   LOJA: {
-    vip: { preco: 30, dias: 30, estaminaMult: 2, arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
+    vip: { preco: 30, dias: 30, estaminaMinutos: 60,   // estamina: cheia em 60 min (sem VIP: ESTAMINA.minutosSemAcampar)
+      arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
     boosts: {
       exp: { nome: 'Boost de EXP', preco: 10, pct: 50, minutos: 60 },
       ouro: { nome: 'Boost de Ouro', preco: 10, pct: 50, minutos: 60 },

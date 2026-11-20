@@ -1421,7 +1421,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `loja_conta` (vip_ate, starter_em, estoque de boosts) e `loja_ativos` (boost ativo por personagem). Funções:
   `loja_estado`, `loja_comprar(meu, 'vip'|'boost:exp'|'boost:ouro'|'starter'|'skin:<id>')`, `loja_usar_boost`, `loja_vips`.
 - VIP: o gatilho da ficha força `dados.vip = conta_vip(conta)` (o jogador não grava). Efeitos: `R.estaminaPorMinuto`
-  x2; `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
+  (VIP enche em `LOJA.vip.estaminaMinutos` = 60 min, 20/11; era x2); `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
   `alianca_doar` x2; `oficina_pedir` faz na hora com qualquer artesão; Arcane só VIP (`conferirArcane`, ⚙); nome brilhante
   (`VIPS` + MutationObserver pinta os nomes de `loja_vips()` em toda a página; CSS `.nome-vip.vip-m/.vip-f`).
 - Boosts: `cacada_bonus` soma `loja_boost_pct` (+50%) ao bônus do clã na caçada do servidor. Obs.: a caçada AFK

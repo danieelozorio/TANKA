@@ -1639,8 +1639,9 @@ Tanka.regras = (function () {
   // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta à meia-noite ou com pote).
   function estaminaPorMinuto(p) {
     var min = p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar;
-    // VIP (Loja de Éter): recupera estaminaMult vezes mais rápido. p.vip vem do servidor (o gatilho da ficha).
-    return min > 0 ? D.ESTAMINA.maximo / min * (p.vip ? D.LOJA.vip.estaminaMult : 1) : 0;
+    // VIP (Loja de Éter, Henri 20/11/2026): enche em LOJA.vip.estaminaMinutos (60 min). p.vip vem do servidor (gatilho da ficha).
+    if (min > 0 && p.vip && D.LOJA.vip.estaminaMinutos > 0) min = Math.min(min, D.LOJA.vip.estaminaMinutos);
+    return min > 0 ? D.ESTAMINA.maximo / min : 0;
   }
 
   // Aplica o reset diário (estamina cheia, poções do dia) e a estamina recuperada desde a última conta.

@@ -1847,7 +1847,7 @@
       + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
       + '<ul class="eter-lista">'
       + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
-      + '<li>Estamina recupera <strong>' + V.estaminaMult + 'x</strong> mais rápido</li>'
+      + '<li>Estamina cheia em <strong>' + V.estaminaMinutos + ' min</strong> (sem VIP: ' + D.ESTAMINA.minutosSemAcampar + ' min)</li>'
       + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
       + '<li>Oficina: <strong>qualquer</strong> Coletor ou Ferreiro faz o seu pedido na hora, sem ser amigo</li>'
       + '<li>Doação ao clã: até <strong>' + V.doacaoMult + 'x</strong> o limite do dia</li>'

@@ -1079,7 +1079,8 @@ teste('Loja de Éter: Starter Pack e estamina do VIP', () => {
   assert.strictEqual(its[0].classe, 'arqueiro');
   const q = R.criarPersonagem('Vip', 'masculino', 'humano', 'mago');
   const normal = R.estaminaPorMinuto(q); q.vip = true;
-  assert.ok(Math.abs(R.estaminaPorMinuto(q) - normal * D.LOJA.vip.estaminaMult) < 1e-9);
+  assert.ok(Math.abs(R.estaminaPorMinuto(q) - D.ESTAMINA.maximo / D.LOJA.vip.estaminaMinutos) < 1e-9);
+  assert.ok(R.estaminaPorMinuto(q) > normal);
 });
 
 teste('mochila: força do item, ordem com desempate e filtro', () => {
