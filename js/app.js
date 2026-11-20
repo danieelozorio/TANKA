@@ -1708,11 +1708,11 @@
     var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis', naBau = estado.mochilaAba === 'bau';
     var cFoco = naConsumiveis && estado.consumivelFoco ? consumiveis.filter(function (c) { return c.id === estado.consumivelFoco; })[0] : null;
     var abas = '<div class="mochila-abas" role="tablist">'
-      + '<button role="tab" aria-selected="' + !(naConsumiveis || naBau) + '" class="' + (naConsumiveis || naBau ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">'
+      + '<button role="tab" aria-selected="' + !(naConsumiveis || naBau) + '" class="' + (naConsumiveis || naBau ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">' + ICONES_MOCHILA.equipamentos
       + 'Equipamentos <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></button>'
-      + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">'
+      + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">' + ICONES_MOCHILA.consumiveis
       + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button>'
-      + '<button role="tab" aria-selected="' + naBau + '" class="' + (naBau ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="bau">🧰 Baú</button></div>';
+      + '<button role="tab" aria-selected="' + naBau + '" class="' + (naBau ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="bau">' + ICONES_MOCHILA.bau + 'Baú</button></div>';
     var baixo = naBau ? bauMochilaHtml(p) : naConsumiveis ? consumiveisHtml(consumiveis)
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
@@ -2005,6 +2005,30 @@
   function vendoBau() { return estado.aba === 'bau' || (estado.aba === 'personagem' && estado.mochilaAba === 'bau'); }
   // Baú na mochila: à esquerda o que o personagem pode guardar, à direita o que está no baú. Botão direito move tudo;
   // o esquerdo abre a escolha da quantidade.
+  // Ícones das abas da Mochila (Henri, 19/11/2026): mochila marrom, pergaminho comum e baú de madeira com ferro.
+  var ICONES_MOCHILA = {
+    equipamentos: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M9 5.5C9 3.6 10.3 2.5 12 2.5s3 1.1 3 3" fill="none" stroke="#5a3a1e" stroke-width="1.6"/>'
+      + '<rect x="4.5" y="5" width="15" height="16.5" rx="4" fill="#8b5a2b" stroke="#3e2512" stroke-width="1.1"/>'
+      + '<path d="M4.5 10.5h15" stroke="#3e2512" stroke-width="1"/>'
+      + '<rect x="7.5" y="12.5" width="9" height="6.5" rx="1.6" fill="#a8713a" stroke="#3e2512" stroke-width="1"/>'
+      + '<path d="M7.5 15h9" stroke="#3e2512" stroke-width=".9"/><rect x="11" y="14" width="2" height="2.2" rx=".4" fill="#d9b25a"/>'
+      + '<path d="M6.5 6.5c1.5-.6 3-.8 5.5-.8" stroke="#b98451" stroke-width=".9" fill="none" opacity=".7"/></svg>',
+    consumiveis: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M6 6.5h11.5v11c0 1.7-1.2 3-2.8 3H6.2" fill="#ead7a8" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M6 6.5a2.2 2.2 0 1 0 0 4.4h1.6V6.5" fill="#d8c08a" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M6.2 20.5a2.3 2.3 0 0 1 0-4.6H17.5" fill="#d8c08a" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M9.5 9.6h5.5M9.5 11.8h5.5M9.5 14h4" stroke="#8a6d43" stroke-width=".9" stroke-linecap="round"/></svg>',
+    bau: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M3.5 10.5V9a5 4.5 0 0 1 5-4.5h7a5 4.5 0 0 1 5 4.5v1.5Z" fill="#9a6532" stroke="#3a240f" stroke-width="1.1"/>'
+      + '<rect x="3.5" y="10.5" width="17" height="9.5" rx="1" fill="#8a5728" stroke="#3a240f" stroke-width="1.1"/>'
+      + '<path d="M3.5 14.5h17M3.5 7.8h17" stroke="#5b3a1a" stroke-width=".8" opacity=".8"/>'
+      + '<path d="M7 4.9V20M17 4.9V20" stroke="#5f6670" stroke-width="1.8"/>'
+      + '<path d="M3.5 10.5h17" stroke="#5f6670" stroke-width="1.6"/>'
+      + '<rect x="10.4" y="9.6" width="3.2" height="4.2" rx=".6" fill="#7d858f" stroke="#2f3338" stroke-width=".8"/>'
+      + '<circle cx="12" cy="11.4" r=".55" fill="#1d1f22"/><path d="M12 11.8v1" stroke="#1d1f22" stroke-width=".6"/>'
+      + '<circle cx="7" cy="17.5" r=".5" fill="#c9ced4"/><circle cx="17" cy="17.5" r=".5" fill="#c9ced4"/><circle cx="7" cy="7" r=".5" fill="#c9ced4"/><circle cx="17" cy="7" r=".5" fill="#c9ced4"/></svg>',
+  };
   function bauMochilaHtml(p) {
     var b = estado.bau;
     if (!ACAO_SERVIDOR) return '<p class="suave">O baú precisa do servidor do jogo.</p>';

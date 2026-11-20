@@ -2341,3 +2341,6 @@ html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }
 .bau-hist { margin-top: 10px; }
 .bau-hist summary { cursor: pointer; color: var(--ouro-claro, #e8d9a8); }
 @media (max-width: 560px) { .bau-duplo { grid-template-columns: 1fr; } .bau-duplo > div + div { border-left: 0; padding-left: 0; } }
+.ico-mochila { display: inline-block !important; width: 1.25em; height: 1.25em; vertical-align: -0.28em; margin-right: .3em; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
+.mochila-abas button { display: inline-flex; align-items: center; gap: .3em; }
+.mochila-abas .ico-mochila { margin-right: 0; }
