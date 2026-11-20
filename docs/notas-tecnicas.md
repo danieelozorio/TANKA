@@ -1483,3 +1483,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   anterior e solta o evento `eldrin:ganho` {ouro, exp, nivel, lendarios} (só na Zealot). O `zealot-efeitos.js` mostra
   +ouro/+exp flutuando (junta ganhos seguidos em 250 ms), a cena de level up (brasão com o número) e a do lendário
   (raio dourado). Clique fecha a cena.
+- Ícones pintados da Zealot (20/11/2026): 40 ícones em `assets/interface/icones/*.webp` (128 px, sem fundo), recortados
+  das 3 folhas do Gemini (`.../icones/originais/folha1-3.webp`; prompts em docs/icones-zealot-prompts.txt). No fim do
+  app.js, só na Zealot, `ICONES`, `ICONES_SUB`, `ICONE_POCAO`, `ICONE_CARTA` e `ICONE_SINO` viram `<img class="ico-pintado">`
+  (abas, sub-abas, recursos, menu, ⚙, carta e sino). Tamanhos no fim do tema-sombrio.css.

@@ -672,7 +672,7 @@
         + '<span class="rec-txt"><small>' + rotulo + '</small><strong>' + valor + '</strong></span>' + (extra || '') + '</div>';
     }
     return '<div class="barra-recursos" id="recursos">' + (estado.subTopo ? '<div class="sub-linha">' + subAbasHtml() + '</div>' : '') + '<div class="recursos-dentro">'
-      + recurso('r-vida r-estamina', 'Estamina: cada luta da caçada gasta. Enche com o tempo, acampando ou com potes (Mercado)', '⚡', 'Estamina', '<span id="rec-estamina">' + R.estamina(p).pts + '</span>/' + D.ESTAMINA.maximo)
+      + recurso('r-vida r-estamina', 'Estamina: cada luta da caçada gasta. Enche com o tempo, acampando ou com potes (Mercado)', ICONES.estamina || '⚡', 'Estamina', '<span id="rec-estamina">' + R.estamina(p).pts + '</span>/' + D.ESTAMINA.maximo)
       + recurso('r-ouro', 'Ouro: ' + p.ouro.toLocaleString('pt-BR'), ICONES.ouro, 'Ouro', numRecurso(p.ouro))
       + recurso('r-reputacao', 'Reputação: ' + (p.reputacao || 0).toLocaleString('pt-BR'), ICONES.reputacao, 'Reputação', numRecurso(p.reputacao || 0))
       + recurso('r-pocao', 'Poções de vida (só na caçada) · reset em ' + tempoTexto(R.msAteReset(C.agora())) + ' (estamina cheia e 2 poções). Mais poções no Mercado.', (interfaceAtual() === 'zealot' ? ICONE_POCAO : ICONES.pocao), 'Poções',
@@ -1156,7 +1156,7 @@
       + item('id="btn-caixa" data-acao="painel-topo" data-valor="caixa"', ICONE_CARTA, 'Caixa de entrada', seloNumero(cx))
       + item('id="btn-sino" data-acao="painel-topo" data-valor="sino"', ICONE_SINO, 'Avisos', seloNumero(nn)) + '</div>'
       + '<div class="menu-cel-grupo menu-cel-grade"><small>Configurações</small>'
-      + item('data-acao="menu-config"', '⚙', 'Interface, som e tela') + '</div>'
+      + item('data-acao="menu-config"', ICONES.config || '⚙', 'Interface, som e tela') + '</div>'
       // Caçando dá para trocar de herói ou sair: a caçada segue sozinha no servidor (farm AFK) e volta ao entrar de novo.
       + (livre || cacandoAfk ? '<div class="menu-cel-grupo"><small>Conta</small>'
         + (livre && ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
@@ -4502,7 +4502,7 @@
     var menuTopo = '';
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
-      menuTopo = '<button class="btn menu-config-btn" data-acao="menu-config" title="Configurações" aria-label="Configurações">⚙</button>'
+      menuTopo = '<button class="btn menu-config-btn" data-acao="menu-config" title="Configurações" aria-label="Configurações">' + (ICONES.config || '⚙') + '</button>'
         + '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
         + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '<span class="menu-rotulo">Menu</span></summary>'
         + '<div class="menu-jogo-painel"><div class="menu-jogo-acoes">' + trocar
@@ -10249,6 +10249,24 @@
   }
   TOQUES.forEach(function (ev) { document.addEventListener(ev, primeiroToque, true); });
   desenharBotaoMusica();
+
+  // Ícones pintados da Zealot (Daniel, 20/11/2026; artes em assets/interface/icones, folhas em .../originais).
+  // Trocam os desenhos de linha das abas, sub-abas, recursos e botões só nesta interface.
+  if (interfaceAtual() === 'zealot') (function () {
+    var pintado = function (n) { return '<img class="ico-pintado" src="assets/interface/icones/' + n + '.webp" alt="" aria-hidden="true" draggable="false">'; };
+    ['heroi', 'aventura', 'evento', 'arena', 'mercado', 'social', 'leilao', 'loja', 'menu', 'sair', 'admin', 'som', 'ouro', 'reputacao', 'estamina', 'config']
+      .forEach(function (k) { ICONES[k] = pintado(k); });
+    ICONES.trocarPersonagem = pintado('trocar');
+    ['personagem', 'bau', 'encantar', 'torre', 'eventos', 'habilidades', 'ascensao', 'cacar', 'masmorra', 'historia', 'ranking', 'alianca',
+      'oficina', 'mercadoNegro', 'mineracao', 'mundial', 'oficinas'].forEach(function (k) { ICONES_SUB[k] = pintado(k); });
+    ICONES_SUB.social = pintado('amigos');
+    ICONES_SUB.mercado = pintado('mercado');
+    ICONES_SUB.leilao = pintado('leilao');
+    ICONES_SUB.loja = pintado('loja');
+    ICONE_POCAO = pintado('pocao');
+    ICONE_CARTA = pintado('carta');
+    ICONE_SINO = pintado('sino');
+  })();
 
   // ---------------- Início ----------------
   app.innerHTML = '<p class="carregando">Conectando ao servidor…</p>';
