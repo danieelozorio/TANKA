@@ -400,6 +400,14 @@ Tanka.contas = (function () {
     estado: function (meu) { return chamar('bau_estado', { meu: meu }); },
     retirar: function (meu, ouro, item, qtd) { return chamar('bau_retirar', { meu: meu, ouro: ouro || 0, item: item || null, qtd: qtd || 0 }); },
   };
+  // Loja de Éter (Henri, 19/11/2026): saldo, VIP e boosts ficam no servidor, por conta.
+  var loja = {
+    estado: function (meu) { return chamar('loja_estado', { meu: meu }); },
+    comprar: function (meu, item) { return chamar('loja_comprar', { meu: meu, item: item }); },
+    usarBoost: function (meu, tipo) { return chamar('loja_usar_boost', { meu: meu, tipo: tipo }); },
+    vips: function () { return chamar('loja_vips', {}); },
+    darEter: function (nome, valor, motivo) { return chamar('admin_dar_eter', { nome: nome, valor: valor, motivo: motivo || null }); },
+  };
   var alianca = {
     estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
     criar: function (meu, nome, sigla, brasao) { return chamar('alianca_criar', { meu: meu, nome: nome, sigla: sigla, brasao: brasao }); },
@@ -482,6 +490,7 @@ Tanka.contas = (function () {
     arena: arena,
     alianca: alianca,
     bau: bau,
+    loja: loja,
     push: push,
     oficina: oficina,
     grupo: grupo,

@@ -743,7 +743,7 @@ button.slot:hover, button.celula:hover, .focado { outline: 2px solid var(--ouro-
 .rec-usar:disabled { opacity: .35; cursor: not-allowed; filter: none; }
 
 /* Abas em 5 grupos */
-.abas-jogo { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0; margin: -.2rem -.2rem .9rem; padding: .25rem;
+.abas-jogo { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; margin: -.2rem -.2rem .9rem; padding: .25rem;
   border: 1px solid rgba(201, 162, 74, .28); border-radius: 12px; background: linear-gradient(180deg, rgba(8, 11, 16, .65), rgba(20, 26, 36, .65));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04), inset 0 -10px 20px rgba(0, 0, 0, .25); }
 .abas-jogo button { position: relative; display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .7em .4em; border: 0; border-radius: 9px;
@@ -2299,3 +2299,75 @@ html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }
 /* Altar: dados girando enquanto o servidor sorteia (Daniel, 19/11/2026) */
 .altar-dado.girando { display: inline-flex; align-items: center; justify-content: center; font-size: 30px; animation: altar-gira .5s linear infinite; }
 @keyframes altar-gira { to { transform: rotate(360deg); } }
+
+/* ---------- Loja de Éter (Henri, 19/11/2026) ---------- */
+.eter-ico { width: 1.25em; height: 1.25em; vertical-align: -0.3em; object-fit: contain; filter: drop-shadow(0 0 3px rgba(110, 190, 255, 0.6)); }
+.eter-grande { width: 72px; height: 72px; object-fit: contain; flex: none; filter: drop-shadow(0 0 10px rgba(110, 190, 255, 0.55)); }
+.loja-topo { display: flex; gap: 14px; align-items: center; }
+.loja-topo h2 { margin: 0 0 4px; }
+.loja-saldo { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 12px 0; padding: 10px 14px; border-radius: 8px;
+  border: 1px solid rgba(110, 190, 255, 0.45); background: linear-gradient(90deg, rgba(40, 80, 140, 0.25), rgba(120, 70, 170, 0.18)); font-size: 1.05em; }
+.loja-saldo .eter-ico { width: 1.6em; height: 1.6em; }
+.loja-grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.loja-carta { display: flex; flex-direction: column; margin: 0; }
+.loja-carta h3 { margin-top: 0; }
+.loja-carta .item-acoes { margin-top: auto; padding-top: 8px; display: flex; flex-wrap: wrap; gap: 6px; }
+.loja-vip { border-color: rgba(212, 175, 55, 0.7) !important; box-shadow: inset 0 0 18px rgba(212, 175, 55, 0.12); }
+.loja-vip.ativo { box-shadow: inset 0 0 22px rgba(120, 220, 140, 0.18); }
+.loja-lista { margin: 4px 0 8px; padding-left: 1.2em; }
+.loja-lista li { margin: 3px 0; }
+.preco-eter { display: inline-flex; align-items: center; gap: 2px; }
+.preco-eter .eter-ico { width: 1.1em; height: 1.1em; }
+.btn-confirmar { background: #2e7d4f !important; border-color: #4caf74 !important; color: #fff !important; }
+
+/* Nome do VIP: azul Nevasca (herói) ou rosa (heroína), em gradiente com brilho leve. */
+.nome-vip { font-weight: 700; background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-fill-color: transparent; animation: nome-vip-brilho 4s linear infinite; }
+.nome-vip.vip-m { background-image: linear-gradient(90deg, #7fd3ff, #2f8fff, #e8fbff, #57b8ff, #7fd3ff); filter: drop-shadow(0 0 3px rgba(90, 180, 255, 0.75)); }
+.nome-vip.vip-f { background-image: linear-gradient(90deg, #ffb3e0, #ff3fa6, #fff0f8, #ff6fbf, #ffb3e0); filter: drop-shadow(0 0 3px rgba(255, 90, 180, 0.75)); }
+@keyframes nome-vip-brilho { from { background-position: 0% 50%; } to { background-position: 220% 50%; } }
+@media (prefers-reduced-motion: reduce) { .nome-vip { animation: none; } }
+
+/* Baú da conta na Mochila (Henri, 19/11/2026): personagem à esquerda, baú à direita. */
+.bau-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bau-duplo h4 { margin: .2rem 0 .4rem; font-size: .95em; color: var(--ouro-claro, #e8d9a8); }
+.bau-duplo > div + div { border-left: 1px solid rgba(201, 162, 74, .25); padding-left: 12px; }
+.bau-grade { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.bau-ouro { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 10px; }
+.bau-ouro svg { width: 1.2em; height: 1.2em; }
+.bau-ouro input { width: 9em; }
+.bau-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.bau-escolha input { width: 6em; }
+.bau-hist { margin-top: 10px; }
+.bau-hist summary { cursor: pointer; color: var(--ouro-claro, #e8d9a8); }
+@media (max-width: 560px) { .bau-duplo { grid-template-columns: 1fr; } .bau-duplo > div + div { border-left: 0; padding-left: 0; } }
+.ico-mochila { display: inline-block !important; width: 1.25em; height: 1.25em; vertical-align: -0.28em; margin-right: .3em; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
+.mochila-abas button { display: inline-flex; align-items: center; gap: .3em; }
+.mochila-abas .ico-mochila { margin-right: 0; }
+
+/* ---------- Regras de alinhamento (Henri, 19/11/2026) ----------
+   1. Ícone nunca encolhe: tamanho fixo em todas as abas (flex: none).
+   2. Texto nunca invade o vizinho: cada botão corta o que não cabe (min-width: 0 + reticências).
+   3. Barra principal: quando fica estreita (container query), o ícone vai para cima do nome e a letra diminui.
+   4. Sub-abas e abas da mochila quebram linha em vez de sair da caixa.
+   5. Espaços em múltiplos de 4px. */
+.aba-ico, .aba-ico svg, .sub-abas button svg, .mochila-abas svg, .ico-mochila { flex: none; }
+/* (só onde a barra tem a largura da caixa: na Zealot e no celular ela se ajusta ao conteúdo e o container a zeraria) */
+html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: abas / inline-size; }
+.abas-jogo button { min-width: 0; overflow: hidden; }
+.abas-jogo .aba-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.abas-jogo button.ativa::after { pointer-events: none; }
+@container abas (max-width: 840px) {
+  .abas-jogo button { flex-direction: column; gap: 4px; padding: 8px 4px 6px; font-size: .8rem; letter-spacing: .02em; }
+  .abas-jogo .aba-ico svg { width: 20px; height: 20px; }
+}
+@container abas (max-width: 600px) {
+  .abas-jogo button { font-size: .7rem; letter-spacing: 0; }
+}
+.sub-abas { flex-wrap: wrap; max-width: 100%; border-radius: 18px; row-gap: 4px; }
+.sub-abas button { white-space: nowrap; }
+.mochila-abas { flex-wrap: wrap; row-gap: 4px; }
+.mochila-abas button { white-space: nowrap; }
+/* selo (!, número) no canto do ícone sem cobrir o nome ao lado */
+.abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 8px; }
+@container abas (max-width: 840px) { .abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 0; } }

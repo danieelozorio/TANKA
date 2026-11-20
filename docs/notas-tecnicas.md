@@ -297,7 +297,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Chefe Mundial: "O Despertar de Ignaroth" (Henri, nov/2026)
 - Servidor (`supabase/schema.sql`): tabelas `boss_mundial` e `boss_mundial_dano` (RLS sem políticas, só via funções).
   Números em `boss_cfg()` (hora 20, 60 min, 50 mil de vida por conta ativa nos últimos 3 dias sem bots/admins,
-  15 s entre ataques, dano máx. 200 mil por ataque, 5% lendário / 30% épico no top 10, consolação 70%, aliança 1%).
+  15 s entre ataques, dano máx. 200 mil por ataque, top 10 sempre ganha 1 item: 5% lendário / 80% épico / 15% raro (19/11), arma ou armadura de +3 a +10 levels (`R.itemDoChefeMundial`), consolação 70%, aliança 1%).
 - Tudo é preguiçoso: `boss_garantir()` (chamado por `boss_estado`/`boss_atacar`) cria o despertar do dia a partir das 20h
   (anuncia no chat com `classe = 'sistema'`; o trigger `validar_mensagem` deixa passar quando `tanka.aviso_sistema = '1'`)
   e encerra os que passaram da hora (`dormindo` + `boss_premiar(id, false)`).
@@ -374,6 +374,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `alianca_boss_runs.buff` e no `simularBossAlianca(..., buff)` via `opc.buffDano`).
 - Telas: Clã | ✦ Skills | 📜 Missões | ⚔ Boss do clã (`estado.aliancaVista`). Testes: regras.test.js ("skills do clã") e
   banco.test.sql (doação por dia, skills, missões, buff, boss conta na semanal).
+- (19/11) Boss do clã mais forte: `BOSS_ALIANCA` vida 45→90, vidaPorNivel 1,3→1,5, ataque 1→1,3 (o nível 6 caía em
+  menos de 10 min). A vida nova vale a partir do próximo despertar (o `hp` é gravado na abertura).
 - **Ajustes (Daniel, nov/2026):** ouro das missões pela metade (diárias 3.000/2.000/2.000/2.500; semanais
   20.000/15.000/15.000/25.000, x1,2 por nível do clã acima do 1) e buff de 2,5% por semanal (as 4 = +10%; `buff` agora é
   numeric no banco: `alianca_boss_buff` e `alianca_boss_runs.buff`).
@@ -1378,6 +1380,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   velocidade dos nós se o custo couber nos pontos do level (+extras, até o limite) e no máximo de pedras; nó
   desconhecido = ignora o Pacto. Crítico, dano crítico, precisão e esquiva por pontos não contam (crítico na Arena é o D20).
 - O gatilho da ficha agora força `dados.id = id da linha` (o clã da Arena é lido por ele).
+- (19/11) Efeitos de luta do Pacto na Arena: `arena_pacto_ef(p)` (validação compartilhada com `arena_com_pacto`);
+  `arena_lutador` soma no `ex` reflete, rouboVida, reducaoDano, danoHab, danoMeiaVida e execucao; `arena_vez` devolve
+  `buff reflete + ex.reflete` e aplica Sem Piedade/Execução/Arcano no fator (iguais ao regras.js). Regen, Inabalável,
+  Primeiro Golpe, Eco, Foco e os de crítico/esquiva/precisão/ouro/exp/drop continuam só contra monstros.
 
 ### Missão do clã "monstros" voltou a contar (Daniel, 19/11/2026)
 - Desde 16/11 a função `cacada` contava `abates(p) - abates(linhas[0].dados)`, mas `R.normalizar` mexe no MESMO objeto e
@@ -1401,3 +1407,41 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ### Altar: só 2 trocas por partida (Daniel, 19/11/2026)
 - `EVENTO_ALTAR.trocasPorPartida: 2`; `pt.trocas` conta (partida nova começa em 0; partida antiga sem o campo = 0).
   `trocarAltar` recusa a 3ª (vale no servidor, que usa a mesma regra). Tela: botão "Trocar 2 → 1 (N)" desliga em 0.
+## Baú da conta na Mochila (Henri, 19/11/2026)
+- Saiu da lista do Herói: agora é a 3ª aba da Mochila (Herói › Personagem › Equipamentos | Consumíveis | Baú),
+  `estado.mochilaAba = 'bau'`, `bauMochilaHtml(p)`. Esquerda: consumíveis do personagem; direita: os do baú.
+  Botão direito (`contextmenu` em `[data-acao=bau-cel]`) move tudo; o esquerdo abre `estado.bauEscolha` (quantidade).
+  `abrirAba('bau')` redireciona para lá. O ouro continua com Guardar/Retirar.
+
+## Loja de Éter (Henri, 19/11/2026)
+- Moeda **Éter** (1 Éter = R$ 1), só no servidor, por conta: `eter_contas` (saldo) + `eter_movimentos` (histórico).
+  Beta: sem compra com dinheiro; o admin dá Éter na aba Admin (`admin_dar_eter(nome, valor, motivo)`, só com
+  `ajustes.eter_beta = true`; para desligar no lançamento: `update ajustes set valor = 'false' where chave = 'eter_beta'`).
+- Números em `D.LOJA` (vip, boosts, starter) e `SKINS_DADO[].eter` → `tanka_dados()` (rodar gerar_dados_sql.js).
+- `loja_conta` (vip_ate, starter_em, estoque de boosts) e `loja_ativos` (boost ativo por personagem). Funções:
+  `loja_estado`, `loja_comprar(meu, 'vip'|'boost:exp'|'boost:ouro'|'starter'|'skin:<id>')`, `loja_usar_boost`, `loja_vips`.
+- VIP: o gatilho da ficha força `dados.vip = conta_vip(conta)` (o jogador não grava). Efeitos: `R.estaminaPorMinuto`
+  x2; `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
+  `alianca_doar` x2; `oficina_pedir` faz na hora com qualquer artesão; Arcane só VIP (`conferirArcane`, ⚙); nome brilhante
+  (`VIPS` + MutationObserver pinta os nomes de `loja_vips()` em toda a página; CSS `.nome-vip.vip-m/.vip-f`).
+- Boosts: `cacada_bonus` soma `loja_boost_pct` (+50%) ao bônus do clã na caçada do servidor. Obs.: a caçada AFK
+  (`retomar`) usa o bônus da hora em que é chamada.
+- Starter (1 por conta): VIP 30 dias + 10+10 boosts na conta; itens via recompensa `{tipo:'starter'}` → `R.itensStarter`
+  (arma + 4 armaduras level 10, colar + anel level 5, raros com qualidade 80% da faixa). Skin: recompensa `{tipo:'skin'}`
+  → `R.ganharSkin` (fica no personagem que comprou). Skins saíram do Mercado (`comprarSkin` com ouro recusa).
+- Abas: Social à esquerda do Leilão e a nova Loja à direita; a aba do Mercado de NPC passou a se chamar "Mercado".
+- Pendente: Passe de Batalha (mensal, 49 Éter, Grátis + Premium) e a compra real (Google Play Billing).
+
+## Regras de alinhamento das abas (Henri, 19/11/2026)
+- Fim do `css/estilo.css`: ícones das abas com tamanho fixo (`flex: none`); botões da barra principal cortam o texto
+  (`min-width: 0` + reticências); a barra é um container (`container: abas`, só Clássica/Arcane no computador) e
+  abaixo de 840px de largura o ícone vai para cima do nome; sub-abas e abas da mochila quebram linha (`flex-wrap`);
+  selo (!) do ícone com margem para não cobrir o nome. Ícones novos: Aventura = bússola, Mercado = sacola maior.
+
+## Item duplicado e versão da ficha (Henri, 20/11/2026)
+- Bug: funções do banco que gravam a ficha (Oficina `oficina_pedir`, etc.) não subiam `dados.versao`; a caçada/ação do
+  servidor que tinha carregado a ficha antes gravava por cima (o filtro `dados->>versao=eq.v` passava) e o item mandado
+  para a Oficina voltava (+5 e +6 com o mesmo id; equipar um escondia o outro, porque mochila/slots usam o id).
+- Correção: o gatilho da ficha sobe a versão em toda gravação que não subiu (as do servidor já vêm com versão + 1).
+  `R.normalizar` tira itens repetidos (mesmo id): fica a cópia mais encantada (conserta as fichas já afetadas na
+  próxima ação do servidor).

@@ -1042,16 +1042,44 @@ teste('masmorra: 3 salas (monstros da área, Elite, Chefe da Masmorra) e luta de
   assert.ok(herois.every((p) => p.hpAtual === R.status(p).hpMax), 'a luta não mexe na vida de fora');
 });
 
-teste('skins do dado: comprar com ouro, usar e não comprar duas vezes', () => {
+teste('skins do dado: vendidas na Loja de Éter (não com ouro), usar e ganhar da loja', () => {
   const p = R.criarPersonagem('Skin', 'masculino', 'humano', 'mago');
   assert.deepStrictEqual([...R.skinsDoPersonagem(p)], ['vermelho']);
-  assert.strictEqual(R.comprarSkin(p, 'azul'), 'Ouro insuficiente.');
   p.ouro = 600;
-  assert.strictEqual(R.comprarSkin(p, 'azul'), true);
-  assert.strictEqual(p.ouro, 100); assert.strictEqual(p.skinDado, 'azul');
+  assert.ok(/Loja de Éter/.test(R.comprarSkin(p, 'azul')));
+  assert.strictEqual(p.ouro, 600);
+  assert.strictEqual(R.ganharSkin(p, 'azul'), true);
+  assert.strictEqual(p.skinDado, 'azul');
   assert.strictEqual(R.comprarSkin(p, 'azul'), 'Você já tem essa skin.');
   assert.strictEqual(R.usarSkin(p, 'vermelho'), true); assert.strictEqual(p.skinDado, 'vermelho');
   assert.strictEqual(R.usarSkin(p, 'obsidiana'), false);
+  assert.strictEqual(R.ganharSkin(p, 'naoexiste'), false);
+});
+
+teste('item repetido (mesmo id): fica só a cópia mais encantada', () => {
+  const p = R.criarPersonagem('Dup', 'masculino', 'humano', 'mago');
+  const it = R.novoItem('peitoral', 'mago', 'epica', null, null, 30);
+  p.inventario.push(Object.assign({}, it, { encanto: 5 }), Object.assign({}, it, { encanto: 6 }));
+  R.normalizar(p);
+  const iguais = p.inventario.filter((x) => x.id === it.id);
+  assert.strictEqual(iguais.length, 1);
+  assert.strictEqual(iguais[0].encanto, 6);
+});
+
+teste('Loja de Éter: Starter Pack e estamina do VIP', () => {
+  const p = R.criarPersonagem('Novo', 'feminino', 'elfo', 'arqueiro'), S = D.LOJA.starter;
+  const its = R.itensStarter(p);
+  assert.deepStrictEqual([...its.map((i) => i.tipo)], ['arma', 'elmo', 'peitoral', 'luvas', 'botas', 'colar', 'anel']);
+  const f = D.ITEM_NIVEL.faixaQualidade[S.raridade];
+  its.forEach((i) => {
+    assert.strictEqual(i.raridade, S.raridade);
+    assert.strictEqual(i.nivel, i.tipo === 'colar' || i.tipo === 'anel' ? S.nivelJoias : S.nivelItens);
+    assert.ok(Math.abs(i.qualidade - (f[0] + (f[1] - f[0]) * S.qualidadePct / 100)) < 0.001, 'qualidade ' + i.qualidade);
+  });
+  assert.strictEqual(its[0].classe, 'arqueiro');
+  const q = R.criarPersonagem('Vip', 'masculino', 'humano', 'mago');
+  const normal = R.estaminaPorMinuto(q); q.vip = true;
+  assert.ok(Math.abs(R.estaminaPorMinuto(q) - normal * D.LOJA.vip.estaminaMult) < 1e-9);
 });
 
 teste('mochila: força do item, ordem com desempate e filtro', () => {
@@ -1957,8 +1985,10 @@ teste('chefe mundial: luta contra o chefe da área do level e prêmio x ataques'
   const c = R.premioChefeMundial(q, { chefe: 'velgrath', ataques: 3, fator: 70 });
   assert.strictEqual(c.ouro, Math.floor(m.ouro * 3 * 0.7));
   for (let i = 0; i < 20; i++) {
-    const it = R.itemDoChefeMundial(p, i % 2 ? 'lendaria' : 'epica');
-    assert.strictEqual(it.raridade, i % 2 ? 'lendaria' : 'epica');
+    const it = R.itemDoChefeMundial(p, i % 2 ? 'lendaria' : 'rara');
+    assert.strictEqual(it.raridade, i % 2 ? 'lendaria' : 'rara');
+    assert.ok(it.nivel >= p.nivel + 3 && it.nivel <= p.nivel + 10, 'nível do item ' + it.nivel + ' (herói ' + p.nivel + ')');
+    assert.ok(it.tipo !== 'secundaria');
   }
 });
 

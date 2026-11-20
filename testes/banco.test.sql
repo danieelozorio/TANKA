@@ -865,7 +865,8 @@ select pg_temp.igual((select item ->> 'nome' from public.recompensas where item 
 select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 2003::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
-select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('epica', 'lendaria'))::int, 0, 'boss: item só épico ou lendário');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('rara', 'epica', 'lendaria'))::int, 0, 'boss: item raro, épico ou lendário');
+select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item')::int, 3, 'boss: todo o top 10 ganha 1 item');
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');
@@ -1561,6 +1562,17 @@ set role authenticated; select pg_temp.comoG('2');
 update public.personagens set dados = dados || '{"eventoSaida":[{"id":"g2:x:1","evento":"x","pontos":20000}],"altar":{"total":999999}}' where id = 'g2';
 reset role;
 select pg_temp.igual((select dados ? 'eventoSaida' or dados ? 'altar' from public.personagens where id = 'g2'), false, 'evento: o jogador não escreve a partida nem os pontos na ficha');
+-- Pacto na Arena, efeitos de luta (19/11/2026): Farpas (5%) + Couraça de Espinhos (20%) = devolve 25% do dano.
+do $$
+declare d0 jsonb; l jsonb;
+begin
+  select dados into d0 from public.personagens where id = 'pa';
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": ["bastiao-t0", "bastiao-1-2", "bastiao-1-p"], "exp": 0, "extras": 0}}' where id = 'pa';
+  l := public.arena_lutador('pa');
+  if coalesce((l -> 'ex' ->> 'reflete')::numeric, 0) <> 25 then raise exception 'FALHA pacto na Arena: devolve % (esperado 25)', l -> 'ex' ->> 'reflete'; end if;
+  update public.personagens set dados = d0 where id = 'pa';
+  raise notice 'ok   pacto na Arena: Farpas + Couraça devolvem 25%%';
+end $$;
 -- Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026): tanka_status soma as skills do clã (do banco) e o Pacto
 do $$
 declare d jsonb; s0 jsonb; s1 jsonb; al bigint;
@@ -1603,4 +1615,44 @@ set role authenticated;
 select pg_temp.como('b');
 select pg_temp.falha($$select public.push_avisar('pa', 'x', 'y')$$, 'permission denied');
 reset role;
+-- Versão da ficha (19/11/2026): gravação de função do banco sobe a versão; a do servidor (versão + 1) fica como veio.
+reset role;
+update public.personagens set dados = dados || '{"versao": 7}' where id = 'g3';
+update public.personagens set dados = dados || '{"teste": 1}' where id = 'g3';
+select pg_temp.igual((select (dados ->> 'versao')::int from public.personagens where id = 'g3'), 8, 'versão: gravação sem subir a versão sobe sozinha');
+update public.personagens set dados = dados || '{"versao": 9}' where id = 'g3';
+select pg_temp.igual((select (dados ->> 'versao')::int from public.personagens where id = 'g3'), 9, 'versão: a do servidor (versão + 1) fica como veio');
+-- Loja de Éter (Henri, 19/11/2026): só o admin dá Éter (no beta), compra VIP/boost/Starter/skin, VIP na ficha e extras.
+reset role; update public.contas set admin = true where id = '00000000-0000-0000-0000-0000000000f1';
+set role authenticated; select pg_temp.comoG('2');
+select pg_temp.falha($$select public.admin_dar_eter('Gru2', 1000, null)$$, 'Só o admin');
+select pg_temp.comoG('1');
+select pg_temp.igual((public.admin_dar_eter('gru2', 200, null) ->> 'saldo')::int, 200, 'loja: admin dá Éter pelo nome (sem maiúscula)');
+select pg_temp.comoG('2');
+select pg_temp.igual((public.loja_estado('g2') ->> 'saldo')::int, 200, 'loja: saldo do jogador');
+select pg_temp.igual(public.masmorra_entradas_dia('g2'), 5, 'loja: sem VIP, 5 entradas na masmorra');
+select pg_temp.igual((public.loja_comprar('g2', 'vip') ->> 'saldo')::int, 170, 'loja: VIP custa 30');
+select pg_temp.igual((select dados ->> 'vip' from public.personagens where id = 'g2'), 'true', 'loja: VIP marcado na ficha');
+reset role;
+select pg_temp.igual(public.masmorra_entradas_dia('g2'), 7, 'loja: VIP tem +2 entradas na masmorra');
+select pg_temp.igual((public.arena_entradas_atual('g2') ->> 'maximo')::int, 7, 'loja: VIP tem +2 entradas na Arena');
+set role authenticated; select pg_temp.comoG('2');
+update public.personagens set dados = dados || '{"vip": false}' where id = 'g2';
+select pg_temp.igual((select dados ->> 'vip' from public.personagens where id = 'g2'), 'true', 'loja: o jogador não tira nem põe o VIP na ficha');
+select pg_temp.igual((public.loja_comprar('g2', 'boost:exp') -> 'boosts' ->> 'exp')::int, 1, 'loja: boost vai para o estoque da conta');
+select pg_temp.igual((public.cacada_bonus('g2') ->> 'exp')::int, 0, 'loja: boost guardado não dá bônus');
+select pg_temp.igual(public.loja_usar_boost('g2', 'exp') -> 'ativos' ? 'exp', true, 'loja: boost ativado');
+select pg_temp.igual((public.cacada_bonus('g2') ->> 'exp')::int, 50, 'loja: boost ativo dá +50% de exp na caçada');
+select pg_temp.falha($$select public.loja_usar_boost('g2', 'exp')$$, 'não tem esse boost');
+select pg_temp.igual((public.loja_comprar('g2', 'starter') ->> 'starter')::boolean, true, 'loja: Starter Pack comprado');
+select pg_temp.falha($$select public.loja_comprar('g2', 'starter')$$, 'só 1 por conta');
+reset role;
+select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'g2' and item ->> 'tipo' = 'starter')::int, 1, 'loja: itens do Starter na fila de prêmios');
+set role authenticated; select pg_temp.comoG('2');
+select pg_temp.igual((public.loja_comprar('g2', 'skin:azul') ->> 'saldo')::int, 40, 'loja: skin por 20 Éter');
+select pg_temp.igual((public.loja_comprar('g2', 'skin:dourada') ->> 'saldo')::int, 20, 'loja: outra skin');
+select pg_temp.falha($$select public.loja_comprar('g2', 'vip')$$, 'Éter insuficiente');
+select pg_temp.falha($$select public.loja_comprar('g3', 'vip')$$, 'Personagem inválido');
+select pg_temp.igual(public.loja_vips() ? 'Gru2', true, 'loja: nome do VIP na lista do brilho');
+reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
 \echo TODOS OS TESTES DO BANCO PASSARAM

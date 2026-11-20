@@ -35,6 +35,8 @@ const dados = {
   ASCENSAO: { nivelInicio: D.ASCENSAO.nivelInicio, pontosPorNivel: D.ASCENSAO.pontosPorNivel, limitePontos: D.ASCENSAO.limitePontos, maxPedras: D.ASCENSAO.maxPedras },
   ASC_NOS: Object.fromEntries(Object.entries(R.arvoreAscensao()).map(([id, n]) => [id, { custo: n.custo, tipo: n.tipo, ef: n.ef || {} }])),
   ALIANCA: D.ALIANCA,
+  LOJA: D.LOJA,   // Loja de Éter (19/11/2026)
+  SKINS_DADO: D.SKINS_DADO,
   CONJUNTOS: Object.fromEntries(Object.entries(D.CONJUNTOS).map(([k, c]) => [k, { bonus: c.bonus }])),
   LEILAO: D.LEILAO,
   MASMORRA: { pergaminho: D.MASMORRA.pergaminho },   // chance (%) do pergaminho na vitória da masmorra

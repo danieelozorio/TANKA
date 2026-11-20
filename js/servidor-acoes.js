@@ -10,7 +10,7 @@ Tanka.servidorAcoes = (function () {
   var TIPOS_CRAFT = ['material', 'receita', 'protecao'];
   function nomeRaridadeItem(item) { return D.raridades[item.raridade].nome + (item.conjunto ? ' · Conjunto' : ''); }
   function nomeDrop(it) { return it.consumivel ? (it.qtd > 1 ? it.qtd + 'x ' : '') + R.nomeConsumivel(it) : R.nomeItem(it); }
-  function origemCaixa(o) { return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla', torre: 'torre' }[o] || 'masmorra'; }
+  function origemCaixa(o) { return { boss: 'boss', leilao: 'leilao', mercado: 'mercado', loja: 'mercado', oficina: 'oficina', 'boss-alianca': 'cla', torre: 'torre' }[o] || 'masmorra'; }
   function origemCredito(m) {
     m = m || '';
     if (/^Torre/.test(m)) return 'torre';
@@ -81,6 +81,19 @@ Tanka.servidorAcoes = (function () {
         if (!D.CONSUMIVEIS[rb.ctipo]) return;
         R.mudarConsumivel(p, rb.ctipo, rb.raridade, nb);
         aviso(rec, nb + 'x ' + R.nomeConsumivel({ tipo: rb.ctipo, raridade: rb.raridade }) + ' retirado do Baú da conta.', 'item', true);
+        return;
+      }
+      if (it.tipo === 'skin') {   // Loja de Éter: skin de dado
+        var rs = pegar(rec);
+        if (R.ganharSkin(p, rs.skin)) aviso(rec, '🎲 Nova skin de dado: ' + ((D.SKINS_DADO.filter(function (x) { return x.id === rs.skin; })[0] || {}).nome || rs.skin) + ' (já em uso).', 'item');
+        return;
+      }
+      if (it.tipo === 'starter') {   // Loja de Éter: os 7 itens do Starter Pack de uma vez
+        var its = R.itensStarter(p, rng);
+        if (R.mochila(p).length + its.length > D.MOCHILA_MAX) { cheia(rec, 'Mochila cheia! Libere ' + its.length + ' espaços para receber os itens do Starter Pack.'); return; }
+        pegar(rec);
+        its.forEach(function (x) { p.inventario.push(x); });
+        aviso(rec, '🎁 Starter Pack: arma, armadura completa, colar e anel raros chegaram na mochila!', 'item');
         return;
       }
       if (it.tipo === 'exp') {   // boss do clã: exp limitada a uma parte da exp do level

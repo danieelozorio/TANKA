@@ -1098,6 +1098,17 @@ Tanka.regras = (function () {
   // Atualiza personagens salvos em versões antigas do jogo.
   function normalizar(p) {
     if (!p.sexo) p.sexo = 'masculino';
+    // Item repetido (mesmo id duas vezes, 19/11/2026): sobra de uma gravação antiga por cima de outra (ex.: o item foi
+    // para a Oficina, voltou +6 e a cópia +5 reapareceu). Mesmo id = mesmo item: fica só a cópia mais encantada.
+    if (Array.isArray(p.inventario)) {
+      var melhor = {};
+      p.inventario.forEach(function (it, i) {
+        if (!it || it.id == null) return;
+        var j = melhor[it.id];
+        if (j == null || (it.encanto || 0) >= (p.inventario[j].encanto || 0)) melhor[it.id] = i;
+      });
+      p.inventario = p.inventario.filter(function (it, i) { return !it || it.id == null || melhor[it.id] === i; });
+    }
     trocarHabilidadesAntigas(p);
     // Atributos rebalanceados (3 pontos = +1 de dano, Destreza para o Caçador): quem já tinha level ganha
     // 1 Pergaminho do Recomeço de presente, uma vez só (1 = ainda não avisou o jogador; 2 = avisado).
@@ -1624,7 +1635,8 @@ Tanka.regras = (function () {
   // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta à meia-noite ou com pote).
   function estaminaPorMinuto(p) {
     var min = p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar;
-    return min > 0 ? D.ESTAMINA.maximo / min : 0;
+    // VIP (Loja de Éter): recupera estaminaMult vezes mais rápido. p.vip vem do servidor (o gatilho da ficha).
+    return min > 0 ? D.ESTAMINA.maximo / min * (p.vip ? D.LOJA.vip.estaminaMult : 1) : 0;
   }
 
   // Aplica o reset diário (estamina cheia, poções do dia) e a estamina recuperada desde a última conta.
@@ -1753,13 +1765,16 @@ Tanka.regras = (function () {
     res.niveis = ganharExp(p, res.exp);
     return res;
   }
-  // Item do top 10: épico ou lendário, arma (50%) ou peça de armadura/secundária, como o drop de chefe.
+  // Item do top 10 (Henri, 19/11/2026): arma (50%) ou peça de armadura (50%), sempre de 3 a 10 levels acima do herói
+  // (até o máximo do jogo). A raridade (lendária/épica/rara) é sorteada no servidor (boss_premiar).
   function itemDoChefeMundial(p, raridade, rng) {
     rng = rng || Math.random;
     if (!D.raridades[raridade]) raridade = 'epica';
-    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivelDoDrop(p, rng));
-    var pecas = TIPOS_ARMADURA.concat(['secundaria']);
-    return itemDoTipo(p, pecas[Math.floor(rng() * pecas.length)], raridade, rng);
+    var nivel = limitarNivel(p.nivel + 3 + Math.floor(rng() * 8));
+    if (rng() < 0.5) return novoItem('arma', p.classe, raridade, rng, sortearTipoArma(p, raridade, rng), nivel);
+    var tipo = TIPOS_ARMADURA[Math.floor(rng() * TIPOS_ARMADURA.length)];
+    var item = novoItem(tipo, p.classe, raridade, rng, null, nivel);
+    return conjuntoPara(p, 1) && rng() < D.CONJUNTO_CHANCE / 100 ? marcarConjunto(p, item) : item;
   }
 
   // ---------- Combate ----------
@@ -3738,11 +3753,33 @@ Tanka.regras = (function () {
     if (!skin) return 'Skin inválida.';
     if (skin.historia) return 'Esta skin é prêmio da História (Aventura > História).';
     if (skinsDoPersonagem(p).indexOf(id) >= 0) return 'Você já tem essa skin.';
+    if (skin.eter) return 'As skins de dado agora são vendidas na Loja de Éter.';   // Henri, 19/11/2026
     if (p.ouro < skin.preco) return 'Ouro insuficiente.';
     p.ouro -= skin.preco;
     p.skinsDado = skinsDoPersonagem(p).concat([id]);
     p.skinDado = id;
     return true;
+  }
+  // Skin comprada na Loja de Éter (recompensa do servidor): entra na coleção e já fica em uso.
+  function ganharSkin(p, id) {
+    if (!D.SKINS_DADO.some(function (s) { return s.id === id; })) return false;
+    if (skinsDoPersonagem(p).indexOf(id) < 0) p.skinsDado = skinsDoPersonagem(p).concat([id]);
+    p.skinDado = id;
+    return true;
+  }
+  // Itens do Starter Pack (Loja de Éter, Henri, 19/11/2026): arma e as 4 armaduras no level `nivelItens`, colar e anel
+  // no `nivelJoias`, todos na raridade do pacote com qualidade fixa (qualidadePct% da faixa da raridade).
+  function itensStarter(p, rng) {
+    var S = D.LOJA.starter, f = N_.faixaQualidade[S.raridade], q = Math.round((f[0] + (f[1] - f[0]) * S.qualidadePct / 100) * 1000) / 1000;
+    rng = rng || Math.random;
+    var fazer = function (tipo, nivel) {
+      var it = novoItem(tipo, tipo === 'colar' || tipo === 'anel' ? null : p.classe, S.raridade, rng, null, nivel);
+      it.qualidade = q;
+      if (tipo === 'arma') it.dano = danoDoNivel(it.nivel, q); else it.bonus = sortearBonus(it, rng);
+      return it;
+    };
+    return ['arma'].concat(TIPOS_ARMADURA).map(function (t) { return fazer(t, S.nivelItens); })
+      .concat(TIPOS_JOIA.map(function (t) { return fazer(t, S.nivelJoias); }));
   }
   function usarSkin(p, id) {
     if (skinsDoPersonagem(p).indexOf(id) < 0) return false;
@@ -4053,6 +4090,9 @@ Tanka.regras = (function () {
     evitarChefe: evitarChefe,
     skinsDoPersonagem: skinsDoPersonagem,
     comprarSkin: comprarSkin,
+    ganharSkin: ganharSkin,
+    estaminaPorMinuto: estaminaPorMinuto,
+    itensStarter: itensStarter,
     comprarRecomeco: comprarRecomeco,
     usarRecomeco: usarRecomeco,
     usarSkin: usarSkin,

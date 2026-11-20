@@ -523,6 +523,9 @@
     estado.loginResultado = null;
     iniciarAtividade();
     if (window.EldrinNativo) EldrinNativo.entrou(estado.personagem);   // notificações do app (19/11/2026)
+    estado.loja = null; estado.lojaErro = null; estado.lojaConfirma = null;
+    guardarVip(!!estado.personagem.vip); conferirArcane();
+    if (ACAO_SERVIDOR) { carregarLoja(); carregarVips(); }
     // Créditos e mensagens do Reino (SQL Editor): busca ao entrar e a cada 2 min (fora de luta).
     clearInterval(estado.timerPendentes);
     setTimeout(function () { if (ACAO_SERVIDOR && estado.personagem) receberPendentes(); }, 4000);
@@ -634,9 +637,10 @@
     pocao: svg('<path d="M9.5 3h5M10.5 3v5L6 15.5A3.5 3.5 0 0 0 9 21h6a3.5 3.5 0 0 0 3-5.5L13.5 8V3"/><path d="M7.5 14h9"/>'),
     arena: svg('<path d="M4 4l9 9M4 4v3.5M4 4h3.5M20 4l-9 9M20 4v3.5M20 4h-3.5M7 15l-3 3 2 2 3-3M17 15l3 3-2 2-3-3"/>'),
     heroi: svg('<path d="M12 3l7 3v5.5c0 4.3-3 8-7 9.5-4-1.5-7-5.2-7-9.5V6z"/><path d="M12 8v8M9 11h6"/>'),
-    aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
+    aventura: svg('<circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.3 5.3-5.3 2.3 2.3-5.3z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/>'),   // bússola (19/11/2026)
     leilao: svg('<path d="m8 4 8 8m-6-10 8 8m-7-1-7 7m9 3h8m-8 3h8"/>'),
-    mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
+    loja: svg('<path d="M12 2 19 9 12 22 5 9Z"/><path d="M5 9h14M9.5 9 12 2l2.5 7L12 22Z"/>'),
+    mercado: svg('<path d="M4 7.5h16l-1.3 12.3a1.8 1.8 0 0 1-1.8 1.7H7.1a1.8 1.8 0 0 1-1.8-1.7z"/><path d="M8.5 10V6a3.5 3.5 0 0 1 7 0v4"/>'),   // sacola
     oficinas: svg('<path d="M3 21h18M5 21V11l7-5 7 5v10"/><path d="m10 14 4 4m0-4-4 4"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
     cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>',
@@ -1034,14 +1038,15 @@
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
-    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao', 'bau'] },   // Baú da conta (Henri, 18/11/2026)
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao'] },   // Baú da conta: aba da Mochila (Henri, 19/11/2026)
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'eventos', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },   // Eventos: só com evento aberto
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
-    { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },
     { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
+    { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },   // Henri, 19/11/2026: Social à esquerda do Leilão e a Loja à direita
+    { id: 'loja', nome: 'Loja', abas: ['loja'] },   // Loja de Éter (VIP, boosts, Starter Pack, skins)
   ];
-  var NOME_ABA = { bau: 'Baú', oficinas: 'Oficinas', mercado: 'Loja', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { loja: 'Loja de Éter', bau: 'Baú', oficinas: 'Oficinas', mercado: 'Mercado', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1700,14 +1705,15 @@
     var celulas = R.ordenarItens(mochila, v.ordem, v.crescente).map(celulaMochila);
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');
     var foco = estado.itemFoco ? p.inventario.find(function (i) { return i.id === estado.itemFoco; }) : null;
-    var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis';
+    var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis', naBau = estado.mochilaAba === 'bau';
     var cFoco = naConsumiveis && estado.consumivelFoco ? consumiveis.filter(function (c) { return c.id === estado.consumivelFoco; })[0] : null;
     var abas = '<div class="mochila-abas" role="tablist">'
-      + '<button role="tab" aria-selected="' + !naConsumiveis + '" class="' + (naConsumiveis ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">'
+      + '<button role="tab" aria-selected="' + !(naConsumiveis || naBau) + '" class="' + (naConsumiveis || naBau ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">' + ICONES_MOCHILA.equipamentos
       + 'Equipamentos <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></button>'
-      + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">'
-      + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button></div>';
-    var baixo = naConsumiveis ? consumiveisHtml(consumiveis)
+      + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">' + ICONES_MOCHILA.consumiveis
+      + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button>'
+      + '<button role="tab" aria-selected="' + naBau + '" class="' + (naBau ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="bau">' + ICONES_MOCHILA.bau + 'Baú</button></div>';
+    var baixo = naBau ? bauMochilaHtml(p) : naConsumiveis ? consumiveisHtml(consumiveis)
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
@@ -1715,7 +1721,7 @@
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + (temaAtual() === 'arcane' ? atributosAbaHtml(p) : '')
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
-      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
+      + (naBau ? '' : '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>')
       + baixo + '</div></div>';
   }
 
@@ -1750,16 +1756,190 @@
   }
   // ---------------- Baú da conta (Henri, 18/11/2026) ----------------
   // Ouro e consumíveis guardados pela conta: qualquer personagem dela guarda e retira. Itens não entram.
+  // ---------------- Loja de Éter (Henri, 19/11/2026) ----------------
+  // Éter: moeda comprada com dinheiro (1 Éter = R$ 1), guardada no servidor por conta. Aqui: VIP, boosts, Starter Pack
+  // e skins de dado. No beta não há compra com dinheiro: o admin dá Éter (aba Admin). Preços em D.LOJA e D.SKINS_DADO.
+  var ETER_IMG = '<img class="eter-ico" src="assets/eter.webp" alt="Éter">';
+  function ehVip() {
+    var l = estado.loja;
+    if (l && estado.personagem && l.pid === estado.personagem.id) return !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
+    return !!(estado.personagem && estado.personagem.vip);
+  }
+  function guardarVip(v) { guardar('eldrin.vip', v ? '1' : '0'); }
+  function vipGuardado() { try { return localStorage.getItem('eldrin.vip') === '1' || ehAdmin(); } catch (e) { return ehVip() || ehAdmin(); } }
+  // Arcane é do VIP: sem VIP volta para a Clássica (no celular, a Zealot).
+  function conferirArcane() {
+    if (temaAtual() !== 'arcane' || ehVip() || ehAdmin()) return;
+    var t = ehCelularAparelho() ? 'zealot' : 'classica';
+    guardar('eldrin.interface', t);
+    try { document.cookie = 'eldrin_interface=' + t + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
+    avisar('👑 A interface Arcane agora é exclusiva do VIP. Voltando para a ' + (t === 'zealot' ? 'Zealot' : 'Clássica') + '…');
+    setTimeout(function () { location.reload(); }, 2500);
+  }
+  function carregarLoja() {
+    var p = estado.personagem;
+    if (!p || estado.lojaCarregando || !C.loja) return;
+    estado.lojaCarregando = true;
+    C.loja.estado(p.id).then(function (l) {
+      estado.lojaCarregando = false;
+      if (estado.personagem !== p) return;
+      l.pid = p.id; estado.loja = l; estado.lojaErro = null;
+      p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
+      guardarVip(p.vip); conferirArcane();
+      if (estado.aba === 'loja') telaJogo();
+    }, function (e) {
+      estado.lojaCarregando = false; estado.lojaErro = (e && e.message) || 'Não foi possível abrir a loja.';
+      if (estado.aba === 'loja') telaJogo();
+    });
+  }
+  function precoEter(n) { return '<span class="preco-eter">' + ETER_IMG + '<b>' + n + '</b></span>'; }
+  // Botão de compra em 2 toques: o 1º pede confirmação (mostra o preço), o 2º compra.
+  function botaoCompra(item, preco, texto, desligado) {
+    var conf = estado.lojaConfirma === item, l = estado.loja, falta = l && l.saldo < preco;
+    if (desligado) return '<button class="btn" disabled>' + texto + '</button>';
+    if (conf) return '<button class="btn btn-confirmar" data-acao="loja-comprar" data-valor="' + item + '">Confirmar: gastar ' + preco + ' Éter</button>'
+      + '<button class="btn secundario" data-acao="loja-cancelar">Cancelar</button>';
+    return '<button class="btn" data-acao="loja-pedir" data-valor="' + item + '"' + (falta ? ' title="Éter insuficiente"' : '') + '>' + texto + ' · ' + precoEter(preco) + '</button>';
+  }
+  function abaLoja() {
+    var p = estado.personagem, l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, L = D.LOJA;
+    if (!l && !estado.lojaErro) carregarLoja();
+    var tit = '<div class="loja-topo">' + '<img class="eter-grande" src="assets/eter.webp" alt="">'
+      + '<div><h2>Loja de Éter</h2><p class="suave">O Éter é a moeda especial do Reino. Vale para a <strong>conta toda</strong> (todos os seus personagens).</p></div></div>';
+    if (!ACAO_SERVIDOR || !C.loja) return '<section class="caixa loja">' + tit + '<p class="suave">A loja precisa do servidor do jogo.</p></section>';
+    if (estado.lojaErro) return '<section class="caixa loja">' + tit + '<p class="erro">' + esc(estado.lojaErro) + '</p>'
+      + '<button class="btn" data-acao="loja-recarregar">Tentar de novo</button></section>';
+    if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
+    var vip = ehVip(), agora = C.agora();
+    var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
+      + '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro chega com o app na Play Store.' : 'Comprar Éter: em breve.') + '</span></div>';
+    var V = L.vip;
+    var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
+      + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
+      + '<ul class="loja-lista">'
+      + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
+      + '<li>Estamina recupera <strong>' + V.estaminaMult + 'x</strong> mais rápido</li>'
+      + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
+      + '<li>Oficina: <strong>qualquer</strong> Coletor ou Ferreiro faz o seu pedido na hora, sem ser amigo</li>'
+      + '<li>Doação ao clã: até <strong>' + V.doacaoMult + 'x</strong> o limite do dia</li>'
+      + '<li>Nome em destaque em todo o jogo: <span class="nome-vip vip-m">Nevasca</span> (herói) ou <span class="nome-vip vip-f">Rosa</span> (heroína)</li>'
+      + '</ul><p class="suave pequeno">Vale ' + V.dias + ' dias a partir da compra, para a conta toda. Comprar de novo soma mais ' + V.dias + ' dias.</p>'
+      + '<div class="item-acoes">' + botaoCompra('vip', V.preco, vip ? 'Renovar VIP' : 'Tornar-se VIP') + '</div></div>';
+    var cartaPasse = '<div class="caixa-interna loja-carta"><h3>🎖 Passe de Batalha</h3><p class="suave">Em breve: uma temporada por mês (do dia 1 ao último dia), '
+      + 'com pontos por tudo o que você faz no jogo e prêmios do lado Grátis e do Premium.</p></div>';
+    var boosts = Object.keys(L.boosts).map(function (k) {
+      var b = L.boosts[k], tem = Number((l.boosts || {})[k]) || 0, ate = (l.ativos || {})[k], ativo = ate && Date.parse(ate) > agora;
+      return '<div class="caixa-interna loja-carta"><h3>' + (k === 'exp' ? '✨ ' : '💰 ') + b.nome + '</h3>'
+        + '<p>+' + b.pct + '% de ' + (k === 'exp' ? 'exp' : 'ouro') + ' na caçada por ' + (b.minutos >= 60 ? (b.minutos / 60) + ' hora' + (b.minutos > 60 ? 's' : '') : b.minutos + ' min')
+        + ', no personagem que usar. Usar de novo soma o tempo.</p>'
+        + (ativo ? '<p class="online pequeno">Ativo em ' + esc(p.nome) + ' até ' + dataCurta(ate) + '</p>' : '')
+        + '<p class="suave pequeno">Na conta: <strong>' + tem + '</strong></p>'
+        + '<div class="item-acoes">' + botaoCompra('boost:' + k, b.preco, 'Comprar')
+        + '<button class="btn secundario" data-acao="loja-usar-boost" data-valor="' + k + '"' + (tem ? '' : ' disabled') + '>Usar em ' + esc(p.nome) + '</button></div></div>';
+    }).join('');
+    var S = L.starter;
+    var cartaStarter = '<div class="caixa-interna loja-carta loja-starter"><h3>🎁 ' + S.nome + '</h3><ul class="loja-lista">'
+      + '<li>' + S.boostsExp + ' Boosts de EXP e ' + S.boostsOuro + ' Boosts de Ouro</li>'
+      + '<li>Arma e armadura completa ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelItens + ' (qualidade ' + S.qualidadePct + '%)</li>'
+      + '<li>Colar e anel ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelJoias + '</li>'
+      + '<li><strong>VIP por ' + S.vipDias + ' dias</strong></li></ul>'
+      + '<p class="suave pequeno">1 por conta. Os itens vão para a mochila de ' + esc(p.nome) + ' (precisa de 7 espaços livres).</p>'
+      + '<div class="item-acoes">' + (l.starter ? '<span class="suave">Esta conta já comprou.</span>' : botaoCompra('starter', S.preco, 'Comprar')) + '</div></div>';
+    var skins = '<div class="caixa-interna loja-carta loja-skins-caixa"><h3>🎲 Skins do Dado (Arena)</h3>'
+      + '<p class="suave">Mudam a cor do seu D20 na Arena. O oponente vê o dado com a sua skin. A skin fica com o personagem que comprou.</p><div class="skins">'
+      + D.SKINS_DADO.map(function (k) {
+        var tem = R.skinsDoPersonagem(p).indexOf(k.id) >= 0, uso = (p.skinDado || 'vermelho') === k.id;
+        var botao = uso ? '<span class="online pequeno">✔ Em uso</span>'
+          : tem ? '<button class="btn secundario" data-acao="skin-usar" data-valor="' + k.id + '">Usar</button>'
+          : k.historia ? '<span class="suave pequeno">Prêmio da História</span>'
+          : k.eter ? botaoCompra('skin:' + k.id, k.eter, 'Comprar') : '';
+        return '<div class="skin-carta' + (uso ? ' em-uso' : '') + '">' + d20Bonito(20, k.id) + '<strong>' + k.nome + '</strong>'
+          + '<span class="suave pequeno">' + (k.historia ? 'A Crônica de Eldrin' : k.eter ? k.eter + ' Éter' : 'Grátis') + '</span>' + botao + '</div>';
+      }).join('') + '</div></div>';
+    var hist = (l.historico || []).map(function (h) {
+      return '<li><span class="' + (h.valor > 0 ? 'online' : '') + '">' + (h.valor > 0 ? '+' : '−') + Math.abs(h.valor) + ' Éter</span> · ' + esc(h.motivo)
+        + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
+    }).join('');
+    return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaPasse + '</div>' + skins
+      + (hist ? '<div class="caixa-interna cla-secao"><h3>Seu Éter: últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
+  }
+  function lojaChamar(prom, msg) {
+    var p = estado.personagem;
+    if (estado.lojaOcupado) return;
+    estado.lojaOcupado = true; estado.lojaConfirma = null;
+    prom.then(function (l) {
+      estado.lojaOcupado = false;
+      if (estado.personagem !== p) return;
+      l.pid = p.id; estado.loja = l;
+      p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora()); guardarVip(p.vip);
+      avisar(msg, 'item');
+      carregarVips();
+      return receberPendentes();
+    }, function (e) { estado.lojaOcupado = false; avisar((e && e.message) || 'Não foi possível concluir.'); })
+      .then(function () { if (estado.aba === 'loja') telaJogo(); });
+  }
+
+  // Nome em destaque do VIP (Henri, 19/11/2026): em todo lugar onde aparece o nome de um personagem VIP, ele ganha o
+  // brilho (azul "Nevasca" para herói, rosa para heroína). A lista de nomes vem do servidor (loja_vips) e um observador
+  // pinta os textos da página sempre que ela muda.
+  var VIPS = { nomes: {}, re: null, pintando: false, pedido: false };
+  function carregarVips() {
+    if (!C.loja || !C.loja.vips) return;
+    C.loja.vips().then(function (m) {
+      VIPS.nomes = m || {};
+      var ks = Object.keys(VIPS.nomes).filter(function (n) { return n && n.length >= 2; }).sort(function (a, b) { return b.length - a.length; });
+      VIPS.re = ks.length ? new RegExp('(^|[^\\p{L}\\p{N}_])(' + ks.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?=$|[^\\p{L}\\p{N}_])', 'gu') : null;
+      pintarVips();
+    }, function () { /* sem lista: nomes normais */ });
+  }
+  setInterval(function () { if (estado.personagem && document.visibilityState !== 'hidden') carregarVips(); }, 5 * 60000);
+  function pintarVips() {
+    if (!VIPS.re || VIPS.pintando || !document.body) return;
+    VIPS.pintando = true;
+    try {
+      var w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: function (n) {
+        var pai = n.parentNode;
+        if (!pai || !n.nodeValue || n.nodeValue.length < 2) return NodeFilter.FILTER_REJECT;
+        if (pai.closest && pai.closest('.nome-vip, script, style, textarea, input, select, option, title, canvas, svg')) return NodeFilter.FILTER_REJECT;
+        VIPS.re.lastIndex = 0;
+        return VIPS.re.test(n.nodeValue) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      } });
+      var lista = [];
+      while (w.nextNode()) lista.push(w.currentNode);
+      lista.forEach(function (n) {
+        var txt = n.nodeValue, frag = document.createDocumentFragment(), ult = 0, m;
+        VIPS.re.lastIndex = 0;
+        while ((m = VIPS.re.exec(txt))) {
+          var ini = m.index + m[1].length;
+          if (ini > ult) frag.appendChild(document.createTextNode(txt.slice(ult, ini)));
+          var sp = document.createElement('span');
+          sp.className = 'nome-vip ' + (VIPS.nomes[m[2]] === 'feminino' ? 'vip-f' : 'vip-m');
+          sp.textContent = m[2];
+          frag.appendChild(sp);
+          ult = ini + m[2].length;
+        }
+        if (ult < txt.length) frag.appendChild(document.createTextNode(txt.slice(ult)));
+        n.parentNode.replaceChild(frag, n);
+      });
+    } catch (e) { /* navegador sem \p{L}: fica sem brilho */ }
+    VIPS.pintando = false;
+  }
+  if (window.MutationObserver) new MutationObserver(function () {
+    if (!VIPS.re || VIPS.pintando || VIPS.pedido) return;
+    VIPS.pedido = true;
+    requestAnimationFrame(function () { VIPS.pedido = false; pintarVips(); });
+  }).observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+
   function carregarBau() {
     var p = estado.personagem;
     if (!p || estado.bauCarregando) return;
     estado.bauCarregando = true;
     C.bau.estado(p.id).then(function (b) {
       estado.bauCarregando = false; estado.bau = b; estado.bauErro = null;
-      if (estado.aba === 'bau') telaJogo();
+      if (vendoBau()) telaJogo();
     }, function (e) {
       estado.bauCarregando = false; estado.bauErro = (e && e.message) || 'Não foi possível abrir o baú.';
-      if (estado.aba === 'bau') telaJogo();
+      if (vendoBau()) telaJogo();
     });
   }
   function abaBau() {
@@ -1807,6 +1987,7 @@
     acaoServidor('bauDepositar', args).then(function (r) {
       estado.bauOcupado = false;
       if (r && !r.erro) { avisar(msg, 'item'); estado.bau = null; carregarBau(); }
+      else if (vendoBau()) telaJogo();
     });
   }
   function bauRetirar(ouro, item, qtd, msg) {
@@ -1818,7 +1999,88 @@
       avisar(msg, 'item');
       return receberPendentes();
     }, function (e) { estado.bauOcupado = false; avisar((e && e.message) || 'Não foi possível retirar.'); })
-      .then(function () { if (estado.aba === 'bau') telaJogo(); });
+      .then(function () { if (vendoBau()) telaJogo(); });
+  }
+  // O baú agora fica na Mochila (Herói › Personagem › Baú, Henri, 19/11/2026).
+  function vendoBau() { return estado.aba === 'bau' || (estado.aba === 'personagem' && estado.mochilaAba === 'bau'); }
+  // Baú na mochila: à esquerda o que o personagem pode guardar, à direita o que está no baú. Botão direito move tudo;
+  // o esquerdo abre a escolha da quantidade.
+  // Ícones das abas da Mochila (Henri, 19/11/2026): mochila marrom, pergaminho comum e baú de madeira com ferro.
+  var ICONES_MOCHILA = {
+    equipamentos: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M9 5.5C9 3.6 10.3 2.5 12 2.5s3 1.1 3 3" fill="none" stroke="#5a3a1e" stroke-width="1.6"/>'
+      + '<rect x="4.5" y="5" width="15" height="16.5" rx="4" fill="#8b5a2b" stroke="#3e2512" stroke-width="1.1"/>'
+      + '<path d="M4.5 10.5h15" stroke="#3e2512" stroke-width="1"/>'
+      + '<rect x="7.5" y="12.5" width="9" height="6.5" rx="1.6" fill="#a8713a" stroke="#3e2512" stroke-width="1"/>'
+      + '<path d="M7.5 15h9" stroke="#3e2512" stroke-width=".9"/><rect x="11" y="14" width="2" height="2.2" rx=".4" fill="#d9b25a"/>'
+      + '<path d="M6.5 6.5c1.5-.6 3-.8 5.5-.8" stroke="#b98451" stroke-width=".9" fill="none" opacity=".7"/></svg>',
+    consumiveis: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M6 6.5h11.5v11c0 1.7-1.2 3-2.8 3H6.2" fill="#ead7a8" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M6 6.5a2.2 2.2 0 1 0 0 4.4h1.6V6.5" fill="#d8c08a" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M6.2 20.5a2.3 2.3 0 0 1 0-4.6H17.5" fill="#d8c08a" stroke="#6b5230" stroke-width="1.1"/>'
+      + '<path d="M9.5 9.6h5.5M9.5 11.8h5.5M9.5 14h4" stroke="#8a6d43" stroke-width=".9" stroke-linecap="round"/></svg>',
+    bau: '<svg class="ico-mochila" viewBox="0 0 24 24" aria-hidden="true">'
+      + '<path d="M3.5 10.5V9a5 4.5 0 0 1 5-4.5h7a5 4.5 0 0 1 5 4.5v1.5Z" fill="#9a6532" stroke="#3a240f" stroke-width="1.1"/>'
+      + '<rect x="3.5" y="10.5" width="17" height="9.5" rx="1" fill="#8a5728" stroke="#3a240f" stroke-width="1.1"/>'
+      + '<path d="M3.5 14.5h17M3.5 7.8h17" stroke="#5b3a1a" stroke-width=".8" opacity=".8"/>'
+      + '<path d="M7 4.9V20M17 4.9V20" stroke="#5f6670" stroke-width="1.8"/>'
+      + '<path d="M3.5 10.5h17" stroke="#5f6670" stroke-width="1.6"/>'
+      + '<rect x="10.4" y="9.6" width="3.2" height="4.2" rx=".6" fill="#7d858f" stroke="#2f3338" stroke-width=".8"/>'
+      + '<circle cx="12" cy="11.4" r=".55" fill="#1d1f22"/><path d="M12 11.8v1" stroke="#1d1f22" stroke-width=".6"/>'
+      + '<circle cx="7" cy="17.5" r=".5" fill="#c9ced4"/><circle cx="17" cy="17.5" r=".5" fill="#c9ced4"/><circle cx="7" cy="7" r=".5" fill="#c9ced4"/><circle cx="17" cy="7" r=".5" fill="#c9ced4"/></svg>',
+  };
+  function bauMochilaHtml(p) {
+    var b = estado.bau;
+    if (!ACAO_SERVIDOR) return '<p class="suave">O baú precisa do servidor do jogo.</p>';
+    if (!b && !estado.bauErro) carregarBau();
+    if (estado.bauErro) return '<p class="erro">' + esc(estado.bauErro) + '</p><button class="btn" data-acao="bau-recarregar">Tentar de novo</button>';
+    if (!b) return '<p class="suave">Abrindo o baú…</p>';
+    var cons = b.consumiveis || {}, esc_ = estado.bauEscolha;
+    var celula = function (lado, tipo, rar, qtd) {
+      var c = { tipo: tipo, raridade: rar, qtd: qtd }, sel = esc_ && esc_.lado === lado && esc_.tipo === tipo && esc_.raridade === rar;
+      return '<button class="celula borda-' + corConsumivel(c) + (sel ? ' focado' : '') + '" data-acao="bau-cel" data-lado="' + lado + '" data-tipo="' + tipo
+        + '" data-raridade="' + rar + '" data-qtd="' + qtd + '" title="' + esc(R.nomeConsumivel(c)) + ' · ' + qtd + '">' + iconeConsumivel(c)
+        + '<span class="qtd-consumivel">' + qtd.toLocaleString('pt-BR') + '</span></button>';
+    };
+    var grade = function (cels) {
+      for (var n = cels.length; n < 8; n++) cels.push('<div class="celula vazia"></div>');
+      return '<div class="mochila consumiveis bau-grade">' + cels.join('') + '</div>';
+    };
+    var meus = R.consumiveis(p).filter(function (c) { return c.qtd > 0 && D.CONSUMIVEIS[c.tipo]; })
+      .map(function (c) { return celula('eu', c.tipo, c.raridade, c.qtd); });
+    var noBau = Object.keys(cons).filter(function (k) { return cons[k] > 0; }).sort()
+      .map(function (k) { var x = k.split(':'); return celula('bau', x[0], x[1], Number(cons[k])); });
+    var escolha = '';
+    if (esc_) {
+      var nomeE = R.nomeConsumivel({ tipo: esc_.tipo, raridade: esc_.raridade }), eu = esc_.lado === 'eu';
+      escolha = '<div class="bau-escolha caixa-interna"><span>' + (eu ? 'Guardar no baú' : 'Retirar do baú') + ': <strong>' + esc(nomeE) + '</strong> <span class="suave">(tem ' + esc_.qtd + ')</span></span>'
+        + '<input id="bau-escolha-qtd" type="number" min="1" max="' + esc_.qtd + '" value="' + esc_.qtd + '" inputmode="numeric" aria-label="Quantidade">'
+        + '<button class="btn btn-pequeno" data-acao="bau-mover">' + (eu ? 'Guardar' : 'Retirar') + '</button>'
+        + '<button class="btn btn-pequeno secundario" data-acao="bau-mover" data-valor="tudo">Tudo</button>'
+        + '<button class="btn btn-pequeno secundario" data-acao="bau-escolha-fechar">✕</button></div>';
+    }
+    var hist = (b.historico || []).slice(0, 10).map(function (h) {
+      var o = []; if (Number(h.ouro)) o.push(Number(h.ouro).toLocaleString('pt-BR') + ' de ouro');
+      if (h.item && h.qtd) { var x = h.item.split(':'); o.push(h.qtd + 'x ' + R.nomeConsumivel({ tipo: x[0], raridade: x[1] })); }
+      return '<li>' + (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ')
+        + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
+    }).join('');
+    return '<p class="suave pequeno">Baú da conta: os seus personagens guardam e retiram ouro e consumíveis (itens não entram). '
+      + (temMouse ? '<strong>Botão direito</strong> move tudo; o <strong>esquerdo</strong> escolhe a quantidade.' : 'Toque num consumível para escolher a quantidade.') + '</p>'
+      + '<div class="bau-ouro linha-form">' + ICONES.ouro + '<span>Baú: <strong class="cor-ouro">' + (Number(b.ouro) || 0).toLocaleString('pt-BR') + '</strong></span>'
+      + '<input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
+      + '<button class="btn btn-pequeno" data-acao="bau-guardar-ouro">Guardar</button><button class="btn btn-pequeno secundario" data-acao="bau-retirar-ouro">Retirar</button></div>'
+      + escolha
+      + '<div class="bau-duplo"><div><h4>Com ' + esc(p.nome) + '</h4>' + grade(meus) + '</div>'
+      + '<div><h4>No baú</h4>' + grade(noBau) + '</div></div>'
+      + (hist ? '<details class="bau-hist"><summary>Últimas movimentações</summary><ul class="bau-historico">' + hist + '</ul></details>' : '');
+  }
+  // Move do personagem para o baú (lado 'eu') ou do baú para o personagem.
+  function bauMover(lado, tipo, rar, qtd) {
+    var nome = qtd + 'x ' + R.nomeConsumivel({ tipo: tipo, raridade: rar });
+    estado.bauEscolha = null;
+    if (lado === 'eu') bauDepositar({ tipo: tipo, raridade: rar, qtd: qtd }, nome + ' guardado no baú.');
+    else bauRetirar(0, tipo + ':' + rar, qtd, nome + ' retirado do baú.');
   }
   function fichaConsumivelHtml(c) {
     var def = D.CONSUMIVEIS[c.tipo] || {};
@@ -2209,7 +2471,7 @@
     }).join('');
     var simples = {};
     ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaMenos', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
-    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (vida, dano, defesas e velocidade valem também na Arena)</summary>'
+    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (na Arena valem vida, dano, defesas, velocidade, devolver dano, roubo de vida, menos dano recebido, dano de habilidade, Sem Piedade e Execução)</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
   function pactoHtml() {
@@ -2360,7 +2622,7 @@
   }
 
   // Celular: a Loja vira seções (fichas no topo) em vez de uma página comprida.
-  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['skins', '🎲 Skins'], ['especiais', '📜 Especiais']];
+  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['especiais', '📜 Especiais']];   // skins: Loja de Éter (19/11/2026)
   function abaMercado() {
     var p = estado.personagem;
     if (CELULAR) {
@@ -2406,7 +2668,7 @@
   function mercadoPartesTudo(p) {
     var x = mercadoPartes(p);
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.skins + x.troca;
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.troca;
   }
 
   // ---------------- Mercado Negro (Mercado > Mercado Negro): comércio entre jogadores ----------------
@@ -4019,6 +4281,10 @@
     }
     return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
       + '<div class="itens">'
+      + grupo('Éter (beta)', 'Dá Éter para a conta de um personagem (pelo nome). Valor negativo tira. Só funciona durante o beta.',
+        '<input id="admin-eter-nome" type="text" placeholder="Nome do personagem" value="' + esc(estado.personagem.nome) + '">'
+        + '<input id="admin-eter-valor" type="number" placeholder="Éter" value="100" style="max-width:6em">'
+        + '<button class="btn" data-acao="admin-dar-eter">Dar Éter</button>')
       + grupo('Chefe Mundial', 'Invoca Ignaroth agora por 1 hora (para testar). Vida: a do despertar (50 mil por jogador ativo) ou um valor.',
         '<button class="btn" data-acao="boss-invocar" data-valor="0">Invocar</button>'
         + '<button class="btn" data-acao="boss-invocar" data-valor="5000">Vida 5 mil</button>'
@@ -4191,7 +4457,7 @@
       var subAbas = subAbasHtml();
       if (zealot && !CELULAR) abasTopo = subAbas;
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, bau: abaBau, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, bau: abaBau, loja: abaLoja, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -5080,7 +5346,7 @@
   }
 
   function abrirAba(aba) {
-    if (aba === 'bau') { estado.bau = null; estado.bauErro = null; }   // abre sempre com o baú atualizado
+    if (aba === 'bau') { aba = 'personagem'; estado.mochilaAba = 'bau'; estado.bau = null; estado.bauErro = null; }   // o baú agora fica na Mochila
     if (estado.personagem) {
       var gAntes = estado.personagem.guia && !estado.personagem.guia.fim && !estado.personagem.guia.loja;
       R.registrarGuia(estado.personagem, 'aba', aba);
@@ -5386,6 +5652,29 @@
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
       case 'bau-recarregar': estado.bau = null; estado.bauErro = null; carregarBau(); telaJogo(); break;
+      case 'loja-recarregar': estado.loja = null; estado.lojaErro = null; carregarLoja(); telaJogo(); break;
+      case 'loja-pedir': estado.lojaConfirma = el.dataset.valor; telaJogo(); break;
+      case 'loja-cancelar': estado.lojaConfirma = null; telaJogo(); break;
+      case 'loja-comprar': {
+        var itL = el.dataset.valor, nomeL = itL === 'vip' ? 'VIP ativado! 👑' : itL === 'starter' ? 'Starter Pack comprado! 🎁'
+          : /^boost:/.test(itL) ? D.LOJA.boosts[itL.split(':')[1]].nome + ' comprado: use quando quiser.' : 'Skin comprada e em uso no seu D20! 🎲';
+        lojaChamar(C.loja.comprar(p.id, itL), nomeL);
+        break;
+      }
+      case 'loja-usar-boost': {
+        var bL = D.LOJA.boosts[el.dataset.valor];
+        lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
+        break;
+      }
+      case 'admin-dar-eter': {
+        var nE = (document.getElementById('admin-eter-nome') || {}).value, vE = parseInt((document.getElementById('admin-eter-valor') || {}).value, 10);
+        if (!nE || !vE) { avisar('Escreva o nome e o valor.'); break; }
+        C.loja.darEter(nE, vE).then(function (r) {
+          avisar((vE > 0 ? '+' : '') + vE + ' Éter para ' + r.nome + ' (saldo: ' + r.saldo + ').', 'item');
+          estado.loja = null; carregarLoja();
+        }, function (e) { avisar((e && e.message) || 'Não foi possível.'); });
+        break;
+      }
       case 'bau-guardar-ouro': case 'bau-retirar-ouro': {
         var vo = parseInt((document.getElementById('bau-ouro') || {}).value, 10);
         if (!(vo > 0)) { avisar('Digite quanto ouro.'); break; }
@@ -5396,6 +5685,20 @@
           if (vo > Number((estado.bau || {}).ouro || 0)) { avisar('O baú não tem esse ouro.'); break; }
           bauRetirar(vo, null, 0, vo.toLocaleString('pt-BR') + ' de ouro retirado do baú.');
         }
+        break;
+      }
+      case 'bau-cel':
+        estado.bauEscolha = { lado: el.dataset.lado, tipo: el.dataset.tipo, raridade: el.dataset.raridade, qtd: parseInt(el.dataset.qtd, 10) || 1 };
+        telaJogo();
+        setTimeout(function () { var q = document.getElementById('bau-escolha-qtd'); if (q && temMouse) { q.focus(); q.select(); } }, 30);
+        break;
+      case 'bau-escolha-fechar': estado.bauEscolha = null; telaJogo(); break;
+      case 'bau-mover': {
+        var eb = estado.bauEscolha;
+        if (!eb) break;
+        var qm = el.dataset.valor === 'tudo' ? eb.qtd : parseInt((document.getElementById('bau-escolha-qtd') || {}).value, 10);
+        if (!(qm > 0)) { avisar('Digite a quantidade.'); break; }
+        bauMover(eb.lado, eb.tipo, eb.raridade, Math.min(qm, eb.qtd));
         break;
       }
       case 'bau-guardar-item': case 'bau-retirar-item': {
@@ -5600,7 +5903,8 @@
       case 'historia-fechar':
         estado.historiaCena = null; telaJogo(); break;
       case 'mochila-aba':
-        estado.mochilaAba = el.dataset.valor === 'consumiveis' ? 'consumiveis' : 'equipamentos';
+        estado.mochilaAba = el.dataset.valor === 'consumiveis' || el.dataset.valor === 'bau' ? el.dataset.valor : 'equipamentos';
+        if (estado.mochilaAba === 'bau') { estado.bau = null; estado.bauErro = null; estado.bauEscolha = null; }   // abre com o baú atualizado
         estado.vendaLote = null;
         telaJogo();
         break;
@@ -6264,6 +6568,8 @@
     if (!estado.personagem || !document.querySelector('.jogo')) return;
     if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
+    var cb = e.target.closest && e.target.closest('[data-acao="bau-cel"]');   // Baú: o botão direito move tudo
+    if (cb) { if (!estado.bauOcupado) bauMover(cb.dataset.lado, cb.dataset.tipo, cb.dataset.raridade, parseInt(cb.dataset.qtd, 10) || 1); return; }
     var el = e.target.closest && e.target.closest('[data-acao="item"]');
     var p = estado.personagem;
     if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
@@ -7549,7 +7855,7 @@
     var g = estado.gm, p = estado.personagem;
     if (!g) { carregarGrupo(); return '<p class="suave">' + (estado.gmErro ? esc(estado.gmErro) : 'Carregando…') + '</p>'; }
     if (g.local) return '<p class="suave">As masmorras são em grupo de 3 e precisam do servidor: jogue pelo site do ' + D.NOME_JOGO + ' para entrar com seus amigos.</p>';
-    var M = D.MASMORRA, restam = M.entradasPorDia - g.entradas;
+    var M = Object.assign({}, D.MASMORRA, { entradasPorDia: D.MASMORRA.entradasPorDia + (ehVip() ? D.LOJA.vip.masmorraExtra : 0) }), restam = M.entradasPorDia - g.entradas;
     var html = (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '') + '<p class="suave">Grupo de 3. As lutas são automáticas e, entre elas, o grupo <strong>vota o caminho</strong> ('
       + M.votoSeg + ' s; empate: vale o líder 👑): <strong>Porta selada</strong> (baú ou armadilha), <strong>Corredor escuro</strong> (luta a mais, mais prêmio) ou '
       + '<strong>Fonte antiga</strong> (cura o grupo, menos drop). A vida passa de uma luta para a outra; a da masmorra é separada da sua. '
@@ -8062,7 +8368,8 @@
     else if (al) h += '<h3>Clãs</h3><table class="boss-rank"><tr><th></th><th>Clã</th><th>Dano</th></tr>' + al + '</table>';
     h += (CELULAR ? '<details class="regras-celular boss-premios-gaveta"><summary>🏆 Prêmios</summary>' : '<h3>Prêmios</h3>') + '<ul class="boss-premios">'
       + '<li>Se cair a tempo: todos que atacaram ganham o ouro e a exp de ' + esc(chefe.nome) + ' × número de ataques.</li>'
-      + '<li>Top 10 de dano: ' + cfg.epica + '% de chance de item épico ou ' + cfg.lendaria + '% de lendário, e 1 pergaminho.</li>'
+      + '<li>Top 10 de dano: sempre 1 item (arma ou armadura, de 3 a 10 levels acima do seu): ' + cfg.lendaria + '% lendário, ' + cfg.epica + '% épico, '
+      + Math.max(0, 100 - cfg.lendaria - cfg.epica) + '% raro; e 1 pergaminho.</li>'
       + '<li>Golpe final: o título "' + esc(cfg.titulo) + '".</li>'
       + '<li>Clã com mais dano: ' + cfg.aliancaPct + '% do dano dele em ouro no tesouro.</li>'
       + '<li>Se não cair: ' + cfg.consolacao + '% do ouro e da exp e 1 pergaminho para quem atacou.</li></ul>' + (CELULAR ? '</details>' : '');
@@ -9829,6 +10136,7 @@
     p.querySelectorAll('[data-interface]').forEach(function (b) {
       b.addEventListener('click', function () {
         if (b.dataset.interface === temaAtual()) return;
+        if (b.dataset.interface === 'arcane' && !vipGuardado()) { avisar('👑 A interface Arcane é exclusiva do VIP. Veja na aba Loja.'); return; }
         guardar('eldrin.interface', b.dataset.interface);
         try { document.cookie = 'eldrin_interface=' + b.dataset.interface + '; path=/; max-age=31536000; SameSite=Lax'; } catch (e) { /* ignora */ }
         setTimeout(function () { location.reload(); }, 150);   // dá tempo de gravar (iPhone)
@@ -9851,12 +10159,12 @@
       p.setAttribute('aria-label', 'Interface');
       p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
         + (ehCelularAparelho() ? '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
+          + [['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>'
           : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', 'Arcane']].map(function (x) {
+          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
             var ativa = temaAtual() === x[0];
             return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
           }).join('') + '</div></div>');
