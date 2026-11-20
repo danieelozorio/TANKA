@@ -61,12 +61,26 @@
       var el = document.getElementById('lutador-' + quem), fill = el && el.querySelector('.barra > i');
       if (!fill) { delete vidaAntes[quem]; return; }
       var w = parseFloat(fill.style.width) || 0, antes = vidaAntes[quem];
-      vidaAntes[quem] = w;
+      var txt = el.querySelector('.barra > b'), m = txt && /([\d.]+)/.exec(txt.textContent), vida = m ? Number(m[1].replace(/\./g, '')) : null;
+      var vAntes = vidaAntes[quem + 'v'];
+      vidaAntes[quem] = w; vidaAntes[quem + 'v'] = vida;
       if (antes === undefined || w >= antes - .01) return;
       var mold = el.querySelector('.moldura') || el, r = mold.getBoundingClientRect();
       if (!r.width) return;
+      var forte = antes - w > 25;
       mold.classList.remove('zealot-golpe'); void mold.offsetWidth; mold.classList.add('zealot-golpe');
-      faiscaGolpe(r, antes - w > 25);
+      faiscaGolpe(r, forte);
+      // número do dano saltando por cima da carta (vermelho no herói, dourado no monstro; maior no golpe forte)
+      if (vida !== null && vAntes !== null && vAntes > vida) {
+        var n = document.createElement('div');
+        n.className = 'zg-dano ' + (quem === 'jogador' ? 'no-heroi' : 'no-monstro') + (forte ? ' forte' : '');
+        n.textContent = '-' + (vAntes - vida).toLocaleString('pt-BR');
+        n.style.left = (r.left + r.width / 2 + rnd(-r.width * .18, r.width * .18)) + 'px';
+        n.style.top = (r.top + r.height * .35) + 'px';
+        document.body.appendChild(n);
+        setTimeout(function () { n.remove(); }, 1100);
+      }
+      try { window.dispatchEvent(new CustomEvent('eldrin:golpe', { detail: { quem: quem, forte: forte } })); } catch (e) { /* antigo */ }
     });
   }
 

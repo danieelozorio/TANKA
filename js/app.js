@@ -3997,12 +3997,12 @@
       o.connect(g); g.connect(saida());
       o.start(t); o.stop(t + dur + 0.05);
     }
-    function ruido(ini, dur, vol, corte) {
+    function ruido(ini, dur, vol, corte, tipoFiltro) {
       var c = ac(); if (!c) return;
       var buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate), d = buf.getChannelData(0);
       for (var i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
       var s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-      s.buffer = buf; f.type = 'highpass'; f.frequency.value = corte || 1200; g.gain.value = vol || 0.3;
+      s.buffer = buf; f.type = tipoFiltro || 'highpass'; f.frequency.value = corte || 1200; g.gain.value = vol || 0.3;
       s.connect(f); f.connect(g); g.connect(saida());
       s.start(c.currentTime + ini);
     }
@@ -4051,6 +4051,17 @@
       },
       falha: function () { nota(220, 0, 0.25, 'square', 0.06, 180); nota(165, 0.22, 0.45, 'square', 0.06, 110); },
       zera: function () { nota(660, 0, 0.9, 'sawtooth', 0.07, 90); nota(440, 0.05, 0.8, 'triangle', 0.06, 70); },
+      // Sons de interface da Zealot (Daniel, 20/11/2026): pedra, moedas, baú e golpe.
+      clique: function () { ruido(0, 0.07, 0.22, 900, 'lowpass'); nota(140, 0, 0.08, 'sine', 0.12, 80); },
+      moedas: function () {
+        for (var i = 0; i < 4; i++) { var t = i * 0.055 + Math.random() * 0.02, f = 2400 + Math.random() * 1400; nota(f, t, 0.16, 'sine', 0.05); nota(f * 1.5, t, 0.1, 'sine', 0.025); }
+      },
+      bau: function () {
+        nota(180, 0, 0.35, 'sawtooth', 0.025, 260); ruido(0.05, 0.25, 0.12, 600, 'lowpass');
+        nota(95, 0.32, 0.25, 'sine', 0.22, 55); ruido(0.32, 0.12, 0.18, 400, 'lowpass');
+        [1047, 1319, 1568].forEach(function (f, i) { nota(f, 0.45 + i * 0.07, 0.4, 'triangle', 0.05); });
+      },
+      golpe: function (forte) { ruido(0, forte ? 0.16 : 0.09, forte ? 0.3 : 0.18, 700, 'lowpass'); nota(forte ? 70 : 110, 0, 0.12, 'sine', forte ? 0.25 : 0.14, 45); },
       quebra: function () {
         ruido(0, 0.35, 0.35, 1500); nota(90, 0, 0.35, 'sine', 0.3, 45);
         for (var i = 0; i < 7; i++) nota(2200 + Math.random() * 2600, 0.05 + Math.random() * 0.4, 0.18, 'sine', 0.05);
@@ -10266,6 +10277,37 @@
     ICONE_POCAO = pintado('pocao');
     ICONE_CARTA = pintado('carta');
     ICONE_SINO = pintado('sino');
+  })();
+
+  // "Sensação de jogo" na Zealot (Daniel, 20/11/2026): troca de aba com a pedra deslizando, sons de interface
+  // (clique de pedra nas abas, moedas no ganho de ouro, baú abrindo) e golpe na caçada (evento do zealot-efeitos.js).
+  if (interfaceAtual() === 'zealot') (function () {
+    var telaAntes = telaJogo, abaAntes = null, trocouEm = 0, ultimaMoeda = 0, ultimoGolpe = 0;
+    telaJogo = function () {
+      var r = telaAntes.apply(this, arguments), a = estado.aba + '|' + (estado.cacada ? 1 : 0) + '|' + (estado.luta || estado.lutaArena ? 1 : 0);
+      if (abaAntes !== null && a !== abaAntes) trocouEm = Date.now();
+      abaAntes = a;
+      // a aba nova costuma redesenhar logo depois (dados chegando): a animação continua de onde estava
+      var passou = Date.now() - trocouEm, c = passou < 300 && document.querySelector('.jogo > section.caixa');
+      if (c && !c.classList.contains('aba-entrou')) { c.style.animationDelay = (-passou) + 'ms'; c.classList.add('aba-entrou'); }
+      return r;
+    };
+    document.addEventListener('click', function (e) {
+      var t = e.target && e.target.closest ? e.target : null;
+      if (!t) return;
+      if (t.closest('[data-acao="login-pegar"], [data-acao="mochila-aba"][data-valor="bau"]')) Sons.bau();
+      else if (t.closest('[data-acao="aba"], .sub-abas button, [data-acao="mochila-aba"], .menu-config-btn, .menu-jogo > summary')) Sons.clique();
+    }, true);
+    window.addEventListener('eldrin:ganho', function (e) {
+      var d = e.detail || {};
+      if (d.ouro > 0 && Date.now() - ultimaMoeda > 600) { ultimaMoeda = Date.now(); Sons.moedas(); }
+      if (d.nivel || (d.lendarios && d.lendarios.length)) Sons.sucesso();
+    });
+    window.addEventListener('eldrin:golpe', function (e) {
+      if (Date.now() - ultimoGolpe < 140) return;
+      ultimoGolpe = Date.now();
+      Sons.golpe(e.detail && e.detail.forte);
+    });
   })();
 
   // ---------------- Início ----------------

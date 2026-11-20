@@ -606,3 +606,17 @@ html[data-celular] .rec-ico .ico-pintado { width: 100%; height: 100%; }
 #ficha-flutuante li .menos::before, .comparar-lado li .menos::before { content: "▼ "; font-size: .75em; }
 .comparar-rotulo { font-family: var(--titulo); color: #e0c38a; letter-spacing: .06em; text-transform: uppercase; font-size: .78rem; }
 @media (prefers-reduced-motion: reduce) { .seta-melhor { animation: none; } .celula:hover, .slot:hover { transform: none; } }
+
+/* ---------- Sensação de jogo (Daniel, 20/11/2026) ---------- */
+/* troca de aba: o painel entra deslizando como uma laje de pedra */
+.aba-entrou { animation: zealot-aba .26s cubic-bezier(.2, .8, .3, 1); }
+@keyframes zealot-aba { from { opacity: .25; transform: translateY(10px) scale(.995); filter: brightness(.7); } }
+/* número do dano saltando na caçada (o zealot-efeitos.js cria) */
+.zg-dano { position: fixed; z-index: 58; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap;
+  font: 700 1.35rem var(--titulo, Georgia, serif); text-shadow: 0 2px 2px #000, 0 0 8px currentColor; animation: zg-dano 1.1s ease-out forwards; }
+.zg-dano.no-monstro { color: #ffd27a; }
+.zg-dano.no-heroi { color: #ff6a5a; }
+.zg-dano.forte { font-size: 1.85rem; }
+@keyframes zg-dano { 0% { opacity: 0; transform: translate(-50%, -20%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -70%) scale(1.25); }
+  35% { transform: translate(-50%, -90%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -190%) scale(.95); } }
+@media (prefers-reduced-motion: reduce) { .aba-entrou { animation: none; } }

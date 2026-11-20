@@ -1491,3 +1491,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   células, slots e ícones (só sem `aura-e*`, para não apagar o brilho do encanto); item sobe no mouse; selo do +encanto
   com a cor do encanto (`--cor`); seta verde pulando; ficha do item (#ficha-flutuante e comparação) em pergaminho
   escuro, nome com brilho da raridade e ▲ verde / ▼ vermelho nas diferenças.
+- Sensação de jogo na Zealot (20/11/2026): troca de aba anima o painel (`.aba-entrou`; se a aba redesenhar logo depois,
+  a animação continua com `animation-delay` negativo). Sons novos no `Sons` (sintetizados): `clique` (pedra: abas,
+  sub-abas, menu), `moedas` (ganho de ouro, no máx. 1 a cada 600 ms), `bau` (prêmio de login e aba Baú), `golpe`.
+  O zealot-efeitos.js lê a vida no texto da barra do lutador e mostra o dano saltando (`.zg-dano`, vermelho no herói,
+  dourado no monstro, maior no golpe forte) e solta `eldrin:golpe` para o som.
