@@ -671,7 +671,7 @@
       return '<div class="recurso ' + classe + '" title="' + titulo + '"><span class="rec-ico">' + icone + '</span>'
         + '<span class="rec-txt"><small>' + rotulo + '</small><strong>' + valor + '</strong></span>' + (extra || '') + '</div>';
     }
-    return '<div class="barra-recursos" id="recursos"><div class="recursos-dentro">'
+    return '<div class="barra-recursos" id="recursos">' + (estado.subTopo ? '<div class="sub-linha">' + subAbasHtml() + '</div>' : '') + '<div class="recursos-dentro">'
       + recurso('r-vida r-estamina', 'Estamina: cada luta da caçada gasta. Enche com o tempo, acampando ou com potes (Mercado)', '⚡', 'Estamina', '<span id="rec-estamina">' + R.estamina(p).pts + '</span>/' + D.ESTAMINA.maximo)
       + recurso('r-ouro', 'Ouro: ' + p.ouro.toLocaleString('pt-BR'), ICONES.ouro, 'Ouro', numRecurso(p.ouro))
       + recurso('r-reputacao', 'Reputação: ' + (p.reputacao || 0).toLocaleString('pt-BR'), ICONES.reputacao, 'Reputação', numRecurso(p.reputacao || 0))
@@ -1002,7 +1002,29 @@
   }
   // Campos de preço da oficina: a tela se redesenha sozinha (ex.: a cada carga do servidor) e apagava o que o
   // jogador estava digitando. Guarda o que foi mudado e devolve depois de redesenhar (Daniel, 19/11/2026).
+  // Ganhos com "peso" na Zealot (Daniel, 20/11/2026): depois de cada desenho compara ouro, exp, level e itens com o
+  // desenho anterior e avisa o js/zealot-efeitos.js (evento "eldrin:ganho"), que mostra o +ouro/+exp flutuando, a cena
+  // de level up e o brilho do drop lendário. Trocar de personagem só zera a base (sem efeito).
+  var ganhoAntes = null;
+  function verGanhos() {
+    var p = estado.personagem;
+    if (!p) { ganhoAntes = null; return; }
+    var ids = {};
+    (p.inventario || []).forEach(function (it) { if (it && it.id) ids[it.id] = 1; });
+    Object.keys(p.equipados || {}).forEach(function (k) { var v = p.equipados[k]; if (v) ids[typeof v === 'object' ? v.id : v] = 1; });
+    var agora = { id: p.id, ouro: Number(p.ouro) || 0, exp: Number(p.exp) || 0, nivel: p.nivel || 1, ids: ids };
+    var a = ganhoAntes;
+    ganhoAntes = agora;
+    if (!a || a.id !== p.id || interfaceAtual() !== 'zealot') return;
+    var d = { ouro: agora.ouro - a.ouro, exp: agora.nivel === a.nivel ? agora.exp - a.exp : 0, nivel: agora.nivel > a.nivel ? agora.nivel : 0, lendarios: [] };
+    (p.inventario || []).forEach(function (it) { if (it && it.id && !a.ids[it.id] && it.raridade === 'lendaria') d.lendarios.push(R.nomeItem(it)); });
+    if (d.ouro > 0 || d.exp > 0 || d.nivel || d.lendarios.length) {
+      try { window.dispatchEvent(new CustomEvent('eldrin:ganho', { detail: d })); } catch (e) { /* navegador antigo */ }
+    }
+  }
   function manterRolagem(desenhar) {
+    var desenharBase = desenhar;
+    desenhar = function () { desenharBase(); verGanhos(); };
     var campos = Array.prototype.filter.call(app.querySelectorAll('input[id^="of-"]'), function (c) { return c.value !== c.defaultValue; })
       .map(function (c) { return { id: c.id, v: c.value, foco: document.activeElement === c }; });
     if (campos.length) {
@@ -4447,6 +4469,7 @@
     }
     var painel, navegacao = '', abasTopo = '';
     var zealot = interfaceAtual() === 'zealot';
+    estado.subTopo = false;
     if (estado.lutaArena) {
       painel = lutaArenaHtml();
     } else if (estado.luta) {
@@ -4462,7 +4485,8 @@
     } else {
       navegacao = navHtml();
       var subAbas = subAbasHtml();
-      if (zealot && !CELULAR) abasTopo = subAbas;
+      // Zealot no PC (Daniel, 20/11/2026): as abas ficam sempre à vista no topo; as sub-abas vão para a linha dos recursos.
+      if (zealot && !CELULAR) { abasTopo = navegacao.replace('class="abas-jogo"', 'class="abas-jogo abas-topo"'); estado.subTopo = !!subAbas; }
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
         + (({ personagem: abaPersonagem, bau: abaBau, loja: abaLoja, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
@@ -4481,7 +4505,7 @@
       menuTopo = '<button class="btn menu-config-btn" data-acao="menu-config" title="Configurações" aria-label="Configurações">⚙</button>'
         + '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
         + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '<span class="menu-rotulo">Menu</span></summary>'
-        + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
+        + '<div class="menu-jogo-painel"><div class="menu-jogo-acoes">' + trocar
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
     }
     if (CELULAR) menuTopo = menuCelularHtml(livre);

@@ -1473,3 +1473,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Resolução = `zoom` no <html> + variável `--escala` (guardada em `eldrin.escala`, aplicada no começo da página em
   jogar/index.html e artifact.html). A Zealot (tela fixa) usa `height: calc(100dvh / var(--escala, 1))`, e as contas
   com 100dvh (mapa, cartas dos monstros) dividem pela escala.
+
+### Zealot: abas no topo e ganhos com "peso" (Daniel, 20/11/2026)
+- PC: `navHtml()` vai para o topo (classe `abas-topo`, mesmo id `abas-jogo`, então `atualizarNav` continua valendo);
+  o ☰ MENU ficou só com Trocar personagem e Sair. As sub-abas vão para a linha dos recursos (`.sub-linha` dentro do
+  `#recursos`, ligada por `estado.subTopo`), com os recursos à direita. Em luta (sem navegação) as abas somem.
+- Enfeites de canto dos painéis (`.caixa::before`, canto-*.webp) saíram: cobriam números e textos.
+- `verGanhos()` (chamado depois de cada desenho em `manterRolagem`) compara ouro, exp, level e itens novos com o desenho
+  anterior e solta o evento `eldrin:ganho` {ouro, exp, nivel, lendarios} (só na Zealot). O `zealot-efeitos.js` mostra
+  +ouro/+exp flutuando (junta ganhos seguidos em 250 ms), a cena de level up (brasão com o número) e a do lendário
+  (raio dourado). Clique fecha a cena.

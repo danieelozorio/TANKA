@@ -472,7 +472,8 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
 /* ---------- PC: tudo na mesma tela, sem rolar (Daniel, 20/11/2026) ----------
    Os cantos de pedra dos painéis (::before com inset -15px) faziam cada painel rolar 15px à toa: nos painéis que
    rolam, os cantos ficam dentro. Ficha da esquerda compacta e o Mapa do Reino do tamanho que cabe na altura. */
-html:not([data-celular]) .jogo > :is(.ficha, section.caixa)::before { inset: 0; }
+/* Daniel (20/11/2026): os enfeites de canto (canto-*.webp) ficavam por cima de números e textos: saíram. */
+.caixa::before { display: none; }
 @media (min-width: 701px) {
   html:not([data-celular]) .ficha .cabeca { margin-bottom: .45rem; }
   html:not([data-celular]) .ficha .cabeca .moldura { height: 86px; width: auto; }
@@ -504,3 +505,50 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) { height: calc(100dv
   color: #e6bf83; border: 1px solid #8a6744; box-shadow: inset 0 0 0 2px #17100a, 0 0 .45rem #bc682e30; vertical-align: middle; }
 .menu-config-btn:hover { filter: brightness(1.15); }
 @media (max-width: 700px) { .menu-config-btn { display: none; } }
+
+/* ---------- Abas sempre à vista no PC (Daniel, 20/11/2026) ----------
+   Topo: ELDRIN | abas (ícone + nome) | ⚙ MENU. Linha de baixo: sub-abas à esquerda, recursos à direita. */
+#app > .topo > .abas-topo {
+  grid-column: 2; display: flex; gap: 2px; width: auto; margin: 0; padding: 3px;
+  border: 1px solid #5d4a35; border-radius: 4px; background: linear-gradient(#1d1712, #0f0c09);
+  box-shadow: inset 0 0 0 1px #000, 0 2px 8px #000a;
+}
+#app > .topo > .abas-topo button { flex: 0 0 auto; flex-direction: row; gap: .4rem; padding: .42rem .75rem; font-size: .9rem; border-radius: 3px; }
+#app > .topo > .abas-topo button + button::before { display: none; }
+#app > .topo > .abas-topo .aba-ico svg { width: 19px; height: 19px; }
+#app > .topo > .abas-topo button.ativa { background: linear-gradient(#5a2c16, #2a140b); box-shadow: inset 0 0 0 1px #a0662f; }
+#app > .topo > .abas-topo button.ativa::after { display: none; }
+@media (max-width: 1350px) { #app > .topo > .abas-topo button { padding: .4rem .5rem; font-size: .82rem; gap: .3rem; } }
+@media (max-width: 1150px) { #app > .topo > .abas-topo .aba-nome { font-size: .72rem; } #app > .topo > .abas-topo button { flex-direction: column; gap: 1px; padding: .25rem .45rem; } }
+@media (max-width: 700px) { #app > .topo > .abas-topo { display: none; } }
+#app > .barra-recursos:has(> .sub-linha) { display: flex; align-items: center; gap: .6rem; }
+#app > .barra-recursos > .sub-linha { flex: 0 1 auto; min-width: 0; padding-left: .8rem; }
+#app > .barra-recursos > .sub-linha .sub-abas { margin: 0; }
+#app > .barra-recursos > .sub-linha .sub-abas button { font-size: .85rem; padding-inline: .65em; }
+#app > .barra-recursos:has(> .sub-linha) .recursos-dentro { flex: 1; justify-content: flex-end; padding-right: .8rem; }
+
+/* ---------- Ganhos com "peso" (Daniel, 20/11/2026; o js/zealot-efeitos.js cria estes elementos) ---------- */
+.zg-flutua { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap;
+  font: 700 1.15rem var(--titulo, Georgia, serif); text-shadow: 0 2px 3px #000, 0 0 10px currentColor; animation: zg-sobe 1.6s ease-out forwards; }
+.zg-flutua.zg-ouro { color: #ffd76a; }
+.zg-flutua.zg-exp { color: #d6a2ff; }
+@keyframes zg-sobe { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); } 15% { opacity: 1; transform: translate(-50%, -80%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -260%) scale(1); } }
+.zg-pulso { animation: zg-pulso .6s ease-out; }
+@keyframes zg-pulso { 40% { filter: brightness(1.8) drop-shadow(0 0 8px rgba(255, 190, 80, .9)); transform: scale(1.08); } }
+.zg-cena { position: fixed; inset: 0; z-index: 70; display: grid; place-content: center; justify-items: center; gap: .4rem; text-align: center; cursor: pointer;
+  background: radial-gradient(circle at 50% 50%, rgba(60, 20, 5, .55), rgba(0, 0, 0, .82) 70%); animation: zg-entra .35s ease-out; }
+.zg-cena.saindo { opacity: 0; transition: opacity .5s; }
+.zg-cena strong { font: 700 clamp(2rem, 5vw, 3.6rem) var(--titulo, Georgia, serif); color: #ffd98a; letter-spacing: .04em;
+  text-shadow: 0 0 18px rgba(255, 150, 40, .8), 0 0 40px rgba(255, 90, 20, .5), 0 3px 3px #000; animation: zg-bate .9s ease-out; }
+.zg-cena small { font-size: 1rem; color: #e8d3a8; text-shadow: 0 1px 2px #000; }
+.zg-brasao { display: grid; place-items: center; width: 7.5rem; height: 7.5rem; border-radius: 50%; font: 700 2.8rem var(--titulo, Georgia, serif); color: #2a1407;
+  background: radial-gradient(circle at 40% 35%, #ffe7a6, #d99a32 55%, #7a3f10); border: 3px solid #ffdc8a;
+  box-shadow: 0 0 0 4px #2a140b, 0 0 40px rgba(255, 160, 50, .9), 0 0 90px rgba(255, 90, 20, .5); animation: zg-gira 1s ease-out; }
+.zg-lendario { background: radial-gradient(circle at 50% 45%, rgba(120, 80, 10, .5), rgba(0, 0, 0, .85) 70%); }
+.zg-raio { width: 10px; height: 46vh; margin-bottom: -1rem; border-radius: 6px; background: linear-gradient(transparent, #fff3c4, #ffc94a, transparent);
+  box-shadow: 0 0 30px 10px rgba(255, 200, 80, .6); animation: zg-raio 1s ease-out; }
+@keyframes zg-entra { from { opacity: 0; } }
+@keyframes zg-bate { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes zg-gira { 0% { transform: scale(.2) rotate(-180deg); opacity: 0; } 70% { transform: scale(1.1) rotate(10deg); opacity: 1; } 100% { transform: none; } }
+@keyframes zg-raio { 0% { transform: scaleY(0); opacity: 0; } 50% { transform: scaleY(1.05); opacity: 1; } 100% { transform: none; } }

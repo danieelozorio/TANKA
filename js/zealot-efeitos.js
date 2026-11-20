@@ -121,5 +121,48 @@
     ctx.globalCompositeOperation = 'source-over';
   }
 
+  // ---------- Ganhos com "peso" (evento "eldrin:ganho" do app.js) ----------
+  // +ouro e +exp flutuando no lugar certo, cena de level up e o raio dourado do drop lendário.
+  var fmt = function (n) { return Math.round(n).toLocaleString('pt-BR'); };
+  function flutuar(sel, texto, classe) {
+    var el = document.querySelector(sel), r = el && el.getBoundingClientRect();
+    if (!r || !r.width) return;
+    var f = document.createElement('div');
+    f.className = 'zg-flutua ' + classe;
+    f.textContent = texto;
+    f.style.left = (r.left + r.width / 2) + 'px';
+    f.style.top = (r.top + r.height / 2) + 'px';
+    document.body.appendChild(f);
+    setTimeout(function () { f.remove(); }, 1600);
+    el.classList.remove('zg-pulso'); void el.offsetWidth; el.classList.add('zg-pulso');
+    for (var i = 0; i < (CELULAR ? 6 : 12); i++) brasa(r.left + r.width / 2 + rnd(-r.width / 2, r.width / 2), r.top + r.height / 2, true);
+  }
+  function cena(classe, html, ms) {
+    var velho = document.querySelector('.' + classe);
+    if (velho) velho.remove();
+    var c = document.createElement('div');
+    c.className = 'zg-cena ' + classe;
+    c.innerHTML = html;
+    c.addEventListener('click', function () { c.remove(); });
+    document.body.appendChild(c);
+    setTimeout(function () { c.classList.add('saindo'); setTimeout(function () { c.remove(); }, 500); }, ms);
+    var n = CELULAR ? 30 : 70;
+    for (var i = 0; i < n; i++) brasa(W / 2 + rnd(-W * .3, W * .3), H * .55 + rnd(-40, 40), true);
+  }
+  var pendente = { ouro: 0, exp: 0 }, timerGanho = null;
+  window.addEventListener('eldrin:ganho', function (e) {
+    var d = e.detail || {};
+    pendente.ouro += d.ouro > 0 ? d.ouro : 0;
+    pendente.exp += d.exp > 0 ? d.exp : 0;
+    clearTimeout(timerGanho);   // junta ganhos seguidos (caçada rápida) num número só
+    timerGanho = setTimeout(function () {
+      if (pendente.ouro) flutuar('#recursos .r-ouro', '+' + fmt(pendente.ouro), 'zg-ouro');
+      if (pendente.exp) flutuar('#ficha-exp', '+' + fmt(pendente.exp) + ' exp', 'zg-exp');
+      pendente = { ouro: 0, exp: 0 };
+    }, 250);
+    if (d.nivel) cena('zg-levelup', '<div class="zg-brasao">' + d.nivel + '</div><strong>Level ' + d.nivel + '!</strong><small>Você ficou mais forte. Veja os pontos novos em Herói.</small>', 3200);
+    if (d.lendarios && d.lendarios.length) cena('zg-lendario', '<div class="zg-raio"></div><strong>✦ Lendário! ✦</strong><small>' + d.lendarios.map(function (x) { return String(x).replace(/[<>&]/g, ''); }).join(' · ') + '</small>', 3000);
+  });
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
 })();
