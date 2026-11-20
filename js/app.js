@@ -1237,16 +1237,24 @@
     var eq = R.bonusEquipamentos(p);
     // Pontos escolhidos mas ainda não confirmados: aparecem em verde e mudam a prévia dos status.
     var pend = pontosPendentes(), usados = totalPendentes(), restam = p.pontosLivres - usados;
+    // De 10 em 10 (Henri, 20/11/2026): com 10 pontos ou mais (ex.: depois do Recomeço), o jogador escolhe o passo do + e do −.
+    var dez = p.pontosLivres >= 10 && !emBatalha, passo = dez && estado.passoPontos === 10 ? 10 : 1;
     var sNovo = usados ? R.status(comPendentes(p, pend)) : s;
     var atrs = R.ATRIBUTOS.map(function (k) {
       var botoes = p.pontosLivres > 0 && !emBatalha
-        ? '<button class="btn mini" data-acao="ponto-menos" data-atributo="' + k + '" title="Tirar ponto"' + (pend[k] ? '' : ' disabled') + '>−</button>'
-          + '<button class="btn mini" data-acao="ponto" data-atributo="' + k + '" title="Pôr ponto em ' + D.atributos[k].nome + '"' + (restam > 0 ? '' : ' disabled') + '>+</button>'
+        ? '<button class="btn mini" data-acao="ponto-menos" data-valor="' + passo + '" data-atributo="' + k + '" title="Tirar ' + (passo > 1 ? passo + ' pontos' : 'ponto') + '"' + (pend[k] ? '' : ' disabled') + '>−</button>'
+          + '<button class="btn mini" data-acao="ponto" data-valor="' + passo + '" data-atributo="' + k + '" title="Pôr ' + (passo > 1 ? passo + ' pontos' : 'ponto') + ' em ' + D.atributos[k].nome + '"' + (restam > 0 ? '' : ' disabled') + '>+</button>'
         : '<span></span>';
       return '<div class="linha-atr"><span class="dica" tabindex="0">' + D.atributos[k].nome + ' <i class="dica-i">?</i>' + dicaAtributo(p, k, pend) + '</span>'
         + '<span class="valor">' + (p.atributos[k] + eq[k] + (pend[k] || 0)) + (eq[k] ? ' <small class="mais">(+' + eq[k] + ')</small>' : '')
         + (pend[k] ? ' <small class="pendente">+' + pend[k] + '</small>' : '') + '</span><span class="atr-botoes">' + botoes + '</span></div>';
     }).join('');
+    if (dez) {
+      atrs = '<div class="atr-passo"><span class="suave pequeno">Adicionar de:</span>'
+        + [1, 10].map(function (n) {
+          return '<button class="btn mini' + (passo === n ? '' : ' secundario') + '" data-acao="pontos-passo" data-valor="' + n + '" aria-pressed="' + (passo === n) + '">' + n + ' em ' + n + '</button>';
+        }).join('') + '</div>' + atrs;
+    }
     if (usados) {
       atrs += '<div class="atr-confirmar"><button class="btn" data-acao="pontos-confirmar">Confirmar ' + usados + ' ponto(s)</button>'
         + '<button class="btn secundario" data-acao="pontos-desfazer">Cancelar</button></div>'
@@ -6145,13 +6153,14 @@
       case 'ponto': {
         var pp = pontosPendentes(), ka = el.dataset.atributo;
         if (totalPendentes() >= p.pontosLivres || R.ATRIBUTOS.indexOf(ka) < 0) break;
-        pp[ka] = (pp[ka] || 0) + 1;
+        pp[ka] = (pp[ka] || 0) + Math.min(parseInt(el.dataset.valor, 10) || 1, p.pontosLivres - totalPendentes());
         atualizarFicha();
         break;
       }
+      case 'pontos-passo': estado.passoPontos = el.dataset.valor === '10' ? 10 : 1; atualizarFicha(); break;
       case 'ponto-menos': {
         var pm = pontosPendentes(), km = el.dataset.atributo;
-        if (pm[km]) pm[km] -= 1;
+        if (pm[km]) pm[km] = Math.max(0, pm[km] - (parseInt(el.dataset.valor, 10) || 1));
         atualizarFicha();
         break;
       }

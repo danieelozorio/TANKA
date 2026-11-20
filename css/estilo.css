@@ -2375,3 +2375,6 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 /* Painel ⚙ Configurações: títulos das seções (Interface, Resolução, Som) */
 .config-secao { margin: .7rem 0 .25rem; font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro-claro, #e6c27a); }
 #config-painel .config-interface { flex-wrap: wrap; }
+.atr-passo { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; flex-wrap: wrap; }
+.atr-passo .btn.mini { padding: .2em .7em; }
+.atr-passo .btn[aria-pressed="true"] { border-color: #e2bb63 !important; color: #ffe7a6 !important; box-shadow: 0 0 8px rgba(226, 187, 99, .45) !important; }
