@@ -374,6 +374,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `alianca_boss_runs.buff` e no `simularBossAlianca(..., buff)` via `opc.buffDano`).
 - Telas: Clã | ✦ Skills | 📜 Missões | ⚔ Boss do clã (`estado.aliancaVista`). Testes: regras.test.js ("skills do clã") e
   banco.test.sql (doação por dia, skills, missões, buff, boss conta na semanal).
+- (19/11) Boss do clã mais forte: `BOSS_ALIANCA` vida 45→90, vidaPorNivel 1,3→1,5, ataque 1→1,3 (o nível 6 caía em
+  menos de 10 min). A vida nova vale a partir do próximo despertar (o `hp` é gravado na abertura).
 - **Ajustes (Daniel, nov/2026):** ouro das missões pela metade (diárias 3.000/2.000/2.000/2.500; semanais
   20.000/15.000/15.000/25.000, x1,2 por nível do clã acima do 1) e buff de 2,5% por semanal (as 4 = +10%; `buff` agora é
   numeric no banco: `alianca_boss_buff` e `alianca_boss_runs.buff`).

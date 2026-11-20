@@ -1316,7 +1316,8 @@ Tanka.dados = {
         nome: 'Azhgar, o Titã do Abismo',
         descricao: 'Colosso de obsidiana e vazio, preso por correntes de luz. Veio do outro lado do mar, onde dorme o oitavo selo.' },
     ],
-    vida: 45, vidaPorNivel: 1.3, ataque: 1, ataquePorNivelExtra: 0.05,
+    // Mais forte (Henri, 19/11/2026: o nível 6 caiu em menos de 10 min): era vida 45, +30% por nível e ataque 1.
+    vida: 90, vidaPorNivel: 1.5, ataque: 1.3, ataquePorNivelExtra: 0.05,
     titulos: ['', 'Desperto', 'Furioso'],
     // Prêmios quando o boss morre (para quem deu dano naquele dia). ouro e exp: o ouro e a exp do chefe na caçada
     // vezes estes números, +`porNivel` (25%) a cada nível dentro do chefe; a exp do herói fica limitada a `expMaxPct`%
