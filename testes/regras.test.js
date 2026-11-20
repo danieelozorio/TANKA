@@ -2608,6 +2608,13 @@ teste('Pacto de Ascensão: pontos do 41 ao 60 e pela exp, trilhas ligadas, Pedra
   p.ouro = A.precoRefazer; assert.strictEqual(R.refazerAscensao(p), true); igualA(p.ouro, 0); igualA(R.pontosAscensaoLivres(p), R.pontosAscensaoTotal(p));
   // limite
   p.ascensao.extras = 999; igualA(R.pontosAscensaoTotal(p), A.limitePontos);
+  // revisão de 20/11/2026: refazer 1 milhão, Foco em %, Erudito vira drop com os pontos no limite
+  igualA(A.precoRefazer, 1000000);
+  igualA(R.recargaComFoco(2, 15), 2); igualA(R.recargaComFoco(3, 15), 2); igualA(R.recargaComFoco(5, 15), 4); igualA(R.recargaComFoco(1, 15), 1); igualA(R.recargaComFoco(4, 0), 4);
+  p.ascensao.nos = ['fortuna-t0', 'fortuna-t1', 'fortuna-1-0'];
+  igualA(R.efeitosAscensao(p).drop, 1); igualA(R.efeitosAscensao(p).exp, undefined);
+  p.ascensao.extras = 0; p.nivel = 50;
+  igualA(R.efeitosAscensao(p).exp, 3); igualA(R.efeitosAscensao(p).drop, undefined);
 });
 
 teste('Pacto de Ascensão: efeitos na luta (Primeiro Golpe, Sede Eterna, Golpe Certeiro, ouro da Fortuna)', () => {

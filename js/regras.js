@@ -628,8 +628,8 @@ Tanka.regras = (function () {
     if (a.rouboVida) x.rouboVida = (x.rouboVida || 0) + a.rouboVida;
     if (a.regen) x.regenPct = (x.regenPct || 0) + a.regen;
     if (a.reducaoDano) x.reducaoDano = (x.reducaoDano || 0) + a.reducaoDano;
-    ['reflete', 'danoChefe', 'danoMeiaVida', 'danoCacada', 'danoHab', 'recargaMenos', 'curaHab', 'execucao', 'golpeCerteiro',
-      'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
+    ['reflete', 'danoChefe', 'danoMeiaVida', 'danoCacada', 'danoHab', 'curaHab', 'execucao', 'golpeCerteiro',
+      'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco', 'recargaPct'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
     return x;
   }
   function somaBuff(L, campo) {
@@ -734,7 +734,9 @@ Tanka.regras = (function () {
     return null;
   }
   // Foco (Pacto de Ascensão): recarga 1 turno menor (no mínimo 1).
-  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + Math.max(1, (k.def.recarga || 1) - ((L.ex && L.ex.recargaMenos) || 0)); }
+  // Foco (Pacto, 20/11/2026): recarga 15% menor, arredondando para baixo, nunca abaixo de 2 turnos (recarga 1 e 2 não mudam).
+  function recargaComFoco(r, pct) { return pct && r > 2 ? Math.max(2, Math.floor(r * (1 - pct / 100))) : r; }
+  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + Math.max(1, recargaComFoco(k.def.recarga || 1, L.ex && L.ex.recargaPct)); }
   // Ponte Vigor ⇄ Tempestade (Pacto): cura % da vida ao usar uma habilidade.
   function curaAoUsar(L, h) { if (L && L.ex && L.ex.curaHab && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(h.hpMax * L.ex.curaHab / 100)); }
   // Ferida Aberta (Pacto): o crítico deixa o alvo sangrando (dano no começo da vez dele, como a queimadura).
@@ -1436,6 +1438,8 @@ Tanka.regras = (function () {
     lista.forEach(function (id) { var ef = A[id].ef; Object.keys(ef).forEach(function (k) { x[k] = (x[k] || 0) + ef[k]; }); });
     // Sabedoria: +25% de exp; com os pontos no limite (a exp não serve mais), vira +20% de drop
     if (x.sabedoria) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + 20; else x.exp = (x.exp || 0) + 25; }
+    // Erudito (20/11/2026): exp; com os pontos no limite (a exp não serve mais), cada 3% de exp vira 1% de drop
+    if (x.eruditoExp) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + Math.round(x.eruditoExp / 3 * 10) / 10; else x.exp = (x.exp || 0) + x.eruditoExp; delete x.eruditoExp; }
     return x;
   }
   function comAscensao(s, p) {
@@ -3972,7 +3976,7 @@ Tanka.regras = (function () {
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
-    calcularGolpe: calcularGolpe, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,

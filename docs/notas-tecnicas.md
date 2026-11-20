@@ -1496,3 +1496,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   sub-abas, menu), `moedas` (ganho de ouro, no máx. 1 a cada 600 ms), `bau` (prêmio de login e aba Baú), `golpe`.
   O zealot-efeitos.js lê a vida no texto da barra do lutador e mostra o dano saltando (`.zg-dano`, vermelho no herói,
   dourado no monstro, maior no golpe forte) e solta `eldrin:golpe` para o som.
+
+### Revisão do Pacto de Ascensão (Daniel, 20/11/2026)
+- Números: refazer 1.000.000 de ouro (era 50 mil); Tempestade tronco +2% de velocidade (era +1); Foco `recargaPct: 15`
+  (recarga 15% menor, para baixo, nunca abaixo de 2: `R.recargaComFoco`; era −1 turno em tudo); Regeneração 1,5%/turno
+  (era 3%); Sede Eterna +6% de roubo (era 10%); Inabalável só −15% de dano recebido (saiu o +25% de defesa com pouca
+  vida); Erudito: `eruditoExp` (pequenos 3, notável 8) = exp, e com os pontos no limite vira drop (3% de exp = 1% de drop).
+- Arena (o Henri quis o Pacto lá): agora vale tudo o que é de luta. `arena_lutador` passa também curaHab, recargaPct,
+  primeiroGolpe (começa com a barra cheia e o 1º golpe +x%), eco (habilidade de ataque pode sair 2 vezes; ataque
+  normal −10%), golpeCerteiro (todo 4º golpe vale o 20 do dado), feridaAberta (dado 18+ faz sangrar em 3 vezes) e
+  regen → regenPct. `arena_com_pacto`: crítico e dano crítico do Pacto viram dano (crítico + dano crítico/2), como nos
+  reforços. Precisão e esquiva continuam fora (manda o D20). Ouro, exp, drop, dano contra chefe/caçada não se aplicam.
+- testes/arena.test.js "personagem N" (força no servidor = no jogo, itens com encanto sorteado) já falhava antes por
+  1 ponto de arredondamento em alguns sorteios; não é do Pacto.

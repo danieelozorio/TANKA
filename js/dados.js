@@ -881,12 +881,12 @@ Tanka.dados = {
   // Só vale contra monstros (caçada, masmorra, chefes), como as skills do clã; a Arena não usa.
   // Efeitos (%, salvo indicado): dano, danoChefe, danoMeiaVida (alvo < 50%), danoCacada, critico (pontos), danoCritico,
   // precisao (pontos), defesa (física), defesaMagica, vida, velocidade, evasao (pontos), rouboVida, reflete,
-  // reducaoDano, danoHab, recargaMenos (turnos), curaHab (% da vida ao usar habilidade), ouro, exp, drop.
+  // reducaoDano, danoHab, recargaPct (% menos recarga, mínimo 2), curaHab (% da vida ao usar habilidade), ouro, exp, drop.
   ASCENSAO: {
     nome: 'Pacto de Ascensão',
     nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 70, maxPedras: 3,
     custo: { pequeno: 1, notavel: 2, ponte: 2, pedra: 4 },
-    precoRefazer: 50000,   // ouro para zerar o Pacto e distribuir de novo
+    precoRefazer: 1000000,   // ouro para zerar o Pacto e distribuir de novo (Daniel, 20/11/2026: era 50 mil, trocar de caminho ficou de graça)
     dominios: [
       { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 2 },
         trilhas: [
@@ -905,29 +905,29 @@ Tanka.dados = {
       { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 },
         trilhas: [
           { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 4 } },
-            pedra: { id: 'inabalavel', nome: 'Inabalável', txt: '−15% de dano recebido; abaixo de 30% da vida, +25% de defesa', custo: '−10% de velocidade', ef: { reducaoDano: 15, inabalavel: 25, velocidade: -10 } } },
+            pedra: { id: 'inabalavel', nome: 'Inabalável', txt: '−15% de dano recebido', custo: '−10% de velocidade', ef: { reducaoDano: 15, velocidade: -10 } } },   // 20/11/2026: saiu o +25% de defesa com pouca vida
           { nome: 'Espinhos', pequeno: { defesaMagica: 2 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
             pedra: { id: 'couraca-de-espinhos', nome: 'Couraça de Espinhos', txt: 'Devolve 20% do dano recebido', custo: '−8% de dano', ef: { reflete: 20, dano: -8 } } },
         ] },
       { id: 'vigor', nome: 'Vigor', cor: '#4fbf62', tema: 'Vida e cura', tronco: { vida: 2 },
         trilhas: [
           { nome: 'Sangue Vivo', pequeno: { vida: 3 }, notavel: { nome: 'Coração Forte', ef: { vida: 8 } },
-            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 3% da vida a cada turno', custo: 'Poções curam só metade da vida', ef: { regen: 3, pocaoMetade: 1 } } },
+            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 1,5% da vida a cada turno', custo: 'Poções curam só metade da vida', ef: { regen: 1.5, pocaoMetade: 1 } } },   // 20/11/2026: era 3%
           { nome: 'Vampiro', pequeno: { rouboVida: 1 }, notavel: { nome: 'Presas', ef: { rouboVida: 3 } },
-            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+10% de roubo de vida', custo: 'Não pode usar poção', ef: { rouboVida: 10, semPocao: 1 } } },
+            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: 'Não pode usar poção', ef: { rouboVida: 6, semPocao: 1 } } },   // 20/11/2026: era 10%
         ] },
-      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidade: 1 },
+      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidade: 2 },   // 20/11/2026: era +1%
         trilhas: [
           { nome: 'Relâmpago', pequeno: { velocidade: 2 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidade: 5, evasao: 3 } },
             pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'Começa a luta com a barra de ataque cheia e o 1º golpe tem +40% de dano', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
-          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },
+          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaPct: 15 } },   // 20/11/2026: era −1 turno em tudo (recarga 2 virava todo turno)
             pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
         trilhas: [
           { nome: 'Saqueador', pequeno: { ouro: 4 }, notavel: { nome: 'Bolsos Fundos', ef: { drop: 4 } },
             pedra: { id: 'mao-dourada', nome: 'Mão Dourada', txt: '+35% de ouro e +10% de drop', custo: '−15% de exp', ef: { ouro: 35, drop: 10, exp: -15 } } },
-          { nome: 'Erudito', pequeno: { exp: 3 }, notavel: { nome: 'Estudioso', ef: { exp: 8 } },
+          { nome: 'Erudito', pequeno: { eruditoExp: 3 }, notavel: { nome: 'Estudioso', ef: { eruditoExp: 8 } },   // exp; com os pontos no limite, vira drop (1/3)
             pedra: { id: 'sabedoria', nome: 'Sabedoria', txt: '+25% de exp; com os pontos no limite, vira +20% de drop', custo: '−15% de ouro', ef: { sabedoria: 1, ouro: -15 } } },
         ] },
     ],
