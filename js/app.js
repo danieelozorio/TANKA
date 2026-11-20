@@ -2501,14 +2501,14 @@
     }).join('');
     var simples = {};
     ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaPct', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
-    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá (vale na Arena também: lá o crítico vira dano; precisão e esquiva não contam, quem manda é o D20)</summary>'
+    return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
   function pactoHtml() {
     var p = estado.personagem, AS = D.ASCENSAO, pend = pendAsc(), lista = R.nosAscensao(p).concat(pend);
     var total = R.pontosAscensaoTotal(p), livres = total - R.custoNosAscensao(lista), aberto = p.nivel >= AS.nivelInicio;
     var h = '<div class="pacto-topo"><div><h3 class="subtitulo">' + AS.nome + '</h3><p class="suave pequeno">'
-      + (aberto ? 'Escolha o seu caminho: os pontos não dão para tudo. Vale contra monstros (caçada, masmorra, chefes e Torre) e na Arena.'
+      + (aberto ? 'Escolha o seu caminho: os pontos não dão para tudo.'
         : 'Abre no level ' + AS.nivelInicio + '. Do 41 ao ' + D.NIVEL_MAXIMO + ', 1 ponto por level; no ' + D.NIVEL_MAXIMO + ', mais pontos com a exp.') + '</p></div>'
       + (aberto ? '<div class="pacto-pontos"><b>' + livres + '</b> livre' + (livres === 1 ? '' : 's') + '<small>' + R.custoNosAscensao(lista) + ' de ' + total + ' usados · máx. ' + AS.limitePontos + '</small></div>' : '') + '</div>';
     if (aberto && p.nivel >= D.NIVEL_MAXIMO && total < AS.limitePontos) {
