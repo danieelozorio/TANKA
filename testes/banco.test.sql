@@ -1615,6 +1615,13 @@ set role authenticated;
 select pg_temp.como('b');
 select pg_temp.falha($$select public.push_avisar('pa', 'x', 'y')$$, 'permission denied');
 reset role;
+-- Versão da ficha (19/11/2026): gravação de função do banco sobe a versão; a do servidor (versão + 1) fica como veio.
+reset role;
+update public.personagens set dados = dados || '{"versao": 7}' where id = 'g3';
+update public.personagens set dados = dados || '{"teste": 1}' where id = 'g3';
+select pg_temp.igual((select (dados ->> 'versao')::int from public.personagens where id = 'g3'), 8, 'versão: gravação sem subir a versão sobe sozinha');
+update public.personagens set dados = dados || '{"versao": 9}' where id = 'g3';
+select pg_temp.igual((select (dados ->> 'versao')::int from public.personagens where id = 'g3'), 9, 'versão: a do servidor (versão + 1) fica como veio');
 -- Loja de Éter (Henri, 19/11/2026): só o admin dá Éter (no beta), compra VIP/boost/Starter/skin, VIP na ficha e extras.
 reset role; update public.contas set admin = true where id = '00000000-0000-0000-0000-0000000000f1';
 set role authenticated; select pg_temp.comoG('2');

@@ -1098,6 +1098,17 @@ Tanka.regras = (function () {
   // Atualiza personagens salvos em versões antigas do jogo.
   function normalizar(p) {
     if (!p.sexo) p.sexo = 'masculino';
+    // Item repetido (mesmo id duas vezes, 19/11/2026): sobra de uma gravação antiga por cima de outra (ex.: o item foi
+    // para a Oficina, voltou +6 e a cópia +5 reapareceu). Mesmo id = mesmo item: fica só a cópia mais encantada.
+    if (Array.isArray(p.inventario)) {
+      var melhor = {};
+      p.inventario.forEach(function (it, i) {
+        if (!it || it.id == null) return;
+        var j = melhor[it.id];
+        if (j == null || (it.encanto || 0) >= (p.inventario[j].encanto || 0)) melhor[it.id] = i;
+      });
+      p.inventario = p.inventario.filter(function (it, i) { return !it || it.id == null || melhor[it.id] === i; });
+    }
     trocarHabilidadesAntigas(p);
     // Atributos rebalanceados (3 pontos = +1 de dano, Destreza para o Caçador): quem já tinha level ganha
     // 1 Pergaminho do Recomeço de presente, uma vez só (1 = ainda não avisou o jogador; 2 = avisado).

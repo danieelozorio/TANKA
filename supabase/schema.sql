@@ -207,6 +207,12 @@ begin
   end if;
   -- quem grava a ficha (para conferir, antes de trancar, que as funções do servidor gravam com a chave delas)
   if tg_op = 'UPDATE' then perform public.anotar_gravacao(); end if;
+  -- Versão da ficha (19/11/2026): toda gravação que não subiu a versão (funções do banco: Oficina, mercado, leilão...)
+  -- sobe aqui. Assim a caçada/ação do servidor que carregou a ficha antes não grava por cima (o filtro dela pela versão
+  -- falha e ela recarrega). Sem isso, um item mandado para a Oficina voltava para a mochila (item duplicado).
+  if tg_op = 'UPDATE' and coalesce((new.dados ->> 'versao')::numeric, 0) <= coalesce((old.dados ->> 'versao')::numeric, 0) then
+    new.dados := jsonb_set(new.dados, '{versao}', to_jsonb(coalesce((old.dados ->> 'versao')::bigint, 0) + 1));
+  end if;
   -- o id dentro da ficha é sempre o da linha (a Arena lê o clã por ele: arena_com_cla, Henri, 19/11/2026)
   new.dados := jsonb_set(new.dados, '{id}', to_jsonb(new.id));
   -- VIP (Loja de Éter, Henri, 19/11/2026): quem diz é a conta (loja_conta.vip_ate), nunca a ficha.

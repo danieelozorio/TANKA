@@ -1056,6 +1056,16 @@ teste('skins do dado: vendidas na Loja de Éter (não com ouro), usar e ganhar d
   assert.strictEqual(R.ganharSkin(p, 'naoexiste'), false);
 });
 
+teste('item repetido (mesmo id): fica só a cópia mais encantada', () => {
+  const p = R.criarPersonagem('Dup', 'masculino', 'humano', 'mago');
+  const it = R.novoItem('peitoral', 'mago', 'epica', null, null, 30);
+  p.inventario.push(Object.assign({}, it, { encanto: 5 }), Object.assign({}, it, { encanto: 6 }));
+  R.normalizar(p);
+  const iguais = p.inventario.filter((x) => x.id === it.id);
+  assert.strictEqual(iguais.length, 1);
+  assert.strictEqual(iguais[0].encanto, 6);
+});
+
 teste('Loja de Éter: Starter Pack e estamina do VIP', () => {
   const p = R.criarPersonagem('Novo', 'feminino', 'elfo', 'arqueiro'), S = D.LOJA.starter;
   const its = R.itensStarter(p);

@@ -1434,3 +1434,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (`min-width: 0` + reticências); a barra é um container (`container: abas`, só Clássica/Arcane no computador) e
   abaixo de 840px de largura o ícone vai para cima do nome; sub-abas e abas da mochila quebram linha (`flex-wrap`);
   selo (!) do ícone com margem para não cobrir o nome. Ícones novos: Aventura = bússola, Mercado = sacola maior.
+
+## Item duplicado e versão da ficha (Henri, 20/11/2026)
+- Bug: funções do banco que gravam a ficha (Oficina `oficina_pedir`, etc.) não subiam `dados.versao`; a caçada/ação do
+  servidor que tinha carregado a ficha antes gravava por cima (o filtro `dados->>versao=eq.v` passava) e o item mandado
+  para a Oficina voltava (+5 e +6 com o mesmo id; equipar um escondia o outro, porque mochila/slots usam o id).
+- Correção: o gatilho da ficha sobe a versão em toda gravação que não subiu (as do servidor já vêm com versão + 1).
+  `R.normalizar` tira itens repetidos (mesmo id): fica a cópia mais encantada (conserta as fichas já afetadas na
+  próxima ação do servidor).
