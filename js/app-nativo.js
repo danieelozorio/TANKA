@@ -151,7 +151,7 @@
     setTimeout(function () { d.remove(); }, ok ? 4000 : 12000);
   }
   function erroTxt(e) { return (e && (e.message || e.error || (typeof e === 'string' ? e : JSON.stringify(e)))) || 'erro desconhecido'; }
-  var pushLigado = false;
+  var pushLigado = false, tentativasPush = 0;
   function registrarPush() {
     if (!PN) return avisoPush('o app não tem o plugin de notificações (APK antigo?)');
     if (!A || !A.getInfo) return avisoPush('o app não informa a versão (APK antigo?)');
@@ -165,11 +165,23 @@
         if (PN.createChannel) PN.createChannel({ id: 'eldrin', name: 'Eldrin', description: 'Avisos do jogo', importance: 4, sound: 'default', vibration: true }).catch(function () {});
         if (!pushLigado) {
           pushLigado = true;
-          PN.addListener('registrationError', function (e) { avisoPush('o Firebase recusou o registro: ' + erroTxt(e)); });
+          // SERVICE_NOT_AVAILABLE e parecidos (20/11/2026): o Google Play Services do celular não alcançou o Firebase naquela
+          // hora (rede, economia de bateria). Tenta de novo sozinho (15 s, 1 min, 5 min, 15 min) e só avisa se todas falharem.
+          PN.addListener('registrationError', function (e) {
+            var txt = erroTxt(e), espera = [15000, 60000, 300000, 900000][tentativasPush++];
+            if (espera && /SERVICE_NOT_AVAILABLE|TIMEOUT|IOException|network/i.test(txt)) {
+              setTimeout(function () { try { PN.register(); } catch (x) { /* ignora */ } }, espera);
+              return;
+            }
+            avisoPush(/SERVICE_NOT_AVAILABLE/.test(txt)
+              ? 'o celular não conseguiu falar com o Google agora (Google Play Services sem conexão). Confira a internet e se o Google Play Services está atualizado e sem restrição de bateria; o app tenta de novo na próxima vez que abrir.'
+              : 'o Firebase recusou o registro: ' + txt);
+          });
           PN.addListener('registration', function (t) {
             var C = contas();
             if (!t || !t.value) return avisoPush('o Firebase não devolveu o código do aparelho');
             if (!C || !C.push) return avisoPush('jogo sem Tanka.contas.push');
+            tentativasPush = 0;
             C.push.registrar(t.value).then(function () { avisoPush('Notificações ligadas neste aparelho.', true); },
               function (e) { avisoPush('o servidor recusou o aparelho: ' + erroTxt(e)); });
           });
