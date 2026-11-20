@@ -22,7 +22,9 @@
       ]
     },
     "LocalNotifications": {
-      "iconColor": "#e2b45c"
+      "smallIcon": "ic_stat_eldrin",
+      "largeIcon": "ic_notif_grande",
+      "iconColor": "#C62828"
     }
   }
 }

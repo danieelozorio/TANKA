@@ -105,7 +105,10 @@
     }).catch(function () { return false; });
     return permitido;
   }
+  // Sino amarelo na frente do título das notificações (Henri, 20/11/2026).
+  function comSino(t) { return /^🔔/.test(t || '') ? t : '🔔 ' + (t || 'Eldrin'); }
   function agendar(id, quando, titulo, corpo, extra) {
+    titulo = comSino(titulo);
     return permissao().then(function (ok) {
       if (!ok) return;
       return LN.cancel({ notifications: [{ id: id }] }).catch(function () {}).then(function () {
@@ -123,6 +126,7 @@
     return alvo;
   }
   function agendarDiario(id, hora, titulo, corpo) {
+    titulo = comSino(titulo);
     // agenda os próximos 7 dias (cada abertura do app renova)
     return permissao().then(function (ok) {
       if (!ok) return;

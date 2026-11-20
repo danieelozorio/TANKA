@@ -82,6 +82,10 @@ jobs:
           npm install --no-audit --no-fund
           npx cap add android
           if [ -f google-services.json ]; then cp google-services.json android/app/; echo 'Firebase: ligado'; else echo 'Firebase: sem google-services.json (só notificações locais)'; fi
+          # Ícones das notificações (Henri, 20/11/2026): espadas cruzadas (pequeno branco + grande colorido) e a cor vermelha.
+          cp -r res/. android/app/src/main/res/
+          sed -i '/<\/application>/i\        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_eldrin" />\n        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/eldrin_notificacao" />' android/app/src/main/AndroidManifest.xml
+          grep -n 'default_notification' android/app/src/main/AndroidManifest.xml
           grep -rq adjustMarginsForEdgeToEdge node_modules/@capacitor/android/capacitor/src && echo 'margem da barra do celular: ok' || { echo '::error::Capacitor sem adjustMarginsForEdgeToEdge'; exit 1; }
           # Faixas da barra de notificações e da barra de baixo: pretas, com ícones claros.
           sed -i '/name="AppTheme.NoActionBar"/a\        <item name="android:windowBackground">@android:color/black</item>\n        <item name="android:windowLightStatusBar">false</item>\n        <item name="android:windowLightNavigationBar">false</item>' android/app/src/main/res/values/styles.xml

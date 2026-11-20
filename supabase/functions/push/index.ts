@@ -49,8 +49,8 @@ export async function tratar(_req: Request): Promise<Response> {
     for (const ap of aparelhos || []) {
       const r = await fetch('https://fcm.googleapis.com/v1/projects/' + conta.project_id + '/messages:send', {
         method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: { token: ap.token, notification: { title: av.titulo, body: av.corpo },
-          android: { priority: 'high', notification: { channel_id: 'eldrin', sound: 'default' } } } }) });
+        body: JSON.stringify({ message: { token: ap.token, notification: { title: '🔔 ' + av.titulo, body: av.corpo },   // sino amarelo (Henri, 20/11/2026)
+          android: { priority: 'high', notification: { channel_id: 'eldrin', sound: 'default', icon: 'ic_stat_eldrin', color: '#C62828' } } } }) });
       if (r.ok) { enviados++; continue; }
       const erro = await r.text();
       if (r.status === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(erro)) {   // aparelho desinstalou ou token velho
