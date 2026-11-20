@@ -1,0 +1,61 @@
+ELDRIN - ZEALOT INTERFACE ICONS (3 IMAGES FOR GEMINI)
+=====================================================
+Generate the 3 images below (one prompt each) and send them to Claudia.
+Keep the SAME STYLE in all 3 (paste the STYLE block in every prompt).
+
+STYLE (paste at the start of every prompt)
+------------------------------------------
+Game UI icon sheet for a dark medieval fantasy RPG, "dark stone and ember" style.
+Each icon is a small hand-painted emblem made of dark forged iron and aged bronze with
+gold edges, subtle orange ember glow and tiny sparks, carved stone texture, strong
+silhouette that is readable at very small size (24 to 48 pixels), front view, centered,
+no perspective. Painterly, highly detailed, consistent lighting from top left.
+PURE FLAT BLACK BACKGROUND (#000000) everywhere, no gradient, no floor, no shadow on the
+background, no frame around the cells. Every icon has the same size and is centered in
+its cell with empty black margin around it (icons never touch each other).
+No text, no letters, no numbers, no watermark.
+
+
+IMAGE 1 - MAIN TABS AND BUTTONS (square image, grid 4 x 4 = 16 icons)
+--------------------------------------------------------------------
+[STYLE block] + Arrange 16 icons in a perfect 4 x 4 grid, left to right, top to bottom:
+Row 1: 1) a knight helmet over a heater shield (Hero) | 2) an old brass compass with a
+       glowing needle (Adventure) | 3) two magic dice with elemental runes (Event) |
+       4) two crossed swords with sparks (Arena)
+Row 2: 5) a leather coin pouch with gold coins (Market) | 6) two hooded figures side by
+       side (Social) | 7) a wooden auction gavel with a gold band (Auction) | 8) a blue
+       glowing faceted crystal in a bronze claw setting (Shop / Ether)
+Row 3: 9) a forged iron gear cog (Settings) | 10) a shield with three horizontal lines
+       carved on it (Menu) | 11) a sealed letter with a red wax seal (Mailbox) |
+       12) a bronze bell (Notifications)
+Row 4: 13) a speech bubble made of parchment (Chat) | 14) two masks with a circular
+       arrow (Change character) | 15) an open wooden door with light (Exit) |
+       16) a royal crown with a key (Admin)
+
+
+IMAGE 2 - SUB TABS (square image, grid 4 x 4 = 16 icons)
+--------------------------------------------------------
+[STYLE block] + Arrange 16 icons in a perfect 4 x 4 grid, left to right, top to bottom:
+Row 1: 1) a knight silhouette bust (Character) | 2) a sword on an anvil with magic
+       sparks (Enchant) | 3) a blacksmith hammer and tongs (Workshop) | 4) an open
+       spell book with a glowing star (Skills)
+Row 2: 5) a dark pact rune circle with a single red eye (Pact of Ascension) | 6) a
+       reinforced treasure chest (Vault) | 7) a hunting bow with an arrow (Hunt) |
+       8) a dungeon gate with a skull (Dungeon)
+Row 3: 9) a tall dark tower with a red light on top (Tower) | 10) a pickaxe over a
+       crystal ore (Mining) | 11) a horned dragon skull (World Boss) | 12) an old
+       scroll with a quill (Story)
+Row 4: 13) a hooded merchant with a lantern (Black Market) | 14) an anvil with a
+       hanging shop sign (Workshops) | 15) a gold trophy laurel (Ranking) |
+       16) a clan war banner on a pole (Clan)
+
+
+IMAGE 3 - RESOURCES AND EXTRAS (wide image, grid 2 rows x 4 columns = 8 icons)
+-----------------------------------------------------------------------------
+[STYLE block] + Arrange 8 icons in a perfect grid of 2 rows and 4 columns:
+Row 1: 1) a yellow lightning bolt over a stone (Stamina) | 2) a stack of gold coins
+       (Gold) | 3) a silver star medal (Reputation) | 4) a red health potion flask
+       (Potion)
+Row 2: 5) a small arena ticket with crossed swords (Arena entries) | 6) two hands
+       shaking (Friends) | 7) five small elemental orbs: water, fire, leaf, light,
+       darkness (Elements event) | 8) a bronze war horn (Sound)
