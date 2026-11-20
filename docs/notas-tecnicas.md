@@ -1512,3 +1512,19 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Aplicado no Supabase (20/11/2026) trocando só os trechos (o banco tem as funções com quebra de linha \r\n: normalizar
   com replace(..., chr(13)||chr(10), chr(10)) antes de procurar). `tanka_dados()` no banco foi refeito a partir do
   jsonb (texto diferente do arquivo, conteúdo igual): para conferir esse, comparar o jsonb, não o md5 do texto.
+
+### Chefes Mundiais em rodízio e joias dos chefes (Daniel, 20/11/2026)
+- 3 chefes, um por dia (dias desde 1970 % 3): Ignaroth, Morvaneth (névoa: `erroPct` 15 — o herói erra — e `rouboPct` 20 —
+  cada golpe dela devolve vida a ela) e o Colosso Rúnico (`defesaPct` 60, `velocidadePct` −40, `danoPct` 45).
+  `D.CHEFE_MUNDIAL.chefes`; a luta continua sendo contra o chefe da área do herói, com a mecânica (`iniciarBatalha(..., { mundial, mec })`
+  guarda o monstro alterado em `b.alvo`, usado por golpeJogador/ataqueMonstro). Arte: `assets/monstros/<id>-mundial.webp`
+  (sem ela, `data-reserva` = arte do Ignaroth). Prompts: docs/chefes-mundiais-joias-prompts.txt.
+- Sets (`D.JOIAS_BOSS`: brasa/nevoa/pedra, colar + 2 anéis, lendários): `R.joiaDoChefe`, `contarJoiasBoss`, `bonusJoiasBoss`,
+  `comJoiasBoss` (em `status`, vale em tudo) e roubo/menos dano em `extrasLuta`. Ficha: `conjuntoHtml` mostra o set.
+  Arte: `assets/itens/joia-<set>-<colar|anel>.webp` (via `arquivoConjunto`).
+- Servidor: `boss_mundial.chefe_mundial`; `boss_chefe_do_dia(dia)`; `boss_cfg` com chefes/nomes/sets/titulos (título do golpe
+  final por chefe); `boss_premiar` (derrotado) sorteia **1 joia** entre quem deu dano, chance proporcional ao dano
+  (`order by -ln(1 - random()) / dano`), recompensa `{tipo: 'boss_joia', set}` + aviso no chat; `boss_estado` manda
+  `chefe_hoje`/`chefe_proximo` e `boss.chefe_mundial`; `admin_boss_invocar_chefe(meu, chefe, vida, minutos)`.
+  Arena: `arena_joias_ef`/`arena_com_joias` em `tanka_status` (crítico vira dano) e roubo/menos dano no `arena_lutador`.
+  A função `acao` (bossMundial) usa `R.chefeMundialPorId(bs.chefe_mundial).mec`.

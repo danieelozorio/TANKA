@@ -624,7 +624,9 @@ Tanka.regras = (function () {
   }
   // Extras da luta contra monstros: passivas do level 20/30 + Pacto de Ascensão.
   function extrasLuta(p) {
-    var x = extrasNivel(p), a = efeitosAscensao(p);
+    var x = extrasNivel(p), a = efeitosAscensao(p), jb = bonusJoiasBoss(p);
+    if (jb.rouboVida) x.rouboVida = (x.rouboVida || 0) + jb.rouboVida;   // joias dos chefes (Lágrimas da Névoa)
+    if (jb.reducaoDano) x.reducaoDano = (x.reducaoDano || 0) + jb.reducaoDano;   // (Coração de Pedra)
     if (a.rouboVida) x.rouboVida = (x.rouboVida || 0) + a.rouboVida;
     if (a.regen) x.regenPct = (x.regenPct || 0) + a.regen;
     if (a.reducaoDano) x.reducaoDano = (x.reducaoDano || 0) + a.reducaoDano;
@@ -799,6 +801,7 @@ Tanka.regras = (function () {
     if (L && L.primeiroGolpe) { L.primeiroGolpe = false; fa *= 1 + X.primeiroGolpe / 100; }
     if (X.golpeCerteiro && L) { L.nGolpes = (L.nGolpes || 0) + 1; certeiro = L.nGolpes % 4 === 0; }
     if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, D.ACERTO_PVE_MINIMO, 100)) return g;
+    if (alvo.erroPct && !opcoes.sempreAcerta && rng() * 100 < alvo.erroPct) return g;   // névoa da Morvaneth
     // Pacto: contra chefes, alvo ferido (meia vida / Execução), só na caçada, habilidade x ataque normal (Eco)
     var va = opcoes.vidaAlvo != null ? opcoes.vidaAlvo : (alvo.hpMax ? alvo.hp / alvo.hpMax : 1);
     if (X.danoChefe && alvo.chefe) fa *= 1 + X.danoChefe / 100;
@@ -1223,7 +1226,7 @@ Tanka.regras = (function () {
   // arena_com_pacto). pve = true: soma também as runas (só contra monstros: caçada, masmorra e bosses).
   function status(p, pve) {
     var s = comCla(statusBase(p), p);
-    return comAscensao(pve ? comRunas(s, p) : s, p);
+    return comAscensao(comJoiasBoss(pve ? comRunas(s, p) : s, p), p);
   }
   // Runas das Relíquias equipadas (só contra monstros).
   function comRunas(s, p) {
@@ -1781,6 +1784,49 @@ Tanka.regras = (function () {
     return conjuntoPara(p, 1) && rng() < D.CONJUNTO_CHANCE / 100 ? marcarConjunto(p, item) : item;
   }
 
+  // ---------- Chefes Mundiais em rodízio e joias dos chefes (Daniel, 20/11/2026) ----------
+  // Chefe do dia: dia do jogo (dias desde 01/01/1970, pelo horário do jogo) % 3, igual ao boss_chefe_do_dia() do servidor.
+  function chefeMundialDoDia(diaJogo) { var L = D.CHEFE_MUNDIAL.chefes; return L[((Math.floor(diaJogo) % L.length) + L.length) % L.length]; }
+  function chefeMundialPorId(id) { return D.CHEFE_MUNDIAL.chefes.filter(function (c) { return c.id === id; })[0] || D.CHEFE_MUNDIAL.chefes[0]; }
+  // Joia do set do chefe: colar (1/3) ou anel (2/3), lendária, de 3 a 10 levels acima do herói (como o item do top 10).
+  function joiaDoChefe(p, set, rng) {
+    rng = rng || Math.random;
+    var J = D.JOIAS_BOSS[set] ? set : 'brasa', tipo = rng() < 1 / 3 ? 'colar' : 'anel';
+    var item = novoItem(tipo, p.classe, 'lendaria', rng, null, limitarNivel(p.nivel + 3 + Math.floor(rng() * 8)));
+    item.joiaBoss = J;
+    item.nome = D.JOIAS_BOSS[J].pecas[tipo];
+    return item;
+  }
+  // Peças equipadas de cada set (colar, anel1, anel2) e o bônus somado (2 e 3 peças).
+  function contarJoiasBoss(p) {
+    var n = {};
+    ['colar', 'anel1', 'anel2'].forEach(function (slot) { var it = itemNoSlot(p, slot); if (it && it.joiaBoss && D.JOIAS_BOSS[it.joiaBoss]) n[it.joiaBoss] = (n[it.joiaBoss] || 0) + 1; });
+    return n;
+  }
+  function bonusJoiasBoss(p) {
+    var n = contarJoiasBoss(p), b = {};
+    Object.keys(n).forEach(function (set) {
+      [2, 3].forEach(function (q) {
+        var bq = D.JOIAS_BOSS[set].bonus[q];
+        if (n[set] >= q && bq) Object.keys(bq).forEach(function (k) { b[k] = (b[k] || 0) + bq[k]; });
+      });
+    });
+    return b;
+  }
+  // Bônus em % (vida, dano, defesas, velocidade) e em pontos (crítico, dano crítico, esquiva); roubo de vida e
+  // menos dano recebido entram nos extras da luta (extrasLuta).
+  function comJoiasBoss(s, p) {
+    var x = bonusJoiasBoss(p), pct = function (v, n) { return Math.round(v * (1 + n / 100)); };
+    if (x.vida) s.hpMax = Math.max(1, pct(s.hpMax, x.vida));
+    if (x.dano) s.dano = [Math.max(1, pct(s.dano[0], x.dano)), Math.max(1, pct(s.dano[1], x.dano))];
+    if (x.defesa) { s.defesa = pct(s.defesa, x.defesa); s.defesaMagica = pct(s.defesaMagica, x.defesa); }
+    if (x.velocidade) s.velocidade = Math.max(1, pct(s.velocidade, x.velocidade));
+    if (x.critico) { s.chanceCritico += x.critico; s.chanceCriticoMagico += x.critico; }
+    if (x.danoCritico) { s.danoCritico += x.danoCritico; s.danoCriticoMagico += x.danoCritico; }
+    if (x.evasao) s.evasao += x.evasao;
+    return s;
+  }
+
   // ---------- Combate ----------
   // Barra de ação: cada lutador soma sua velocidade por tique e age ao chegar a 100.
   // Velocidade 20 contra 10 = duas ações para cada uma do adversário.
@@ -1792,10 +1838,15 @@ Tanka.regras = (function () {
 
   // opcoes.mundial: ataque contra o Chefe Mundial (dano antigo do chefe, sem poções, não gasta estamina).
   function iniciarBatalha(p, monstroId, rng, opcoes) {
-    var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial);
+    var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial), mec = mundial && opcoes.mec;
     var s = status(p, true);   // contra monstro: com as skills do clã
     var L = novoLutador(p, 'cacada');
+    // Chefe Mundial do dia (20/11/2026): o jeito de lutar dele mexe no chefe da área do herói (ver D.CHEFE_MUNDIAL.chefes)
+    if (mec) m = Object.assign({}, m, { defesa: Math.round(m.defesa * (1 + (mec.defesaPct || 0) / 100)), defesaMagica: Math.round(m.defesaMagica * (1 + (mec.defesaPct || 0) / 100)),
+      velocidade: Math.max(1, Math.round(m.velocidade * (1 + (mec.velocidadePct || 0) / 100))), erroPct: mec.erroPct || 0, rouboPct: mec.rouboPct || 0,
+      ataque: [Math.round(m.ataque[0] * (1 + (mec.danoPct || 0) / 100)), Math.round(m.ataque[1] * (1 + (mec.danoPct || 0) / 100))] });
     return {
+      alvo: mec ? m : null,   // chefe mundial com a mecânica do dia (senão D.monstros[monstroId])
       monstroId: monstroId,
       rng: rng || Math.random,
       s: s,
@@ -1828,7 +1879,7 @@ Tanka.regras = (function () {
   // Precisão menos 3% por área (Floresta 0%, Cume do Fogo -18%); a defesa do monstro reduz o dano em
   // porcentagem: 100 / (100 + defesa). opcoes.mult: multiplicador (1 = normal).
   function golpeJogador(b, opcoes) {
-    var m = D.monstros[b.monstroId];
+    var m = b.alvo || D.monstros[b.monstroId];
     var g = calcularGolpe(b.s, b.lutador, m, Object.assign({}, opcoes, { mult: (opcoes.mult || 1) * 100, vidaAlvo: b.monstro.hp / b.monstro.hpMax }), b.rng);
     if (!g.acerto) return g;
     sangrar(b.monstro, g);
@@ -1895,7 +1946,7 @@ Tanka.regras = (function () {
   }
 
   function ataqueMonstro(b) {
-    var s = b.s, m = D.monstros[b.monstroId], rng = b.rng;
+    var s = b.s, m = b.alvo || D.monstros[b.monstroId], rng = b.rng;
     var ev = { ator: 'monstro', acerto: false, critico: false, dano: 0 };
     var qm = tickQueima(b.monstro);
     if (qm) { ev.queimou = qm; if (b.monstro.hp <= 0) { b.fim = 'vitoria'; return ev; } }
@@ -1918,6 +1969,7 @@ Tanka.regras = (function () {
     ev.acerto = true;
     ev.dano = dano;
     b.jogador.hp = Math.max(0, b.jogador.hp - dano);
+    if (m.rouboPct && dano > 0) b.monstro.hp = Math.min(b.monstro.hpMax, b.monstro.hp + Math.round(dano * m.rouboPct / 100));   // Morvaneth rouba vida
     var dr = depoisDeReceber(b.lutador, b.jogador);
     if (dr === 'milagre') ev.milagre = true; else if (dr) ev.bolso = true;
     if (b.lutador && b.lutador.errouCego) { b.lutador.errouCego = false; ev.cego = true; ev.acerto = false; }
@@ -3976,7 +4028,8 @@ Tanka.regras = (function () {
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
-    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, chefeMundialDoDia: chefeMundialDoDia, chefeMundialPorId: chefeMundialPorId,
+    joiaDoChefe: joiaDoChefe, contarJoiasBoss: contarJoiasBoss, bonusJoiasBoss: bonusJoiasBoss, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,

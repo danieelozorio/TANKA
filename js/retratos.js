@@ -259,7 +259,7 @@ Tanka.retratos = (function () {
 
   function imagemMonstro(id) {
     var m = Tanka.dados.monstros[id];
-    if (m.imagem) return '<img class="retrato-img" src="' + m.imagem + '" alt="' + m.nome + '" data-monstro="' + id + '">';
+    if (m.imagem) return '<img class="retrato-img" src="' + m.imagem + '" alt="' + m.nome + '" data-monstro="' + id + '"' + (m.reserva ? ' data-reserva="' + m.reserva + '"' : '') + '>';
     return MONSTROS[id] ? MONSTROS[id]() : monstroProvisorio(id);
   }
 
@@ -364,6 +364,7 @@ Tanka.retratos = (function () {
   // Peça de conjunto: arte própria da segunda classe (uma por peça, a raridade fica na borda):
   //   conjunto-<segunda classe>-<tipo>. Sem ela, usa a arte da armadura normal.
   function arquivoConjunto(item) {
+    if (item.joiaBoss) return 'assets/itens/joia-' + item.joiaBoss + '-' + item.tipo;   // joias dos Chefes Mundiais (20/11/2026)
     var c2 = item.conjunto && String(item.conjunto).split('-')[0];
     return c2 ? 'assets/itens/conjunto-' + c2 + '-' + item.tipo : null;
   }

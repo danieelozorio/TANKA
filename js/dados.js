@@ -963,7 +963,27 @@ Tanka.dados = {
       { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.468, dano: 3.357, nivel: 60, x: 91, y: 40 },
     ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
-  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5,   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
+    // Rodízio (Daniel, 20/11/2026): um chefe por dia, na ordem (dia do jogo % 3, igual ao servidor). Cada um tem um set
+    // de joias (D.JOIAS_BOSS). Derrotado, cai 1 joia do set: sorteio entre quem atacou, chance proporcional ao dano.
+    // mec: jeito de lutar (névoa: você erra mais e ela rouba vida; pedra: muita defesa, bate devagar e forte).
+    chefes: [
+      { id: 'ignaroth', nome: 'Ignaroth, a Chama Eterna', curto: 'Ignaroth', set: 'brasa', txt: 'O dragão de fogo preso pelos Sete Selos.', monstro: 'ignaroth-mundial', imagem: 'assets/monstros/boss-mundial.jpg' },
+      { id: 'morvaneth', nome: 'Morvaneth, a Rainha da Névoa', curto: 'Morvaneth', set: 'nevoa', txt: 'A névoa dela faz você errar 15% dos golpes, e cada golpe dela devolve vida para ela.', monstro: 'morvaneth-mundial', imagem: 'assets/monstros/morvaneth-mundial.webp',
+        mec: { erroPct: 15, rouboPct: 20 } },
+      { id: 'colosso', nome: 'O Colosso Rúnico', curto: 'o Colosso', set: 'pedra', txt: 'A última armadura dos anões, corrompida: defesa enorme, bate devagar e muito forte.', monstro: 'colosso-mundial', imagem: 'assets/monstros/colosso-mundial.webp',
+        mec: { defesaPct: 60, velocidadePct: -40, danoPct: 45 } },
+    ] },
+  // Sets de joias dos Chefes Mundiais (colar + 2 anéis, sempre lendários): bônus com 2 e com 3 peças, em %
+  // (crítico e esquiva em pontos). Valem em tudo, também na Arena (lá o crítico vira dano). Arte: assets/itens/joia-<set>-<colar|anel>.webp
+  JOIAS_BOSS: {
+    brasa: { nome: 'Brasa de Ignaroth', chefe: 'ignaroth', cor: '#ff7a3c', pecas: { colar: 'Colar da Brasa de Ignaroth', anel: 'Anel da Brasa de Ignaroth' },
+      bonus: { 2: { dano: 8 }, 3: { critico: 5, danoCritico: 10 } } },
+    nevoa: { nome: 'Lágrimas da Névoa', chefe: 'morvaneth', cor: '#8fb8ff', pecas: { colar: 'Colar das Lágrimas da Névoa', anel: 'Anel das Lágrimas da Névoa' },
+      bonus: { 2: { evasao: 5 }, 3: { velocidade: 8, rouboVida: 4 } } },
+    pedra: { nome: 'Coração de Pedra', chefe: 'colosso', cor: '#c9b48a', pecas: { colar: 'Colar do Coração de Pedra', anel: 'Anel do Coração de Pedra' },
+      bonus: { 2: { vida: 12 }, 3: { defesa: 15, reducaoDano: 8 } } },
+  },
 
   areas: [
     {
@@ -1509,4 +1529,9 @@ Tanka.dados = {
   });
   // Chefe Mundial: o Ignaroth com a imagem do evento (o da caçada continua com a dele).
   D.monstros['ignaroth-mundial'] = Object.assign({}, D.monstros.ignaroth, { area: null, imagem: 'assets/monstros/boss-mundial.jpg' });
+  // Os outros Chefes Mundiais do rodízio (20/11/2026): só nome e arte (a luta usa o chefe da área do herói + a mecânica).
+  D.CHEFE_MUNDIAL.chefes.forEach(function (c) {
+    if (!D.monstros[c.monstro]) D.monstros[c.monstro] = Object.assign({}, D.monstros.ignaroth, { id: c.monstro, area: null, nome: c.nome, imagem: c.imagem,
+      reserva: 'assets/monstros/boss-mundial.jpg' });   // sem a arte ainda: usa a do Ignaroth
+  });
 })(Tanka.dados);

@@ -104,9 +104,11 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const est = await fetch(base + '/rest/v1/rpc/boss_estado', { method: 'POST', headers: cab, body: JSON.stringify({ meu: id }) });
   const st = est.ok ? await est.json() : null;
   const bs = st && st.boss;
-  if (!bs || !(Number(bs.vida) > 0)) return { erro: 'Ignaroth não está acordado agora.' };
+  if (!bs || !(Number(bs.vida) > 0)) return { erro: 'O Chefe Mundial não está acordado agora.' };
   const chefe = R.chefeDoNivel(p);
-  const b = R.iniciarBatalha(p, chefe, sorteio, { mundial: true });
+  // Rodízio (20/11/2026): o chefe do dia (boss_mundial.chefe_mundial) traz o jeito de lutar dele
+  const doDia = R.chefeMundialPorId(bs.chefe_mundial || 'ignaroth');
+  const b = R.iniciarBatalha(p, chefe, sorteio, { mundial: true, mec: doDia.mec });
   b.monstro.hp = Number(bs.vida); b.monstro.hpMax = Number(bs.vida_max);
   const vidaInicial = b.monstro.hp, limite = Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque;
   const eventos = [];

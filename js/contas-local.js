@@ -208,7 +208,7 @@ Tanka.contas = (function () {
   };
 
   var mercado = { estado: function () { return Promise.resolve({ local: true }); }, anunciar: soServidor, comprar: soServidor, cancelar: soServidor };
-  var boss = { estado: function () { return Promise.resolve({ local: true }); }, atacar: soServidor, adminInvocar: soServidor };
+  var boss = { estado: function () { return Promise.resolve({ local: true }); }, atacar: soServidor, adminInvocar: soServidor, adminInvocarChefe: soServidor };
 
   var arena = {
     estado: function () { return Promise.resolve({ local: true }); },
