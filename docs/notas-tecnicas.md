@@ -1404,6 +1404,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `registrationError` do Firebase, servidor recusou o token); sucesso aparece uma vez ("Notificações ligadas") e o
   estado fica em `EldrinNativo.push`.
 
+## Baú da conta na Mochila (Henri, 19/11/2026)
+- Saiu da lista do Herói: agora é a 3ª aba da Mochila (Herói › Personagem › Equipamentos | Consumíveis | Baú),
+  `estado.mochilaAba = 'bau'`, `bauMochilaHtml(p)`. Esquerda: consumíveis do personagem; direita: os do baú.
+  Botão direito (`contextmenu` em `[data-acao=bau-cel]`) move tudo; o esquerdo abre `estado.bauEscolha` (quantidade).
+  `abrirAba('bau')` redireciona para lá. O ouro continua com Guardar/Retirar.
+
 ## Loja de Éter (Henri, 19/11/2026)
 - Moeda **Éter** (1 Éter = R$ 1), só no servidor, por conta: `eter_contas` (saldo) + `eter_movimentos` (histórico).
   Beta: sem compra com dinheiro; o admin dá Éter na aba Admin (`admin_dar_eter(nome, valor, motivo)`, só com

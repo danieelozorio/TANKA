@@ -2327,3 +2327,17 @@ html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }
 .nome-vip.vip-f { background-image: linear-gradient(90deg, #ffb3e0, #ff3fa6, #fff0f8, #ff6fbf, #ffb3e0); filter: drop-shadow(0 0 3px rgba(255, 90, 180, 0.75)); }
 @keyframes nome-vip-brilho { from { background-position: 0% 50%; } to { background-position: 220% 50%; } }
 @media (prefers-reduced-motion: reduce) { .nome-vip { animation: none; } }
+
+/* Baú da conta na Mochila (Henri, 19/11/2026): personagem à esquerda, baú à direita. */
+.bau-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bau-duplo h4 { margin: .2rem 0 .4rem; font-size: .95em; color: var(--ouro-claro, #e8d9a8); }
+.bau-duplo > div + div { border-left: 1px solid rgba(201, 162, 74, .25); padding-left: 12px; }
+.bau-grade { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.bau-ouro { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0 10px; }
+.bau-ouro svg { width: 1.2em; height: 1.2em; }
+.bau-ouro input { width: 9em; }
+.bau-escolha { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0 0 10px; }
+.bau-escolha input { width: 6em; }
+.bau-hist { margin-top: 10px; }
+.bau-hist summary { cursor: pointer; color: var(--ouro-claro, #e8d9a8); }
+@media (max-width: 560px) { .bau-duplo { grid-template-columns: 1fr; } .bau-duplo > div + div { border-left: 0; padding-left: 0; } }

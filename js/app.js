@@ -1038,7 +1038,7 @@
 
   // As abas em 5 grupos (no celular viram a barra de baixo).
   var GRUPOS = [
-    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao', 'bau'] },   // Baú da conta (Henri, 18/11/2026)
+    { id: 'heroi', nome: 'Herói', abas: ['personagem', 'encantar', 'oficina', 'habilidades', 'ascensao'] },   // Baú da conta: aba da Mochila (Henri, 19/11/2026)
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'eventos', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },   // Eventos: só com evento aberto
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
@@ -1705,14 +1705,15 @@
     var celulas = R.ordenarItens(mochila, v.ordem, v.crescente).map(celulaMochila);
     for (var n = mochila.length; n < D.MOCHILA_MAX; n++) celulas.push('<div class="celula vazia"></div>');
     var foco = estado.itemFoco ? p.inventario.find(function (i) { return i.id === estado.itemFoco; }) : null;
-    var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis';
+    var consumiveis = R.consumiveis(p), naConsumiveis = estado.mochilaAba === 'consumiveis', naBau = estado.mochilaAba === 'bau';
     var cFoco = naConsumiveis && estado.consumivelFoco ? consumiveis.filter(function (c) { return c.id === estado.consumivelFoco; })[0] : null;
     var abas = '<div class="mochila-abas" role="tablist">'
-      + '<button role="tab" aria-selected="' + !naConsumiveis + '" class="' + (naConsumiveis ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">'
+      + '<button role="tab" aria-selected="' + !(naConsumiveis || naBau) + '" class="' + (naConsumiveis || naBau ? '' : 'ativa') + '" data-acao="mochila-aba" data-valor="equipamentos">'
       + 'Equipamentos <span class="suave">(' + mochila.length + '/' + D.MOCHILA_MAX + ')</span></button>'
       + '<button role="tab" aria-selected="' + naConsumiveis + '" class="' + (naConsumiveis ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="consumiveis">'
-      + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button></div>';
-    var baixo = naConsumiveis ? consumiveisHtml(consumiveis)
+      + 'Consumíveis <span class="suave">(' + consumiveis.reduce(function (t, c) { return t + c.qtd; }, 0) + ')</span></button>'
+      + '<button role="tab" aria-selected="' + naBau + '" class="' + (naBau ? 'ativa' : '') + '" data-acao="mochila-aba" data-valor="bau">🧰 Baú</button></div>';
+    var baixo = naBau ? bauMochilaHtml(p) : naConsumiveis ? consumiveisHtml(consumiveis)
       : barraMochilaHtml() + '<div class="mochila' + (estado.vendaLote ? ' modo-venda' : '') + '">' + celulas.join('') + '</div>';
     return '<div class="personagem-grade"><div class="pg-equipamento"><div class="personagem-tela"><div class="boneco">' + slots
       + '<div class="retrato-central">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div></div>'
@@ -1720,7 +1721,7 @@
       + (resumo ? '<dl class="status">' + resumo + '</dl>' : '<p class="suave">Nenhuma armadura equipada.</p>') + '</div></div></div>'
       + (temaAtual() === 'arcane' ? atributosAbaHtml(p) : '')
       + '</div><div class="pg-mochila"><h3 class="subtitulo">Mochila</h3>' + abas
-      + '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>'
+      + (naBau ? '' : '<p class="suave pequeno dica-mochila">' + (temMouse ? 'Passe o mouse num item para ver a ficha; o botão direito equipa.' : 'Toque num item para ver a ficha e equipar.') + '</p>')
       + baixo + '</div></div>';
   }
 
@@ -1791,7 +1792,6 @@
       if (estado.aba === 'loja') telaJogo();
     });
   }
-  function dataCurta(d) { return new Date(d).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
   function precoEter(n) { return '<span class="preco-eter">' + ETER_IMG + '<b>' + n + '</b></span>'; }
   // Botão de compra em 2 toques: o 1º pede confirmação (mostra o preço), o 2º compra.
   function botaoCompra(item, preco, texto, desligado) {
@@ -1936,10 +1936,10 @@
     estado.bauCarregando = true;
     C.bau.estado(p.id).then(function (b) {
       estado.bauCarregando = false; estado.bau = b; estado.bauErro = null;
-      if (estado.aba === 'bau') telaJogo();
+      if (vendoBau()) telaJogo();
     }, function (e) {
       estado.bauCarregando = false; estado.bauErro = (e && e.message) || 'Não foi possível abrir o baú.';
-      if (estado.aba === 'bau') telaJogo();
+      if (vendoBau()) telaJogo();
     });
   }
   function abaBau() {
@@ -1987,6 +1987,7 @@
     acaoServidor('bauDepositar', args).then(function (r) {
       estado.bauOcupado = false;
       if (r && !r.erro) { avisar(msg, 'item'); estado.bau = null; carregarBau(); }
+      else if (vendoBau()) telaJogo();
     });
   }
   function bauRetirar(ouro, item, qtd, msg) {
@@ -1998,7 +1999,64 @@
       avisar(msg, 'item');
       return receberPendentes();
     }, function (e) { estado.bauOcupado = false; avisar((e && e.message) || 'Não foi possível retirar.'); })
-      .then(function () { if (estado.aba === 'bau') telaJogo(); });
+      .then(function () { if (vendoBau()) telaJogo(); });
+  }
+  // O baú agora fica na Mochila (Herói › Personagem › Baú, Henri, 19/11/2026).
+  function vendoBau() { return estado.aba === 'bau' || (estado.aba === 'personagem' && estado.mochilaAba === 'bau'); }
+  // Baú na mochila: à esquerda o que o personagem pode guardar, à direita o que está no baú. Botão direito move tudo;
+  // o esquerdo abre a escolha da quantidade.
+  function bauMochilaHtml(p) {
+    var b = estado.bau;
+    if (!ACAO_SERVIDOR) return '<p class="suave">O baú precisa do servidor do jogo.</p>';
+    if (!b && !estado.bauErro) carregarBau();
+    if (estado.bauErro) return '<p class="erro">' + esc(estado.bauErro) + '</p><button class="btn" data-acao="bau-recarregar">Tentar de novo</button>';
+    if (!b) return '<p class="suave">Abrindo o baú…</p>';
+    var cons = b.consumiveis || {}, esc_ = estado.bauEscolha;
+    var celula = function (lado, tipo, rar, qtd) {
+      var c = { tipo: tipo, raridade: rar, qtd: qtd }, sel = esc_ && esc_.lado === lado && esc_.tipo === tipo && esc_.raridade === rar;
+      return '<button class="celula borda-' + corConsumivel(c) + (sel ? ' focado' : '') + '" data-acao="bau-cel" data-lado="' + lado + '" data-tipo="' + tipo
+        + '" data-raridade="' + rar + '" data-qtd="' + qtd + '" title="' + esc(R.nomeConsumivel(c)) + ' · ' + qtd + '">' + iconeConsumivel(c)
+        + '<span class="qtd-consumivel">' + qtd.toLocaleString('pt-BR') + '</span></button>';
+    };
+    var grade = function (cels) {
+      for (var n = cels.length; n < 8; n++) cels.push('<div class="celula vazia"></div>');
+      return '<div class="mochila consumiveis bau-grade">' + cels.join('') + '</div>';
+    };
+    var meus = R.consumiveis(p).filter(function (c) { return c.qtd > 0 && D.CONSUMIVEIS[c.tipo]; })
+      .map(function (c) { return celula('eu', c.tipo, c.raridade, c.qtd); });
+    var noBau = Object.keys(cons).filter(function (k) { return cons[k] > 0; }).sort()
+      .map(function (k) { var x = k.split(':'); return celula('bau', x[0], x[1], Number(cons[k])); });
+    var escolha = '';
+    if (esc_) {
+      var nomeE = R.nomeConsumivel({ tipo: esc_.tipo, raridade: esc_.raridade }), eu = esc_.lado === 'eu';
+      escolha = '<div class="bau-escolha caixa-interna"><span>' + (eu ? 'Guardar no baú' : 'Retirar do baú') + ': <strong>' + esc(nomeE) + '</strong> <span class="suave">(tem ' + esc_.qtd + ')</span></span>'
+        + '<input id="bau-escolha-qtd" type="number" min="1" max="' + esc_.qtd + '" value="' + esc_.qtd + '" inputmode="numeric" aria-label="Quantidade">'
+        + '<button class="btn btn-pequeno" data-acao="bau-mover">' + (eu ? 'Guardar' : 'Retirar') + '</button>'
+        + '<button class="btn btn-pequeno secundario" data-acao="bau-mover" data-valor="tudo">Tudo</button>'
+        + '<button class="btn btn-pequeno secundario" data-acao="bau-escolha-fechar">✕</button></div>';
+    }
+    var hist = (b.historico || []).slice(0, 10).map(function (h) {
+      var o = []; if (Number(h.ouro)) o.push(Number(h.ouro).toLocaleString('pt-BR') + ' de ouro');
+      if (h.item && h.qtd) { var x = h.item.split(':'); o.push(h.qtd + 'x ' + R.nomeConsumivel({ tipo: x[0], raridade: x[1] })); }
+      return '<li>' + (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ')
+        + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
+    }).join('');
+    return '<p class="suave pequeno">Baú da conta: os seus personagens guardam e retiram ouro e consumíveis (itens não entram). '
+      + (temMouse ? '<strong>Botão direito</strong> move tudo; o <strong>esquerdo</strong> escolhe a quantidade.' : 'Toque num consumível para escolher a quantidade.') + '</p>'
+      + '<div class="bau-ouro linha-form">' + ICONES.ouro + '<span>Baú: <strong class="cor-ouro">' + (Number(b.ouro) || 0).toLocaleString('pt-BR') + '</strong></span>'
+      + '<input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
+      + '<button class="btn btn-pequeno" data-acao="bau-guardar-ouro">Guardar</button><button class="btn btn-pequeno secundario" data-acao="bau-retirar-ouro">Retirar</button></div>'
+      + escolha
+      + '<div class="bau-duplo"><div><h4>Com ' + esc(p.nome) + '</h4>' + grade(meus) + '</div>'
+      + '<div><h4>No baú</h4>' + grade(noBau) + '</div></div>'
+      + (hist ? '<details class="bau-hist"><summary>Últimas movimentações</summary><ul class="bau-historico">' + hist + '</ul></details>' : '');
+  }
+  // Move do personagem para o baú (lado 'eu') ou do baú para o personagem.
+  function bauMover(lado, tipo, rar, qtd) {
+    var nome = qtd + 'x ' + R.nomeConsumivel({ tipo: tipo, raridade: rar });
+    estado.bauEscolha = null;
+    if (lado === 'eu') bauDepositar({ tipo: tipo, raridade: rar, qtd: qtd }, nome + ' guardado no baú.');
+    else bauRetirar(0, tipo + ':' + rar, qtd, nome + ' retirado do baú.');
   }
   function fichaConsumivelHtml(c) {
     var def = D.CONSUMIVEIS[c.tipo] || {};
@@ -5264,7 +5322,7 @@
   }
 
   function abrirAba(aba) {
-    if (aba === 'bau') { estado.bau = null; estado.bauErro = null; }   // abre sempre com o baú atualizado
+    if (aba === 'bau') { aba = 'personagem'; estado.mochilaAba = 'bau'; estado.bau = null; estado.bauErro = null; }   // o baú agora fica na Mochila
     if (estado.personagem) {
       var gAntes = estado.personagem.guia && !estado.personagem.guia.fim && !estado.personagem.guia.loja;
       R.registrarGuia(estado.personagem, 'aba', aba);
@@ -5605,6 +5663,20 @@
         }
         break;
       }
+      case 'bau-cel':
+        estado.bauEscolha = { lado: el.dataset.lado, tipo: el.dataset.tipo, raridade: el.dataset.raridade, qtd: parseInt(el.dataset.qtd, 10) || 1 };
+        telaJogo();
+        setTimeout(function () { var q = document.getElementById('bau-escolha-qtd'); if (q && temMouse) { q.focus(); q.select(); } }, 30);
+        break;
+      case 'bau-escolha-fechar': estado.bauEscolha = null; telaJogo(); break;
+      case 'bau-mover': {
+        var eb = estado.bauEscolha;
+        if (!eb) break;
+        var qm = el.dataset.valor === 'tudo' ? eb.qtd : parseInt((document.getElementById('bau-escolha-qtd') || {}).value, 10);
+        if (!(qm > 0)) { avisar('Digite a quantidade.'); break; }
+        bauMover(eb.lado, eb.tipo, eb.raridade, Math.min(qm, eb.qtd));
+        break;
+      }
       case 'bau-guardar-item': case 'bau-retirar-item': {
         var eu = el.dataset.acao === 'bau-guardar-item', tb = el.dataset.tipo, rb = el.dataset.raridade;
         var qb = parseInt((document.getElementById('bau-q-' + (eu ? 'eu' : 'bau') + '-' + tb + '-' + rb) || {}).value, 10);
@@ -5807,7 +5879,8 @@
       case 'historia-fechar':
         estado.historiaCena = null; telaJogo(); break;
       case 'mochila-aba':
-        estado.mochilaAba = el.dataset.valor === 'consumiveis' ? 'consumiveis' : 'equipamentos';
+        estado.mochilaAba = el.dataset.valor === 'consumiveis' || el.dataset.valor === 'bau' ? el.dataset.valor : 'equipamentos';
+        if (estado.mochilaAba === 'bau') { estado.bau = null; estado.bauErro = null; estado.bauEscolha = null; }   // abre com o baú atualizado
         estado.vendaLote = null;
         telaJogo();
         break;
@@ -6471,6 +6544,8 @@
     if (!estado.personagem || !document.querySelector('.jogo')) return;
     if (e.target.closest && e.target.closest('input, textarea, [contenteditable]')) return;
     e.preventDefault();
+    var cb = e.target.closest && e.target.closest('[data-acao="bau-cel"]');   // Baú: o botão direito move tudo
+    if (cb) { if (!estado.bauOcupado) bauMover(cb.dataset.lado, cb.dataset.tipo, cb.dataset.raridade, parseInt(cb.dataset.qtd, 10) || 1); return; }
     var el = e.target.closest && e.target.closest('[data-acao="item"]');
     var p = estado.personagem;
     if (!el || estado.vendaLote || R.slotDoItem(p, el.dataset.id)) return;
