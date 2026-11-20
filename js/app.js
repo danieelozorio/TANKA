@@ -1054,6 +1054,13 @@
     GRUPOS = GRUPOS.filter(function (g) { return g.id !== 'leilao'; });
     GRUPOS.filter(function (g) { return g.id === 'mercado'; })[0].abas.push('leilao');
   }
+  // Zealot (Daniel, 20/11/2026): o Evento ganha ícone próprio na barra, fora da Aventura (só aparece com evento aberto).
+  if (document.documentElement.getAttribute('data-interface') === 'zealot') {
+    var gAv = GRUPOS.filter(function (g) { return g.id === 'aventura'; })[0];
+    gAv.abas = gAv.abas.filter(function (a) { return a !== 'eventos'; });
+    GRUPOS.splice(GRUPOS.indexOf(gAv) + 1, 0, { id: 'evento', nome: 'Evento', abas: ['eventos'] });
+    ICONES.evento = ICONES_SUB.eventos;
+  }
   function grupoDaAba(aba) { return GRUPOS.filter(function (g) { return g.abas.indexOf(aba) >= 0; })[0]; }
   // Abas que o jogador vê: o Pacto de Ascensão só aparece a partir do level 40 (antes ele nem sabe que existe).
   function abaVisivel(a) {
@@ -1144,7 +1151,7 @@
   }
   function navHtml() {
     var atual = grupoDaAba(estado.aba);
-    var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.map(function (g) {
+    var nav = '<nav class="abas-jogo" id="abas-jogo">' + GRUPOS.filter(function (g) { return abasDe(g).length; }).map(function (g) {
       var alvo = abaDoGuia(), guiaAqui = alvo && abasDe(g).indexOf(alvo) >= 0 && estado.aba !== alvo;
       var destino = guiaAqui ? alvo : estado.subAba[g.id] || abasDe(g)[0];
       return '<button data-acao="aba" data-aba="' + destino + '" class="' + (atual === g ? 'ativa' : '') + (guiaAqui ? ' guia-alvo' : '') + '">'

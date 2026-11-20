@@ -1451,3 +1451,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   o texto saía da caixa. Agora `ul.eter-lista` (e a grade das Oficinas não ganha mais o padding-left da Loja).
 - Zealot: o menu (☰ MENU) mostrava só os ícones numa fileira: a `.abas-jogo` da Clássica tem `grid-auto-flow: column`.
   `.menu-jogo .abas-jogo` agora tem `grid-auto-flow: row` (2 colunas com ícone + nome).
+- Zealot (20/11/2026): grupo próprio "Evento" (ícone `ICONES_SUB.eventos`) logo depois da Aventura, que perde a aba
+  `eventos`. Só na Zealot (computador e celular). `navHtml` esconde grupo sem aba visível (sem evento, o ícone some).
