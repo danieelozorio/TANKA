@@ -1509,3 +1509,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   reforços. Precisão e esquiva continuam fora (manda o D20). Ouro, exp, drop, dano contra chefe/caçada não se aplicam.
 - testes/arena.test.js "personagem N" (força no servidor = no jogo, itens com encanto sorteado) já falhava antes por
   1 ponto de arredondamento em alguns sorteios; não é do Pacto.
+- Aplicado no Supabase (20/11/2026) trocando só os trechos (o banco tem as funções com quebra de linha \r\n: normalizar
+  com replace(..., chr(13)||chr(10), chr(10)) antes de procurar). `tanka_dados()` no banco foi refeito a partir do
+  jsonb (texto diferente do arquivo, conteúdo igual): para conferir esse, comparar o jsonb, não o md5 do texto.
