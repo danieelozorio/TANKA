@@ -1487,3 +1487,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   das 3 folhas do Gemini (`.../icones/originais/folha1-3.webp`; prompts em docs/icones-zealot-prompts.txt). No fim do
   app.js, só na Zealot, `ICONES`, `ICONES_SUB`, `ICONE_POCAO`, `ICONE_CARTA` e `ICONE_SINO` viram `<img class="ico-pintado">`
   (abas, sub-abas, recursos, menu, ⚙, carta e sino). Tamanhos no fim do tema-sombrio.css.
+- Itens mais bonitos na Zealot (20/11/2026, fim do tema-sombrio.css): moldura + brilho interno da raridade nas
+  células, slots e ícones (só sem `aura-e*`, para não apagar o brilho do encanto); item sobe no mouse; selo do +encanto
+  com a cor do encanto (`--cor`); seta verde pulando; ficha do item (#ficha-flutuante e comparação) em pergaminho
+  escuro, nome com brilho da raridade e ▲ verde / ▼ vermelho nas diferenças.
