@@ -1453,3 +1453,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   `.menu-jogo .abas-jogo` agora tem `grid-auto-flow: row` (2 colunas com ícone + nome).
 - Zealot (20/11/2026): grupo próprio "Evento" (ícone `ICONES_SUB.eventos`) logo depois da Aventura, que perde a aba
   `eventos`. Só na Zealot (computador e celular). `navHtml` esconde grupo sem aba visível (sem evento, o ícone some).
+
+### Zealot animada (Daniel, 20/11/2026)
+- `js/zealot-efeitos.js` (só carrega na Zealot, pelo document.write do jogar/index.html e do artifact.html): canvas fixo
+  sem cliques com brasas subindo do pé da tela, cinzas caindo, brasas em volta do nome (.ficha .cabeca) e faíscas +
+  tremor (`.zealot-golpe`) quando a barra de um lutador da caçada (#lutador-jogador/-monstro) diminui. Celular: menos
+  partículas e ~30 quadros/s. Para com a aba escondida; não roda com "menos movimento".
+- `css/tema-sombrio.css` (fim): nome e Poder respirando em brasa, lendários pulsando, barra piscando no dano
+  (`.levou-dano`), vida baixa em alerta (`.vida-baixa`), chefe ardendo, VS em fogo.

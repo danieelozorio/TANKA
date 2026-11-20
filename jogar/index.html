@@ -29,7 +29,7 @@
       var cel = window.matchMedia && matchMedia('(pointer: coarse)').matches && Math.min(screen.width, screen.height) <= 820;   // celular: sempre a casca (Daniel, nov/2026)
       if (cel && t !== 'arcane') { t = 'zealot'; document.documentElement.setAttribute('data-celular', ''); }   // Arcane no celular (Henri): telas da Clássica + menu em cascata
       document.documentElement.setAttribute('data-interface', t);
-      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=136">');
+      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=137"><script src="js/zealot-efeitos.js?v=1"><\/script>');
       if (t === 'arcane') document.write('<link rel="stylesheet" href="css/tema-arcane.css?v=28"><script src="js/arcane-efeitos.js?v=4"><\/script>');   // Arcane (Henri, nov/2026): só no computador
     })();
   </script>
