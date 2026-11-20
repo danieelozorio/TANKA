@@ -264,6 +264,7 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   margin: 0;
   padding: 0;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: row;   /* a barra da Clássica põe tudo numa fileira (grid-auto-flow: column) e o nome sumia (Daniel, 20/11/2026) */
 }
 .menu-jogo-acoes { display: flex; flex-wrap: wrap; gap: .35rem; padding: .45rem .15rem .15rem; }
 .menu-jogo-acoes .btn { display: inline-flex; align-items: center; gap: .35rem; font-size: .8rem; }

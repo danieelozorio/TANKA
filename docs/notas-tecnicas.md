@@ -1445,3 +1445,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Correção: o gatilho da ficha sobe a versão em toda gravação que não subiu (as do servidor já vêm com versão + 1).
   `R.normalizar` tira itens repetidos (mesmo id): fica a cópia mais encantada (conserta as fichas já afetadas na
   próxima ação do servidor).
+
+### Loja de Éter e menu da Zealot (Daniel, 20/11/2026)
+- As listas das cartas da Loja de Éter usavam a classe `loja-lista`, que já era a grade das Oficinas (minmax 19rem):
+  o texto saía da caixa. Agora `ul.eter-lista` (e a grade das Oficinas não ganha mais o padding-left da Loja).
+- Zealot: o menu (☰ MENU) mostrava só os ícones numa fileira: a `.abas-jogo` da Clássica tem `grid-auto-flow: column`.
+  `.menu-jogo .abas-jogo` agora tem `grid-auto-flow: row` (2 colunas com ícone + nome).

@@ -1816,7 +1816,7 @@
     var V = L.vip;
     var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
       + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
-      + '<ul class="loja-lista">'
+      + '<ul class="eter-lista">'
       + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
       + '<li>Estamina recupera <strong>' + V.estaminaMult + 'x</strong> mais rápido</li>'
       + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
@@ -1838,7 +1838,7 @@
         + '<button class="btn secundario" data-acao="loja-usar-boost" data-valor="' + k + '"' + (tem ? '' : ' disabled') + '>Usar em ' + esc(p.nome) + '</button></div></div>';
     }).join('');
     var S = L.starter;
-    var cartaStarter = '<div class="caixa-interna loja-carta loja-starter"><h3>🎁 ' + S.nome + '</h3><ul class="loja-lista">'
+    var cartaStarter = '<div class="caixa-interna loja-carta loja-starter"><h3>🎁 ' + S.nome + '</h3><ul class="eter-lista">'
       + '<li>' + S.boostsExp + ' Boosts de EXP e ' + S.boostsOuro + ' Boosts de Ouro</li>'
       + '<li>Arma e armadura completa ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelItens + ' (qualidade ' + S.qualidadePct + '%)</li>'
       + '<li>Colar e anel ' + D.raridades[S.raridade].nome.toLowerCase() + 's, level ' + S.nivelJoias + '</li>'
