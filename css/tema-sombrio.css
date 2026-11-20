@@ -521,11 +521,11 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) { height: calc(100dv
 @media (max-width: 1350px) { #app > .topo > .abas-topo button { padding: .4rem .5rem; font-size: .82rem; gap: .3rem; } }
 @media (max-width: 1150px) { #app > .topo > .abas-topo .aba-nome { font-size: .72rem; } #app > .topo > .abas-topo button { flex-direction: column; gap: 1px; padding: .25rem .45rem; } }
 @media (max-width: 700px) { #app > .topo > .abas-topo { display: none; } }
-#app > .barra-recursos:has(> .sub-linha) { display: flex; align-items: center; gap: .6rem; }
-#app > .barra-recursos > .sub-linha { flex: 0 1 auto; min-width: 0; padding-left: .8rem; }
+#app > .barra-recursos:has(> .sub-linha) { display: flex; align-items: center; justify-content: center; gap: 1.6rem; }   /* sub-abas e recursos juntos no meio (Daniel, 20/11/2026) */
+#app > .barra-recursos > .sub-linha { flex: 0 1 auto; min-width: 0; }
 #app > .barra-recursos > .sub-linha .sub-abas { margin: 0; }
 #app > .barra-recursos > .sub-linha .sub-abas button { font-size: .85rem; padding-inline: .65em; }
-#app > .barra-recursos:has(> .sub-linha) .recursos-dentro { flex: 1; justify-content: flex-end; padding-right: .8rem; }
+#app > .barra-recursos:has(> .sub-linha) .recursos-dentro { flex: 0 1 auto; justify-content: center; padding-inline: 0; margin: 0; }
 
 /* ---------- Ganhos com "peso" (Daniel, 20/11/2026; o js/zealot-efeitos.js cria estes elementos) ---------- */
 .zg-flutua { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); white-space: nowrap;
