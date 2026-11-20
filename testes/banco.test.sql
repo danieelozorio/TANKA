@@ -1620,11 +1620,11 @@ reset role; update public.contas set admin = true where id = '00000000-0000-0000
 set role authenticated; select pg_temp.comoG('2');
 select pg_temp.falha($$select public.admin_dar_eter('Gru2', 1000, null)$$, 'Só o admin');
 select pg_temp.comoG('1');
-select pg_temp.igual((public.admin_dar_eter('gru2', 100, null) ->> 'saldo')::int, 100, 'loja: admin dá Éter pelo nome (sem maiúscula)');
+select pg_temp.igual((public.admin_dar_eter('gru2', 200, null) ->> 'saldo')::int, 200, 'loja: admin dá Éter pelo nome (sem maiúscula)');
 select pg_temp.comoG('2');
-select pg_temp.igual((public.loja_estado('g2') ->> 'saldo')::int, 100, 'loja: saldo do jogador');
+select pg_temp.igual((public.loja_estado('g2') ->> 'saldo')::int, 200, 'loja: saldo do jogador');
 select pg_temp.igual(public.masmorra_entradas_dia('g2'), 5, 'loja: sem VIP, 5 entradas na masmorra');
-select pg_temp.igual((public.loja_comprar('g2', 'vip') ->> 'saldo')::int, 70, 'loja: VIP custa 30');
+select pg_temp.igual((public.loja_comprar('g2', 'vip') ->> 'saldo')::int, 170, 'loja: VIP custa 30');
 select pg_temp.igual((select dados ->> 'vip' from public.personagens where id = 'g2'), 'true', 'loja: VIP marcado na ficha');
 reset role;
 select pg_temp.igual(public.masmorra_entradas_dia('g2'), 7, 'loja: VIP tem +2 entradas na masmorra');
@@ -1642,8 +1642,9 @@ select pg_temp.falha($$select public.loja_comprar('g2', 'starter')$$, 'só 1 por
 reset role;
 select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'g2' and item ->> 'tipo' = 'starter')::int, 1, 'loja: itens do Starter na fila de prêmios');
 set role authenticated; select pg_temp.comoG('2');
-select pg_temp.falha($$select public.loja_comprar('g2', 'skin:dragao')$$, 'Éter insuficiente');
-select pg_temp.igual((public.loja_comprar('g2', 'skin:azul') ->> 'saldo')::int, 12, 'loja: skin azul por 5 Éter');
+select pg_temp.igual((public.loja_comprar('g2', 'skin:azul') ->> 'saldo')::int, 40, 'loja: skin por 20 Éter');
+select pg_temp.igual((public.loja_comprar('g2', 'skin:dourada') ->> 'saldo')::int, 20, 'loja: outra skin');
+select pg_temp.falha($$select public.loja_comprar('g2', 'vip')$$, 'Éter insuficiente');
 select pg_temp.falha($$select public.loja_comprar('g3', 'vip')$$, 'Personagem inválido');
 select pg_temp.igual(public.loja_vips() ? 'Gru2', true, 'loja: nome do VIP na lista do brilho');
 reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
