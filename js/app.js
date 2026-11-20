@@ -1134,7 +1134,7 @@
       + item('id="btn-caixa" data-acao="painel-topo" data-valor="caixa"', ICONE_CARTA, 'Caixa de entrada', seloNumero(cx))
       + item('id="btn-sino" data-acao="painel-topo" data-valor="sino"', ICONE_SINO, 'Avisos', seloNumero(nn)) + '</div>'
       + '<div class="menu-cel-grupo menu-cel-grade"><small>Configurações</small>'
-      + item('data-acao="menu-interface"', '🎨', 'Interface') + item('data-acao="menu-som"', ICONES.som, 'Som e música') + '</div>'
+      + item('data-acao="menu-config"', '⚙', 'Interface, som e tela') + '</div>'
       // Caçando dá para trocar de herói ou sair: a caçada segue sozinha no servidor (farm AFK) e volta ao entrar de novo.
       + (livre || cacandoAfk ? '<div class="menu-cel-grupo"><small>Conta</small>'
         + (livre && ehAdmin() ? item('data-acao="aba" data-aba="admin"', ICONES.admin, 'Admin') : '')
@@ -4474,14 +4474,14 @@
     var trocar = !livre && afkArcane ? '<button class="btn secundario" data-acao="voltar-personagens">Trocar personagem</button>'
       : !livre ? '' : (ehAdmin() ? '<button class="btn-icone' + (estado.aba === 'admin' ? ' ativa' : '') + '" data-acao="aba" data-aba="admin" title="Admin" aria-label="Admin">' + ICONES.admin + '</button>' : '')
       + '<button class="btn secundario" data-acao="voltar-personagens">' + (zealot ? ICONES.trocarPersonagem : '') + 'Trocar personagem</button>'
-      + '<button class="btn secundario" data-acao="menu-interface">🎨 Interface</button>';
+      + '<button class="btn secundario" data-acao="menu-config">⚙ Configurações</button>';
     var menuTopo = '';
     if (zealot) {
       var menuAnterior = document.getElementById('menu-jogo');
-      menuTopo = '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
+      menuTopo = '<button class="btn menu-config-btn" data-acao="menu-config" title="Configurações" aria-label="Configurações">⚙</button>'
+        + '<details class="menu-jogo" id="menu-jogo"' + (menuAnterior && menuAnterior.open ? ' open' : '')
         + '><summary class="btn' + (abaDoGuia() && abaDoGuia() !== estado.aba ? ' guia-alvo' : '') + '" aria-label="Menu do jogo">' + ICONES.menu + '<span class="menu-rotulo">Menu</span></summary>'
         + '<div class="menu-jogo-painel">' + navegacao + '<div class="menu-jogo-acoes">' + trocar
-        + '<button class="btn secundario" data-acao="menu-som">' + ICONES.som + 'Som</button>'
         + '<button class="btn secundario" data-acao="sair">' + ICONES.sair + 'Sair</button></div></div></details>';
     }
     if (CELULAR) menuTopo = menuCelularHtml(livre);
@@ -5563,14 +5563,10 @@
         if (grupoUI.aberto) { missoesUI.aberto = false; desenharMissoes(true); carregarGrupo(); carregarSocial(); }
         desenharGrupo(true);
         break;
-      case 'menu-interface':
+      case 'menu-config': case 'menu-interface': case 'menu-som':   // um painel só: Interface, Resolução e Som (Daniel, 20/11/2026)
         if (document.getElementById('menu-jogo')) document.getElementById('menu-jogo').open = false;
-        alternarPainel(musica.painel && musica.painelTipo === 'interface', 'interface');
-        break;
-      case 'menu-som':
-        document.getElementById('menu-jogo').open = false;
         tocarMusica();
-        alternarPainel();
+        alternarPainel(!!musica.painel);
         break;
       case 'sair':
         sairDaConta();
@@ -10150,45 +10146,48 @@
       });
     });
   }
-  // tipo: 'interface' abre a tela de Interface (tema e tela); sem tipo, a de Som (música e efeitos).
-  function alternarPainel(fechar, tipo) {
-    tipo = tipo || 'som';
+  // Configurações (Daniel, 20/11/2026): um painel só, pelo ⚙ e pelo menu, com Interface (tema), Resolução (tamanho
+  // da tela, só no computador) e Som (música e efeitos).
+  var ESCALAS = [[0.8, '80%'], [0.9, '90%'], [1, '100%'], [1.1, '110%'], [1.25, '125%']];
+  function escalaAtual() { var z = parseFloat(document.documentElement.style.getPropertyValue('--escala')); return z > 0 ? z : 1; }
+  function aplicarEscala(z) {
+    var h = document.documentElement;
+    h.style.zoom = z === 1 ? '' : String(z);
+    if (z === 1) h.style.removeProperty('--escala'); else h.style.setProperty('--escala', String(z));
+    guardar('eldrin.escala', String(z));
+    window.dispatchEvent(new Event('resize'));
+  }
+  function alternarPainel(fechar) {
     if (musica.painel || fechar) {
-      var outro = musica.painel && musica.painelTipo !== tipo && !fechar;
       if (musica.painel) { musica.painel.remove(); musica.painel = null; }
-      if (!outro) return;
-    }
-    var p = musica.painel = document.createElement('div');
-    musica.painelTipo = tipo;
-    p.id = 'config-painel';
-    p.setAttribute('role', 'dialog');
-    if (tipo === 'interface') {
-      p.setAttribute('aria-label', 'Interface');
-      p.innerHTML = '<div class="config-topo"><strong>🎨 Interface</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
-        + (ehCelularAparelho() ? '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
-            var ativa = temaAtual() === x[0];
-            return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-          }).join('') + '</div></div>'
-          : '<div class="config-faixa"><span>Tema</span><div class="config-interface" role="radiogroup" aria-label="Tema">'
-          + [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', '👑 Arcane']].map(function (x) {
-            var ativa = temaAtual() === x[0];
-            return '<button type="button" role="radio" aria-checked="' + ativa + '" class="btn mini-opcao' + (ativa ? '' : ' secundario') + '" data-interface="' + x[0] + '">' + (ativa ? '✔ ' : '') + x[1] + '</button>';
-          }).join('') + '</div></div>');
-      ligarPainelInterface(p);
-      p.addEventListener('click', function (e) { e.stopPropagation(); });
-      p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
-      document.body.appendChild(p);
       return;
     }
-    p.setAttribute('aria-label', 'Som');
-    p.innerHTML = '<div class="config-topo"><strong>Configurações</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
+    var p = musica.painel = document.createElement('div');
+    p.id = 'config-painel';
+    p.setAttribute('role', 'dialog');
+    p.setAttribute('aria-label', 'Configurações');
+    var temas = ehCelularAparelho() ? [['zealot', 'Zealot'], ['arcane', '👑 Arcane']] : [['classica', 'Clássica'], ['zealot', 'Zealot'], ['arcane', '👑 Arcane']];
+    var opcoes = function (lista, ativa, attr, rotulo) {
+      return '<div class="config-interface" role="radiogroup" aria-label="' + rotulo + '">' + lista.map(function (x) {
+        var sel = x[0] === ativa;
+        return '<button type="button" role="radio" aria-checked="' + sel + '" class="btn mini-opcao' + (sel ? '' : ' secundario') + '" ' + attr + '="' + x[0] + '">' + (sel ? '✔ ' : '') + x[1] + '</button>';
+      }).join('') + '</div>';
+    };
+    p.innerHTML = '<div class="config-topo"><strong>⚙ Configurações</strong><button class="config-fechar" aria-label="Fechar">✕</button></div>'
+      + '<h4 class="config-secao">🎨 Interface</h4><div class="config-faixa">' + opcoes(temas, temaAtual(), 'data-interface', 'Tema') + '</div>'
+      + (ehCelularAparelho() ? '' : '<h4 class="config-secao">🖥 Resolução</h4><div class="config-faixa"><span class="suave pequeno">Tamanho da tela do jogo</span>'
+        + opcoes(ESCALAS, escalaAtual(), 'data-escala', 'Resolução') + '</div>')
+      + '<h4 class="config-secao">🔊 Som</h4>'
       + '<label class="config-linha"><span>Música</span><input type="checkbox" id="config-musica"' + (musica.ligada ? ' checked' : '') + '></label>'
       + '<label class="config-faixa"><span>Volume da música <b id="config-vol-txt">' + musica.volume + '%</b></span>'
       + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
       + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
       + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
+    ligarPainelInterface(p);
+    p.querySelectorAll('[data-escala]').forEach(function (b) {
+      b.addEventListener('click', function () { aplicarEscala(parseFloat(b.dataset.escala)); alternarPainel(true); alternarPainel(); });
+    });
     p.addEventListener('click', function (e) { e.stopPropagation(); });
     p.querySelector('.config-fechar').addEventListener('click', function () { alternarPainel(true); });
     p.querySelector('#config-musica').addEventListener('change', function (e) {
@@ -10214,7 +10213,7 @@
     desenharBotaoMusica();
   }
   document.addEventListener('click', function (e) {
-    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica, [data-acao="menu-som"], [data-acao="menu-interface"]')) alternarPainel(true);
+    if (musica.painel && !e.target.closest('#config-painel') && !e.target.closest('#botao-musica, [data-acao="menu-som"], [data-acao="menu-interface"], [data-acao="menu-config"]')) alternarPainel(true);
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && musica.painel) alternarPainel(true); });
   // Eventos que o navegador aceita como "o jogador interagiu" (no celular o toque conta no fim: touchend/click).

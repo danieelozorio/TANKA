@@ -2371,3 +2371,7 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 /* selo (!, número) no canto do ícone sem cobrir o nome ao lado */
 .abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 8px; }
 @container abas (max-width: 840px) { .abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 0; } }
+
+/* Painel ⚙ Configurações: títulos das seções (Interface, Resolução, Som) */
+.config-secao { margin: .7rem 0 .25rem; font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro-claro, #e6c27a); }
+#config-painel .config-interface { flex-wrap: wrap; }

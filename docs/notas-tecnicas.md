@@ -1465,3 +1465,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   fazia todo painel rolar 15px); ficha da esquerda compacta (retrato 86px, menos espaços); Mapa do Reino com largura
   `calc((100dvh - 330px) * 1.79)`; cartas dos monstros com arte de altura `clamp(100px, 100dvh - 708px, 260px)`,
   descrição em 2 linhas e ficha menor. Cabe em 1536x833 e maior; em telas baixas (ex.: 1366x657) ainda rola dentro.
+
+### ⚙ Configurações num painel só, com Resolução (Daniel, 20/11/2026)
+- `alternarPainel(fechar)` monta um painel único: 🎨 Interface (tema), 🖥 Resolução (só no computador: 80/90/100/110/125%)
+  e 🔊 Som. Entradas: ⚙ fixo (Clássica/Arcane), botão ⚙ ao lado do MENU na Zealot (`.menu-config-btn`), "⚙ Configurações"
+  no lugar de "🎨 Interface" no topo, e no menu do celular. `menu-interface`/`menu-som` viraram sinônimos de `menu-config`.
+- Resolução = `zoom` no <html> + variável `--escala` (guardada em `eldrin.escala`, aplicada no começo da página em
+  jogar/index.html e artifact.html). A Zealot (tela fixa) usa `height: calc(100dvh / var(--escala, 1))`, e as contas
+  com 100dvh (mapa, cartas dos monstros) dividem pela escala.
