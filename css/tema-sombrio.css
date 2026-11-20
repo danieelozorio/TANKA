@@ -620,3 +620,22 @@ html[data-celular] .rec-ico .ico-pintado { width: 100%; height: 100%; }
 @keyframes zg-dano { 0% { opacity: 0; transform: translate(-50%, -20%) scale(.6); } 15% { opacity: 1; transform: translate(-50%, -70%) scale(1.25); }
   35% { transform: translate(-50%, -90%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -190%) scale(.95); } }
 @media (prefers-reduced-motion: reduce) { .aba-entrou { animation: none; } }
+
+/* ---------- Herói › Personagem mais compacto (Daniel, 20/11/2026) ----------
+   Boneco mais junto e os bônus dos equipamentos ao lado dele (lá em cima), num quadro com linhas e valores em destaque. */
+@media (min-width: 1100px) {
+  html:not([data-celular]) .pg-equipamento .personagem-tela { grid-template-columns: auto minmax(210px, 250px); justify-content: center; gap: 1.1rem; align-items: start; }
+  html:not([data-celular]) .pg-equipamento .lateral { grid-template-columns: 1fr; }
+  html:not([data-celular]) .pg-equipamento .boneco { --slot: 58px; gap: .4rem .55rem; max-width: 380px; margin: 0; }
+  html:not([data-celular]) .pg-equipamento .retrato-central { max-width: 236px; }
+}
+.pg-equipamento .lateral > .caixa-interna { padding: .7rem .8rem .8rem; border-color: #5a4630;
+  background: linear-gradient(180deg, rgba(40, 28, 18, .85), rgba(16, 12, 9, .9)); box-shadow: inset 0 0 0 1px #000, inset 0 0 22px rgba(0, 0, 0, .55); }
+.pg-equipamento .lateral > .caixa-interna > h3 { margin: 0 0 .5rem; padding-bottom: .4rem; font-size: .95rem; letter-spacing: .06em; color: #e7c98d;
+  border-bottom: 1px solid transparent; border-image: linear-gradient(90deg, #a07a3e, transparent) 1; }
+.pg-equipamento .lateral .status { gap: 0; font-size: .9rem; }
+.pg-equipamento .lateral .status dt, .pg-equipamento .lateral .status dd { padding: .28rem .2rem; border-bottom: 1px solid rgba(120, 95, 60, .18); }
+.pg-equipamento .lateral .status dt:nth-of-type(odd), .pg-equipamento .lateral .status dt:nth-of-type(odd) + dd { background: rgba(255, 220, 160, .035); }
+.pg-equipamento .lateral .status dt { color: #cdbb9a; }
+.pg-equipamento .lateral .status dd.mais { color: #7ee08f; font-weight: 700; font-variant-numeric: tabular-nums; text-shadow: 0 0 6px rgba(90, 220, 120, .35); }
+.pg-equipamento .lateral .status .conjunto-dt { color: #8fd3a0; }
