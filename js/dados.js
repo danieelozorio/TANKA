@@ -876,51 +876,59 @@ Tanka.dados = {
   },
   // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
   // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).
-  // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (2 por par).
+  // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (1 por par).
   // Pontos: 1 por level do 41 ao 60; no level 60, mais 1 a cada `expPorPonto` x (exp do level 59) até `limitePontos`.
-  // Só vale contra monstros (caçada, masmorra, chefes), como as skills do clã; a Arena não usa.
+  // Vale contra monstros e na Arena (tudo o que é de luta; crítico vira dano lá, precisão e esquiva não contam).
   // Efeitos (%, salvo indicado): dano, danoChefe, danoMeiaVida (alvo < 50%), danoCacada, critico (pontos), danoCritico,
-  // precisao (pontos), defesa (física), defesaMagica, vida, velocidade, evasao (pontos), rouboVida, reflete,
-  // reducaoDano, danoHab, recargaPct (% menos recarga, mínimo 2), curaHab (% da vida ao usar habilidade), ouro, exp, drop.
+  // precisao (pontos), defesa (física), defesaMagica, vida, velocidade (%), velocidadePts (pontos), evasao (pontos),
+  // rouboVida, reflete, reducaoDano, danoHab, recargaMenos (turnos), curaHab (% da vida ao usar habilidade), ouro, exp,
+  // drop, danoHibrido (% do dano contra a defesa oposta), danoVidaAtual (% da vida atual do alvo por golpe),
+  // golpeCerteiro (crítico ignora x% da defesa; roubo de vida pela metade), primeiroGolpe (1ª habilidade +x% e alvo −30% de velocidade).
   ASCENSAO: {
     nome: 'Pacto de Ascensão',
-    nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 70, maxPedras: 3,
-    custo: { pequeno: 1, notavel: 2, ponte: 2, pedra: 4 },
-    precoRefazer: 1000000,   // ouro para zerar o Pacto e distribuir de novo (Daniel, 20/11/2026: era 50 mil, trocar de caminho ficou de graça)
+    // Pacto v2 (Henri, 20/11/2026): limite 48 pontos, ponte custa 3, sem o atalho entre os pontos de custo 1 (passa
+    // pelo Notável), uma ponte só por par de domínios. Zerar: 500 mil + 250 mil a cada vez na mesma semana (volta na segunda).
+    nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 48, maxPedras: 3,
+    custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
+    precoRefazer: 500000, precoRefazerMais: 250000,
+    versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
-      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 2 },
+      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 1 },
         trilhas: [
-          { nome: 'Carniceiro', pequeno: { dano: 2 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 6, precisao: -3 } },
-            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+25% de dano', custo: '−15% de vida máxima', ef: { dano: 25, vida: -15 } } },
-          { nome: 'Executor', pequeno: { danoChefe: 3 }, notavel: { nome: 'Sem Piedade', ef: { danoMeiaVida: 10 } },
-            pedra: { id: 'execucao', nome: 'Execução', txt: '+40% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem está com a vida cheia', ef: { execucao: 1 } } },
+          { nome: 'Carniceiro', pequeno: { dano: 2 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 5, precisao: -3 } },
+            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+15% de dano', custo: '−15% de vida máxima', ef: { dano: 15, vida: -15 } } },
+          // danoVidaAtual: cada golpe tira a mais x% da vida ATUAL do alvo (no máximo o mesmo dano do golpe)
+          { nome: 'Executor', pequeno: { danoVidaAtual: 1 }, notavel: { nome: 'Sem Piedade', ef: { danoVidaAtual: 3 } },
+            pedra: { id: 'execucao', nome: 'Execução', txt: '+40% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem tem mais de 30% da vida', ef: { execucao: 1 } } },
         ] },
-      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { critico: 1 },
+      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { danoCritico: 3 },
         trilhas: [
-          { nome: 'Olho de Falcão', pequeno: { critico: 1 }, notavel: { nome: 'Mira Firme', ef: { critico: 3, precisao: 5 } },
-            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'Todo 4º golpe é crítico garantido', custo: 'Os outros críticos causam −20% de dano', ef: { golpeCerteiro: 1 } } },
-          { nome: 'Lâmina Fina', pequeno: { danoCritico: 4 }, notavel: { nome: 'Corte Profundo', ef: { danoCritico: 12 } },
-            pedra: { id: 'ferida-aberta', nome: 'Ferida Aberta', txt: 'O crítico faz sangrar: mais 30% do golpe em 3 turnos', custo: '−2 de chance de crítico', ef: { feridaAberta: 30, critico: -2 } } },
+          { nome: 'Olho de Falcão', pequeno: { danoCritico: 4 }, notavel: { nome: 'Mira Firme', ef: { danoCritico: 10, precisao: 5 } },
+            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'O crítico ignora 30% da defesa do alvo (na Arena: com 18 ou mais no dado)', custo: 'Seu roubo de vida perde 50% de eficiência', ef: { golpeCerteiro: 30 } } },
+          // danoHibrido: x% do dano vai contra a defesa oposta (mago: defesa física; guerreiro: defesa mágica)
+          { nome: 'Lâmina Fina', pequeno: { danoHibrido: 3 }, notavel: { nome: 'Corte Fino', ef: { danoHibrido: 6 } },
+            pedra: { id: 'ferida-aberta', nome: 'Ferida Profunda', txt: '+20% de dano híbrido', custo: '−10% de vida máxima', ef: { danoHibrido: 20, vida: -10 } } },
         ] },
-      { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 },
+      { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 }, tronco2: { defesaMagica: 2 },   // 2º ponto: defesa mágica
         trilhas: [
-          { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 4 } },
+          { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 8 } },
             pedra: { id: 'inabalavel', nome: 'Inabalável', txt: '−15% de dano recebido', custo: '−10% de velocidade', ef: { reducaoDano: 15, velocidade: -10 } } },   // 20/11/2026: saiu o +25% de defesa com pouca vida
-          { nome: 'Espinhos', pequeno: { defesaMagica: 2 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
+          { nome: 'Espinhos', pequeno: { defesaMagica: 3 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
             pedra: { id: 'couraca-de-espinhos', nome: 'Couraça de Espinhos', txt: 'Devolve 20% do dano recebido', custo: '−8% de dano', ef: { reflete: 20, dano: -8 } } },
         ] },
       { id: 'vigor', nome: 'Vigor', cor: '#4fbf62', tema: 'Vida e cura', tronco: { vida: 2 },
         trilhas: [
           { nome: 'Sangue Vivo', pequeno: { vida: 3 }, notavel: { nome: 'Coração Forte', ef: { vida: 8 } },
-            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 1,5% da vida a cada turno', custo: 'Poções curam só metade da vida', ef: { regen: 1.5, pocaoMetade: 1 } } },   // 20/11/2026: era 3%
+            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 1,5% da vida a cada turno', custo: '−5% de defesa e −5% de defesa mágica', ef: { regen: 1.5, defesa: -5, defesaMagica: -5 } } },   // 20/11/2026: era 3%; custo era poção pela metade
           { nome: 'Vampiro', pequeno: { rouboVida: 1 }, notavel: { nome: 'Presas', ef: { rouboVida: 3 } },
-            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: 'Não pode usar poção', ef: { rouboVida: 6, semPocao: 1 } } },   // 20/11/2026: era 10%
+            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: '−10% de vida máxima', ef: { rouboVida: 6, vida: -10 } } },   // 20/11/2026: era 10%; custo era sem poção
         ] },
-      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidade: 2 },   // 20/11/2026: era +1%
+      // Velocidade em pontos (Henri, 20/11/2026): 2% virou +10 e 5% virou +25 de velocidade (velocidadePts).
+      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidadePts: 10 },
         trilhas: [
-          { nome: 'Relâmpago', pequeno: { velocidade: 2 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidade: 5, evasao: 3 } },
-            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'Começa a luta com a barra de ataque cheia e o 1º golpe tem +40% de dano', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
-          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaPct: 15 } },   // 20/11/2026: era −1 turno em tudo (recarga 2 virava todo turno)
+          { nome: 'Relâmpago', pequeno: { velocidadePts: 10 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 25, evasao: 3 } },
+            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +40% de dano e deixa o inimigo 30% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
+          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 20/11/2026: −1 turno em todas as habilidades
             pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
@@ -931,14 +939,15 @@ Tanka.dados = {
             pedra: { id: 'sabedoria', nome: 'Sabedoria', txt: '+25% de exp; com os pontos no limite, vira +20% de drop', custo: '−15% de ouro', ef: { sabedoria: 1, ouro: -15 } } },
         ] },
     ],
-    // Pontes entre domínios vizinhos [perto do centro, longe do centro] (ligam a 2ª trilha de um à 1ª do outro).
+    // Uma ponte por par de domínios (Henri, 20/11/2026): a de fora (perto das Pedras) saiu e o bônus dela passou para
+    // esta; a Fortuna ⇄ Fúria ficou com +2% de ouro e +2% de dano. Liga a 2ª trilha de um domínio à 1ª do vizinho.
     pontes: [
-      [{ dano: 1, critico: 1 }, { dano: 3, danoCritico: 4 }],             // Fúria ⇄ Precisão
-      [{ critico: 1, defesa: 2 }, { reducaoDano: 4 }],                    // Precisão ⇄ Bastião
-      [{ defesa: 2, vida: 2 }, { vida: 5, defesa: 5 }],                   // Bastião ⇄ Vigor
-      [{ vida: 2, velocidade: 1 }, { curaHab: 5 }],                       // Vigor ⇄ Tempestade
-      [{ velocidade: 1, ouro: 2 }, { exp: 4, ouro: 4 }],                  // Tempestade ⇄ Fortuna
-      [{ ouro: 2, dano: 1 }, { danoCacada: 5 }],                          // Fortuna ⇄ Fúria
+      { dano: 3, danoCritico: 4 },     // Fúria ⇄ Precisão
+      { reducaoDano: 4 },              // Precisão ⇄ Bastião
+      { vida: 5, defesa: 5 },          // Bastião ⇄ Vigor
+      { curaHab: 5 },                  // Vigor ⇄ Tempestade
+      { exp: 4, ouro: 4 },             // Tempestade ⇄ Fortuna
+      { ouro: 2, dano: 2 },            // Fortuna ⇄ Fúria
     ],
   },
   // ---------- Reino do Pesadelo (Henri, nov/2026): conteúdo final, do level 40 ao 60 ----------

@@ -1573,6 +1573,20 @@ begin
   update public.personagens set dados = d0 where id = 'pa';
   raise notice 'ok   pacto na Arena: Farpas + Couraça devolvem 25%%';
 end $$;
+-- Pacto v2 na Arena (20/11/2026): velocidade em pontos (Tempestade) e dano híbrido (Lâmina Fina) chegam no lutador.
+do $$
+declare d0 jsonb; l0 jsonb; l jsonb;
+begin
+  select dados into d0 from public.personagens where id = 'pa';
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": [], "exp": 0, "extras": 0, "v": 2}}' where id = 'pa';
+  l0 := public.arena_lutador('pa');
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": ["tempestade-t0", "tempestade-t1", "precisao-t0", "precisao-t1", "precisao-1-0", "precisao-1-1", "precisao-1-2"], "exp": 0, "extras": 0, "v": 2}}' where id = 'pa';
+  l := public.arena_lutador('pa');
+  if (l ->> 'velBase')::numeric <> (l0 ->> 'velBase')::numeric + 20 then raise exception 'FALHA Pacto v2: velocidade % (antes %)', l ->> 'velBase', l0 ->> 'velBase'; end if;
+  if coalesce((l -> 'ex' ->> 'danoHibrido')::numeric, 0) <> 12 then raise exception 'FALHA Pacto v2: dano híbrido %', l -> 'ex' ->> 'danoHibrido'; end if;
+  update public.personagens set dados = d0 where id = 'pa';
+  raise notice 'ok   Pacto v2 na Arena: velocidade em pontos e dano híbrido';
+end $$;
 -- Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026): tanka_status soma as skills do clã (do banco) e o Pacto
 do $$
 declare d jsonb; s0 jsonb; s1 jsonb; al bigint;

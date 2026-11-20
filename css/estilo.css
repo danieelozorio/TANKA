@@ -2378,3 +2378,13 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 .atr-passo { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; flex-wrap: wrap; }
 .atr-passo .btn.mini { padding: .2em .7em; }
 .atr-passo .btn[aria-pressed="true"] { border-color: #e2bb63 !important; color: #ffe7a6 !important; box-shadow: 0 0 8px rgba(226, 187, 99, .45) !important; }
+
+/* Pacto v2 (Henri, 20/11/2026): caminho até o ponto tocado, arrastar o mapa, balão de zerar, exp do Pacto */
+.asc-no.caminho > circle:first-child, .asc-no.caminho > rect:first-child { stroke-dasharray: 5 4; stroke-width: 3.4; stroke-opacity: 1; }
+.asc-no.caminho { filter: drop-shadow(0 0 6px rgba(255, 220, 140, .65)); }
+.pacto-mapa { cursor: grab; touch-action: pan-x pan-y; }
+.pacto-mapa.arrastando { cursor: grabbing; user-select: none; }
+.pacto-zerar { max-width: 420px; text-align: center; }
+.pacto-zerar .botoes { justify-content: center; }
+.exp-pacto { color: #c9a2ff; font-weight: 700; letter-spacing: .04em; font-size: .85em; }
+.barra.exp.pacto .barra-preenchida, .casca-exp.pacto b { background: linear-gradient(90deg, #6b3fd1, #b48cff) !important; }

@@ -1512,3 +1512,20 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Aplicado no Supabase (20/11/2026) trocando só os trechos (o banco tem as funções com quebra de linha \r\n: normalizar
   com replace(..., chr(13)||chr(10), chr(10)) antes de procurar). `tanka_dados()` no banco foi refeito a partir do
   jsonb (texto diferente do arquivo, conteúdo igual): para conferir esse, comparar o jsonb, não o md5 do texto.
+
+## Pacto v2 (Henri, 20/11/2026)
+- Estrutura: sem o atalho 1↔3 das trilhas (passa pelo Notável); 1 ponte por par (`ponte-a-b-0`, entre os `-1-1`/`-0-1`;
+  `ASCENSAO.pontes` virou lista de objetos) com o bônus da antiga ponte de fora (Fortuna ⇄ Fúria: +2% ouro, +2% dano);
+  ponte custa 3; `limitePontos` 48; tronco pode ter `tronco2` (2º ponto: Bastião dá defesa mágica).
+- Migração: `ascensao.v` < `ASCENSAO.versao` (2) → `R.normalizar` zera os pontos (de graça) e marca `avisoPactoV2` (a tela
+  avisa uma vez e devolve 2 pelas preferências). Compras novas já gravam `v: 2`.
+- Zerar: `R.precoRefazerAscensao(p, agora)` = 500 mil + 250 mil × vezes na semana (`ascensao.refeitos = {semana, n}`,
+  semana de `semanaReset`); balão no meio da tela. Exp no 60: igual à do 59 por ponto (já era); "(PACTO)" na exp.
+- Efeitos novos: `velocidadePts` (Tempestade, pontos), `recargaMenos` (Foco −1 turno, mínimo 1), `primeiroGolpe` (1ª
+  habilidade +40% e alvo −30% de velocidade até o fim da luta; sem barra cheia), `golpeCerteiro: 30` (crítico ignora 30% da
+  defesa; Arena: dado 18+; roubo de vida ×0,5), `danoHibrido` (x% do dano contra a defesa oposta), `danoVidaAtual`
+  (x% da vida atual do alvo por golpe, no máximo o dano do golpe), Execução −10% acima de 30%. Mesmo em `calcularGolpe`
+  e em `arena_vez`/`arena_lutador`/`arena_com_pacto` (SQL).
+- Tela: tocar num ponto longe mostra o caminho mais barato (`R.caminhoAscensao`, Dijkstra pelo custo, sem atravessar
+  Pedra) e "Pegar o caminho"; confirma tudo de uma vez. Mapa arrasta com o mouse (pointer events; clique depois do
+  arrasto não conta) e rola com o dedo.

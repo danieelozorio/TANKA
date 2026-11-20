@@ -191,7 +191,7 @@ Tanka.servidorAcoes = (function () {
       }
       return true;
     },
-    refazerAscensao: function (p) { return ok(R.refazerAscensao(p), 'Não foi possível.'); },
+    refazerAscensao: function (p, a, ctx) { return ok(R.refazerAscensao(p, ctx.agora), 'Não foi possível.'); },   // 500 mil +250 mil por vez na semana
     // [modo, id, op]: ordem de uso das habilidades
     ordemHabilidade: function (p, a) {
       a = Array.isArray(a) ? a : [];

@@ -536,6 +536,10 @@
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
     var presenteA3 = estado.personagem.presenteAtributos3 === 1;
     if (presenteA3) estado.personagem.presenteAtributos3 = 2;
+    if (estado.personagem.avisoPactoV2 === 1) {   // Pacto v2 (20/11/2026): os pontos voltaram de graça
+      estado.personagem.avisoPactoV2 = 2;
+      setTimeout(function () { avisar('🔮 O Pacto de Ascensão mudou! Seus pontos voltaram de graça: escolha o caminho de novo (Herói › Pacto).', 'nivel'); }, 1600);
+    }
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
@@ -1116,15 +1120,21 @@
   function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'ascensao' ? seloAscensao() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   // Topo da casca do celular: retrato (vai para o Herói), nome, level e exp; chat, missões e menu em ícones
   // (no lugar dos botões que flutuavam por cima do jogo).
+  // Level 60 (Henri, 20/11/2026): a exp passa a encher o próximo ponto do Pacto; mostra "(PACTO)". null = Pacto no limite.
+  function expPacto(p) {
+    if (!p || p.nivel < D.NIVEL_MAXIMO || R.pontosAscensaoTotal(p) >= D.ASCENSAO.limitePontos) return null;
+    var prec = R.expPorPontoAscensao(), ex = Math.min(prec, (p.ascensao && p.ascensao.exp) || 0);
+    return { pct: Math.max(0, Math.min(100, ex * 100 / prec)) };
+  }
   function cascaTopoHtml(menu) {
-    var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO;
-    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO, ep = expPacto(p);
+    var pct = ep ? ep.pct : maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
     var prontas = avisosMissoes(p, C.agora());
     return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
       + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
       + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
-      + '<i class="casca-exp" title="' + (maximo ? 'Level máximo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
+      + '<i class="casca-exp' + (ep ? ' pacto' : '') + '" title="' + (ep ? 'Exp ' + Math.floor(pct) + '% (PACTO)' : maximo ? 'Pacto completo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
       + '<button class="casca-ico" data-acao="casca-grupo" aria-label="Grupo">👥<span class="casca-selo" id="casca-grupo-selo" hidden></span></button>'
@@ -1320,8 +1330,8 @@
       + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : sV.hpMax, emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax, (emBatalha ? estado.batalha.jogador.hp : sV.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
-      + '<div class="suave">Experiência</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
-        ? barra('exp maximo', 1, 1, 'Level máximo')
+      + '<div class="suave">Experiência' + (expPacto(p) ? ' <b class="exp-pacto">(PACTO)</b>' : '') + '</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
+        ? (expPacto(p) ? barra('exp pacto', expPacto(p).pct, 100, Math.floor(expPacto(p).pct) + '% (PACTO)') : barra('exp maximo', 1, 1, 'Pacto completo'))
         : barra('exp', p.exp, precisa, Math.floor(Math.min(100, p.exp * 100 / precisa)) + '%')) + '</div>'
       + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
@@ -2346,6 +2356,7 @@
     precisao: ['', 'de precisão'], defesa: ['%', 'de defesa'], defesaMagica: ['%', 'de defesa mágica'], vida: ['%', 'de vida'],
     velocidade: ['%', 'de velocidade'], evasao: ['', 'de esquiva'], rouboVida: ['%', 'de roubo de vida'], danoHab: ['%', 'de dano das habilidades'],
     ouro: ['%', 'de ouro'], exp: ['%', 'de exp'], drop: ['%', 'de chance de drop'],
+    velocidadePts: ['', 'de velocidade'], danoHibrido: ['%', 'de dano híbrido'],
   };
   function efAscTexto(ef) {
     return Object.keys(ef).map(function (k) {
@@ -2355,6 +2366,9 @@
       if (k === 'recargaPct') return 'Habilidades recarregam ' + v + '% mais rápido (nunca menos de 2 turnos)';
       if (k === 'eruditoExp') return '+' + v + '% de exp (com os pontos no limite, vira +' + fmtDec(Math.round(v / 3 * 10) / 10) + '% de drop)';
       if (k === 'curaHab') return 'Cura ' + v + '% da vida ao usar uma habilidade';
+      if (k === 'recargaMenos') return 'Habilidades recarregam ' + v + ' turno' + (v > 1 ? 's' : '') + ' mais rápido';
+      if (k === 'danoVidaAtual') return '+' + v + '% da vida atual do alvo em cada golpe';
+      if (k === 'danoHibrido') return '+' + v + '% de dano híbrido (vai contra a defesa oposta)';
       var n = NOME_EF_ASC[k];
       return n ? (v > 0 ? '+' : '−') + Math.abs(v) + n[0] + ' ' + n[1] : '';
     }).filter(Boolean).join(' · ');
@@ -2385,7 +2399,7 @@
     var curvas = {};
     doms.forEach(function (g, i) {
       var h = doms[(i + 1) % n];
-      [1, 3].forEach(function (k, q) {
+      [1].forEach(function (k, q) {   // Pacto v2: uma ponte por par (a de fora saiu)
         var id = 'ponte-' + g.d.id + '-' + h.d.id + '-' + q, a = pos[g.d.id + '-1-' + k], b = pos[h.d.id + '-0-' + k];
         var meio = pt(q ? 470 : 345, (g.ang + h.ang) / 2 + (i === n - 1 ? 180 : 0));
         curvas[id] = { a: a, b: b, meio: meio, cores: [g.d.cor, h.d.cor] };
@@ -2399,6 +2413,7 @@
     var total = R.pontosAscensaoTotal(p), aberto = p.nivel >= AS.nivelInicio;
     var tem = function (id) { return lista.indexOf(id) >= 0; };
     var podeId = function (id) { return aberto && !tem(id) && !R.motivoAscensao(lista, id, total); };
+    var caminho = sel && aberto && !tem(sel) ? R.caminhoAscensao(lista, sel) || [] : [];   // caminho até o ponto tocado
     var travada = function (id) { return A[id].tipo === 'pedra' && !tem(id) && lista.some(function (x) { return A[x].tipo === 'pedra' && A[x].dom === A[id].dom; }); };
     var cor = function (id) { var no = A[id]; return no.dom ? D.ASCENSAO.dominios.filter(function (d) { return d.id === no.dom; })[0].cor : '#e6cf9c'; };
     var L = function (a, b, c, op, w, extra) { return '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + c + '" stroke-opacity="' + op + '" stroke-width="' + w + '"' + (extra || '') + '/>'; };
@@ -2423,8 +2438,6 @@
         var b = d.id + '-' + t + '-';
         s += L(pos[d.id + '-t1'], pos[b + 0], c, ligado(d.id + '-t1', b + 0) ? 1 : .6, ligado(d.id + '-t1', b + 0) ? 4.5 : 3);
         for (var k = 1; k < 5; k++) s += L(pos[b + (k - 1)], pos[b + k], c, ligado(b + (k - 1), b + k) ? 1 : .6, ligado(b + (k - 1), b + k) ? 4.5 : 3);
-        var q = G.pt(450, g.ang + (t ? 1 : -1) * 21);
-        s += '<path d="M' + pos[b + 1][0] + ' ' + pos[b + 1][1] + ' Q' + q[0] + ' ' + q[1] + ' ' + pos[b + 3][0] + ' ' + pos[b + 3][1] + '" stroke="' + c + '" stroke-opacity="' + (ligado(b + 1, b + 3) ? .9 : .3) + '" stroke-width="1.8" fill="none"/>';
         s += L(pos[b + 4], pos[b + 'p'], c, ligado(b + 4, b + 'p') ? 1 : .6, ligado(b + 4, b + 'p') ? 4.5 : 3);
       });
       var lab = G.pt(300, g.ang);
@@ -2435,7 +2448,7 @@
     // pontos (clicáveis)
     Object.keys(A).forEach(function (id) {
       var no = A[id], xy = pos[id], c = cor(id), on = tem(id), pd = pend.indexOf(id) >= 0, livre = podeId(id), off = travada(id);
-      var cls = 'asc-no' + (on ? ' on' : '') + (livre ? ' livre' : '') + (sel === id ? ' sel' : '');
+      var cls = 'asc-no' + (on ? ' on' : '') + (livre ? ' livre' : '') + (sel === id ? ' sel' : '') + (caminho.indexOf(id) >= 0 && sel !== id ? ' caminho' : '');
       var g = '<g class="' + cls + '" data-acao="asc-sel" data-id="' + id + '">';
       if (no.tipo === 'pedra') {
         var nm = AS.dominios.filter(function (d) { return d.id === no.dom; })[0].trilhas[no.trilha];
@@ -2489,9 +2502,15 @@
       titulo = no.tipo === 'notavel' ? no.nome : (tr ? tr.nome : dom.nome); texto = efAscTexto(no.ef);
     }
     var tipoNome = { pequeno: 'Ponto', notavel: 'Notável', ponte: 'Ponte', pedra: 'Pedra Angular' }[no.tipo];
-    var tem = lista.indexOf(id) >= 0, pd = pend.indexOf(id) >= 0, motivo = tem ? null : R.motivoAscensao(lista, id, R.pontosAscensaoTotal(p));
+    var tem = lista.indexOf(id) >= 0, pd = pend.indexOf(id) >= 0, total = R.pontosAscensaoTotal(p), motivo = tem ? null : R.motivoAscensao(lista, id, total);
+    // Pacto v2: ponto longe = pega o caminho mais barato até ele de uma vez (Henri, 20/11/2026)
+    var cam = !tem && motivo && /ligado/.test(motivo) && p.nivel >= AS.nivelInicio ? R.caminhoAscensao(lista, id) : null;
+    var camOk = cam && R.ordenarAscensao(lista.concat(cam), total);
+    var custoCam = cam ? R.custoNosAscensao(cam) : 0, livres = total - R.custoNosAscensao(lista);
     var botao = pd ? '<button class="btn secundario btn-pequeno" data-acao="asc-tirar" data-id="' + id + '">Tirar</button>'
       : tem ? '<span class="mais pequeno">✔ Já é seu</span>'
+      : cam && camOk ? '<button class="btn btn-pequeno" data-acao="asc-caminho" data-id="' + id + '">Pegar o caminho (' + cam.length + ' pontos · ' + custoCam + ' de custo)</button>'
+      : cam && custoCam > livres ? '<span class="suave pequeno">O caminho custa ' + custoCam + ' pontos; você tem ' + livres + '.</span>'
       : motivo ? '<span class="suave pequeno">' + motivo + '</span>'
       : '<button class="btn btn-pequeno" data-acao="asc-pegar" data-id="' + id + '">Pegar (' + no.custo + ' ponto' + (no.custo > 1 ? 's' : '') + ')</button>';
     return '<div class="pacto-detalhe" style="--cor-dom:' + (dom ? dom.cor : '#e6cf9c') + '"><button class="pacto-fechar" data-acao="asc-sel-fechar" aria-label="Fechar">✕</button>'
@@ -2508,7 +2527,7 @@
       return '<li><b>' + tr.pedra.nome + ':</b> ' + tr.pedra.txt + ' <span class="menos">(' + tr.pedra.custo + ')</span></li>';
     }).join('');
     var simples = {};
-    ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaPct', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
+    ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaPct', 'recargaMenos', 'danoVidaAtual', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
     return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
@@ -2527,12 +2546,19 @@
     if (pend.length) h += '<div class="botoes pacto-confirmar"><button class="btn" data-acao="asc-confirmar">Confirmar ' + R.custoNosAscensao(pend) + ' ponto' + (R.custoNosAscensao(pend) > 1 ? 's' : '') + '</button>'
       + '<button class="btn secundario" data-acao="asc-cancelar">Cancelar</button></div>';
     h += '<div class="pacto-mapa' + (estado.ascZoom ? ' zoom' : '') + '">' + pactoSvg(p, lista, pend) + '</div>'
-      + '<div class="pacto-legenda suave pequeno"><span><b>+</b> ponto · 1</span><span><b>★</b> notável · 2</span><span><b>⇄</b> ponte · 2</span><span><b>◯</b> Pedra Angular · 4</span>'
+      + '<div class="pacto-legenda suave pequeno"><span><b>+</b> ponto · 1</span><span><b>★</b> notável · 2</span><span><b>⇄</b> ponte · ' + AS.custo.ponte + '</span><span><b>◯</b> Pedra Angular · 4</span>'
       + '<button class="btn-mini" data-acao="asc-zoom">' + (estado.ascZoom ? '− Diminuir' : '+ Aumentar') + '</button></div>'
       + '<div id="pacto-detalhe">' + pactoDetalhe(p, lista, pend) + '</div>' + pactoResumo(p);
-    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + AS.precoRefazer.toLocaleString('pt-BR') + ' de ouro (os pontos voltam). '
-      + (estado.ascRefazer ? '<button class="btn perigo btn-pequeno" data-acao="asc-refazer">Confirmar: zerar</button> <button class="btn secundario btn-pequeno" data-acao="asc-refazer-nao">Cancelar</button>'
-        : '<button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button>') + '</p>';
+    var precoZ = R.precoRefazerAscensao(p, C.agora());
+    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + precoZ.toLocaleString('pt-BR') + ' de ouro (os pontos voltam; cada vez na mesma semana custa +'
+      + AS.precoRefazerMais.toLocaleString('pt-BR') + '). <button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button></p>';
+    // Balão de confirmação no meio da tela (Henri, 20/11/2026)
+    if (estado.ascRefazer) h += '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela pacto-zerar" role="dialog" aria-label="Zerar o Pacto">'
+      + '<button class="zoom-x" data-acao="asc-refazer-nao" aria-label="Fechar">✕</button><h3>Zerar o Pacto?</h3>'
+      + '<p>Todos os pontos voltam para você escolher de novo.</p><p>Custa <strong class="cor-ouro">' + precoZ.toLocaleString('pt-BR') + ' de ouro</strong>'
+      + ' <span class="suave">(você tem ' + (p.ouro || 0).toLocaleString('pt-BR') + ')</span>.</p>'
+      + '<p class="suave pequeno">A próxima vez nesta semana custa ' + (precoZ + AS.precoRefazerMais).toLocaleString('pt-BR') + '. O preço volta a ' + AS.precoRefazer.toLocaleString('pt-BR') + ' na segunda-feira.</p>'
+      + '<div class="botoes"><button class="btn perigo" data-acao="asc-refazer">Zerar</button><button class="btn secundario" data-acao="asc-refazer-nao">Cancelar</button></div></div></div>';
     return h;
   }
   // Tutorial do Pacto: aparece uma vez, quando o herói chega no level 40 (p.pactoVisto marca que já viu).
@@ -2548,7 +2574,7 @@
       + '<li><b>Comece no centro</b> e siga as linhas para fora.</li>'
       + '<li><b>Pedra Angular</b> no fim de cada trilha: forte, mas com um custo (máx. ' + AS.maxPedras + ').</li>'
       + '<li><b>Não dá para pegar tudo:</b> escolha o seu caminho.</li>'
-      + '</ol><p class="suave pequeno">Vale contra monstros, não na Arena.</p>'
+      + '</ol><p class="suave pequeno">Vale contra monstros e na Arena.</p>'
       + '<div class="botoes"><button class="btn" data-acao="pacto-tutorial-ir">Abrir o Pacto</button><button class="btn secundario" data-acao="pacto-tutorial-fechar">Depois</button></div>'
       + '</div></div>';
   }
@@ -2561,6 +2587,24 @@
     if (r && r.zoom === !!estado.ascZoom) { m.scrollLeft = r.x; m.scrollTop = r.y; }
     else { m.scrollLeft = (m.scrollWidth - m.clientWidth) / 2; m.scrollTop = (m.scrollHeight - m.clientHeight) / 2; }
     m.onscroll = function () { estado.ascRolagem = { x: m.scrollLeft, y: m.scrollTop, zoom: !!estado.ascZoom }; };
+    // Arrastar com o mouse para andar pelo mapa (Henri, 20/11/2026); com o dedo, a rolagem do próprio navegador.
+    // Um arrasto de mais de 5px não conta como toque no ponto.
+    var arr = null;
+    m.onpointerdown = function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      arr = { x: e.clientX, y: e.clientY, sl: m.scrollLeft, st: m.scrollTop, mexeu: false };
+    };
+    m.onpointermove = function (e) {
+      if (!arr) return;
+      var dx = e.clientX - arr.x, dy = e.clientY - arr.y;
+      if (!arr.mexeu && Math.abs(dx) + Math.abs(dy) > 5) { arr.mexeu = true; m.classList.add('arrastando'); try { m.setPointerCapture(e.pointerId); } catch (x) { /* ignora */ } }
+      if (arr.mexeu) { m.scrollLeft = arr.sl - dx; m.scrollTop = arr.st - dy; }
+    };
+    m.onpointerup = m.onpointercancel = function () {
+      if (arr && arr.mexeu) { m.classList.remove('arrastando'); m.dataset.arrastou = '1'; setTimeout(function () { delete m.dataset.arrastou; }, 0); }
+      arr = null;
+    };
+    m.addEventListener('click', function (e) { if (m.dataset.arrastou) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
   // Redesenha só o Pacto, guardando a rolagem do mapa.
   function redesenharPacto() {
@@ -5023,7 +5067,7 @@
     var p = estado.personagem;
     return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
       atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, pactoVisto: !!p.pactoVisto };
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, avisoPactoV2: p.avisoPactoV2, pactoVisto: !!p.pactoVisto };
   }
   function salvarPreferencias() {
     if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
@@ -5296,10 +5340,10 @@
   }
   // Barrinha fina de experiência embaixo da vida, na caçada (só para ter uma noção de quanto falta para o level).
   function expFinaHtml(p) {
-    var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
-    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
-    var texto = maximo ? 'Level máximo' : 'Experiência: ' + Math.floor(pct) + '%';
-    var numero = maximo ? 'Level máximo' : '✦ ' + Math.floor(pct) + '%';
+    var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel), ep = expPacto(p);
+    var pct = ep ? ep.pct : maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var texto = ep ? 'Experiência: ' + Math.floor(pct) + '% (PACTO)' : maximo ? 'Pacto completo' : 'Experiência: ' + Math.floor(pct) + '%';
+    var numero = ep ? '✦ ' + Math.floor(pct) + '% (PACTO)' : maximo ? 'Pacto completo' : '✦ ' + Math.floor(pct) + '%';
     return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
       + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i><b>' + numero + '</b></div>';
   }
@@ -6209,6 +6253,13 @@
         redesenharPacto();
         break;
       }
+      case 'asc-caminho': {   // Pacto v2: o caminho inteiro até o ponto, de uma vez (confirma tudo no fim)
+        var lcm = R.nosAscensao(p).concat(pendAsc()), cm = R.caminhoAscensao(lcm, el.dataset.id);
+        if (!cm || !R.ordenarAscensao(lcm.concat(cm), R.pontosAscensaoTotal(p))) { avisar('Não dá para chegar nesse ponto agora.'); break; }
+        cm.forEach(function (x) { pendAsc().push(x); });
+        redesenharPacto();
+        break;
+      }
       case 'asc-tirar': {
         // tira o ponto e os que dependiam dele (os que não ficam mais ligados)
         var resto = pendAsc().filter(function (x) { return x !== el.dataset.id; }), base = R.nosAscensao(p), tot = R.pontosAscensaoTotal(p), ok = [];
@@ -6232,7 +6283,7 @@
       case 'asc-refazer-nao': estado.ascRefazer = false; redesenharPacto(); break;
       case 'asc-refazer': {
         estado.ascRefazer = false;
-        var rz = R.refazerAscensao(p);
+        var rz = R.refazerAscensao(p, C.agora());
         if (rz === true) { estado.ascPend = []; acaoServidor('refazerAscensao'); telaJogo(); avisar('Pacto zerado: escolha o caminho de novo.', 'nivel'); }
         else { avisar(rz); redesenharPacto(); }
         break;
