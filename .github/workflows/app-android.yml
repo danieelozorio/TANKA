@@ -90,7 +90,7 @@ jobs:
           # Faixas da barra de notificações e da barra de baixo: pretas, com ícones claros.
           sed -i '/name="AppTheme.NoActionBar"/a\        <item name="android:windowBackground">@android:color/black</item>\n        <item name="android:windowLightStatusBar">false</item>\n        <item name="android:windowLightNavigationBar">false</item>' android/app/src/main/res/values/styles.xml
           cat android/app/src/main/res/values/styles.xml
-          npx capacitor-assets generate --android --assetPath assets --iconBackgroundColor '#0a0c12' --splashBackgroundColor '#010302' --splashBackgroundColorDark '#010302'
+          npx capacitor-assets generate --android --assetPath assets --iconBackgroundColor '#01040f' --splashBackgroundColor '#010302' --splashBackgroundColorDark '#010302'
           sed -i -E "s/versionCode [0-9]+/versionCode $N/; s/versionName \"[^\"]*\"/versionName \"1.0.$N\"/" android/app/build.gradle
           grep -E 'versionCode|versionName' android/app/build.gradle
           npx cap sync android
