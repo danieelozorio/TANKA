@@ -1461,3 +1461,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   partículas e ~30 quadros/s. Para com a aba escondida; não roda com "menos movimento".
 - `css/tema-sombrio.css` (fim): nome e Poder respirando em brasa, lendários pulsando, barra piscando no dano
   (`.levou-dano`), vida baixa em alerta (`.vida-baixa`), chefe ardendo, VS em fogo.
+- Zealot no PC sem rolar (20/11/2026, fim do tema-sombrio.css): cantos dos painéis que rolam com `inset: 0` (o -15px
+  fazia todo painel rolar 15px); ficha da esquerda compacta (retrato 86px, menos espaços); Mapa do Reino com largura
+  `calc((100dvh - 330px) * 1.79)`; cartas dos monstros com arte de altura `clamp(100px, 100dvh - 708px, 260px)`,
+  descrição em 2 linhas e ficha menor. Cabe em 1536x833 e maior; em telas baixas (ex.: 1366x657) ainda rola dentro.

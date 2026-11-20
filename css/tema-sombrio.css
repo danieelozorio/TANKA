@@ -468,3 +468,32 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) {
   .ficha .cabeca h2, .poder-destaque, .celula.borda-lendaria, .slot.borda-lendaria, .barra.levou-dano, .barra.levou-dano > i,
   .barra.vida-baixa, .cacada-encontro.chefe .moldura, .vs, .zealot-golpe { animation: none !important; }
 }
+
+/* ---------- PC: tudo na mesma tela, sem rolar (Daniel, 20/11/2026) ----------
+   Os cantos de pedra dos painéis (::before com inset -15px) faziam cada painel rolar 15px à toa: nos painéis que
+   rolam, os cantos ficam dentro. Ficha da esquerda compacta e o Mapa do Reino do tamanho que cabe na altura. */
+html:not([data-celular]) .jogo > :is(.ficha, section.caixa)::before { inset: 0; }
+@media (min-width: 701px) {
+  html:not([data-celular]) .ficha .cabeca { margin-bottom: .45rem; }
+  html:not([data-celular]) .ficha .cabeca .moldura { height: 86px; width: auto; }
+  html:not([data-celular]) .ficha > .suave { font-size: .88rem; line-height: 1.25; }
+  html:not([data-celular]) .ficha .barra { margin-bottom: .3rem; }
+  html:not([data-celular]) .ficha .vida-tempo { margin: 0 0 .2rem; }
+  html:not([data-celular]) .ficha .poder-destaque { margin: .45rem 0 .1rem; padding-block: .3rem; }
+  html:not([data-celular]) .ficha .secao { margin-top: .45rem; padding-top: .45rem; }
+  html:not([data-celular]) .ficha .secao > h3 { margin-bottom: .3rem; }
+  html:not([data-celular]) .ficha .arma-stats { gap: .25rem; margin-top: .4rem; }
+  html:not([data-celular]) .ficha .arma-stat { padding: .15rem .4rem; }
+  html:not([data-celular]) .ficha .ficha-sanfona { margin-top: .45rem; padding-block: .4rem; }
+  html:not([data-celular]) .ficha .atividades .status { margin-block: .2rem; }
+  /* Mapa do Reino: largura pela altura que sobra (a arte é 1024 x 572), centralizado */
+  html:not([data-celular]) .mapa-mundo { width: min(100%, calc((100dvh - 330px) * 1.79)); margin-inline: auto; }
+  /* Escolher os monstros: carta mais baixa (arte mais curta, texto e ficha menores) para caber 1 fileira na altura */
+  html:not([data-celular]) .monstros { gap: .7rem; }
+  html:not([data-celular]) .monstro .moldura { aspect-ratio: auto; height: clamp(100px, calc(100dvh - 708px), 260px); }
+  html:not([data-celular]) .monstro .moldura img { object-position: center 30%; }
+  html:not([data-celular]) .monstro .corpo { padding: .5rem .65rem; gap: .25rem; }
+  html:not([data-celular]) .monstro .corpo > h3 { margin: 0; font-size: 1rem; }
+  html:not([data-celular]) .monstro .corpo > p.suave { margin: 0; font-size: .82rem; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  html:not([data-celular]) .ficha-monstro { font-size: .78rem; line-height: 1.3; }
+}
