@@ -637,10 +637,10 @@
     pocao: svg('<path d="M9.5 3h5M10.5 3v5L6 15.5A3.5 3.5 0 0 0 9 21h6a3.5 3.5 0 0 0 3-5.5L13.5 8V3"/><path d="M7.5 14h9"/>'),
     arena: svg('<path d="M4 4l9 9M4 4v3.5M4 4h3.5M20 4l-9 9M20 4v3.5M20 4h-3.5M7 15l-3 3 2 2 3-3M17 15l3 3-2 2-3-3"/>'),
     heroi: svg('<path d="M12 3l7 3v5.5c0 4.3-3 8-7 9.5-4-1.5-7-5.2-7-9.5V6z"/><path d="M12 8v8M9 11h6"/>'),
-    aventura: svg('<path d="M14.5 4.5l5 5L9 20H4v-5z"/><path d="M12 7l5 5"/>'),
+    aventura: svg('<circle cx="12" cy="12" r="9"/><path d="m15.8 8.2-2.3 5.3-5.3 2.3 2.3-5.3z"/><path d="M12 3v1.6M12 19.4V21M3 12h1.6M19.4 12H21"/>'),   // bússola (19/11/2026)
     leilao: svg('<path d="m8 4 8 8m-6-10 8 8m-7-1-7 7m9 3h8m-8 3h8"/>'),
     loja: svg('<path d="M12 2 19 9 12 22 5 9Z"/><path d="M5 9h14M9.5 9 12 2l2.5 7L12 22Z"/>'),
-    mercado: svg('<path d="M5 8h14l-1.2 11.5a1.5 1.5 0 0 1-1.5 1.5H7.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>'),
+    mercado: svg('<path d="M4 7.5h16l-1.3 12.3a1.8 1.8 0 0 1-1.8 1.7H7.1a1.8 1.8 0 0 1-1.8-1.7z"/><path d="M8.5 10V6a3.5 3.5 0 0 1 7 0v4"/>'),   // sacola
     oficinas: svg('<path d="M3 21h18M5 21V11l7-5 7 5v10"/><path d="m10 14 4 4m0-4-4 4"/>'),
     social: svg('<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5c.6-3.3 2.8-5.2 5.5-5.2s4.9 1.9 5.5 5.2"/><circle cx="17" cy="9.5" r="2.5"/><path d="M15.8 14.5c2.3.2 3.9 1.9 4.4 4.6"/>'),
     cadeado: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h6V7.5a3 3 0 0 0-6 0z"/></svg>',

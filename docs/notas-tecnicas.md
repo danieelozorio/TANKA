@@ -1428,3 +1428,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   → `R.ganharSkin` (fica no personagem que comprou). Skins saíram do Mercado (`comprarSkin` com ouro recusa).
 - Abas: Social à esquerda do Leilão e a nova Loja à direita; a aba do Mercado de NPC passou a se chamar "Mercado".
 - Pendente: Passe de Batalha (mensal, 49 Éter, Grátis + Premium) e a compra real (Google Play Billing).
+
+## Regras de alinhamento das abas (Henri, 19/11/2026)
+- Fim do `css/estilo.css`: ícones das abas com tamanho fixo (`flex: none`); botões da barra principal cortam o texto
+  (`min-width: 0` + reticências); a barra é um container (`container: abas`, só Clássica/Arcane no computador) e
+  abaixo de 840px de largura o ícone vai para cima do nome; sub-abas e abas da mochila quebram linha (`flex-wrap`);
+  selo (!) do ícone com margem para não cobrir o nome. Ícones novos: Aventura = bússola, Mercado = sacola maior.

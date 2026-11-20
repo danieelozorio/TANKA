@@ -2344,3 +2344,30 @@ html[data-celular] .loja-niveis { grid-template-columns: repeat(2, 1fr); }
 .ico-mochila { display: inline-block !important; width: 1.25em; height: 1.25em; vertical-align: -0.28em; margin-right: .3em; flex: none; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5)); }
 .mochila-abas button { display: inline-flex; align-items: center; gap: .3em; }
 .mochila-abas .ico-mochila { margin-right: 0; }
+
+/* ---------- Regras de alinhamento (Henri, 19/11/2026) ----------
+   1. Ícone nunca encolhe: tamanho fixo em todas as abas (flex: none).
+   2. Texto nunca invade o vizinho: cada botão corta o que não cabe (min-width: 0 + reticências).
+   3. Barra principal: quando fica estreita (container query), o ícone vai para cima do nome e a letra diminui.
+   4. Sub-abas e abas da mochila quebram linha em vez de sair da caixa.
+   5. Espaços em múltiplos de 4px. */
+.aba-ico, .aba-ico svg, .sub-abas button svg, .mochila-abas svg, .ico-mochila { flex: none; }
+/* (só onde a barra tem a largura da caixa: na Zealot e no celular ela se ajusta ao conteúdo e o container a zeraria) */
+html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: abas / inline-size; }
+.abas-jogo button { min-width: 0; overflow: hidden; }
+.abas-jogo .aba-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.abas-jogo button.ativa::after { pointer-events: none; }
+@container abas (max-width: 840px) {
+  .abas-jogo button { flex-direction: column; gap: 4px; padding: 8px 4px 6px; font-size: .8rem; letter-spacing: .02em; }
+  .abas-jogo .aba-ico svg { width: 20px; height: 20px; }
+}
+@container abas (max-width: 600px) {
+  .abas-jogo button { font-size: .7rem; letter-spacing: 0; }
+}
+.sub-abas { flex-wrap: wrap; max-width: 100%; border-radius: 18px; row-gap: 4px; }
+.sub-abas button { white-space: nowrap; }
+.mochila-abas { flex-wrap: wrap; row-gap: 4px; }
+.mochila-abas button { white-space: nowrap; }
+/* selo (!, número) no canto do ícone sem cobrir o nome ao lado */
+.abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 8px; }
+@container abas (max-width: 840px) { .abas-jogo .aba-ico:has(.selo-pedidos) { margin-right: 0; } }
