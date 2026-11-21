@@ -896,7 +896,7 @@ Tanka.dados = {
     custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
     // Fase de testes (Henri, 21/11/2026): zerar custa 100 mil fixo. No BETA volta para 500000 + 250000 por vez na semana.
     precoRefazer: 100000, precoRefazerMais: 0,
-    focoCada: 4,   // Foco (Henri, 21/11/2026): a cada 4 turnos, as habilidades em recarga ficam 1 turno mais perto de prontas
+    focoCada: 5,   // Foco (Henri, 21/11/2026): a cada 5 turnos, as habilidades em recarga ficam 1 turno mais perto de prontas
     versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
       { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 1 },
@@ -934,7 +934,7 @@ Tanka.dados = {
         trilhas: [
           { nome: 'Relâmpago', pequeno: { velocidadePts: 10 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 25, evasao: 3 } },
             pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +40% de dano e deixa o inimigo 30% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
-          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 4 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
+          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
             pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
