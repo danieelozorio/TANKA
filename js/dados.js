@@ -612,8 +612,9 @@ Tanka.dados = {
           descricao: '5% a 15% do dano que você causa vira vida. Mais forte na caçada.' },
         // Henri (13/11/2026): no lugar do Golpe Apocalíptico. quebraTurnos: a defesa quebrada dura essas vezes do alvo.
         { id: 'quebra-ossos', nome: 'Quebra-Ossos', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 0],
-          ignoraDefesaPct: 50, quebraDefesaPct: [25, 1], quebraTurnos: 2,   // 16/11/2026: ignorava 100% (~16x um ataque na Arena)
-          descricao: 'Golpe de 200% que ignora metade da defesa do alvo e deixa o inimigo com −25% a −35% de defesa por 2 turnos. Mais forte na Arena.' },
+          // 21/11/2026 (Henri): ignorava 50% e quebrava 25–35% (~3,7x um ataque na Arena); agora 30% e 15–25%
+          ignoraDefesaPct: 30, quebraDefesaPct: [15, 1], quebraTurnos: 2,   // 16/11/2026: ignorava 100% (~16x um ataque na Arena)
+          descricao: 'Golpe de 200% que ignora 30% da defesa do alvo e deixa o inimigo com −15% a −25% de defesa por 2 turnos. Mais forte na Arena.' },
       ] },
     // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
     cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',

@@ -2463,7 +2463,7 @@ teste('poder do item: diferença entre o novo e o equipado é igual ao ganho', (
   }
 });
 
-teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% por 2 vezes do monstro; Golpe Apocalíptico some', () => {
+teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 15% a 25% por 2 vezes do monstro; Golpe Apocalíptico some', () => {
   const p = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, 'destruidor');
   p.talentos.pontos['golpe-apocaliptico'] = 3; p.talentos.ordem.arena.unshift('golpe-apocaliptico');
@@ -2473,7 +2473,7 @@ teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% p
   const def = D.SEGUNDAS_CLASSES.destruidor.habilidades.filter(h => h.id === 'quebra-ossos')[0];
   const m = { hp: 1000, hpMax: 1000, defesa: 100, defesaMagica: 0, indiceArea: 0 };
   R.depoisDoGolpeNivel(def, m, R.status(p), 10);
-  assert.strictEqual(m.quebraTemp.pct, 35, '10 pontos: −35%');
+  assert.strictEqual(m.quebraTemp.pct, 25, '10 pontos: −25% (21/11/2026)');
   R.tickQueima(m); assert.ok(m.quebraTemp, 'vale na 1ª vez do monstro');
   R.tickQueima(m); assert.ok(m.quebraTemp, 'e na 2ª');
   R.tickQueima(m); assert.strictEqual(m.quebraTemp, null, 'depois acaba');

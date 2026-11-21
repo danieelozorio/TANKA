@@ -1141,12 +1141,12 @@ begin
   r := public.arena_vez(a, base, 10);
   if (r -> 'outro' ->> 'defQuebra')::numeric <> 30 or (r -> 'outro' ->> 'atordoado')::int <> 1 then raise exception 'FALHA martelo: %', r -> 'outro'; end if;
   raise notice 'ok   arena: Martelo das Correntes prende e quebra a defesa';
-  -- Quebra-Ossos (13/11/2026): ignora a defesa e quebra 25% + 1 por ponto só pelas próximas 2 vezes do outro
+  -- Quebra-Ossos (13/11/2026): ignora a defesa e quebra 15% + 1 por ponto (21/11/2026; era 25%) só pelas próximas 2 vezes do outro
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('cavaleiro', 30, '{"classe2":"destruidor","pontos":{"quebra-ossos":4},"ordem":{"arena":["quebra-ossos"]}}')));
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
-  if (d ->> 'quebraPct')::numeric <> 29 or (d ->> 'quebraAte')::int <> coalesce((base ->> 'turno')::int, 0) + 2 or coalesce((d ->> 'defQuebra')::numeric, 0) <> 0 then
+  if (d ->> 'quebraPct')::numeric <> 19 or (d ->> 'quebraAte')::int <> coalesce((base ->> 'turno')::int, 0) + 2 or coalesce((d ->> 'defQuebra')::numeric, 0) <> 0 then
     raise exception 'FALHA quebra-ossos: %', d; end if;
-  raise notice 'ok   arena: Quebra-Ossos quebra a defesa por 2 vezes (29%% com 4 pontos)';
+  raise notice 'ok   arena: Quebra-Ossos quebra a defesa por 2 vezes (19%% com 4 pontos)';
   -- Maldição: queima por 3 vezes e corta a cura
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 30, '{"classe2":"bruxo","pontos":{"maldicao-de-ignaroth":1},"ordem":{"arena":["maldicao-de-ignaroth"]}}')));
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
