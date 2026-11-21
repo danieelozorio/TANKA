@@ -14,7 +14,10 @@ Tanka.dados = {
 
   // Progressão
   HP_INICIAL: 100,        // HP no level 1
-  HP_POR_NIVEL: 10,       // HP extra a cada level
+  HP_POR_NIVEL: 36,       // HP extra a cada level (era 10; Henri 21/11/2026: lutas da Arena muito curtas)
+  // Os monstros batem mais na mesma proporção da vida que o herói ganhou com isso (R.fatorVida), para a caçada,
+  // a masmorra, a torre e os chefes ficarem com a mesma dificuldade. Golpes em % da vida não mudam.
+  HP_POR_NIVEL_MONSTROS: 10,
   HP_POR_RES: 3,          // HP extra por ponto de Resistência acima de RES_SEM_VIDA (inclusive os da classe, nov/2026)
   RES_SEM_VIDA: 10,       // a vida da RES conta a partir daqui (RES 20 = +30 de vida)
   PONTOS_POR_DANO: 3,     // a cada 3 pontos do atributo de dano da classe (FOR, DES ou INT): +1 de dano

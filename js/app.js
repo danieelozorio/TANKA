@@ -96,6 +96,11 @@
   }
   function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
+  // Dano de monstro para mostrar: x R.fatorVida do herói (os monstros batem mais desde a vida por level maior, 21/11/2026).
+  function danoMonstro(d) {
+    var f = estado.personagem ? R.fatorVida(estado.personagem) : 1;
+    return dano([Math.max(1, Math.round(d[0] * f)), Math.max(1, Math.round(d[1] * f))]);
+  }
 
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
   // Classe do brilho da borda do quadro: um tom por nível (+1 a +10).
@@ -1535,10 +1540,10 @@
     // Também na Arcane em tela estreita (Henri, nov/2026).
     var curto = CELULAR || (temaAtual() === 'arcane' && window.innerWidth <= 760);
     var resumo = curto ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span title="Exp por vitória, em % do seu level">✦ ' + expPct(estado.personagem, m.exp) + '</span>'
-      + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + dano(m.ataque) + '</span></div>' : '';
+      + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + danoMonstro(m.ataque) + '</span></div>' : '';
     return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3>' + (curto ? resumo + '<details class="monstro-detalhes"><summary>Ver detalhes</summary><p class="suave">' + m.descricao + '</p>' : '<p class="suave">' + m.descricao + '</p>')
-      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + dano(m.ataque) + '</dd>'
+      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + danoMonstro(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
@@ -1627,7 +1632,7 @@
     var mat = R.materialDoChefe(m.base), nomeMat = mat && D.CRAFT.materiais[mat] ? D.CRAFT.materiais[mat].nome : null;
     var tem = R.estamina(p).pts >= custo, v = p.abates[id] || 0;
     var linhas = [
-      ['Level', m.nivel], ['Vida', m.hp.toLocaleString('pt-BR')], ['Dano', dano(m.ataqueCacada || m.ataque)],
+      ['Level', m.nivel], ['Vida', m.hp.toLocaleString('pt-BR')], ['Dano', danoMonstro(m.ataqueCacada || m.ataque)],
       ['Estamina', custo + ' por luta'], ['Exp', '+' + m.exp.toLocaleString('pt-BR')], ['Ouro', '+' + m.ouro.toLocaleString('pt-BR')],
     ].map(function (x) { return '<li><span>' + x[0] + '</span><strong>' + x[1] + '</strong></li>'; }).join('');
     return '<div class="regiao-topo topo-pesadelo"><button class="btn secundario btn-pequeno" data-acao="pesadelo-mapa">← Reino do Pesadelo</button>'
@@ -5563,7 +5568,7 @@
       var m = D.monstros[c.encontro.monstro];
       direita = '<div class="lutador cacada-encontro' + (c.encontro.chefe ? ' chefe' : '') + '" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(c.encontro.monstro) + '</div>'
         + (c.encontro.chefe ? '<div class="selo-chefe">Chefe</div>' : '') + '<h3>' + m.nome + '</h3>'
-        + '<div class="suave pequeno">Vida ' + m.hp.toLocaleString('pt-BR') + ' · Dano ' + dano(m.ataque) + '</div>'
+        + '<div class="suave pequeno">Vida ' + m.hp.toLocaleString('pt-BR') + ' · Dano ' + danoMonstro(m.ataque) + '</div>'
         + '<div class="botoes"><button class="btn' + (c.encontro.chefe ? ' perigo' : '') + '" data-acao="cacada-lutar">⚔ Lutar</button>'
         + '<button class="btn secundario" data-acao="cacada-fugir">Fugir</button></div>'
         + (c.encontro.chefe ? '<p class="destaque pequeno">Um chefe! Você decide.</p>'

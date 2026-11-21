@@ -128,6 +128,9 @@ teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do
 });
 
 teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem trocada); o golpe cura parte do dano', () => {
+  // contas exatas sem o fatorVida (vida por level maior, 21/11/2026: testado à parte)
+  const hpm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try {
   const p = R.criarPersonagem('C', 'feminino', 'humano', 'mago'); p.nivel = 16; p.atributos.int += 45;
   p.talentos = { classe2: 'curandeiro', pontos: { bencao: 4, 'explosao-de-luz': 6 }, ordem: { cacada: ['bencao', 'explosao-de-luz'], masmorra: ['bencao'], arena: [], defesa: [] } };
   R.normalizar(p);
@@ -153,6 +156,7 @@ teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem t
   }
   assert.ok(curas > 0 && certas === curas, 'a Luz Punitiva cura 54% do dano (' + certas + '/' + curas + ')');
   assert.ok(vitorias > 40, 'vence o Golem: ' + vitorias);
+  } finally { D.HP_POR_NIVEL_MONSTROS = hpm; }
 });
 
 teste('velocidade do personagem: 15 no level 1, +6% por level; não depende da DES', () => {
@@ -1401,6 +1405,17 @@ teste('atributo das armas e da mão esquerda (17/11/2026): 2 mãos dobra; mão e
   assert.strictEqual(outro.bonus.int, livro.bonus.int, 'mesmo sorteio no servidor e no navegador');
 });
 
+teste('vida por level maior (21/11/2026): +36 por level; os monstros batem x fatorVida e a cura pelo dano acompanha', () => {
+  const p = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); p.nivel = 40;
+  const hp = R.status(p).hpMax, f = R.fatorVida(p);
+  assert.ok(f > 1.5 && f < 3, 'fator ' + f);
+  const hm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try { assert.strictEqual(R.fatorVida(p), 1); } finally { D.HP_POR_NIVEL_MONSTROS = hm; }
+  assert.ok(Math.abs(hp / f - (hp - 39 * (D.HP_POR_NIVEL - D.HP_POR_NIVEL_MONSTROS))) < 2, 'o fator é a vida nova / a vida antiga');
+  const b = R.iniciarBatalha(p, 'lobo', () => 0.5);
+  assert.ok(Math.abs(b.lutador.fatorVida - f) < 1e-9, 'o lutador leva o fator');
+});
+
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
   const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
   R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');
@@ -2193,6 +2208,9 @@ teste('habilidades do level 20/30: pontos +2 do 21, liberam no level e valem em 
 });
 
 teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, veneno e Bolso de Poções', () => {
+  // contas exatas sem o fatorVida (vida por level maior, 21/11/2026: testado à parte)
+  const hpm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
     R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);   // (passivas: 1 de graça + 10 colocados = 11)
@@ -2226,6 +2244,7 @@ teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, vene
   assert.strictEqual(R.aoReceber(L, 80, m, () => 0), 30);
   assert.strictEqual(L.escudo, 0);
   assert.strictEqual(m.atordoado, 1, 'quem bate no escudo pode congelar');
+  } finally { D.HP_POR_NIVEL_MONSTROS = hpm; }
 });
 
 teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó nos Olhos e Defesa Suprema', () => {

@@ -648,11 +648,20 @@ Tanka.regras = (function () {
   }
 
   // --- Na luta: estado de um lutador (herói) com as habilidades ---
+  // Vida por level maior (21/11/2026): quanto a vida do herói cresceu com HP_POR_NIVEL em vez de HP_POR_NIVEL_MONSTROS.
+  // Os monstros batem x isso, e a dificuldade contra eles fica igual (cada classe com a mesma de antes).
+  function fatorVida(p) {
+    if (!D.HP_POR_NIVEL_MONSTROS || D.HP_POR_NIVEL_MONSTROS === D.HP_POR_NIVEL || !p || !p.classe) return 1;
+    var agora = status(p).hpMax, antes, atual = D.HP_POR_NIVEL;
+    try { D.HP_POR_NIVEL = D.HP_POR_NIVEL_MONSTROS; antes = status(p).hpMax; } finally { D.HP_POR_NIVEL = atual; }
+    return antes > 0 ? agora / antes : 1;
+  }
   function novoLutador(p, modo) {
     var ex = extrasLuta(p);
     return { kit: kitHabilidades(p, modo), turno: 0, pronto: {}, buffs: [], furtivo: false, critEm: -1, provocaAte: -1, vidaExtra: 0,
       ex: ex, milagreUsado: false, dot: null, escudo: 0, escudoAte: -1, congelaChance: 0, bolsoUsado: false,
-      modo: modo, primeiroGolpe: !!ex.primeiroGolpe, nGolpes: 0, baixa: false };   // primeiroGolpe: a 1ª habilidade ainda não saiu
+      modo: modo, primeiroGolpe: !!ex.primeiroGolpe, nGolpes: 0, baixa: false,   // primeiroGolpe: a 1ª habilidade ainda não saiu
+      fatorVida: fatorVida(p) };
   }
   // Extras da luta contra monstros: passivas do level 20/30 + Pacto de Ascensão.
   function extrasLuta(p) {
@@ -696,7 +705,7 @@ Tanka.regras = (function () {
     var dano = Math.max(1, Math.round(d.dano));
     d.alvo.hp = Math.max(0, d.alvo.hp - dano);
     d.turnos--;
-    if (d.cura && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * d.cura / 100));
+    if (d.cura && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * d.cura / 100 * ((L && L.fatorVida) || 1)));
     var caiu = d.alvo.hp === 0;
     if (caiu && d.curaMorte && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(h.hpMax * d.curaMorte / 100));
     return { alvo: d.alvo, dano: dano, caiu: caiu, nome: d.nome };
@@ -730,11 +739,14 @@ Tanka.regras = (function () {
   }
   // Dano causado pelo herói num monstro: roubo de vida.
   function aoCausar(L, h, dano) {
-    if (L && L.ex && L.ex.rouboVida && dano > 0 && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * L.ex.rouboVida / 100 * (L.ex.golpeCerteiro ? 0.5 : 1)));   // Golpe Certeiro: roubo pela metade
+    // fatorVida: a cura que vem do dano causado cresce junto com a vida (21/11/2026), para render o mesmo de antes
+    if (L && L.ex && L.ex.rouboVida && dano > 0 && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * L.ex.rouboVida / 100 * (L.ex.golpeCerteiro ? 0.5 : 1) * (L.fatorVida || 1)));   // Golpe Certeiro: roubo pela metade
   }
   // Dano que o herói vai receber de um monstro: menos dano (Têmpera) e o escudo (que pode congelar quem bate).
-  function aoReceber(L, dano, atacante, rng) {
+  // pctVida: golpe em % da vida do herói (já acompanha a vida; não usa o fatorVida).
+  function aoReceber(L, dano, atacante, rng, pctVida) {
     if (!L || dano <= 0) return dano;
+    if (L.fatorVida && !pctVida) dano = Math.max(1, Math.round(dano * L.fatorVida));   // vida por level maior (21/11/2026)
     // Pó nos Olhos (level 30): o monstro cego erra com erroPct% de chance.
     if (atacante && atacante.cego > 0) { atacante.cego--; if (rng() * 100 < (atacante.cegoPct || 0)) { L.errouCego = true; return 0; } }
     if (L.ex && L.ex.reducaoDano) dano = Math.max(1, Math.round(dano * (1 - L.ex.reducaoDano / 100)));
@@ -745,7 +757,8 @@ Tanka.regras = (function () {
     }
     // Defesa Suprema (level 30): devolve parte do dano para quem bateu.
     var rf = somaBuff(L, 'reflete') + ((L.ex && L.ex.reflete) || 0);
-    if (atacante && rf && dano > 0 && atacante.hp > 0) atacante.hp = Math.max(0, atacante.hp - Math.round(dano * rf / 100));
+    // devolve sobre o golpe sem o fatorVida (21/11/2026): o mesmo dano devolvido de antes
+    if (atacante && rf && dano > 0 && atacante.hp > 0) atacante.hp = Math.max(0, atacante.hp - Math.round(dano / (pctVida ? 1 : (L.fatorVida || 1)) * rf / 100));
     return dano;
   }
   // Depois de levar dano: Bolso de Poções (uma vez por luta, abaixo do limiar).
@@ -2075,7 +2088,7 @@ Tanka.regras = (function () {
       if (!b.fim && eco(L, b.rng)) { hab.eco = true; hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 })); }
       // Luz Punitiva: parte do dano vira vida.
       if (g.acerto && g.dano > 0 && def.curaDano && b.jogador.hp > 0) {
-        var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
+        var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100 * (L.fatorVida || 1));
         b.jogador.hp = Math.min(b.jogador.hpMax, b.jogador.hp + cd);
         hab.curou = cd;
       }
@@ -2972,7 +2985,7 @@ Tanka.regras = (function () {
               alvo.hp = Math.max(0, alvo.hp - g.dano);
               sangrar(alvo, g);
               aoCausar(L, H, g.dano);
-              if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100));
+              if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100 * (H.L.fatorVida || 1)));
               if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s, k.pts);
               e.caiu = alvo.hp === 0;
               if (k && k.def.atordoa && alvo.hp > 0) {
@@ -3001,7 +3014,7 @@ Tanka.regras = (function () {
               var e = { tipo: 'golpe', sala: si, de: 'm', i: mi, alvo: hs.indexOf(h), acerto: false, critico: false, dano: 0, caiu: false, area: true };
               if (h.L.furtivo) { h.L.furtivo = false; e.sombra = true; }
               else if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - h.s.evasao, 5, 95)) {
-                var da = aoReceber(h.L, Math.max(1, Math.round(h.hpMax * ator.area.vidaPct / 100)), ator, rng);
+                var da = aoReceber(h.L, Math.max(1, Math.round(h.hpMax * ator.area.vidaPct / 100)), ator, rng, true);
                 e.acerto = true; e.dano = da;
                 h.hp = Math.max(0, h.hp - da);
                 var dr = depoisDeReceber(h.L, h);
@@ -3329,7 +3342,7 @@ Tanka.regras = (function () {
         var antes = { defQuebra: m.defQuebra, quebraTemp: m.quebraTemp, queima: m.queima };
         var g = golpe(h, m, Object.assign({ mult: mult }, def.nivel ? opcoesNivel(def, h, m) : {}), quem);
         if (!g.acerto) return;
-        if (def.curaDano && h.hp > 0) curarH(h, g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
+        if (def.curaDano && h.hp > 0) curarH(h, g.dano * valorBonus(def, 'curaDano', k.pts) / 100 * (h.L.fatorVida || 1));
         if (def.nivel) depoisDoGolpeNivel(def, m, h.s, k.pts);
         efeitos(h, def, m, antes);
       });
@@ -3338,7 +3351,7 @@ Tanka.regras = (function () {
     var furia = function (m) { return (m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1) * (m.desperto ? 1 + TR.despertar.danoPct / 100 : 1) * (m.buffDano && m.buffDano.ate >= t.turno ? 1 + m.buffDano.pct / 100 : 1); };
     var bater = function (m, h, bruto, ignoraDef, nomeGolpe) {
       var dano = ignoraDef ? bruto : danoComDefesa(bruto, Math.round(h.s.defesa * (1 + defesaExtraPct(h.L) / 100)));   // golpe normal: físico (o tanque segura)
-      dano = aoReceber(h.L, Math.round(dano), m, rng);
+      dano = aoReceber(h.L, Math.round(dano), m, rng, ignoraDef);   // ignoraDef: os golpes em % da vida
       h.hp = Math.max(0, h.hp - dano);
       var dr = depoisDeReceber(h.L, h);
       diz((nomeGolpe || m.nome) + ' acerta ' + h.nome + ': ' + txtNum(dano) + '.', { de: 'm', alvo: t.herois.indexOf(h), dano: dano });
@@ -4023,7 +4036,7 @@ Tanka.regras = (function () {
     proximaVitalidade: proximaVitalidade,
     criarPersonagem: criarPersonagem,
     normalizar: normalizar,
-    hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
+    fatorVida: fatorVida, hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
     vender: vender,
     comprar: comprar,
     danoArma: danoArmaComEncanto,

@@ -1553,3 +1553,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Chat global: fechado, só busca as mensagens novas (a lista inteira de 30 em 30 s só com o chat aberto; ao abrir, busca tudo).
 - Testes: `testes/cacada_servidor.test.ts` e `testes/acao_servidor.test.ts` (ficha resumida). A falha "missão do clã" no
   teste da caçada rodado no Node é do teste (sem Deno.env.set), já existia.
+
+## Vida por level maior (Henri, 21/11/2026)
+- `HP_POR_NIVEL` 10 → 36 (level 60: ~2.900 a ~4.500 de vida; antes ~1.400 a ~2.600). Vale na Arena (tanka_dados → rodar schema).
+- Contra monstros a dificuldade é a mesma: `R.fatorVida(p)` = vida com 36 / vida com `HP_POR_NIVEL_MONSTROS` (10),
+  guardado no lutador (`L.fatorVida`). `aoReceber` multiplica o golpe do monstro por ele (menos golpes em % da vida:
+  `pctVida`, área da masmorra e golpes da torre que ignoram defesa); a cura que vem do dano causado (roubo de vida,
+  Luz Punitiva, veneno que cura) também, e o dano devolvido (reflete) é sobre o golpe sem o fator.
+- Na tela, o dano dos monstros aparece já x fator do herói (`danoMonstro` no app.js).
+- Simulado (mesmo herói, 600 lutas): Bruxo/Caçador/Destruidor/Paladino nos Pesadelos com a mesma taxa de vitória e vida no fim.
+- `testes/banco.test.sql` (boss mundial "derrotado") falha fora das 20h–21h; já falhava no main, é do relógio.
