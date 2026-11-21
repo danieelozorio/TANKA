@@ -1214,9 +1214,9 @@
   function expPacto(p) {
     if (!p || p.nivel < D.NIVEL_MAXIMO || R.pontosAscensaoTotal(p) >= D.ASCENSAO.limitePontos) return null;
     var prec = R.expPorPontoAscensao(), ex = Math.min(prec, (p.ascensao && p.ascensao.exp) || 0);
-    // n/rotulo (Henri, 21/11/2026): quantos pontos do Pacto já tem, ex.: "(PACTO 23/48)"
+    // n/rotulo (Henri, 21/11/2026): quantos pontos do Pacto já tem, ex.: "(PACTO 23)"
     var n = R.pontosAscensaoTotal(p);
-    return { pct: Math.max(0, Math.min(100, ex * 100 / prec)), n: n, rotulo: '(PACTO ' + n + '/' + D.ASCENSAO.limitePontos + ')' };
+    return { pct: Math.max(0, Math.min(100, ex * 100 / prec)), n: n, rotulo: '(PACTO ' + n + ')' };
   }
   function cascaTopoHtml(menu) {
     var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO, ep = expPacto(p);
@@ -1226,7 +1226,7 @@
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
       + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
       + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
-      + '<i class="casca-exp' + (ep ? ' pacto' : '') + '" title="' + (ep ? 'Exp ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + '/' + D.ASCENSAO.limitePontos + ')' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
+      + '<i class="casca-exp' + (ep ? ' pacto' : '') + '" title="' + (ep ? 'Exp ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
       + '<button class="casca-ico" data-acao="casca-grupo" aria-label="Grupo">👥<span class="casca-selo" id="casca-grupo-selo" hidden></span></button>'
@@ -1423,7 +1423,7 @@
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : sV.hpMax, emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax, (emBatalha ? estado.batalha.jogador.hp : sV.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
       + '<div class="suave">Experiência' + (expPacto(p) ? ' <b class="exp-pacto">' + expPacto(p).rotulo + '</b>' : '') + '</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
-        ? (expPacto(p) ? barra('exp pacto', expPacto(p).pct, 100, Math.floor(expPacto(p).pct) + '% ' + expPacto(p).rotulo) : barra('exp maximo', 1, 1, 'Pacto completo (' + D.ASCENSAO.limitePontos + '/' + D.ASCENSAO.limitePontos + ')'))
+        ? (expPacto(p) ? barra('exp pacto', expPacto(p).pct, 100, Math.floor(expPacto(p).pct) + '% ' + expPacto(p).rotulo) : barra('exp maximo', 1, 1, 'Pacto completo (' + D.ASCENSAO.limitePontos + ')'))
         : barra('exp', p.exp, precisa, Math.floor(Math.min(100, p.exp * 100 / precisa)) + '%')) + '</div>'
       + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
@@ -5502,8 +5502,8 @@
   function expFinaHtml(p) {
     var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel), ep = expPacto(p);
     var pct = ep ? ep.pct : maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
-    var texto = ep ? 'Experiência: ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + '/' + D.ASCENSAO.limitePontos + ')' : 'Experiência: ' + Math.floor(pct) + '%';
-    var numero = ep ? '✦ ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + '/' + D.ASCENSAO.limitePontos + ')' : '✦ ' + Math.floor(pct) + '%';
+    var texto = ep ? 'Experiência: ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : 'Experiência: ' + Math.floor(pct) + '%';
+    var numero = ep ? '✦ ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : '✦ ' + Math.floor(pct) + '%';
     return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
       + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i><b>' + numero + '</b></div>';
   }
