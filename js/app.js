@@ -10119,8 +10119,9 @@
     clearTimeout(chat.timer);
     if (!chat.ativo) return;
     try {
-      // A cada 30 s busca tudo de novo (para sumir o que o admin apagou).
-      if (completa || C.agora() - chat.ultimaCompleta > 30000) {
+      // A cada 30 s busca tudo de novo (para sumir o que o admin apagou), só com o chat aberto: fechado, só as novas
+      // (gasta menos internet do Supabase; ao abrir, busca tudo).
+      if (completa || (chat.aberto && C.agora() - chat.ultimaCompleta > 30000)) {
         var todas = await C.chat.recentes();
         chat.ultimaCompleta = C.agora();
         var novasQtd = todas.filter(function (m) { return m.id > chat.ultimoId; }).length;
@@ -10253,7 +10254,7 @@
       chat.aberto = acao === 'abrir';
       chat.naoLidas = 0;
       desenharChat();
-      if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(); }
+      if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(true); }
     } else if (acao === 'enviar') {
       enviarChat();
     } else if (acao === 'canal') {

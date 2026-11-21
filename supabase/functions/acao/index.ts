@@ -237,6 +237,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const r = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&select=conta_id,dados', { headers: cab });
   const linhas = r.ok ? await r.json() : [];
   if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 403);
+  const gravada = R.textosFicha(linhas[0].dados);   // para mandar de volta só o que mudou (ficha resumida, 21/11/2026)
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
   const antesNormal = JSON.stringify(p);
@@ -283,7 +284,8 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
 
   // nada mudou (ex.: prêmio que não cabe na mochila): não grava de novo (preferências gravam sempre: marca "online")
   if (acao !== 'preferencias' && JSON.stringify(p) === antes) {
-    return responder({ personagem: await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, linhas[0].dados)), agora: t, resultado: saida.resultado });
+    const igual = await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, linhas[0].dados));
+    return responder({ ...R.respostaFicha(gravada, versao, pedido.versaoCliente, igual), agora: t, resultado: saida.resultado });
   }
 
   // 4. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
@@ -308,7 +310,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   // missão do clã: o encanto conta aqui (o navegador não manda mais)
   if (acao === 'encantar' && saida.resultado) await rpcServidor(base, cab, 'alianca_missao_servidor', { pid: id, tipo: 'encantar', qtd: 1 }).catch(() => null);
   const final = await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, p));   // depósitos do baú e pontos do evento
-  return responder({ personagem: final, agora: t, resultado: saida.resultado });
+  return responder({ ...R.respostaFicha(gravada, versao, pedido.versaoCliente, final), agora: t, resultado: saida.resultado });
 }
 
 if (import.meta.main) Deno.serve((req) => tratar(req));

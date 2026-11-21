@@ -256,16 +256,31 @@ Tanka.contas = (function () {
   // Ação do herói decidida pelo servidor (função `acao`, plano "tudo no servidor"): { erro } se a regra recusou;
   // em todo caso vem o personagem como ficou no banco.
   function acao(personagemId, nome, args) { return funcaoServidor('acao', { personagem: personagemId, acao: nome, args: args }); }
+  // Ficha resumida (21/11/2026): baseServidor[id] é a última ficha que veio do servidor, intacta. Mandando a versão
+  // dela, o servidor devolve só o que mudou (R.aplicarFicha monta a ficha inteira de novo e confere o hash).
+  var baseServidor = {};
   function funcaoServidor(funcao, pedido) {
     var feito = fila.catch(function () {}).then(async function () {
       if (emConflito) throw erroConflito();
       if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
-      var r;
+      var r, pid = pedido.personagem, base = pid && baseServidor[pid];
+      if (base && base.versao) pedido.versaoCliente = base.versao;
       try {
         r = await pedir('/functions/v1/' + funcao, { metodo: 'POST', corpo: pedido });
       } catch (e) {
         if (e.status === 409) { emConflito = true; if (aoConflito) aoConflito(); throw erroConflito(); }
         throw e;
+      }
+      var montada = null;
+      if (r && r.mudou && base) {
+        montada = Tanka.regras.aplicarFicha(base, r);
+        r.personagem = montada.ficha;
+        delete r.mudou; delete r.removidas; delete r.hash; delete r.versao;
+      }
+      if (r && r.personagem && r.personagem.id) {
+        // não bateu: o próximo pedido traz a ficha inteira
+        if (montada && !montada.ok) delete baseServidor[r.personagem.id];
+        else baseServidor[r.personagem.id] = JSON.parse(JSON.stringify(r.personagem));
       }
       if (r && r.personagem) {
         versaoNoServidor[r.personagem.id] = r.personagem.versao;

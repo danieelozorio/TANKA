@@ -121,6 +121,34 @@ Tanka.regras = (function () {
     return Math.max(1, Math.round(valorRaro * escalaNivel(nivel) * multQualidade(q) / multQualidade(0.55)));
   }
   // Extras da arma pela faixa de nível (EXTRAS_ARMA).
+  // Ficha resumida (Henri, 21/11/2026, para gastar menos internet do Supabase): as funções do servidor mandam só as
+  // partes da ficha que mudaram (`mudou`/`removidas`) quando o jogo já tem a versão que o servidor leu. O servidor
+  // continua lendo, decidindo e gravando a ficha inteira: isto só muda o que volta para a tela. `hash` confere a
+  // ficha montada no jogo (JSON com as chaves em ordem); se não bater, o próximo pedido vem com a ficha inteira.
+  function jsonOrdenado(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v);
+    if (Array.isArray(v)) return '[' + v.map(function (x) { return x === undefined || typeof x === 'function' ? 'null' : jsonOrdenado(x); }).join(',') + ']';
+    return '{' + Object.keys(v).sort().filter(function (k) { return v[k] !== undefined && typeof v[k] !== 'function'; })
+      .map(function (k) { return JSON.stringify(k) + ':' + jsonOrdenado(v[k]); }).join(',') + '}';
+  }
+  function hashFicha(d) { return hashTexto(jsonOrdenado(d)); }
+  function textosFicha(d) { var t = {}; Object.keys(d || {}).forEach(function (k) { if (d[k] !== undefined) t[k] = JSON.stringify(d[k]); }); return t; }
+  // antes: textosFicha da ficha como estava gravada (lida antes do normalizar); versaoLida: a versão dela.
+  function respostaFicha(antes, versaoLida, versaoCliente, final) {
+    if (!versaoLida || Number(versaoCliente) !== versaoLida) return { personagem: final };
+    var mudou = {}, removidas = [];
+    Object.keys(final).forEach(function (k) { if (final[k] !== undefined && JSON.stringify(final[k]) !== antes[k]) mudou[k] = final[k]; });
+    Object.keys(antes).forEach(function (k) { if (final[k] === undefined) removidas.push(k); });
+    return { mudou: mudou, removidas: removidas, versao: final.versao, hash: hashFicha(final) };
+  }
+  // No jogo: monta a ficha nova a partir da `base` (a última que veio do servidor). Devolve { ficha, ok } (ok: o hash bateu).
+  function aplicarFicha(base, r) {
+    var f = JSON.parse(JSON.stringify(base));
+    Object.keys(r.mudou || {}).forEach(function (k) { f[k] = r.mudou[k]; });
+    (r.removidas || []).forEach(function (k) { delete f[k]; });
+    f.versao = r.versao;
+    return { ficha: f, ok: hashFicha(f) === r.hash };
+  }
   function hashTexto(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function faixaExtras(nivel) { return D.EXTRAS_ARMA.filter(function (x) { return nivel <= x.ate; })[0] || D.EXTRAS_ARMA[D.EXTRAS_ARMA.length - 1]; }
   // duasMaos: arma de 2 mãos dá o atributo x ATRIBUTO_ARMA.duasMaos (17/11/2026)
@@ -3995,6 +4023,7 @@ Tanka.regras = (function () {
     proximaVitalidade: proximaVitalidade,
     criarPersonagem: criarPersonagem,
     normalizar: normalizar,
+    hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
     vender: vender,
     comprar: comprar,
     danoArma: danoArmaComEncanto,

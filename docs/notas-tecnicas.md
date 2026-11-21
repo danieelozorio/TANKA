@@ -1542,3 +1542,14 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - A repetição na semana (ouro cheio, ½, ¼, 0 do mesmo atacante contra o mesmo defensor) só conta as lutas depois da
   última vez que o defensor atacou esse atacante e VENCEU (`arena_finalizar`). Assim, dois fortes que se atacam e
   ganham um do outro saqueiam ouro cheio dos dois lados.
+
+## Ficha resumida e chat leve: menos internet do Supabase (Henri, 21/11/2026)
+- As funções `cacada` e `acao` mandavam a ficha inteira de volta a cada pedido (3 por luta + preferências a cada minuto).
+  Agora o jogo manda `versaoCliente` (a versão da última ficha que veio do servidor, guardada intacta em
+  `baseServidor` no contas.js) e, se for a mesma que o servidor leu, a resposta traz só `mudou`/`removidas`/`versao`/`hash`
+  (`R.respostaFicha`). O jogo monta a ficha com `R.aplicarFicha` e confere o `hash` (`R.hashFicha`, JSON com as chaves em
+  ordem); se não bater, o próximo pedido vem sem versão e recebe a ficha inteira. Versão diferente: ficha inteira.
+- Sem brecha: o servidor continua lendo, decidindo e gravando a ficha inteira; a cópia do jogo é só para a tela.
+- Chat global: fechado, só busca as mensagens novas (a lista inteira de 30 em 30 s só com o chat aberto; ao abrir, busca tudo).
+- Testes: `testes/cacada_servidor.test.ts` e `testes/acao_servidor.test.ts` (ficha resumida). A falha "missão do clã" no
+  teste da caçada rodado no Node é do teste (sem Deno.env.set), já existia.
