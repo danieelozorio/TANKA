@@ -1211,6 +1211,11 @@
   // Topo da casca do celular: retrato (vai para o Herói), nome, level e exp; chat, missões e menu em ícones
   // (no lugar dos botões que flutuavam por cima do jogo).
   // Level 60 (Henri, 20/11/2026): a exp passa a encher o próximo ponto do Pacto; mostra "(PACTO)". null = Pacto no limite.
+  // Botão X2 (Henri, 21/11/2026): em todo lugar que acelera a luta. Clicou, fica aceso (2x); clicou de novo, apaga (normal).
+  function botaoX2(acao, ligado) {
+    return '<button class="btn-x2' + (ligado ? ' ligado' : '') + '" data-acao="' + acao + '" aria-pressed="' + !!ligado + '" title="'
+      + (ligado ? 'Velocidade 2x ligada (clique para voltar ao normal)' : 'Acelerar a luta (2x)') + '">X2</button>';
+  }
   function expPacto(p) {
     if (!p || p.nivel < D.NIVEL_MAXIMO || R.pontosAscensaoTotal(p) >= D.ASCENSAO.limitePontos) return null;
     var prec = R.expPorPontoAscensao(), ex = Math.min(prec, (p.ascensao && p.ascensao.exp) || 0);
@@ -4674,7 +4679,7 @@
       + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div>'
       + '<div class="suave">Velocidade ' + b.monstro.vel + '</div></div></div>'
       + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'
-      + (em ? '<div class="botoes"><button class="btn secundario" data-acao="velocidade">' + (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button>'
+      + (em ? '<div class="botoes">' + botaoX2('velocidade', estado.rapido)
         + '<button class="btn perigo" data-acao="fugir">Fugir</button></div>' : '');
   }
 
@@ -5561,7 +5566,7 @@
     var ativa = c.ativa;
     var topo = '<div class="cacada-topo" style="--cor:' + (c.pesadelo ? '#5b1a2e' : e.cor) + '"><div><h3>' + (c.pesadelo ? '🌑 Reino do Pesadelo' : iconeArea(area) + ' Caçada · ' + area.nome) + '</h3>'
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
-      + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
+      + '<div class="botoes">' + (ativa ? botaoX2('velocidade', estado.rapido)
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
     var opcoes = opcoesCacadaHtml();
     var resumo = '<div class="cacada-resumo">'
@@ -6753,7 +6758,7 @@
         break;
       case 'velocidade':
         estado.rapido = !estado.rapido;
-        el.textContent = estado.cacada ? (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') : (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x');
+        el.classList.toggle('ligado', estado.rapido); el.setAttribute('aria-pressed', estado.rapido); el.title = estado.rapido ? 'Velocidade 2x ligada (clique para voltar ao normal)' : 'Acelerar a luta (2x)';
         break;
       case 'mapa':
         estado.areaAberta = null;
@@ -7491,7 +7496,7 @@
     return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss do clã · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
-      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button></div>');
+      + (L.fim ? '' : '<div class="botoes">' + botaoX2('luta-velocidade', L.rapido) + '</div>');
   }
 
   // ---------------- Guia do Aventureiro (tutorial dos personagens novos; regras em regras.js, texto em historia.js) ----------------

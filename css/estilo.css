@@ -2419,3 +2419,9 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .item-acoes.acoes-item > *, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > .btn { flex: 1 1 0; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 6px; padding-right: 6px; }
 .item-acoes.acoes-item > :first-child, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > :first-child { flex-basis: 100%; }
 .item-acoes.acoes-item > span:first-child { white-space: normal; text-align: center; }
+
+/* Botão X2 (Henri, 21/11/2026): acelera a luta; aceso enquanto está em 2x. */
+.btn-x2 { font-family: inherit; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: .04em; min-width: 52px; min-height: 36px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255, 215, 106, .35); background: rgba(0, 0, 0, .35); color: #b9a77a; transition: background .15s, color .15s, box-shadow .15s; }
+.btn-x2:hover { border-color: #ffd76a; color: #ffe39a; }
+.btn-x2.ligado { background: linear-gradient(#ffd76a, #d9a531); color: #2a1a00; border-color: #ffe39a; box-shadow: 0 0 10px rgba(255, 215, 106, .6), inset 0 -2px 0 rgba(0, 0, 0, .25); }
