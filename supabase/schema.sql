@@ -2450,8 +2450,11 @@ begin
                 when perda >= (cfg -> 'saque' ->> 'desde')::numeric then (cfg -> 'saque' ->> 'maximo')::int
                 else (cfg -> 'saque' -> 'meio' ->> 0)::int + floor(random() * ((cfg -> 'saque' -> 'meio' ->> 1)::int - (cfg -> 'saque' -> 'meio' ->> 0)::int + 1))::int end;
     -- Mesmo atacante contra o mesmo personagem na semana: ouro cheio, metade, um quarto e depois nada (só reputação).
+    -- Revide (Henri, 21/11/2026): se o atacado atacou de volta e VENCEU, a contagem contra ele zera (ouro cheio de novo).
     select count(*) into repetidos from public.arena_lutas
-      where atacante = L.atacante and defensor = L.defensor and id <> L.id and criado_em >= public.arena_inicio_semana();
+      where atacante = L.atacante and defensor = L.defensor and id <> L.id and criado_em >= public.arena_inicio_semana()
+        and id > coalesce((select max(id) from public.arena_lutas
+                           where atacante = L.defensor and defensor = L.atacante and situacao = 'vitoria'), 0);
     fat_ouro := case when repetidos = 0 then 1 when repetidos = 1 then 0.5 when repetidos = 2 then 0.25 else 0 end;
     -- Fora da escada (Top 5 para baixo, Ranking, revanche): alvo numa arena abaixo = nada; mesma arena e alvo
     -- em posição inferior = metade da reputação; mesma arena acima ou arena mais forte = tudo.

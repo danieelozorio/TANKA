@@ -1537,3 +1537,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - JS: fim de `R.bonusItem`. SQL: `tanka_status` (variáveis `d0`/`pdm`, depois do encanto de cada item);
   `tanka_dados()` leva `GRUPOS_ITEM.classes` e `defMagicaDaDefesa` (gerar_dados_sql.js).
 - Lv 60, tudo épico: Cavaleiro def. mágica 460 → ~664; Arqueiro 445 → ~608; Mago 985 (igual).
+
+## Arena: revide zera a repetição do saque (Henri, 21/11/2026)
+- A repetição na semana (ouro cheio, ½, ¼, 0 do mesmo atacante contra o mesmo defensor) só conta as lutas depois da
+  última vez que o defensor atacou esse atacante e VENCEU (`arena_finalizar`). Assim, dois fortes que se atacam e
+  ganham um do outro saqueiam ouro cheio dos dois lados.

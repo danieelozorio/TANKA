@@ -426,6 +426,19 @@ begin
        or (i = 4 and c.saque <> 0) or c.reputacao <> 5 then
       raise exception 'FALHA arena: repetição % (saque %, %%% , reputação %)', i, c.saque, c.saque_pct, c.reputacao; end if;
   end loop;
+  -- revide (21/11/2026): o atacado (pb) ataca de volta e vence -> a contagem de pa contra ele zera
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  l := public.arena_desafiar('pb', 'pa'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pa') + c.saque) * c.saque_pct / 100.0) or c.saque <= 0 then raise exception 'FALHA arena: revide devia ter ouro cheio'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0) or c.saque <= 0 then raise exception 'FALHA arena: depois do revide, ouro cheio de novo (saque %)', c.saque; end if;
+  l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0 * 0.5) then raise exception 'FALHA arena: depois do revide, a 2ª volta a ser metade'; end if;
+  raise notice 'ok   arena: revide vencido zera a contagem (ouro cheio dos dois lados)';
   -- na semana seguinte volta ao ouro cheio
   update public.arena_lutas set criado_em = criado_em - interval '8 days' where atacante = 'pa' and defensor = 'pb';
   l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);

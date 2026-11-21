@@ -8877,7 +8877,7 @@
       linhas.push('Ouro dele: <strong class="cor-ouro">' + ouro.toLocaleString('pt-BR') + '</strong> · se vencer, saque de <strong class="cor-ouro">' + saque + ' de ouro</strong>'
         + ' e <strong>+' + repTxt + ' de reputação</strong>' + (abaixo ? ' (metade: ele está abaixo de você)' : '')
         + (escada && pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.');
-      linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua).</span>');
+      linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua). Se ele te atacar e vencer, a conta zera e o ouro volta cheio.</span>');
     }
     linhas.push('<span class="suave pequeno">' + (tipo === 'revanche' ? 'Revanche: não muda a sua posição na Arena e ele não pode revidar.'
       : (escada ? 'Vencendo, você toma a posição dele.' : 'Este ataque não muda a sua posição na Arena.') + ' Ele poderá revidar com uma revanche.') + '</span>');
