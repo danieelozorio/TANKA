@@ -2468,7 +2468,7 @@
       if (k === 'recargaPct') return 'Habilidades recarregam ' + v + '% mais rápido (nunca menos de 2 turnos)';
       if (k === 'eruditoExp') return '+' + v + '% de exp (com os pontos no limite, vira +' + fmtDec(Math.round(v / 3 * 10) / 10) + '% de drop)';
       if (k === 'curaHab') return 'Cura ' + v + '% da vida ao usar uma habilidade';
-      if (k === 'recargaMenos') return 'Habilidades recarregam ' + v + ' turno' + (v > 1 ? 's' : '') + ' mais rápido';
+      if (k === 'recargaMenos') return 'A cada ' + (D.ASCENSAO.focoCada || 4) + ' turnos, as habilidades recarregam ' + v + ' turno' + (v > 1 ? 's' : '') + ' mais rápido';
       if (k === 'danoVidaAtual') return '+' + v + '% da vida atual do alvo em cada golpe';
       if (k === 'danoHibrido') return '+' + v + '% de dano híbrido (vai contra a defesa oposta)';
       var n = NOME_EF_ASC[k];

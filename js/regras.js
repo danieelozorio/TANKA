@@ -645,6 +645,9 @@ Tanka.regras = (function () {
   // Começo da vez do herói: conta o turno e tira os reforços que acabaram. h: { hp, hpMax, vel, velBase }.
   function inicioVez(L, h) {
     L.turno++;
+    // Foco (Pacto, Henri 21/11/2026): a cada ASCENSAO.focoCada turnos, as habilidades em recarga ficam recargaMenos turno mais perto
+    if (L.ex && L.ex.recargaMenos && L.turno % (D.ASCENSAO.focoCada || 4) === 0)
+      Object.keys(L.pronto).forEach(function (id) { L.pronto[id] = Math.max(L.turno, L.pronto[id] - L.ex.recargaMenos); });
     L.buffs = L.buffs.filter(function (x) {
       if (x.ate >= L.turno) return true;
       if (x.vidaExtra) { h.hpMax -= x.vidaExtra; h.hp = Math.min(h.hp, h.hpMax); }
@@ -741,8 +744,7 @@ Tanka.regras = (function () {
   // Foco (Pacto de Ascensão): recarga 1 turno menor (no mínimo 1).
   // Foco (Pacto, 20/11/2026): recarga 15% menor, arredondando para baixo, nunca abaixo de 2 turnos (recarga 1 e 2 não mudam).
   function recargaComFoco(r, pct) { return pct && r > 2 ? Math.max(2, Math.floor(r * (1 - pct / 100))) : r; }
-  // Foco (Pacto v2, Henri 20/11/2026): −1 turno de recarga em todas as habilidades (recargaMenos).
-  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + Math.max(1, recargaComFoco(k.def.recarga || 1, L.ex && L.ex.recargaPct) - (L.ex && L.ex.recargaMenos || 0)); }
+  function gastarHabilidade(L, k) { L.pronto[k.def.id] = L.turno + Math.max(1, recargaComFoco(k.def.recarga || 1, L.ex && L.ex.recargaPct)); }
   // Ponte Vigor ⇄ Tempestade (Pacto): cura % da vida ao usar uma habilidade.
   function curaAoUsar(L, h) { if (L && L.ex && L.ex.curaHab && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(h.hpMax * L.ex.curaHab / 100)); }
   // Ferida Aberta (Pacto): o crítico deixa o alvo sangrando (dano no começo da vez dele, como a queimadura).
@@ -4032,7 +4034,7 @@ Tanka.regras = (function () {
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
-    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, precoRefazerAscensao: precoRefazerAscensao, caminhoAscensao: caminhoAscensao, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, inicioVez: inicioVez, precoRefazerAscensao: precoRefazerAscensao, caminhoAscensao: caminhoAscensao, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,

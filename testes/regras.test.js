@@ -2671,10 +2671,13 @@ teste('Pacto de Ascensão v2: efeitos na luta (velocidade em pontos, Primeiro Go
   const gordo = { indiceArea: 0, defesa: 300, defesaMagica: 0, hp: 1000, hpMax: 1000 };
   const va = R.calcularGolpe(sq, Lq, gordo, { mult: 100, sempreAcerta: true, critGarantido: true }, () => 0.5).dano;
   igualA(va, semGC + Math.min(semGC, 30));
-  // Foco: −1 turno em todas as habilidades
+  // Foco (21/11/2026): a cada 4 turnos, −1 turno na recarga de todas (nunca antes do turno atual)
   const Lf = R.novoLutador(q, 'cacada'); Lf.ex.recargaMenos = 1; Lf.turno = 10;
-  R.gastarHabilidade(Lf, { def: { id: 'x', recarga: 6 } }); igualA(Lf.pronto.x, 15);
+  R.gastarHabilidade(Lf, { def: { id: 'x', recarga: 6 } }); igualA(Lf.pronto.x, 16);
   R.gastarHabilidade(Lf, { def: { id: 'y', recarga: 1 } }); igualA(Lf.pronto.y, 11);
+  const hf = { hp: 100, hpMax: 100, vel: 10, velBase: 10 };
+  R.inicioVez(Lf, hf); igualA(Lf.pronto.x, 16);                        // turno 11: nada
+  R.inicioVez(Lf, hf); igualA(Lf.turno, 12); igualA(Lf.pronto.x, 15); igualA(Lf.pronto.y, 12);   // turno 12: −1
   // ouro +3% (tronco da Fortuna) na caçada
   const r = R.criarPersonagem('Asc4', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(r, 59);
   const m = D.areas[6].monstros[2].id;
