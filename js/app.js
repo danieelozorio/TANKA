@@ -844,6 +844,17 @@
     if (!it) return null;
     var cmp = estado.comparando && estado.comparando[1] === it.id && p.inventario.find(function (i) { return i.id === estado.comparando[0]; });
     if (cmp) return '<div class="comparar-duas"><div class="comparar-lado">' + fichaItemHtml(cmp) + '</div><div class="comparar-lado">' + fichaItemHtml(it) + '</div></div>';
+    // Anel (Henri, 21/11/2026): com os dois anéis equipados, o balão mostra os dois ao lado do novo, e cada um tem
+    // o botão de trocar só aquele.
+    var a1 = R.itemNoSlot(p, 'anel1'), a2 = R.itemNoSlot(p, 'anel2');
+    if (!estado.fichaHover && it.tipo === 'anel' && !R.slotDoItem(p, it.id) && a1 && a2) {
+      var lado = function (x, rot, sl) {
+        return '<div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">' + rot + '</p>' + fichaItemHtml(x, true)
+          + (R.podeUsar(p, it) ? '<div class="botoes"><button class="btn btn-pequeno" data-acao="equipar" data-id="' + it.id + '" data-espaco="' + sl + '">⇄ Trocar este anel</button></div>' : '') + '</div>';
+      };
+      return '<div class="comparar-duas comparar-tres">' + lado(a1, 'Anel equipado (1)', 'anel1') + lado(a2, 'Anel equipado (2)', 'anel2')
+        + '<div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>';
+    }
     // Clique num item desequipado (Henri, 12/11/2026): a ficha abre com o equipado do mesmo lugar ao lado, para comparar.
     var eq = !estado.fichaHover && !R.slotDoItem(p, it.id) && (it.tipo === 'anel'
       ? (R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2')) : (it.tipo in p.equipados ? R.itemNoSlot(p, it.tipo) : null));
@@ -893,6 +904,86 @@
     var f = document.getElementById('ficha-flutuante');
     if (f) f.classList.remove('hover');
   }
+  // Arrastar um item da mochila para o personagem equipa (Henri, 21/11/2026). Mouse: segurar e arrastar. Dedo:
+  // segurar parado um instante (para não atrapalhar a rolagem) e arrastar. Soltar num espaço do mesmo tipo (no anel,
+  // no anel escolhido) ou em cima do retrato equipa; em outro lugar, nada acontece.
+  var arrasto = null, arrastoFim = 0;
+  function espacosDoItem(it) { return Object.keys(D.slots).filter(function (k) { return D.slots[k].tipo === it.tipo; }); }
+  function comecarArrasto() {
+    var a = arrasto, p = estado.personagem, it = a && p && p.inventario.find(function (i) { return i.id === a.id; });
+    if (!it) { arrasto = null; return; }
+    a.ativo = true; a.item = it;
+    fecharFlutuante();
+    var g = document.createElement('div');
+    g.className = 'fantasma-arrasto borda-' + corItem(it);
+    g.innerHTML = F.icone(it);
+    document.body.appendChild(g); a.g = g;
+    a.espacos = espacosDoItem(it);
+    a.espacos.forEach(function (k) { var e = document.querySelector('.espaco-' + k); if (e) e.classList.add('pode-soltar'); });
+    var b = document.querySelector('.boneco'); if (b) b.classList.add('arrastando-item');
+    moverArrasto(a.x, a.y);
+  }
+  function alvoArrasto(x, y) {
+    var el = document.elementFromPoint(x, y), a = arrasto;
+    if (!el || !a) return null;
+    var esp = el.closest('[class*="espaco-"]');
+    if (esp) { var k = (esp.className.match(/espaco-(\w+)/) || [])[1]; return a.espacos.indexOf(k) >= 0 ? { slot: k, el: esp } : null; }
+    var ret = el.closest('.retrato-central, .boneco');
+    return ret ? { slot: null, el: ret } : null;
+  }
+  function moverArrasto(x, y) {
+    var a = arrasto;
+    if (!a || !a.g) return;
+    a.g.style.left = x + 'px'; a.g.style.top = y + 'px';
+    var alvo = alvoArrasto(x, y);
+    document.querySelectorAll('.alvo-arrasto').forEach(function (e) { e.classList.remove('alvo-arrasto'); });
+    if (alvo) alvo.el.classList.add('alvo-arrasto');
+    a.alvo = alvo;
+  }
+  function acabarArrasto(soltar) {
+    var a = arrasto;
+    arrasto = null;
+    if (!a) return;
+    clearTimeout(a.timer);
+    if (a.g) a.g.remove();
+    document.querySelectorAll('.pode-soltar, .alvo-arrasto, .arrastando-item').forEach(function (e) { e.classList.remove('pode-soltar', 'alvo-arrasto', 'arrastando-item'); });
+    if (!a.ativo) return;
+    arrastoFim = Date.now();
+    if (!soltar || !a.alvo) return;
+    var p = estado.personagem, slot = a.alvo.slot && a.alvo.slot.indexOf('anel') === 0 ? a.alvo.slot : null;
+    if (R.equipar(p, a.id, slot)) {
+      estado.vendaPendente = null; estado.itemFoco = null;
+      acaoServidor('equipar', slot ? { id: a.id, slot: slot } : a.id);
+      telaJogo();
+    } else avisar(R.motivoNaoEquipa(p, a.item) || 'Não foi possível equipar (mochila cheia?).');
+  }
+  app.addEventListener('pointerdown', function (e) {
+    var cel = e.target.closest && e.target.closest('.pg-mochila .mochila [data-acao="item"]');
+    if (!cel || estado.vendaLote || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    arrasto = { id: cel.dataset.id, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, ativo: false, toque: e.pointerType !== 'mouse' };
+    if (arrasto.toque) { var a0 = arrasto; a0.timer = setTimeout(function () { if (arrasto === a0) comecarArrasto(); }, 350); }
+  });
+  window.addEventListener('pointermove', function (e) {
+    var a = arrasto;
+    if (!a) return;
+    a.x = e.clientX; a.y = e.clientY;
+    var d = Math.abs(a.x - a.x0) + Math.abs(a.y - a.y0);
+    if (!a.ativo) {
+      if (a.toque) { if (d > 10) acabarArrasto(false); }   // mexeu antes de segurar: é rolagem
+      else if (d > 6) comecarArrasto();
+      return;
+    }
+    moverArrasto(a.x, a.y);
+  });
+  window.addEventListener('pointerup', function () { acabarArrasto(true); });
+  window.addEventListener('pointercancel', function () { acabarArrasto(false); });
+  // durante o arrasto com o dedo, a tela não rola
+  document.addEventListener('touchmove', function (e) { if (arrasto && arrasto.ativo) e.preventDefault(); }, { passive: false });
+  // o clique que vem logo depois de soltar não conta (não equipa de novo nem abre a ficha)
+  document.addEventListener('click', function (e) { if (Date.now() - arrastoFim < 350) { e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('contextmenu', function (e) { if (arrasto && arrasto.ativo) e.preventDefault(); }, true);
+  app.addEventListener('dragstart', function (e) { if (e.target.closest && e.target.closest('.pg-mochila .mochila')) e.preventDefault(); });   // sem o arrasto nativo da imagem
+
   if (temMouse) {
     app.addEventListener('mouseover', function (e) {
       var el = e.target.closest && e.target.closest('[data-acao="item"]');
@@ -1713,12 +1804,16 @@
     if (!item) return '';
     var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
     var semEnc = outro && (item.encanto || outro.encanto);
+    // Anel com os dois espaços ocupados (Henri, 21/11/2026): mostra os dois e um botão para trocar cada um.
+    var anelOutro = !slot && item.tipo === 'anel' && R.itemNoSlot(p, 'anel1') && R.itemNoSlot(p, 'anel2') ? R.itemNoSlot(p, 'anel2') : null;
     var acoes = '';
     if (soVer) acoes = '';
     else if (slot) {
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
-      acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
+      acoes = (R.podeUsar(p, item) ? (anelOutro ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '" data-espaco="anel1">⇄ Trocar pelo anel 1</button>'
+            + '<button class="btn" data-acao="equipar" data-id="' + item.id + '" data-espaco="anel2">⇄ Trocar pelo anel 2</button>'
+            : '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>')
           : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é do seu grupo') + '</span>')
         + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
@@ -1727,9 +1822,10 @@
     if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
     return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
       + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
-      + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
+      + '<div class="zoom-cartas' + (anelOutro ? ' dupla tripla' : outro ? ' dupla' : '') + '">'
       + cartaZoom(outro ? semEncanto(item) : item, semEncanto(outro), (slot ? 'Equipado' : 'Este item') + (semEnc ? ' · sem encanto' : ''), item)
       + (outro ? cartaZoom(semEncanto(outro), null, 'Equipado agora' + (semEnc ? ' · sem encanto' : ''), outro) : '')
+      + (anelOutro ? cartaZoom(semEncanto(anelOutro), null, 'Outro anel equipado', anelOutro) : '')
       + '</div><div class="botoes">' + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
   }
 
@@ -6381,7 +6477,7 @@
         }
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; acaoServidor('equipar', el.dataset.id); telaJogo(); }
+        if (R.equipar(p, el.dataset.id, el.dataset.espaco)) { estado.vendaPendente = null; estado.zoom = null; fecharFlutuante(); acaoServidor('equipar', el.dataset.espaco ? { id: el.dataset.id, slot: el.dataset.espaco } : el.dataset.id); telaJogo(); }
         else avisar(R.motivoNaoEquipa(p, p.inventario.find(function (i) { return i.id === el.dataset.id; })) || 'Não foi possível equipar (mochila cheia?).');
         break;
       case 'pedir-venda':

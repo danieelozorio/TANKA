@@ -2396,3 +2396,17 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 .contratar-escolhido { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; }
 .btn-travar.travado { border-color: #e2bb63 !important; color: #ffe7a6 !important; }
 .altar-dado.sel { transform: none !important; }   /* marcar não pula a figura (Henri, 21/11/2026) */
+
+/* Arrastar item da mochila para o personagem (Henri, 21/11/2026) */
+.fantasma-arrasto { position: fixed; z-index: 99999; width: 56px; height: 56px; transform: translate(-50%, -60%); pointer-events: none;
+  border-radius: 10px; border: 2px solid; background: rgba(10, 12, 18, .85); box-shadow: 0 6px 18px rgba(0, 0, 0, .6); opacity: .92; }
+.fantasma-arrasto img, .fantasma-arrasto svg { width: 100%; height: 100%; object-fit: contain; }
+.pode-soltar .slot { outline: 2px dashed rgba(255, 215, 106, .75); outline-offset: 2px; }
+.alvo-arrasto .slot, .boneco .retrato-central.alvo-arrasto { outline: 3px solid #ffd76a !important; box-shadow: 0 0 16px rgba(255, 215, 106, .8); }
+.boneco.arrastando-item .retrato-central { outline: 2px dashed rgba(255, 215, 106, .45); outline-offset: -4px; }
+html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+/* Anel: balão com os dois equipados e o novo */
+.comparar-tres { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+@media (max-width: 760px) { .comparar-tres { grid-template-columns: 1fr !important; } }
+.zoom-cartas.tripla { flex-wrap: wrap; }
+#ficha-flutuante.comparando:has(.comparar-tres) { width: min(1040px, 97vw); }

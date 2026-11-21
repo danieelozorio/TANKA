@@ -3905,11 +3905,12 @@ Tanka.regras = (function () {
 
   // Equipa no espaço certo; se já houver item lá, ele volta para a mochila.
   // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
-  function equipar(p, itemId) {
+  // `slotPref` (opcional): anel no espaço escolhido ('anel1'/'anel2'), ao trocar um dos dois ou ao arrastar.
+  function equipar(p, itemId, slotPref) {
     var item = itemPorId(p, itemId);
     if (!item || motivoNaoEquipa(p, item) || slotDoItem(p, itemId)) return false;
     var slot = item.tipo;
-    if (item.tipo === 'anel') slot = !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
+    if (item.tipo === 'anel') slot = slotPref === 'anel1' || slotPref === 'anel2' ? slotPref : !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
     // Arma de duas mãos (ou que não combina com o item da mão esquerda): a mão esquerda volta para a mochila.
     var mao = item.tipo === 'arma' && itemNoSlot(p, 'secundaria'), ta = item.tipo === 'arma' && tipoArma(item);
     var tiraMao = mao && (ta.duasMaos || (ta.proibe || []).indexOf(mao.mao) >= 0);

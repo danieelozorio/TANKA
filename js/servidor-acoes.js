@@ -199,10 +199,11 @@ Tanka.servidorAcoes = (function () {
       return R.moverHabilidade(p, a[0], texto(a[1]), a[2]) ? true : 'Não foi possível mover.';
     },
     habilidadeAuto: function (p, a) { p.habilidadeAuto = !!a; return true; },
-    equipar: function (p, a) {
-      var id = texto(a), item = (p.inventario || []).find(function (i) { return i.id === id; });
+    equipar: function (p, a) {   // a = id, ou { id, slot } (anel no espaço escolhido)
+      var obj = a && typeof a === 'object', id = texto(obj ? a.id : a), slot = obj ? texto(a.slot) : null;
+      var item = (p.inventario || []).find(function (i) { return i.id === id; });
       if (!item) return 'Item não encontrado.';
-      return R.equipar(p, id) ? true : (R.motivoNaoEquipa(p, item) || 'Não foi possível equipar (mochila cheia?).');
+      return R.equipar(p, id, slot) ? true : (R.motivoNaoEquipa(p, item) || 'Não foi possível equipar (mochila cheia?).');
     },
     desequipar: function (p, a) {
       var slot = texto(a);
