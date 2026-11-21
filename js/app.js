@@ -3568,7 +3568,16 @@
       + '<p class="suave pequeno">Contrate um Ferreiro ou um Coletor de outro jogador. Você entrega o item, os materiais e o pagamento; o jogo guarda tudo até ele fazer. '
       + 'A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você. '
       + '🤝 Artesão que é seu <strong>amigo</strong> faz <strong>na hora</strong>, sem precisar aceitar. Quem não entra no jogo há ' + (OF.sumirHoras || 24) + ' h sai da lista.</p></div></div>';
-    // Meus pedidos (primeiro: é o que o comprador quer acompanhar)
+    // Oficinas abertas (para o comprador), com filtro por serviço
+    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; }), filtro = estado.ofFiltro || 'todos';
+    var visiveis = lista.filter(function (x) { return filtro === 'todos' || x.servicos[filtro]; });
+    html += '<h3 class="subtitulo">⚒ Oficinas abertas <span class="suave pequeno">(' + lista.length + ')</span></h3>'
+      + '<div class="loja-filtros">' + [['todos', 'Todos']].concat(Object.keys(OF.servicos).map(function (k) { return [k, ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome.replace(/^Fabricar /, '')]; })).map(function (o) {
+        return '<button type="button" class="btn btn-pequeno' + (o[0] === filtro ? ' sel' : ' secundario') + '" data-acao="of-filtro" data-valor="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+    html += visiveis.length ? '<div class="loja-lista">' + visiveis.map(function (x) { return cartaOficina(x); }).join('') + '</div>'
+      : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
+    // Meus pedidos (depois das oficinas abertas: pedido do Henri, 21/11/2026)
     if ((st.pedidos || []).length) {
       var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length;
       html += '<h3 class="subtitulo">🧾 Meus pedidos' + (pend ? ' <span class="contador-loja">' + pend + ' esperando</span>' : '') + '</h3><div class="loja-pedidos">' + st.pedidos.map(function (x) {
@@ -3611,15 +3620,6 @@
           + '<button class="btn btn-pequeno" data-acao="of-fazer" data-id="' + x.id + '">' + (x.tipo === 'encantar' || x.tipo === 'reliquia' ? '🎲 Jogar a sorte' : '⚒ Fazer') + '</button></div>';
       }).join('') + '</div>' : '<p class="suave">Nenhum pedido esperando.</p>') + '</div>';
     }
-    // Oficinas abertas (para o comprador), com filtro por serviço
-    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; }), filtro = estado.ofFiltro || 'todos';
-    var visiveis = lista.filter(function (x) { return filtro === 'todos' || x.servicos[filtro]; });
-    html += '<h3 class="subtitulo">⚒ Oficinas abertas <span class="suave pequeno">(' + lista.length + ')</span></h3>'
-      + '<div class="loja-filtros">' + [['todos', 'Todos']].concat(Object.keys(OF.servicos).map(function (k) { return [k, ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome.replace(/^Fabricar /, '')]; })).map(function (o) {
-        return '<button type="button" class="btn btn-pequeno' + (o[0] === filtro ? ' sel' : ' secundario') + '" data-acao="of-filtro" data-valor="' + o[0] + '">' + o[1] + '</button>';
-      }).join('') + '</div>';
-    html += visiveis.length ? '<div class="loja-lista">' + visiveis.map(function (x) { return cartaOficina(x); }).join('') + '</div>'
-      : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
     return html;
   }
   function statsOficina(x) {
