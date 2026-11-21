@@ -1386,7 +1386,7 @@ teste('atributo das armas e da mão esquerda (17/11/2026): 2 mãos dobra; mão e
     assert.ok(liv.bonus.int >= 5 && liv.bonus.int <= 8, 'livro INT ' + liv.bonus.int);
     assert.ok(adg.bonus.des >= 5 && adg.bonus.des <= 8, 'adaga DES ' + adg.bonus.des);
   }
-  assert.ok(!R.novoItem('secundaria', null, 'epica', null, 'escudo', 8).bonus.for, 'até o nível 10: sem atributo');
+  assert.ok(!R.novoItem('secundaria', null, 'comum', null, 'escudo', 8).bonus.for, 'até o nível 10: sem atributo');
   // itens antigos: o Livro perde a INT antiga e ganha a nova; arma de 2 mãos dobra; sempre o mesmo sorteio
   const p = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); p.nivel = 40;
   const livro = { id: 'lv1', tipo: 'secundaria', mao: 'livro', raridade: 'epica', nivel: 40, encanto: 0, bonus: { int: 19, danoMagico: 10, res: 3 } };
