@@ -24,7 +24,7 @@ const dados = {
   VELOCIDADE_ARMA: D.VELOCIDADE_ARMA, ARMA_PADRAO: D.ARMA_PADRAO, RARIDADE_ARMA: D.RARIDADE_ARMA,
   ATRIBUTOS_COMBATE: D.ATRIBUTOS_COMBATE,
   ARMAS_PREFERIDAS: Object.fromEntries(Object.entries(D.ARMAS_CLASSE).map(([k, a]) => [k, a.armas])),
-  GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte },
+  GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte, classes: D.GRUPOS_ITEM.classes, defMagicaDaDefesa: D.GRUPOS_ITEM.defMagicaDaDefesa },
   MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto }])),
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, v.multDefesaMagica ? { bonus: v.bonus, multDefesaMagica: v.multDefesaMagica } : { bonus: v.bonus }])),

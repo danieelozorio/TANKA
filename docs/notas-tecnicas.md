@@ -1529,3 +1529,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Tela: tocar num ponto longe mostra o caminho mais barato (`R.caminhoAscensao`, Dijkstra pelo custo, sem atravessar
   Pedra) e "Pegar o caminho"; confirma tudo de uma vez. Mapa arrasta com o mouse (pointer events; clique depois do
   arrasto não conta) e rola com o dedo.
+
+## Defesa mágica dos lutadores (Henri, 21/11/2026)
+- `D.GRUPOS_ITEM.defMagicaDaDefesa = { pesado: 20, leve: 25 }`: elmo, peitoral, luvas e botas desses grupos (pela
+  `classe` do item → `GRUPOS_ITEM.classes`) dão também essa % da própria defesa (já x DEFESA.fator, com encanto) como
+  defesa mágica. Mágico (Manto etc.) e joias não. Vale para itens já existentes (calculado, não salvo).
+- JS: fim de `R.bonusItem`. SQL: `tanka_status` (variáveis `d0`/`pdm`, depois do encanto de cada item);
+  `tanka_dados()` leva `GRUPOS_ITEM.classes` e `defMagicaDaDefesa` (gerar_dados_sql.js).
+- Lv 60, tudo épico: Cavaleiro def. mágica 460 → ~664; Arqueiro 445 → ~608; Mago 985 (igual).

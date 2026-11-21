@@ -424,6 +424,9 @@ Tanka.dados = {
     armadura: { pesado: 'cavaleiro', leve: 'arqueiro', magico: 'mago' },
     mao: { escudo: 'pesado', manopla: 'pesado', aljava: 'leve', adaga: 'leve', garra: 'leve', shuriken: 'leve', orbe: 'magico', livro: 'magico' },
     foraPreferida: 80,
+    // Defesa mágica dos lutadores (Henri, 21/11/2026): elmo, peitoral, luvas e botas desses grupos dão também essa %
+    // da própria defesa como defesa mágica (espelho do Manto do mago, que dá um pouco de defesa física). Vale para os itens que já existem.
+    defMagicaDaDefesa: { pesado: 20, leve: 25 },
     maoForte: { paladino: { mao: 'escudo', pct: 50 }, coletor: { mao: 'manopla', pct: 50 } },
   },
   // Nomes das armas e itens novos: "<tipo> <sufixo>" (8 por raridade).

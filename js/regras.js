@@ -363,8 +363,12 @@ Tanka.regras = (function () {
     // Defesa em porcentagem: a defesa dos itens vale x DEFESA.fator (4,5), inclusive nos itens já salvos.
     if (b.defesa) b.defesa = Math.round(b.defesa * D.DEFESA.fator);
     if (b.defesaMagica) b.defesaMagica = Math.round(b.defesaMagica * D.DEFESA.fator);
+    // Armadura Pesada/Leve: parte da defesa vira também defesa mágica (GRUPOS_ITEM.defMagicaDaDefesa; igual no schema.sql)
+    var pdm = TIPOS_ARMADURA_DM.indexOf(item.tipo) >= 0 && b.defesa && (D.GRUPOS_ITEM.defMagicaDaDefesa || {})[D.GRUPOS_ITEM.classes[item.classe]];
+    if (pdm) b.defesaMagica = (b.defesaMagica || 0) + Math.round(b.defesa * pdm / 100);
     return b;
   }
+  var TIPOS_ARMADURA_DM = ['elmo', 'peitoral', 'luvas', 'botas'];
   // Dano que o herói recebe depois da defesa: x 100 / (100 + defesa), nunca menos que 1.
   function danoComDefesa(dano, defesa) { return Math.max(1, Math.round(dano * D.DEFESA.k / (D.DEFESA.k + Math.max(0, defesa)))); }
   // % de dano que a defesa corta (para mostrar).

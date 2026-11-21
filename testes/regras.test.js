@@ -510,9 +510,9 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.strictEqual(R.nomeItem(it('luvas', 'epica')), 'Manoplas do Crepúsculo');
   assert.strictEqual(R.nomeItem(it('elmo', 'lendaria', 'mago', 3)), '+3 Chapéu da Origem');
   assert.strictEqual(R.nomeItem({ tipo: 'anel', classe: null, raridade: 'rara', encanto: 0 }), 'Anel de Prata');
-  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40 });   // defesa dos itens x4,5
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40, defesaMagica: Math.round(Math.round(8 * D.DEFESA.fator) * 0.2) });   // defesa dos itens x4,5; Pesada: +20% como defesa mágica
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: Math.round(3 * D.DEFESA.fator), defesaMagica: Math.round(5 * D.DEFESA.fator), vida: 15 });
-  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
+  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1, defesaMagica: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * 1.25 * D.DEFESA.fator) });   // reserva sem nível; encanto no dano; anel: defesa mágica +25%
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: Math.round(1 * 1.05 * D.DEFESA.fator), vida: 5 });
 });
@@ -1089,7 +1089,7 @@ teste('mochila: força do item, ordem com desempate e filtro', () => {
   const b = { id: 'b', tipo: 'arma', classe: 'cavaleiro', raridade: 'comum', encanto: 0, dano: [12, 18] };
   const c = { id: 'c', tipo: 'elmo', classe: 'cavaleiro', raridade: 'lendaria', encanto: 0 };
   assert.strictEqual(R.forcaItem(a), 150);
-  assert.strictEqual(R.forcaItem(c), 20 * 8 + 150);
+  assert.strictEqual(R.forcaItem(c), 20 * 8 + 150 + 32);   // + a defesa mágica da armadura Pesada (21/11/2026)
   assert.deepStrictEqual([...R.ordenarItens([b, a, c], 'raridade').map((x) => x.id)], ['c', 'a', 'b']);
   assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca').map((x) => x.id)], ['c', 'a', 'b']);   // empate a/b: raridade desempata
   assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca', true).map((x) => x.id)], ['b', 'a', 'c']);
@@ -1474,6 +1474,14 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
 
+teste('defesa mágica dos lutadores (21/11/2026): Pesada +20% e Leve +25% da defesa; Manto e joias não', () => {
+  const it = (tipo, classe) => ({ id: tipo + classe, tipo, classe, raridade: 'epica', encanto: 0, bonus: { defesa: 20, vida: 50 } });
+  assert.strictEqual(R.bonusItem(it('peitoral', 'cavaleiro')).defesaMagica, 18);   // 20 x 4,5 = 90 → 18
+  assert.strictEqual(R.bonusItem(it('elmo', 'artesao')).defesaMagica, 18);
+  assert.strictEqual(R.bonusItem(it('botas', 'arqueiro')).defesaMagica, 23);       // 90 x 25%
+  assert.strictEqual(R.bonusItem(it('peitoral', 'mago')).defesaMagica, undefined);
+});
+
 teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em diante', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const vistos = new Set();
@@ -1484,7 +1492,7 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
     const extras = Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
     assert.strictEqual(extras.length, 1); assert.ok(b[extras[0]] >= 2 && b[extras[0]] <= 4);
     vistos.add(b.defesa);
-    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(Object.assign({}, b, { defesa: Math.round(b.defesa * D.DEFESA.fator) })));
+    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(Object.assign({}, b, { defesa: Math.round(b.defesa * D.DEFESA.fator), defesaMagica: Math.round(Math.round(b.defesa * D.DEFESA.fator) * 0.2) })));
     p.inventario = [];
   }
   assert.ok(vistos.size > 3, 'varia');
