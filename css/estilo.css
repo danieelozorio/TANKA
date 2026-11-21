@@ -2413,3 +2413,9 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 @media (max-width: 760px) { .comparar-tres { grid-template-columns: 1fr !important; } }
 .zoom-cartas.tripla { flex-wrap: wrap; }
 #ficha-flutuante.comparando:has(.comparar-tres) { width: min(1040px, 97vw); }
+
+/* Botões da ficha do item (Henri, 21/11/2026, "Exemplo A"): o principal ocupa a linha toda, os outros dividem a de baixo. */
+.item-acoes.acoes-item, html[data-celular] #ficha-flutuante .item-acoes.acoes-item { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; justify-content: stretch; }
+.item-acoes.acoes-item > *, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > .btn { flex: 1 1 0; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 6px; padding-right: 6px; }
+.item-acoes.acoes-item > :first-child, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > :first-child { flex-basis: 100%; }
+.item-acoes.acoes-item > span:first-child { white-space: normal; text-align: center; }

@@ -859,9 +859,8 @@
     var eq = !estado.fichaHover && !R.slotDoItem(p, it.id) && (it.tipo === 'anel'
       ? (R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2')) : (it.tipo in p.equipados ? R.itemNoSlot(p, it.tipo) : null));
     if (eq) return '<div class="comparar-duas"><div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">Equipado</p>' + fichaItemHtml(eq, true)
-      + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>'
-      + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
-    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
+      + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it, false, true) + '</div></div>';
+    return fichaItemHtml(it, false, true);
   }
   function fecharFlutuante() {
     var f = document.getElementById('ficha-flutuante');
@@ -1673,7 +1672,7 @@
   function semEncanto(item) { return item && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
 
 
-  function fichaItemHtml(item, soVer) {
+  function fichaItemHtml(item, soVer, comparar) {
     var p = estado.personagem;
     if (!item) {
       return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam; o botão direito equipa. A seta verde ▲ mostra o que é melhor que o equipado.'
@@ -1710,11 +1709,13 @@
         : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é do seu grupo') + '</span>';
       acoes += item.travado ? '' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
-        : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
+        : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '" title="Vender por ' + R.precoVenda(item) + ' de ouro">💰 Vender ' + R.precoVenda(item) + '</button>';
     }
     // Travar (Henri, 21/11/2026): item travado não pode ser vendido, quebrado na Oficina nem anunciado.
     if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '" title="'
       + (item.travado ? 'Destravar: volta a poder vender e quebrar' : 'Travar: não pode ser vendido nem quebrado') + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
+    // Botões arrumados (Henri, 21/11/2026, "Exemplo A"): Equipar largo em cima; Vender, Travar e Comparar numa linha embaixo.
+    if (!soVer && comparar) acoes += '<button class="btn secundario" data-acao="item-comparar" data-id="' + item.id + '" title="Comparar com outro item">⚖ Comparar</button>';
     return '<div class="ficha-item-topo"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
       + '<div class="suave"><span class="ficha-item-tipo">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>' + (item.nivel ? ' · ' : '') + '</span>'
@@ -1724,7 +1725,7 @@
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
       + (alvo ? '<p class="suave ficha-comparado">Comparado com ' + nomeItemHtml(alvo) + ((item.encanto || alvo.encanto) ? ' <span class="suave">(sem encanto)</span>' : '') + '</p>'
  : '')
-      + '<div class="item-acoes">' + acoes + '</div>';
+      + '<div class="item-acoes' + (soVer ? '' : ' acoes-item') + '">' + acoes + '</div>';
   }
 
   // Relíquia Rúnica (runa, só contra monstros) e assinatura de quem forjou.
