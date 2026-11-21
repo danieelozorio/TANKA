@@ -1617,10 +1617,13 @@
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
         : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é do seu grupo') + '</span>';
-      acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
+      acoes += item.travado ? '' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
         : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
     }
+    // Travar (Henri, 21/11/2026): item travado não pode ser vendido, quebrado na Oficina nem anunciado.
+    if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '" title="'
+      + (item.travado ? 'Destravar: volta a poder vender e quebrar' : 'Travar: não pode ser vendido nem quebrado') + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
     return '<div class="ficha-item-topo"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
       + '<div class="suave"><span class="ficha-item-tipo">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>' + (item.nivel ? ' · ' : '') + '</span>'
@@ -1721,7 +1724,7 @@
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
     }
-    acoes += '<button class="btn secundario" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? 'Destravar' : 'Travar') + '</button>';
+    if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
     return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
       + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
       + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
@@ -6069,6 +6072,8 @@
       case 'item-travar':
         R.travarItem(p, el.dataset.id);
         estado.vendaPendente = null;
+        var itT = p.inventario.filter(function (i) { return i.id === el.dataset.id; })[0];
+        if (itT) avisar(itT.travado ? '🔒 ' + R.nomeItem(itT) + ' travado: não pode ser vendido nem quebrado.' : '🔓 ' + R.nomeItem(itT) + ' destravado.');
         acaoServidor('travarItem', el.dataset.id);
         telaJogo();
         break;

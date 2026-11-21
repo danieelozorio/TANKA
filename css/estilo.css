@@ -2394,3 +2394,4 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 .contratar-grade { grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)) !important; max-height: 260px; overflow-y: auto; padding: 4px; margin-top: 4px; }
 .contratar-grade .celula.escolhido { outline: 2px solid #ffd76a; outline-offset: 1px; box-shadow: 0 0 10px rgba(255, 215, 106, .6); }
 .contratar-escolhido { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; }
+.btn-travar.travado { border-color: #e2bb63 !important; color: #ffe7a6 !important; }
