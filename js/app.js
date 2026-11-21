@@ -3535,6 +3535,15 @@
     var sel = function (campo, lista, atual) {
       return '<select data-contratar="' + campo + '">' + lista.map(function (o) { return '<option value="' + esc(String(o[0])) + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
     };
+    // Escolher o item num quadrado com os itens da mochila (Henri, 21/11/2026), no lugar da lista.
+    var grade = function (lista, atual) {
+      var v = visaoMochila();
+      return '<div class="contratar-escolha"><span class="suave pequeno">Escolha o item:</span><div class="mochila contratar-grade">'
+        + R.ordenarItens(lista, v.ordem, v.crescente).map(function (i) {
+          return quadroItem(i, 'celula' + (i.id === atual.id ? ' escolhido' : ''), ' aria-pressed="' + (i.id === atual.id) + '"').replace('data-acao="item"', 'data-acao="of-item"');
+        }).join('') + '</div><p class="contratar-escolhido"><span class="icone-pequeno borda-' + corItem(atual) + '">' + F.icone(atual) + '</span> <strong>' + esc(R.nomeItem(atual)) + '</strong>'
+        + ' <span class="suave pequeno">· Lv ' + (atual.nivel || 1) + ' · ' + D.raridades[atual.raridade].nome + (atual.encanto ? ' · +' + atual.encanto : '') + '</span></p></div>';
+    };
     var h = '<div class="contratar">', aviso = '', pode = true;
     if (tipo === 'encantar') {
       var itens = livres.filter(function (i) { return i.encanto < E.maximo && !i.runa; });
@@ -3542,7 +3551,7 @@
       var it = itens.filter(function (i) { return i.id === f.item; })[0] || itens[0];
       var chance = R.chanceEncantarCom(Number(x.bonus_encanto), it), risco = R.riscoEncantar(it);
       var temProt = R.qtdConsumivel(p, 'protecao', it.raridade) > 0, prot = !!f.protecao && temProt, temPerg = R.qtdPergaminho(p, it.raridade) > 0;
-      h += '<label>Item ' + sel('item', itens.map(function (i) { return [i.id, R.nomeItem(i) + ' (' + D.raridades[i.raridade].nome + ')']; }), it.id) + '</label>'
+      h += grade(itens, it)
         + '<label class="linha-check"><input type="checkbox" data-contratar="protecao"' + (prot ? ' checked' : '') + (temProt ? '' : ' disabled') + '> 🛡 Usar Pergaminho de Proteção '
         + '<span class="suave pequeno">(' + (temProt ? 'você tem ' + R.qtdConsumivel(p, 'protecao', it.raridade) : 'você não tem da raridade ' + D.raridades[it.raridade].nome) + ')</span></label>'
         + (temPerg ? '' : '<p class="menos pequeno">Você precisa de 1 Pergaminho ' + D.raridades[it.raridade].nome + ' para entregar.</p>');
@@ -3581,7 +3590,7 @@
       var qb = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; });
       if (!qb.length) return h + '<p class="suave">Nenhum item na mochila para quebrar (tire do corpo e destrave antes).</p></div>';
       var iq = qb.filter(function (i) { return i.id === f.item; })[0] || qb[0], nq = R.cristaisQuebrar(iq);
-      h += '<label>Item ' + sel('item', qb.map(function (i) { return [i.id, R.nomeItem(i) + ' · Lv ' + (i.nivel || 1) + ' (' + D.raridades[i.raridade].nome + ')']; }), iq.id) + '</label>'
+      h += grade(qb, iq)
         + '<h4>Você recebe</h4><p class="quebrar-recebe"><span class="icone-pequeno borda-' + iq.raridade + '">' + iconeCusto({ tipo: 'cristal', id: iq.raridade }) + '</span> <strong>'
         + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong></p>';
       preco = R.precoServico('quebrar', preco, iq);
@@ -3593,7 +3602,7 @@
       var il = lend.filter(function (i) { return i.id === f.item; })[0] || lend[0];
       var cm = Object.keys(Q.materiais).map(function (k) { return { tipo: 'material', id: k, nome: D.CRAFT.materiais[k].nome, tem: R.qtdMaterial(p, k), precisa: Q.materiais[k] }; });
       var chR = Math.min(Q.maxima, Q.base + Number(x.sorte) * Q.porSorte);
-      h += '<label>Item ' + sel('item', lend.map(function (i) { return [i.id, R.nomeItem(i)]; }), il.id) + '</label>'
+      h += grade(lend, il)
         + '<label>Nome da relíquia <input type="text" maxlength="24" data-contratar="nome" value="' + esc(f.nome || '') + '" placeholder="Ex.: Fúria de Thorin"></label>'
         + '<h4>Você entrega</h4>' + custoChips(cm)
         + (x.reliquia_semana ? '<p class="menos pequeno">Este Ferreiro já forjou a relíquia da semana.</p>' : '');
@@ -3665,6 +3674,7 @@
       case 'of-fechar': configurarOficina({}); return true;
       case 'of-contratar': estado.contratar = { artesao: el.dataset.id, tipo: el.dataset.valor }; telaJogo(); return true;
       case 'of-contratar-fechar': estado.contratar = null; telaJogo(); return true;
+      case 'of-item': if (estado.contratar) { estado.contratar.item = el.dataset.id; telaJogo(); } return true;
       case 'of-filtro': estado.ofFiltro = el.dataset.valor; estado.contratar = null; telaJogo(); return true;
       case 'of-pedir': pedirOficina(); return true;
       case 'of-cancelar':
