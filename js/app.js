@@ -3635,12 +3635,15 @@
       return '<select data-contratar="' + campo + '">' + lista.map(function (o) { return '<option value="' + esc(String(o[0])) + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
     };
     // Escolher o item num quadrado com os itens da mochila (Henri, 21/11/2026), no lugar da lista.
-    var grade = function (lista, atual) {
-      var v = visaoMochila();
-      return '<div class="contratar-escolha"><span class="suave pequeno">Escolha o item:</span><div class="mochila contratar-grade">'
-        + R.ordenarItens(lista, v.ordem, v.crescente).map(function (i) {
-          return quadroItem(i, 'celula' + (i.id === atual.id ? ' escolhido' : ''), ' aria-pressed="' + (i.id === atual.id) + '"').replace('data-acao="item"', 'data-acao="of-item"');
-        }).join('') + '</div><p class="contratar-escolhido"><span class="icone-pequeno borda-' + corItem(atual) + '">' + F.icone(atual) + '</span> <strong>' + esc(R.nomeItem(atual)) + '</strong>'
+    var grade = function (lista, atual, varios) {
+      var v = visaoMochila(), marcado = function (i) { return varios ? varios.indexOf(i.id) >= 0 : i.id === atual.id; };
+      var cels = '<div class="mochila contratar-grade">' + R.ordenarItens(lista, v.ordem, v.crescente).map(function (i) {
+        return quadroItem(i, 'celula' + (marcado(i) ? ' escolhido' : ''), ' aria-pressed="' + marcado(i) + '"').replace('data-acao="item"', 'data-acao="of-item"');
+      }).join('') + '</div>';
+      // Quebrar vários de uma vez (Henri, 21/11/2026): toca para marcar/desmarcar.
+      if (varios) return '<div class="contratar-escolha"><div class="contratar-escolha-topo"><span class="suave pequeno">Toque nos itens para marcar (' + varios.length + ' marcado' + (varios.length === 1 ? '' : 's') + '):</span>'
+        + '<button class="btn secundario btn-pequeno" data-acao="of-itens-todos">Marcar todos</button>' + (varios.length ? '<button class="btn secundario btn-pequeno" data-acao="of-itens-limpar">Limpar</button>' : '') + '</div>' + cels + '</div>';
+      return '<div class="contratar-escolha"><span class="suave pequeno">Escolha o item:</span>' + cels + '<p class="contratar-escolhido"><span class="icone-pequeno borda-' + corItem(atual) + '">' + F.icone(atual) + '</span> <strong>' + esc(R.nomeItem(atual)) + '</strong>'
         + ' <span class="suave pequeno">· Lv ' + (atual.nivel || 1) + ' · ' + D.raridades[atual.raridade].nome + (atual.encanto ? ' · +' + atual.encanto : '') + '</span></p></div>';
     };
     var h = '<div class="contratar">', aviso = '', pode = true;
@@ -3688,13 +3691,18 @@
     } else if (tipo === 'quebrar') {
       var qb = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; });
       if (!qb.length) return h + '<p class="suave">Nenhum item na mochila para quebrar (tire do corpo e destrave antes).</p></div>';
-      var iq = qb.filter(function (i) { return i.id === f.item; })[0] || qb[0], nq = R.cristaisQuebrar(iq);
-      h += grade(qb, iq)
-        + '<h4>Você recebe</h4><p class="quebrar-recebe"><span class="icone-pequeno borda-' + iq.raridade + '">' + iconeCusto({ tipo: 'cristal', id: iq.raridade }) + '</span> <strong>'
-        + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong></p>';
-      preco = R.precoServico('quebrar', preco, iq);
-      aviso = 'O item <strong>some</strong> e vira <strong>' + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong> (quanto maior o level, mais cristais). '
-        + 'Preço: ' + ouroTxt(x.servicos[tipo]) + ' x level ' + (iq.nivel || 1) + '.';
+      if (!f.itens) f.itens = f.item ? [f.item] : [];   // começa sem nada marcado
+      f.itens = f.itens.filter(function (id) { return qb.some(function (i) { return i.id === id; }); });
+      var marcados = qb.filter(function (i) { return f.itens.indexOf(i.id) >= 0; }), soma = {};
+      marcados.forEach(function (i) { soma[i.raridade] = (soma[i.raridade] || 0) + R.cristaisQuebrar(i); });
+      h += grade(qb, null, f.itens)
+        + '<h4>Você recebe</h4>' + (marcados.length ? '<p class="quebrar-recebe">' + Object.keys(CRISTAIS_NOME).filter(function (r) { return soma[r]; }).map(function (r) {
+          return '<span class="icone-pequeno borda-' + r + '">' + iconeCusto({ tipo: 'cristal', id: r }) + '</span> <strong>' + soma[r] + ' cristais ' + CRISTAIS_NOME[r] + '</strong>';
+        }).join(' · ') + '</p>' : '<p class="suave">Marque pelo menos 1 item.</p>');
+      preco = marcados.reduce(function (t, i) { return t + R.precoServico('quebrar', x.servicos[tipo], i); }, 0);
+      pode = marcados.length > 0;
+      aviso = (marcados.length > 1 ? 'Os <strong>' + marcados.length + ' itens somem</strong>' : 'O item <strong>some</strong>') + ' e viram cristais (quanto maior o level, mais cristais). '
+        + 'Preço: ' + ouroTxt(x.servicos[tipo]) + ' x o level de cada item.';
     } else if (tipo === 'reliquia') {
       var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       if (!lend.length) return h + '<p class="suave">Você precisa de um item lendário +' + Q.encantoMin + ' ou mais na mochila (fora do corpo e destravado).</p></div>';
@@ -3712,9 +3720,31 @@
     }
     h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
       + (x.amigo ? '<p class="mais pequeno">🤝 ' + esc(x.nome) + ' é seu amigo: o serviço é feito <strong>na hora</strong>.</p>' : '')
-      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
+      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' + (f.itens && f.itens.length > 1 ? ' ' + f.itens.length + ' itens' : '') : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
       + ' · ' + ouroTxt(preco) + '</button><button class="btn secundario" data-acao="of-contratar-fechar">Fechar</button></div></div>';
     return h;
+  }
+  async function quebrarVarios(x, itens) {
+    var p = estado.personagem, feitos = 0, erro = null, soma = {}, naHora = false;
+    estado.oficinaOcupado = true;
+    avisar('⚒ Mandando ' + itens.length + ' itens para ' + x.nome + '…');
+    try {
+      await gravarAntesDoBanco(p);
+      for (var k = 0; k < itens.length; k++) {
+        try {
+          var r = await C.oficina.pedir(p.id, x.id, 'quebrar', itens[k].id, {});
+          if (r.item_id) p.inventario = p.inventario.filter(function (i) { return i.id !== r.item_id; });
+          feitos++; naHora = naHora || !!r.feito; soma[itens[k].raridade] = (soma[itens[k].raridade] || 0) + R.cristaisQuebrar(itens[k]);
+        } catch (e) { erro = e.message; break; }
+      }
+    } catch (e) { erro = e.message; }
+    sincronizarFicha();
+    estado.contratar = null;
+    if (feitos) avisar((naHora ? '🤝 ' + x.nome + ' quebrou na hora ' : 'Pedido enviado: ' + x.nome + ' vai quebrar ') + feitos + ' ite' + (feitos === 1 ? 'm' : 'ns') + ' → '
+      + Object.keys(soma).map(function (r) { return soma[r] + ' cristais ' + CRISTAIS_NOME[r]; }).join(', ') + (naHora ? '. Chega já já na mochila.' : '. Veja em "Meus pedidos".'), 'item');
+    if (erro) avisar((feitos ? 'Parou no ' + (feitos + 1) + 'º item: ' : '') + erro);
+    carregarArena(); carregarOficinas();
+    estado.oficinaOcupado = false;
   }
   async function pedirOficina() {
     var p = estado.personagem, f = estado.contratar, st = estado.oficinas;
@@ -3726,7 +3756,12 @@
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
       op.classe = f.classe || p.classe; op.tipo = f.peca || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
     if (tipo === 'receita') op.area = f.area || D.areas[0].id;
-    if (tipo === 'quebrar') { var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; }); itemId = (iqs.filter(function (i) { return i.id === f.item; })[0] || iqs[0]).id; }
+    if (tipo === 'quebrar') {   // vários de uma vez (Henri, 21/11/2026): um pedido para cada item marcado
+      var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade] && (f.itens || []).indexOf(i.id) >= 0; });
+      if (!iqs.length) return avisar('Marque pelo menos 1 item.');
+      if (iqs.length > 1) return quebrarVarios(x, iqs);
+      itemId = iqs[0].id;
+    }
     if (tipo === 'protecao') op.raridade = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum';
     if (tipo === 'reliquia') { var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
@@ -3773,7 +3808,17 @@
       case 'of-fechar': configurarOficina({}); return true;
       case 'of-contratar': estado.contratar = { artesao: el.dataset.id, tipo: el.dataset.valor }; telaJogo(); return true;
       case 'of-contratar-fechar': estado.contratar = null; telaJogo(); return true;
-      case 'of-item': if (estado.contratar) { estado.contratar.item = el.dataset.id; telaJogo(); } return true;
+      case 'of-item':
+        if (estado.contratar && estado.contratar.tipo === 'quebrar') {   // quebrar: marca/desmarca vários
+          var fi = estado.contratar.itens || (estado.contratar.itens = []), ki = fi.indexOf(el.dataset.id);
+          if (ki >= 0) fi.splice(ki, 1); else fi.push(el.dataset.id);
+          telaJogo();
+        } else if (estado.contratar) { estado.contratar.item = el.dataset.id; telaJogo(); }
+        return true;
+      case 'of-itens-todos':
+        if (estado.contratar) estado.contratar.itens = R.mochila(p).filter(function (i) { return !i.travado && !i.runa && D.CRAFT.protecao[i.raridade]; }).map(function (i) { return i.id; });
+        telaJogo(); return true;
+      case 'of-itens-limpar': if (estado.contratar) estado.contratar.itens = []; telaJogo(); return true;
       case 'of-filtro': estado.ofFiltro = el.dataset.valor; estado.contratar = null; telaJogo(); return true;
       case 'of-pedir': pedirOficina(); return true;
       case 'of-cancelar':
