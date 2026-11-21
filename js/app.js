@@ -8167,6 +8167,17 @@
   // Jogadas do Altar sem esperar o servidor (Daniel, 19/11/2026: as cartas demoravam a responder). A jogada vale na
   // tela na hora e vai para uma fila que manda uma por vez; cada resposta do servidor substitui a partida e as jogadas
   // que ainda estão na fila são refeitas por cima. O que é sorteado (rolar, mesa nova) trava a mesa até a resposta.
+  // Altar (Henri, 21/11/2026): as jogadas redesenham só a caixa do evento, não a tela inteira (a tela mexia a cada toque).
+  function redesenharAltar() {
+    var cx = document.querySelector('section.altar');
+    if (!cx || estado.aba !== 'eventos' || estado.batalha || estado.luta || estado.mas || estado.lutaArena || estado.cacada) return telaJogo();
+    var y = window.scrollY, tmp = document.createElement('div');
+    tmp.innerHTML = abaEventos();
+    var novo = tmp.querySelector('section.altar');
+    if (!novo) return telaJogo();
+    cx.replaceWith(novo);
+    if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  }
   var altarFila = [], altarEnviando = false;
   function altarJogada(nome, args, aplicar, trava, aviso) {
     var p = estado.personagem, pt = p.altar && p.altar.partida;
@@ -8175,7 +8186,7 @@
     if (aviso) aviso(res);
     if (trava) estado.altarBloq = true;
     altarFila.push({ nome: nome, args: args, aplicar: aplicar });
-    telaJogo();
+    redesenharAltar();
     altarEnviar();
   }
   function altarEnviar() {
@@ -8186,18 +8197,18 @@
       altarEnviando = false;
       altarFila.shift();
       if (estado.personagem !== p) { altarFila = []; return; }
-      if (!r) { altarFila = []; sincronizarFicha().then(function () { if (estado.personagem === p) telaJogo(); }); }   // recusada ou sem rede: volta ao que está no servidor
+      if (!r) { altarFila = []; sincronizarFicha().then(function () { if (estado.personagem === p) redesenharAltar(); }); }   // recusada ou sem rede: volta ao que está no servidor
       else {
         var pt = p.altar && p.altar.partida;
         if (pt) altarFila.forEach(function (o) { o.aplicar(pt); });   // refaz por cima as que ainda vão
       }
       if (!altarFila.length) { estado.altarBloq = false; estado.altarGirando = 0; estado.altarMesaNova = false; }
-      telaJogo();
+      redesenharAltar();
       altarEnviar();
     });
   }
   function cliqueAltar(acao, el) {
-    var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { telaJogo(); };
+    var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { redesenharAltar(); };
     var local = function (fn) { return function () { fn(); }; };
     switch (acao) {
       case 'altar-entrar':
@@ -8209,7 +8220,17 @@
         var i = Number(el.dataset.valor), sel = estado.altarSel || (estado.altarSel = []), k = sel.indexOf(i);
         if (k >= 0) sel.splice(k, 1); else sel.push(i);
         if (sel.length !== 2) estado.altarTroca = false;
-        telaJogo(); return true;
+        // Marcar um elemento não redesenha a tela (Henri, 21/11/2026: a tela mexia a cada toque): só troca o
+        // destaque e os botões que dependem da seleção.
+        var caixaA = document.querySelector('section.altar'), rolarA = caixaA && caixaA.querySelector('[data-acao="altar-rolar"]');
+        if (caixaA && rolarA && !caixaA.querySelector('.altar-troca')) {
+          el.classList.toggle('sel', sel.indexOf(i) >= 0);
+          if (!rolarA.disabled) rolarA.textContent = '🎲 Rolar' + (sel.length ? ' (guarda ' + sel.length + ')' : '');
+          var trocaA = caixaA.querySelector('[data-acao="altar-troca"]'), restaA = Math.max(0, (EVA_.trocasPorPartida || 99) - ((pt && pt.trocas) || 0));
+          if (trocaA) trocaA.disabled = !(sel.length === 2 && restaA > 0);
+          return true;
+        }
+        redesenharAltar(); return true;
       }
       case 'altar-pagar': {
         if (!pt || estado.altarBloq) return true;
@@ -8238,8 +8259,8 @@
         }, true);
         return true;
       }
-      case 'altar-troca': if (pt && (pt.trocas || 0) >= (EVA_.trocasPorPartida || 99)) { avisar('Você já usou as trocas desta partida.'); return true; } estado.altarTroca = true; telaJogo(); return true;
-      case 'altar-troca-nao': estado.altarTroca = false; telaJogo(); return true;
+      case 'altar-troca': if (pt && (pt.trocas || 0) >= (EVA_.trocasPorPartida || 99)) { avisar('Você já usou as trocas desta partida.'); return true; } estado.altarTroca = true; redesenharAltar(); return true;
+      case 'altar-troca-nao': estado.altarTroca = false; redesenharAltar(); return true;
       case 'altar-trocar': {
         if (!pt || estado.altarBloq) return true;
         var dois = (estado.altarSel || []).slice(), elx = el.dataset.valor;
@@ -8247,8 +8268,8 @@
         altarJogada('altarTrocar', { dados: dois, elemento: elx }, function (q) { return R.trocarAltar(q, dois, elx); }, false);
         return true;
       }
-      case 'altar-fim': if (altarFila.length) return true; estado.altarFim = true; telaJogo(); return true;
-      case 'altar-fim-nao': estado.altarFim = false; telaJogo(); return true;
+      case 'altar-fim': if (altarFila.length) return true; estado.altarFim = true; redesenharAltar(); return true;
+      case 'altar-fim-nao': estado.altarFim = false; redesenharAltar(); return true;
       case 'altar-encerrar':
         if (altarFila.length) { avisar('Espere a última jogada terminar.'); return true; }
         estado.altarFim = false; estado.altarSel = [];
@@ -8259,8 +8280,8 @@
           depois();
         });
         return true;
-      case 'altar-rank-tudo': estado.altarRankTudo = !estado.altarRankTudo; telaJogo(); return true;
-      case 'altar-premiar-pedir': estado.altarPremiar = true; telaJogo(); return true;
+      case 'altar-rank-tudo': estado.altarRankTudo = !estado.altarRankTudo; redesenharAltar(); return true;
+      case 'altar-premiar-pedir': estado.altarPremiar = true; redesenharAltar(); return true;
       case 'altar-admin': {
         var v = el.dataset.valor, campo = document.getElementById('altar-dias'), dias = campo ? Math.max(1, Math.min(60, Number(campo.value) || 7)) : 7;
         var acaoA = v === 'ligar-sem' ? 'ligar' : v, d = v === 'ligar' || v === 'religar' ? dias : null;
@@ -8268,7 +8289,7 @@
         C.evento.admin(p.id, acaoA, d).then(function (r) {
           avisar(v === 'premiar' ? 'Prêmios entregues para ' + (r && r.premiados || 0) + ' jogadores.' : 'Evento atualizado.', 'nivel');
           estado.eventoAtual = undefined; carregarEvento(); carregarRankingEvento();
-        }, function (e) { avisar(e.message); telaJogo(); });
+        }, function (e) { avisar(e.message); redesenharAltar(); });
         return true;
       }
     }
