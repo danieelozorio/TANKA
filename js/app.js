@@ -5104,6 +5104,9 @@
   function receberPendentes() {
     var p = estado.personagem, g = estado.gm;
     if (!p || estado.resgatando) return Promise.resolve();
+    // Masmorra/luta do grupo na tela (Henri, 21/11/2026): os prêmios só chegam depois que o chefe cai na tela e o
+    // jogador fecha (masFechar / fim da luta chamam de novo). Assim nada aparece antes da hora.
+    if (estado.mas || estado.luta) return Promise.resolve();
     estado.resgatando = true;
     return acaoServidor('receber').then(function (r) {
       estado.resgatando = false;
@@ -6157,7 +6160,7 @@
         var eraBoss = estado.luta && estado.luta.boss;
         clearTimeout(estado.luta.timer);
         estado.luta = null;
-        if (eraBoss) { estado.aba = 'alianca'; estado.aliancaVista = 'boss'; telaJogo(); carregarBossAl(); break; }
+        if (eraBoss) { estado.aba = 'alianca'; estado.aliancaVista = 'boss'; telaJogo(); carregarBossAl(); if (ACAO_SERVIDOR) receberPendentes(); break; }
         estado.aba = 'masmorra';
         telaJogo();
         resgatarRecompensas();
