@@ -1519,7 +1519,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ponte custa 3; `limitePontos` 48; tronco pode ter `tronco2` (2º ponto: Bastião dá defesa mágica).
 - Migração: `ascensao.v` < `ASCENSAO.versao` (2) → `R.normalizar` zera os pontos (de graça) e marca `avisoPactoV2` (a tela
   avisa uma vez e devolve 2 pelas preferências). Compras novas já gravam `v: 2`.
-- Zerar: `R.precoRefazerAscensao(p, agora)` = 500 mil + 250 mil × vezes na semana (`ascensao.refeitos = {semana, n}`,
+- Zerar (fase de testes, 21/11/2026): 100 mil fixo (`precoRefazerMais: 0`). No BETA volta a: `R.precoRefazerAscensao(p, agora)` = 500 mil + 250 mil × vezes na semana (`ascensao.refeitos = {semana, n}`,
   semana de `semanaReset`); balão no meio da tela. Exp no 60: igual à do 59 por ponto (já era); "(PACTO)" na exp.
 - Efeitos novos: `velocidadePts` (Tempestade, pontos), `recargaMenos` (Foco −1 turno, mínimo 1), `primeiroGolpe` (1ª
   habilidade +40% e alvo −30% de velocidade até o fim da luta; sem barra cheia), `golpeCerteiro: 30` (crítico ignora 30% da

@@ -2650,14 +2650,14 @@
       + '<button class="btn-mini" data-acao="asc-zoom">' + (estado.ascZoom ? '− Diminuir' : '+ Aumentar') + '</button></div>'
       + '<div id="pacto-detalhe">' + pactoDetalhe(p, lista, pend) + '</div>' + pactoResumo(p);
     var precoZ = R.precoRefazerAscensao(p, C.agora());
-    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + precoZ.toLocaleString('pt-BR') + ' de ouro (os pontos voltam; cada vez na mesma semana custa +'
-      + AS.precoRefazerMais.toLocaleString('pt-BR') + '). <button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button></p>';
+    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + precoZ.toLocaleString('pt-BR') + ' de ouro (os pontos voltam' + (AS.precoRefazerMais ? '; cada vez na mesma semana custa +'
+      + AS.precoRefazerMais.toLocaleString('pt-BR') : '') + '). <button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button></p>';
     // Balão de confirmação no meio da tela (Henri, 20/11/2026)
     if (estado.ascRefazer) h += '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela pacto-zerar" role="dialog" aria-label="Zerar o Pacto">'
       + '<button class="zoom-x" data-acao="asc-refazer-nao" aria-label="Fechar">✕</button><h3>Zerar o Pacto?</h3>'
       + '<p>Todos os pontos voltam para você escolher de novo.</p><p>Custa <strong class="cor-ouro">' + precoZ.toLocaleString('pt-BR') + ' de ouro</strong>'
       + ' <span class="suave">(você tem ' + (p.ouro || 0).toLocaleString('pt-BR') + ')</span>.</p>'
-      + '<p class="suave pequeno">A próxima vez nesta semana custa ' + (precoZ + AS.precoRefazerMais).toLocaleString('pt-BR') + '. O preço volta a ' + AS.precoRefazer.toLocaleString('pt-BR') + ' na segunda-feira.</p>'
+      + (AS.precoRefazerMais ? '<p class="suave pequeno">A próxima vez nesta semana custa ' + (precoZ + AS.precoRefazerMais).toLocaleString('pt-BR') + '. O preço volta a ' + AS.precoRefazer.toLocaleString('pt-BR') + ' na segunda-feira.</p>' : '')
       + '<div class="botoes"><button class="btn perigo" data-acao="asc-refazer">Zerar</button><button class="btn secundario" data-acao="asc-refazer-nao">Cancelar</button></div></div></div>';
     return h;
   }

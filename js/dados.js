@@ -890,7 +890,8 @@ Tanka.dados = {
     // pelo Notável), uma ponte só por par de domínios. Zerar: 500 mil + 250 mil a cada vez na mesma semana (volta na segunda).
     nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 48, maxPedras: 3,
     custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
-    precoRefazer: 500000, precoRefazerMais: 250000,
+    // Fase de testes (Henri, 21/11/2026): zerar custa 100 mil fixo. No BETA volta para 500000 + 250000 por vez na semana.
+    precoRefazer: 100000, precoRefazerMais: 0,
     versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
       { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 1 },

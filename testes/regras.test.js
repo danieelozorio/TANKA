@@ -2607,6 +2607,7 @@ teste('Pacto de Ascensão v2: pontos, caminho pelo Notável, ponte 3, limite 48,
   // ficha forjada (ponto solto) não vale nada
   const f = JSON.parse(JSON.stringify(p)); f.ascensao.nos = ['vigor-1-p'];
   assert.deepStrictEqual({ ...R.efeitosAscensao(f) }, {});
+  var AS0 = { a: D.ASCENSAO.precoRefazer, b: D.ASCENSAO.precoRefazerMais }; D.ASCENSAO.precoRefazer = 500000; D.ASCENSAO.precoRefazerMais = 250000;   // regra do BETA
   // zerar: 500 mil, 750 mil, 1 milhão na mesma semana; na semana seguinte volta a 500 mil
   const seg = Date.UTC(2026, 10, 23, 12);   // segunda-feira
   igualA(R.precoRefazerAscensao(p, seg), 500000);
@@ -2615,6 +2616,8 @@ teste('Pacto de Ascensão v2: pontos, caminho pelo Notável, ponte 3, limite 48,
   p.ascensao.nos = ['furia-t0']; igualA(R.precoRefazerAscensao(p, seg + 3600000), 750000);
   assert.strictEqual(R.refazerAscensao(p, seg + 3600000), true); igualA(p.ouro, 1750000);
   p.ascensao.nos = ['furia-t0']; igualA(R.precoRefazerAscensao(p, seg + 7 * 86400000), 500000);
+  D.ASCENSAO.precoRefazer = AS0.a; D.ASCENSAO.precoRefazerMais = AS0.b;
+  igualA(R.precoRefazerAscensao(p, seg + 3600000), 100000);   // fase de testes: 100 mil fixo
   // limite 48
   p.ascensao.extras = 999; igualA(R.pontosAscensaoTotal(p), 48);
   // Pacto da versão anterior: os pontos voltam de graça (com aviso)
