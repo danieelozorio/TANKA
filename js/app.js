@@ -1230,7 +1230,7 @@
     return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
       + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
-      + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
+      + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>' + tagsBoostHtml(p)
       + '<i class="casca-exp' + (ep ? ' pacto' : '') + '" title="' + (ep ? 'Exp ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
@@ -1424,7 +1424,7 @@
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
       + '<div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
-      + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
+      + '<div class="nivel">Level ' + p.nivel + '</div>' + tagsBoostHtml(p) + '</div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : sV.hpMax, emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax, (emBatalha ? estado.batalha.jogador.hp : sV.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
       + '<div class="suave">Experiência' + (expPacto(p) ? ' <b class="exp-pacto">' + expPacto(p).rotulo + '</b>' : '') + '</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
@@ -1940,7 +1940,7 @@
       l.pid = p.id; estado.loja = l; estado.lojaErro = null;
       p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
       guardarVip(p.vip); conferirArcane();
-      if (estado.aba === 'loja') telaJogo();
+      if (estado.aba === 'loja' || Object.keys(l.ativos || {}).length) telaJogo();   // tags dos boosts no topo
     }, function (e) {
       estado.lojaCarregando = false; estado.lojaErro = (e && e.message) || 'Não foi possível abrir a loja.';
       if (estado.aba === 'loja') telaJogo();
@@ -2016,6 +2016,20 @@
     }).join('');
     return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaPasse + '</div>' + skins
       + (hist ? '<div class="caixa-interna cla-secao"><h3>Seu Éter: últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
+  }
+  // Tags dos boosts ativos embaixo do level (Henri, 21/11/2026): passar o mouse mostra o bônus e até quando vale.
+  function tagsBoostHtml(p) {
+    var l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, agora = C.agora();
+    if (!l || !l.ativos) return '';
+    var h = Object.keys(D.LOJA.boosts).map(function (k) {
+      var ate = l.ativos[k], fim = ate && Date.parse(ate);
+      if (!fim || fim <= agora) return '';
+      var b = D.LOJA.boosts[k], min = Math.ceil((fim - agora) / 60000), nome = k === 'exp' ? 'EXP' : 'OURO';
+      return '<span class="tag-boost tag-boost-' + k + '" tabindex="0" data-acao="tag-boost" title="' + esc(b.nome + ': +' + b.pct + '% de ' + (k === 'exp' ? 'experiência' : 'ouro')
+        + ' na caçada. Vale até ' + dataCurta(ate) + ' (falta' + (min === 1 ? '' : 'm') + ' ' + min + ' min).') + '">'
+        + (k === 'exp' ? '✨ ' : '💰 ') + nome + ' +' + b.pct + '%</span>';
+    }).join('');
+    return h ? '<span class="tags-boost">' + h + '</span>' : '';
   }
   function lojaChamar(prom, msg) {
     var p = estado.personagem;
@@ -5917,6 +5931,7 @@
         lojaChamar(C.loja.comprar(p.id, itL), nomeL);
         break;
       }
+      case 'tag-boost': avisar(el.title); break;   // no celular não tem "passar o mouse": o toque mostra o bônus
       case 'loja-usar-boost': {
         var bL = D.LOJA.boosts[el.dataset.valor];
         lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
