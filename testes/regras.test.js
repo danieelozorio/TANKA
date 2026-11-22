@@ -2882,37 +2882,3 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
 });
 
 
-
-teste('Chefes Mundiais em rodízio e joias dos chefes (Daniel, 20/11/2026)', () => {
-  const CM = D.CHEFE_MUNDIAL;
-  igualA(CM.chefes.length, 3);
-  igualA(R.chefeMundialDoDia(0).id, 'ignaroth'); igualA(R.chefeMundialDoDia(1).id, 'morvaneth'); igualA(R.chefeMundialDoDia(5).id, 'colosso');
-  CM.chefes.forEach((c) => { assert.ok(D.monstros[c.monstro], 'monstro ' + c.monstro); assert.ok(D.JOIAS_BOSS[c.set], 'set ' + c.set); });
-  // joia: lendária, colar ou anel, do set, 3 a 10 levels acima
-  const p = R.criarPersonagem('Joia', 'masculino', 'humano', 'cavaleiro');
-  R.admin.subirNivel(p, 29);
-  for (let i = 0; i < 30; i++) {
-    const j = R.joiaDoChefe(p, 'nevoa');
-    assert.ok(j.tipo === 'colar' || j.tipo === 'anel'); igualA(j.raridade, 'lendaria'); igualA(j.joiaBoss, 'nevoa');
-    assert.ok(j.nivel >= p.nivel + 3 && j.nivel <= p.nivel + 10, 'nível ' + j.nivel);
-    assert.ok(/Névoa/.test(R.nomeItem(j)));
-  }
-  // set: 2 peças e 3 peças
-  const colar = Object.assign(R.joiaDoChefe(p, 'pedra', () => 0.1), { nivel: p.nivel });
-  const anel1 = Object.assign(R.joiaDoChefe(p, 'pedra', () => 0.9), { nivel: p.nivel });
-  const anel2 = Object.assign(R.joiaDoChefe(p, 'pedra', () => 0.9), { nivel: p.nivel });
-  [colar, anel1, anel2].forEach((it) => p.inventario.push(it));
-  const vida0 = R.status(p).hpMax;
-  R.equipar(p, colar.id); R.equipar(p, anel1.id);
-  assert.deepStrictEqual({ ...R.contarJoiasBoss(p) }, { pedra: 2 });
-  igualA(R.bonusJoiasBoss(p).vida, 12); igualA(R.bonusJoiasBoss(p).defesa, undefined);
-  R.equipar(p, anel2.id);
-  igualA(R.bonusJoiasBoss(p).defesa, 15); igualA(R.bonusJoiasBoss(p).reducaoDano, 8);
-  assert.ok(R.status(p).hpMax > vida0, 'vida subiu com o set');
-  // mecânica do chefe na luta: Colosso com mais defesa e mais dano, Morvaneth faz errar
-  const col = CM.chefes[2], chefe = R.chefeDoNivel(p);
-  const b = R.iniciarBatalha(p, chefe, () => 0.5, { mundial: true, mec: col.mec });
-  assert.ok(b.alvo.defesa > D.monstros[chefe].defesa && b.alvo.ataque[1] > D.monstros[chefe].ataque[1]);
-  const b2 = R.iniciarBatalha(p, chefe, null, { mundial: true });
-  igualA(b2.alvo, null);
-});

@@ -861,44 +861,12 @@ select pg_temp.igual((select dano from public.boss_mundial_dano where personagem
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_premio' and (item ->> 'fator')::int = 100)::int, 3, 'boss: prêmio cheio para os 3 atacantes');
 select pg_temp.igual((select (item ->> 'ataques')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'boss_premio'), 2, 'boss: prêmio conta os ataques');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho' and origem = 'boss')::int, 3, 'boss: top 10 ganha 1 pergaminho');
-select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'),
-  public.boss_cfg() -> 'titulos' ->> (select chefe_mundial from public.boss_mundial order by id desc limit 1), 'boss: título do golpe final (o do chefe do dia)');
+select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'), 'Matador de Dragões', 'boss: título do golpe final');
 select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 2003::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('rara', 'epica', 'lendaria'))::int, 0, 'boss: item raro, épico ou lendário');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item')::int, 3, 'boss: todo o top 10 ganha 1 item');
--- Rodízio e joias dos chefes (Daniel, 20/11/2026)
-select pg_temp.igual((select chefe_mundial from public.boss_mundial order by id desc limit 1), public.boss_chefe_do_dia(), 'boss: o despertar é do chefe do dia');
-select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-01'), 'ignaroth', 'rodízio: dia 0 = Ignaroth');
-select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-02'), 'morvaneth', 'rodízio: dia 1 = Morvaneth');
-select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-03'), 'colosso', 'rodízio: dia 2 = Colosso');
-select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-04'), 'ignaroth', 'rodízio: volta ao Ignaroth');
-select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_joia')::int, 1, 'boss: cai 1 joia por chefe derrotado');
-select pg_temp.igual((select personagem_id in ('pa', 'pb', 'pc') from public.recompensas where item ->> 'tipo' = 'boss_joia'), true, 'boss: a joia vai para quem atacou');
-select pg_temp.igual((select item ->> 'set' from public.recompensas where item ->> 'tipo' = 'boss_joia'),
-  public.boss_cfg() -> 'sets' ->> public.boss_chefe_do_dia(), 'boss: a joia é do set do chefe');
-select pg_temp.igual((select count(*) from public.mensagens where texto like '%ganhou uma joia do set%')::int, 1, 'boss: anúncio da joia no chat');
--- sorteio pelo dano: com 1000 x 1 de dano, quem bateu mais ganha quase sempre
-create temp table sorteio_joia (pid text, dano bigint);
-insert into sorteio_joia values ('muito', 1000), ('pouco', 1);
-select pg_temp.igual((select count(*) from generate_series(1, 400) g
-  where (select pid from sorteio_joia order by -ln(1 - random()) / dano limit 1) = 'muito')::int > 380, true, 'joia: chance proporcional ao dano');
-drop table sorteio_joia;
-set role authenticated;
-select pg_temp.como('d'); select public.admin_boss_invocar_chefe('pd', 'colosso', 1000, 60);
-select pg_temp.falha($$select public.admin_boss_invocar_chefe('pd', 'dragao', 1000, 60)$$, 'Chefe inválido');
-select pg_temp.como('a'); select pg_temp.falha($$select public.admin_boss_invocar_chefe('pa', 'colosso', 1000, 60)$$, 'Só administradores');
-select pg_temp.igual(public.boss_estado('pa') -> 'boss' ->> 'chefe_mundial', 'colosso', 'admin: invoca o chefe escolhido');
-reset role;
-update public.boss_mundial set estado = 'dormindo', premiado = true where estado = 'ativo';
--- joias na Arena: 3 peças do Coração de Pedra = +12% vida, +15% defesa, −8% de dano recebido
-select pg_temp.igual(public.arena_joias_ef(jsonb_build_object('equipados', jsonb_build_object('colar', 'j1', 'anel1', 'j2', 'anel2', 'j3'),
-  'inventario', jsonb_build_array(jsonb_build_object('id', 'j1', 'joiaBoss', 'pedra'), jsonb_build_object('id', 'j2', 'joiaBoss', 'pedra'),
-    jsonb_build_object('id', 'j3', 'joiaBoss', 'pedra')))), '{"vida": 12, "defesa": 15, "reducaoDano": 8}'::jsonb, 'arena: bônus do set de 3 peças');
-select pg_temp.igual((public.arena_com_joias('{"hpMax": 100, "dano": [100, 100], "defesa": 10, "defesaMagica": 10, "velocidade": 10}'::jsonb,
-  jsonb_build_object('equipados', jsonb_build_object('colar', 'j1', 'anel1', 'j2'), 'inventario', jsonb_build_array(
-    jsonb_build_object('id', 'j1', 'joiaBoss', 'brasa'), jsonb_build_object('id', 'j2', 'joiaBoss', 'brasa')))) -> 'dano' ->> 0)::int, 108, 'arena: 2 peças da Brasa = +8% de dano');
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');

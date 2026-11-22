@@ -378,7 +378,6 @@ Tanka.contas = (function () {
     estado: function (meu) { return chamar('boss_estado', { meu: meu }); },
     atacar: function (meu, dano, chefe) { return chamar('boss_atacar', { meu: meu, dano: dano, chefe: chefe }); },
     adminInvocar: function (meu, vida, minutos) { return chamar('admin_boss_invocar', { meu: meu, vida: vida || null, minutos: minutos || 60 }); },
-    adminInvocarChefe: function (meu, chefe, vida, minutos) { return chamar('admin_boss_invocar_chefe', { meu: meu, chefe: chefe, vida: vida || null, minutos: minutos || 60 }); },
   };
 
   // ---------- Arena (a luta roda no servidor) ----------

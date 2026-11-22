@@ -2375,6 +2375,3 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 /* Painel ⚙ Configurações: títulos das seções (Interface, Resolução, Som) */
 .config-secao { margin: .7rem 0 .25rem; font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro-claro, #e6c27a); }
 #config-painel .config-interface { flex-wrap: wrap; }
-/* Set de joias do Chefe Mundial (20/11/2026) */
-.boss-set { margin: .8rem 0; border-color: var(--cor-set, #c9a24a) !important; box-shadow: inset 0 0 18px color-mix(in srgb, var(--cor-set, #c9a24a) 18%, transparent); }
-.boss-set h3 { margin: 0 0 .3rem; color: var(--cor-set, #e6c27a); }
