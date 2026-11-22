@@ -1619,3 +1619,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   clique avisa (`area-fechada`, `R.motivoAreaFechada`). Minas, forja e receitas continuam só pelo level.
 - Quem já existia (p.historia sem `v: 2`): `normalizar` grava `livreAte` = última região que o level já abria; essas
   continuam livres sem a História (o progresso do capítulo atual recomeça). Personagem novo nasce com `livreAte: 0`.
+- 22/11/2026 (2): a História começa sozinha (objetivos aparecem sem "aceitar"; o "!" só com capítulo completo).
+  Metas por região em `HISTORIA.METAS.porArea` (floresta 10/20/50 … cume 75/150/400). Carta do monstro e do chefe na
+  caçada mostram "Objetivo: Y/X" em cima da imagem (`objetivoHistoriaHtml`, `.objetivo-hist`).

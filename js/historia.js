@@ -158,14 +158,19 @@ Tanka.dados.GUIA = {
 };
 
 // Metas e prêmio de todos os capítulos (Henri, 22/11/2026)
-Tanka.dados.HISTORIA.METAS = { monstros: [10, 20, 50], chefe: 1 };
+// Monstros por região (1º, 2º e 3º): sobe com a região, como a exp para upar (22/11/2026; o 3º fica em ~40–50% das
+// vitórias que a região leva para passar de level).
+Tanka.dados.HISTORIA.METAS = { chefe: 1, monstros: [10, 20, 50], porArea: {
+  floresta: [10, 20, 50], pantano: [15, 30, 75], ruinas: [20, 40, 100], torre: [30, 60, 150],
+  areias: [40, 80, 200], vale: [50, 100, 250], cume: [75, 150, 400] } };
 Tanka.dados.HISTORIA.PREMIO = { raridade: 'epica', ouroChefes: 2, pergaminhos: 2 };
 (function (H, D) {
   if (!D.areas) return;
   H.capitulos.forEach(function (c) {
     var a = D.areas.filter(function (x) { return x.id === c.area; })[0];
     if (!a) return;
-    c.objetivos = a.monstros.map(function (m, i) { return { tipo: 'monstro', monstro: m.id, qtd: H.METAS.monstros[i] || H.METAS.monstros[H.METAS.monstros.length - 1] }; })
+    var metas = H.METAS.porArea[a.id] || H.METAS.monstros;
+    c.objetivos = a.monstros.map(function (m, i) { return { tipo: 'monstro', monstro: m.id, qtd: metas[i] || metas[metas.length - 1] }; })
       .concat([{ tipo: 'chefe', monstro: a.chefe.id, qtd: H.METAS.chefe }]);
   });
 })(Tanka.dados.HISTORIA, Tanka.dados);

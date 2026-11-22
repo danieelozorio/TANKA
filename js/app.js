@@ -1532,6 +1532,15 @@
     }).join(', ');
   }
 
+  // Objetivo da História neste monstro (22/11/2026): "Objetivo: Y/X monstros" em cima da imagem.
+  function objetivoHistoriaHtml(id) {
+    var e = R.historiaEstado(estado.personagem);
+    if (!e || e.fim || !e.liberado) return '';
+    var x = e.objetivos.filter(function (o) { return o.objetivo.monstro === id; })[0];
+    if (!x) return '';
+    return '<div class="objetivo-hist' + (x.ok ? ' ok' : '') + '" title="História: ' + esc(e.capitulo.titulo) + '">' + (x.ok ? '✔ ' : '📜 ')
+      + 'Objetivo: ' + x.feito + '/' + x.meta + (x.meta === 1 && D.monstros[id].chefe ? ' chefe' : ' monstros') + '</div>';
+  }
   function cartaMonstro(id, selecionado) {
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
@@ -1541,7 +1550,7 @@
     var curto = CELULAR || (temaAtual() === 'arcane' && window.innerWidth <= 760);
     var resumo = curto ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span title="Exp por vitória, em % do seu level">✦ ' + expPct(estado.personagem, m.exp) + '</span>'
       + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + danoMonstro(m.ataque) + '</span></div>' : '';
-    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + objetivoHistoriaHtml(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3>' + (curto ? resumo + '<details class="monstro-detalhes"><summary>Ver detalhes</summary><p class="suave">' + m.descricao + '</p>' : '<p class="suave">' + m.descricao + '</p>')
       + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + danoMonstro(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
@@ -1562,7 +1571,7 @@
   function cartaChefe(area) {
     var p = estado.personagem, id = area.chefe.id, m = D.monstros[id];
     var abatidos = p.abates[id] || 0;
-    return '<article class="monstro chefe"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+    return '<article class="monstro chefe"><div class="moldura">' + F.imagemMonstro(id) + objetivoHistoriaHtml(id) + '</div><div class="corpo">'
       + '<div class="selo-chefe">Chefe</div><h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
       + '<p class="misterio">Ronda esta área. Ninguém sabe quando vai aparecer… mas dizem que quanto mais sangue se derrama aqui, mais perto ele fica.</p>'
       + (abatidos ? '<p class="mais">Derrotado ' + abatidos + ' vez(es).</p>' : '')
@@ -7608,7 +7617,7 @@
   // ---------------- História: "A Crônica de Eldrin" (texto em js/historia.js, regras em regras.js) ----------------
   function seloHistoria() {
     var e = estado.personagem && R.historiaEstado(estado.personagem);
-    return e && !e.fim && e.liberado && (e.completo || !e.visto) ? ' <span class="selo-pedidos">!</span>' : '';
+    return e && !e.fim && e.liberado && e.completo ? ' <span class="selo-pedidos">!</span>' : '';   // a História começa sozinha (22/11/2026)
   }
   var avisouHistoria = null;
   function avisoHistoria() {
@@ -7659,13 +7668,12 @@
           + '<span class="hist-barra"><i style="width:' + Math.round(100 * x.feito / x.meta) + '%"></i></span></li>';
       }).join('');
       var acao = !e.liberado ? '<p class="aviso-nivel">🔒 Este capítulo começa no level ' + e.nivel + ' (quando ' + nomeArea(c.area) + ' liberar). Continue caçando!</p>'
-        : !e.visto ? '<button class="btn" data-acao="historia-ver">📜 Ler a abertura do capítulo</button>'
         : e.completo ? '<button class="btn hist-concluir" data-acao="historia-concluir">Concluir capítulo e receber o prêmio</button>'
-        : '<button class="btn secundario" data-acao="historia-ver">Reler a abertura</button>';
+        : '<button class="btn secundario" data-acao="historia-ver">📜 ' + (e.visto ? 'Reler' : 'Ler') + ' a abertura do capítulo</button>';
       corpo = '<div class="hist-capitulo"><div class="suave pequeno">Capítulo ' + (e.indice + 1) + ' de ' + e.total + ' · ' + nomeArea(c.area) + '</div>'
         + '<h3>' + c.titulo + '</h3>'
-        + (e.visto ? falaHtml(c.abertura[c.abertura.length - 1]) : '<p class="suave">Um novo capítulo espera por você.</p>')
-        + (e.liberado && e.visto ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
+        + falaHtml(c.abertura[c.abertura.length - 1])
+        + (e.liberado ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
         + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}, c) + '</p>'
         + '<div class="botoes">' + acao + '</div></div>';
     }

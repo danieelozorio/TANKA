@@ -1895,6 +1895,12 @@ teste('história trava regiões só para quem é novo (22/11/2026): quem já exi
   assert.ok(!R.areaLiberada(novo, D.areas[1]), 'personagem novo precisa da História');
 });
 
+teste('história: metas sobem com a região (22/11/2026)', () => {
+  const t = D.areas.map((a) => D.HISTORIA.METAS.porArea[a.id].reduce((x, y) => x + y, 0));
+  assert.strictEqual(t[0], 80);
+  for (let i = 1; i < t.length; i++) assert.ok(t[i] > t[i - 1], 'região ' + i);
+});
+
 teste('história: capítulos com regiões, chefes e masmorras que existem', () => {
   const H = D.HISTORIA;
   assert.strictEqual(H.capitulos.length, 7);
@@ -1908,8 +1914,9 @@ teste('história: capítulos com regiões, chefes e masmorras que existem', () =
       else assert.fail('tipo ' + o.tipo);
     });
     c.abertura.concat(c.fechamento).forEach((f) => assert.ok(f.quem === 'narrador' || H.PERSONAGENS[f.quem] || D.monstros[f.quem], f.quem));
-    // 22/11/2026: 10, 20 e 50 de cada monstro da região e 1 chefe
-    assert.strictEqual(c.objetivos.map((o) => o.tipo + o.qtd).join(), 'monstro10,monstro20,monstro50,chefe1', c.id);
+    // 22/11/2026: os 3 monstros da região (metas por região) e 1 chefe
+    const mt = H.METAS.porArea[c.area];
+    assert.strictEqual(c.objetivos.map((o) => o.tipo + o.qtd).join(), mt.map((q) => 'monstro' + q).concat('chefe1').join(), c.id);
   });
 });
 
@@ -1944,7 +1951,7 @@ teste('história: só conta no capítulo atual, cada monstro e o chefe separados
 teste('história: prêmio com item épico (pode ser joia), mochila cheia espera, título e skin no fim; skin não se compra', () => {
   const p = R.criarPersonagem('T', 'feminino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 35);
-  const tudo = { 0: 99, 1: 99, 2: 99, 3: 99 };
+  const tudo = { 0: 999, 1: 999, 2: 999, 3: 999 };
   p.historia = { cap: 3, prog: Object.assign({}, tudo), visto: true, lidos: ['c1', 'c2', 'c3'] };
   for (let i = p.inventario.length; R.mochila(p).length < D.MOCHILA_MAX; i++) p.inventario.push({ id: 'x' + i, tipo: 'anel', classe: null, raridade: 'comum', encanto: 0 });
   assert.ok(R.concluirCapitulo(p).erro, 'mochila cheia');

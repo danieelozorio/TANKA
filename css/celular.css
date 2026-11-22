@@ -623,3 +623,5 @@ html[data-celular] body:has(#painel-grupo.aberto)::after { content: ''; position
 html[data-celular] #painel-grupo.aberto .missoes-painel { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 82dvh; z-index: 31;
   padding: 1.1rem .7rem calc(1rem + env(safe-area-inset-bottom)); border-radius: 16px 16px 0 0; border: 1px solid #4a3f33; border-bottom: 0; background: #12100e;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, .7); animation: none; }
+/* Objetivo da História na carta deitada do celular (22/11/2026) */
+html[data-celular] .objetivo-hist { left: 2px; right: 2px; top: 2px; padding: 2px 3px; font-size: 10px; border-radius: 6px; }

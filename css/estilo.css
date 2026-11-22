@@ -2444,3 +2444,10 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 
 /* Quantidade de receitas na oficina (Henri, 22/11/2026) */
 .contratar-qtd { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }
+
+/* Objetivo da História em cima da imagem do monstro (Henri, 22/11/2026) */
+.monstro .moldura { position: relative; }
+.objetivo-hist { position: absolute; left: 6px; right: 6px; top: 6px; z-index: 2; padding: 3px 8px; border-radius: 8px;
+  background: rgba(14, 11, 8, .82); border: 1px solid #b8892f; color: #f3dfae; font-size: 12px; font-weight: 600;
+  text-align: center; letter-spacing: .2px; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); pointer-events: none; }
+.objetivo-hist.ok { border-color: #4f9d58; color: #bfe8c4; }
