@@ -1617,3 +1617,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `R.areaLiberada` agora pede o capítulo da região anterior em `p.historia.lidos` (`historiaAreaLiberada`); a caçada no
   servidor usa `podeCacar`, então vale lá também. Mapa: região fechada pela História mostra "📜 Conclua a História" e o
   clique avisa (`area-fechada`, `R.motivoAreaFechada`). Minas, forja e receitas continuam só pelo level.
+- Quem já existia (p.historia sem `v: 2`): `normalizar` grava `livreAte` = última região que o level já abria; essas
+  continuam livres sem a História (o progresso do capítulo atual recomeça). Personagem novo nasce com `livreAte: 0`.

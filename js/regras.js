@@ -1176,6 +1176,7 @@ Tanka.regras = (function () {
       guia: { passo: 0, abates: 0 },   // Guia do Aventureiro (só personagens novos)
       criadoEm: new Date().toISOString(),
       atributosV2: true,   // já nasce com os atributos de nov/2026
+      historia: { cap: 0, prog: {}, visto: false, lidos: [], v: 2, livreAte: 0 },   // já nasce com a História que trava regiões
     };
     p.hpAtual = status(p).hpMax;   // a RES da classe e a raça já mudam a vida inicial
     return p;
@@ -1287,6 +1288,13 @@ Tanka.regras = (function () {
       }
       i.atrV3 = true;
     });
+    // História que trava regiões (22/11/2026): quem já existia continua com as regiões que o level dele já abria
+    // (`livreAte`: índice da última região livre sem a História). O progresso do capítulo atual recomeça (metas novas).
+    if (!p.historia || p.historia.v !== 2) {
+      var hm = historiaDados(p);
+      hm.v = 2; hm.prog = {};
+      hm.livreAte = D.areas.reduce(function (n, a, i) { return (p.nivel || 1) >= a.nivelMin ? i : n; }, 0);
+    }
     // Colares de antes da escada (13/11/2026): ganham os bônus novos da raridade e do nível deles.
     p.inventario.forEach(function (i) {
       if (!colarAntigo(i)) return;
@@ -1709,8 +1717,9 @@ Tanka.regras = (function () {
   function areaLiberada(p, area) { return p.nivel >= area.nivelMin && historiaAreaLiberada(p, area); }
   function capituloDaArea(areaId) { return ((D.HISTORIA && D.HISTORIA.capitulos) || []).filter(function (c) { return c.area === areaId; })[0] || null; }
   function historiaAreaLiberada(p, area) {
-    var i = D.areas.indexOf(area), c = i > 0 ? capituloDaArea(D.areas[i - 1].id) : null;
-    return !c || ((p.historia && p.historia.lidos) || []).indexOf(c.id) >= 0;
+    var i = D.areas.indexOf(area), c = i > 0 ? capituloDaArea(D.areas[i - 1].id) : null, h = p.historia || {};
+    if (h.livreAte != null && i <= h.livreAte) return true;   // personagem de antes da regra: o que o level já abria
+    return !c || (h.lidos || []).indexOf(c.id) >= 0;
   }
   // Por que a região está fechada (null = aberta).
   function motivoAreaFechada(p, area) {

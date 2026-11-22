@@ -1886,6 +1886,15 @@ teste('defesa do herói em porcentagem: 100 = -50%, nunca imortal, igual na caç
   assert.strictEqual(ev.dano, R.danoComDefesa(D.monstros.urso.ataqueCacada[0], def));
 });
 
+teste('história trava regiões só para quem é novo (22/11/2026): quem já existia fica com o que o level abria', () => {
+  const velho = R.criarPersonagem('V', 'masculino', 'humano', 'mago'); delete velho.historia; velho.nivel = 26; velho.abates = { urso: 1, cobra: 1, esqueleto: 1, gargula: 1, escorpiao: 1, drake: 1 };
+  R.normalizar(velho);
+  assert.strictEqual(velho.historia.livreAte, D.areas.filter((a) => 26 >= a.nivelMin).length - 1);
+  assert.ok(R.areaLiberada(velho, D.areas[velho.historia.livreAte]), 'a região do level dele continua aberta');
+  const novo = R.criarPersonagem('N', 'masculino', 'humano', 'mago'); R.normalizar(novo); novo.nivel = 26;
+  assert.ok(!R.areaLiberada(novo, D.areas[1]), 'personagem novo precisa da História');
+});
+
 teste('história: capítulos com regiões, chefes e masmorras que existem', () => {
   const H = D.HISTORIA;
   assert.strictEqual(H.capitulos.length, 7);
