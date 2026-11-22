@@ -960,7 +960,7 @@ Tanka.dados = {
       { dano: 3, danoCritico: 4 },     // Fúria ⇄ Precisão
       { reducaoDano: 4 },              // Precisão ⇄ Bastião
       { vida: 5, defesa: 5 },          // Bastião ⇄ Vigor
-      { curaHab: 5 },                  // Vigor ⇄ Tempestade
+      { curaHab: 2.5 },                // Vigor ⇄ Tempestade (Henri 22/11/2026: era 5)
       { exp: 4, ouro: 4 },             // Tempestade ⇄ Fortuna
       { ouro: 2, dano: 2 },            // Fortuna ⇄ Fúria
     ],

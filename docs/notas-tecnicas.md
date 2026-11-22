@@ -1583,3 +1583,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Botas Leves (arqueiro) SOR → DES; Sandálias (mago) DES → INT (`D.armaduras`). Botas novas saem com `botaV2: true`
   (sortearBonus). As antigas (sem botaV2) trocam o atributo inteiro na hora de calcular: `D.BOTAS_TROCA` em `R.bonusItem`
   e em `tanka_status` (var `kb`). Conferido: jogo e servidor dão o mesmo status. Artesão (Botas antigas) continua SOR.
+
+## Ponte Vigor ⇄ Tempestade (Henri, 22/11/2026)
+- `curaHab` 5 → 2,5% da vida máxima ao usar habilidade (JS e Arena via tanka_dados).
