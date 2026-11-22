@@ -3718,9 +3718,14 @@
       preco += extra;
       aviso = 'Chances: Comum ' + pc(chs.comum) + ' · Rara ' + pc(chs.rara) + ' · Épica ' + pc(chs.epica) + ' · Lendária ' + pc(chs.lendaria) + ' · obra-prima ' + pc(chs.obraPrima) + '.';
     } else if (tipo === 'receita') {
-      var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0], cr = R.custoReceita(p, ar2.id), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
-      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label><h4>Você entrega</h4>' + custoChips(cr);
-      pode = !R.faltando(p, mat).length; preco += cr[1].precisa;
+      // Quantidade (Henri, 22/11/2026): +1 vai somando; trocar a região volta para 1. Vira um pedido para cada receita.
+      var qr = Math.max(1, Math.floor(Number(f.qtd) || 1));
+      var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0];
+      var cr = R.custoReceita(p, ar2.id).map(function (c) { return Object.assign({}, c, { precisa: c.precisa * qr }); }), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
+      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label>'
+        + '<div class="contratar-qtd"><span>Quantidade: <strong>' + qr + '</strong></span><button class="btn secundario btn-pequeno" data-acao="of-qtd-mais">+1</button></div>'
+        + '<h4>Você entrega</h4>' + custoChips(cr);
+      pode = !R.faltando(p, mat).length; preco = (preco + cr[1].precisa / qr) * qr;
     } else if (tipo === 'protecao') {
       var rr = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum', cp = R.custoProtecao(p, rr);
       h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><h4>Você entrega</h4>' + custoChips(cp);
@@ -3757,7 +3762,7 @@
     }
     h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
       + (x.amigo ? '<p class="mais pequeno">🤝 ' + esc(x.nome) + ' é seu amigo: o serviço é feito <strong>na hora</strong>.</p>' : '')
-      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' + (f.itens && f.itens.length > 1 ? ' ' + f.itens.length + ' itens' : '') : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
+      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' + (f.itens && f.itens.length > 1 ? ' ' + f.itens.length + ' itens' : '') : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar' + (tipo === 'receita' && Number(f.qtd) > 1 ? ' ' + Number(f.qtd) + ' receitas' : ''))
       + ' · ' + ouroTxt(preco) + '</button><button class="btn secundario" data-acao="of-contratar-fechar">Fechar</button></div></div>';
     return h;
   }
@@ -3783,6 +3788,26 @@
     carregarArena(); carregarOficinas();
     estado.oficinaOcupado = false;
   }
+  // Várias receitas iguais (Henri, 22/11/2026): um pedido para cada, um depois do outro; o servidor confere cada um.
+  async function pedirVarias(x, tipo, op, n) {
+    var p = estado.personagem, feitos = 0, erro = null, naHora = false;
+    estado.oficinaOcupado = true;
+    avisar('⚒ Mandando ' + n + ' pedidos para ' + x.nome + '…');
+    try {
+      await gravarAntesDoBanco(p);
+      for (var k = 0; k < n; k++) {
+        try { var r = await C.oficina.pedir(p.id, x.id, tipo, null, op); feitos++; naHora = naHora || !!r.feito; }
+        catch (e) { erro = e.message; break; }
+      }
+    } catch (e) { erro = e.message; }
+    sincronizarFicha();
+    estado.contratar = null;
+    if (feitos) avisar((naHora ? '🤝 ' + x.nome + ' fez na hora ' : 'Pedido enviado: ' + x.nome + ' vai fazer ') + feitos + ' receita' + (feitos === 1 ? '' : 's')
+      + (naHora ? '. Chegam já já na mochila.' : '. Veja em "Meus pedidos".'), 'item');
+    if (erro) avisar((feitos ? 'Parou na ' + (feitos + 1) + 'ª receita: ' : '') + erro);
+    carregarArena(); carregarOficinas();
+    estado.oficinaOcupado = false;
+  }
   async function pedirOficina() {
     var p = estado.personagem, f = estado.contratar, st = estado.oficinas;
     var x = st && (st.lista || []).filter(function (o) { return o.id === f.artesao; })[0];
@@ -3792,7 +3817,10 @@
       var itE = p.inventario.filter(function (i) { return i.id === itemId; })[0]; op.protecao = !!f.protecao && R.qtdConsumivel(p, 'protecao', itE.raridade) > 0; }
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
       op.classe = f.classe || p.classe; op.tipo = f.peca || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
-    if (tipo === 'receita') op.area = f.area || D.areas[0].id;
+    if (tipo === 'receita') {
+      op.area = f.area || D.areas[0].id;
+      if (Number(f.qtd) > 1) return pedirVarias(x, tipo, op, Math.floor(Number(f.qtd)));
+    }
     if (tipo === 'quebrar') {   // vários de uma vez (Henri, 21/11/2026): um pedido para cada item marcado
       var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade] && (f.itens || []).indexOf(i.id) >= 0; });
       if (!iqs.length) return avisar('Marque pelo menos 1 item.');
@@ -3852,6 +3880,16 @@
           telaJogo();
         } else if (estado.contratar) { estado.contratar.item = el.dataset.id; telaJogo(); }
         return true;
+      case 'of-qtd-mais': {
+        // Até o limite de pedidos esperando (CRAFT.oficina.maxPedidos), menos os que já esperam; amigo faz na hora: sem limite.
+        var fq = estado.contratar, so = estado.oficinas || {}, xo = fq && (so.lista || []).filter(function (o) { return o.id === fq.artesao; })[0];
+        if (!fq) break;
+        var esperando = (so.pedidos || []).filter(function (x) { return x.estado === 'pendente'; }).length;
+        var limQ = xo && xo.amigo ? 99 : Math.max(1, D.CRAFT.oficina.maxPedidos - esperando);
+        if ((Number(fq.qtd) || 1) >= limQ) { avisar('Dá para ter no máximo ' + D.CRAFT.oficina.maxPedidos + ' pedidos esperando ao mesmo tempo.'); break; }
+        fq.qtd = (Number(fq.qtd) || 1) + 1; telaJogo();
+        break;
+      }
       case 'of-itens-todos':
         if (estado.contratar) estado.contratar.itens = R.mochila(p).filter(function (i) { return !i.travado && !i.runa && D.CRAFT.protecao[i.raridade]; }).map(function (i) { return i.id; });
         telaJogo(); return true;
@@ -5764,6 +5802,7 @@
     if (e.target.id === 'mercado-ordem') { var fo = filtroMercado(); fo.ordem = e.target.value; fo.pagina = 0; carregarMercado(); }
     if (e.target.dataset && e.target.dataset.contratar && estado.contratar) {
       estado.contratar[e.target.dataset.contratar] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      if (e.target.dataset.contratar === 'area') estado.contratar.qtd = 1;   // trocou a receita: a quantidade volta para 1
       if (e.target.dataset.contratar !== 'nome') telaJogo();
     }
     if (e.target.dataset && e.target.dataset.forja) { estado.forja = estado.forja || {}; estado.forja[e.target.dataset.forja] = e.target.value; telaJogo(); }

@@ -2441,3 +2441,6 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .loja-pedidos .loja-pedido { padding: .35rem .5rem; gap: .5rem; flex-wrap: nowrap; }
 .loja-pedidos .loja-pedido-texto { min-width: 0; flex: 1; }
 .loja-pedidos .loja-pedido-texto strong { display: block; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Quantidade de receitas na oficina (Henri, 22/11/2026) */
+.contratar-qtd { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }

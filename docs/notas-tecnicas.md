@@ -1586,3 +1586,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Ponte Vigor ⇄ Tempestade (Henri, 22/11/2026)
 - `curaHab` 5 → 2,5% da vida máxima ao usar habilidade (JS e Arena via tanka_dados).
+
+## Oficina: várias receitas iguais (Henri, 22/11/2026)
+- Fabricar Receita tem "Quantidade" com botão +1 (`of-qtd-mais`); trocar a região volta para 1. Custos e preço x quantidade.
+- Vira um pedido por receita, um depois do outro (`pedirVarias`), o servidor confere cada um. Limite: `CRAFT.oficina.maxPedidos` (5)
+  menos os pedidos esperando; com amigo (feito na hora) sem limite.
