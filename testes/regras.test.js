@@ -645,7 +645,11 @@ teste('áreas bloqueadas por level; chefe não pode ser caçado direto', () => {
   assert.strictEqual(p.nivel, 5);
   assert.ok(!R.podeCacar(p, 'sapo'), 'precisa derrotar o urso antes');
   p.abates.urso = 1;
+  assert.ok(!R.podeCacar(p, 'sapo'), 'precisa concluir a História da Floresta (22/11/2026)');
+  assert.ok(/Conclua a História/.test(R.motivoAreaFechada(p, D.areas[1])));
+  p.historia = { cap: 1, prog: {}, visto: false, lidos: ['c1'] };
   assert.ok(R.podeCacar(p, 'sapo'));
+  assert.strictEqual(R.motivoAreaFechada(p, D.areas[1]), null);
   assert.ok(!R.podeCacar(p, 'esqueleto'));
 });
 
@@ -1889,35 +1893,38 @@ teste('história: capítulos com regiões, chefes e masmorras que existem', () =
     assert.ok(D.areas.some((a) => a.id === c.area), c.id + ' área');
     c.objetivos.forEach((o) => {
       if (o.tipo === 'abate') assert.ok(D.areas.some((a) => a.id === o.area) && o.qtd > 0);
+      else if (o.tipo === 'monstro') assert.ok(D.monstros[o.monstro] && !D.monstros[o.monstro].chefe && D.monstros[o.monstro].area === c.area, o.monstro);
       else if (o.tipo === 'chefe') assert.ok(D.monstros[o.monstro] && D.monstros[o.monstro].chefe, o.monstro);
       else if (o.tipo === 'masmorra') assert.ok(D.masmorras.some((m) => m.id === o.masmorra), o.masmorra);
       else assert.fail('tipo ' + o.tipo);
     });
     c.abertura.concat(c.fechamento).forEach((f) => assert.ok(f.quem === 'narrador' || H.PERSONAGENS[f.quem] || D.monstros[f.quem], f.quem));
+    // 22/11/2026: 10, 20 e 50 de cada monstro da região e 1 chefe
+    assert.strictEqual(c.objetivos.map((o) => o.tipo + o.qtd).join(), 'monstro10,monstro20,monstro50,chefe1', c.id);
   });
 });
 
-teste('história: só conta no capítulo atual, chefe e criatura comum separados, prêmio e próximo capítulo', () => {
+teste('história: só conta no capítulo atual, cada monstro e o chefe separados, prêmio e próximo capítulo', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   let e = R.historiaEstado(p);
   assert.strictEqual(e.indice, 0); assert.ok(e.liberado); assert.ok(!e.completo);
   assert.ok(!R.registrarHistoria(p, 'abate', 'sapo'), 'monstro de outra região não conta');
-  assert.ok(R.registrarHistoria(p, 'abate', 'lobo'));
+  const [m1, m2, m3] = D.areas[0].monstros.map((m) => m.id);
+  assert.ok(R.registrarHistoria(p, 'abate', m1));
   assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 1);
-  assert.strictEqual(R.historiaEstado(p).objetivos[1].feito, 0, 'criatura comum não conta como chefe');
-  for (let i = 0; i < 130; i++) R.registrarHistoria(p, 'abate', 'urso');
-  assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 100, 'não passa da meta');
-  R.registrarHistoria(p, 'abate', 'velgrath');
-  assert.ok(!R.historiaEstado(p).objetivos[1].ok, 'chefe precisa de 3');
-  R.registrarHistoria(p, 'abate', 'velgrath'); R.registrarHistoria(p, 'abate', 'velgrath');
-  assert.ok(R.historiaEstado(p).objetivos[1].ok, 'chefe');
-  // 16/11/2026: o capítulo 1 não pede masmorra (a primeira abre no level 15)
+  assert.strictEqual(R.historiaEstado(p).objetivos[1].feito, 0, 'cada monstro conta separado');
+  for (let i = 0; i < 30; i++) R.registrarHistoria(p, 'abate', m1);
+  assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 10, 'não passa da meta');
+  for (let i = 0; i < 20; i++) R.registrarHistoria(p, 'abate', m2);
+  for (let i = 0; i < 50; i++) R.registrarHistoria(p, 'abate', m3);
+  assert.ok(!R.historiaEstado(p).completo, 'falta o chefe');
+  R.registrarHistoria(p, 'abate', D.areas[0].chefe.id);
   assert.ok(R.historiaEstado(p).completo);
-  const ouro = p.ouro, exp = p.exp, nivel = p.nivel;
-  const fim = R.concluirCapitulo(p);
+  const ouro = p.ouro, itens = p.inventario.length;
+  const fim = R.concluirCapitulo(p, () => 0.5);
   assert.strictEqual(fim.capitulo.id, 'c1');
-  assert.strictEqual(p.ouro, ouro + 500);
-  assert.ok(p.exp > exp || p.nivel > nivel, 'ganhou exp');
+  assert.strictEqual(p.ouro, ouro + D.monstros[D.areas[0].chefe.id].ouro * 2, 'ouro de 2 chefes');
+  assert.ok(p.inventario.length === itens + 1 && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel, 'item épico do level');
   e = R.historiaEstado(p);
   assert.strictEqual(e.indice, 1); assert.ok(!e.visto); assert.strictEqual(e.objetivos[0].feito, 0);
   assert.ok(!e.liberado, 'capítulo 2 pede o level do pântano');
@@ -1925,17 +1932,23 @@ teste('história: só conta no capítulo atual, chefe e criatura comum separados
   assert.strictEqual(JSON.stringify(p.historia.lidos), '["c1"]');
 });
 
-teste('história: item no capítulo 4 (mochila cheia espera), título e skin no fim; skin não se compra', () => {
+teste('história: prêmio com item épico (pode ser joia), mochila cheia espera, título e skin no fim; skin não se compra', () => {
   const p = R.criarPersonagem('T', 'feminino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 35);
-  p.historia = { cap: 3, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: ['c1', 'c2', 'c3'] };
+  const tudo = { 0: 99, 1: 99, 2: 99, 3: 99 };
+  p.historia = { cap: 3, prog: Object.assign({}, tudo), visto: true, lidos: ['c1', 'c2', 'c3'] };
   for (let i = p.inventario.length; R.mochila(p).length < D.MOCHILA_MAX; i++) p.inventario.push({ id: 'x' + i, tipo: 'anel', classe: null, raridade: 'comum', encanto: 0 });
   assert.ok(R.concluirCapitulo(p).erro, 'mochila cheia');
   p.inventario.pop();
   const fim = R.concluirCapitulo(p);
-  assert.ok(fim.item && fim.item.tipo === 'arma' && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel);
-  p.historia = { cap: 6, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: [] };
-  R.concluirCapitulo(p);
+  assert.ok(fim.item && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel);
+  const tipos = new Set();
+  for (let i = 0; i < 200; i++) { const q = R.criarPersonagem('Q', 'masculino', 'humano', 'mago'); q.nivel = 20; q.historia = { cap: 0, prog: Object.assign({}, tudo), visto: true, lidos: [] };
+    const f = R.concluirCapitulo(q); if (f && f.item) tipos.add(f.item.tipo); }
+  assert.ok(tipos.has('colar') || tipos.has('anel'), 'pode ser joia: ' + [...tipos]);
+  p.historia = { cap: 6, prog: Object.assign({}, tudo), visto: true, lidos: [] };
+  p.inventario.pop();   // espaço para o item do prêmio
+  assert.ok(!R.concluirCapitulo(p).erro);
   assert.strictEqual(p.titulo, 'Guardiã dos Selos');
   assert.ok(R.skinsDoPersonagem(p).includes('selos'));
   assert.ok(R.historiaEstado(p).fim);

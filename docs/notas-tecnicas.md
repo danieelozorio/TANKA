@@ -1608,3 +1608,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   caçada (antes: o dano antigo, mais fraco). O ouro/exp continua pelo chefe da região (`chefe` no boss_atacar_servidor).
 - `boss_cfg`: vida 150 mil por jogador ativo (era 50 mil); limite por ataque `danoMaximoPct` 3% da vida máxima (era 200 mil
   fixo): no máximo 15% por pessoa com 5 ataques.
+
+## História trava as regiões (Henri, 22/11/2026)
+- Cada capítulo (js/historia.js): vencer 10x, 20x e 50x os 3 monstros da região (`HISTORIA.METAS`, objetivo
+  `tipo: 'monstro'`) e 1x o chefe. Os objetivos são montados no fim do historia.js a partir de `D.areas`.
+- Prêmio (`premio.padrao` + `HISTORIA.PREMIO`): 1 item épico aleatório do level do herói (inclusive colar/anel), ouro de
+  2 chefes da região (`m.ouro x 2`) e 2 pergaminhos com a raridade de `sortearRaridadeDrop`. O capítulo 7 também dá título e skin.
+- `R.areaLiberada` agora pede o capítulo da região anterior em `p.historia.lidos` (`historiaAreaLiberada`); a caçada no
+  servidor usa `podeCacar`, então vale lá também. Mapa: região fechada pela História mostra "📜 Conclua a História" e o
+  clique avisa (`area-fechada`, `R.motivoAreaFechada`). Minas, forja e receitas continuam só pelo level.

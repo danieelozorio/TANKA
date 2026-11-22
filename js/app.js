@@ -1591,14 +1591,14 @@
   function mapaHtml() {
     var p = estado.personagem;
     var nos = D.areas.map(function (a, i) {
-      var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
+      var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1], porHistoria = !livre && p.nivel >= a.nivelMin;
       var faixa = 'Lv ' + a.nivelMin + '–' + (proxima ? proxima.nivelMin : D.PESADELO.mapaNivelExp);   // o último mapa vai até o 40 (depois: Reino do Pesadelo)
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
-        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
+        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : porHistoria ? ' data-acao="area-fechada" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
         + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
-        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
+        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : porHistoria ? '📜 Conclua a História' : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
-    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.'
+    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem com o seu level e a História da região anterior concluída.'
       + (p.nivel >= D.PESADELO.mapaNivelExp ? ' <strong class="menos">No level ' + D.PESADELO.mapaNivelExp + '+ o Mapa do Reino dá só ' + D.PESADELO.mapaExpPct + '% da exp (o ouro continua). Itens só até o level ' + D.PESADELO.mapaNivelItem + '.</strong>' : '') + '</p>'
       + portalPesadeloHtml(p) + '<div class="mapa-mundo">' + nos + '</div>';
   }
@@ -6821,6 +6821,11 @@
         telaJogo();
         mostrarPainel();
         break;
+      case 'area-fechada': {   // região fechada pela História (Henri, 22/11/2026)
+        var af = D.areas.filter(function (x) { return x.id === el.dataset.valor; })[0];
+        avisar('📜 ' + (af ? R.motivoAreaFechada(estado.personagem, af) : 'Conclua a História antes de avançar.') + ' Veja em Aventura › História.');
+        break;
+      }
       case 'fugir': encerrar(); break;
       case 'ficha-fechar': fecharFlutuante(); break;
       case 'painel-topo': fecharMenuJogo(); abrirPainelTopo(el.dataset.valor); break;
@@ -7616,6 +7621,7 @@
   function nomeArea(id) { var a = D.areas.filter(function (x) { return x.id === id; })[0]; return a ? a.nome : id; }
   function textoObjetivo(o) {
     if (o.tipo === 'abate') return 'Vença ' + o.qtd + ' criaturas em ' + nomeArea(o.area);
+    if (o.tipo === 'monstro') return 'Vença ' + o.qtd + 'x ' + esc(D.monstros[o.monstro].nome);
     var vezes = o.qtd > 1 ? ' ' + o.qtd + ' vezes' : '';
     if (o.tipo === 'chefe') return 'Derrote ' + D.monstros[o.monstro].nome + vezes + ' <span class="suave pequeno">(chefe da região, aparece na caçada)</span>';
     var m = D.masmorras.filter(function (x) { return x.id === o.masmorra; })[0];
@@ -7660,7 +7666,7 @@
         + '<h3>' + c.titulo + '</h3>'
         + (e.visto ? falaHtml(c.abertura[c.abertura.length - 1]) : '<p class="suave">Um novo capítulo espera por você.</p>')
         + (e.liberado && e.visto ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
-        + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}) + '</p>'
+        + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}, c) + '</p>'
         + '<div class="botoes">' + acao + '</div></div>';
     }
     var lidos = (h.lidos || []).map(function (id) {
@@ -7668,7 +7674,7 @@
       return c ? '<button class="btn secundario btn-mini" data-acao="historia-reler" data-valor="' + i + '">' + (i + 1) + '. ' + c.titulo + '</button>' : '';
     }).join('');
     return topo + corpo + (lidos ? '<h3 class="subtitulo">Capítulos concluídos</h3><div class="hist-lidos">' + lidos + '</div>' : '')
-      + '<p class="suave pequeno">A História não trava nada: as regiões continuam liberando pelo level. Os objetivos só contam no capítulo atual.</p>';
+      + '<p class="suave pequeno">Cada capítulo libera a região seguinte para caçar: sem concluir a História da região, não dá para avançar. Os objetivos só contam no capítulo atual.</p>';
   }
   // Prêmios de login (D.LOGIN): a semana de boas-vindas (7, só uma vez) e a trilha de 30 dias, com o botão de pegar o do dia.
   function loginHtml() {

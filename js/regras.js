@@ -1705,7 +1705,22 @@ Tanka.regras = (function () {
     var area = D.monstros[monstroId].area;
     return D.areas.find(function (a) { return a.id === area; });
   }
-  function areaLiberada(p, area) { return p.nivel >= area.nivelMin; }
+  // Região para caçar: o level dela e (Henri, 22/11/2026) o capítulo da História da região anterior concluído.
+  function areaLiberada(p, area) { return p.nivel >= area.nivelMin && historiaAreaLiberada(p, area); }
+  function capituloDaArea(areaId) { return ((D.HISTORIA && D.HISTORIA.capitulos) || []).filter(function (c) { return c.area === areaId; })[0] || null; }
+  function historiaAreaLiberada(p, area) {
+    var i = D.areas.indexOf(area), c = i > 0 ? capituloDaArea(D.areas[i - 1].id) : null;
+    return !c || ((p.historia && p.historia.lidos) || []).indexOf(c.id) >= 0;
+  }
+  // Por que a região está fechada (null = aberta).
+  function motivoAreaFechada(p, area) {
+    if (p.nivel < area.nivelMin) return 'Libera no level ' + area.nivelMin + '.';
+    if (!historiaAreaLiberada(p, area)) {
+      var ant = D.areas[D.areas.indexOf(area) - 1], c = capituloDaArea(ant.id);
+      return 'Conclua a História "' + c.titulo + '" (' + ant.nome + ') antes de avançar.';
+    }
+    return null;
+  }
 
   // Monstros comuns de áreas liberadas podem ser caçados; chefes só aparecem sozinhos.
   // Ordem das caçadas: cada monstro só libera depois de derrotar o anterior
@@ -2595,7 +2610,7 @@ Tanka.regras = (function () {
 
   // ---------- História (Aventura > História): "A Crônica de Eldrin" (texto em js/historia.js) ----------
   // p.historia = { cap: índice do capítulo atual, prog: { índice do objetivo: quantos }, visto: abertura já lida, lidos: [ids] }.
-  // Não trava regiões: o capítulo só pede o level da região dele.
+  // Trava regiões (22/11/2026): a região seguinte só abre para caçar com o capítulo desta concluído (areaLiberada).
   function historiaDados(p) {
     var h = p.historia || (p.historia = { cap: 0, prog: {}, visto: false, lidos: [] });
     if (!h.prog) h.prog = {};
@@ -2629,14 +2644,25 @@ Tanka.regras = (function () {
     var h = historiaDados(p), mudou = false;
     e.capitulo.objetivos.forEach(function (o, i) {
       var conta = false, m = D.monstros[alvo];
-      if (evento === 'abate' && m) conta = o.tipo === 'abate' ? m.area === o.area && !m.chefe : o.tipo === 'chefe' && o.monstro === alvo;
+      if (evento === 'abate' && m) conta = o.tipo === 'abate' ? m.area === o.area && !m.chefe : (o.tipo === 'chefe' || o.tipo === 'monstro') && o.monstro === alvo;
       if (evento === 'masmorra') conta = o.tipo === 'masmorra' && o.masmorra === alvo;
       if (conta && (h.prog[i] || 0) < metaObjetivo(o)) { h.prog[i] = (h.prog[i] || 0) + 1; mudou = true; }
     });
     return mudou;
   }
-  function premioHistoriaTexto(p, pr) {
+  // Prêmio padrão dos capítulos (22/11/2026): ouro de HISTORIA.PREMIO.ouroChefes chefes da região do capítulo.
+  function ouroPremioHistoria(c) {
+    var a = D.areas.filter(function (x) { return x.id === c.area; })[0], m = a && D.monstros[a.chefe.id];
+    return m ? Math.round(m.ouro * D.HISTORIA.PREMIO.ouroChefes) : 0;
+  }
+  function premioHistoriaTexto(p, pr, c) {
     var partes = [];
+    if (pr.padrao) {
+      var PP = D.HISTORIA.PREMIO;
+      partes.push('1 item ' + D.raridades[PP.raridade].nome.toLowerCase() + ' aleatório do seu level (pode ser joia)');
+      if (c) partes.push(ouroPremioHistoria(c).toLocaleString('pt-BR') + ' de ouro');
+      partes.push(PP.pergaminhos + ' pergaminhos (raridade sorteada como na caçada)');
+    }
     if (pr.ouro) partes.push(pr.ouro.toLocaleString('pt-BR') + ' de ouro');
     if (pr.expPct) partes.push(pr.expPct + '% da exp do level');
     if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's' : '') + ' ' + D.raridades[pr.pergaminho.raridade].nome.toLowerCase());
@@ -2651,8 +2677,22 @@ Tanka.regras = (function () {
     var e = historiaEstado(p);
     if (!e || !e.completo) return null;
     var pr = e.capitulo.premio || {}, item = null;
-    if (pr.item && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do capítulo.' };
-    var texto = premioHistoriaTexto(p, pr);
+    rng = rng || Math.random;
+    if ((pr.item || pr.padrao) && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do capítulo.' };
+    var texto = premioHistoriaTexto(p, pr, e.capitulo);
+    if (pr.padrao) {
+      var PP = D.HISTORIA.PREMIO, tipos = TODOS_TIPOS.concat(TIPOS_JOIA), tp = tipos[Math.floor(rng() * tipos.length)];
+      var nv = limitarNivel(p.nivel);
+      item = TIPOS_JOIA.indexOf(tp) >= 0 ? novoItem(tp, null, PP.raridade, rng, null, nv) : itemDoTipo(p, tp, PP.raridade, rng);
+      if (item) {
+        if (item.nivel !== nv) { item.nivel = nv; if (item.tipo === 'arma') item.dano = danoDoNivel(nv, item.qualidade); else item.bonus = sortearBonus(item, rng); }
+        p.inventario.push(item);
+      }
+      p.ouro += ouroPremioHistoria(e.capitulo);
+      var pgs = {};
+      for (var k = 0; k < PP.pergaminhos; k++) { var rr = sortearRaridadeDrop(rng); mudarPergaminho(p, rr, 1); pgs[rr] = (pgs[rr] || 0) + 1; }
+      texto += ' — pergaminhos: ' + Object.keys(pgs).map(function (r) { return pgs[r] + ' ' + D.raridades[r].nome.toLowerCase(); }).join(', ');
+    }
     if (pr.ouro) p.ouro += pr.ouro;
     if (pr.expPct && p.nivel < D.NIVEL_MAXIMO) ganharExp(p, Math.max(1, Math.round(expNecessaria(p.nivel) * pr.expPct / 100)));
     if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
@@ -4217,7 +4257,7 @@ Tanka.regras = (function () {
     msAteSemana: msAteSemana,
     garantirMissoes: garantirMissoes,
     registrarMissao: registrarMissao,
-    historiaEstado: historiaEstado, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
+    historiaEstado: historiaEstado, motivoAreaFechada: motivoAreaFechada, historiaAreaLiberada: historiaAreaLiberada, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
     premioHistoriaTexto: premioHistoriaTexto, marcarHistoriaVista: marcarHistoriaVista,
     guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
