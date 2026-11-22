@@ -1622,3 +1622,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - 22/11/2026 (2): a História começa sozinha (objetivos aparecem sem "aceitar"; o "!" só com capítulo completo).
   Metas por região em `HISTORIA.METAS.porArea` (floresta 10/20/50 … cume 75/150/400). Carta do monstro e do chefe na
   caçada mostram "Objetivo: Y/X" em cima da imagem (`objetivoHistoriaHtml`, `.objetivo-hist`).
+
+## App: atualização do jogo em segundo plano (Henri, 22/11/2026)
+- `js/app-nativo.js`: versão nova do jogo baixa em segundo plano (aviso pequeno `#app-baixando`), fica pronta com
+  `U.next` e entra quando o app vai para o fundo (`appStateChange` → `U.set`) ou na próxima abertura. A tela cheia
+  obrigatória (`oferecerJogo`) só quando `versao.json.webMinimo` > versão do jogo (mudar à mão no release app-web).

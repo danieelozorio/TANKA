@@ -1,4 +1,4 @@
-# Conversa com o WebView do app (DevTools do Android) e aperta "Atualizar agora". Imprime o que acontece.
+# Conversa com o WebView do app (DevTools do Android): espera a versão nova baixar em segundo plano, sai do app e volta.
 import json, time, urllib.request, websocket
 
 def pagina():
@@ -36,27 +36,19 @@ print('updater atual:', js('Capacitor.Plugins.CapacitorUpdater.current().then(r=
 print('firebase:', js('new Promise(function(ok){var P=Capacitor.Plugins.PushNotifications;P.addListener("registration",function(t){ok("token "+String(t.value).slice(0,12)+"…")});P.addListener("registrationError",function(e){ok("erro "+JSON.stringify(e))});P.register().catch(function(e){ok("erro "+e.message)});setTimeout(function(){ok("sem resposta em 20 s")},20000)})'))
 # notificações locais (19/11/2026): agenda o boss do clã às 20h e confere a lista do Android
 print('notificações:', js('window.EldrinNativo ? EldrinNativo.bossCla({boss:{hora:21}}) || new Promise(r=>setTimeout(r,2500)).then(()=>Capacitor.Plugins.LocalNotifications.getPending()).then(x=>JSON.stringify(x.notifications.map(n=>[n.id,n.title,n.schedule&&n.schedule.at]))) : "sem EldrinNativo"'))
-for _ in range(15):
-    if js('!!document.querySelector("#app-atualizar button")'): break
+# 22/11/2026: a versão nova baixa em segundo plano (aviso pequeno #app-baixando) e entra quando o app vai para o fundo.
+import subprocess
+pronta = False
+for _ in range(90):
+    txt = js('(document.querySelector("#app-baixando")||{}).textContent || ""')
+    tela = js('!!document.querySelector("#app-atualizar")')
+    print('aviso:', txt, '| tela cheia:', tela)
+    if txt and 'pronta' in txt: pronta = True; break
     time.sleep(2)
-print('caixa:', js('(document.querySelector("#app-atualizar")||{}).innerText'))
-js('document.querySelector("#app-atualizar button") && document.querySelector("#app-atualizar button").click(), 1')
-ws.settimeout(5)
-fim = time.time() + 150
-while time.time() < fim:
-    try:
-        m = json.loads(ws.recv())
-        if m.get('method') == 'Runtime.consoleAPICalled':
-            print('console.' + m['params']['type'] + ':', ' '.join(str(a.get('value', a.get('description', ''))) for a in m['params']['args']))
-        if m.get('method') == 'Runtime.executionContextsCleared':
-            print('>>> a página recarregou (atualização aplicada?)')
-            break
-    except websocket.WebSocketTimeoutException:
-        txt = js('(document.querySelector("#app-atualizar")||{}).innerText')
-        print('caixa agora:', txt)
-        if txt and 'Não deu' in txt: break
-    except Exception as e:
-        print('ws:', e); break
+print('versão nova pronta em segundo plano:', pronta)
+subprocess.run(['adb', 'shell', 'input', 'keyevent', 'KEYCODE_HOME'])
+time.sleep(8)
+subprocess.run(['adb', 'shell', 'am', 'start', '-n', 'br.com.eldrinonline.app/.MainActivity'])
 time.sleep(8)
 try:
     ws = websocket.create_connection(pagina(), timeout=10, suppress_origin=True); n[0] = 0

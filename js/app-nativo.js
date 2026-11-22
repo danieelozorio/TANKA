@@ -1,7 +1,8 @@
 // App Android (Capacitor, Henri, nov/2026). Só roda dentro do app; no site não faz nada.
 // O jogo inteiro vem dentro do APK. Ao abrir, o app confere no GitHub (release "app-web", arquivo versao.json)
 // se saiu versão nova:
-//  - jogo novo (web maior que o deste app): cobre a tela, baixa o pacote do jogo (obrigatório) e reinicia;
+//  - jogo novo (web maior que o deste app): baixa em segundo plano e entra na próxima abertura (22/11/2026); só cobre
+//    a tela e obriga quando o versao.json tem webMinimo maior que a versão deste jogo;
 //  - APK novo (apk maior que o instalado): mostra o link para baixar o APK.
 // window.ELDRIN_APP = { web: N } é escrito no index.html por ferramentas/montar_app.js.
 (function () {
@@ -63,6 +64,48 @@
     }
     baixar();
   }
+  // Jogo novo SEM travar a tela (Henri, 22/11/2026: abrir o app e esperar 0–100% toda vez era chato). Baixa em
+  // segundo plano, com só um aviso pequeno embaixo, e deixa pronto para a próxima abertura (U.next); se o jogador
+  // sair do app (vai para o fundo), troca na hora. A tela cheia obrigatória (oferecerJogo) só vale quando o
+  // versao.json pede: webMinimo maior que a versão deste jogo.
+  var pronto = null;
+  function aviso(texto, some) {
+    var d = document.getElementById('app-baixando');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'app-baixando';
+      d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));z-index:99998;'
+        + 'padding:4px 12px;border-radius:999px;background:rgba(20,17,12,.88);border:1px solid #7a6a48;color:#d9c9a6;'
+        + 'font:12px/1.4 Georgia,serif;pointer-events:none;white-space:nowrap;transition:opacity .4s';
+      document.body.appendChild(d);
+    }
+    d.textContent = texto; d.style.opacity = '1';
+    if (some) setTimeout(function () { d.style.opacity = '0'; setTimeout(function () { if (d.parentNode) d.remove(); }, 500); }, some);
+  }
+  function baixarEmSegundoPlano(v) {
+    if (atualizando || pronto) return;
+    atualizando = true;
+    aviso('⬇ Baixando a versão nova do jogo…');
+    var ouvinte = U.addListener && U.addListener('download', function (e) {
+      if (e && e.percent !== undefined) aviso('⬇ Baixando a versão nova do jogo… ' + Math.round(e.percent) + '%');
+    });
+    U.download({ url: v.webUrl, version: String(v.web), checksum: v.checksum || '' }).then(function (pacote) {
+      return (U.next ? U.next({ id: pacote.id }) : Promise.resolve()).then(function () {
+        pronto = pacote;
+        aviso('✔ Versão nova pronta: entra na próxima vez que abrir o app', 5000);
+      });
+    }).catch(function (erro) {
+      console.error('[eldrin-app] download em segundo plano falhou: ' + ((erro && (erro.message || erro.code)) || erro));
+      var d = document.getElementById('app-baixando'); if (d) d.remove();
+    }).then(function () {
+      atualizando = false;
+      if (ouvinte && ouvinte.then) ouvinte.then(function (o) { o.remove(); });
+    });
+  }
+  // Saiu do app com a versão nova pronta: troca agora (quando voltar, o jogo já abre novo).
+  if (A && A.addListener) A.addListener('appStateChange', function (st) {
+    if (st && st.isActive === false && pronto && U && U.set) U.set({ id: pronto.id }).catch(function () {});
+  });
   function oferecerApk(v) {
     var chave = 'apk' + v.apk;
     if (jaDisseDepois(chave)) return;
@@ -82,7 +125,10 @@
       var instalado = A && A.getInfo ? A.getInfo().then(function (i) { return Number(i.build) || 0; }) : Promise.resolve(0);
       instalado.then(function (apk) {
         if (v.apk && v.apkUrl && apk && Number(v.apk) > apk && Number(v.apkMinimo || 0) > apk) oferecerApk(v);   // APK obrigatório
-        else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) oferecerJogo(v);
+        else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) {
+          if (Number(v.webMinimo || 0) > Number(local.web || 0)) oferecerJogo(v);   // obrigatória: só quando o versao.json pede
+          else baixarEmSegundoPlano(v);
+        }
         else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v);
       });
     }).catch(function () {});
