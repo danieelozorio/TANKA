@@ -1068,25 +1068,46 @@ Tanka.regras = (function () {
     return true;
   }
   // Chances de raridade da forja com os ingredientes extras (chefe e gema: quantidades de 0 a maxExtra).
-  function chancesForja(p, areaId, chefe, gemas) {
+  // Chances da forja (Henri, 22/11/2026). p: quem forja (a raça vale para a obra-prima); nivelCliente: o level de quem
+  // encomenda (40+: só épica ou lendária). Igual a oficina_executar no schema.sql.
+  function chancesForja(p, areaId, chefe, gemas, nivelCliente) {
     var F = D.CRAFT.forja, ch = Math.min(F.maxExtra, chefe || 0), ge = Math.min(F.maxExtra, gemas || 0);
-    var t = {}; F.raridade.forEach(function (x) { t[x.raridade] = x.chance; });
-    t.lendaria = (t.lendaria || 0) + ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria;
-    t.epica = (t.epica || 0) + ch * F.extraChefe.epica + ge * F.extraGema.epica;
-    var resto = 100 - t.lendaria - t.epica - (t.rara || 0);
-    t.comum = Math.max(0, resto);
-    return { comum: t.comum, rara: t.rara, epica: t.epica, lendaria: t.lendaria,
-      obraPrima: F.obraPrima + (p.raca === 'anao' ? F.obraPrimaAnao : 0) };
+    var t = { comum: 0, rara: 0, epica: 0, lendaria: 0 }; F.raridade.forEach(function (x) { t[x.raridade] = x.chance; });
+    var mais = ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria + ch * F.extraChefe.epica + ge * F.extraGema.epica;
+    t.lendaria += ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria;
+    t.epica += ch * F.extraChefe.epica + ge * F.extraGema.epica;
+    var doComum = Math.min(t.comum, mais); t.comum -= doComum; t.rara = Math.max(0, t.rara - (mais - doComum));
+    if ((nivelCliente || 0) >= F.soEpicaDesde) { t.epica += t.comum + t.rara; t.comum = 0; t.rara = 0; }
+    var r = function (v) { return Math.round(v * 100) / 100; };
+    return { comum: r(t.comum), rara: r(t.rara), epica: r(t.epica), lendaria: r(t.lendaria),
+      obraPrima: F.obraPrima + (p && p.raca === 'anao' ? F.obraPrimaAnao : 0) };
+  }
+  // Faixa de level do item forjado para quem tem `nivelCliente`, com a receita de `areaId`: [mín., máx.].
+  function nivelForja(areaId, nivelCliente) {
+    var F = D.CRAFT.forja, i = indiceArea(areaId), a = D.areas[i] || D.areas[0], n = Math.max(1, nivelCliente || 1);
+    var teto = Math.min(N_.maximo, i === D.areas.length - 1 ? Infinity : a.nivelMin + F.tetoRegiao);   // itens vão até o level 60
+    return [Math.min(teto, n + F.nivelAcima[0]), Math.min(teto, n + F.nivelAcima[1])];
+  }
+  // Qualidade boa (qualidadeMin% a 100% da faixa da raridade) e o dano/bônus de novo com ela.
+  function qualidadeForja(item, rng) {
+    var f = N_.faixaQualidade[item.raridade] || [0, 1], m = D.CRAFT.forja.qualidadeMin / 100;
+    item.qualidade = Math.round((f[0] + (f[1] - f[0]) * (m + (1 - m) * rng())) * 1000) / 1000;
+    if (item.tipo === 'arma') item.dano = danoDoNivel(item.nivel, item.qualidade);
+    else item.bonus = sortearBonus(item, rng);
+    return item;
   }
   // Item forjado a partir do que o servidor sorteou (serviço da Oficina): mesma semente = mesmo item.
-  // spec = { classe, tipo, raridade, area, semente, forjadoPor, obraPrima }
+  // spec = { classe, tipo, raridade, area, semente, forjadoPor, obraPrima, nivel } (nivel: sorteado no servidor;
+  // pedidos antigos sem ele: o level da região + 2 e a qualidade sorteada como antes)
   function itemForjado(spec) {
-    var a = D.areas[indiceArea(spec.area)] || D.areas[0], rng = rngSemente(Number(spec.semente) || 1), nivel = a.nivelMin + 2;
+    var a = D.areas[indiceArea(spec.area)] || D.areas[0], rng = rngSemente(Number(spec.semente) || 1), novo = Number(spec.nivel) > 0;
+    var nivel = novo ? Math.floor(Number(spec.nivel)) : a.nivelMin + 2;
     var falso = { classe: spec.classe, talentos: null, nivel: nivel, raca: 'humano', inventario: [], equipados: {} };
     var item = spec.tipo === 'arma' ? novoItem('arma', spec.classe, spec.raridade, rng, sortearTipoArma(falso, spec.raridade, rng), nivel)
       : itemDoTipo(falso, spec.tipo, spec.raridade, rng);
     if (!item) return null;
-    item.nivel = item.nivel || nivel;
+    item.nivel = nivel;
+    if (novo) qualidadeForja(item, rng);
     item.forjadoPor = spec.forjadoPor;
     if (spec.obraPrima) item.obraPrima = true;
     return item;
@@ -1106,18 +1127,19 @@ Tanka.regras = (function () {
     if (gemas) c.push({ tipo: 'material', id: 'gema', nome: D.CRAFT.materiais.gema.nome, tem: qtdMaterial(p, 'gema'), precisa: gemas });
     if (faltando(p, c).length) return 'Faltam materiais ou ouro.';
     if (mochilaCheia(p)) return 'Mochila cheia.';
-    var ch = chancesForja(p, areaId, chefe, gemas), r = rng() * 100, rar = 'comum';
+    var ch = chancesForja(p, areaId, chefe, gemas, p.nivel), r = rng() * 100, rar = 'comum';
     if (r < ch.lendaria) rar = 'lendaria'; else if (r < ch.lendaria + ch.epica) rar = 'epica'; else if (r < ch.lendaria + ch.epica + ch.rara) rar = 'rara';
     var obra = rng() * 100 < ch.obraPrima && rar !== 'lendaria';
     if (obra) rar = RARIDADES[RARIDADES.indexOf(rar) + 1];
     pagar(p, c);
-    var nivel = a.nivelMin + 2, item;
+    var fx = nivelForja(areaId, p.nivel), nivel = fx[0] + Math.floor(rng() * (fx[1] - fx[0] + 1)), item;
     // o item é da classe base escolhida (sem a segunda classe do Ferreiro), para vender ou dar
-    var falso = Object.assign({}, p, { classe: classe, talentos: null });
+    var falso = Object.assign({}, p, { classe: classe, talentos: null, nivel: nivel });
     if (tipo === 'arma') item = novoItem('arma', classe, rar, rng, sortearTipoArma(falso, rar, rng), nivel);
     else item = itemDoTipo(falso, tipo, rar, rng);
     if (!item) return 'Esse tipo de item não existe para essa classe.';
-    item.nivel = item.nivel || nivel;
+    item.nivel = nivel;
+    qualidadeForja(item, rng);
     item.forjadoPor = p.nome;
     if (obra) item.obraPrima = true;
     p.inventario.push(item);
@@ -4226,7 +4248,7 @@ Tanka.regras = (function () {
     rolarMaterial: rolarMaterial, areaDasMinas: areaDasMinas, iniciarMinas: iniciarMinas, recolherMinas: recolherMinas,
     pararMinas: pararMinas, minerando: minerando, mediaMinas: mediaMinas,
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
-    fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
+    fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, nivelForja: nivelForja, forjar: forjar,
     bonusEncanto: bonusEncanto, cristaisQuebrar: cristaisQuebrar, precoServico: precoServico, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
     runa: runa, itemForjado: itemForjado, forcaRuna: forcaRuna, bonusRuna: bonusRuna, textoRuna: textoRuna,
     tabelaBossAlianca: tabelaBossAlianca,

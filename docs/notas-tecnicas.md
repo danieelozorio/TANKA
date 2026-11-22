@@ -1591,3 +1591,13 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Fabricar Receita tem "Quantidade" com botão +1 (`of-qtd-mais`); trocar a região volta para 1. Custos e preço x quantidade.
 - Vira um pedido por receita, um depois do outro (`pedirVarias`), o servidor confere cada um. Limite: `CRAFT.oficina.maxPedidos` (5)
   menos os pedidos esperando; com amigo (feito na hora) sem limite.
+
+## Forja melhor (Henri, 22/11/2026)
+- Chances (`CRAFT.forja`): comum 30 / rara 50 / épica 18 / lendária 2. Material do chefe: +5% épica e +1,5% lendária; Pedra
+  Preciosa: +4% e +1,5% (até 3 de cada); o que somam sai primeiro do comum, depois da rara. Obra-prima 5% (+2% Anão).
+- Quem encomenda com level 40+ (`soEpicaDesde`): comum e rara viram épica.
+- Level do item: o de quem encomenda + 5 a 10 (`nivelAcima`), até o level da região + 15 (`tetoRegiao`; o Cume não tem
+  teto) e no máximo 60. Qualidade de 80% a 100% da faixa da raridade (`qualidadeMin`, `qualidadeForja`).
+- JS: `R.chancesForja(p, area, chefe, gemas, nivelCliente)`, `R.nivelForja(area, nivel)`, `R.forjar` (Ferreiro para si),
+  `R.itemForjado(spec)` com `spec.nivel` (pedidos antigos sem ele: como antes). SQL: `forja_chances`, `forja_nivel`
+  (o 60 está fixo lá) em `oficina_fazer_pedido`.

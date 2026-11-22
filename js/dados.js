@@ -77,10 +77,16 @@ Tanka.dados = {
     // Receita da região (Coletor): materiais da região + ouro. Forja (Ferreiro): 1 receita + materiais + ouro.
     receita: { material: 10, ouro: [500, 1500, 3000, 6000, 12000, 25000, 50000] },   // ouro por região (índice da área)
     forja: { material: 5, ouro: [1000, 3000, 6000, 12000, 25000, 50000, 100000],
-      raridade: [{ raridade: 'comum', chance: 60 }, { raridade: 'rara', chance: 35 }, { raridade: 'epica', chance: 5 }],
-      // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa
-      extraChefe: { epica: 3, lendaria: 0.5 }, extraGema: { epica: 2, lendaria: 0.5 }, maxExtra: 3,
-      obraPrima: 2, obraPrimaAnao: 1 },   // % de sair uma raridade acima (Anão +1%)
+      // Forja melhor (Henri, 22/11/2026): era comum 60 / rara 35 / épica 5, extras +3/+0,5 e +2/+0,5, obra-prima 2% (+1 Anão).
+      raridade: [{ raridade: 'comum', chance: 30 }, { raridade: 'rara', chance: 50 }, { raridade: 'epica', chance: 18 }, { raridade: 'lendaria', chance: 2 }],
+      // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa. O que eles somam em
+      // épica/lendária sai primeiro da chance de comum, depois da de rara.
+      extraChefe: { epica: 5, lendaria: 1.5 }, extraGema: { epica: 4, lendaria: 1.5 }, maxExtra: 3,
+      obraPrima: 5, obraPrimaAnao: 2,   // % de sair uma raridade acima (Anão +2%)
+      // Level do item: o de quem encomenda + nivelAcima (5 a 10), até o level da região + tetoRegiao (a última região
+      // não tem teto) e no máximo ITEM_NIVEL.maximo (60). Quem encomenda com level `soEpicaDesde`+: comum e rara
+      // viram épica. Atributos sempre de qualidadeMin% a 100% da faixa da raridade.
+      nivelAcima: [5, 10], tetoRegiao: 15, soEpicaDesde: 40, qualidadeMin: 80 },
     // Oficinas (etapa 4): cada Artesão abre a sua e vende serviços com preço próprio. O cliente entrega tudo (item,
     // pergaminhos, materiais e o pagamento) e o servidor guarda; a sorte é jogada no servidor com a Sorte e a raça do
     // ARTESÃO. Feito ou não, o artesão recebe o pagamento menos `taxa`%. Sem fazer em `prazoHoras`, tudo volta ao cliente.

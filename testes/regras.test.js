@@ -1416,6 +1416,27 @@ teste('vida por level maior (21/11/2026): +36 por level; os monstros batem x fat
   assert.ok(Math.abs(b.lutador.fatorVida - f) < 1e-9, 'o lutador leva o fator');
 });
 
+teste('forja melhor (22/11/2026): chances, level 5 a 10 acima, 40+ só épica/lendária e qualidade boa', () => {
+  const c0 = R.chancesForja({}, 'cume', 0, 0, 30), c6 = R.chancesForja({ raca: 'anao' }, 'cume', 3, 3, 30), c40 = R.chancesForja({}, 'cume', 3, 3, 40);
+  assert.strictEqual([c0.comum, c0.rara, c0.epica, c0.lendaria].join(), '30,50,18,2');
+  assert.strictEqual([c6.comum, c6.rara, c6.epica, c6.lendaria, c6.obraPrima].join(), '0,44,45,11,7');
+  assert.strictEqual([c40.comum, c40.rara, c40.epica, c40.lendaria].join(), '0,0,89,11');
+  assert.strictEqual(R.nivelForja('cume', 30).join(), '35,40');
+  assert.strictEqual(R.nivelForja('cume', 57).join(), '60,60', 'até o level 60');
+  assert.strictEqual(R.nivelForja('floresta', 30).join(), '16,16', 'região baixa tem teto');
+  const it = R.itemForjado({ classe: 'mago', tipo: 'peitoral', raridade: 'epica', area: 'cume', semente: 7, nivel: 38 });
+  const f = D.ITEM_NIVEL.faixaQualidade.epica;
+  assert.ok(it.nivel === 38 && it.qualidade >= f[0] + (f[1] - f[0]) * 0.8 - 1e-9, 'level ' + it.nivel + ' qualidade ' + it.qualidade);
+  const velho = R.itemForjado({ classe: 'mago', tipo: 'arma', raridade: 'rara', area: 'cume', semente: 7 });
+  assert.strictEqual(velho.nivel, 32, 'pedido antigo: como antes');
+  const p = R.criarPersonagem('F', 'masculino', 'anao', 'artesao'); p.nivel = 40; p.talentos = { segunda: 'ferreiro' };
+  if (R.ehFerreiro(p)) {
+    p.ouro = 1e9; ['brasa'].forEach((m) => R.mudarConsumivel(p, 'material', m, 50)); R.mudarConsumivel(p, 'receita', 'cume', 5);
+    for (let i = 0; i < 5; i++) { const r = R.forjar(p, 'cume', 'mago', 'arma', 0, 0); if (typeof r === 'string') break;
+      assert.ok(r.item.nivel >= 45 && r.item.nivel <= 50 && (r.item.raridade === 'epica' || r.item.raridade === 'lendaria'), 'forja 40+: ' + r.item.nivel + ' ' + r.item.raridade); }
+  }
+});
+
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
   const f = R.criarPersonagem('F', 'masculino', 'humano', 'artesao');
   R.admin.subirNivel(f, 9); R.escolherSegundaClasse(f, 'ferreiro');

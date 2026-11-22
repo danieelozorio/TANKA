@@ -3443,7 +3443,7 @@
     var custoF = R.custoForja(p, f.area);
     if (f.chefe) custoF.push({ tipo: 'material', id: mcF, nome: C.materiais[mcF].nome, tem: R.qtdMaterial(p, mcF), precisa: f.chefe });
     if (f.gemas) custoF.push({ tipo: 'material', id: 'gema', nome: C.materiais.gema.nome, tem: R.qtdMaterial(p, 'gema'), precisa: f.gemas });
-    var chances = R.chancesForja(p, f.area, f.chefe, f.gemas), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+    var chances = R.chancesForja(p, f.area, f.chefe, f.gemas, p.nivel), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
     var botoes = function (campo, lista, atual) {
       return '<div class="forja-botoes">' + lista.map(function (o) {
         return '<button type="button" class="btn btn-pequeno' + (String(o[0]) === String(atual) ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="' + campo + '" data-valor="' + o[0] + '">' + o[1] + '</button>';
@@ -3467,7 +3467,7 @@
       + '<li><h4>Região <span class="suave pequeno">· define o level do item</span></h4><div class="forja-botoes">' + f.liberadas.map(function (a) {
         var temR = R.qtdConsumivel(p, 'receita', a.id) > 0;
         return '<button type="button" class="btn btn-pequeno forja-regiao' + (a.id === f.area ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="area" data-valor="' + a.id + '">'
-          + iconeArea(a) + '<span>' + esc(a.nome) + '<small>item level ' + (a.nivelMin + 2) + (temR ? ' · 📜' : '') + '</small></span></button>';
+          + iconeArea(a) + '<span>' + esc(a.nome) + '<small>item level ' + (function (fx) { return fx[0] === fx[1] ? fx[0] : fx[0] + '–' + fx[1]; })(R.nivelForja(a.id, p.nivel)) + (temR ? ' · 📜' : '') + '</small></span></button>';
       }).join('') + '</div></li>'
       + '<li><h4>Para a classe</h4>' + botoes('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), f.classe) + '</li>'
       + '<li><h4>Peça</h4><div class="forja-botoes">' + PECAS_FORJA.map(function (o) {
@@ -3708,7 +3708,7 @@
       var mc = R.materialDoChefe(ar.chefe.id), custo = R.custoForja(p, ar.id).filter(function (c) { return c.tipo !== 'ouro'; });
       if (ch) custo.push({ tipo: 'material', id: mc, nome: D.CRAFT.materiais[mc].nome, tem: R.qtdMaterial(p, mc), precisa: ch });
       if (ge) custo.push({ tipo: 'material', id: 'gema', nome: 'Pedra Preciosa', tem: R.qtdMaterial(p, 'gema'), precisa: ge });
-      var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+      var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge, p.nivel), nf = R.nivelForja(ar.id, p.nivel), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
       h += '<div class="forja-opcoes"><label>Receita ' + sel('area', comReceita.map(function (a) { return [a.id, a.nome]; }), ar.id) + '</label>'
         + '<label>Classe ' + sel('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</label>'
         + '<label>Peça ' + sel('peca', PECAS_FORJA, tp) + '</label>'
@@ -3716,7 +3716,9 @@
         + '<h4>Você entrega</h4>' + custoChips(custo.concat([{ tipo: 'ouro', nome: 'ouro da forja', tem: p.ouro, precisa: extra }]));
       pode = !R.faltando(p, custo).length;
       preco += extra;
-      aviso = 'Chances: Comum ' + pc(chs.comum) + ' · Rara ' + pc(chs.rara) + ' · Épica ' + pc(chs.epica) + ' · Lendária ' + pc(chs.lendaria) + ' · obra-prima ' + pc(chs.obraPrima) + '.';
+      aviso = 'Item level <strong>' + (nf[0] === nf[1] ? nf[0] : nf[0] + ' a ' + nf[1]) + '</strong>, com atributos bons (' + D.CRAFT.forja.qualidadeMin + '% a 100%). '
+        + 'Chances: ' + ['comum', 'rara', 'epica', 'lendaria'].filter(function (r) { return chs[r] > 0; }).map(function (r) { return D.raridades[r].nome + ' ' + pc(chs[r]); }).join(' · ')
+        + ' · obra-prima ' + pc(chs.obraPrima) + '.';
     } else if (tipo === 'receita') {
       // Quantidade (Henri, 22/11/2026): +1 vai somando; trocar a região volta para 1. Vira um pedido para cada receita.
       var qr = Math.max(1, Math.floor(Number(f.qtd) || 1));
