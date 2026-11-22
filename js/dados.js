@@ -84,7 +84,8 @@ Tanka.dados = {
     // Oficinas (etapa 4): cada Artesão abre a sua e vende serviços com preço próprio. O cliente entrega tudo (item,
     // pergaminhos, materiais e o pagamento) e o servidor guarda; a sorte é jogada no servidor com a Sorte e a raça do
     // ARTESÃO. Feito ou não, o artesão recebe o pagamento menos `taxa`%. Sem fazer em `prazoHoras`, tudo volta ao cliente.
-    oficina: { taxa: 10, prazoHoras: 24, maxPedidos: 5,
+    oficina: { taxa: 10, prazoHoras: 12,   // prazo: 12 h (Henri, 21/11/2026; era 24)
+      maxPedidos: 5,
       servicos: {
         encantar: { nome: 'Encantar item', de: 'ferreiro' }, forjar: { nome: 'Forjar arma ou armadura', de: 'ferreiro' },
         reliquia: { nome: 'Relíquia Rúnica', de: 'ferreiro' },

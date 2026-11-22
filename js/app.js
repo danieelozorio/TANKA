@@ -3558,7 +3558,10 @@
   // Situação de um pedido, como selo colorido.
   function seloPedido(x) {
     var r = x.resultado || {};
-    if (x.estado === 'pendente') return '<span class="selo-pedido espera">⏳ Esperando o artesão</span>';
+    if (x.estado === 'pendente') {   // quanto falta para voltar tudo (prazo da oficina; Henri, 21/11/2026: 12 h)
+      var fimP = Date.parse(x.criado_em) + OF.prazoHoras * 3600000, faltaP = Math.max(0, Math.ceil((fimP - C.agora()) / 60000));
+      return '<span class="selo-pedido espera">⏳ Esperando o artesão' + (Number.isFinite(fimP) ? ' · volta em ' + (faltaP >= 60 ? Math.floor(faltaP / 60) + ' h ' + (faltaP % 60) + ' min' : faltaP + ' min') + ' se não for feito' : '') + '</span>';
+    }
     if (x.estado !== 'feito') return '<span class="selo-pedido devolvido">↩ ' + (x.estado === 'cancelado' ? 'Cancelado' : 'Não feito a tempo') + ' · tudo devolvido</span>';
     var ruim = (x.tipo === 'encantar' && !r.sucesso && !r.protegido) || (x.tipo === 'reliquia' && !r.sucesso);
     return '<span class="selo-pedido ' + (ruim ? 'ruim' : 'bom') + '">' + textoResultado(x) + '</span>';
