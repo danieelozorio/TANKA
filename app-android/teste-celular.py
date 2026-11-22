@@ -13,7 +13,7 @@ def pagina():
         time.sleep(2)
     raise SystemExit('WebView não apareceu')
 
-ws = websocket.create_connection(pagina(), timeout=10, suppress_origin=True)
+ws = websocket.create_connection(pagina(), timeout=30, suppress_origin=True)
 n = [0]
 def cmd(metodo, **params):
     n[0] += 1
