@@ -1116,6 +1116,8 @@ Tanka.dados = {
   // pedido do Henri): 3 heróis 5 levels ACIMA do mínimo, com itens épicos +5, vencem ~60%; no level
   // mínimo quase ninguém vence (ex.: Catacumbas lv15 pede 3 heróis lv20 bem equipados).
   // poderRecomendado: poder de cada herói desse grupo (só para mostrar na tela).
+  // 21/11/2026 (Henri): recalculado com as regras de hoje = mediana das 4 classes no level mínimo, pontos 2/3 no atributo
+  // principal e 1/3 em Resistência, itens do level: rara+3 (Toca), rara+4, épica+3, épica+4, épica+5, lendária+4, lendária+5 (Coração).
   // 16/11/2026: níveis 15 a 60 e forca recalibrada para a masmorra com caminhos (grupo com curandeiro vence ~70-100%,
   // sem curandeiro ~15-45%; herói no nível mínimo: rara+3 no 15 até lendária+5 no 60).
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
@@ -1147,19 +1149,19 @@ Tanka.dados = {
       forca: { vida: 56.5, ataque: 21.6 }, poderRecomendado: 8800,
       joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
     { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 30, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
-      forca: { vida: 46.9, ataque: 43.1 }, poderRecomendado: 27900,
+      forca: { vida: 46.9, ataque: 43.1 }, poderRecomendado: 24700,
       joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
     { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 37, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
-      forca: { vida: 143.9, ataque: 67.1 }, poderRecomendado: 62900,
+      forca: { vida: 143.9, ataque: 67.1 }, poderRecomendado: 52900,
       joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
     { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 45, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
-      forca: { vida: 229.8, ataque: 91.9 }, poderRecomendado: 146400,
+      forca: { vida: 229.8, ataque: 91.9 }, poderRecomendado: 112000,
       joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
     { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 52, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
-      forca: { vida: 182.5, ataque: 182.5 }, poderRecomendado: 384600,
+      forca: { vida: 182.5, ataque: 182.5 }, poderRecomendado: 251300,
       joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
     { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 60, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
-      forca: { vida: 322.0, ataque: 161.0 }, poderRecomendado: 777100,
+      forca: { vida: 322.0, ataque: 161.0 }, poderRecomendado: 479200,
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 
