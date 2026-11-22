@@ -1595,8 +1595,8 @@ begin
   l0 := public.arena_lutador('pa');
   update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": ["tempestade-t0", "tempestade-t1", "precisao-t0", "precisao-t1", "precisao-1-0", "precisao-1-1", "precisao-1-2"], "exp": 0, "extras": 0, "v": 2}}' where id = 'pa';
   l := public.arena_lutador('pa');
-  if (l ->> 'velBase')::numeric <> (l0 ->> 'velBase')::numeric + 20 then raise exception 'FALHA Pacto v2: velocidade % (antes %)', l ->> 'velBase', l0 ->> 'velBase'; end if;
-  if coalesce((l -> 'ex' ->> 'danoHibrido')::numeric, 0) <> 12 then raise exception 'FALHA Pacto v2: dano híbrido %', l -> 'ex' ->> 'danoHibrido'; end if;
+  if (l ->> 'velBase')::numeric <> (l0 ->> 'velBase')::numeric + 8 then raise exception 'FALHA Pacto v2: velocidade % (antes %)', l ->> 'velBase', l0 ->> 'velBase'; end if;
+  if coalesce((l -> 'ex' ->> 'danoHibrido')::numeric, 0) <> 4.8 then raise exception 'FALHA Pacto v2: dano híbrido %', l -> 'ex' ->> 'danoHibrido'; end if;
   update public.personagens set dados = d0 where id = 'pa';
   raise notice 'ok   Pacto v2 na Arena: velocidade em pontos e dano híbrido';
 end $$;

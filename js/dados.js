@@ -899,24 +899,26 @@ Tanka.dados = {
     custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
     // Fase de testes (Henri, 21/11/2026): zerar custa 100 mil fixo. No BETA volta para 500000 + 250000 por vez na semana.
     precoRefazer: 100000, precoRefazerMais: 0,
+    primeiroGolpeLento: 12,   // Primeiro Golpe: o inimigo fica x% mais lento (era 30; −60% em 21/11/2026)
     focoCada: 5,   // Foco (Henri, 21/11/2026): a cada 5 turnos, as habilidades em recarga ficam 1 turno mais perto de prontas
     versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
-      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 1 },
+      // 21/11/2026 (Henri): Fúria, Precisão e Tempestade com −60% em tudo (ponto, notável e pedra; os custos das pedras não mudaram)
+      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 0.4 },
         trilhas: [
-          { nome: 'Carniceiro', pequeno: { dano: 2 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 5, precisao: -3 } },
-            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+15% de dano', custo: '−15% de vida máxima', ef: { dano: 15, vida: -15 } } },
+          { nome: 'Carniceiro', pequeno: { dano: 0.8 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 2, precisao: -3 } },
+            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+6% de dano', custo: '−15% de vida máxima', ef: { dano: 6, vida: -15 } } },
           // danoVidaAtual: cada golpe tira a mais x% da vida ATUAL do alvo (no máximo o mesmo dano do golpe)
-          { nome: 'Executor', pequeno: { danoVidaAtual: 1 }, notavel: { nome: 'Sem Piedade', ef: { danoVidaAtual: 3 } },
-            pedra: { id: 'execucao', nome: 'Execução', txt: '+40% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem tem mais de 30% da vida', ef: { execucao: 1 } } },
+          { nome: 'Executor', pequeno: { danoVidaAtual: 0.4 }, notavel: { nome: 'Sem Piedade', ef: { danoVidaAtual: 1.2 } },
+            pedra: { id: 'execucao', nome: 'Execução', txt: '+16% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem tem mais de 30% da vida', ef: { execucao: 16 } } },
         ] },
-      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { danoCritico: 3 },
+      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { danoCritico: 1.2 },
         trilhas: [
-          { nome: 'Olho de Falcão', pequeno: { danoCritico: 4 }, notavel: { nome: 'Mira Firme', ef: { danoCritico: 10, precisao: 5 } },
-            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'O crítico ignora 30% da defesa do alvo (na Arena: com 18 ou mais no dado)', custo: 'Seu roubo de vida perde 50% de eficiência', ef: { golpeCerteiro: 30 } } },
+          { nome: 'Olho de Falcão', pequeno: { danoCritico: 1.6 }, notavel: { nome: 'Mira Firme', ef: { danoCritico: 4, precisao: 2 } },
+            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'O crítico ignora 12% da defesa do alvo (na Arena: com 18 ou mais no dado)', custo: 'Seu roubo de vida perde 50% de eficiência', ef: { golpeCerteiro: 12 } } },
           // danoHibrido: x% do dano vai contra a defesa oposta (mago: defesa física; guerreiro: defesa mágica)
-          { nome: 'Lâmina Fina', pequeno: { danoHibrido: 3 }, notavel: { nome: 'Corte Fino', ef: { danoHibrido: 6 } },
-            pedra: { id: 'ferida-aberta', nome: 'Ferida Profunda', txt: '+20% de dano híbrido', custo: '−10% de vida máxima', ef: { danoHibrido: 20, vida: -10 } } },
+          { nome: 'Lâmina Fina', pequeno: { danoHibrido: 1.2 }, notavel: { nome: 'Corte Fino', ef: { danoHibrido: 2.4 } },
+            pedra: { id: 'ferida-aberta', nome: 'Ferida Profunda', txt: '+8% de dano híbrido', custo: '−10% de vida máxima', ef: { danoHibrido: 8, vida: -10 } } },
         ] },
       { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 }, tronco2: { defesaMagica: 2 },   // 2º ponto: defesa mágica
         trilhas: [
@@ -933,12 +935,12 @@ Tanka.dados = {
             pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: '−10% de vida máxima', ef: { rouboVida: 6, vida: -10 } } },   // 20/11/2026: era 10%; custo era sem poção
         ] },
       // Velocidade em pontos (Henri, 20/11/2026): 2% virou +10 e 5% virou +25 de velocidade (velocidadePts).
-      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidadePts: 10 },
+      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidadePts: 4 },
         trilhas: [
-          { nome: 'Relâmpago', pequeno: { velocidadePts: 10 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 25, evasao: 3 } },
-            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +40% de dano e deixa o inimigo 30% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
-          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
-            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
+          { nome: 'Relâmpago', pequeno: { velocidadePts: 4 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 10, evasao: 1.2 } },
+            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +16% de dano e deixa o inimigo 12% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 16, vida: -10 } } },
+          { nome: 'Arcano', pequeno: { danoHab: 1.2 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
+            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 10% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 10 } } },
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
         trilhas: [

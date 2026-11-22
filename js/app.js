@@ -2487,16 +2487,16 @@
   function efAscTexto(ef) {
     return Object.keys(ef).map(function (k) {
       var v = ef[k];
-      if (k === 'reflete') return 'Devolve ' + v + '% do dano recebido';
+      if (k === 'reflete') return 'Devolve ' + fmtDec(v) + '% do dano recebido';
       if (k === 'reducaoDano') return '−' + v + '% de dano recebido';
       if (k === 'recargaPct') return 'Habilidades recarregam ' + v + '% mais rápido (nunca menos de 2 turnos)';
       if (k === 'eruditoExp') return '+' + v + '% de exp (com os pontos no limite, vira +' + fmtDec(Math.round(v / 3 * 10) / 10) + '% de drop)';
       if (k === 'curaHab') return 'Cura ' + v + '% da vida ao usar uma habilidade';
       if (k === 'recargaMenos') return 'A cada ' + (D.ASCENSAO.focoCada || 4) + ' turnos, as habilidades recarregam ' + v + ' turno' + (v > 1 ? 's' : '') + ' mais rápido';
-      if (k === 'danoVidaAtual') return '+' + v + '% da vida atual do alvo em cada golpe';
-      if (k === 'danoHibrido') return '+' + v + '% de dano híbrido (vai contra a defesa oposta)';
+      if (k === 'danoVidaAtual') return '+' + fmtDec(v) + '% da vida atual do alvo em cada golpe';
+      if (k === 'danoHibrido') return '+' + fmtDec(v) + '% de dano híbrido (vai contra a defesa oposta)';
       var n = NOME_EF_ASC[k];
-      return n ? (v > 0 ? '+' : '−') + Math.abs(v) + n[0] + ' ' + n[1] : '';
+      return n ? (v > 0 ? '+' : '−') + fmtDec(Math.abs(v)) + n[0] + ' ' + n[1] : '';
     }).filter(Boolean).join(' · ');
   }
   function pendAsc() { return estado.ascPend || (estado.ascPend = []); }

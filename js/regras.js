@@ -847,14 +847,14 @@ Tanka.regras = (function () {
     // Primeiro Golpe (Pacto v2): a 1ª habilidade da luta tem +x% de dano e deixa o alvo 30% mais lento até o fim da luta.
     if (L && L.primeiroGolpe && !opcoes.normal) {
       L.primeiroGolpe = false; fa *= 1 + X.primeiroGolpe / 100;
-      if (alvo.vel) { alvo.vel = Math.max(1, Math.round(alvo.vel * 0.7)); g.lentidao = true; }
+      if (alvo.vel) { alvo.vel = Math.max(1, Math.round(alvo.vel * (1 - (D.ASCENSAO.primeiroGolpeLento || 30) / 100))); g.lentidao = true; }
     }
     if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, D.ACERTO_PVE_MINIMO, 100)) return g;
     // Pacto: contra chefes, alvo ferido (meia vida / Execução), só na caçada, habilidade x ataque normal (Eco)
     var va = opcoes.vidaAlvo != null ? opcoes.vidaAlvo : (alvo.hpMax ? alvo.hp / alvo.hpMax : 1);
     if (X.danoChefe && alvo.chefe) fa *= 1 + X.danoChefe / 100;
     if (X.danoMeiaVida && va < 0.5) fa *= 1 + X.danoMeiaVida / 100;
-    if (X.execucao) fa *= va < 0.3 ? 1.4 : 0.9;   // Execução (v2): −10% em quem tem mais de 30% da vida
+    if (X.execucao) fa *= va < 0.3 ? 1 + X.execucao / 100 : 0.9;   // Execução: +x% abaixo de 30% da vida; −10% em quem tem mais
     if (X.danoCacada && L.modo === 'cacada') fa *= 1 + X.danoCacada / 100;
     if (opcoes.normal) { if (X.eco) fa *= 0.9; } else if (X.danoHab) fa *= 1 + X.danoHab / 100;
     var bruto = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1) * fa;
@@ -1525,6 +1525,7 @@ Tanka.regras = (function () {
     if (!ordenarAscensao(lista, total)) return x;
     var A = arvoreAscensao();
     lista.forEach(function (id) { var ef = A[id].ef; Object.keys(ef).forEach(function (k) { x[k] = (x[k] || 0) + ef[k]; }); });
+    Object.keys(x).forEach(function (k) { x[k] = Math.round(x[k] * 100) / 100; });   // valores com vírgula (1,2 + 1,2 + 1,2 = 3,6)
     // Sabedoria: +25% de exp; com os pontos no limite (a exp não serve mais), vira +20% de drop
     if (x.sabedoria) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + 20; else x.exp = (x.exp || 0) + 25; }
     // Erudito (20/11/2026): exp; com os pontos no limite (a exp não serve mais), cada 3% de exp vira 1% de drop
