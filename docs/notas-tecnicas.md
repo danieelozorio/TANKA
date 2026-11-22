@@ -1578,3 +1578,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - O `dados.poder` gravado (rankings) só muda quando a ficha do jogador é salva de novo.
 - `poderRecomendado` das masmorras recalculado com o poder novo (mediana das 8 segundas classes no level mínimo).
 - Ranking por level (Henri, 21/11/2026): `ranking(tipo)` devolve `pacto` (pontos do Pacto, igual a `R.pontosAscensaoTotal`) e desempata o level por pacto, exp do Pacto e exp. A tela mostra "Pacto N" embaixo do level. A função virou plpgsql (usa `tanka_dados()`, criada mais abaixo no schema).
+
+## Botas: atributo trocado (Henri, 22/11/2026)
+- Botas Leves (arqueiro) SOR → DES; Sandálias (mago) DES → INT (`D.armaduras`). Botas novas saem com `botaV2: true`
+  (sortearBonus). As antigas (sem botaV2) trocam o atributo inteiro na hora de calcular: `D.BOTAS_TROCA` em `R.bonusItem`
+  e em `tanka_status` (var `kb`). Conferido: jogo e servidor dão o mesmo status. Artesão (Botas antigas) continua SOR.

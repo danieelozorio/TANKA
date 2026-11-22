@@ -260,7 +260,7 @@ Tanka.dados = {
         nomes: ['Colete de Couro', 'Colete Élfico', 'Colete da Lua Sangrenta', 'Colete do Sol Dourado'] },
       luvas: { tipo: 'Braçadeiras', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },
         nomes: ['Braçadeiras de Couro', 'Braçadeiras Élficas', 'Braçadeiras da Lua Sangrenta', 'Braçadeiras do Sol Dourado'] },
-      botas: { tipo: 'Botas', bonus: { defesa: [1, 2, 4, 8], sor: [1, 2, 4, 8] },
+      botas: { tipo: 'Botas', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },   // 22/11/2026 (Henri): era SOR
         nomes: ['Botas de Couro', 'Botas Élficas', 'Botas da Lua Sangrenta', 'Botas do Sol Dourado'] },
     },
     mago: {
@@ -271,7 +271,7 @@ Tanka.dados = {
         nomes: ['Manto de Linho', 'Manto Arcano', 'Manto do Vazio Estelar', 'Manto da Origem'] },
       luvas: { tipo: 'Luvas', bonus: { defesa: [1, 2, 4, 8], int: [1, 2, 4, 8] },
         nomes: ['Luvas de Linho', 'Luvas Arcanas', 'Luvas do Vazio Estelar', 'Luvas da Origem'] },
-      botas: { tipo: 'Sandálias', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },
+      botas: { tipo: 'Sandálias', bonus: { defesa: [1, 2, 4, 8], int: [1, 2, 4, 8] },   // 22/11/2026 (Henri): era DES
         nomes: ['Sandálias de Linho', 'Sandálias Arcanas', 'Sandálias do Vazio Estelar', 'Sandálias da Origem'] },
     },
     artesao: {
@@ -509,6 +509,9 @@ Tanka.dados = {
   // Armaduras, joias e mão esquerda caem com os bônus sorteados (como o dano das armas): cada bônus entre 80% e 120%
   // do valor da raridade (mínimo 1). Da rara em diante ganham também 1 atributo extra sorteado (FOR, DES, RES, INT ou SOR).
   // Itens antigos (sem `bonus` salvo) continuam com o valor fixo.
+  // Botas com o atributo trocado (Henri, 22/11/2026): Leve SOR → DES, Mágica DES → INT. As botas que já existem (sem
+  // `botaV2`) trocam na hora de calcular (R.bonusItem e tanka_status), o valor todo do atributo antigo.
+  BOTAS_TROCA: { arqueiro: ['sor', 'des'], mago: ['des', 'int'] },
   VARIACAO_ITEM: { faixa: [0.8, 1.2], extra: { comum: null, rara: [1, 2], epica: [2, 4], lendaria: [3, 6] } },
 
   // Arma com que todo personagem começa (comum, variação 0).

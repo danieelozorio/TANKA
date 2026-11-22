@@ -282,6 +282,7 @@ Tanka.regras = (function () {
       b[k] = (def.fixos || []).indexOf(k) >= 0 ? def.bonus[k][idx] : bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade);
     });
     else Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
+    if (item.tipo === 'botas') item.botaV2 = true;   // já com o atributo novo (BOTAS_TROCA)
     var extra = D.VARIACAO_ITEM.extra[item.raridade];
     if (extra) {
       var k = ATRIBUTOS[Math.floor(rng() * ATRIBUTOS.length)];
@@ -382,6 +383,9 @@ Tanka.regras = (function () {
     if (!def) return b;
     if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
     else Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) b[k] = def.bonus[k][idx]; });   // itens antigos: valor fixo
+    // Botas antigas: o atributo antigo vira o novo (BOTAS_TROCA; igual no schema.sql)
+    var tb = item.tipo === 'botas' && item.bonus && !item.botaV2 && (D.BOTAS_TROCA || {})[item.classe];
+    if (tb && b[tb[0]]) { b[tb[1]] = (b[tb[1]] || 0) + b[tb[0]]; delete b[tb[0]]; }
     if (def.multDefesaMagica && b.defesaMagica) b.defesaMagica = b.defesaMagica * def.multDefesaMagica;   // anel: defesa mágica +25%
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
