@@ -3584,12 +3584,22 @@
       : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
     // Meus pedidos (depois das oficinas abertas: pedido do Henri, 21/11/2026)
     if ((st.pedidos || []).length) {
-      var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length;
-      html += '<h3 class="subtitulo">🧾 Meus pedidos' + (pend ? ' <span class="contador-loja">' + pend + ' esperando</span>' : '') + '</h3><div class="loja-pedidos">' + st.pedidos.map(function (x) {
+      // Abas Esperando / Prontos e "Ver mais" (Henri, 21/11/2026): a lista inteira ficava gigante na tela.
+      var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length, prontosN = st.pedidos.length - pend;
+      var abaP = estado.pedidosAba || (pend ? 'pendente' : 'prontos'), verP = estado.pedidosVer || 5;
+      var listaP = st.pedidos.filter(function (x) { return (x.estado === 'pendente') === (abaP === 'pendente'); });
+      var maisP = abaP === 'prontos' && listaP.length > verP ? listaP.length - verP : 0;
+      if (abaP === 'prontos') listaP = listaP.slice(0, verP);
+      html += '<h3 class="subtitulo">🧾 Meus pedidos</h3><div class="sub-abas pedidos-abas">'
+        + '<button class="sub-aba' + (abaP === 'pendente' ? ' ativa' : '') + '" data-acao="pedidos-aba" data-valor="pendente">⏳ Esperando (' + pend + ')</button>'
+        + '<button class="sub-aba' + (abaP === 'prontos' ? ' ativa' : '') + '" data-acao="pedidos-aba" data-valor="prontos">✔ Prontos (' + prontosN + ')</button></div>'
+        + (listaP.length ? '' : '<p class="suave">' + (abaP === 'pendente' ? 'Nenhum pedido esperando.' : 'Nenhum pedido pronto ainda.') + '</p>')
+        + '<div class="loja-pedidos">' + listaP.map(function (x) {
         return '<div class="loja-pedido"><span class="loja-pedido-ico">' + (x.item ? '<span class="icone-pequeno borda-' + corItem(x.item) + '">' + F.icone(x.item) + '</span>' : ICONE_SERVICO[x.tipo] || '⚒') + '</span>'
           + '<div class="loja-pedido-texto"><strong>' + esc(textoPedido(x)) + '</strong><small class="suave">' + esc(x.artesao) + ' · ' + ICONES.ouro + ' ' + ouroTxt(x.preco) + '</small>' + seloPedido(x) + '</div>'
           + (x.estado === 'pendente' ? '<button class="btn secundario btn-pequeno" data-acao="of-cancelar" data-id="' + x.id + '">Cancelar</button>' : '') + '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>'
+        + (maisP ? '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="pedidos-mais">Ver mais (' + maisP + ')</button></div>' : '');
     }
     // Minha oficina (para o artesão)
     var meus = servicosDe(p);
@@ -5936,7 +5946,9 @@
         lojaChamar(C.loja.comprar(p.id, itL), nomeL);
         break;
       }
-      case 'tag-boost': avisar(el.title); break;   // no celular não tem "passar o mouse": o toque mostra o bônus
+      case 'tag-boost': avisar(el.title); break;
+      case 'pedidos-aba': estado.pedidosAba = el.dataset.valor; estado.pedidosVer = 5; telaJogo(); break;
+      case 'pedidos-mais': estado.pedidosVer = (estado.pedidosVer || 5) + 10; telaJogo(); break;   // no celular não tem "passar o mouse": o toque mostra o bônus
       case 'loja-usar-boost': {
         var bL = D.LOJA.boosts[el.dataset.valor];
         lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
