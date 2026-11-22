@@ -2664,14 +2664,14 @@ teste('Pacto de Ascensão v2: efeitos na luta (velocidade em pontos, Primeiro Go
   igualA(R.status(p).velocidade, vel0 + 8);   // 2 pontos do tronco: +4 cada (21/11/2026: era +10)
   R.caminhoAscensao(R.nosAscensao(p), 'tempestade-0-p').forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
   igualA(R.efeitosAscensao(p).velocidadePts, 8 + 4 * 4 + 10);
-  // Primeiro Golpe: só a 1ª habilidade tem +16% e deixa o alvo 12% mais lento (21/11/2026: era +40% e 30%)
+  // Primeiro Golpe: só a 1ª habilidade tem +16% e deixa o alvo 20% mais lento (21/11/2026: era +40% e 30%)
   const b = R.iniciarBatalha(p, D.areas[0].monstros[0].id, () => 0.5);
   igualA(b.jogador.barra, 0);
   const L = b.lutador, alvo = { indiceArea: 0, defesa: 0, defesaMagica: 0, hp: 100000, hpMax: 100000, vel: 100 };
   const n1 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true, normal: true }, () => 0.99).dano;
   igualA(alvo.vel, 100);
   const h1 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).dano;
-  igualA(alvo.vel, 88);
+  igualA(alvo.vel, 80);
   const h2 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).dano;
   assert.ok(h1 > h2 * 1.1, h1 + ' ' + h2); igualA(n1, h2);
   // Golpe Certeiro: o crítico ignora 30% da defesa

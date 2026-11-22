@@ -899,7 +899,7 @@ Tanka.dados = {
     custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
     // Fase de testes (Henri, 21/11/2026): zerar custa 100 mil fixo. No BETA volta para 500000 + 250000 por vez na semana.
     precoRefazer: 100000, precoRefazerMais: 0,
-    primeiroGolpeLento: 12,   // Primeiro Golpe: o inimigo fica x% mais lento (era 30; −60% em 21/11/2026)
+    primeiroGolpeLento: 20,   // Primeiro Golpe: o inimigo fica x% mais lento (era 30; Henri 21/11/2026: 20)
     focoCada: 5,   // Foco (Henri, 21/11/2026): a cada 5 turnos, as habilidades em recarga ficam 1 turno mais perto de prontas
     versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
@@ -938,7 +938,7 @@ Tanka.dados = {
       { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidadePts: 4 },
         trilhas: [
           { nome: 'Relâmpago', pequeno: { velocidadePts: 4 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 10, evasao: 1.2 } },
-            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +16% de dano e deixa o inimigo 12% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 16, vida: -10 } } },
+            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +16% de dano e deixa o inimigo 20% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 16, vida: -10 } } },
           { nome: 'Arcano', pequeno: { danoHab: 1.2 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
             pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },   // Eco ficou em 25% (Henri, 21/11/2026)
         ] },
