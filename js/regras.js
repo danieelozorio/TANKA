@@ -1594,7 +1594,9 @@ Tanka.regras = (function () {
     var ataque = (s.dano[0] + s.dano[1]) / 2 * (1 + chanceCrit * (multCrit - 1))
       * Math.min(95, s.precisao) / 100 * s.velocidade / 10;
     var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / (20 * D.DEFESA.fator)) * (1 + Math.min(50, s.evasao) / 100);
-    return Math.round(ataque * 10 + resistencia / 2 * (D.PODER_PESO_DEFESA || 1));
+    // 21/11/2026 (Henri): média geométrica (raiz de ataque x resistência) em vez de soma. Na soma, o mago (crítico mágico
+    // alto) ficava com 3 a 4x o poder das outras classes com o mesmo equipamento e muito menos vida; agora precisa dos dois.
+    return Math.round((D.PODER_FATOR || 6) * Math.sqrt(Math.max(0, ataque) * Math.max(0, resistencia)));
   }
 
   function distribuirPonto(p, atributo) {

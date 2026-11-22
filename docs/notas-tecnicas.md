@@ -1570,3 +1570,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Execução agora usa o valor: `ef.execucao` = +% abaixo de 30% da vida (16; era fixo 1,4). Primeiro Golpe: lentidão em
   `ASCENSAO.primeiroGolpeLento` (20; era 0,7 fixo). JS (`calcularGolpe`) e SQL (`arena_vez`) leem o mesmo número.
 - Valores com vírgula: `calcularEfeitosAscensao` arredonda a soma em 2 casas; `efAscTexto` mostra com `fmtDec`.
+
+## Poder novo (Henri, 21/11/2026)
+- `R.poder = PODER_FATOR (6) x raiz(ataque x resistência)` (média geométrica). Antes: `ataque x 10 + resistência / 2 x 1,5`.
+  Motivo: com o mesmo equipamento (lendária +5, lv 60) o Bruxo dava 1,68 mi e o Paladino 460 mil (o crítico mágico
+  inflava o ataque); agora 786 mil x 481 mil. Quem tem muito ataque e pouca vida não sobe tanto.
+- O `dados.poder` gravado (rankings) só muda quando a ficha do jogador é salva de novo.
+- `poderRecomendado` das masmorras recalculado com o poder novo (mediana das 8 segundas classes no level mínimo).
