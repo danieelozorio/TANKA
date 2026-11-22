@@ -116,9 +116,11 @@
     d.querySelector('button').onclick = function () { depois(chave); d.remove(); };
   }
 
+  var tentativas = 0;
   function conferir() {
     if (!H || !H.get) return;
     H.get({ url: VERSOES + '?t=' + Date.now(), responseType: 'json' }).then(function (r) {
+      if (r && r.status && r.status >= 400) throw new Error('versao.json: ' + r.status);
       var v = r && r.data;
       if (typeof v === 'string') v = JSON.parse(v);
       if (!v) return;
@@ -131,7 +133,12 @@
         }
         else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v);
       });
-    }).catch(function () {});
+      tentativas = 0;
+    }).catch(function (e) {
+      // sem internet ainda (logo ao abrir): tenta de novo mais 3 vezes, de 20 em 20 s
+      console.error('[eldrin-app] conferir versão falhou: ' + ((e && e.message) || e));
+      if (++tentativas <= 3) setTimeout(conferir, 20000);
+    });
   }
   // ---------------- Notificações (Henri, 19/11/2026) ----------------
   // Locais (o próprio celular agenda): estamina da caçada acabou, Chefe Mundial (20h de Brasília) e boss do clã.

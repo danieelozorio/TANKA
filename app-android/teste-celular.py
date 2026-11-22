@@ -38,15 +38,29 @@ print('firebase:', js('new Promise(function(ok){var P=Capacitor.Plugins.PushNoti
 print('notificações:', js('window.EldrinNativo ? EldrinNativo.bossCla({boss:{hora:21}}) || new Promise(r=>setTimeout(r,2500)).then(()=>Capacitor.Plugins.LocalNotifications.getPending()).then(x=>JSON.stringify(x.notifications.map(n=>[n.id,n.title,n.schedule&&n.schedule.at]))) : "sem EldrinNativo"'))
 # 22/11/2026: a versão nova baixa em segundo plano (aviso pequeno #app-baixando) e entra quando o app vai para o fundo.
 import subprocess
-pronta = False
-for _ in range(90):
-    txt = js('(document.querySelector("#app-baixando")||{}).textContent || ""')
-    tela = js('!!document.querySelector("#app-atualizar")')
-    print('aviso:', txt, '| tela cheia:', tela)
-    if txt and 'pronta' in txt: pronta = True; break
-    time.sleep(2)
-print('versão nova pronta em segundo plano:', pronta)
-subprocess.run(['adb', 'shell', 'input', 'keyevent', 'KEYCODE_HOME'])
+def esperar_pronta(segundos):
+    for _ in range(segundos // 2):
+        txt = js('(document.querySelector("#app-baixando")||{}).textContent || ""')
+        print('aviso:', txt, '| tela cheia:', js('!!document.querySelector("#app-atualizar")'))
+        if txt and 'pronta' in txt: return True
+        time.sleep(2)
+    return False
+def sair_e_voltar():
+    global ws
+    subprocess.run(['adb', 'shell', 'input', 'keyevent', 'KEYCODE_HOME'])
+    time.sleep(10)
+    subprocess.run(['adb', 'shell', 'am', 'start', '-n', 'br.com.eldrinonline.app/.MainActivity'])
+    time.sleep(10)
+    ws = websocket.create_connection(pagina(), timeout=10, suppress_origin=True); n[0] = 0
+pronta = esperar_pronta(120)
+print('1ª abertura — versão nova pronta em segundo plano:', pronta)
+if not pronta:
+    sair_e_voltar()
+    pronta = esperar_pronta(90)
+    print('depois de voltar — pronta:', pronta)
+subprocess.run(['adb', 'shell', 'input', 'keyevent', 'KEYCODE_HOME'])   # vai para o fundo: troca a versão
+time.sleep(12)
+subprocess.run(['adb', 'shell', 'am', 'start', '-n', 'br.com.eldrinonline.app/.MainActivity'])
 time.sleep(8)
 subprocess.run(['adb', 'shell', 'am', 'start', '-n', 'br.com.eldrinonline.app/.MainActivity'])
 time.sleep(8)
