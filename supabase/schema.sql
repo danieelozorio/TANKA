@@ -506,22 +506,33 @@ grant execute on function public.admin_pedidos_senha(), public.admin_senha_tempo
 notify pgrst, 'reload schema';
 
 -- ---------- Ranking ----------
--- Top 100 por level (empate: exp) ou por poder. Contas de administrador ficam de fora.
-drop function if exists public.ranking(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo, segunda classe)
-create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text, classe2 text, id text)
-language sql stable security definer set search_path = public as $$
-  select p.nome, p.dados ->> 'classe', p.dados ->> 'raca',
+-- Top 100 por level (empate: pontos do Pacto, exp do Pacto e exp) ou por poder. Contas de administrador ficam de fora.
+-- pacto (Henri, 21/11/2026): pontos do Pacto de Ascensão (igual a R.pontosAscensaoTotal), mostrado ao lado do level.
+drop function if exists public.ranking(text);   -- a lista de colunas muda às vezes (sigla da aliança, sexo, segunda classe, pacto)
+create or replace function public.ranking(tipo text) returns table (nome text, classe text, raca text, nivel int, exp bigint, poder bigint, sigla text, sexo text, classe2 text, id text, pacto int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  -- plpgsql (não sql): tanka_dados() é criada mais abaixo neste arquivo
+  return query
+  with A as (select public.tanka_dados() as T)
+  select p.nome::text, p.dados ->> 'classe', p.dados ->> 'raca',
          coalesce((p.dados ->> 'nivel')::int, 1), coalesce((p.dados ->> 'exp')::bigint, 0), coalesce((p.dados ->> 'poder')::bigint, 0),
          (select a.sigla from public.alianca_membros m join public.aliancas a on a.id = m.alianca_id where m.personagem_id = p.id),
-         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2', p.id
-  from public.personagens p join public.contas c on c.id = p.conta_id
+         p.dados ->> 'sexo', p.dados -> 'talentos' ->> 'classe2', p.id, x.pacto
+  from public.personagens p join public.contas c on c.id = p.conta_id cross join A
+  cross join lateral (select case when coalesce((p.dados ->> 'nivel')::int, 1) < (A.T -> 'ASCENSAO' ->> 'nivelInicio')::int then 0
+    else least((A.T -> 'ASCENSAO' ->> 'limitePontos')::int,
+      (least(coalesce((p.dados ->> 'nivel')::int, 1), (A.T ->> 'NIVEL_MAXIMO')::int) - (A.T -> 'ASCENSAO' ->> 'nivelInicio')::int) * (A.T -> 'ASCENSAO' ->> 'pontosPorNivel')::int
+      + greatest(0, floor(coalesce((p.dados -> 'ascensao' ->> 'extras')::numeric, 0))::int)) end as pacto) x
   where not c.admin and not c.bot
   order by
     case when tipo = 'poder' then coalesce((p.dados ->> 'poder')::bigint, 0) else coalesce((p.dados ->> 'nivel')::bigint, 1) end desc,
-    case when tipo = 'poder' then coalesce((p.dados ->> 'nivel')::bigint, 1) else coalesce((p.dados ->> 'exp')::bigint, 0) end desc,
+    case when tipo = 'poder' then coalesce((p.dados ->> 'nivel')::bigint, 1) else x.pacto end desc,
+    case when tipo = 'poder' then 0 else coalesce((p.dados -> 'ascensao' ->> 'exp')::numeric, 0) end desc,
+    case when tipo = 'poder' then 0 else coalesce((p.dados ->> 'exp')::bigint, 0) end desc,
     p.criado_em
   limit 100;
-$$;
+end $$;
 revoke execute on function public.ranking(text) from public, anon;
 grant execute on function public.ranking(text) to authenticated;
 

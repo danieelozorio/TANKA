@@ -138,11 +138,12 @@ Tanka.contas = (function () {
     Object.keys(contas).forEach(function (k) {
       if (Tanka.dados.ADMINS.indexOf(k) >= 0) return;
       contas[k].personagens.forEach(function (p) {
-        lista.push({ nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0 });
+        lista.push({ nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0,
+          pacto: Tanka.regras.pontosAscensaoTotal(p), expPacto: (p.ascensao && p.ascensao.exp) || 0 });
       });
     });
     lista.sort(function (a, b) {
-      return tipo === 'poder' ? b.poder - a.poder || b.nivel - a.nivel : b.nivel - a.nivel || b.exp - a.exp;
+      return tipo === 'poder' ? b.poder - a.poder || b.nivel - a.nivel : b.nivel - a.nivel || b.pacto - a.pacto || b.expPacto - a.expPacto || b.exp - a.exp;
     });
     return lista.slice(0, 100);
   }

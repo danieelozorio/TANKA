@@ -4332,7 +4332,7 @@
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
           + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
           + '<td>' + nomeClasseX(x) + '</td>'
-          + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
+          + '<td>' + x.nivel + (x.pacto ? '<div class="exp-pacto pequeno" title="Pontos do Pacto de Ascensão">Pacto ' + x.pacto + '</div>' : '') + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
           + (possoAtacar ? '<td>' + (x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
             ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + '</td>' : '')
           + '</tr>';

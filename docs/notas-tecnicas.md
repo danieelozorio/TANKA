@@ -1577,3 +1577,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   inflava o ataque); agora 786 mil x 481 mil. Quem tem muito ataque e pouca vida não sobe tanto.
 - O `dados.poder` gravado (rankings) só muda quando a ficha do jogador é salva de novo.
 - `poderRecomendado` das masmorras recalculado com o poder novo (mediana das 8 segundas classes no level mínimo).
+- Ranking por level (Henri, 21/11/2026): `ranking(tipo)` devolve `pacto` (pontos do Pacto, igual a `R.pontosAscensaoTotal`) e desempata o level por pacto, exp do Pacto e exp. A tela mostra "Pacto N" embaixo do level. A função virou plpgsql (usa `tanka_dados()`, criada mais abaixo no schema).
