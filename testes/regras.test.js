@@ -882,9 +882,15 @@ teste('estamina: custo 1/2/3 e chefe 5 em todas as áreas; a luta gasta (vitóri
   p.estamina.pts = 2;
   assert.ok(R.estaminaParaCacar(p, ['urso', 'cobra'])); assert.ok(!R.estaminaParaCacar(p, ['urso']));
   p.estamina.pts = 0; assert.ok(!R.estaminaParaCacar(p));
-  // Chefe Mundial: dano antigo do chefe, sem poções
+  // Chefe Mundial (22/11/2026): dano da caçada; o Pesadelo com metade do dano; sem poções
   const bm = R.iniciarBatalha(p, 'ignaroth', rng, { mundial: true });
-  assert.strictEqual(bm.ataque.join(), D.monstros.ignaroth.ataque.join()); assert.strictEqual(bm.pocoes, 0);
+  assert.strictEqual(bm.ataque.join(), D.monstros.ignaroth.ataqueCacada.join()); assert.strictEqual(bm.pocoes, 0);
+  const bp = R.iniciarBatalha(p, 'ignaroth-pesadelo', rng, { mundial: true }), ap = D.monstros['ignaroth-pesadelo'].ataqueCacada;
+  assert.strictEqual(bp.ataque.join(), ap.map((v) => Math.round(v * D.CHEFE_MUNDIAL.danoPesadelo)).join());
+  const q = R.criarPersonagem('W', 'masculino', 'humano', 'mago');
+  q.nivel = 35; assert.strictEqual(R.lutaChefeMundial(q), R.chefeDoNivel(q));
+  q.nivel = 47; assert.strictEqual(R.lutaChefeMundial(q), 'varnok-pesadelo');
+  q.nivel = 60; assert.strictEqual(R.lutaChefeMundial(q), 'ignaroth-pesadelo');
 });
 
 teste('pote de estamina: 40 e 60 de reputação, +240, 2 por dia', () => {

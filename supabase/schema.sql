@@ -1214,7 +1214,9 @@ alter table public.boss_mundial_dano enable row level security;
 
 create or replace function public.boss_cfg() returns jsonb
 language sql immutable as $$
-  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 50000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximo": 200000, "entradas": 5,
+  -- 22/11/2026 (Henri: uma pessoa derrubou sozinha): vida 50 mil -> 150 mil por jogador; limite por ataque de 200 mil fixo
+  -- para `danoMaximoPct`% da vida máxima (5 ataques = no máximo 15% por pessoa).
+  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 150000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximoPct": 3, "entradas": 5,
     "lendaria": 5, "epica": 80, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões"}'::jsonb
 $$;
 
@@ -1345,7 +1347,7 @@ begin
   select ultimo_em into ult from public.boss_mundial_dano where boss_id = b.id and personagem_id = meu;
   if ult is not null and ult > now() - make_interval(secs => (cfg ->> 'intervaloSeg')::int) then
     raise exception 'Calma! Espere alguns segundos entre um ataque e outro.'; end if;
-  d := least(greatest(coalesce(dano, 0), 0), (cfg ->> 'danoMaximo')::int);
+  d := least(greatest(coalesce(dano, 0), 0), greatest(1, floor(b.vida_max * (cfg ->> 'danoMaximoPct')::numeric / 100))::bigint);
   select alianca_id into ali from public.alianca_membros where personagem_id = meu;
   insert into public.boss_mundial_dano (boss_id, personagem_id, alianca_id, dano, ataques, chefe, ultimo_em)
     values (b.id, meu, ali, d, 1, chefe, now())

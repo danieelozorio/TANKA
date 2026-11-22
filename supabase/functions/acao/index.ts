@@ -105,8 +105,8 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const st = est.ok ? await est.json() : null;
   const bs = st && st.boss;
   if (!bs || !(Number(bs.vida) > 0)) return { erro: 'Ignaroth não está acordado agora.' };
-  const chefe = R.chefeDoNivel(p);
-  const b = R.iniciarBatalha(p, chefe, sorteio, { mundial: true });
+  const chefe = R.chefeDoNivel(p), luta = R.lutaChefeMundial(p);   // chefe: ouro e exp; luta: contra quem (22/11/2026)
+  const b = R.iniciarBatalha(p, luta, sorteio, { mundial: true });
   b.monstro.hp = Number(bs.vida); b.monstro.hpMax = Number(bs.vida_max);
   const vidaInicial = b.monstro.hp, limite = Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque;
   const eventos = [];
@@ -122,7 +122,7 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const dano = Math.max(0, Math.round(vidaInicial - Math.max(0, b.monstro.hp)));
   const r = await rpcServidor(base, cab, 'boss_atacar_servidor', { meu: id, dano, chefe }, 'boss_atacar');
   if (!r.ok) return { erro: r.erro };
-  return { resultado: r.dados, eventos, fim: b.fim, chefe, vidaInicial };
+  return { resultado: r.dados, eventos, fim: b.fim, chefe, luta, vidaInicial };
 }
 
 // Torre do Eclipse (Daniel, nov/2026): monta a luta, resolve o turno quando os vivos escolheram (ou o prazo acabou),

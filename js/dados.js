@@ -993,7 +993,10 @@ Tanka.dados = {
       { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.468, dano: 3.357, nivel: 60, x: 91, y: 40 },
     ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
-  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
+  // Chefe Mundial (Henri, 22/11/2026: estava fácil demais): do level `pesadeloDesde` em diante a luta é contra o chefe
+  // Pesadelo do level do herói com `danoPesadelo` do dano dele; abaixo, o chefe da região com o dano da caçada. O ouro e
+  // a exp continuam pelo chefe da região. Vida e limite por ataque: boss_cfg no schema.sql.
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5, pesadeloDesde: 40, danoPesadelo: 0.5 },   // entradas: ataques por despertar (igual a boss_cfg)
 
   areas: [
     {

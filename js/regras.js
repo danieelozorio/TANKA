@@ -1884,6 +1884,11 @@ Tanka.regras = (function () {
 
   // ---------- Chefe Mundial (Ignaroth) ----------
   // Cada herói luta contra o chefe da área mais alta liberada pelo level (mesmo dano e defesa); a vida é a do reino.
+  // Com quem o herói luta no Chefe Mundial (22/11/2026): do level 40 em diante, o chefe Pesadelo do level dele.
+  function lutaChefeMundial(p) {
+    var CM = D.CHEFE_MUNDIAL, c = (p.nivel || 1) >= CM.pesadeloDesde ? D.PESADELO.chefes.filter(function (x) { return x.nivel <= p.nivel; }).pop() : null;
+    return c && D.monstros[c.id] ? c.id : chefeDoNivel(p);
+  }
   function chefeDoNivel(p) {
     var area = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0];
     return area.chefe.id;
@@ -1918,7 +1923,8 @@ Tanka.regras = (function () {
     return D.niveisHabilidade.filter(function (n) { return p.nivel >= n; }).length;
   }
 
-  // opcoes.mundial: ataque contra o Chefe Mundial (dano antigo do chefe, sem poções, não gasta estamina).
+  // opcoes.mundial: ataque contra o Chefe Mundial (sem poções, não gasta estamina; o Pesadelo bate CHEFE_MUNDIAL.danoPesadelo).
+  // Até 22/11/2026 usava o dano antigo (mais fraco) do chefe.
   function iniciarBatalha(p, monstroId, rng, opcoes) {
     var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial);
     var s = status(p, true);   // contra monstro: com as skills do clã
@@ -1933,7 +1939,8 @@ Tanka.regras = (function () {
       auto: !!p.habilidadeAuto,          // usa a habilidade sozinha quando carregar
       habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
       pocoes: mundial ? 0 : (p.pocoes || 0),   // poções disponíveis na luta (só na caçada)
-      ataque: mundial || !m.ataqueCacada ? m.ataque : m.ataqueCacada,   // dano do monstro nesta luta
+      ataque: (function (a) { return mundial && m.pesadelo ? a.map(function (v) { return Math.max(1, Math.round(v * D.CHEFE_MUNDIAL.danoPesadelo)); }) : a; })
+        (!m.ataqueCacada ? m.ataque : m.ataqueCacada),   // dano do monstro nesta luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
       jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
       lutador: L,   // habilidades da caçada (ordem, recargas, reforços)
@@ -4110,7 +4117,7 @@ Tanka.regras = (function () {
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,
     ganharExp: ganharExp,
-    chefeDoNivel: chefeDoNivel,
+    chefeDoNivel: chefeDoNivel, lutaChefeMundial: lutaChefeMundial,
     premioChefeMundial: premioChefeMundial,
     itemDoChefeMundial: itemDoChefeMundial,
     rolarDrop: rolarDrop,

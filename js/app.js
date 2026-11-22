@@ -8677,13 +8677,15 @@
     var e = estado.boss, p = estado.personagem, CM = D.CHEFE_MUNDIAL;
     if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
     if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
-    var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
+    var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.lutaChefeMundial(p)], cfg = e.cfg || {};
     var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
     var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
       + '<h2>O Despertar de Ignaroth</h2>' + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
-      + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
-      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
+      + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> ('
+      + (chefe.pesadelo ? 'o chefe Pesadelo do seu level, com metade do dano' : 'o chefe da sua área') + '), '
+      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção. '
+      + 'Cada ataque tira no máximo ' + (cfg.danoMaximoPct || 3) + '% da vida dele: ninguém derruba sozinho.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
     if (ativo) {
       var podeAtacar = !estado.cacada && usadas < entradasBoss;
       h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
@@ -8751,11 +8753,11 @@
         estado.bossAtacando = false;
         if (!r || r.erro) { avisar((r && r.erro) || 'Não foi possível atacar.'); carregarBoss(); return; }
         if (estado.batalha || estado.cacada) return;
-        comecarMundial(p, bs, r.chefe || chefeId, r);
+        comecarMundial(p, bs, r.luta || r.chefe || chefeId, r);
       }, function (e) { estado.bossAtacando = false; avisar(e.message); });
       return;
     }
-    comecarMundial(p, bs, chefeId, null);
+    comecarMundial(p, bs, R.lutaChefeMundial(p), null);
   }
   function comecarMundial(p, bs, chefeId, srv) {
     var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina

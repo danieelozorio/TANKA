@@ -1601,3 +1601,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - JS: `R.chancesForja(p, area, chefe, gemas, nivelCliente)`, `R.nivelForja(area, nivel)`, `R.forjar` (Ferreiro para si),
   `R.itemForjado(spec)` com `spec.nivel` (pedidos antigos sem ele: como antes). SQL: `forja_chances`, `forja_nivel`
   (o 60 está fixo lá) em `oficina_fazer_pedido`.
+
+## Chefe Mundial mais forte (Henri, 22/11/2026)
+- Uma pessoa derrubou sozinha. Agora: do level 40 (`CHEFE_MUNDIAL.pesadeloDesde`) a luta é contra o chefe Pesadelo do
+  level do herói (`R.lutaChefeMundial`) com metade do dano (`danoPesadelo`); abaixo, o chefe da região com o dano da
+  caçada (antes: o dano antigo, mais fraco). O ouro/exp continua pelo chefe da região (`chefe` no boss_atacar_servidor).
+- `boss_cfg`: vida 150 mil por jogador ativo (era 50 mil); limite por ataque `danoMaximoPct` 3% da vida máxima (era 200 mil
+  fixo): no máximo 15% por pessoa com 5 ataques.
