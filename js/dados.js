@@ -940,7 +940,7 @@ Tanka.dados = {
           { nome: 'Relâmpago', pequeno: { velocidadePts: 4 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 10, evasao: 1.2 } },
             pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +16% de dano e deixa o inimigo 12% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 16, vida: -10 } } },
           { nome: 'Arcano', pequeno: { danoHab: 1.2 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
-            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 10% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 10 } } },
+            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },   // Eco ficou em 25% (Henri, 21/11/2026)
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
         trilhas: [

@@ -1566,7 +1566,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Pacto: Fúria, Precisão e Tempestade −60% (Henri, 21/11/2026)
 - Todos os efeitos (tronco, pequenos, notáveis e pedras) desses 3 domínios viraram 40% do valor de antes; os custos das pedras
-  (vida −15/−10, precisão −3, roubo de vida pela metade, ataque normal −10%) NÃO mudaram. Foco (recargaMenos 1) também não.
+  (vida −15/−10, precisão −3, roubo de vida pela metade, ataque normal −10%) NÃO mudaram. Foco (recargaMenos 1) e Eco (25%) também não.
 - Execução agora usa o valor: `ef.execucao` = +% abaixo de 30% da vida (16; era fixo 1,4). Primeiro Golpe: lentidão em
   `ASCENSAO.primeiroGolpeLento` (12; era 0,7 fixo). JS (`calcularGolpe`) e SQL (`arena_vez`) leem o mesmo número.
 - Valores com vírgula: `calcularEfeitosAscensao` arredonda a soma em 2 casas; `efAscTexto` mostra com `fmtDec`.
