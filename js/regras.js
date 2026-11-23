@@ -1787,7 +1787,7 @@ Tanka.regras = (function () {
     var i = area.monstros.findIndex(function (x) { return x.id === monstroId; });
     return E.custo[Math.max(0, Math.min(E.custo.length - 1, i))];
   }
-  // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta à meia-noite ou com pote).
+  // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta com pote; desde 23/11/2026 a meia-noite não enche mais).
   function estaminaPorMinuto(p) {
     var min = p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar;
     // VIP (Loja de Éter, Henri 20/11/2026): enche em LOJA.vip.estaminaMinutos (60 min). p.vip vem do servidor (gatilho da ficha).
@@ -1802,13 +1802,13 @@ Tanka.regras = (function () {
     if (p.hpAtual !== hpMax) { p.hpAtual = hpMax; mudou = true; }
     var dia = diaReset(agora);
     if (p.ultimoReset !== dia) {
+      // Meia-noite: poções do dia e potes de estamina zerados. A estamina NÃO enche mais na virada do dia
+      // (Henri, 23/11/2026): só volta com o tempo (90 min, VIP 60) ou com pote.
       p.ultimoReset = dia;
       p.pocoes = Math.max(p.pocoes || 0, D.VIDA.pocoesPorDia);
-      e.pts = Math.max(e.pts, E.maximo);
       e.potes = 0;
-      e.em = agora;
       p.vidaEm = agora;
-      return true;
+      mudou = true;
     }
     if (!e.em || e.pts >= E.maximo || agora < e.em) { e.em = agora; return mudou; }
     var porMin = estaminaPorMinuto(p);

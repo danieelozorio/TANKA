@@ -1637,3 +1637,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `js/app-nativo.js`: versão nova do jogo baixa em segundo plano (aviso pequeno `#app-baixando`), fica pronta com
   `U.next` e entra quando o app vai para o fundo (`appStateChange` → `U.set`) ou na próxima abertura. A tela cheia
   obrigatória (`oferecerJogo`) só quando `versao.json.webMinimo` > versão do jogo (mudar à mão no release app-web).
+
+## Estamina sem reset da meia-noite (Henri, 23/11/2026)
+- `R.atualizarTempo`: na virada do dia continuam o reset das poções e dos potes de estamina do dia, mas a estamina
+  não enche mais. Ela só volta com o tempo (90 min; VIP 60) ou com pote. Teste: "meia-noite não enche a estamina".

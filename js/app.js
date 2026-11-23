@@ -608,7 +608,7 @@
   function vidaTempoHtml(p, s, emBatalha) {
     var min = R.minutosParaEstaminaCheia(p), cheia = R.estamina(p).pts >= D.ESTAMINA.maximo;
     var texto = emBatalha ? 'Em batalha: a estamina não volta.'
-      : min === null ? 'Sem acampar a estamina não volta (só à meia-noite).'
+      : min === null ? 'Sem acampar a estamina não volta (só com pote).'
       : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado && D.ESTAMINA.acampar !== false ? ' (acampado)' : '') : 'Estamina cheia';
     var acampar = D.ESTAMINA.acampar === false ? '' : p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'

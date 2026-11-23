@@ -837,6 +837,18 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
   assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
 });
 
+teste('meia-noite não enche a estamina (só o tempo e o pote)', () => {
+  const p = R.criarPersonagem('Meia', 'masculino', 'humano', 'cavaleiro');
+  const antes = Date.UTC(2026, 9, 29, 2, 59);   // 23h59 em Brasília
+  R.atualizarTempo(p, antes);
+  p.estamina.pts = 10; p.estamina.em = antes; p.estamina.potes = 2;
+  R.atualizarTempo(p, antes + 60000);           // meia-noite: 1 min depois
+  assert.ok(p.estamina.pts < 20, 'não encheu: ' + p.estamina.pts);
+  assert.strictEqual(p.estamina.potes, 0);      // potes do dia zerados
+  R.atualizarTempo(p, antes + 10 * 60000);
+  assert.strictEqual(p.estamina.pts, 10 + Math.floor(10 * 240 / 90));   // continua enchendo com o tempo
+});
+
 teste('estamina: 240, enche sozinha em 90 min (acampar desligado), não passa do máximo; vida sempre cheia fora da luta', () => {
   const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');
   R.atualizarTempo(p, T0);
