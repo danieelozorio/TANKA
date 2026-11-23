@@ -10,11 +10,11 @@ Leave a short pause (about 1 second) between lines. Clean voice only: no music, 
 
 SCRIPT (Brazilian Portuguese - the times show where each line goes in the video)
 [0 - 2s]    Eldrin te chama.
-[2 - 9s]    Monte seu heroi. Forje armas lendarias... e encante ate o mais dez.
+[2 - 9s]    Monte seu heroi... e forje a sua lenda.
 [9 - 12s]   Explore um reino amaldicoado.
-[12 - 21s]  Cace monstros em lutas de verdade. Cada golpe conta.
-[21 - 30s]  Suba a Torre do Eclipse. Cinquenta andares... um chefe a cada cinco.
+[12 - 21s]  Cace monstros. Cada golpe conta.
+[21 - 30s]  Suba a Torre do Eclipse... se tiver coragem.
 [30 - 35s]  Fique mais forte... e encontre o lendario.
-[35 - 38s]  Eldrin. Jogue agora: eldrin online ponto com ponto be erre.
+[35 - 38s]  Eldrin. Jogue agora.
 
 (The same script WITH accents is in the chat: use that one if the voice reads a word wrong.)
