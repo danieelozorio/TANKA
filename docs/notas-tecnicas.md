@@ -1641,3 +1641,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 ## Estamina sem reset da meia-noite (Henri, 23/11/2026)
 - `R.atualizarTempo`: na virada do dia continuam o reset das poções e dos potes de estamina do dia, mas a estamina
   não enche mais. Ela só volta com o tempo (90 min; VIP 60) ou com pote. Teste: "meia-noite não enche a estamina".
+
+## Torre: recarga do Desviar (Henri, 23/11/2026)
+- `TORRE.desviar.recarga` 2 → 4: depois de desviar, o herói fica 4 turnos sem poder desviar de novo.

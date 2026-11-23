@@ -765,7 +765,7 @@ Tanka.dados = {
     semProvocar: 1,                                     // heróis que o golpe normal acerta quando ninguém provoca (Daniel: 1, sem regra extra)
     aura: 0,                                            // % da vida de todos por turno (desligada a pedido do Daniel: o chefe é que fica forte)
     entreAndares: 100,                                  // % da vida que volta entre os andares (quem caiu volta com isso)
-    desviar: { base: 20, porPonto: 0.25, max: 90, recarga: 2 },   // ... e depois de desviar, fica 2 turnos sem poder desviar de novo
+    desviar: { base: 20, porPonto: 0.25, max: 90, recarga: 4 },   // ... e depois de desviar, fica 4 turnos sem poder desviar de novo (Henri, 23/11/2026: era 2)
     // Velocidade dos inimigos: a cada turno, chance (%) de agir ANTES de alguém do grupo (sorteia antes do 1º ao 4º);
     // senão age por último. Sorteada no fim do turno anterior e mostrada na tela, para o grupo se planejar.
     velocidade: { elite: 25, chefe: 40, porAndar: 1, max: 70, rapido: 25 },   // rapido: elite marcada como rápida ganha +25%    // 20% + 0,25% por ponto do MAIOR atributo do herói (qualquer classe)
