@@ -10403,7 +10403,7 @@
   // App Android (APK) para baixar direto do site; some no iPhone e dentro do próprio app.
   function botaoInstalar() {
     return '<button class="btn largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar para celular</button>'
-      + (jaInstalado() || ehIOS() ? '' : '<a class="btn secundario largo btn-apk" href="baixar/Eldrin.apk" download="Eldrin.apk">🤖 Baixar app Android (APK)</a>'
+      + (jaInstalado() || ehIOS() ? '' : '<a class="btn secundario largo btn-apk" href="https://github.com/danieelozorio/TANKA/releases/download/app-android/Eldrin-app.apk">🤖 Baixar app Android (APK)</a>'
         + '<p class="suave pequeno dica-apk">Depois de baixar, toque no arquivo e permita "instalar de fontes desconhecidas".</p>');
   }
   function atualizarBotoesInstalar() {
