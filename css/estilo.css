@@ -2451,3 +2451,8 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
   background: rgba(14, 11, 8, .82); border: 1px solid #b8892f; color: #f3dfae; font-size: 12px; font-weight: 600;
   text-align: center; letter-spacing: .2px; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); pointer-events: none; }
 .objetivo-hist.ok { border-color: #4f9d58; color: #bfe8c4; }
+
+/* Comprar Éter no site (Mercado Pago, Henri 22/11/2026) */
+.loja-comprar-eter { margin: .6rem 0; }
+.loja-comprar-eter .item-acoes { flex-wrap: wrap; }
+.loja-comprar-eter .btn { display: inline-flex; align-items: center; gap: .35rem; }

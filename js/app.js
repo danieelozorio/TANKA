@@ -1969,6 +1969,45 @@
       + '<button class="btn secundario" data-acao="loja-cancelar">Cancelar</button>';
     return '<button class="btn" data-acao="loja-pedir" data-valor="' + item + '"' + (falta ? ' title="Éter insuficiente"' : '') + '>' + texto + ' · ' + precoEter(preco) + '</button>';
   }
+  // Compra de Éter com dinheiro no site (Mercado Pago, Henri 22/11/2026). Só no navegador: no app da Play Store a
+  // compra tem que ser pelo Google, e o app não pode mostrar nem indicar outro jeito de pagar.
+  function noAppNativo() { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }
+  function podeComprarEter(l) { return !!(l && l.venda && !noAppNativo() && C.loja && C.loja.pagar); }
+  function cartaComprarEter(l) {
+    if (!podeComprarEter(l)) return '';
+    var botoes = (D.LOJA.pacotes || []).map(function (k) {
+      return '<button class="btn" data-acao="eter-comprar" data-valor="' + k.id + '"' + (estado.eterPagando ? ' disabled' : '') + '>'
+        + ETER_IMG + '<b>' + k.eter + ' Éter</b> · R$ ' + k.reais.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</button>';
+    }).join('');
+    return '<div class="caixa-interna loja-carta loja-comprar-eter"><h3>Comprar Éter</h3>'
+      + '<p class="suave pequeno">Pagamento pelo Mercado Pago (Pix, cartão ou boleto). O Éter entra na conta assim que o pagamento é aprovado.</p>'
+      + '<div class="item-acoes">' + botoes + '</div></div>';
+  }
+  function comprarEter(pacote) {
+    if (estado.eterPagando) return;
+    estado.eterPagando = true; telaJogo();
+    C.loja.pagar(pacote).then(function (r) {
+      if (r && r.url) { location.href = r.url; return; }
+      throw new Error((r && r.erro) || 'Não foi possível abrir o pagamento.');
+    }).catch(function (e) {
+      estado.eterPagando = false; avisar((e && e.message) || 'Não foi possível abrir o pagamento.'); telaJogo();
+    });
+  }
+  // Volta do Mercado Pago (?pagamento=ok|pendente|falhou): avisa e confere o saldo algumas vezes (o aviso do
+  // Mercado Pago pode chegar uns segundos depois).
+  function voltaDoPagamento() {
+    var m = /[?&]pagamento=(ok|pendente|falhou)/.exec(location.search);
+    if (!m) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignora */ }
+    var msg = { ok: '✅ Pagamento aprovado! O Éter entra na sua conta em instantes.',
+      pendente: '⏳ Pagamento em análise. O Éter entra assim que o Mercado Pago aprovar.',
+      falhou: 'O pagamento não foi concluído. Nenhum valor foi cobrado.' }[m[1]];
+    setTimeout(function () { avisar(msg, m[1] === 'ok' ? 'item' : undefined); }, 1500);
+    if (m[1] === 'falhou') return;
+    [4000, 12000, 30000].forEach(function (t) {
+      setTimeout(function () { if (estado.personagem) { estado.loja = null; carregarLoja(); } }, t);
+    });
+  }
   function abaLoja() {
     var p = estado.personagem, l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, L = D.LOJA;
     if (!l && !estado.lojaErro) carregarLoja();
@@ -1980,7 +2019,8 @@
     if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
     var vip = ehVip(), agora = C.agora();
     var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
-      + '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro chega com o app na Play Store.' : 'Comprar Éter: em breve.') + '</span></div>';
+      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
+      + cartaComprarEter(l);
     var V = L.vip;
     var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
       + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
@@ -5987,6 +6027,7 @@
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
       case 'bau-recarregar': estado.bau = null; estado.bauErro = null; carregarBau(); telaJogo(); break;
+      case 'eter-comprar': comprarEter(el.dataset.valor); break;
       case 'loja-recarregar': estado.loja = null; estado.lojaErro = null; carregarLoja(); telaJogo(); break;
       case 'loja-pedir': estado.lojaConfirma = el.dataset.valor; telaJogo(); break;
       case 'loja-cancelar': estado.lojaConfirma = null; telaJogo(); break;
@@ -10679,6 +10720,9 @@
   setInterval(conferirVersao, 120000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) conferirVersao(); });
 
+  voltaDoPagamento();
+  // Voltou da página do Mercado Pago pelo botão "voltar" (página guardada pelo navegador): libera os botões de compra.
+  window.addEventListener('pageshow', function (e) { if (e.persisted && estado.eterPagando) { estado.eterPagando = false; if (estado.aba === 'loja') telaJogo(); } });
   C.iniciar().then(function (conta) {
     estado.conta = conta;
     if (conta) { if (!retomarJogo()) depoisDeEntrar(); } else telaAuth('entrar');

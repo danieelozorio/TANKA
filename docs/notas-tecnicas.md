@@ -1431,6 +1431,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   → `R.ganharSkin` (fica no personagem que comprou). Skins saíram do Mercado (`comprarSkin` com ouro recusa).
 - Abas: Social à esquerda do Leilão e a nova Loja à direita; a aba do Mercado de NPC passou a se chamar "Mercado".
 - Pendente: Passe de Batalha (mensal, 49 Éter, Grátis + Premium) e a compra real (Google Play Billing).
+- Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026): pacotes em `D.LOJA.pacotes` (1 Éter = R$ 1).
+  Edge Function `supabase/functions/pagamento` (sem verify JWT): `{ pacote }` com o login → `eter_pedido_criar(c, pacote)`
+  (preço do servidor) → preferência do Checkout Pro (`external_reference` = id do pedido) → `{ url }`. Aviso do Mercado
+  Pago em `?webhook=1`: confere `x-signature` (HMAC com `MP_WEBHOOK_SECRET`), busca `/v1/payments/:id` com
+  `MP_ACCESS_TOKEN` e chama `eter_mp_atualizar(mp, pedido, status, valor)`: credita 1 vez por pagamento aprovado
+  (`eter_pagamentos.creditado`), estorno/chargeback tira o Éter (sem deixar negativo). Funções só com a chave do servidor.
+  Tabelas `eter_pedidos` e `eter_pagamentos` (RLS sem política). Liga com `ajustes.eter_venda = 'true'` (`loja_estado.venda`).
+  Tela: carta "Comprar Éter" na Loja só no navegador (`noAppNativo()` esconde no app da Play Store, que precisa do
+  Google Play Billing). Volta do pagamento: `/jogar/?pagamento=ok|pendente|falhou` → aviso + recarrega o saldo 3 vezes.
+  Teste: `testes/pagamento_servidor.test.ts` e o bloco "mp:" do `banco.test.sql`.
 
 ## Regras de alinhamento das abas (Henri, 19/11/2026)
 - Fim do `css/estilo.css`: ícones das abas com tamanho fixo (`flex: none`); botões da barra principal cortam o texto

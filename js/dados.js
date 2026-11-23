@@ -1392,6 +1392,14 @@ Tanka.dados = {
     },
     starter: { nome: 'Starter Pack', preco: 100, boostsExp: 10, boostsOuro: 10, vipDias: 30, nivelItens: 10, nivelJoias: 5,
       raridade: 'rara', qualidadePct: 80 },
+    // Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026). 1 Éter = R$ 1. Só no navegador (no app da Play Store
+    // a compra tem que ser pelo Google). O preço que vale é o daqui, lido pelo servidor (tanka_dados), nunca o do navegador.
+    pacotes: [
+      { id: 'eter10', eter: 10, reais: 10 },
+      { id: 'eter30', eter: 30, reais: 30 },
+      { id: 'eter50', eter: 50, reais: 50 },
+      { id: 'eter100', eter: 100, reais: 100 },
+    ],
   },
 
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.

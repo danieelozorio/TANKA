@@ -1685,5 +1685,26 @@ select pg_temp.igual((public.loja_comprar('g2', 'skin:dourada') ->> 'saldo')::in
 select pg_temp.falha($$select public.loja_comprar('g2', 'vip')$$, 'Éter insuficiente');
 select pg_temp.falha($$select public.loja_comprar('g3', 'vip')$$, 'Personagem inválido');
 select pg_temp.igual(public.loja_vips() ? 'Gru2', true, 'loja: nome do VIP na lista do brilho');
+-- Compra de Éter no site (Mercado Pago, 22/11/2026)
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30')$$, 'permission denied');
+reset role;
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30')$$, 'ainda não abriu');
+update public.ajustes set valor = 'true' where chave = 'eter_venda';
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter7')$$, 'Pacote inválido');
+create temp table ped as select (public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30') ->> 'id')::uuid as id;
+grant select on ped to authenticated;
+select pg_temp.igual((select valor::int from public.eter_pedidos where id = (select id from ped)), 30, 'mp: preço do pacote vem do servidor');
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: saldo antes da compra');
+select public.eter_mp_atualizar('900', (select id from ped), 'pending', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: pendente não dá Éter');
+select public.eter_mp_atualizar('900', (select id from ped), 'approved', 30);
+select public.eter_mp_atualizar('900', (select id from ped), 'approved', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 50, 'mp: aprovado dá o Éter uma vez só (aviso repetido)');
+select pg_temp.igual((public.eter_mp_atualizar('901', (select id from ped), 'approved', 1) ->> 'ok')::boolean, false, 'mp: pago a menos não dá Éter');
+select public.eter_mp_atualizar('900', (select id from ped), 'refunded', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: estorno tira o Éter de volta');
+update public.ajustes set valor = 'false' where chave = 'eter_venda';
+set role authenticated; select pg_temp.comoG('2');
+select pg_temp.falha($$select public.eter_mp_atualizar('902', (select id from ped), 'approved', 30)$$, 'permission denied');
 reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
 \echo TODOS OS TESTES DO BANCO PASSARAM

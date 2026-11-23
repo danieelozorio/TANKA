@@ -422,6 +422,8 @@ Tanka.contas = (function () {
     usarBoost: function (meu, tipo) { return chamar('loja_usar_boost', { meu: meu, tipo: tipo }); },
     vips: function () { return chamar('loja_vips', {}); },
     darEter: function (nome, valor, motivo) { return chamar('admin_dar_eter', { nome: nome, valor: valor, motivo: motivo || null }); },
+    // Compra de Éter no site (Mercado Pago, 22/11/2026): devolve { url } da página de pagamento.
+    pagar: function (pacote) { return funcaoServidor('pagamento', { pacote: pacote }); },
   };
   var alianca = {
     estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
