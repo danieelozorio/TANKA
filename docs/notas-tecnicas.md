@@ -1659,3 +1659,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   também nos itens já salvos (`R.bonusItem` e `tanka_status`; `tanka_dados` leva `MAO_ESQUERDA.fixos`).
 - Orc: vidaPct +10 (antes +20).
 - Paladino: `SEGUNDAS_CLASSES.paladino.vidaPorNivelPct: 50` (Henri, 24/11/2026): do level `TALENTOS.nivelSegunda` (10) em diante, a vida por level é a metade (`R.vidaDosNiveis`; SQL em `tanka_status`). Ex.: level 53 = 9 x 36 + 43 x 18.
+- Arena (Henri, 24/11/2026): veneno/sangramento das habilidades (tipo dot) e queimadura tiram `ARENA.dotVidaPct` (2%) da vida máxima do alvo por turno, sem defesa, x o fator do D20 (`arena_fator_efeito`). Caçada/masmorra/chefes continuam com % do ataque. Ferida Aberta (Pacto) não mudou.

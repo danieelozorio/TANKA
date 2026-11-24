@@ -645,7 +645,7 @@ Tanka.dados = {
           descricao: '+5 de Destreza e parte do dano que você causa vira vida (até 10%), sempre.' },
         { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 5, turnos: 3,
           dotPct: [10, 5], pula: true,   // era [90, 5] com cura de 5% por monstro morto (Henri, 14/11/2026: até 60%, sem cura)
-          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro.' },
+          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro. Na Arena: 2% da vida máxima do alvo por turno.' },
         { id: 'tiro-silenciador', nome: 'Tiro Silenciador', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 6, mult: [180, 5],
           ignoraDefesaPct: 50, silencia: 1, descricao: 'Golpe de 180% a 230% que ignora metade da defesa e cala o oponente por 1 turno. Mais forte na Arena.' },
       ] },
@@ -657,7 +657,7 @@ Tanka.dados = {
         { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
         { id: 'corte-vampirico', nome: 'Corte Vampírico', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 4, turnos: 3,
           dotPct: [40, 4], curaDot: 20,
-          descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira.' },
+          descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira. Na Arena: 2% da vida máxima do alvo por turno.' },
         { id: 'execucao', nome: 'Execução', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [250, 3], garantido: true,
           semEsquiva: true, executa: { abaixo: 30, bonus: 50 },
           descricao: 'Golpe de 250% a 280%, sempre no máximo do dado, que não pode ser esquivado. +50% se o oponente tiver menos de 30% da vida. Mais forte na Arena.' },
@@ -673,7 +673,7 @@ Tanka.dados = {
           descricao: 'Escudo que segura dano (10% a 20% da vida) por 3 turnos; quem bate nele tem 30% de chance de congelar.' },
         { id: 'maldicao-de-ignaroth', nome: 'Maldição de Ignaroth', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 5],
           queima: { turnos: 3, pct: [15, 1] }, cortaCura: 50,
-          descricao: 'Golpe de 200% a 250% que queima (15% a 25% do dano) por 3 turnos e corta pela metade as curas do oponente. Mais forte na Arena.' },
+          descricao: 'Golpe de 200% a 250% que queima (15% a 25% do dano) por 3 turnos e corta pela metade as curas do oponente. Na Arena, a queimadura tira 2% da vida máxima do alvo por turno.' },
       ] },
     curandeiro: { de: 'mago', nome: 'Curandeiro', nomeF: 'Curandeira', descricao: 'Cuida do grupo: cura, fortalece e ainda castiga.',
       habilidades: [
@@ -1196,6 +1196,7 @@ Tanka.dados = {
     // Veneno, sangramento e queimadura na Arena (Henri, 18/11/2026): o D20 multiplica o dano do efeito, por faixa
     // (até o número `ate`): 1 falha; 2 a 6 reduz; 7 a 12 normal; 13 a 17 aumenta; 18 a 20 o dobro.
     sombraDado: 18,   // Sombra do Assassino na Arena (18/11/2026): só esquiva com o D20 em 18, 19 ou 20; abaixo, só o ataque
+    dotVidaPct: 2,   // Henri (24/11/2026): veneno, sangramento e queimadura das habilidades tiram 2% da vida máxima do alvo por turno (x o D20)
     efeitoDado: [{ ate: 1, fator: 0 }, { ate: 6, fator: 0.5 }, { ate: 12, fator: 1 }, { ate: 17, fator: 1.5 }, { ate: 20, fator: 2 }],
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
     // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.

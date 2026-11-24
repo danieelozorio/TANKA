@@ -1169,7 +1169,7 @@ begin
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
   if (d -> 'queima' ->> 'turnos')::int <> 3 or (d ->> 'cortaCura')::int <> 3 then raise exception 'FALHA maldição: %', d; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'queimou')::int <> 8 then raise exception 'FALHA maldição: queimadura de 16%% do dano (15 + 1 ponto) com a defesa 100 = 8: %', r -> 'ev'; end if;
+  if (r -> 'ev' ->> 'queimou')::int <> 20 then raise exception 'FALHA maldição: queimadura = 2%% da vida máxima (1000) = 20 (24/11/2026): %', r -> 'ev'; end if;
   raise notice 'ok   arena: Maldição de Ignaroth queima e corta a cura';
   -- Milagre: volta uma vez
   d := base || jsonb_build_object('hp', 1, 'milagre', 25, 'defesa', 0);
@@ -1198,20 +1198,20 @@ begin
   -- Level 20 na Arena: veneno (quem envenenou recupera), escudo, regeneração, roubo de vida e Bolso de Poções
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 10); a := r -> 'eu'; d := r -> 'outro';
-  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 40 then raise exception 'FALHA sangramento (80 com a defesa 100 do alvo = 40): %', d -> 'veneno'; end if;
+  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 20 then raise exception 'FALHA sangramento (2%% da vida máxima 1000 = 20; 24/11/2026): %', d -> 'veneno'; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'envenenado')::int <> 40 or (r -> 'outro' ->> 'hp')::int <> 508 then raise exception 'FALHA sangramento: tira 40 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
+  if (r -> 'ev' ->> 'envenenado')::int <> 20 or (r -> 'outro' ->> 'hp')::int <> 504 then raise exception 'FALHA sangramento: tira 20 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
   -- O D20 conta no sangramento (18/11/2026): 1 falha; 4 = 20; 10 = 40 (normal); 15 = 60; 20 = 80 (o dobro).
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 1);
   if (r -> 'outro') ? 'veneno' or not (r -> 'ev' ? 'efeitoFalhou') then raise exception 'FALHA sangramento com 1: %', r -> 'ev'; end if;
   r := public.arena_vez(a, base, 20);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 80 then raise exception 'FALHA sangramento com 20 = 80: %', r -> 'outro' -> 'veneno'; end if;
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 40 then raise exception 'FALHA sangramento com 20 = 40: %', r -> 'outro' -> 'veneno'; end if;
   r := public.arena_vez(a, base, 4);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 20 then raise exception 'FALHA sangramento com 4 = 20: %', r -> 'outro' -> 'veneno'; end if;
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 10 then raise exception 'FALHA sangramento com 4 = 10: %', r -> 'outro' -> 'veneno'; end if;
   r := public.arena_vez(a, base, 15);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 60 then raise exception 'FALHA sangramento com 15 = 60: %', r -> 'outro' -> 'veneno'; end if;
-  raise notice 'ok   arena: o D20 conta no sangramento (1 falha, 4 = 20, 10 = 40, 15 = 60, 20 = 80)';
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 30 then raise exception 'FALHA sangramento com 15 = 30: %', r -> 'outro' -> 'veneno'; end if;
+  raise notice 'ok   arena: o D20 conta no sangramento (1 falha, 4 = 10, 10 = 20, 15 = 30, 20 = 40)';
   raise notice 'ok   arena: Corte Vampírico sangra e cura quem cortou';
   d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 20, '{"classe2":"bruxo","pontos":{"escudo-de-gelo":10},"ordem":{"arena":["escudo-de-gelo"]}}')));
   r := public.arena_vez(d, base, 1); d := r -> 'eu';
