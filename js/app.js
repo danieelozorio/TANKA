@@ -4748,6 +4748,9 @@
       + grupo('Experiência', '% da exp do level atual.', botoes('exp', [10, 50], function (v) { return '+' + v + '%'; })
         + botoes('exp', [-10, -50, -100], function (v) { return v === -100 ? 'Zerar' : '−' + (-v) + '%'; }, 'menos'))
       + grupo('Atributos', 'Volta os atributos aos da raça e classe e devolve todos os pontos.', botoes('resetar-atributos', [0], function () { return 'Resetar pontos'; }, 'menos'))
+      + grupo('Encanto dos equipados', 'Sobe ou desce o encanto de todos os itens equipados de uma vez (de +0 a +' + D.encantamento.maximo + ').',
+        botoes('encanto', [1], function () { return '+1'; }) + botoes('encanto', [-1], function () { return '−1'; }, 'menos')
+        + botoes('encanto', [99], function () { return 'Todos +' + D.encantamento.maximo; }) + botoes('encanto', [-99], function () { return 'Zerar'; }, 'menos'))
       + grupo('Armas', 'Uma arma de cada raridade da classe.', botoes('armas', [0, 7, 10], function (v) { return 'Todas +' + v; }))
       + grupo('Conjunto completo', 'Arma, 4 armaduras da classe, colar e 2 anéis.', R.RARIDADES.map(function (k) {
         return '<button class="btn" data-acao="admin" data-op="conjunto" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
@@ -6899,6 +6902,7 @@
         else if (op === 'zerar-pocoes') R.admin.zerarPocoes(p);
         else if (op === 'esvaziar-mochila') R.admin.esvaziarMochila(p);
         else if (op === 'reputacao') p.reputacao = Math.max(0, (p.reputacao || 0) + v);
+        else if (op === 'encanto') { var nEnc = R.admin.encantoEquipados(p, v); if (!nEnc) { avisar(v > 0 ? 'Todos os equipados já estão no máximo.' : 'Todos os equipados já estão em +0.'); break; } }
         if (op === 'pedir-esvaziar') { estado.adminConfirmar = 'mochila'; telaJogo(); break; }
         estado.adminConfirmar = null;
         if (op === 'cancelar') { telaJogo(); break; }
@@ -6906,6 +6910,7 @@
         avisar({ ouro: (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR') + ' de ouro. Agora: ' + p.ouro.toLocaleString('pt-BR') + '.',
           'zerar-ouro': 'Ouro zerado.', nivel: 'Agora no level ' + p.nivel + '.', 'baixar-nivel': 'Agora no level ' + p.nivel + '. Distribua os pontos de novo.',
           exp: 'Exp agora: ' + p.exp.toLocaleString('pt-BR') + ' (level ' + p.nivel + ').', 'resetar-atributos': 'Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir.',
+          encanto: 'Encanto dos equipados ' + (v > 0 ? 'subiu' : 'desceu') + ' (' + Object.keys(p.equipados || {}).map(function (sl) { var it = R.itemNoSlot(p, sl); return it ? '+' + (it.encanto || 0) : ''; }).filter(Boolean).join(' ') + ').',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
           pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',
           curar: 'Estamina cheia.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: estamina cheia e poções do dia.',

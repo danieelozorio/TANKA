@@ -4015,6 +4015,18 @@ Tanka.regras = (function () {
     // Quantidades negativas tiram (sem ficar abaixo de 0).
     ouro: function (p, quantidade) { p.ouro = Math.max(0, p.ouro + quantidade); },
     zerarOuro: function (p) { p.ouro = 0; },
+    // Encanto de todos os itens equipados (Henri, 24/11/2026): +n ou −n, entre 0 e encantamento.maximo. Devolve quantos mudaram.
+    encantoEquipados: function (p, delta) {
+      var hpAntes = status(p).hpMax, n = 0, max = D.encantamento.maximo;
+      Object.keys(p.equipados || {}).forEach(function (slot) {
+        var it = itemNoSlot(p, slot);
+        if (!it) return;
+        var novo = Math.max(0, Math.min(max, (it.encanto || 0) + delta));
+        if (novo !== (it.encanto || 0)) { it.encanto = novo; n++; }
+      });
+      ajustarVida(p, hpAntes);
+      return n;
+    },
     subirNivel: function (p, niveis) {
       for (var i = 0; i < niveis && p.nivel < D.NIVEL_MAXIMO; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
     },

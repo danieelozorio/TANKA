@@ -1533,6 +1533,17 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
 
+teste('admin: encanto de todos os equipados +1/−1, de 0 ao máximo', () => {
+  const p = R.criarPersonagem('A', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 19);
+  ['elmo', 'botas'].forEach((t) => { const it = R.novoItem(t, 'cavaleiro', 'rara', Math.random, null, 20); p.inventario.push(it); R.equipar(p, it.id); });
+  const eqs = () => Object.keys(p.equipados).map((s) => R.itemNoSlot(p, s)).filter(Boolean).map((i) => i.encanto || 0);
+  assert.ok(R.admin.encantoEquipados(p, 1) >= 3); assert.ok(eqs().every((e) => e === 1));
+  R.admin.encantoEquipados(p, 99); assert.ok(eqs().every((e) => e === D.encantamento.maximo));
+  assert.strictEqual(R.admin.encantoEquipados(p, 1), 0, 'no máximo não sobe');
+  R.admin.encantoEquipados(p, -99); assert.ok(eqs().every((e) => e === 0));
+  assert.ok(p.hpAtual <= R.status(p).hpMax);
+});
+
 teste('Paladino (24/11/2026): do level 10 em diante, metade da vida por level', () => {
   const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 29);
   const antes = R.status(p).hpMax;
