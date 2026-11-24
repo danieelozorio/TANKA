@@ -9061,6 +9061,10 @@
     if (pf.atributos) x.atributos = pf.atributos;
     x.inventario = pf.itens || [];
     x.equipados = pf.equipados || {};
+    // segunda classe, Pacto e clã (24/11/2026): sem eles a prévia mostrava menos vida do que a luta de verdade
+    if (pf.talentos) x.talentos = pf.talentos;
+    if (pf.ascensao) x.ascensao = pf.ascensao;
+    if (pf.cla) x.cla = pf.cla;
     return x;
   }
   // O que o ataque vale (o servidor confere): escada = posição + saque + reputação; Top 5 para baixo e Ranking não mudam posição.

@@ -2771,6 +2771,10 @@ begin
   return jsonb_build_object('id', p.id, 'nome', p.nome, 'raca', p.dados ->> 'raca', 'classe', p.dados ->> 'classe', 'classe2', p.dados -> 'talentos' ->> 'classe2', 'sexo', p.dados ->> 'sexo',
     'nivel', coalesce((p.dados ->> 'nivel')::int, 1), 'atributos', p.dados -> 'atributos',
     'equipados', coalesce(p.dados -> 'equipados', '{}'::jsonb),
+    -- 24/11/2026 (Henri): segunda classe com os pontos, Pacto e skills do clã, para a prévia do Atacar mostrar a mesma vida da luta
+    'talentos', p.dados -> 'talentos', 'ascensao', p.dados -> 'ascensao',
+    'cla', (select jsonb_build_object('id', m.alianca_id, 'skills', coalesce((select jsonb_object_agg(k.skill, k.nivel) from public.alianca_skills k where k.alianca_id = m.alianca_id), '{}'::jsonb))
+      from public.alianca_membros m where m.personagem_id = p.id),
     'itens', coalesce((select jsonb_agg(i) from jsonb_array_elements(coalesce(p.dados -> 'inventario', '[]'::jsonb)) i
       where i ->> 'id' in (select value from jsonb_each_text(coalesce(p.dados -> 'equipados', '{}'::jsonb)))), '[]'::jsonb),
     'ouro', public.ouro_real(p.id), 'reputacao', coalesce((p.dados ->> 'reputacao')::int, 0),
