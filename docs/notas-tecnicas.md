@@ -1650,3 +1650,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   itens equipados (`fichaItemHtml(it, true)` com `estado.personagem` trocado pelo inspecionado durante o desenho), Pactos
   (pontos por domínio, notáveis/pedras e `pactoResumo`) e atributos/status (`R.status`).
 - Servidor: `admin_inspecionar(pid)` (security definer, só `eh_admin()`) devolve `dados` + id/nome. `C.senha.adminInspecionar`.
+- Aba Atributos do Inspecionar: "De onde vem a vida" (`R.origemVida(p)`, mesma ordem de `status`: base, level, RES, itens, escudo %, passiva %, raça %, conjunto, clã %, Pacto %; o total bate com `status(p).hpMax`).

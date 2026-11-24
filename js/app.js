@@ -2089,6 +2089,15 @@
   function botaoInspecionar(x) {
     return ehAdmin() && x.id ? '<button class="btn secundario mini-opcao" data-acao="ranking-inspecionar" data-id="' + esc(x.id) + '" title="Ver itens, Pacto e atributos (só admin)">🔍 Inspecionar</button>' : '';
   }
+  // "De onde vem a vida" (Henri, 24/11/2026): cada parte da vida máxima, na ordem do cálculo, com a barra do tamanho do ganho.
+  function origemVidaHtml(a) {
+    var o = R.origemVida(a), max = Math.max.apply(null, o.linhas.map(function (l) { return Math.abs(l.ganho); }).concat([1]));
+    return '<h4 class="insp-vida-titulo">❤ De onde vem a vida <small class="suave">(' + o.total.toLocaleString('pt-BR') + ')</small></h4><table class="insp-vida">'
+      + o.linhas.map(function (l) {
+        return '<tr><td>' + esc(l.nome) + '</td><td class="insp-vida-txt">' + l.txt + '</td><td class="insp-vida-ganho ' + (l.ganho < 0 ? 'menos' : '') + '">' + (l.ganho > 0 ? '+' : '') + l.ganho.toLocaleString('pt-BR')
+          + ' <small class="suave">(' + Math.round(l.ganho * 100 / o.total) + '%)</small></td><td class="insp-vida-barra"><i style="width:' + Math.round(Math.abs(l.ganho) * 100 / max) + '%"></i></td></tr>';
+      }).join('') + '</table>';
+  }
   var INSP_SLOTS = [['arma', 'Arma'], ['secundaria', 'Mão esquerda'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'],
     ['colar', 'Colar'], ['anel1', 'Anel 1'], ['anel2', 'Anel 2']];
   function inspecaoHtml() {
@@ -2137,7 +2146,8 @@
             [magico ? 'Crítico mágico' : 'Chance de crítico', pc(magico ? s.chanceCriticoMagico : s.chanceCritico)],
             [magico ? 'Dano crítico mágico' : 'Dano crítico', pc(magico ? s.danoCriticoMagico : s.danoCritico)]].map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
           corpo = '<div class="insp-atributos"><div><h4>Atributos</h4><dl class="status">' + atrs + '</dl>'
-            + (a.pontosLivres ? '<p class="suave pequeno">' + a.pontosLivres + ' ponto(s) sem usar</p>' : '') + '</div><div><h4>Status</h4><dl class="status">' + st + '</dl></div></div>';
+            + (a.pontosLivres ? '<p class="suave pequeno">' + a.pontosLivres + ' ponto(s) sem usar</p>' : '') + '</div><div><h4>Status</h4><dl class="status">' + st + '</dl></div></div>'
+            + origemVidaHtml(a);
         }
       } catch (e) { corpo = '<p class="menos">Não deu para mostrar: ' + esc(e.message) + '</p>'; }
       finally { estado.personagem = eu; }

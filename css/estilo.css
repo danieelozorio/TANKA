@@ -2472,3 +2472,9 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .insp-dominios li { border-left: 3px solid var(--cor-dom, #e6cf9c); padding: .2rem .5rem; }
 .insp-dom { color: var(--cor-dom, #e6cf9c); }
 .insp-atributos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.insp-vida-titulo { margin-top: 1rem; }
+.insp-vida { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.insp-vida td { padding: .25rem .4rem; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.insp-vida-txt, .insp-vida-ganho { text-align: right; white-space: nowrap; }
+.insp-vida-barra { width: 30%; }
+.insp-vida-barra i { display: block; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #8b1e1e, #e05050); }

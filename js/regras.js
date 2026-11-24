@@ -1566,6 +1566,26 @@ Tanka.regras = (function () {
     if (x.eruditoExp) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + Math.round(x.eruditoExp / 3 * 10) / 10; else x.exp = (x.exp || 0) + x.eruditoExp; delete x.eruditoExp; }
     return x;
   }
+  // De onde vem a vida máxima, passo a passo, na mesma ordem de status() (Inspecionar do admin; Henri, 24/11/2026).
+  // Devolve { linhas: [{ nome, txt, ganho }], total } e o total bate com status(p).hpMax (sem as runas).
+  function origemVida(p) {
+    var a = atributosTotais(p), eq = bonusEquipamentos(p), L = [], v = 0;
+    var soma = function (nome, n) { if (n) { L.push({ nome: nome, txt: '+' + n, ganho: n }); v += n; } };
+    var pct = function (nome, x) { if (!x) return; var n = Math.round(v * (1 + x / 100)); L.push({ nome: nome, txt: (x > 0 ? '+' : '') + x + '%', ganho: n - v }); v = n; };
+    soma('Base (level 1)', D.HP_INICIAL);
+    soma('Level ' + p.nivel + ' (' + D.HP_POR_NIVEL + ' por level)', (p.nivel - 1) * D.HP_POR_NIVEL);
+    soma('Resistência ' + a.res + ' (' + D.HP_POR_RES + ' por ponto acima de ' + D.RES_SEM_VIDA + ')', Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES);
+    soma('Vida dos itens', eq.vida || 0);
+    pct('Mão esquerda (escudo)', eq.vidaPct || 0);
+    var pas = passiva(p);
+    if (pas && pas.def.vidaPct) pct('Passiva: ' + pas.def.nome + ' (' + pas.pts + ' pts)', valorBonus(pas.def, 'vidaPct', pas.pts));
+    pct('Raça: ' + ((D.racas[p.raca] || {}).nome || p.raca), tracosRaca(p).vidaPct || 0);
+    soma('Bônus de conjunto', bonusConjuntos(p).vida || 0);
+    pct('Skill do clã', bonusCla(p, 'vida'));
+    var xa = efeitosAscensao(p).vida || 0;
+    if (xa) { var n = Math.max(1, Math.round(v * (1 + xa / 100))); L.push({ nome: 'Pacto de Ascensão', txt: (xa > 0 ? '+' : '') + xa + '%', ganho: n - v }); v = n; }
+    return { linhas: L, total: v };
+  }
   function comAscensao(s, p) {
     var x = efeitosAscensao(p), pct = function (v, n) { return Math.round(v * (1 + n / 100)); };
     if (x.vida) s.hpMax = Math.max(1, pct(s.hpMax, x.vida));
@@ -4120,7 +4140,7 @@ Tanka.regras = (function () {
     atualizarVitalidade: atualizarVitalidade,
     proximaVitalidade: proximaVitalidade,
     criarPersonagem: criarPersonagem,
-    normalizar: normalizar,
+    normalizar: normalizar, origemVida: origemVida,
     fatorVida: fatorVida, hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
     vender: vender,
     comprar: comprar,
