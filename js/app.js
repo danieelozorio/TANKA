@@ -2536,7 +2536,8 @@
     return t.charAt(0).toUpperCase() + t.slice(1) + '.';
   }
   var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
-    vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
+    vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp',
+    espinhosPvE: 'Armadura de Espinhos (devolve o dano dos monstros; não vale na Arena)' };
   var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
   // O que a habilidade faz com N pontos (com 0 pontos mostra como fica com 1).
   function efeitoHabilidade(def, pts) {
@@ -2544,7 +2545,7 @@
     if (def.nivel) return efeitoNivel(def, n);
     var bonus = function () {
       return Object.keys(CAMPO_HAB).filter(function (c) { return def[c]; }).map(function (c) {
-        return CAMPO_HAB[c] + ' +' + R.valorBonus(def, c, n) + '%';
+        return CAMPO_HAB[c] + ' +' + String(R.valorBonus(def, c, n)).replace('.', ',') + '%';
       });
     };
     var turnos = function (t) { return t + (t === 1 ? ' turno' : ' turnos'); };
@@ -4741,10 +4742,12 @@
         botoes('reputacao', [100, 1000, 10000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('reputacao', [-100, -1000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('reputacao', [-1000000], function () { return 'Zerar'; }, 'menos'))
-      + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo.',
+      + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo. Do level ' + D.ASCENSAO.nivelInicio + ' em diante: +1/−1 ponto do Pacto (tirar pode soltar os últimos nós pegos).',
         botoes('nivel', [1, 5, 10], function (v) { return '+' + v; })
         + botoes('baixar-nivel', [1, 5], function (v) { return '−' + v; }, 'menos')
-        + botoes('baixar-nivel', [99], function () { return 'Voltar ao 1'; }, 'menos'))
+        + botoes('baixar-nivel', [99], function () { return 'Voltar ao 1'; }, 'menos')
+        + (estado.personagem.nivel >= D.ASCENSAO.nivelInicio ? '<span class="admin-pacto">Pacto ' + R.pontosAscensaoTotal(estado.personagem) + ':</span>'
+          + botoes('pacto', [1], function () { return '+1 Pacto'; }) + botoes('pacto', [-1], function () { return '−1 Pacto'; }, 'menos') : ''))
       + grupo('Experiência', '% da exp do level atual.', botoes('exp', [10, 50], function (v) { return '+' + v + '%'; })
         + botoes('exp', [-10, -50, -100], function (v) { return v === -100 ? 'Zerar' : '−' + (-v) + '%'; }, 'menos'))
       + grupo('Atributos', 'Volta os atributos aos da raça e classe e devolve todos os pontos.', botoes('resetar-atributos', [0], function () { return 'Resetar pontos'; }, 'menos'))
@@ -6902,6 +6905,7 @@
         else if (op === 'zerar-pocoes') R.admin.zerarPocoes(p);
         else if (op === 'esvaziar-mochila') R.admin.esvaziarMochila(p);
         else if (op === 'reputacao') p.reputacao = Math.max(0, (p.reputacao || 0) + v);
+        else if (op === 'pacto') { if (!R.admin.pacto(p, v)) { avisar(p.nivel < D.ASCENSAO.nivelInicio ? 'O Pacto abre no level ' + D.ASCENSAO.nivelInicio + '.' : v > 0 ? 'Já está no limite de ' + D.ASCENSAO.limitePontos + ' pontos.' : 'Não tem ponto extra para tirar (os do level ficam).'); break; } }
         else if (op === 'encanto') { var nEnc = R.admin.encantoEquipados(p, v); if (!nEnc) { avisar(v > 0 ? 'Todos os equipados já estão no máximo.' : 'Todos os equipados já estão em +0.'); break; } }
         if (op === 'pedir-esvaziar') { estado.adminConfirmar = 'mochila'; telaJogo(); break; }
         estado.adminConfirmar = null;
@@ -6910,6 +6914,7 @@
         avisar({ ouro: (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR') + ' de ouro. Agora: ' + p.ouro.toLocaleString('pt-BR') + '.',
           'zerar-ouro': 'Ouro zerado.', nivel: 'Agora no level ' + p.nivel + '.', 'baixar-nivel': 'Agora no level ' + p.nivel + '. Distribua os pontos de novo.',
           exp: 'Exp agora: ' + p.exp.toLocaleString('pt-BR') + ' (level ' + p.nivel + ').', 'resetar-atributos': 'Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir.',
+          pacto: 'Pacto: ' + R.pontosAscensaoTotal(p) + ' pontos (' + R.pontosAscensaoLivres(p) + ' livres).',
           encanto: 'Encanto dos equipados ' + (v > 0 ? 'subiu' : 'desceu') + ' (' + Object.keys(p.equipados || {}).map(function (sl) { var it = R.itemNoSlot(p, sl); return it ? '+' + (it.encanto || 0) : ''; }).filter(Boolean).join(' ') + ').',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
           pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',

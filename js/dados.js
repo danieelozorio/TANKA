@@ -608,8 +608,9 @@ Tanka.dados = {
         { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
         { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
-        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 5, porPonto: { vidaPct: 0.5 },   // vida −50% (Henri, 24/11/2026: era 10% + 1 por ponto)
-          descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele.' },
+        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 5, porPonto: { vidaPct: 0.5, espinhosPvE: 1 },   // vida −50% (Henri, 24/11/2026: era 10% + 1 por ponto)
+          espinhosPvE: 4,   // Armadura de Espinhos (Henri, 24/11/2026): devolve 5% (1 ponto) a 15% (11) do dano recebido; só PvE, não vale na Arena
+          descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele. Armadura de Espinhos: devolve parte do dano dos monstros (não vale na Arena).' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
           descricao: 'Recupera 0,66% a 1,26% da vida máxima a cada turno. Mais forte na caçada.' },

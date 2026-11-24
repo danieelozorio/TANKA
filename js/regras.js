@@ -684,6 +684,10 @@ Tanka.regras = (function () {
     ['reflete', 'danoChefe', 'danoMeiaVida', 'danoCacada', 'danoHab', 'curaHab', 'execucao', 'golpeCerteiro',
       'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco', 'recargaPct',
       'recargaMenos', 'danoHibrido', 'danoVidaAtual'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
+    // Armadura de Espinhos da passiva (Paladino, 24/11/2026): devolve % do dano. Só PvE: a Arena é calculada no
+    // servidor (arena_lutador) e não lê isto.
+    var pas = passiva(p), esp = pas && pas.def.espinhosPvE != null ? valorBonus(pas.def, 'espinhosPvE', pas.pts) : 0;
+    if (esp) x.reflete = (x.reflete || 0) + esp;
     return x;
   }
   function somaBuff(L, campo) {
@@ -4015,6 +4019,17 @@ Tanka.regras = (function () {
     // Quantidades negativas tiram (sem ficar abaixo de 0).
     ouro: function (p, quantidade) { p.ouro = Math.max(0, p.ouro + quantidade); },
     zerarOuro: function (p) { p.ouro = 0; },
+    // Pontos do Pacto (Henri, 24/11/2026): +n/−n nos pontos extras (os do level não mudam). Se ficar com menos pontos
+    // do que gastou, tira os últimos nós pegos até caber. Devolve false se não deu (abaixo do level do Pacto, no limite).
+    pacto: function (p, delta) {
+      if (p.nivel < AS.nivelInicio) return false;
+      var a = p.ascensao || (p.ascensao = { nos: [], exp: 0, extras: 0, v: 2 }), antes = pontosAscensaoTotal(p);
+      var doLevel = (Math.min(p.nivel, D.NIVEL_MAXIMO) - AS.nivelInicio) * AS.pontosPorNivel;
+      a.extras = Math.max(0, Math.min(AS.limitePontos - doLevel, Math.floor(a.extras || 0) + delta));
+      a.nos = a.nos || [];
+      while (a.nos.length && custoNosAscensao(a.nos) > pontosAscensaoTotal(p)) a.nos.pop();
+      return pontosAscensaoTotal(p) !== antes;
+    },
     // Encanto de todos os itens equipados (Henri, 24/11/2026): +n ou −n, entre 0 e encantamento.maximo. Devolve quantos mudaram.
     encantoEquipados: function (p, delta) {
       var hpAntes = status(p).hpMax, n = 0, max = D.encantamento.maximo;

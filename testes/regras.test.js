@@ -19,6 +19,11 @@ function teste(nome, fn) {
   try { fn(); console.log('ok   ' + nome); } catch (e) { console.log('FALHA ' + nome + '\n     ' + e.message); process.exitCode = 1; }
 }
 
+// Tira a Armadura de Espinhos da Pele de Ferro durante um teste antigo (devolve a função que põe de volta).
+function semEspinhos() {
+  const h = D.SEGUNDAS_CLASSES.paladino.habilidades.find((x) => x.espinhosPvE != null), v = h.espinhosPvE;
+  delete h.espinhosPvE; return () => { h.espinhosPvE = v; };
+}
 teste('atributos iniciais das classes: todas com 70 pontos (nov/2026)', () => {
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'cavaleiro') }, { for: 15, des: 10, res: 20, int: 10, sor: 15 });
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'arqueiro') }, { for: 15, des: 20, res: 10, int: 10, sor: 15 });
@@ -1533,6 +1538,23 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
 
+teste('Paladino: Armadura de Espinhos (5% a 15%) só PvE; admin +1/−1 Pacto', () => {
+  const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 38); R.escolherSegundaClasse(p, 'paladino');
+  assert.strictEqual(R.novoLutador(p, 'cacada').ex.reflete, 5);
+  for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, 'pele-de-ferro', 1);
+  assert.strictEqual(R.novoLutador(p, 'masmorra').ex.reflete, 15);
+  assert.strictEqual(R.admin.pacto(p, 1), false, 'level 39: o Pacto ainda não abre');
+  R.admin.subirNivel(p, 21);
+  const t0 = R.pontosAscensaoTotal(p);
+  assert.strictEqual(R.admin.pacto(p, 1), true); assert.strictEqual(R.pontosAscensaoTotal(p), t0 + 1);
+  assert.strictEqual(R.admin.pacto(p, -1), true); assert.strictEqual(R.pontosAscensaoTotal(p), t0);
+  assert.strictEqual(R.admin.pacto(p, -1), false, 'os pontos do level ficam');
+  for (let i = 0; i < 60; i++) R.admin.pacto(p, 1);
+  assert.strictEqual(R.pontosAscensaoTotal(p), D.ASCENSAO.limitePontos);
+  assert.strictEqual(R.admin.pacto(p, 1), false, 'no limite');
+  assert.strictEqual(R.admin.pacto(p, -1), true, 'tirar logo depois do limite funciona');
+});
+
 teste('admin: encanto de todos os equipados +1/−1, de 0 ao máximo', () => {
   const p = R.criarPersonagem('A', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 19);
   ['elmo', 'botas'].forEach((t) => { const it = R.novoItem(t, 'cavaleiro', 'rara', Math.random, null, 20); p.inventario.push(it); R.equipar(p, it.id); });
@@ -2340,6 +2362,8 @@ teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, vene
 });
 
 teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó nos Olhos e Defesa Suprema', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
     R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, c2);
@@ -2370,6 +2394,7 @@ teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó
   const m2 = { hp: 100 };
   R.aoReceber(L3, 100, m2, () => 0.5);
   assert.strictEqual(m2.hp, 85);
+  } finally { _voltaEsp(); }
 });
 
 // ---- Caçada decidida pelo servidor (anti-trapaça, etapa 1) ----
@@ -2903,6 +2928,8 @@ teste('Torre: desviar tem recarga de 2 turnos e o chefe rápido pode agir antes 
 });
 
 teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const TR = D.TORRE;
   const ficha = (c, c2) => { const p = R.criarPersonagem('M' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2); return p; };
   const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
@@ -2932,9 +2959,12 @@ teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', 
   const hpAntes = mv.hp, ev3 = turno(t3, t3.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 23);
   assert.ok(ev3.some((e) => /DESPERTA/.test(e.t)), 'despertar abaixo de 50%');
   assert.ok(ev3.some((e) => /bebe a vida/.test(e.t)) && mv.hp > hpAntes, 'dreno cura o chefe');
+  } finally { _voltaEsp(); }
 });
 
 teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corrupção, Camadas, Vínculo e Falso Colapso (Daniel, 18/11/2026)', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const ficha = (c, c2) => { const p = R.criarPersonagem('N' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2);
     const hs = D.SEGUNDAS_CLASSES[c2].habilidades.filter((h) => h.tipo !== 'passiva' && (!h.nivel || p.nivel >= h.nivel)); let g = 0, i = 0;
     while (R.pontosHabilidadeLivres(p) > 0 && g++ < 400) R.mudarPontoHabilidade(p, hs[i++ % hs.length].id, 1); return p; };
@@ -2976,6 +3006,7 @@ teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corru
   // Falso Colapso: levanta na fase 2
   t = nova(45); const tk = t.inimigos[0]; tk.hp = 1; ev = turno(t, null, 42);
   assert.ok(tk.fase2 && tk.hp > 0 && tk.golpeArea && ev.some((e) => /FASE 2/.test(e.t)), 'falso colapso');
+  } finally { _voltaEsp(); }
 });
 
 teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte/linha/mesa (Daniel, 18/11/2026)', () => {

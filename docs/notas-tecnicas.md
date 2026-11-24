@@ -1660,3 +1660,5 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Orc: vidaPct +10 (antes +20).
 - Paladino: `SEGUNDAS_CLASSES.paladino.vidaPorNivelPct: 50` (Henri, 24/11/2026): do level `TALENTOS.nivelSegunda` (10) em diante, a vida por level é a metade (`R.vidaDosNiveis`; SQL em `tanka_status`). Ex.: level 53 = 9 x 36 + 43 x 18.
 - Arena (Henri, 24/11/2026): veneno/sangramento das habilidades (tipo dot) e queimadura tiram `ARENA.dotVidaPct` (2%) da vida máxima do alvo por turno, sem defesa, x o fator do D20 (`arena_fator_efeito`). Caçada/masmorra/chefes continuam com % do ataque. Ferida Aberta (Pacto) não mudou.
+- Pele de Ferro (Paladino): Armadura de Espinhos `espinhosPvE: 4` + 1 por ponto (5% a 15%) vira `ex.reflete` em `extrasLuta` (caçada, masmorra, chefes, Torre). A Arena (SQL) não lê. Testes antigos de luta usam `semEspinhos()`.
+- Admin: +1/−1 ponto do Pacto no grupo Level (`R.admin.pacto`: mexe só nos `ascensao.extras`, até o limite; tirar solta os últimos nós se faltar ponto).
