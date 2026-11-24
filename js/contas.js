@@ -497,6 +497,7 @@ Tanka.contas = (function () {
       if (conta) conta.trocar_senha = false;
     },
     adminPedidos: function () { return rpc('admin_pedidos_senha'); },
+    adminInspecionar: function (pid) { return rpc('admin_inspecionar', { pid: pid }); },
     adminGerar: function (id) { return rpc('admin_senha_temporaria', { pedido: id }); },
     adminRecusar: function (id) { return rpc('admin_recusar_pedido_senha', { pedido: id }); },
   };

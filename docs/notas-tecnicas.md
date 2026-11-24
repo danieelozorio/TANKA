@@ -1644,3 +1644,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Torre: recarga do Desviar (Henri, 23/11/2026)
 - Testamos 4 turnos e voltamos para `TORRE.desviar.recarga: 2` no mesmo dia.
+
+## Inspecionar (só admin; Henri, 24/11/2026)
+- Ranking: botão "🔍 Inspecionar" ao lado do Atacar (só `ehAdmin()`). Abre `inspecaoHtml()` (janela por cima, X fecha) com 3 abas:
+  itens equipados (`fichaItemHtml(it, true)` com `estado.personagem` trocado pelo inspecionado durante o desenho), Pactos
+  (pontos por domínio, notáveis/pedras e `pactoResumo`) e atributos/status (`R.status`).
+- Servidor: `admin_inspecionar(pid)` (security definer, só `eh_admin()`) devolve `dados` + id/nome. `C.senha.adminInspecionar`.

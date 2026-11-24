@@ -2456,3 +2456,19 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .loja-comprar-eter { margin: .6rem 0; }
 .loja-comprar-eter .item-acoes { flex-wrap: wrap; }
 .loja-comprar-eter .btn { display: inline-flex; align-items: center; gap: .35rem; }
+
+/* Inspecionar (só admin; Henri, 24/11/2026) */
+.ranking-acoes { white-space: nowrap; }
+.ranking-acoes .btn + .btn { margin-left: .3rem; }
+.insp-janela { width: min(860px, 100%); }
+.insp-x { font-size: 1.4rem; top: .5rem; right: .7rem; z-index: 2; }
+.insp-abas { margin: .4rem 0 .8rem; }
+.insp-itens { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .6rem; }
+.insp-slot { border: 1px solid rgba(255, 215, 106, .18); border-radius: 10px; padding: .5rem; background: rgba(0, 0, 0, .18); }
+.insp-rotulo { font-family: var(--titulo); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
+.insp-ficha { min-width: 0; font-size: .9rem; }
+.insp-ficha .item-acoes { display: none; }
+.insp-dominios { list-style: none; padding: 0; display: grid; gap: .35rem; }
+.insp-dominios li { border-left: 3px solid var(--cor-dom, #e6cf9c); padding: .2rem .5rem; }
+.insp-dom { color: var(--cor-dom, #e6cf9c); }
+.insp-atributos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }

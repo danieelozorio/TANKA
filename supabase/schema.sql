@@ -462,6 +462,19 @@ begin
     from public.pedidos_senha ps join public.contas c on c.id = ps.conta_id where ps.situacao = 'pendente'), '[]'::jsonb);
 end $$;
 
+-- Inspecionar (Henri, 24/11/2026): só o admin vê a ficha inteira de outro personagem (itens equipados, Pacto, atributos).
+create or replace function public.admin_inspecionar(pid text) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare d jsonb;
+begin
+  if not public.eh_admin() then raise exception 'Só administradores.'; end if;
+  select pe.dados || jsonb_build_object('id', pe.id, 'nome', pe.nome) into d from public.personagens pe where pe.id = pid;
+  if d is null then raise exception 'Personagem não encontrado.'; end if;
+  return d;
+end $$;
+revoke execute on function public.admin_inspecionar(text) from public, anon;
+grant execute on function public.admin_inspecionar(text) to authenticated;
+
 -- Gera a senha temporária (10 letras/números, sem os que confundem), grava no login e devolve para o admin mandar por e-mail.
 create or replace function public.admin_senha_temporaria(pedido bigint) returns jsonb
 language plpgsql security definer set search_path = public, extensions as $$

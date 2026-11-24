@@ -2085,6 +2085,68 @@
     }).join('');
     return h ? '<span class="tags-boost">' + h + '</span>' : '';
   }
+  // Inspecionar (só ADMIN; Henri, 24/11/2026): no ranking, abre a ficha de outro personagem em 3 abas.
+  function botaoInspecionar(x) {
+    return ehAdmin() && x.id ? '<button class="btn secundario mini-opcao" data-acao="ranking-inspecionar" data-id="' + esc(x.id) + '" title="Ver itens, Pacto e atributos (só admin)">🔍 Inspecionar</button>' : '';
+  }
+  var INSP_SLOTS = [['arma', 'Arma'], ['secundaria', 'Mão esquerda'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'],
+    ['colar', 'Colar'], ['anel1', 'Anel 1'], ['anel2', 'Anel 2']];
+  function inspecaoHtml() {
+    var I = estado.inspecao, a = I.p, corpo;
+    var abas = [['itens', '🛡 Itens equipados'], ['pacto', '✦ Pactos'], ['atributos', '📊 Atributos']].map(function (b) {
+      return '<button class="' + (I.aba === b[0] ? 'ativa' : '') + '" data-acao="insp-aba" data-valor="' + b[0] + '">' + b[1] + '</button>';
+    }).join('');
+    if (I.erro) corpo = '<p class="menos">' + esc(I.erro) + '</p>';
+    else if (!a) corpo = '<p class="suave">Carregando…</p>';
+    else {
+      var eu = estado.personagem;
+      estado.personagem = a;   // as fichas de item comparam com o "personagem atual": aqui, o inspecionado
+      try {
+        if (I.aba === 'itens') {
+          corpo = '<div class="insp-itens">' + INSP_SLOTS.map(function (sl) {
+            var it = R.itemNoSlot(a, sl[0]);
+            return '<div class="insp-slot"><div class="insp-rotulo">' + sl[1] + '</div>'
+              + (it ? '<div class="insp-ficha">' + fichaItemHtml(it, true) + '</div>' : '<p class="suave pequeno">— vazio —</p>') + '</div>';
+          }).join('') + '</div>';
+        } else if (I.aba === 'pacto') {
+          var AS = D.ASCENSAO, A = R.arvoreAscensao(), nos = R.nosAscensao(a), total = R.pontosAscensaoTotal(a), gastos = R.custoNosAscensao(nos);
+          if (a.nivel < AS.nivelInicio) corpo = '<p class="suave">O Pacto abre no level ' + AS.nivelInicio + '. Este personagem está no level ' + a.nivel + '.</p>';
+          else {
+            var porDom = AS.dominios.map(function (d) {
+              var meus = nos.filter(function (id) { return A[id] && A[id].dom === d.id; });
+              if (!meus.length) return '';
+              var nomes = meus.filter(function (id) { return A[id].tipo === 'notavel' || A[id].tipo === 'pedra'; }).map(function (id) {
+                var tr = d.trilhas[A[id].trilha];
+                return A[id].tipo === 'pedra' ? '💎 ' + tr.pedra.nome : '★ ' + tr.notavel.nome;
+              });
+              return '<li style="--cor-dom:' + d.cor + '"><b class="insp-dom">' + d.nome + '</b> · ' + meus.length + ' ponto' + (meus.length > 1 ? 's' : '')
+                + (nomes.length ? '<div class="pequeno">' + nomes.join(' · ') + '</div>' : '') + '</li>';
+            }).join('');
+            corpo = '<p><strong>' + gastos + '</strong> de <strong>' + total + '</strong> pontos usados' + (total - gastos > 0 ? ' <span class="suave">(' + (total - gastos) + ' livres)</span>' : '') + '</p>'
+              + (porDom ? '<ul class="insp-dominios">' + porDom + '</ul>' + pactoResumo(a).replace('<details class="pacto-resumo"', '<details class="pacto-resumo" open') : '<p class="suave">Nenhum ponto do Pacto pego ainda.</p>');
+          }
+        } else {
+          var s = R.status(a), eq = R.bonusEquipamentos(a), magico = s.tipoDano === 'magico', pc = function (v) { return fmt(v) + '%'; };
+          var atrs = R.ATRIBUTOS.map(function (k) {
+            return '<dt>' + D.atributos[k].nome + '</dt><dd>' + (a.atributos[k] + (eq[k] || 0)) + ' <small class="suave">(' + a.atributos[k] + ' base' + (eq[k] ? ' + ' + eq[k] + ' itens' : '') + ')</small></dd>';
+          }).join('');
+          var st = [['Poder', '<strong class="cor-ouro">' + R.poder(a).toLocaleString('pt-BR') + '</strong>'], ['Vida máxima', s.hpMax],
+            ['Dano por golpe', dano(s.dano) + (magico ? ' (mágico)' : '')], ['Defesa', s.defesa + ' <small class="suave">(−' + R.cortePct(s.defesa) + '%)</small>'],
+            ['Defesa mágica', s.defesaMagica + ' <small class="suave">(−' + R.cortePct(s.defesaMagica) + '%)</small>'], ['Velocidade', s.velocidade],
+            ['Precisão', pc(s.precisao)], ['Evasão', pc(s.evasao)],
+            [magico ? 'Crítico mágico' : 'Chance de crítico', pc(magico ? s.chanceCriticoMagico : s.chanceCritico)],
+            [magico ? 'Dano crítico mágico' : 'Dano crítico', pc(magico ? s.danoCriticoMagico : s.danoCritico)]].map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+          corpo = '<div class="insp-atributos"><div><h4>Atributos</h4><dl class="status">' + atrs + '</dl>'
+            + (a.pontosLivres ? '<p class="suave pequeno">' + a.pontosLivres + ' ponto(s) sem usar</p>' : '') + '</div><div><h4>Status</h4><dl class="status">' + st + '</dl></div></div>';
+        }
+      } catch (e) { corpo = '<p class="menos">Não deu para mostrar: ' + esc(e.message) + '</p>'; }
+      finally { estado.personagem = eu; }
+    }
+    return '<div class="zoom-fundo insp-fundo"><div class="zoom-janela insp-janela" role="dialog" aria-label="Inspecionar">'
+      + '<button class="zoom-x insp-x" data-acao="insp-fechar" aria-label="Fechar">✕</button>'
+      + '<h3 class="subtitulo">🔍 ' + (a ? esc(a.nome) + ' <small class="suave">· Lv ' + a.nivel + ' · ' + esc(nomeClasseP(a)) + '</small>' : 'Inspecionar') + '</h3>'
+      + '<div class="sub-abas insp-abas">' + abas + '</div><div class="insp-corpo">' + corpo + '</div></div></div>';
+  }
   function lojaChamar(prom, msg) {
     var p = estado.personagem;
     if (estado.lojaOcupado) return;
@@ -4421,10 +4483,10 @@
     else if (tipo === 'clas') corpo = rankingClasHtml(r.lista);
     else if (CELULAR) corpo = '<div class="itens">' + r.lista.map(function (x, i) {   // celular: cartões com retrato, sem tabela
       var meu = meus.indexOf(String(x.nome).toLowerCase()) >= 0;
-      return linhaRanking(Object.assign({}, x, { posicao: i + 1, id: meu ? eu.id : x.id }), possoAtacar && x.id && x.nivel >= 5 && !meu
-        ? '<button class="btn" data-acao="ranking-atacar" data-id="' + esc(x.id) + '">⚔ Atacar</button>' : '');
+      return linhaRanking(Object.assign({}, x, { posicao: i + 1, id: meu ? eu.id : x.id }), (possoAtacar && x.id && x.nivel >= 5 && !meu
+        ? '<button class="btn" data-acao="ranking-atacar" data-id="' + esc(x.id) + '">⚔ Atacar</button>' : '') + botaoInspecionar(x));
     }).join('') + '</div>';
-    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar ? '<th></th>' : '') + '</tr></thead><tbody>'
+    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar || ehAdmin() ? '<th></th>' : '') + '</tr></thead><tbody>'
       + r.lista.map(function (x, i) {
         var pos = i + 1;
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
@@ -4432,8 +4494,8 @@
           + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
           + '<td>' + nomeClasseX(x) + '</td>'
           + '<td>' + x.nivel + (x.pacto ? '<div class="exp-pacto pequeno" title="Pontos do Pacto de Ascensão">Pacto ' + x.pacto + '</div>' : '') + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
-          + (possoAtacar ? '<td>' + (x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
-            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + '</td>' : '')
+          + (possoAtacar || ehAdmin() ? '<td class="ranking-acoes">' + (possoAtacar && x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
+            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + botaoInspecionar(x) + '</td>' : '')
           + '</tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
@@ -4869,6 +4931,7 @@
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
       + (zealot && navegacao ? navBaixoHtml() : '')
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
+      + (estado.inspecao && ehAdmin() && !estado.batalha && !estado.luta && !estado.lutaArena ? inspecaoHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
       + (!estado.loginAberto && pactoNovo() && !estado.batalha && !estado.luta && !estado.lutaArena ? pactoTutorialHtml() : '')
@@ -6038,6 +6101,19 @@
         break;
       }
       case 'tag-boost': avisar(el.title); break;
+      case 'ranking-inspecionar': {
+        if (!ehAdmin()) break;
+        var ins = estado.inspecao = { aba: (estado.inspecao && estado.inspecao.aba) || 'itens', p: null };
+        telaJogo();
+        C.senha.adminInspecionar(el.dataset.id).then(function (d) {
+          if (estado.inspecao !== ins) return;
+          try { R.normalizar(d); } catch (e) { /* ficha antiga: mostra como veio */ }
+          ins.p = d; telaJogo();
+        }, function (e) { if (estado.inspecao === ins) { ins.erro = e.message; telaJogo(); } });
+        break;
+      }
+      case 'insp-aba': if (estado.inspecao) { estado.inspecao.aba = el.dataset.valor; telaJogo(); } break;
+      case 'insp-fechar': estado.inspecao = null; telaJogo(); break;
       case 'pedidos-aba': estado.pedidosAba = el.dataset.valor; estado.pedidosVer = 5; telaJogo(); break;
       case 'pedidos-mais': estado.pedidosVer = (estado.pedidosVer || 5) + 10; telaJogo(); break;   // no celular não tem "passar o mouse": o toque mostra o bônus
       case 'loja-usar-boost': {
