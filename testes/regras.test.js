@@ -34,7 +34,8 @@ teste('raças: não mudam os atributos; traços em % (Humano equilibrado)', () =
   assert.ok(el.chanceCritico > h.chanceCritico && el.velocidade > h.velocidade && el.hpMax < h.hpMax && el.dano[1] <= h.dano[1], 'elfo');
   assert.ok(en.danoCritico > h.danoCritico && en.dano[1] > h.dano[1] && en.hpMax < h.hpMax, 'elfo negro');
   assert.ok(o.hpMax > h.hpMax && o.dano[1] > h.dano[1] && o.chanceCritico < h.chanceCritico && o.velocidade < h.velocidade && o.evasao < h.evasao, 'orc');
-  assert.ok(an.hpMax > h.hpMax && an.hpMax < o.hpMax && an.dano[1] >= h.dano[1] && an.dano[1] <= o.dano[1]
+  assert.ok(an.hpMax > h.hpMax && an.hpMax <= o.hpMax && an.dano[1] >= h.dano[1]   // 24/11/2026: Orc +10% de vida, igual ao Anão
+    && an.dano[1] <= o.dano[1]
     && an.chanceCritico < h.chanceCritico && an.velocidade < h.velocidade, 'anão');
 });
 
@@ -1230,10 +1231,10 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   assert.strictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
   assert.strictEqual(R.kitHabilidades(p, 'cacada').length, 0, 'sem ponto, nenhuma ativa');
   // passiva fixa (nov/2026): já liga com o valor de 1 ponto e não recebe pontos
-  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva fixa: 10% + 1%');
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.055), 'passiva fixa: 5% + 0,5% (vida −50% em 24/11/2026)');
   // passivas recebem pontos (13/11/2026): 1 de graça + os colocados
   assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), true);
-  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.12), 'passiva com 1 ponto: 10% + 2%');
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.06), 'passiva com 1 ponto: 5% + 2 x 0,5%');
   R.mudarPontoHabilidade(p, 'pele-de-ferro', -1);
   for (let i = 0; i < 4; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
   assert.strictEqual(R.pontosHabilidadeLivres(p), 0);
@@ -1495,7 +1496,7 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
   // escudo raro: +10% de defesa (+5% do encanto +1 = 10,5 → 11%) e +5% de vida (nov/2026)
   assert.strictEqual(R.status(p).defesa, Math.round(s0.defesa * 1.11), 'escudo raro +10% de defesa, +1 de encanto');
-  assert.strictEqual(R.status(p).hpMax, Math.round(s0.hpMax * 1.05), 'escudo raro +5% de vida');
+  assert.strictEqual(R.status(p).hpMax, Math.round(s0.hpMax * 1.025), 'escudo raro +2,5% de vida (24/11/2026: era 5%)');
   assert.strictEqual(R.equipar(p, 'e2'), 'arma');
   assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
   const s1 = R.status(p);

@@ -383,6 +383,9 @@ Tanka.regras = (function () {
     if (!def) return b;
     if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
     else Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) b[k] = def.bonus[k][idx]; });   // itens antigos: valor fixo
+    // Bônus fixos da mão esquerda (% pela raridade) valem sempre pela tabela de hoje, também nos itens já salvos
+    // (escudo: vida −50% em 24/11/2026). Igual no schema.sql.
+    if (item.bonus && def.fixos) def.fixos.forEach(function (k) { if (b[k] != null && def.bonus[k]) b[k] = def.bonus[k][idx]; });
     // Botas antigas: o atributo antigo vira o novo (BOTAS_TROCA; igual no schema.sql)
     var tb = item.tipo === 'botas' && item.bonus && !item.botaV2 && (D.BOTAS_TROCA || {})[item.classe];
     if (tb && b[tb[0]]) { b[tb[1]] = (b[tb[1]] || 0) + b[tb[0]]; delete b[tb[0]]; }
@@ -550,7 +553,12 @@ Tanka.regras = (function () {
     return def ? { def: def, pts: PTS_PASSIVA + pontosEm(p, def.id) } : null;
   }
   // Valor de um campo em % de um reforço/cura/passiva com N pontos.
-  function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
+  // porPonto (opcional): quanto cada ponto soma num campo, no lugar de TALENTOS.bonusPorPonto (Pele de Ferro: vida 0,5).
+  function valorBonus(def, campo, pts) {
+    if (def[campo] === undefined) return 0;
+    var pp = def.porPonto && def.porPonto[campo] != null ? def.porPonto[campo] : T.bonusPorPonto;
+    return Math.round((def[campo] + pts * pp) * 100) / 100;
+  }
   // Multiplicador (%) de dano de uma habilidade de golpe.
   function multHabilidade(def, pts) {
     if (Array.isArray(def.mult)) return valorNivel(def.mult, pts);   // golpes do level 30
@@ -1571,7 +1579,7 @@ Tanka.regras = (function () {
   function origemVida(p) {
     var a = atributosTotais(p), eq = bonusEquipamentos(p), L = [], v = 0;
     var soma = function (nome, n) { if (n) { L.push({ nome: nome, txt: '+' + n, ganho: n }); v += n; } };
-    var pct = function (nome, x) { if (!x) return; var n = Math.round(v * (1 + x / 100)); L.push({ nome: nome, txt: (x > 0 ? '+' : '') + x + '%', ganho: n - v }); v = n; };
+    var pct = function (nome, x) { if (!x) return; var n = Math.round(v * (1 + x / 100)); L.push({ nome: nome, txt: (x > 0 ? '+' : '') + String(Math.round(x * 100) / 100).replace('.', ',') + '%', ganho: n - v }); v = n; };
     soma('Base (level 1)', D.HP_INICIAL);
     soma('Level ' + p.nivel + ' (' + D.HP_POR_NIVEL + ' por level)', (p.nivel - 1) * D.HP_POR_NIVEL);
     soma('Resistência ' + a.res + ' (' + D.HP_POR_RES + ' por ponto acima de ' + D.RES_SEM_VIDA + ')', Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES);

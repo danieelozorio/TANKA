@@ -203,7 +203,7 @@ Tanka.dados = {
       descricao: 'Brutos: muita vida e mais dano, mas lentos, com menos críticos e quase sem esquiva.',
       lema: 'A honra',
       lore: 'Os Orcs nasceram ao pé do vulcão e não temem o fogo. Foram os cavaleiros dos dragões: um chefe orc selou o pacto com Vhar\'kesh, e juntos guardaram o selo do Vale dos Dragões. Os outros povos esqueceram esse pacto, mas as canções orcs nunca esqueceram. Quando Kael envenenou Vhar\'kesh, os dragões se voltaram contra os próprios Orcs.',
-      elevados: [], reduzidos: [], tracos: { vidaPct: 20, danoPct: 10, critico: -5, velocidadePct: -10, evasaoPct: -50 },
+      elevados: [], reduzidos: [], tracos: { vidaPct: 10, danoPct: 10, critico: -5, velocidadePct: -10, evasaoPct: -50 },   // Orc: vida +10% (Henri, 24/11/2026: era +20%)
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     anao: {
@@ -398,7 +398,8 @@ Tanka.dados = {
   // Henri (nov/2026): para valer tanto quanto os +12% da arma de duas mãos, a mão esquerda dá % fixos pela raridade
   // (os bônus em `fixos` não crescem com o nível do item): dano 4/7/10/14%; o Escudo dá vida % e defesa %.
   MAO_ESQUERDA: {
-    escudo: { nome: 'Escudo', bonus: { defesaPct: [6, 10, 13, 16], vidaPct: [3, 5, 7, 9] }, fixos: ['defesaPct', 'vidaPct'], encanto: 'defesaPct' },
+    escudo: { nome: 'Escudo', bonus: { defesaPct: [6, 10, 13, 16], vidaPct: [1.5, 2.5, 3.5, 4.5] },   // vida −50% (Henri, 24/11/2026: era 3/5/7/9)
+      fixos: ['defesaPct', 'vidaPct'], encanto: 'defesaPct' },
     aljava: { nome: 'Aljava', bonus: { danoPct: [4, 7, 10, 14], critico: [1, 2, 3, 5] }, fixos: ['danoPct', 'critico'], encanto: 'danoPct' },
     orbe: { nome: 'Orbe', bonus: { danoMagico: [4, 7, 10, 14], danoCriticoMagico: [5, 10, 15, 20] }, fixos: ['danoMagico', 'danoCriticoMagico'], encanto: 'danoMagico' },
     manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], danoPct: [4, 7, 10, 14] }, fixos: ['danoPct'], encanto: 'danoPct' },
@@ -606,7 +607,8 @@ Tanka.dados = {
         { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
         { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
-        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele.' },
+        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 5, porPonto: { vidaPct: 0.5 },   // vida −50% (Henri, 24/11/2026: era 10% + 1 por ponto)
+          descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele.' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
           descricao: 'Recupera 0,66% a 1,26% da vida máxima a cada turno. Mais forte na caçada.' },

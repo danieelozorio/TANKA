@@ -1651,3 +1651,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   (pontos por domínio, notáveis/pedras e `pactoResumo`) e atributos/status (`R.status`).
 - Servidor: `admin_inspecionar(pid)` (security definer, só `eh_admin()`) devolve `dados` + id/nome. `C.senha.adminInspecionar`.
 - Aba Atributos do Inspecionar: "De onde vem a vida" (`R.origemVida(p)`, mesma ordem de `status`: base, level, RES, itens, escudo %, passiva %, raça %, conjunto, clã %, Pacto %; o total bate com `status(p).hpMax`).
+
+## Vida do Paladino, escudo e Orc −50% (Henri, 24/11/2026)
+- Pele de Ferro: vidaPct 5 + 0,5 por ponto (`porPonto: { vidaPct: 0.5 }`; antes 10 + 1). `R.valorBonus` e o SQL (`arena_kit` e
+  `tanka_status`) leem `porPonto` no lugar de TALENTOS.bonusPorPonto. Defesa da passiva não mudou.
+- Escudo: vidaPct 1,5/2,5/3,5/4,5 (antes 3/5/7/9). Bônus `fixos` da mão esquerda agora valem sempre pela tabela de hoje,
+  também nos itens já salvos (`R.bonusItem` e `tanka_status`; `tanka_dados` leva `MAO_ESQUERDA.fixos`).
+- Orc: vidaPct +10 (antes +20).
