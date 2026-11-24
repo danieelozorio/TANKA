@@ -1345,6 +1345,13 @@ Tanka.regras = (function () {
     });
     return s;
   }
+  // Vida que vem dos levels: HP_POR_NIVEL por level. Segunda classe com vidaPorNivelPct (Paladino, 24/11/2026): do level
+  // TALENTOS.nivelSegunda em diante, só essa % por level. Igual no schema.sql (tanka_status).
+  function vidaDosNiveis(p) {
+    var n = p.nivel || 1, c2 = p.talentos && D.SEGUNDAS_CLASSES[p.talentos.classe2], pct = c2 && c2.vidaPorNivelPct;
+    if (pct == null || n <= T.nivelSegunda) return (n - 1) * D.HP_POR_NIVEL;
+    return (T.nivelSegunda - 1) * D.HP_POR_NIVEL + Math.round((n - T.nivelSegunda) * D.HP_POR_NIVEL * pct / 100);
+  }
   function statusBase(p) {
     var a = atributosTotais(p);
     var eq = bonusEquipamentos(p);
@@ -1362,7 +1369,7 @@ Tanka.regras = (function () {
     return comConjunto(comRaca(comPassiva({
       hpMax: pctItem(D.HP_INICIAL
         + Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES   // toda RES acima de 10 dá vida (nov/2026)
-        + (p.nivel - 1) * D.HP_POR_NIVEL
+        + vidaDosNiveis(p)
         + eq.vida, 'vidaPct'),
       tipoDano: magico ? 'magico' : 'fisico',
       danoArma: danoArma,
@@ -1581,7 +1588,8 @@ Tanka.regras = (function () {
     var soma = function (nome, n) { if (n) { L.push({ nome: nome, txt: '+' + n, ganho: n }); v += n; } };
     var pct = function (nome, x) { if (!x) return; var n = Math.round(v * (1 + x / 100)); L.push({ nome: nome, txt: (x > 0 ? '+' : '') + String(Math.round(x * 100) / 100).replace('.', ',') + '%', ganho: n - v }); v = n; };
     soma('Base (level 1)', D.HP_INICIAL);
-    soma('Level ' + p.nivel + ' (' + D.HP_POR_NIVEL + ' por level)', (p.nivel - 1) * D.HP_POR_NIVEL);
+    var c2v = p.talentos && D.SEGUNDAS_CLASSES[p.talentos.classe2], meioV = c2v && c2v.vidaPorNivelPct != null && p.nivel > T.nivelSegunda;
+    soma('Level ' + p.nivel + ' (' + D.HP_POR_NIVEL + ' por level' + (meioV ? '; ' + c2v.nome + ': ' + c2v.vidaPorNivelPct + '% depois do ' + T.nivelSegunda : '') + ')', vidaDosNiveis(p));
     soma('Resistência ' + a.res + ' (' + D.HP_POR_RES + ' por ponto acima de ' + D.RES_SEM_VIDA + ')', Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES);
     soma('Vida dos itens', eq.vida || 0);
     pct('Mão esquerda (escudo)', eq.vidaPct || 0);

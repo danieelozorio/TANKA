@@ -1658,3 +1658,4 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Escudo: vidaPct 1,5/2,5/3,5/4,5 (antes 3/5/7/9). Bônus `fixos` da mão esquerda agora valem sempre pela tabela de hoje,
   também nos itens já salvos (`R.bonusItem` e `tanka_status`; `tanka_dados` leva `MAO_ESQUERDA.fixos`).
 - Orc: vidaPct +10 (antes +20).
+- Paladino: `SEGUNDAS_CLASSES.paladino.vidaPorNivelPct: 50` (Henri, 24/11/2026): do level `TALENTOS.nivelSegunda` (10) em diante, a vida por level é a metade (`R.vidaDosNiveis`; SQL em `tanka_status`). Ex.: level 53 = 9 x 36 + 43 x 18.

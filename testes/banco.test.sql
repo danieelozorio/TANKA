@@ -278,7 +278,7 @@ select pg_temp.igual((public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2"
 select pg_temp.igual(jsonb_array_length(public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"golpe-fatal":9},"ordem":{"arena":["golpe-fatal"]}}'))),
   0, 'arena: pontos acima do level não valem');
 select pg_temp.igual((public.tanka_status(pg_temp.heroi('cavaleiro', 11, '{"classe2":"paladino","pontos":{"pele-de-ferro":1},"ordem":{}}')) ->> 'hpMax')::numeric,
-  round((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric * 1.06), 'arena: passiva Pele de Ferro com 1 ponto (1 de graça + 1) = +6% de vida (24/11/2026: era 12%)');
+  round(((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric - 18) * 1.06), 'arena: passiva Pele de Ferro com 1 ponto (1 de graça + 1) = +6% de vida (24/11/2026: era 12%; o level 11 do Paladino dá só 18 de vida)');
 select pg_temp.igual((select string_agg(x ->> 'nome', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 11,
   '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2},"ordem":{"arena":["golpe-fatal","sombra"],"defesa":["sombra"]}}'), 'defesa')) x),
   'Sombra', 'arena: ordem própria de defesa');

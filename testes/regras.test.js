@@ -1533,6 +1533,18 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
 
+teste('Paladino (24/11/2026): do level 10 em diante, metade da vida por level', () => {
+  const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 29);
+  const antes = R.status(p).hpMax;
+  p.talentos = { classe2: 'destruidor', pontos: {} };
+  assert.strictEqual(R.status(p).hpMax > 0, true);
+  p.talentos = { classe2: 'paladino', pontos: {} }; delete p.talentos.pontos['pele-de-ferro'];
+  const o = R.origemVida(p);
+  assert.strictEqual(o.linhas[1].ganho, 9 * D.HP_POR_NIVEL + Math.round(20 * D.HP_POR_NIVEL / 2));   // level 30: 9 levels cheios + 20 pela metade
+  assert.strictEqual(o.total, R.status(p).hpMax);
+  assert.ok(R.status(p).hpMax < antes * 1.2);
+});
+
 teste('defesa mágica dos lutadores (21/11/2026): Pesada +20% e Leve +25% da defesa; Manto e joias não', () => {
   const it = (tipo, classe) => ({ id: tipo + classe, tipo, classe, raridade: 'epica', encanto: 0, bonus: { defesa: 20, vida: 50 } });
   assert.strictEqual(R.bonusItem(it('peitoral', 'cavaleiro')).defesaMagica, 18);   // 20 x 4,5 = 90 → 18

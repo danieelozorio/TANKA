@@ -603,6 +603,7 @@ Tanka.dados = {
   // danoCriticoMagico, recompensa) ganham +1 por ponto; atributos (+5) são fixos. grupo: vale para todos do grupo.
   SEGUNDAS_CLASSES: {
     paladino: { de: 'cavaleiro', nome: 'Paladino', nomeF: 'Paladina', descricao: 'Protege o grupo: atordoa, chama os ataques para si e aguenta firme.',
+      vidaPorNivelPct: 50,   // Henri (24/11/2026): do level da segunda classe (TALENTOS.nivelSegunda) em diante, a vida por level é a metade
       habilidades: [
         { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
