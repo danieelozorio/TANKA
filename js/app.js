@@ -422,7 +422,26 @@
       document.body.appendChild(j);
     }
   }
+  // Aviso do Éter do Beta (Henri, 25/11/2026): balão toda vez que um personagem entra no jogo, com X para fechar.
+  var avisoEterPid = null;
+  function avisoEterBeta() {
+    var p = estado.personagem;
+    if (!p || avisoEterPid === p.id) return;
+    avisoEterPid = p.id;
+    var velho = document.getElementById('balao-eter');
+    if (velho) velho.remove();
+    var b = document.createElement('div');
+    b.id = 'balao-eter'; b.className = 'balao-eter'; b.setAttribute('role', 'status');
+    b.innerHTML = '<button class="balao-eter-x" type="button" aria-label="Fechar">✕</button>'
+      + '<img src="assets/eter.webp" alt="" class="balao-eter-img">'
+      + '<p>💎 Todo <strong>Éter</strong> comprado no Beta, mesmo o que você já gastou, será <strong>devolvido no lançamento oficial, em 01/01</strong>. Aproveite sem medo!</p>';
+    b.querySelector('.balao-eter-x').onclick = function () { b.remove(); };
+    document.body.appendChild(b);
+  }
   function telaPersonagens() {
+    var bE = document.getElementById('balao-eter');
+    if (bE) bE.remove();
+    avisoEterPid = null;   // ao trocar de personagem, o balão aparece de novo
     chatVisivel(false);
     conferirReset();
     var lista = estado.conta.personagens;
@@ -5088,6 +5107,7 @@
     if (!abaVisivel(estado.aba)) estado.aba = 'personagem';
     guardarJogo();
     if (!resetPerguntado) conferirReset();   // aviso do reset da rodada de teste (25/11/2026)
+    avisoEterBeta();
     conferirGuia();
     var grupo = grupoDaAba(estado.aba);
     if (grupo) estado.subAba[grupo.id] = estado.aba;
