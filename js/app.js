@@ -290,7 +290,7 @@
         + '<button class="link-senha" type="button" data-acao="auth" data-modo="entrar">Voltar para entrar</button></form>'
       : cadastro && Date.now() < ABRE_CADASTRO
       // Cadastros fechados até a nova rodada (Henri, 25/11/2026, anúncio no Instagram): mostra o cronômetro.
-      ? '<div class="abertura"><p class="abertura-titulo">⏳ A nova rodada começa hoje às 18h</p>'
+      ? '<div class="abertura"><p class="abertura-titulo">⏳ O Beta aberto começa hoje às 18h</p>'
         + '<div class="contagem-abertura" data-ate="' + ABRE_CADASTRO + '">' + textoContagem(ABRE_CADASTRO) + '</div>'
         + '<p class="suave">Os cadastros abrem quando o cronômetro zerar. Volte aqui às 18h para criar sua conta e começar sua lenda!</p>'
         + '<a class="btn secundario largo" href="https://discord.gg/85ZFvz6ye" target="_blank" rel="noopener">Entrar no Discord enquanto espera</a></div>'
