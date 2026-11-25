@@ -546,12 +546,26 @@ html[data-interface="zealot"] #app:has(> .conteudo > .jogo) { height: calc(100dv
   background: radial-gradient(circle at 40% 35%, #ffe7a6, #d99a32 55%, #7a3f10); border: 3px solid #ffdc8a;
   box-shadow: 0 0 0 4px #2a140b, 0 0 40px rgba(255, 160, 50, .9), 0 0 90px rgba(255, 90, 20, .5); animation: zg-gira 1s ease-out; }
 .zg-lendario { background: radial-gradient(circle at 50% 45%, rgba(120, 80, 10, .5), rgba(0, 0, 0, .85) 70%); }
-.zg-raio { width: 10px; height: 46vh; margin-bottom: -1rem; border-radius: 6px; background: linear-gradient(transparent, #fff3c4, #ffc94a, transparent);
-  box-shadow: 0 0 30px 10px rgba(255, 200, 80, .6); animation: zg-raio 1s ease-out; }
+/* item lendário: moldura dourada com o item, halo e raios de luz girando atrás */
+.zg-lend { position: relative; width: 18rem; height: 18rem; display: grid; place-items: center; margin-bottom: .4rem; }
+.zg-raios { position: absolute; inset: -5rem; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 120, .55) 0deg 5deg, rgba(255, 214, 120, 0) 5deg 20deg);
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 68%); mask-image: radial-gradient(circle, #000 18%, transparent 68%);
+  animation: zg-gira-raios 9s linear infinite, zg-entra-raios .7s ease-out; }
+.zg-halo { position: absolute; width: 13rem; height: 13rem; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 236, 170, .95) 0%, rgba(255, 190, 70, .55) 35%, rgba(255, 140, 30, 0) 70%); animation: zg-halo 1.6s ease-in-out infinite alternate; }
+.zg-item { position: relative; width: 9.5rem; height: 9.5rem; display: grid; place-items: center; border-radius: 14px; border: 3px solid #ffd277;
+  background: radial-gradient(circle at 50% 45%, #6a4320, #1e130a 75%);
+  box-shadow: 0 0 0 2px #000, 0 0 30px rgba(255, 190, 70, .9), 0 0 70px rgba(255, 140, 30, .55), inset 0 0 24px rgba(255, 190, 70, .45);
+  animation: zg-item-entra .8s cubic-bezier(.2, 1.4, .4, 1); }
+.zg-item img, .zg-item svg { width: 86%; height: 86%; object-fit: contain; filter: drop-shadow(0 4px 8px #000) brightness(1.08); }
 @keyframes zg-entra { from { opacity: 0; } }
 @keyframes zg-bate { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
 @keyframes zg-gira { 0% { transform: scale(.2) rotate(-180deg); opacity: 0; } 70% { transform: scale(1.1) rotate(10deg); opacity: 1; } 100% { transform: none; } }
-@keyframes zg-raio { 0% { transform: scaleY(0); opacity: 0; } 50% { transform: scaleY(1.05); opacity: 1; } 100% { transform: none; } }
+@keyframes zg-gira-raios { to { transform: rotate(360deg); } }
+@keyframes zg-entra-raios { from { opacity: 0; transform: scale(.4); } }
+@keyframes zg-halo { from { transform: scale(.9); opacity: .75; } to { transform: scale(1.08); opacity: 1; } }
+@keyframes zg-item-entra { 0% { transform: scale(.2) rotate(-12deg); opacity: 0; } 70% { transform: scale(1.08) rotate(2deg); opacity: 1; } 100% { transform: none; } }
 
 /* ---------- Ícones pintados (Daniel, 20/11/2026; assets/interface/icones) ---------- */
 .ico-pintado { display: inline-block; width: 1.5em; height: 1.5em; object-fit: contain; vertical-align: middle; flex: none;

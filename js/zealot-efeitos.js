@@ -175,7 +175,11 @@
       pendente = { ouro: 0, exp: 0 };
     }, 250);
     if (d.nivel) cena('zg-levelup', '<div class="zg-brasao">' + d.nivel + '</div><strong>Level ' + d.nivel + '!</strong><small>Você ficou mais forte. Veja os pontos novos em Herói.</small>', 3200);
-    if (d.lendarios && d.lendarios.length) cena('zg-lendario', '<div class="zg-raio"></div><strong>✦ Lendário! ✦</strong><small>' + d.lendarios.map(function (x) { return String(x).replace(/[<>&]/g, ''); }).join(' · ') + '</small>', 3000);
+    if (d.lendarios && d.lendarios.length) {   // o item no meio, numa moldura dourada, com raios de luz girando atrás (20/11/2026)
+      var L = d.lendarios[0], nomeL = typeof L === 'string' ? L : L.nome, icoL = typeof L === 'string' ? '' : (L.ico || '');
+      cena('zg-lendario', '<div class="zg-lend"><div class="zg-raios"></div><div class="zg-halo"></div>' + (icoL ? '<div class="zg-item">' + icoL + '</div>' : '')
+        + '</div><strong>✦ Lendário! ✦</strong><small>' + String(nomeL).replace(/[<>&]/g, '') + (d.lendarios.length > 1 ? ' e mais ' + (d.lendarios.length - 1) : '') + '</small>', 3400);
+    }
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar); else iniciar();
