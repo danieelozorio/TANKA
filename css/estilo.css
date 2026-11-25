@@ -2522,3 +2522,14 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 @media (max-width: 640px) { .trade-mesa { grid-template-columns: 1fr; } .trade-seta { transform: rotate(90deg); justify-self: center; } }
 .mochila.trade-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 6px; }
 .mochila.trade-grade .celula { width: auto; height: auto; aspect-ratio: 1; }
+
+/* Cronômetro da abertura dos cadastros (Henri, 25/11/2026) */
+.abertura { text-align: center; display: grid; gap: .8rem; padding: .4rem 0; }
+.abertura-titulo { font-family: var(--titulo, serif); font-size: 1.15rem; color: #ffd76a; margin: 0; }
+.contagem-abertura { display: flex; justify-content: center; align-items: center; gap: .35rem; font-variant-numeric: tabular-nums; }
+.contagem-abertura span { display: flex; flex-direction: column; align-items: center; min-width: 4.2rem; padding: .5rem .3rem; border-radius: 10px;
+  background: rgba(0, 0, 0, .35); border: 1px solid rgba(255, 215, 106, .35); }
+.contagem-abertura b { font-size: 2rem; line-height: 1; color: #ffe39a; text-shadow: 0 0 12px rgba(255, 190, 80, .5); }
+.contagem-abertura small { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--suave, #a99); margin-top: .2rem; }
+.contagem-abertura i { font-style: normal; font-size: 1.6rem; color: #ffd76a; }
+.contagem-abertura .abriu { min-width: 0; font-weight: 700; color: #8fe08f; }
