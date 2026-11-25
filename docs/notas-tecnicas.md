@@ -1662,6 +1662,8 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Arena (Henri, 24/11/2026): veneno/sangramento das habilidades (tipo dot) e queimadura tiram `ARENA.dotVidaPct` (2%) da vida máxima do alvo por turno, sem defesa, x o fator do D20 (`arena_fator_efeito`). Caçada/masmorra/chefes continuam com % do ataque. Ferida Aberta (Pacto) não mudou.
 - Pele de Ferro (Paladino): Armadura de Espinhos `espinhosPvE: 4` + 1 por ponto (5% a 15%) vira `ex.reflete` em `extrasLuta` (caçada, masmorra, chefes, Torre). A Arena (SQL) não lê. Testes antigos de luta usam `semEspinhos()`.
 - Admin: +1/−1 ponto do Pacto no grupo Level (`R.admin.pacto`: mexe só nos `ascensao.extras`, até o limite; tirar solta os últimos nós se faltar ponto).
+- Lendário na Zealot (25/11/2026): o raio virou o item no meio (`.zg-item`, com o ícone do item: `verGanhos` manda
+  `{ nome, ico: F.icone(it) }` em `lendarios`), halo e raios de luz girando atrás (`.zg-raios`, repeating-conic-gradient).
 
 ## Reset da rodada de teste (Henri, 25/11/2026)
 - `ajustes.reset_rodada = { em: 2026-11-25T18:00-03:00, feito }`. `reset_rodada()` (security definer): se passou da hora e não foi
@@ -1682,3 +1684,12 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   e `creditos`. Pôr ou tirar desfaz os dois aceites. Cancelar a aberta devolve tudo; pergaminhos perdidos.
 - `servidor-acoes.js` (receber): recompensa `{ tipo: 'consumivel', ctipo, raridade, qtd }` entrega qualquer D.CONSUMIVEIS.
 - Teste do banco no fim de banco.test.sql (sobrescreve conferir_dono).
+
+### Missões com prêmio que acompanha o level (Daniel, 25/11/2026)
+- `premio.ouroLutas` = N × ouro do monstro mais forte da área do level (`R.ouroLutaDoNivel`); `premio.expPct` = % da exp do
+  level, só no bônus de completar todas as diárias (+5%). Diárias: caçada 8 lutas, masmorra 12.
+  Semanais: caçada **1.000 monstros** (era 150), 60 lutas; masmorra 80 lutas. Reputação e pergaminhos
+  iguais. `ouroPorNivel` continua aceito (prêmios de login).
+
+## Contador de visitas
+GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</head>`. Painel: https://eldrin.goatcounter.com (conta do Daniel). Não conta acessos em localhost.

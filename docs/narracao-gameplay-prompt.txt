@@ -1,0 +1,20 @@
+ELDRIN - GAMEPLAY CLIP NARRATION (38 seconds) - VOICE PROMPT
+==============================================================
+Use ElevenLabs (or similar). Generate ONE mp3 with all lines, in order, and send it to Claudia.
+Claudia syncs each line with the video and puts the music lower under the voice.
+
+VOICE SETTINGS / DIRECTION
+Deep, epic male movie-trailer voice, Brazilian Portuguese. Dark fantasy mood.
+Calm and heavy at the start, more intense in the middle, confident at the end.
+Leave a short pause (about 1 second) between lines. Clean voice only: no music, no effects.
+
+SCRIPT (Brazilian Portuguese - the times show where each line goes in the video)
+[0 - 2s]    Eldrin te chama.
+[2 - 9s]    Monte seu heroi... e forje a sua lenda.
+[9 - 12s]   Explore um reino amaldicoado.
+[12 - 21s]  Cace monstros. Cada golpe conta.
+[21 - 30s]  Suba a Torre do Eclipse... se tiver coragem.
+[30 - 35s]  Fique mais forte... e encontre o lendario.
+[35 - 38s]  Eldrin. Jogue agora.
+
+(The same script WITH accents is in the chat: use that one if the voice reads a word wrong.)

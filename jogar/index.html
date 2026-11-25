@@ -31,19 +31,21 @@
       document.documentElement.setAttribute('data-interface', t);
     // Resolução (⚙ Configurações, só no computador): tamanho da tela do jogo (Daniel, 20/11/2026)
     if (!cel) try { var z = parseFloat(localStorage.getItem('eldrin.escala')); if (z > 0 && z !== 1) { document.documentElement.style.zoom = z; document.documentElement.style.setProperty('--escala', z); } } catch (e) { /* sem armazenamento */ }
-      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=145"><script src="js/zealot-efeitos.js?v=3"><\/script>');
+      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=147"><script src="js/zealot-efeitos.js?v=5"><\/script>');
       if (t === 'arcane') document.write('<link rel="stylesheet" href="css/tema-arcane.css?v=28"><script src="js/arcane-efeitos.js?v=4"><\/script>');   // Arcane (Henri, nov/2026): só no computador
     })();
   </script>
   <link rel="stylesheet" href="css/celular.css?v=27">
+  <!-- contador de visitas (GoatCounter, sem cookies): painel em eldrin.goatcounter.com -->
+  <script data-goatcounter="https://eldrin.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </head>
 <body>
   <main id="app" aria-live="polite"></main>
   <div id="aviso" role="status" hidden></div>
 
-  <script src="js/dados.js?v=267"></script>
+  <script src="js/dados.js?v=269"></script>
   <script src="js/historia.js?v=8"></script>
-  <script src="js/regras.js?v=236"></script>
+  <script src="js/regras.js?v=237"></script>
   <script src="js/servidor-cacada.js?v=171"></script>
   <script src="js/servidor-acoes.js?v=16"></script>
   <script src="js/config.js?v=120"></script>

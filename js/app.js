@@ -1178,7 +1178,7 @@
     ganhoAntes = agora;
     if (!a || a.id !== p.id || interfaceAtual() !== 'zealot') return;
     var d = { ouro: agora.ouro - a.ouro, exp: agora.nivel === a.nivel ? agora.exp - a.exp : 0, nivel: agora.nivel > a.nivel ? agora.nivel : 0, lendarios: [] };
-    (p.inventario || []).forEach(function (it) { if (it && it.id && !a.ids[it.id] && it.raridade === 'lendaria') d.lendarios.push(R.nomeItem(it)); });
+    (p.inventario || []).forEach(function (it) { if (it && it.id && !a.ids[it.id] && it.raridade === 'lendaria') d.lendarios.push({ nome: R.nomeItem(it), ico: F.icone(it) }); });
     if (d.ouro > 0 || d.exp > 0 || d.nivel || d.lendarios.length) {
       try { window.dispatchEvent(new CustomEvent('eldrin:ganho', { detail: d })); } catch (e) { /* navegador antigo */ }
     }

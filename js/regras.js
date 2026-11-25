@@ -2531,9 +2531,18 @@ Tanka.regras = (function () {
       });
     });
   }
+  // Ouro de uma luta contra o monstro mais forte da área do level (prêmio das missões acompanha o level).
+  function ouroLutaDoNivel(p) {
+    var area = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0];
+    var ult = area.monstros[area.monstros.length - 1], m = D.monstros[ult.id || ult];
+    return m ? m.ouro : 0;
+  }
+  function expDoPremio(p, pct) { return p.nivel >= D.NIVEL_MAXIMO ? Math.round(expNecessaria(D.NIVEL_MAXIMO - 1) * pct / 100) : Math.round(expNecessaria(p.nivel) * pct / 100); }
   function premioTexto(p, pr) {
     var partes = [];
     if (pr.ouroPorNivel) partes.push((pr.ouroPorNivel * p.nivel).toLocaleString('pt-BR') + ' de ouro');
+    if (pr.ouroLutas) partes.push((pr.ouroLutas * ouroLutaDoNivel(p)).toLocaleString('pt-BR') + ' de ouro');
+    if (pr.expPct) partes.push(pr.expPct + '% de exp do level');
     if (pr.reputacao) partes.push(pr.reputacao + ' de reputação');
     if (pr.pergaminhoArma) {
       var arma = armaEquipada(p), r = arma ? arma.raridade : 'comum';
@@ -2544,6 +2553,8 @@ Tanka.regras = (function () {
   }
   function darPremio(p, pr) {
     if (pr.ouroPorNivel) p.ouro += pr.ouroPorNivel * p.nivel;
+    if (pr.ouroLutas) p.ouro += pr.ouroLutas * ouroLutaDoNivel(p);
+    if (pr.expPct) ganharExp(p, expDoPremio(p, pr.expPct));
     if (pr.reputacao) p.reputacao = (p.reputacao || 0) + pr.reputacao;
     if (pr.pergaminhoArma) { var arma = armaEquipada(p); mudarPergaminho(p, arma ? arma.raridade : 'comum', pr.pergaminhoArma); }
   }
@@ -4225,7 +4236,7 @@ Tanka.regras = (function () {
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
-    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, inicioVez: inicioVez, precoRefazerAscensao: precoRefazerAscensao, caminhoAscensao: caminhoAscensao, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    calcularGolpe: calcularGolpe, ouroLutaDoNivel: ouroLutaDoNivel, recargaComFoco: recargaComFoco, inicioVez: inicioVez, precoRefazerAscensao: precoRefazerAscensao, caminhoAscensao: caminhoAscensao, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,
