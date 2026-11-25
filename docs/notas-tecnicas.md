@@ -1677,7 +1677,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   até 2 no grátis e 4 no premium, espalhados pelos níveis.
 - Tabela `trades` (a pediu = esquerda, b aceitou = direita; estado pedido|aberto|feito|cancelado|recusado; 1 aberto por par).
   Funções `trade_estado/pedir/responder/por/tirar/aceitar/cancelar`. Cada função só mexe na ficha de quem chama:
-  o pergaminho de A fica guardado no pedido (volta se recusar/cancelar o pedido); B gasta o dele ao aceitar.
+  só A (quem pede) precisa de pergaminho: fica guardado no pedido, é gasto quando B aceita e volta se recusar/cancelar o pedido.
   Itens/consumíveis/ouro postos saem da ficha (ouro por crédito negativo) e voltam/vão por `recompensas` (origem 'trade')
   e `creditos`. Pôr ou tirar desfaz os dois aceites. Cancelar a aberta devolve tudo; pergaminhos perdidos.
 - `servidor-acoes.js` (receber): recompensa `{ tipo: 'consumivel', ctipo, raridade, qtd }` entrega qualquer D.CONSUMIVEIS.

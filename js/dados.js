@@ -47,7 +47,7 @@ Tanka.dados = {
     // Trade entre jogadores (Henri, 25/11/2026): raridade sempre 'unico'. Loja de Éter (LOJA.trade) e, no futuro, o Passe de
     // Batalha (até 2 no grátis e 4 no premium, espalhados pelos níveis).
     trade: { nome: 'Pergaminho de Trade',
-      descricao: 'Abre uma negociação com outro jogador (Social › Trade). Os dois precisam ter 1: ele é gasto quando o outro aceita o pedido.' },
+      descricao: 'Abre uma negociação com outro jogador (Social › Trade). Só quem pede o trade precisa de 1: ele é gasto quando o outro aceita o pedido.' },
   },
   // ---------- Craft dos Anões (Daniel, nov/2026; etapas 1 a 3 do PDF "Os Anões: Mestres da Forja") ----------
   // Materiais: cada região tem o seu (caem dos monstros: % pela posição do monstro) e cada chefe um raro (dropChefe %).

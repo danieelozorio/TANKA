@@ -1723,7 +1723,7 @@ begin
   begin perform public.trade_por(A, t, 'itX', null, 1, 0); raise exception 'FALHA: por antes de abrir'; exception when others then if sqlerrm like 'FALHA%' then raise; end if; end;
   r := public.trade_responder(B, t, true);
   if r -> 'abertos' -> 0 ->> 'estado' <> 'aberto' then raise exception 'FALHA abrir %', r; end if;
-  if exists (select 1 from jsonb_array_elements((select dados -> 'consumiveis' from personagens where id = B)) e where e ->> 'tipo' = 'trade') then raise exception 'FALHA: pergaminho de B gasto'; end if;
+  if not exists (select 1 from jsonb_array_elements((select dados -> 'consumiveis' from personagens where id = B)) e where e ->> 'tipo' = 'trade') then raise exception 'FALHA: B não gasta pergaminho ao aceitar'; end if;
   r := public.trade_por(A, t, 'itX', null, 1, 0);
   if exists (select 1 from jsonb_array_elements((select dados -> 'inventario' from personagens where id = A)) e where e ->> 'id' = 'itX') then raise exception 'FALHA: item saiu da mochila'; end if;
   r := public.trade_por(A, t, null, null, 1, 300);

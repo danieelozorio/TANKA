@@ -5507,7 +5507,7 @@ end $$;
 -- ============================================================================================================
 -- Trade entre jogadores (Henri, 25/11/2026). Social › Trade.
 -- 1) A pede trade a B (pelo nome): o Pergaminho de Trade de A fica guardado no pedido (volta se B recusar ou A cancelar).
--- 2) B aceita o pedido: gasta o pergaminho dele e o de A (que já estava guardado) e a negociação abre. Sem prazo.
+-- 2) B aceita o pedido: o pergaminho de A (guardado) é gasto e a negociação abre. B não precisa de pergaminho. Sem prazo.
 -- 3) Cada um põe itens da mochila, consumíveis ou ouro: tudo sai da ficha e fica guardado na negociação. Qualquer
 --    mudança (pôr ou tirar) desfaz os dois aceites.
 -- 4) Os dois aceitam: o que cada um pôs vai para o outro (recompensas/créditos, entregues pela função `acao`).
@@ -5600,7 +5600,7 @@ begin
   return public.trade_estado(meu);
 end $$;
 
--- B responde o pedido: aceitar gasta o pergaminho dele e abre; recusar devolve o pergaminho de A.
+-- B responde o pedido: aceitar abre (gasta só o pergaminho de A, que já estava guardado); recusar devolve o de A.
 create or replace function public.trade_responder(meu text, trade bigint, aceitar boolean) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare t public.trades; d jsonb;
@@ -5609,9 +5609,6 @@ begin
   select * into t from public.trades where id = trade for update;
   if t.id is null or t.estado <> 'pedido' or t.b <> meu then raise exception 'Esse pedido não está mais esperando você.'; end if;
   if aceitar then
-    select dados into d from public.personagens where id = meu for update;
-    d := public.trade_tirar_consumivel(d, 'trade', 'unico', 1);
-    update public.personagens set dados = d where id = meu;
     update public.trades set estado = 'aberto', aberto_em = now(), atualizado_em = now() where id = t.id;
   else
     perform public.trade_entregar(t.a, jsonb_build_object('tipo', 'consumivel', 'ctipo', 'trade', 'raridade', 'unico', 'qtd', 1));

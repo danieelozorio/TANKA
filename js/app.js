@@ -2085,7 +2085,7 @@
     }).join('');
     var TL = L.trade, nTL = pergTrade(p);
     var cartaTrade = TL ? '<div class="caixa-interna loja-carta"><h3>' + iconeConsumivel({ tipo: 'trade', raridade: 'unico' }) + ' ' + TL.nome + '</h3>'
-      + '<p>Abre uma negociação com outro jogador em <strong>Social › Trade</strong>: itens, consumíveis e ouro. Os dois precisam de 1; ele é gasto quando o outro aceita o pedido.</p>'
+      + '<p>Abre uma negociação com outro jogador em <strong>Social › Trade</strong>: itens, consumíveis e ouro. Só quem pede precisa de 1; ele é gasto quando o outro aceita o pedido.</p>'
       + '<p class="suave pequeno">Na mochila de ' + esc(p.nome) + ': <strong>' + nTL + '</strong></p>'
       + '<div class="item-acoes">' + botaoCompra('trade', TL.preco, 'Comprar') + '</div></div>' : '';
     var S = L.starter;
@@ -2251,8 +2251,8 @@
     var p = estado.personagem, T = estado.trade || {}, d = T.dados, n = pergTrade(p);
     if (!d && !T.carregando) carregarTrade();
     var h = '<section class="caixa trade"><h2>🤝 Trade</h2>'
-      + '<p class="suave">Troque itens, consumíveis e ouro com outro jogador. Os dois precisam de 1 <strong>Pergaminho de Trade</strong> (Loja de Éter): '
-      + 'ele é gasto quando o outro aceita o pedido. A negociação não tem prazo: cada um põe o que quiser e, quando os dois aceitarem, a troca acontece.</p>'
+      + '<p class="suave">Troque itens, consumíveis e ouro com outro jogador. Para <strong>pedir</strong> um trade você precisa de 1 <strong>Pergaminho de Trade</strong> (Loja de Éter): '
+      + 'ele só é gasto quando o outro aceita o pedido. Quem recebe o pedido não precisa de pergaminho. A negociação não tem prazo: cada um põe o que quiser e, quando os dois aceitarem, a troca acontece.</p>'
       + '<div class="caixa-interna trade-novo"><span class="trade-perg">' + iconeConsumivel({ tipo: 'trade', raridade: 'unico' }) + ' Você tem <strong>' + n + '</strong> Pergaminho' + (n === 1 ? '' : 's') + ' de Trade</span>'
       + '<form class="trade-pedir" data-form="trade-pedir"><input name="nome" placeholder="Nome do jogador" maxlength="24" autocomplete="off">'
       + '<button class="btn" type="submit"' + (n ? '' : ' disabled') + '>Pedir trade</button></form>'
@@ -2268,7 +2268,7 @@
       if (t.estado === 'pedido') {
         h += '<div class="caixa-interna trade-pedido">' + (souA
           ? '<span>⏳ Esperando <strong>' + esc(outro) + '</strong> aceitar o seu pedido de trade.</span><button class="btn secundario btn-pequeno" data-acao="trade-cancelar" data-id="' + t.id + '">Cancelar pedido</button>'
-          : '<span>📜 <strong>' + esc(outro) + '</strong> quer negociar com você.</span><span class="botoes"><button class="btn" data-acao="trade-responder" data-id="' + t.id + '" data-valor="1"' + (n ? '' : ' disabled title="Você precisa de 1 Pergaminho de Trade"') + '>Aceitar (gasta 1 pergaminho)</button>'
+          : '<span>📜 <strong>' + esc(outro) + '</strong> quer negociar com você.</span><span class="botoes"><button class="btn" data-acao="trade-responder" data-id="' + t.id + '" data-valor="1">Aceitar</button>'
             + '<button class="btn secundario" data-acao="trade-responder" data-id="' + t.id + '" data-valor="0">Recusar</button></span>') + '</div>';
         return;
       }
@@ -2283,7 +2283,7 @@
             ? '<button class="btn secundario" data-acao="trade-aceitar" data-id="' + t.id + '" data-valor="0">Desfazer meu aceite</button>'
             : '<button class="btn" data-acao="trade-aceitar" data-id="' + t.id + '" data-valor="1">✔ Aceitar a troca</button>')
           + '<button class="btn perigo" data-acao="trade-cancelar" data-id="' + t.id + '">Cancelar negociação</button></div>'
-          + '<p class="suave pequeno">Se alguém mudar o que está na mesa, os dois precisam aceitar de novo. Cancelar devolve o que cada um pôs; os pergaminhos não voltam.</p>';
+          + '<p class="suave pequeno">Se alguém mudar o que está na mesa, os dois precisam aceitar de novo. Cancelar devolve o que cada um pôs; o pergaminho de quem pediu não volta.</p>';
       }
       h += '</div>';
     });
@@ -6329,7 +6329,7 @@
       case 'trade-responder': {
         var simT = el.dataset.valor === '1', idT = el.dataset.id;
         tradeChamar(function () { return C.trade.responder(p.id, idT, simT); },
-          simT ? function (pp) { R.mudarConsumivel(pp, 'trade', 'unico', -1); } : null,
+          null,
           simT ? '🤝 Negociação aberta! Coloque o que quer trocar.' : 'Pedido recusado.');
         if (simT && estado.trade) estado.trade.sel = Number(idT);
         break;
