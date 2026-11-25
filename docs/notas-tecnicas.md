@@ -1421,7 +1421,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - `loja_conta` (vip_ate, starter_em, estoque de boosts) e `loja_ativos` (boost ativo por personagem). Funções:
   `loja_estado`, `loja_comprar(meu, 'vip'|'boost:exp'|'boost:ouro'|'starter'|'skin:<id>')`, `loja_usar_boost`, `loja_vips`.
 - VIP: o gatilho da ficha força `dados.vip = conta_vip(conta)` (o jogador não grava). Efeitos: `R.estaminaPorMinuto`
-  x2; `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
+  (VIP enche em `LOJA.vip.estaminaMinutos` = 60 min, 20/11; era x2); `vip_extra(pid, campo)` em `arena_entradas_atual/arena_gastar_entrada` (+2) e `masmorra_entradas_dia(pid)` (+2);
   `alianca_doar` x2; `oficina_pedir` faz na hora com qualquer artesão; Arcane só VIP (`conferirArcane`, ⚙); nome brilhante
   (`VIPS` + MutationObserver pinta os nomes de `loja_vips()` em toda a página; CSS `.nome-vip.vip-m/.vip-f`).
 - Boosts: `cacada_bonus` soma `loja_boost_pct` (+50%) ao bônus do clã na caçada do servidor. Obs.: a caçada AFK
@@ -1431,6 +1431,16 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   → `R.ganharSkin` (fica no personagem que comprou). Skins saíram do Mercado (`comprarSkin` com ouro recusa).
 - Abas: Social à esquerda do Leilão e a nova Loja à direita; a aba do Mercado de NPC passou a se chamar "Mercado".
 - Pendente: Passe de Batalha (mensal, 49 Éter, Grátis + Premium) e a compra real (Google Play Billing).
+- Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026): pacotes em `D.LOJA.pacotes` (1 Éter = R$ 1).
+  Edge Function `supabase/functions/pagamento` (sem verify JWT): `{ pacote }` com o login → `eter_pedido_criar(c, pacote)`
+  (preço do servidor) → preferência do Checkout Pro (`external_reference` = id do pedido) → `{ url }`. Aviso do Mercado
+  Pago em `?webhook=1`: confere `x-signature` (HMAC com `MP_WEBHOOK_SECRET`), busca `/v1/payments/:id` com
+  `MP_ACCESS_TOKEN` e chama `eter_mp_atualizar(mp, pedido, status, valor)`: credita 1 vez por pagamento aprovado
+  (`eter_pagamentos.creditado`), estorno/chargeback tira o Éter (sem deixar negativo). Funções só com a chave do servidor.
+  Tabelas `eter_pedidos` e `eter_pagamentos` (RLS sem política). Liga com `ajustes.eter_venda = 'true'` (`loja_estado.venda`).
+  Tela: carta "Comprar Éter" na Loja só no navegador (`noAppNativo()` esconde no app da Play Store, que precisa do
+  Google Play Billing). Volta do pagamento: `/jogar/?pagamento=ok|pendente|falhou` → aviso + recarrega o saldo 3 vezes.
+  Teste: `testes/pagamento_servidor.test.ts` e o bloco "mp:" do `banco.test.sql`.
 
 ## Regras de alinhamento das abas (Henri, 19/11/2026)
 - Fim do `css/estilo.css`: ícones das abas com tamanho fixo (`flex: none`); botões da barra principal cortam o texto
@@ -1512,3 +1522,143 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Aplicado no Supabase (20/11/2026) trocando só os trechos (o banco tem as funções com quebra de linha \r\n: normalizar
   com replace(..., chr(13)||chr(10), chr(10)) antes de procurar). `tanka_dados()` no banco foi refeito a partir do
   jsonb (texto diferente do arquivo, conteúdo igual): para conferir esse, comparar o jsonb, não o md5 do texto.
+
+## Pacto v2 (Henri, 20/11/2026)
+- Estrutura: sem o atalho 1↔3 das trilhas (passa pelo Notável); 1 ponte por par (`ponte-a-b-0`, entre os `-1-1`/`-0-1`;
+  `ASCENSAO.pontes` virou lista de objetos) com o bônus da antiga ponte de fora (Fortuna ⇄ Fúria: +2% ouro, +2% dano);
+  ponte custa 3; `limitePontos` 48; tronco pode ter `tronco2` (2º ponto: Bastião dá defesa mágica).
+- Migração: `ascensao.v` < `ASCENSAO.versao` (2) → `R.normalizar` zera os pontos (de graça) e marca `avisoPactoV2` (a tela
+  avisa uma vez e devolve 2 pelas preferências). Compras novas já gravam `v: 2`.
+- Zerar (fase de testes, 21/11/2026): 100 mil fixo (`precoRefazerMais: 0`). No BETA volta a: `R.precoRefazerAscensao(p, agora)` = 500 mil + 250 mil × vezes na semana (`ascensao.refeitos = {semana, n}`,
+  semana de `semanaReset`); balão no meio da tela. Exp no 60: igual à do 59 por ponto (já era); "(PACTO)" na exp.
+- Efeitos novos: `velocidadePts` (Tempestade, pontos), `recargaMenos` (Foco −1 turno, mínimo 1), `primeiroGolpe` (1ª
+  habilidade +40% e alvo −30% de velocidade até o fim da luta; sem barra cheia), `golpeCerteiro: 30` (crítico ignora 30% da
+  defesa; Arena: dado 18+; roubo de vida ×0,5), `danoHibrido` (x% do dano contra a defesa oposta), `danoVidaAtual`
+  (x% da vida atual do alvo por golpe, no máximo o dano do golpe), Execução −10% acima de 30%. Mesmo em `calcularGolpe`
+  e em `arena_vez`/`arena_lutador`/`arena_com_pacto` (SQL).
+- Tela: tocar num ponto longe mostra o caminho mais barato (`R.caminhoAscensao`, Dijkstra pelo custo, sem atravessar
+  Pedra) e "Pegar o caminho"; confirma tudo de uma vez. Mapa arrasta com o mouse (pointer events; clique depois do
+  arrasto não conta) e rola com o dedo.
+
+## Defesa mágica dos lutadores (Henri, 21/11/2026)
+- `D.GRUPOS_ITEM.defMagicaDaDefesa = { pesado: 20, leve: 25 }`: elmo, peitoral, luvas e botas desses grupos (pela
+  `classe` do item → `GRUPOS_ITEM.classes`) dão também essa % da própria defesa (já x DEFESA.fator, com encanto) como
+  defesa mágica. Mágico (Manto etc.) e joias não. Vale para itens já existentes (calculado, não salvo).
+- JS: fim de `R.bonusItem`. SQL: `tanka_status` (variáveis `d0`/`pdm`, depois do encanto de cada item);
+  `tanka_dados()` leva `GRUPOS_ITEM.classes` e `defMagicaDaDefesa` (gerar_dados_sql.js).
+- Lv 60, tudo épico: Cavaleiro def. mágica 460 → ~664; Arqueiro 445 → ~608; Mago 985 (igual).
+
+## Arena: revide zera a repetição do saque (Henri, 21/11/2026)
+- A repetição na semana (ouro cheio, ½, ¼, 0 do mesmo atacante contra o mesmo defensor) só conta as lutas depois da
+  última vez que o defensor atacou esse atacante e VENCEU (`arena_finalizar`). Assim, dois fortes que se atacam e
+  ganham um do outro saqueiam ouro cheio dos dois lados.
+
+## Ficha resumida e chat leve: menos internet do Supabase (Henri, 21/11/2026)
+- As funções `cacada` e `acao` mandavam a ficha inteira de volta a cada pedido (3 por luta + preferências a cada minuto).
+  Agora o jogo manda `versaoCliente` (a versão da última ficha que veio do servidor, guardada intacta em
+  `baseServidor` no contas.js) e, se for a mesma que o servidor leu, a resposta traz só `mudou`/`removidas`/`versao`/`hash`
+  (`R.respostaFicha`). O jogo monta a ficha com `R.aplicarFicha` e confere o `hash` (`R.hashFicha`, JSON com as chaves em
+  ordem); se não bater, o próximo pedido vem sem versão e recebe a ficha inteira. Versão diferente: ficha inteira.
+- Sem brecha: o servidor continua lendo, decidindo e gravando a ficha inteira; a cópia do jogo é só para a tela.
+- Chat global: fechado, só busca as mensagens novas (a lista inteira de 30 em 30 s só com o chat aberto; ao abrir, busca tudo).
+- Testes: `testes/cacada_servidor.test.ts` e `testes/acao_servidor.test.ts` (ficha resumida). A falha "missão do clã" no
+  teste da caçada rodado no Node é do teste (sem Deno.env.set), já existia.
+
+## Vida por level maior (Henri, 21/11/2026)
+- `HP_POR_NIVEL` 10 → 36 (level 60: ~2.900 a ~4.500 de vida; antes ~1.400 a ~2.600). Vale na Arena (tanka_dados → rodar schema).
+- Contra monstros a dificuldade é a mesma: `R.fatorVida(p)` = vida com 36 / vida com `HP_POR_NIVEL_MONSTROS` (10),
+  guardado no lutador (`L.fatorVida`). `aoReceber` multiplica o golpe do monstro por ele (menos golpes em % da vida:
+  `pctVida`, área da masmorra e golpes da torre que ignoram defesa); a cura que vem do dano causado (roubo de vida,
+  Luz Punitiva, veneno que cura) também, e o dano devolvido (reflete) é sobre o golpe sem o fator.
+- Na tela, o dano dos monstros aparece já x fator do herói (`danoMonstro` no app.js).
+- Simulado (mesmo herói, 600 lutas): Bruxo/Caçador/Destruidor/Paladino nos Pesadelos com a mesma taxa de vitória e vida no fim.
+- `testes/banco.test.sql` (boss mundial "derrotado") falha fora das 20h–21h; já falhava no main, é do relógio.
+
+## Pacto: Fúria, Precisão e Tempestade −60% (Henri, 21/11/2026)
+- Todos os efeitos (tronco, pequenos, notáveis e pedras) desses 3 domínios viraram 40% do valor de antes; os custos das pedras
+  (vida −15/−10, precisão −3, roubo de vida pela metade, ataque normal −10%) NÃO mudaram. Foco (recargaMenos 1) e Eco (25%) também não.
+- Execução agora usa o valor: `ef.execucao` = +% abaixo de 30% da vida (16; era fixo 1,4). Primeiro Golpe: lentidão em
+  `ASCENSAO.primeiroGolpeLento` (20; era 0,7 fixo). JS (`calcularGolpe`) e SQL (`arena_vez`) leem o mesmo número.
+- Valores com vírgula: `calcularEfeitosAscensao` arredonda a soma em 2 casas; `efAscTexto` mostra com `fmtDec`.
+
+## Poder novo (Henri, 21/11/2026)
+- `R.poder = PODER_FATOR (6) x raiz(ataque x resistência)` (média geométrica). Antes: `ataque x 10 + resistência / 2 x 1,5`.
+  Motivo: com o mesmo equipamento (lendária +5, lv 60) o Bruxo dava 1,68 mi e o Paladino 460 mil (o crítico mágico
+  inflava o ataque); agora 786 mil x 481 mil. Quem tem muito ataque e pouca vida não sobe tanto.
+- O `dados.poder` gravado (rankings) só muda quando a ficha do jogador é salva de novo.
+- `poderRecomendado` das masmorras recalculado com o poder novo (mediana das 8 segundas classes no level mínimo).
+- Ranking por level (Henri, 21/11/2026): `ranking(tipo)` devolve `pacto` (pontos do Pacto, igual a `R.pontosAscensaoTotal`) e desempata o level por pacto, exp do Pacto e exp. A tela mostra "Pacto N" embaixo do level. A função virou plpgsql (usa `tanka_dados()`, criada mais abaixo no schema).
+
+## Botas: atributo trocado (Henri, 22/11/2026)
+- Botas Leves (arqueiro) SOR → DES; Sandálias (mago) DES → INT (`D.armaduras`). Botas novas saem com `botaV2: true`
+  (sortearBonus). As antigas (sem botaV2) trocam o atributo inteiro na hora de calcular: `D.BOTAS_TROCA` em `R.bonusItem`
+  e em `tanka_status` (var `kb`). Conferido: jogo e servidor dão o mesmo status. Artesão (Botas antigas) continua SOR.
+
+## Ponte Vigor ⇄ Tempestade (Henri, 22/11/2026)
+- `curaHab` 5 → 2,5% da vida máxima ao usar habilidade (JS e Arena via tanka_dados).
+
+## Oficina: várias receitas iguais (Henri, 22/11/2026)
+- Fabricar Receita tem "Quantidade" com botão +1 (`of-qtd-mais`); trocar a região volta para 1. Custos e preço x quantidade.
+- Vira um pedido por receita, um depois do outro (`pedirVarias`), o servidor confere cada um. Limite: `CRAFT.oficina.maxPedidos` (5)
+  menos os pedidos esperando; com amigo (feito na hora) sem limite.
+
+## Forja melhor (Henri, 22/11/2026)
+- Chances (`CRAFT.forja`): comum 30 / rara 50 / épica 18 / lendária 2. Material do chefe: +5% épica e +1,5% lendária; Pedra
+  Preciosa: +4% e +1,5% (até 3 de cada); o que somam sai primeiro do comum, depois da rara. Obra-prima 5% (+2% Anão).
+- Quem encomenda com level 40+ (`soEpicaDesde`): comum e rara viram épica.
+- Level do item: o de quem encomenda + 5 a 10 (`nivelAcima`), até o level da região + 15 (`tetoRegiao`; o Cume não tem
+  teto) e no máximo 60. Qualidade de 80% a 100% da faixa da raridade (`qualidadeMin`, `qualidadeForja`).
+- JS: `R.chancesForja(p, area, chefe, gemas, nivelCliente)`, `R.nivelForja(area, nivel)`, `R.forjar` (Ferreiro para si),
+  `R.itemForjado(spec)` com `spec.nivel` (pedidos antigos sem ele: como antes). SQL: `forja_chances`, `forja_nivel`
+  (o 60 está fixo lá) em `oficina_fazer_pedido`.
+
+## Chefe Mundial mais forte (Henri, 22/11/2026)
+- Uma pessoa derrubou sozinha. Agora: do level 40 (`CHEFE_MUNDIAL.pesadeloDesde`) a luta é contra o chefe Pesadelo do
+  level do herói (`R.lutaChefeMundial`) com metade do dano (`danoPesadelo`); abaixo, o chefe da região com o dano da
+  caçada (antes: o dano antigo, mais fraco). O ouro/exp continua pelo chefe da região (`chefe` no boss_atacar_servidor).
+- `boss_cfg`: vida 150 mil por jogador ativo (era 50 mil); limite por ataque `danoMaximoPct` 3% da vida máxima (era 200 mil
+  fixo): no máximo 15% por pessoa com 5 ataques.
+
+## História trava as regiões (Henri, 22/11/2026)
+- Cada capítulo (js/historia.js): vencer 10x, 20x e 50x os 3 monstros da região (`HISTORIA.METAS`, objetivo
+  `tipo: 'monstro'`) e 1x o chefe. Os objetivos são montados no fim do historia.js a partir de `D.areas`.
+- Prêmio (`premio.padrao` + `HISTORIA.PREMIO`): 1 item épico aleatório do level do herói (inclusive colar/anel), ouro de
+  2 chefes da região (`m.ouro x 2`) e 2 pergaminhos com a raridade de `sortearRaridadeDrop`. O capítulo 7 também dá título e skin.
+- `R.areaLiberada` agora pede o capítulo da região anterior em `p.historia.lidos` (`historiaAreaLiberada`); a caçada no
+  servidor usa `podeCacar`, então vale lá também. Mapa: região fechada pela História mostra "📜 Conclua a História" e o
+  clique avisa (`area-fechada`, `R.motivoAreaFechada`). Minas, forja e receitas continuam só pelo level.
+- Quem já existia (p.historia sem `v: 2`): `normalizar` grava `livreAte` = última região que o level já abria; essas
+  continuam livres sem a História (o progresso do capítulo atual recomeça). Personagem novo nasce com `livreAte: 0`.
+- 22/11/2026 (2): a História começa sozinha (objetivos aparecem sem "aceitar"; o "!" só com capítulo completo).
+  Metas por região em `HISTORIA.METAS.porArea` (floresta 10/20/50 … cume 75/150/400). Carta do monstro e do chefe na
+  caçada mostram "Objetivo: Y/X" em cima da imagem (`objetivoHistoriaHtml`, `.objetivo-hist`).
+
+## App: atualização do jogo em segundo plano (Henri, 22/11/2026)
+- `js/app-nativo.js`: versão nova do jogo baixa em segundo plano (aviso pequeno `#app-baixando`), fica pronta com
+  `U.next` e entra quando o app vai para o fundo (`appStateChange` → `U.set`) ou na próxima abertura. A tela cheia
+  obrigatória (`oferecerJogo`) só quando `versao.json.webMinimo` > versão do jogo (mudar à mão no release app-web).
+
+## Estamina sem reset da meia-noite (Henri, 23/11/2026)
+- `R.atualizarTempo`: na virada do dia continuam o reset das poções e dos potes de estamina do dia, mas a estamina
+  não enche mais. Ela só volta com o tempo (90 min; VIP 60) ou com pote. Teste: "meia-noite não enche a estamina".
+
+## Torre: recarga do Desviar (Henri, 23/11/2026)
+- Testamos 4 turnos e voltamos para `TORRE.desviar.recarga: 2` no mesmo dia.
+
+## Inspecionar (só admin; Henri, 24/11/2026)
+- Ranking: botão "🔍 Inspecionar" ao lado do Atacar (só `ehAdmin()`). Abre `inspecaoHtml()` (janela por cima, X fecha) com 3 abas:
+  itens equipados (`fichaItemHtml(it, true)` com `estado.personagem` trocado pelo inspecionado durante o desenho), Pactos
+  (pontos por domínio, notáveis/pedras e `pactoResumo`) e atributos/status (`R.status`).
+- Servidor: `admin_inspecionar(pid)` (security definer, só `eh_admin()`) devolve `dados` + id/nome. `C.senha.adminInspecionar`.
+- Aba Atributos do Inspecionar: "De onde vem a vida" (`R.origemVida(p)`, mesma ordem de `status`: base, level, RES, itens, escudo %, passiva %, raça %, conjunto, clã %, Pacto %; o total bate com `status(p).hpMax`).
+
+## Vida do Paladino, escudo e Orc −50% (Henri, 24/11/2026)
+- Pele de Ferro: vidaPct 5 + 0,5 por ponto (`porPonto: { vidaPct: 0.5 }`; antes 10 + 1). `R.valorBonus` e o SQL (`arena_kit` e
+  `tanka_status`) leem `porPonto` no lugar de TALENTOS.bonusPorPonto. Defesa da passiva não mudou.
+- Escudo: vidaPct 1,5/2,5/3,5/4,5 (antes 3/5/7/9). Bônus `fixos` da mão esquerda agora valem sempre pela tabela de hoje,
+  também nos itens já salvos (`R.bonusItem` e `tanka_status`; `tanka_dados` leva `MAO_ESQUERDA.fixos`).
+- Orc: vidaPct +10 (antes +20).
+- Paladino: `SEGUNDAS_CLASSES.paladino.vidaPorNivelPct: 50` (Henri, 24/11/2026): do level `TALENTOS.nivelSegunda` (10) em diante, a vida por level é a metade (`R.vidaDosNiveis`; SQL em `tanka_status`). Ex.: level 53 = 9 x 36 + 43 x 18.
+- Arena (Henri, 24/11/2026): veneno/sangramento das habilidades (tipo dot) e queimadura tiram `ARENA.dotVidaPct` (2%) da vida máxima do alvo por turno, sem defesa, x o fator do D20 (`arena_fator_efeito`). Caçada/masmorra/chefes continuam com % do ataque. Ferida Aberta (Pacto) não mudou.
+- Pele de Ferro (Paladino): Armadura de Espinhos `espinhosPvE: 4` + 1 por ponto (5% a 15%) vira `ex.reflete` em `extrasLuta` (caçada, masmorra, chefes, Torre). A Arena (SQL) não lê. Testes antigos de luta usam `semEspinhos()`.
+- Admin: +1/−1 ponto do Pacto no grupo Level (`R.admin.pacto`: mexe só nos `ascensao.extras`, até o limite; tirar solta os últimos nós se faltar ponto).

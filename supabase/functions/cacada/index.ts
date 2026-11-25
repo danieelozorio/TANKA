@@ -62,6 +62,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   // missão do clã "monstros" parou de contar em 16/11/2026)
   const abates = (d: { abates?: Record<string, number> }) => Object.values(d.abates || {}).reduce((s, n) => s + (Number(n) || 0), 0);
   const abatesAntes = abates(linhas[0].dados);
+  const gravada = R.textosFicha(linhas[0].dados);   // para mandar de volta só o que mudou (ficha resumida, 21/11/2026)
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
 
@@ -111,7 +112,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
     await fetch(base + '/rest/v1/rpc/alianca_missao_servidor', { method: 'POST', headers: srv,
       body: JSON.stringify({ pid: id, tipo: 'monstros', qtd: novos }) }).catch(() => null);
   }
-  return responder({ ...saida, personagem: p, agora: t });
+  return responder({ ...saida, ...R.respostaFicha(gravada, versao, pedido.versaoCliente, p), agora: t });
 }
 
 if (import.meta.main) Deno.serve((req) => tratar(req));

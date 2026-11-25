@@ -121,6 +121,34 @@ Tanka.regras = (function () {
     return Math.max(1, Math.round(valorRaro * escalaNivel(nivel) * multQualidade(q) / multQualidade(0.55)));
   }
   // Extras da arma pela faixa de nível (EXTRAS_ARMA).
+  // Ficha resumida (Henri, 21/11/2026, para gastar menos internet do Supabase): as funções do servidor mandam só as
+  // partes da ficha que mudaram (`mudou`/`removidas`) quando o jogo já tem a versão que o servidor leu. O servidor
+  // continua lendo, decidindo e gravando a ficha inteira: isto só muda o que volta para a tela. `hash` confere a
+  // ficha montada no jogo (JSON com as chaves em ordem); se não bater, o próximo pedido vem com a ficha inteira.
+  function jsonOrdenado(v) {
+    if (v === null || typeof v !== 'object') return JSON.stringify(v);
+    if (Array.isArray(v)) return '[' + v.map(function (x) { return x === undefined || typeof x === 'function' ? 'null' : jsonOrdenado(x); }).join(',') + ']';
+    return '{' + Object.keys(v).sort().filter(function (k) { return v[k] !== undefined && typeof v[k] !== 'function'; })
+      .map(function (k) { return JSON.stringify(k) + ':' + jsonOrdenado(v[k]); }).join(',') + '}';
+  }
+  function hashFicha(d) { return hashTexto(jsonOrdenado(d)); }
+  function textosFicha(d) { var t = {}; Object.keys(d || {}).forEach(function (k) { if (d[k] !== undefined) t[k] = JSON.stringify(d[k]); }); return t; }
+  // antes: textosFicha da ficha como estava gravada (lida antes do normalizar); versaoLida: a versão dela.
+  function respostaFicha(antes, versaoLida, versaoCliente, final) {
+    if (!versaoLida || Number(versaoCliente) !== versaoLida) return { personagem: final };
+    var mudou = {}, removidas = [];
+    Object.keys(final).forEach(function (k) { if (final[k] !== undefined && JSON.stringify(final[k]) !== antes[k]) mudou[k] = final[k]; });
+    Object.keys(antes).forEach(function (k) { if (final[k] === undefined) removidas.push(k); });
+    return { mudou: mudou, removidas: removidas, versao: final.versao, hash: hashFicha(final) };
+  }
+  // No jogo: monta a ficha nova a partir da `base` (a última que veio do servidor). Devolve { ficha, ok } (ok: o hash bateu).
+  function aplicarFicha(base, r) {
+    var f = JSON.parse(JSON.stringify(base));
+    Object.keys(r.mudou || {}).forEach(function (k) { f[k] = r.mudou[k]; });
+    (r.removidas || []).forEach(function (k) { delete f[k]; });
+    f.versao = r.versao;
+    return { ficha: f, ok: hashFicha(f) === r.hash };
+  }
   function hashTexto(t) { var h = 2166136261; for (var i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
   function faixaExtras(nivel) { return D.EXTRAS_ARMA.filter(function (x) { return nivel <= x.ate; })[0] || D.EXTRAS_ARMA[D.EXTRAS_ARMA.length - 1]; }
   // duasMaos: arma de 2 mãos dá o atributo x ATRIBUTO_ARMA.duasMaos (17/11/2026)
@@ -254,6 +282,7 @@ Tanka.regras = (function () {
       b[k] = (def.fixos || []).indexOf(k) >= 0 ? def.bonus[k][idx] : bonusDoNivel(def.bonus[k][1], item.nivel, item.qualidade);
     });
     else Object.keys(def.bonus).forEach(function (k) { b[k] = rolar(faixaBonus(def.bonus[k][idx]), rng); });
+    if (item.tipo === 'botas') item.botaV2 = true;   // já com o atributo novo (BOTAS_TROCA)
     var extra = D.VARIACAO_ITEM.extra[item.raridade];
     if (extra) {
       var k = ATRIBUTOS[Math.floor(rng() * ATRIBUTOS.length)];
@@ -354,6 +383,12 @@ Tanka.regras = (function () {
     if (!def) return b;
     if (item.bonus) Object.keys(item.bonus).forEach(function (k) { b[k] = item.bonus[k]; });   // sorteados ao cair
     else Object.keys(def.bonus).forEach(function (k) { if (def.bonus[k][idx]) b[k] = def.bonus[k][idx]; });   // itens antigos: valor fixo
+    // Bônus fixos da mão esquerda (% pela raridade) valem sempre pela tabela de hoje, também nos itens já salvos
+    // (escudo: vida −50% em 24/11/2026). Igual no schema.sql.
+    if (item.bonus && def.fixos) def.fixos.forEach(function (k) { if (b[k] != null && def.bonus[k]) b[k] = def.bonus[k][idx]; });
+    // Botas antigas: o atributo antigo vira o novo (BOTAS_TROCA; igual no schema.sql)
+    var tb = item.tipo === 'botas' && item.bonus && !item.botaV2 && (D.BOTAS_TROCA || {})[item.classe];
+    if (tb && b[tb[0]]) { b[tb[1]] = (b[tb[1]] || 0) + b[tb[0]]; delete b[tb[0]]; }
     if (def.multDefesaMagica && b.defesaMagica) b.defesaMagica = b.defesaMagica * def.multDefesaMagica;   // anel: defesa mágica +25%
     if (item.encanto) {
       var k = item.tipo === 'secundaria' ? def.encanto : D.encantamento.bonusPorNivel[item.tipo];
@@ -363,8 +398,12 @@ Tanka.regras = (function () {
     // Defesa em porcentagem: a defesa dos itens vale x DEFESA.fator (4,5), inclusive nos itens já salvos.
     if (b.defesa) b.defesa = Math.round(b.defesa * D.DEFESA.fator);
     if (b.defesaMagica) b.defesaMagica = Math.round(b.defesaMagica * D.DEFESA.fator);
+    // Armadura Pesada/Leve: parte da defesa vira também defesa mágica (GRUPOS_ITEM.defMagicaDaDefesa; igual no schema.sql)
+    var pdm = TIPOS_ARMADURA_DM.indexOf(item.tipo) >= 0 && b.defesa && (D.GRUPOS_ITEM.defMagicaDaDefesa || {})[D.GRUPOS_ITEM.classes[item.classe]];
+    if (pdm) b.defesaMagica = (b.defesaMagica || 0) + Math.round(b.defesa * pdm / 100);
     return b;
   }
+  var TIPOS_ARMADURA_DM = ['elmo', 'peitoral', 'luvas', 'botas'];
   // Dano que o herói recebe depois da defesa: x 100 / (100 + defesa), nunca menos que 1.
   function danoComDefesa(dano, defesa) { return Math.max(1, Math.round(dano * D.DEFESA.k / (D.DEFESA.k + Math.max(0, defesa)))); }
   // % de dano que a defesa corta (para mostrar).
@@ -514,7 +553,12 @@ Tanka.regras = (function () {
     return def ? { def: def, pts: PTS_PASSIVA + pontosEm(p, def.id) } : null;
   }
   // Valor de um campo em % de um reforço/cura/passiva com N pontos.
-  function valorBonus(def, campo, pts) { return def[campo] !== undefined ? def[campo] + pts * T.bonusPorPonto : 0; }
+  // porPonto (opcional): quanto cada ponto soma num campo, no lugar de TALENTOS.bonusPorPonto (Pele de Ferro: vida 0,5).
+  function valorBonus(def, campo, pts) {
+    if (def[campo] === undefined) return 0;
+    var pp = def.porPonto && def.porPonto[campo] != null ? def.porPonto[campo] : T.bonusPorPonto;
+    return Math.round((def[campo] + pts * pp) * 100) / 100;
+  }
   // Multiplicador (%) de dano de uma habilidade de golpe.
   function multHabilidade(def, pts) {
     if (Array.isArray(def.mult)) return valorNivel(def.mult, pts);   // golpes do level 30
@@ -616,11 +660,20 @@ Tanka.regras = (function () {
   }
 
   // --- Na luta: estado de um lutador (herói) com as habilidades ---
+  // Vida por level maior (21/11/2026): quanto a vida do herói cresceu com HP_POR_NIVEL em vez de HP_POR_NIVEL_MONSTROS.
+  // Os monstros batem x isso, e a dificuldade contra eles fica igual (cada classe com a mesma de antes).
+  function fatorVida(p) {
+    if (!D.HP_POR_NIVEL_MONSTROS || D.HP_POR_NIVEL_MONSTROS === D.HP_POR_NIVEL || !p || !p.classe) return 1;
+    var agora = status(p).hpMax, antes, atual = D.HP_POR_NIVEL;
+    try { D.HP_POR_NIVEL = D.HP_POR_NIVEL_MONSTROS; antes = status(p).hpMax; } finally { D.HP_POR_NIVEL = atual; }
+    return antes > 0 ? agora / antes : 1;
+  }
   function novoLutador(p, modo) {
     var ex = extrasLuta(p);
     return { kit: kitHabilidades(p, modo), turno: 0, pronto: {}, buffs: [], furtivo: false, critEm: -1, provocaAte: -1, vidaExtra: 0,
       ex: ex, milagreUsado: false, dot: null, escudo: 0, escudoAte: -1, congelaChance: 0, bolsoUsado: false,
-      modo: modo, primeiroGolpe: !!ex.primeiroGolpe, nGolpes: 0, baixa: false };
+      modo: modo, primeiroGolpe: !!ex.primeiroGolpe, nGolpes: 0, baixa: false,   // primeiroGolpe: a 1ª habilidade ainda não saiu
+      fatorVida: fatorVida(p) };
   }
   // Extras da luta contra monstros: passivas do level 20/30 + Pacto de Ascensão.
   function extrasLuta(p) {
@@ -629,7 +682,12 @@ Tanka.regras = (function () {
     if (a.regen) x.regenPct = (x.regenPct || 0) + a.regen;
     if (a.reducaoDano) x.reducaoDano = (x.reducaoDano || 0) + a.reducaoDano;
     ['reflete', 'danoChefe', 'danoMeiaVida', 'danoCacada', 'danoHab', 'curaHab', 'execucao', 'golpeCerteiro',
-      'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco', 'recargaPct'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
+      'feridaAberta', 'inabalavel', 'pocaoMetade', 'semPocao', 'primeiroGolpe', 'eco', 'recargaPct',
+      'recargaMenos', 'danoHibrido', 'danoVidaAtual'].forEach(function (k) { if (a[k]) x[k] = a[k]; });
+    // Armadura de Espinhos da passiva (Paladino, 24/11/2026): devolve % do dano. Só PvE: a Arena é calculada no
+    // servidor (arena_lutador) e não lê isto.
+    var pas = passiva(p), esp = pas && pas.def.espinhosPvE != null ? valorBonus(pas.def, 'espinhosPvE', pas.pts) : 0;
+    if (esp) x.reflete = (x.reflete || 0) + esp;
     return x;
   }
   function somaBuff(L, campo) {
@@ -640,6 +698,9 @@ Tanka.regras = (function () {
   // Começo da vez do herói: conta o turno e tira os reforços que acabaram. h: { hp, hpMax, vel, velBase }.
   function inicioVez(L, h) {
     L.turno++;
+    // Foco (Pacto, Henri 21/11/2026): a cada ASCENSAO.focoCada turnos, as habilidades em recarga ficam recargaMenos turno mais perto
+    if (L.ex && L.ex.recargaMenos && L.turno % (D.ASCENSAO.focoCada || 4) === 0)
+      Object.keys(L.pronto).forEach(function (id) { L.pronto[id] = Math.max(L.turno, L.pronto[id] - L.ex.recargaMenos); });
     L.buffs = L.buffs.filter(function (x) {
       if (x.ate >= L.turno) return true;
       if (x.vidaExtra) { h.hpMax -= x.vidaExtra; h.hp = Math.min(h.hp, h.hpMax); }
@@ -660,7 +721,7 @@ Tanka.regras = (function () {
     var dano = Math.max(1, Math.round(d.dano));
     d.alvo.hp = Math.max(0, d.alvo.hp - dano);
     d.turnos--;
-    if (d.cura && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * d.cura / 100));
+    if (d.cura && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * d.cura / 100 * ((L && L.fatorVida) || 1)));
     var caiu = d.alvo.hp === 0;
     if (caiu && d.curaMorte && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(h.hpMax * d.curaMorte / 100));
     return { alvo: d.alvo, dano: dano, caiu: caiu, nome: d.nome };
@@ -694,11 +755,14 @@ Tanka.regras = (function () {
   }
   // Dano causado pelo herói num monstro: roubo de vida.
   function aoCausar(L, h, dano) {
-    if (L && L.ex && L.ex.rouboVida && dano > 0 && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * L.ex.rouboVida / 100));
+    // fatorVida: a cura que vem do dano causado cresce junto com a vida (21/11/2026), para render o mesmo de antes
+    if (L && L.ex && L.ex.rouboVida && dano > 0 && h.hp > 0) h.hp = Math.min(h.hpMax, h.hp + Math.round(dano * L.ex.rouboVida / 100 * (L.ex.golpeCerteiro ? 0.5 : 1) * (L.fatorVida || 1)));   // Golpe Certeiro: roubo pela metade
   }
   // Dano que o herói vai receber de um monstro: menos dano (Têmpera) e o escudo (que pode congelar quem bate).
-  function aoReceber(L, dano, atacante, rng) {
+  // pctVida: golpe em % da vida do herói (já acompanha a vida; não usa o fatorVida).
+  function aoReceber(L, dano, atacante, rng, pctVida) {
     if (!L || dano <= 0) return dano;
+    if (L.fatorVida && !pctVida) dano = Math.max(1, Math.round(dano * L.fatorVida));   // vida por level maior (21/11/2026)
     // Pó nos Olhos (level 30): o monstro cego erra com erroPct% de chance.
     if (atacante && atacante.cego > 0) { atacante.cego--; if (rng() * 100 < (atacante.cegoPct || 0)) { L.errouCego = true; return 0; } }
     if (L.ex && L.ex.reducaoDano) dano = Math.max(1, Math.round(dano * (1 - L.ex.reducaoDano / 100)));
@@ -709,7 +773,8 @@ Tanka.regras = (function () {
     }
     // Defesa Suprema (level 30): devolve parte do dano para quem bateu.
     var rf = somaBuff(L, 'reflete') + ((L.ex && L.ex.reflete) || 0);
-    if (atacante && rf && dano > 0 && atacante.hp > 0) atacante.hp = Math.max(0, atacante.hp - Math.round(dano * rf / 100));
+    // devolve sobre o golpe sem o fatorVida (21/11/2026): o mesmo dano devolvido de antes
+    if (atacante && rf && dano > 0 && atacante.hp > 0) atacante.hp = Math.max(0, atacante.hp - Math.round(dano / (pctVida ? 1 : (L.fatorVida || 1)) * rf / 100));
     return dano;
   }
   // Depois de levar dano: Bolso de Poções (uma vez por luta, abaixo do limiar).
@@ -794,30 +859,39 @@ Tanka.regras = (function () {
   function calcularGolpe(s, L, alvo, opcoes, rng) {
     var magico = s.tipoDano === 'magico', g = { acerto: false, critico: false, dano: 0 };
     // Contra monstros (caçada e masmorra) o herói acerta pelo menos 95% (errar é coisa da Arena, que tem regra própria no servidor).
-    var X = (L && L.ex) || {}, fa = 1, certeiro = false;
-    // Pacto de Ascensão: 1º golpe da luta, todo 4º golpe crítico (Golpe Certeiro)
-    if (L && L.primeiroGolpe) { L.primeiroGolpe = false; fa *= 1 + X.primeiroGolpe / 100; }
-    if (X.golpeCerteiro && L) { L.nGolpes = (L.nGolpes || 0) + 1; certeiro = L.nGolpes % 4 === 0; }
+    var X = (L && L.ex) || {}, fa = 1;
+    // Primeiro Golpe (Pacto v2): a 1ª habilidade da luta tem +x% de dano e deixa o alvo 30% mais lento até o fim da luta.
+    if (L && L.primeiroGolpe && !opcoes.normal) {
+      L.primeiroGolpe = false; fa *= 1 + X.primeiroGolpe / 100;
+      if (alvo.vel) { alvo.vel = Math.max(1, Math.round(alvo.vel * (1 - (D.ASCENSAO.primeiroGolpeLento || 30) / 100))); g.lentidao = true; }
+    }
     if (!opcoes.sempreAcerta && rng() * 100 >= limitar(s.precisao + somaBuff(L, 'precisao') - alvo.indiceArea * 3, D.ACERTO_PVE_MINIMO, 100)) return g;
     // Pacto: contra chefes, alvo ferido (meia vida / Execução), só na caçada, habilidade x ataque normal (Eco)
     var va = opcoes.vidaAlvo != null ? opcoes.vidaAlvo : (alvo.hpMax ? alvo.hp / alvo.hpMax : 1);
     if (X.danoChefe && alvo.chefe) fa *= 1 + X.danoChefe / 100;
     if (X.danoMeiaVida && va < 0.5) fa *= 1 + X.danoMeiaVida / 100;
-    if (X.execucao) fa *= va < 0.3 ? 1.4 : va >= 1 ? 0.9 : 1;
+    if (X.execucao) fa *= va < 0.3 ? 1 + X.execucao / 100 : 0.9;   // Execução: +x% abaixo de 30% da vida; −10% em quem tem mais
     if (X.danoCacada && L.modo === 'cacada') fa *= 1 + X.danoCacada / 100;
     if (opcoes.normal) { if (X.eco) fa *= 0.9; } else if (X.danoHab) fa *= 1 + X.danoHab / 100;
-    var defesa = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa);
-    var dano = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1) * fa;
-    // level 30: a defesa quebrada (Martelo das Correntes) e o golpe que ignora parte dela (Tiro Silenciador)
-    defesa = defesa * (1 - Math.max(alvo.defQuebra || 0, alvo.quebraTemp ? alvo.quebraTemp.pct : 0) / 100) * (1 - (opcoes.ignoraDefesaPct || 0) / 100);
-    dano = Math.max(1, Math.round(dano * 100 / (100 + defesa)));
+    var bruto = rolar(s.dano, rng) * (opcoes.mult || 100) / 100 * (1 + somaBuff(L, 'dano') / 100) * (1 + (s.danoPvE || 0) / 100) * (1 + (L && L.ex && L.ex.danoExtraPct || 0) / 100) * (opcoes.fator || 1) * fa;
     var chance = (magico ? s.chanceCriticoMagico : s.chanceCritico) + (opcoes.bonusCritico || 0) + somaBuff(L, 'critico');
-    var garantido = (L && L.critEm === L.turno) || opcoes.critGarantido || certeiro;
-    if (garantido || rng() * 100 < chance) {
-      g.critico = true;
-      dano = Math.floor(dano * ((magico ? s.danoCriticoMagico : s.danoCritico) + somaBuff(L, 'danoCritico')) / 100 * (X.golpeCerteiro && !certeiro ? 0.8 : 1));
+    var garantido = (L && L.critEm === L.turno) || opcoes.critGarantido;
+    g.critico = !!(garantido || rng() * 100 < chance);
+    // level 30: a defesa quebrada (Martelo das Correntes) e o golpe que ignora parte dela (Tiro Silenciador);
+    // Golpe Certeiro (Pacto v2): o crítico ignora x% da defesa.
+    var corte = (1 - Math.max(alvo.defQuebra || 0, alvo.quebraTemp ? alvo.quebraTemp.pct : 0) / 100) * (1 - (opcoes.ignoraDefesaPct || 0) / 100)
+      * (g.critico && X.golpeCerteiro ? 1 - X.golpeCerteiro / 100 : 1);
+    var defNat = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesaMagica : alvo.defesa) * corte;
+    var defOp = opcoes.ignoraDefesa ? 0 : (magico ? alvo.defesa : alvo.defesaMagica) * corte;
+    // Dano híbrido (Pacto v2): x% do dano vai contra a defesa oposta (mago: física; guerreiro: mágica).
+    var hib = Math.min(100, X.danoHibrido || 0) / 100;
+    var dano = Math.max(1, Math.round(bruto * (1 - hib) * 100 / (100 + (defNat || 0)) + bruto * hib * 100 / (100 + (defOp || 0))));
+    if (g.critico) {
+      dano = Math.floor(dano * ((magico ? s.danoCriticoMagico : s.danoCritico) + somaBuff(L, 'danoCritico')) / 100);
       if (X.feridaAberta) g.sangra = Math.max(1, Math.round(dano * X.feridaAberta / 100 / 3));
     }
+    // Executor / Sem Piedade (Pacto v2): mais x% da vida ATUAL do alvo (no máximo o mesmo dano do golpe).
+    if (X.danoVidaAtual && alvo.hp > 0) dano += Math.min(dano, Math.round(alvo.hp * X.danoVidaAtual / 100));
     if (garantido && L && L.critEm === L.turno) L.critEm = -1;
     g.acerto = true; g.dano = dano;
     return g;
@@ -1006,25 +1080,46 @@ Tanka.regras = (function () {
     return true;
   }
   // Chances de raridade da forja com os ingredientes extras (chefe e gema: quantidades de 0 a maxExtra).
-  function chancesForja(p, areaId, chefe, gemas) {
+  // Chances da forja (Henri, 22/11/2026). p: quem forja (a raça vale para a obra-prima); nivelCliente: o level de quem
+  // encomenda (40+: só épica ou lendária). Igual a oficina_executar no schema.sql.
+  function chancesForja(p, areaId, chefe, gemas, nivelCliente) {
     var F = D.CRAFT.forja, ch = Math.min(F.maxExtra, chefe || 0), ge = Math.min(F.maxExtra, gemas || 0);
-    var t = {}; F.raridade.forEach(function (x) { t[x.raridade] = x.chance; });
-    t.lendaria = (t.lendaria || 0) + ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria;
-    t.epica = (t.epica || 0) + ch * F.extraChefe.epica + ge * F.extraGema.epica;
-    var resto = 100 - t.lendaria - t.epica - (t.rara || 0);
-    t.comum = Math.max(0, resto);
-    return { comum: t.comum, rara: t.rara, epica: t.epica, lendaria: t.lendaria,
-      obraPrima: F.obraPrima + (p.raca === 'anao' ? F.obraPrimaAnao : 0) };
+    var t = { comum: 0, rara: 0, epica: 0, lendaria: 0 }; F.raridade.forEach(function (x) { t[x.raridade] = x.chance; });
+    var mais = ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria + ch * F.extraChefe.epica + ge * F.extraGema.epica;
+    t.lendaria += ch * F.extraChefe.lendaria + ge * F.extraGema.lendaria;
+    t.epica += ch * F.extraChefe.epica + ge * F.extraGema.epica;
+    var doComum = Math.min(t.comum, mais); t.comum -= doComum; t.rara = Math.max(0, t.rara - (mais - doComum));
+    if ((nivelCliente || 0) >= F.soEpicaDesde) { t.epica += t.comum + t.rara; t.comum = 0; t.rara = 0; }
+    var r = function (v) { return Math.round(v * 100) / 100; };
+    return { comum: r(t.comum), rara: r(t.rara), epica: r(t.epica), lendaria: r(t.lendaria),
+      obraPrima: F.obraPrima + (p && p.raca === 'anao' ? F.obraPrimaAnao : 0) };
+  }
+  // Faixa de level do item forjado para quem tem `nivelCliente`, com a receita de `areaId`: [mín., máx.].
+  function nivelForja(areaId, nivelCliente) {
+    var F = D.CRAFT.forja, i = indiceArea(areaId), a = D.areas[i] || D.areas[0], n = Math.max(1, nivelCliente || 1);
+    var teto = Math.min(N_.maximo, i === D.areas.length - 1 ? Infinity : a.nivelMin + F.tetoRegiao);   // itens vão até o level 60
+    return [Math.min(teto, n + F.nivelAcima[0]), Math.min(teto, n + F.nivelAcima[1])];
+  }
+  // Qualidade boa (qualidadeMin% a 100% da faixa da raridade) e o dano/bônus de novo com ela.
+  function qualidadeForja(item, rng) {
+    var f = N_.faixaQualidade[item.raridade] || [0, 1], m = D.CRAFT.forja.qualidadeMin / 100;
+    item.qualidade = Math.round((f[0] + (f[1] - f[0]) * (m + (1 - m) * rng())) * 1000) / 1000;
+    if (item.tipo === 'arma') item.dano = danoDoNivel(item.nivel, item.qualidade);
+    else item.bonus = sortearBonus(item, rng);
+    return item;
   }
   // Item forjado a partir do que o servidor sorteou (serviço da Oficina): mesma semente = mesmo item.
-  // spec = { classe, tipo, raridade, area, semente, forjadoPor, obraPrima }
+  // spec = { classe, tipo, raridade, area, semente, forjadoPor, obraPrima, nivel } (nivel: sorteado no servidor;
+  // pedidos antigos sem ele: o level da região + 2 e a qualidade sorteada como antes)
   function itemForjado(spec) {
-    var a = D.areas[indiceArea(spec.area)] || D.areas[0], rng = rngSemente(Number(spec.semente) || 1), nivel = a.nivelMin + 2;
+    var a = D.areas[indiceArea(spec.area)] || D.areas[0], rng = rngSemente(Number(spec.semente) || 1), novo = Number(spec.nivel) > 0;
+    var nivel = novo ? Math.floor(Number(spec.nivel)) : a.nivelMin + 2;
     var falso = { classe: spec.classe, talentos: null, nivel: nivel, raca: 'humano', inventario: [], equipados: {} };
     var item = spec.tipo === 'arma' ? novoItem('arma', spec.classe, spec.raridade, rng, sortearTipoArma(falso, spec.raridade, rng), nivel)
       : itemDoTipo(falso, spec.tipo, spec.raridade, rng);
     if (!item) return null;
-    item.nivel = item.nivel || nivel;
+    item.nivel = nivel;
+    if (novo) qualidadeForja(item, rng);
     item.forjadoPor = spec.forjadoPor;
     if (spec.obraPrima) item.obraPrima = true;
     return item;
@@ -1044,18 +1139,19 @@ Tanka.regras = (function () {
     if (gemas) c.push({ tipo: 'material', id: 'gema', nome: D.CRAFT.materiais.gema.nome, tem: qtdMaterial(p, 'gema'), precisa: gemas });
     if (faltando(p, c).length) return 'Faltam materiais ou ouro.';
     if (mochilaCheia(p)) return 'Mochila cheia.';
-    var ch = chancesForja(p, areaId, chefe, gemas), r = rng() * 100, rar = 'comum';
+    var ch = chancesForja(p, areaId, chefe, gemas, p.nivel), r = rng() * 100, rar = 'comum';
     if (r < ch.lendaria) rar = 'lendaria'; else if (r < ch.lendaria + ch.epica) rar = 'epica'; else if (r < ch.lendaria + ch.epica + ch.rara) rar = 'rara';
     var obra = rng() * 100 < ch.obraPrima && rar !== 'lendaria';
     if (obra) rar = RARIDADES[RARIDADES.indexOf(rar) + 1];
     pagar(p, c);
-    var nivel = a.nivelMin + 2, item;
+    var fx = nivelForja(areaId, p.nivel), nivel = fx[0] + Math.floor(rng() * (fx[1] - fx[0] + 1)), item;
     // o item é da classe base escolhida (sem a segunda classe do Ferreiro), para vender ou dar
-    var falso = Object.assign({}, p, { classe: classe, talentos: null });
+    var falso = Object.assign({}, p, { classe: classe, talentos: null, nivel: nivel });
     if (tipo === 'arma') item = novoItem('arma', classe, rar, rng, sortearTipoArma(falso, rar, rng), nivel);
     else item = itemDoTipo(falso, tipo, rar, rng);
     if (!item) return 'Esse tipo de item não existe para essa classe.';
-    item.nivel = item.nivel || nivel;
+    item.nivel = nivel;
+    qualidadeForja(item, rng);
     item.forjadoPor = p.nome;
     if (obra) item.obraPrima = true;
     p.inventario.push(item);
@@ -1092,6 +1188,7 @@ Tanka.regras = (function () {
       guia: { passo: 0, abates: 0 },   // Guia do Aventureiro (só personagens novos)
       criadoEm: new Date().toISOString(),
       atributosV2: true,   // já nasce com os atributos de nov/2026
+      historia: { cap: 0, prog: {}, visto: false, lidos: [], v: 2, livreAte: 0 },   // já nasce com a História que trava regiões
     };
     p.hpAtual = status(p).hpMax;   // a RES da classe e a raça já mudam a vida inicial
     return p;
@@ -1110,6 +1207,12 @@ Tanka.regras = (function () {
         if (j == null || (it.encanto || 0) >= (p.inventario[j].encanto || 0)) melhor[it.id] = i;
       });
       p.inventario = p.inventario.filter(function (it, i) { return !it || it.id == null || melhor[it.id] === i; });
+    }
+    // Pacto v2 (Henri, 20/11/2026): a árvore mudou (pontes, atalhos, custos, limite 48); quem tinha pontos de uma versão
+    // anterior recebe todos de volta, de graça (avisoPactoV2: a tela avisa uma vez).
+    if (p.ascensao && (p.ascensao.v || 1) < D.ASCENSAO.versao) {
+      if (Array.isArray(p.ascensao.nos) && p.ascensao.nos.length) { p.ascensao.nos = []; p.avisoPactoV2 = 1; }
+      p.ascensao.v = D.ASCENSAO.versao;
     }
     trocarHabilidadesAntigas(p);
     // Atributos rebalanceados (3 pontos = +1 de dano, Destreza para o Caçador): quem já tinha level ganha
@@ -1197,6 +1300,13 @@ Tanka.regras = (function () {
       }
       i.atrV3 = true;
     });
+    // História que trava regiões (22/11/2026): quem já existia continua com as regiões que o level dele já abria
+    // (`livreAte`: índice da última região livre sem a História). O progresso do capítulo atual recomeça (metas novas).
+    if (!p.historia || p.historia.v !== 2) {
+      var hm = historiaDados(p);
+      hm.v = 2; hm.prog = {};
+      hm.livreAte = D.areas.reduce(function (n, a, i) { return (p.nivel || 1) >= a.nivelMin ? i : n; }, 0);
+    }
     // Colares de antes da escada (13/11/2026): ganham os bônus novos da raridade e do nível deles.
     p.inventario.forEach(function (i) {
       if (!colarAntigo(i)) return;
@@ -1239,6 +1349,13 @@ Tanka.regras = (function () {
     });
     return s;
   }
+  // Vida que vem dos levels: HP_POR_NIVEL por level. Segunda classe com vidaPorNivelPct (Paladino, 24/11/2026): do level
+  // TALENTOS.nivelSegunda em diante, só essa % por level. Igual no schema.sql (tanka_status).
+  function vidaDosNiveis(p) {
+    var n = p.nivel || 1, c2 = p.talentos && D.SEGUNDAS_CLASSES[p.talentos.classe2], pct = c2 && c2.vidaPorNivelPct;
+    if (pct == null || n <= T.nivelSegunda) return (n - 1) * D.HP_POR_NIVEL;
+    return (T.nivelSegunda - 1) * D.HP_POR_NIVEL + Math.round((n - T.nivelSegunda) * D.HP_POR_NIVEL * pct / 100);
+  }
   function statusBase(p) {
     var a = atributosTotais(p);
     var eq = bonusEquipamentos(p);
@@ -1256,7 +1373,7 @@ Tanka.regras = (function () {
     return comConjunto(comRaca(comPassiva({
       hpMax: pctItem(D.HP_INICIAL
         + Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES   // toda RES acima de 10 dá vida (nov/2026)
-        + (p.nivel - 1) * D.HP_POR_NIVEL
+        + vidaDosNiveis(p)
         + eq.vida, 'vidaPct'),
       tipoDano: magico ? 'magico' : 'fisico',
       danoArma: danoArma,
@@ -1360,7 +1477,7 @@ Tanka.regras = (function () {
     var ligar = function (a, b) { nos[a].viz.push(b); nos[b].viz.push(a); };
     AS.dominios.forEach(function (d) {
       add(d.id + '-t0', { tipo: 'pequeno', dom: d.id, ef: d.tronco, raiz: true });
-      add(d.id + '-t1', { tipo: 'pequeno', dom: d.id, ef: d.tronco });
+      add(d.id + '-t1', { tipo: 'pequeno', dom: d.id, ef: d.tronco2 || d.tronco });   // 2º ponto pode ser outro (Bastião: defesa mágica)
       ligar(d.id + '-t0', d.id + '-t1');
       d.trilhas.forEach(function (t, ti) {
         var b = d.id + '-' + ti + '-';
@@ -1368,19 +1485,16 @@ Tanka.regras = (function () {
           : { tipo: 'pequeno', dom: d.id, trilha: ti, ef: t.pequeno });
         add(b + 'p', { tipo: 'pedra', dom: d.id, trilha: ti, ef: t.pedra.ef, nome: t.pedra.nome });
         ligar(d.id + '-t1', b + 0);
-        for (k = 1; k < 5; k++) ligar(b + (k - 1), b + k);
-        ligar(b + 1, b + 3);   // atalho que pula o notável
+        for (k = 1; k < 5; k++) ligar(b + (k - 1), b + k);   // sem atalho: para seguir, passa pelo Notável (Pacto v2)
         ligar(b + 4, b + 'p');
       });
       ligar(d.id + '-0-2', d.id + '-1-2');   // os dois notáveis do domínio se ligam
     });
     AS.dominios.forEach(function (d, i) {
       var e = AS.dominios[(i + 1) % n];
-      [1, 3].forEach(function (k, q) {
-        var id = 'ponte-' + d.id + '-' + e.id + '-' + q;
-        add(id, { tipo: 'ponte', doms: [d.id, e.id], ef: AS.pontes[i][q] });
-        ligar(id, d.id + '-1-' + k); ligar(id, e.id + '-0-' + k);
-      });
+      var id = 'ponte-' + d.id + '-' + e.id + '-0';   // uma ponte por par (Pacto v2), entre os 2º pontos das trilhas
+      add(id, { tipo: 'ponte', doms: [d.id, e.id], ef: AS.pontes[i] });
+      ligar(id, d.id + '-1-1'); ligar(id, e.id + '-0-1');
     });
     return (ARVORE_ASC = nos);
   }
@@ -1419,6 +1533,34 @@ Tanka.regras = (function () {
     }
     return ok;
   }
+  // Caminho mais barato (Pacto v2, Henri 20/11/2026): os pontos que faltam para chegar em `id` a partir do que já tem
+  // (`lista`), na ordem de pegar. Custo de cada ponto = o custo dele; não passa por Pedra Angular. null = não alcança.
+  function caminhoAscensao(lista, id) {
+    var A = arvoreAscensao();
+    if (!A[id] || lista.indexOf(id) >= 0) return null;
+    var dist = {}, ant = {}, feito = {}, fila = [];
+    Object.keys(A).forEach(function (k) {
+      if (lista.indexOf(k) >= 0) { dist[k] = 0; fila.push(k); }
+      else if (A[k].raiz) { dist[k] = A[k].custo; ant[k] = null; fila.push(k); }
+    });
+    while (fila.length) {
+      fila.sort(function (a, b) { return dist[a] - dist[b]; });
+      var u = fila.shift();
+      if (feito[u]) continue;
+      feito[u] = true;
+      if (u === id) break;
+      if (A[u].tipo === 'pedra' && lista.indexOf(u) < 0) continue;   // não atravessa Pedra
+      A[u].viz.forEach(function (v) {
+        if (lista.indexOf(v) >= 0) return;
+        var d = dist[u] + A[v].custo;
+        if (dist[v] == null || d < dist[v]) { dist[v] = d; ant[v] = u; fila.push(v); }
+      });
+    }
+    if (dist[id] == null) return null;
+    var cam = [], x = id;
+    while (x != null && lista.indexOf(x) < 0) { cam.unshift(x); x = ant[x]; }
+    return cam;
+  }
   // Soma dos efeitos dos pontos pegos (ficha inválida = nada).
   var CACHE_ASC = {}, N_CACHE_ASC = 0;
   function efeitosAscensao(p) {
@@ -1436,11 +1578,33 @@ Tanka.regras = (function () {
     if (!ordenarAscensao(lista, total)) return x;
     var A = arvoreAscensao();
     lista.forEach(function (id) { var ef = A[id].ef; Object.keys(ef).forEach(function (k) { x[k] = (x[k] || 0) + ef[k]; }); });
+    Object.keys(x).forEach(function (k) { x[k] = Math.round(x[k] * 100) / 100; });   // valores com vírgula (1,2 + 1,2 + 1,2 = 3,6)
     // Sabedoria: +25% de exp; com os pontos no limite (a exp não serve mais), vira +20% de drop
     if (x.sabedoria) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + 20; else x.exp = (x.exp || 0) + 25; }
     // Erudito (20/11/2026): exp; com os pontos no limite (a exp não serve mais), cada 3% de exp vira 1% de drop
     if (x.eruditoExp) { if (total >= AS.limitePontos) x.drop = (x.drop || 0) + Math.round(x.eruditoExp / 3 * 10) / 10; else x.exp = (x.exp || 0) + x.eruditoExp; delete x.eruditoExp; }
     return x;
+  }
+  // De onde vem a vida máxima, passo a passo, na mesma ordem de status() (Inspecionar do admin; Henri, 24/11/2026).
+  // Devolve { linhas: [{ nome, txt, ganho }], total } e o total bate com status(p).hpMax (sem as runas).
+  function origemVida(p) {
+    var a = atributosTotais(p), eq = bonusEquipamentos(p), L = [], v = 0;
+    var soma = function (nome, n) { if (n) { L.push({ nome: nome, txt: '+' + n, ganho: n }); v += n; } };
+    var pct = function (nome, x) { if (!x) return; var n = Math.round(v * (1 + x / 100)); L.push({ nome: nome, txt: (x > 0 ? '+' : '') + String(Math.round(x * 100) / 100).replace('.', ',') + '%', ganho: n - v }); v = n; };
+    soma('Base (level 1)', D.HP_INICIAL);
+    var c2v = p.talentos && D.SEGUNDAS_CLASSES[p.talentos.classe2], meioV = c2v && c2v.vidaPorNivelPct != null && p.nivel > T.nivelSegunda;
+    soma('Level ' + p.nivel + ' (' + D.HP_POR_NIVEL + ' por level' + (meioV ? '; ' + c2v.nome + ': ' + c2v.vidaPorNivelPct + '% depois do ' + T.nivelSegunda : '') + ')', vidaDosNiveis(p));
+    soma('Resistência ' + a.res + ' (' + D.HP_POR_RES + ' por ponto acima de ' + D.RES_SEM_VIDA + ')', Math.max(0, a.res - D.RES_SEM_VIDA) * D.HP_POR_RES);
+    soma('Vida dos itens', eq.vida || 0);
+    pct('Mão esquerda (escudo)', eq.vidaPct || 0);
+    var pas = passiva(p);
+    if (pas && pas.def.vidaPct) pct('Passiva: ' + pas.def.nome + ' (' + pas.pts + ' pts)', valorBonus(pas.def, 'vidaPct', pas.pts));
+    pct('Raça: ' + ((D.racas[p.raca] || {}).nome || p.raca), tracosRaca(p).vidaPct || 0);
+    soma('Bônus de conjunto', bonusConjuntos(p).vida || 0);
+    pct('Skill do clã', bonusCla(p, 'vida'));
+    var xa = efeitosAscensao(p).vida || 0;
+    if (xa) { var n = Math.max(1, Math.round(v * (1 + xa / 100))); L.push({ nome: 'Pacto de Ascensão', txt: (xa > 0 ? '+' : '') + xa + '%', ganho: n - v }); v = n; }
+    return { linhas: L, total: v };
   }
   function comAscensao(s, p) {
     var x = efeitosAscensao(p), pct = function (v, n) { return Math.round(v * (1 + n / 100)); };
@@ -1452,6 +1616,7 @@ Tanka.regras = (function () {
     if (x.defesa) s.defesa = pct(s.defesa, x.defesa);
     if (x.defesaMagica) s.defesaMagica = pct(s.defesaMagica, x.defesaMagica);
     if (x.velocidade) s.velocidade = Math.max(1, pct(s.velocidade, x.velocidade));
+    if (x.velocidadePts) s.velocidade = Math.max(1, s.velocidade + x.velocidadePts);   // Tempestade (Pacto v2): pontos
     if (x.evasao) s.evasao += x.evasao;
     return s;
   }
@@ -1461,24 +1626,32 @@ Tanka.regras = (function () {
     var lista = nosAscensao(p), m = motivoAscensao(lista, id, pontosAscensaoTotal(p));
     if (m) return m;
     var hpAntes = status(p).hpMax;
-    p.ascensao = Object.assign({ exp: 0, extras: 0 }, p.ascensao || {}, { nos: lista.concat([id]) });
+    p.ascensao = Object.assign({ exp: 0, extras: 0, v: AS.versao }, p.ascensao || {}, { nos: lista.concat([id]) });
     ajustarVida(p, hpAntes);
     return true;
   }
+  // Preço para zerar (Henri, 20/11/2026): 500 mil, +250 mil a cada vez na mesma semana (a contagem volta na segunda).
+  function precoRefazerAscensao(p, agora) {
+    var r = p.ascensao && p.ascensao.refeitos, n = r && r.semana === semanaReset(agora || Date.now()) ? r.n || 0 : 0;
+    return AS.precoRefazer + n * (AS.precoRefazerMais || 0);
+  }
   // Zera os pontos pagando ouro (a exp e os pontos ganhos continuam).
-  function refazerAscensao(p) {
+  function refazerAscensao(p, agora) {
+    agora = agora || Date.now();
     if (!nosAscensao(p).length) return 'Nenhum ponto para zerar.';
-    if ((p.ouro || 0) < AS.precoRefazer) return 'Ouro insuficiente.';
+    var preco = precoRefazerAscensao(p, agora), sem = semanaReset(agora), r = p.ascensao.refeitos;
+    if ((p.ouro || 0) < preco) return 'Ouro insuficiente: precisa de ' + preco.toLocaleString('pt-BR') + '.';
     var hpAntes = status(p).hpMax;
-    p.ouro -= AS.precoRefazer;
+    p.ouro -= preco;
     p.ascensao.nos = [];
+    p.ascensao.refeitos = { semana: sem, n: (r && r.semana === sem ? r.n || 0 : 0) + 1 };
     ajustarVida(p, hpAntes);
     return true;
   }
   // Exp no level máximo vira ponto do Pacto (até o limite).
   function ganharExpAscensao(p, qtd) {
     if (!(qtd > 0) || pontosAscensaoTotal(p) >= AS.limitePontos) return 0;
-    var a = p.ascensao = Object.assign({ nos: [], exp: 0, extras: 0 }, p.ascensao || {}), custo = expPorPontoAscensao(), ganhos = 0;
+    var a = p.ascensao = Object.assign({ nos: [], exp: 0, extras: 0, v: AS.versao }, p.ascensao || {}), custo = expPorPontoAscensao(), ganhos = 0;
     a.exp = (a.exp || 0) + qtd;
     while (a.exp >= custo && pontosAscensaoTotal(p) < AS.limitePontos) { a.exp -= custo; a.extras = (a.extras || 0) + 1; ganhos++; }
     if (pontosAscensaoTotal(p) >= AS.limitePontos) a.exp = 0;
@@ -1495,7 +1668,9 @@ Tanka.regras = (function () {
     var ataque = (s.dano[0] + s.dano[1]) / 2 * (1 + chanceCrit * (multCrit - 1))
       * Math.min(95, s.precisao) / 100 * s.velocidade / 10;
     var resistencia = s.hpMax * (1 + (s.defesa + s.defesaMagica) / (20 * D.DEFESA.fator)) * (1 + Math.min(50, s.evasao) / 100);
-    return Math.round(ataque * 10 + resistencia / 2 * (D.PODER_PESO_DEFESA || 1));
+    // 21/11/2026 (Henri): média geométrica (raiz de ataque x resistência) em vez de soma. Na soma, o mago (crítico mágico
+    // alto) ficava com 3 a 4x o poder das outras classes com o mesmo equipamento e muito menos vida; agora precisa dos dois.
+    return Math.round((D.PODER_FATOR || 6) * Math.sqrt(Math.max(0, ataque) * Math.max(0, resistencia)));
   }
 
   function distribuirPonto(p, atributo) {
@@ -1578,7 +1753,23 @@ Tanka.regras = (function () {
     var area = D.monstros[monstroId].area;
     return D.areas.find(function (a) { return a.id === area; });
   }
-  function areaLiberada(p, area) { return p.nivel >= area.nivelMin; }
+  // Região para caçar: o level dela e (Henri, 22/11/2026) o capítulo da História da região anterior concluído.
+  function areaLiberada(p, area) { return p.nivel >= area.nivelMin && historiaAreaLiberada(p, area); }
+  function capituloDaArea(areaId) { return ((D.HISTORIA && D.HISTORIA.capitulos) || []).filter(function (c) { return c.area === areaId; })[0] || null; }
+  function historiaAreaLiberada(p, area) {
+    var i = D.areas.indexOf(area), c = i > 0 ? capituloDaArea(D.areas[i - 1].id) : null, h = p.historia || {};
+    if (h.livreAte != null && i <= h.livreAte) return true;   // personagem de antes da regra: o que o level já abria
+    return !c || (h.lidos || []).indexOf(c.id) >= 0;
+  }
+  // Por que a região está fechada (null = aberta).
+  function motivoAreaFechada(p, area) {
+    if (p.nivel < area.nivelMin) return 'Libera no level ' + area.nivelMin + '.';
+    if (!historiaAreaLiberada(p, area)) {
+      var ant = D.areas[D.areas.indexOf(area) - 1], c = capituloDaArea(ant.id);
+      return 'Conclua a História "' + c.titulo + '" (' + ant.nome + ') antes de avançar.';
+    }
+    return null;
+  }
 
   // Monstros comuns de áreas liberadas podem ser caçados; chefes só aparecem sozinhos.
   // Ordem das caçadas: cada monstro só libera depois de derrotar o anterior
@@ -1636,11 +1827,12 @@ Tanka.regras = (function () {
     var i = area.monstros.findIndex(function (x) { return x.id === monstroId; });
     return E.custo[Math.max(0, Math.min(E.custo.length - 1, i))];
   }
-  // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta à meia-noite ou com pote).
+  // minutos = 0: não recupera (Henri, nov/2026: sem acampar a estamina só volta com pote; desde 23/11/2026 a meia-noite não enche mais).
   function estaminaPorMinuto(p) {
     var min = p.acampado ? D.ESTAMINA.minutosAcampado : D.ESTAMINA.minutosSemAcampar;
-    // VIP (Loja de Éter): recupera estaminaMult vezes mais rápido. p.vip vem do servidor (o gatilho da ficha).
-    return min > 0 ? D.ESTAMINA.maximo / min * (p.vip ? D.LOJA.vip.estaminaMult : 1) : 0;
+    // VIP (Loja de Éter, Henri 20/11/2026): enche em LOJA.vip.estaminaMinutos (60 min). p.vip vem do servidor (gatilho da ficha).
+    if (min > 0 && p.vip && D.LOJA.vip.estaminaMinutos > 0) min = Math.min(min, D.LOJA.vip.estaminaMinutos);
+    return min > 0 ? D.ESTAMINA.maximo / min : 0;
   }
 
   // Aplica o reset diário (estamina cheia, poções do dia) e a estamina recuperada desde a última conta.
@@ -1650,13 +1842,13 @@ Tanka.regras = (function () {
     if (p.hpAtual !== hpMax) { p.hpAtual = hpMax; mudou = true; }
     var dia = diaReset(agora);
     if (p.ultimoReset !== dia) {
+      // Meia-noite: poções do dia e potes de estamina zerados. A estamina NÃO enche mais na virada do dia
+      // (Henri, 23/11/2026): só volta com o tempo (90 min, VIP 60) ou com pote.
       p.ultimoReset = dia;
       p.pocoes = Math.max(p.pocoes || 0, D.VIDA.pocoesPorDia);
-      e.pts = Math.max(e.pts, E.maximo);
       e.potes = 0;
-      e.em = agora;
       p.vidaEm = agora;
-      return true;
+      mudou = true;
     }
     if (!e.em || e.pts >= E.maximo || agora < e.em) { e.em = agora; return mudou; }
     var porMin = estaminaPorMinuto(p);
@@ -1756,6 +1948,11 @@ Tanka.regras = (function () {
 
   // ---------- Chefe Mundial (Ignaroth) ----------
   // Cada herói luta contra o chefe da área mais alta liberada pelo level (mesmo dano e defesa); a vida é a do reino.
+  // Com quem o herói luta no Chefe Mundial (22/11/2026): do level 40 em diante, o chefe Pesadelo do level dele.
+  function lutaChefeMundial(p) {
+    var CM = D.CHEFE_MUNDIAL, c = (p.nivel || 1) >= CM.pesadeloDesde ? D.PESADELO.chefes.filter(function (x) { return x.nivel <= p.nivel; }).pop() : null;
+    return c && D.monstros[c.id] ? c.id : chefeDoNivel(p);
+  }
   function chefeDoNivel(p) {
     var area = D.areas.filter(function (a) { return p.nivel >= a.nivelMin; }).pop() || D.areas[0];
     return area.chefe.id;
@@ -1790,7 +1987,8 @@ Tanka.regras = (function () {
     return D.niveisHabilidade.filter(function (n) { return p.nivel >= n; }).length;
   }
 
-  // opcoes.mundial: ataque contra o Chefe Mundial (dano antigo do chefe, sem poções, não gasta estamina).
+  // opcoes.mundial: ataque contra o Chefe Mundial (sem poções, não gasta estamina; o Pesadelo bate CHEFE_MUNDIAL.danoPesadelo).
+  // Até 22/11/2026 usava o dano antigo (mais fraco) do chefe.
   function iniciarBatalha(p, monstroId, rng, opcoes) {
     var m = D.monstros[monstroId], mundial = !!(opcoes && opcoes.mundial);
     var s = status(p, true);   // contra monstro: com as skills do clã
@@ -1805,9 +2003,10 @@ Tanka.regras = (function () {
       auto: !!p.habilidadeAuto,          // usa a habilidade sozinha quando carregar
       habilidadePendente: false,          // o jogador clicou: usa no próximo ataque
       pocoes: mundial ? 0 : (p.pocoes || 0),   // poções disponíveis na luta (só na caçada)
-      ataque: mundial || !m.ataqueCacada ? m.ataque : m.ataqueCacada,   // dano do monstro nesta luta
+      ataque: (function (a) { return mundial && m.pesadelo ? a.map(function (v) { return Math.max(1, Math.round(v * D.CHEFE_MUNDIAL.danoPesadelo)); }) : a; })
+        (!m.ataqueCacada ? m.ataque : m.ataqueCacada),   // dano do monstro nesta luta
       pocaoPendente: false,               // bebe na próxima vez do jogador
-      jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: L.ex.primeiroGolpe ? 100 : 0, poder: 0 },
+      jogador: { nome: p.nome, hp: s.hpMax, hpMax: s.hpMax, vel: Math.max(1, s.velocidade), velBase: Math.max(1, s.velocidade), barra: 0, poder: 0 },
       lutador: L,   // habilidades da caçada (ordem, recargas, reforços)
       chefe: !!m.chefe,
       // Nas 2 primeiras zonas o monstro começa com a barra cheia (o primeiro golpe é dele). Da 3ª zona em diante
@@ -1989,7 +2188,7 @@ Tanka.regras = (function () {
       if (!b.fim && eco(L, b.rng)) { hab.eco = true; hab.golpes.push(golpeJogador(b, { mult: multHabilidade(def, k.pts) * (k.fator || 1) / 100 })); }
       // Luz Punitiva: parte do dano vira vida.
       if (g.acerto && g.dano > 0 && def.curaDano && b.jogador.hp > 0) {
-        var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
+        var cd = Math.round(g.dano * valorBonus(def, 'curaDano', k.pts) / 100 * (L.fatorVida || 1));
         b.jogador.hp = Math.min(b.jogador.hpMax, b.jogador.hp + cd);
         hab.curou = cd;
       }
@@ -2460,7 +2659,7 @@ Tanka.regras = (function () {
 
   // ---------- História (Aventura > História): "A Crônica de Eldrin" (texto em js/historia.js) ----------
   // p.historia = { cap: índice do capítulo atual, prog: { índice do objetivo: quantos }, visto: abertura já lida, lidos: [ids] }.
-  // Não trava regiões: o capítulo só pede o level da região dele.
+  // Trava regiões (22/11/2026): a região seguinte só abre para caçar com o capítulo desta concluído (areaLiberada).
   function historiaDados(p) {
     var h = p.historia || (p.historia = { cap: 0, prog: {}, visto: false, lidos: [] });
     if (!h.prog) h.prog = {};
@@ -2494,14 +2693,25 @@ Tanka.regras = (function () {
     var h = historiaDados(p), mudou = false;
     e.capitulo.objetivos.forEach(function (o, i) {
       var conta = false, m = D.monstros[alvo];
-      if (evento === 'abate' && m) conta = o.tipo === 'abate' ? m.area === o.area && !m.chefe : o.tipo === 'chefe' && o.monstro === alvo;
+      if (evento === 'abate' && m) conta = o.tipo === 'abate' ? m.area === o.area && !m.chefe : (o.tipo === 'chefe' || o.tipo === 'monstro') && o.monstro === alvo;
       if (evento === 'masmorra') conta = o.tipo === 'masmorra' && o.masmorra === alvo;
       if (conta && (h.prog[i] || 0) < metaObjetivo(o)) { h.prog[i] = (h.prog[i] || 0) + 1; mudou = true; }
     });
     return mudou;
   }
-  function premioHistoriaTexto(p, pr) {
+  // Prêmio padrão dos capítulos (22/11/2026): ouro de HISTORIA.PREMIO.ouroChefes chefes da região do capítulo.
+  function ouroPremioHistoria(c) {
+    var a = D.areas.filter(function (x) { return x.id === c.area; })[0], m = a && D.monstros[a.chefe.id];
+    return m ? Math.round(m.ouro * D.HISTORIA.PREMIO.ouroChefes) : 0;
+  }
+  function premioHistoriaTexto(p, pr, c) {
     var partes = [];
+    if (pr.padrao) {
+      var PP = D.HISTORIA.PREMIO;
+      partes.push('1 item ' + D.raridades[PP.raridade].nome.toLowerCase() + ' aleatório do seu level (pode ser joia)');
+      if (c) partes.push(ouroPremioHistoria(c).toLocaleString('pt-BR') + ' de ouro');
+      partes.push(PP.pergaminhos + ' pergaminhos (raridade sorteada como na caçada)');
+    }
     if (pr.ouro) partes.push(pr.ouro.toLocaleString('pt-BR') + ' de ouro');
     if (pr.expPct) partes.push(pr.expPct + '% da exp do level');
     if (pr.pergaminho) partes.push(pr.pergaminho.qtd + ' pergaminho' + (pr.pergaminho.qtd > 1 ? 's' : '') + ' ' + D.raridades[pr.pergaminho.raridade].nome.toLowerCase());
@@ -2516,8 +2726,22 @@ Tanka.regras = (function () {
     var e = historiaEstado(p);
     if (!e || !e.completo) return null;
     var pr = e.capitulo.premio || {}, item = null;
-    if (pr.item && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do capítulo.' };
-    var texto = premioHistoriaTexto(p, pr);
+    rng = rng || Math.random;
+    if ((pr.item || pr.padrao) && mochilaCheia(p)) return { erro: 'Mochila cheia! Libere um espaço para receber o prêmio do capítulo.' };
+    var texto = premioHistoriaTexto(p, pr, e.capitulo);
+    if (pr.padrao) {
+      var PP = D.HISTORIA.PREMIO, tipos = TODOS_TIPOS.concat(TIPOS_JOIA), tp = tipos[Math.floor(rng() * tipos.length)];
+      var nv = limitarNivel(p.nivel);
+      item = TIPOS_JOIA.indexOf(tp) >= 0 ? novoItem(tp, null, PP.raridade, rng, null, nv) : itemDoTipo(p, tp, PP.raridade, rng);
+      if (item) {
+        if (item.nivel !== nv) { item.nivel = nv; if (item.tipo === 'arma') item.dano = danoDoNivel(nv, item.qualidade); else item.bonus = sortearBonus(item, rng); }
+        p.inventario.push(item);
+      }
+      p.ouro += ouroPremioHistoria(e.capitulo);
+      var pgs = {};
+      for (var k = 0; k < PP.pergaminhos; k++) { var rr = sortearRaridadeDrop(rng); mudarPergaminho(p, rr, 1); pgs[rr] = (pgs[rr] || 0) + 1; }
+      texto += ' — pergaminhos: ' + Object.keys(pgs).map(function (r) { return pgs[r] + ' ' + D.raridades[r].nome.toLowerCase(); }).join(', ');
+    }
     if (pr.ouro) p.ouro += pr.ouro;
     if (pr.expPct && p.nivel < D.NIVEL_MAXIMO) ganharExp(p, Math.max(1, Math.round(expNecessaria(p.nivel) * pr.expPct / 100)));
     if (pr.pergaminho) mudarPergaminho(p, pr.pergaminho.raridade, pr.pergaminho.qtd);
@@ -2816,7 +3040,6 @@ Tanka.regras = (function () {
         velBase: Math.max(1, s.velocidade), barra: 0, L: novoLutador(p, 'masmorra') };
     });
     // opc.hpInicial: a vida com que cada herói entra (masmorra com caminhos: a vida passa de uma luta para a outra)
-    hs.forEach(function (h) { if (h.L.ex.primeiroGolpe) h.barra = 100; });   // Primeiro Golpe (Pacto)
     if (opc.hpInicial) hs.forEach(function (h, i) { if (opc.hpInicial[i] != null) h.hp = Math.max(0, Math.min(h.hpMax, Math.round(opc.hpInicial[i]))); });
     var fimDe = function (r) { r.hp = hs.map(function (h) { return h.hp; }); r.hpMax = hs.map(function (h) { return h.hpMax; }); return r; };
     var ataquesMonstro = 0;
@@ -2887,7 +3110,7 @@ Tanka.regras = (function () {
               alvo.hp = Math.max(0, alvo.hp - g.dano);
               sangrar(alvo, g);
               aoCausar(L, H, g.dano);
-              if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100));
+              if (k && k.def.curaDano && H.hp > 0) H.hp = Math.min(H.hpMax, H.hp + Math.round(g.dano * valorBonus(k.def, 'curaDano', k.pts) / 100 * (H.L.fatorVida || 1)));
               if (k && k.def.nivel) depoisDoGolpeNivel(k.def, alvo, H.s, k.pts);
               e.caiu = alvo.hp === 0;
               if (k && k.def.atordoa && alvo.hp > 0) {
@@ -2916,7 +3139,7 @@ Tanka.regras = (function () {
               var e = { tipo: 'golpe', sala: si, de: 'm', i: mi, alvo: hs.indexOf(h), acerto: false, critico: false, dano: 0, caiu: false, area: true };
               if (h.L.furtivo) { h.L.furtivo = false; e.sombra = true; }
               else if (rng() * 100 < limitar(80 + ator.indiceArea * 2 - h.s.evasao, 5, 95)) {
-                var da = aoReceber(h.L, Math.max(1, Math.round(h.hpMax * ator.area.vidaPct / 100)), ator, rng);
+                var da = aoReceber(h.L, Math.max(1, Math.round(h.hpMax * ator.area.vidaPct / 100)), ator, rng, true);
                 e.acerto = true; e.dano = da;
                 h.hp = Math.max(0, h.hp - da);
                 var dr = depoisDeReceber(h.L, h);
@@ -3244,7 +3467,7 @@ Tanka.regras = (function () {
         var antes = { defQuebra: m.defQuebra, quebraTemp: m.quebraTemp, queima: m.queima };
         var g = golpe(h, m, Object.assign({ mult: mult }, def.nivel ? opcoesNivel(def, h, m) : {}), quem);
         if (!g.acerto) return;
-        if (def.curaDano && h.hp > 0) curarH(h, g.dano * valorBonus(def, 'curaDano', k.pts) / 100);
+        if (def.curaDano && h.hp > 0) curarH(h, g.dano * valorBonus(def, 'curaDano', k.pts) / 100 * (h.L.fatorVida || 1));
         if (def.nivel) depoisDoGolpeNivel(def, m, h.s, k.pts);
         efeitos(h, def, m, antes);
       });
@@ -3253,7 +3476,7 @@ Tanka.regras = (function () {
     var furia = function (m) { return (m.chefe && t.turno > TR.furia.desde ? 1 + (t.turno - TR.furia.desde) * TR.furia.porTurno / 100 : 1) * (m.desperto ? 1 + TR.despertar.danoPct / 100 : 1) * (m.buffDano && m.buffDano.ate >= t.turno ? 1 + m.buffDano.pct / 100 : 1); };
     var bater = function (m, h, bruto, ignoraDef, nomeGolpe) {
       var dano = ignoraDef ? bruto : danoComDefesa(bruto, Math.round(h.s.defesa * (1 + defesaExtraPct(h.L) / 100)));   // golpe normal: físico (o tanque segura)
-      dano = aoReceber(h.L, Math.round(dano), m, rng);
+      dano = aoReceber(h.L, Math.round(dano), m, rng, ignoraDef);   // ignoraDef: os golpes em % da vida
       h.hp = Math.max(0, h.hp - dano);
       var dr = depoisDeReceber(h.L, h);
       diz((nomeGolpe || m.nome) + ' acerta ' + h.nome + ': ' + txtNum(dano) + '.', { de: 'm', alvo: t.herois.indexOf(h), dano: dano });
@@ -3796,6 +4019,29 @@ Tanka.regras = (function () {
     // Quantidades negativas tiram (sem ficar abaixo de 0).
     ouro: function (p, quantidade) { p.ouro = Math.max(0, p.ouro + quantidade); },
     zerarOuro: function (p) { p.ouro = 0; },
+    // Pontos do Pacto (Henri, 24/11/2026): +n/−n nos pontos extras (os do level não mudam). Se ficar com menos pontos
+    // do que gastou, tira os últimos nós pegos até caber. Devolve false se não deu (abaixo do level do Pacto, no limite).
+    pacto: function (p, delta) {
+      if (p.nivel < AS.nivelInicio) return false;
+      var a = p.ascensao || (p.ascensao = { nos: [], exp: 0, extras: 0, v: 2 }), antes = pontosAscensaoTotal(p);
+      var doLevel = (Math.min(p.nivel, D.NIVEL_MAXIMO) - AS.nivelInicio) * AS.pontosPorNivel;
+      a.extras = Math.max(0, Math.min(AS.limitePontos - doLevel, Math.floor(a.extras || 0) + delta));
+      a.nos = a.nos || [];
+      while (a.nos.length && custoNosAscensao(a.nos) > pontosAscensaoTotal(p)) a.nos.pop();
+      return pontosAscensaoTotal(p) !== antes;
+    },
+    // Encanto de todos os itens equipados (Henri, 24/11/2026): +n ou −n, entre 0 e encantamento.maximo. Devolve quantos mudaram.
+    encantoEquipados: function (p, delta) {
+      var hpAntes = status(p).hpMax, n = 0, max = D.encantamento.maximo;
+      Object.keys(p.equipados || {}).forEach(function (slot) {
+        var it = itemNoSlot(p, slot);
+        if (!it) return;
+        var novo = Math.max(0, Math.min(max, (it.encanto || 0) + delta));
+        if (novo !== (it.encanto || 0)) { it.encanto = novo; n++; }
+      });
+      ajustarVida(p, hpAntes);
+      return n;
+    },
     subirNivel: function (p, niveis) {
       for (var i = 0; i < niveis && p.nivel < D.NIVEL_MAXIMO; i++) ganharExp(p, expNecessaria(p.nivel) - p.exp);
     },
@@ -3854,11 +4100,12 @@ Tanka.regras = (function () {
 
   // Equipa no espaço certo; se já houver item lá, ele volta para a mochila.
   // Anel vai para o primeiro espaço de anel livre (ou troca o primeiro).
-  function equipar(p, itemId) {
+  // `slotPref` (opcional): anel no espaço escolhido ('anel1'/'anel2'), ao trocar um dos dois ou ao arrastar.
+  function equipar(p, itemId, slotPref) {
     var item = itemPorId(p, itemId);
     if (!item || motivoNaoEquipa(p, item) || slotDoItem(p, itemId)) return false;
     var slot = item.tipo;
-    if (item.tipo === 'anel') slot = !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
+    if (item.tipo === 'anel') slot = slotPref === 'anel1' || slotPref === 'anel2' ? slotPref : !p.equipados.anel1 ? 'anel1' : !p.equipados.anel2 ? 'anel2' : 'anel1';
     // Arma de duas mãos (ou que não combina com o item da mão esquerda): a mão esquerda volta para a mochila.
     var mao = item.tipo === 'arma' && itemNoSlot(p, 'secundaria'), ta = item.tipo === 'arma' && tipoArma(item);
     var tiraMao = mao && (ta.duasMaos || (ta.proibe || []).indexOf(mao.mao) >= 0);
@@ -3936,7 +4183,8 @@ Tanka.regras = (function () {
     atualizarVitalidade: atualizarVitalidade,
     proximaVitalidade: proximaVitalidade,
     criarPersonagem: criarPersonagem,
-    normalizar: normalizar,
+    normalizar: normalizar, origemVida: origemVida,
+    fatorVida: fatorVida, hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
     vender: vender,
     comprar: comprar,
     danoArma: danoArmaComEncanto,
@@ -3976,12 +4224,12 @@ Tanka.regras = (function () {
     distribuirPonto: distribuirPonto,
     fileiraTorre: fileiraTorre, alcanceTorre: alcanceTorre, novaTorre: novaTorre, resolverTurnoTorre: resolverTurnoTorre, subirTorre: subirTorre, escolhaAutoTorre: escolhaAutoTorre,
     habilidadesTorre: habilidadesTorre, chanceDesviar: chanceDesviar, podeDesviar: podeDesviar, novaPartidaAltar: novaPartidaAltar, pagarAltar: pagarAltar, trocarAltar: trocarAltar, rolarAltar: rolarAltar, altarDoDia: altarDoDia, LINHAS_ALTAR: LINHAS_ALTAR, velocidadeTorre: velocidadeTorre, ehBandoTorre: ehBandoTorre, inimigosTorre: inimigosTorre, ehChefeTorre: ehChefeTorre,
-    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
+    calcularGolpe: calcularGolpe, recargaComFoco: recargaComFoco, inicioVez: inicioVez, precoRefazerAscensao: precoRefazerAscensao, caminhoAscensao: caminhoAscensao, arvoreAscensao: arvoreAscensao, nosAscensao: nosAscensao, pontosAscensaoTotal: pontosAscensaoTotal,
     pontosAscensaoLivres: pontosAscensaoLivres, custoNosAscensao: custoNosAscensao, motivoAscensao: motivoAscensao,
     ordenarAscensao: ordenarAscensao, efeitosAscensao: efeitosAscensao, comprarAscensao: comprarAscensao,
     refazerAscensao: refazerAscensao, ganharExpAscensao: ganharExpAscensao, expPorPontoAscensao: expPorPontoAscensao,
     ganharExp: ganharExp,
-    chefeDoNivel: chefeDoNivel,
+    chefeDoNivel: chefeDoNivel, lutaChefeMundial: lutaChefeMundial,
     premioChefeMundial: premioChefeMundial,
     itemDoChefeMundial: itemDoChefeMundial,
     rolarDrop: rolarDrop,
@@ -4081,7 +4329,7 @@ Tanka.regras = (function () {
     msAteSemana: msAteSemana,
     garantirMissoes: garantirMissoes,
     registrarMissao: registrarMissao,
-    historiaEstado: historiaEstado, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
+    historiaEstado: historiaEstado, motivoAreaFechada: motivoAreaFechada, historiaAreaLiberada: historiaAreaLiberada, registrarHistoria: registrarHistoria, concluirCapitulo: concluirCapitulo,
     premioHistoriaTexto: premioHistoriaTexto, marcarHistoriaVista: marcarHistoriaVista,
     guiaEstado: guiaEstado, registrarGuia: registrarGuia, verificarGuia: verificarGuia, comecarGuia: comecarGuia, pularGuia: pularGuia,
     premioTexto: premioTexto,
@@ -4109,7 +4357,7 @@ Tanka.regras = (function () {
     lootMasmorra: lootMasmorra,
     simularMasmorra: simularMasmorra,
     habLiberada: habLiberada, valorNivel: valorNivel, extrasNivel: extrasNivel, aoReceber: aoReceber, depoisDeReceber: depoisDeReceber,
-    novoLutador: novoLutador, kitHabilidades: kitHabilidades, passiva: passiva,
+    novoLutador: novoLutador, gastarHabilidade: gastarHabilidade, kitHabilidades: kitHabilidades, passiva: passiva,
     simularSalas: simularSalas,
     bossAlianca: bossAlianca,
     simularBossAlianca: simularBossAlianca,
@@ -4119,7 +4367,7 @@ Tanka.regras = (function () {
     rolarMaterial: rolarMaterial, areaDasMinas: areaDasMinas, iniciarMinas: iniciarMinas, recolherMinas: recolherMinas,
     pararMinas: pararMinas, minerando: minerando, mediaMinas: mediaMinas,
     custoReceita: custoReceita, custoProtecao: custoProtecao, custoForja: custoForja, faltando: faltando,
-    fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, forjar: forjar,
+    fabricarReceita: fabricarReceita, fabricarProtecao: fabricarProtecao, chancesForja: chancesForja, nivelForja: nivelForja, forjar: forjar,
     bonusEncanto: bonusEncanto, cristaisQuebrar: cristaisQuebrar, precoServico: precoServico, chanceEncantarCom: chanceEncantarCom, chanceReliquia: chanceReliquia, podeReliquia: podeReliquia,
     runa: runa, itemForjado: itemForjado, forcaRuna: forcaRuna, bonusRuna: bonusRuna, textoRuna: textoRuna,
     tabelaBossAlianca: tabelaBossAlianca,

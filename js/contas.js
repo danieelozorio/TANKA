@@ -256,16 +256,31 @@ Tanka.contas = (function () {
   // Ação do herói decidida pelo servidor (função `acao`, plano "tudo no servidor"): { erro } se a regra recusou;
   // em todo caso vem o personagem como ficou no banco.
   function acao(personagemId, nome, args) { return funcaoServidor('acao', { personagem: personagemId, acao: nome, args: args }); }
+  // Ficha resumida (21/11/2026): baseServidor[id] é a última ficha que veio do servidor, intacta. Mandando a versão
+  // dela, o servidor devolve só o que mudou (R.aplicarFicha monta a ficha inteira de novo e confere o hash).
+  var baseServidor = {};
   function funcaoServidor(funcao, pedido) {
     var feito = fila.catch(function () {}).then(async function () {
       if (emConflito) throw erroConflito();
       if (!(await sessaoValida())) throw new Error('Sessão expirada. Entre novamente.');
-      var r;
+      var r, pid = pedido.personagem, base = pid && baseServidor[pid];
+      if (base && base.versao) pedido.versaoCliente = base.versao;
       try {
         r = await pedir('/functions/v1/' + funcao, { metodo: 'POST', corpo: pedido });
       } catch (e) {
         if (e.status === 409) { emConflito = true; if (aoConflito) aoConflito(); throw erroConflito(); }
         throw e;
+      }
+      var montada = null;
+      if (r && r.mudou && base) {
+        montada = Tanka.regras.aplicarFicha(base, r);
+        r.personagem = montada.ficha;
+        delete r.mudou; delete r.removidas; delete r.hash; delete r.versao;
+      }
+      if (r && r.personagem && r.personagem.id) {
+        // não bateu: o próximo pedido traz a ficha inteira
+        if (montada && !montada.ok) delete baseServidor[r.personagem.id];
+        else baseServidor[r.personagem.id] = JSON.parse(JSON.stringify(r.personagem));
       }
       if (r && r.personagem) {
         versaoNoServidor[r.personagem.id] = r.personagem.versao;
@@ -407,6 +422,8 @@ Tanka.contas = (function () {
     usarBoost: function (meu, tipo) { return chamar('loja_usar_boost', { meu: meu, tipo: tipo }); },
     vips: function () { return chamar('loja_vips', {}); },
     darEter: function (nome, valor, motivo) { return chamar('admin_dar_eter', { nome: nome, valor: valor, motivo: motivo || null }); },
+    // Compra de Éter no site (Mercado Pago, 22/11/2026): devolve { url } da página de pagamento.
+    pagar: function (pacote) { return funcaoServidor('pagamento', { pacote: pacote }); },
   };
   var alianca = {
     estado: function (meu, busca) { return chamar('alianca_estado', { meu: meu, busca: busca || null }); },
@@ -480,6 +497,7 @@ Tanka.contas = (function () {
       if (conta) conta.trocar_senha = false;
     },
     adminPedidos: function () { return rpc('admin_pedidos_senha'); },
+    adminInspecionar: function (pid) { return rpc('admin_inspecionar', { pid: pid }); },
     adminGerar: function (id) { return rpc('admin_senha_temporaria', { pedido: id }); },
     adminRecusar: function (id) { return rpc('admin_recusar_pedido_senha', { pedido: id }); },
   };

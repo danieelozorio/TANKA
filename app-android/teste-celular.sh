@@ -1,5 +1,5 @@
 #!/bin/sh
-# Teste no celular virtual (GitHub, branch de teste): abre o app, aperta "Atualizar agora" e guarda prints e registros.
+# Teste no celular virtual (GitHub, branch de teste): abre o app, espera a versão nova baixar em segundo plano, sai e volta (22/11/2026).
 set -x
 adb install -r Eldrin-app.apk
 adb shell pm grant br.com.eldrinonline.app android.permission.POST_NOTIFICATIONS || true

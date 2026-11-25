@@ -138,11 +138,12 @@ Tanka.contas = (function () {
     Object.keys(contas).forEach(function (k) {
       if (Tanka.dados.ADMINS.indexOf(k) >= 0) return;
       contas[k].personagens.forEach(function (p) {
-        lista.push({ nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0 });
+        lista.push({ id: p.id, nome: p.nome, classe: p.classe, classe2: (p.talentos && p.talentos.classe2) || null, sexo: p.sexo, raca: p.raca, nivel: p.nivel, exp: p.exp, poder: p.poder || 0,
+          pacto: Tanka.regras.pontosAscensaoTotal(p), expPacto: (p.ascensao && p.ascensao.exp) || 0 });
       });
     });
     lista.sort(function (a, b) {
-      return tipo === 'poder' ? b.poder - a.poder || b.nivel - a.nivel : b.nivel - a.nivel || b.exp - a.exp;
+      return tipo === 'poder' ? b.poder - a.poder || b.nivel - a.nivel : b.nivel - a.nivel || b.pacto - a.pacto || b.expPacto - a.expPacto || b.exp - a.exp;
     });
     return lista.slice(0, 100);
   }
@@ -219,6 +220,12 @@ Tanka.contas = (function () {
   var senhaLocal = {
     pedir: function () { return Promise.reject(new Error('Recuperar a senha só funciona no site do Eldrin.')); },
     trocar: function () { return Promise.reject(new Error('Trocar a senha só funciona no site do Eldrin.')); }, adminPedidos: soServidor, adminGerar: soServidor, adminRecusar: soServidor,
+    adminInspecionar: async function (pid) {   // prévia: procura em todas as contas guardadas
+      var contas = ler(), achou = null;
+      Object.keys(contas).forEach(function (k) { contas[k].personagens.forEach(function (p) { if (p.id === pid) achou = JSON.parse(JSON.stringify(p)); }); });
+      if (!achou) throw new Error('Personagem não encontrado.');
+      return achou;
+    },
   };
 
   return {

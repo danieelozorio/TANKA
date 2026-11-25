@@ -1,7 +1,8 @@
 // App Android (Capacitor, Henri, nov/2026). Só roda dentro do app; no site não faz nada.
 // O jogo inteiro vem dentro do APK. Ao abrir, o app confere no GitHub (release "app-web", arquivo versao.json)
 // se saiu versão nova:
-//  - jogo novo (web maior que o deste app): cobre a tela, baixa o pacote do jogo (obrigatório) e reinicia;
+//  - jogo novo (web maior que o deste app): baixa em segundo plano e entra na próxima abertura (22/11/2026); só cobre
+//    a tela e obriga quando o versao.json tem webMinimo maior que a versão deste jogo;
 //  - APK novo (apk maior que o instalado): mostra o link para baixar o APK.
 // window.ELDRIN_APP = { web: N } é escrito no index.html por ferramentas/montar_app.js.
 (function () {
@@ -63,6 +64,48 @@
     }
     baixar();
   }
+  // Jogo novo SEM travar a tela (Henri, 22/11/2026: abrir o app e esperar 0–100% toda vez era chato). Baixa em
+  // segundo plano, com só um aviso pequeno embaixo, e deixa pronto para a próxima abertura (U.next); se o jogador
+  // sair do app (vai para o fundo), troca na hora. A tela cheia obrigatória (oferecerJogo) só vale quando o
+  // versao.json pede: webMinimo maior que a versão deste jogo.
+  var pronto = null;
+  function aviso(texto, some) {
+    var d = document.getElementById('app-baixando');
+    if (!d) {
+      d = document.createElement('div');
+      d.id = 'app-baixando';
+      d.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(8px + env(safe-area-inset-bottom));z-index:99998;'
+        + 'padding:4px 12px;border-radius:999px;background:rgba(20,17,12,.88);border:1px solid #7a6a48;color:#d9c9a6;'
+        + 'font:12px/1.4 Georgia,serif;pointer-events:none;white-space:nowrap;transition:opacity .4s';
+      document.body.appendChild(d);
+    }
+    d.textContent = texto; d.style.opacity = '1';
+    if (some) setTimeout(function () { d.style.opacity = '0'; setTimeout(function () { if (d.parentNode) d.remove(); }, 500); }, some);
+  }
+  function baixarEmSegundoPlano(v) {
+    if (atualizando || pronto) return;
+    atualizando = true;
+    aviso('⬇ Baixando a versão nova do jogo…');
+    var ouvinte = U.addListener && U.addListener('download', function (e) {
+      if (e && e.percent !== undefined) aviso('⬇ Baixando a versão nova do jogo… ' + Math.round(e.percent) + '%');
+    });
+    U.download({ url: v.webUrl, version: String(v.web), checksum: v.checksum || '' }).then(function (pacote) {
+      return (U.next ? U.next({ id: pacote.id }) : Promise.resolve()).then(function () {
+        pronto = pacote;
+        aviso('✔ Versão nova pronta: entra na próxima vez que abrir o app', 5000);
+      });
+    }).catch(function (erro) {
+      console.error('[eldrin-app] download em segundo plano falhou: ' + ((erro && (erro.message || erro.code)) || erro));
+      var d = document.getElementById('app-baixando'); if (d) d.remove();
+    }).then(function () {
+      atualizando = false;
+      if (ouvinte && ouvinte.then) ouvinte.then(function (o) { o.remove(); });
+    });
+  }
+  // Saiu do app com a versão nova pronta: troca agora (quando voltar, o jogo já abre novo).
+  if (A && A.addListener) A.addListener('appStateChange', function (st) {
+    if (st && st.isActive === false && pronto && U && U.set) U.set({ id: pronto.id }).catch(function () {});
+  });
   function oferecerApk(v) {
     var chave = 'apk' + v.apk;
     if (jaDisseDepois(chave)) return;
@@ -73,19 +116,29 @@
     d.querySelector('button').onclick = function () { depois(chave); d.remove(); };
   }
 
+  var tentativas = 0;
   function conferir() {
     if (!H || !H.get) return;
     H.get({ url: VERSOES + '?t=' + Date.now(), responseType: 'json' }).then(function (r) {
+      if (r && r.status && r.status >= 400) throw new Error('versao.json: ' + r.status);
       var v = r && r.data;
       if (typeof v === 'string') v = JSON.parse(v);
       if (!v) return;
       var instalado = A && A.getInfo ? A.getInfo().then(function (i) { return Number(i.build) || 0; }) : Promise.resolve(0);
       instalado.then(function (apk) {
         if (v.apk && v.apkUrl && apk && Number(v.apk) > apk && Number(v.apkMinimo || 0) > apk) oferecerApk(v);   // APK obrigatório
-        else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) oferecerJogo(v);
+        else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) {
+          if (Number(v.webMinimo || 0) > Number(local.web || 0)) oferecerJogo(v);   // obrigatória: só quando o versao.json pede
+          else baixarEmSegundoPlano(v);
+        }
         else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v);
       });
-    }).catch(function () {});
+      tentativas = 0;
+    }).catch(function (e) {
+      // sem internet ainda (logo ao abrir): tenta de novo mais 3 vezes, de 20 em 20 s
+      console.error('[eldrin-app] conferir versão falhou: ' + ((e && e.message) || e));
+      if (++tentativas <= 3) setTimeout(conferir, 20000);
+    });
   }
   // ---------------- Notificações (Henri, 19/11/2026) ----------------
   // Locais (o próprio celular agenda): estamina da caçada acabou, Chefe Mundial (20h de Brasília) e boss do clã.
@@ -105,7 +158,10 @@
     }).catch(function () { return false; });
     return permitido;
   }
+  // Sino amarelo na frente do título das notificações (Henri, 20/11/2026).
+  function comSino(t) { return /^🔔/.test(t || '') ? t : '🔔 ' + (t || 'Eldrin'); }
   function agendar(id, quando, titulo, corpo, extra) {
+    titulo = comSino(titulo);
     return permissao().then(function (ok) {
       if (!ok) return;
       return LN.cancel({ notifications: [{ id: id }] }).catch(function () {}).then(function () {
@@ -123,6 +179,7 @@
     return alvo;
   }
   function agendarDiario(id, hora, titulo, corpo) {
+    titulo = comSino(titulo);
     // agenda os próximos 7 dias (cada abertura do app renova)
     return permissao().then(function (ok) {
       if (!ok) return;
@@ -147,7 +204,7 @@
     setTimeout(function () { d.remove(); }, ok ? 4000 : 12000);
   }
   function erroTxt(e) { return (e && (e.message || e.error || (typeof e === 'string' ? e : JSON.stringify(e)))) || 'erro desconhecido'; }
-  var pushLigado = false;
+  var pushLigado = false, tentativasPush = 0;
   function registrarPush() {
     if (!PN) return avisoPush('o app não tem o plugin de notificações (APK antigo?)');
     if (!A || !A.getInfo) return avisoPush('o app não informa a versão (APK antigo?)');
@@ -161,11 +218,23 @@
         if (PN.createChannel) PN.createChannel({ id: 'eldrin', name: 'Eldrin', description: 'Avisos do jogo', importance: 4, sound: 'default', vibration: true }).catch(function () {});
         if (!pushLigado) {
           pushLigado = true;
-          PN.addListener('registrationError', function (e) { avisoPush('o Firebase recusou o registro: ' + erroTxt(e)); });
+          // SERVICE_NOT_AVAILABLE e parecidos (20/11/2026): o Google Play Services do celular não alcançou o Firebase naquela
+          // hora (rede, economia de bateria). Tenta de novo sozinho (15 s, 1 min, 5 min, 15 min) e só avisa se todas falharem.
+          PN.addListener('registrationError', function (e) {
+            var txt = erroTxt(e), espera = [15000, 60000, 300000, 900000][tentativasPush++];
+            if (espera && /SERVICE_NOT_AVAILABLE|TIMEOUT|IOException|network/i.test(txt)) {
+              setTimeout(function () { try { PN.register(); } catch (x) { /* ignora */ } }, espera);
+              return;
+            }
+            avisoPush(/SERVICE_NOT_AVAILABLE/.test(txt)
+              ? 'o celular não conseguiu falar com o Google agora (Google Play Services sem conexão). Confira a internet e se o Google Play Services está atualizado e sem restrição de bateria; o app tenta de novo na próxima vez que abrir.'
+              : 'o Firebase recusou o registro: ' + txt);
+          });
           PN.addListener('registration', function (t) {
             var C = contas();
             if (!t || !t.value) return avisoPush('o Firebase não devolveu o código do aparelho');
             if (!C || !C.push) return avisoPush('jogo sem Tanka.contas.push');
+            tentativasPush = 0;
             C.push.registrar(t.value).then(function () { avisoPush('Notificações ligadas neste aparelho.', true); },
               function (e) { avisoPush('o servidor recusou o aparelho: ' + erroTxt(e)); });
           });

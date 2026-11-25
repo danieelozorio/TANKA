@@ -2375,3 +2375,106 @@ html:not([data-interface="zealot"]):not([data-celular]) .abas-jogo { container: 
 /* Painel ⚙ Configurações: títulos das seções (Interface, Resolução, Som) */
 .config-secao { margin: .7rem 0 .25rem; font-size: .82rem; letter-spacing: .06em; text-transform: uppercase; color: var(--ouro-claro, #e6c27a); }
 #config-painel .config-interface { flex-wrap: wrap; }
+.atr-passo { display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; flex-wrap: wrap; }
+.atr-passo .btn.mini { padding: .2em .7em; }
+.atr-passo .btn[aria-pressed="true"] { border-color: #e2bb63 !important; color: #ffe7a6 !important; box-shadow: 0 0 8px rgba(226, 187, 99, .45) !important; }
+
+/* Pacto v2 (Henri, 20/11/2026): caminho até o ponto tocado, arrastar o mapa, balão de zerar, exp do Pacto */
+.asc-no.caminho > circle:first-child, .asc-no.caminho > rect:first-child { stroke-dasharray: 5 4; stroke-width: 3.4; stroke-opacity: 1; }
+.asc-no.caminho { filter: drop-shadow(0 0 6px rgba(255, 220, 140, .65)); }
+.pacto-mapa { cursor: grab; touch-action: pan-x pan-y; }
+.pacto-mapa.arrastando { cursor: grabbing; user-select: none; }
+.pacto-zerar { max-width: 420px; text-align: center; }
+.pacto-zerar .botoes { justify-content: center; }
+.exp-pacto { color: #c9a2ff; font-weight: 700; letter-spacing: .04em; font-size: .85em; }
+.barra.exp.pacto .barra-preenchida, .casca-exp.pacto b { background: linear-gradient(90deg, #6b3fd1, #b48cff) !important; }
+
+/* Oficinas: escolher o item num quadrado de itens (Henri, 21/11/2026) */
+.contratar-escolha { margin: 6px 0 10px; }
+.contratar-grade { grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)) !important; max-height: 260px; overflow-y: auto; padding: 4px; margin-top: 4px; }
+.contratar-grade .celula.escolhido { outline: 2px solid #ffd76a; outline-offset: 1px; box-shadow: 0 0 10px rgba(255, 215, 106, .6); }
+.contratar-escolhido { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 6px 0 0; }
+.contratar-escolha-topo { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.contratar-escolha-topo > span { flex: 1 1 auto; }
+.contratar-grade .celula.escolhido::after { content: "✓"; position: absolute; top: 1px; right: 3px; font-weight: 700; color: #ffd76a; text-shadow: 0 0 3px #000, 0 0 3px #000; pointer-events: none; }
+.btn-travar.travado { border-color: #e2bb63 !important; color: #ffe7a6 !important; }
+.altar-dado.sel { transform: none !important; }   /* marcar não pula a figura (Henri, 21/11/2026) */
+
+/* Arrastar item da mochila para o personagem (Henri, 21/11/2026) */
+.fantasma-arrasto { position: fixed; z-index: 99999; width: 56px; height: 56px; transform: translate(-50%, -60%); pointer-events: none;
+  border-radius: 10px; border: 2px solid; background: rgba(10, 12, 18, .85); box-shadow: 0 6px 18px rgba(0, 0, 0, .6); opacity: .92; }
+.fantasma-arrasto img, .fantasma-arrasto svg { width: 100%; height: 100%; object-fit: contain; }
+.pode-soltar .slot { outline: 2px dashed rgba(255, 215, 106, .75); outline-offset: 2px; }
+.alvo-arrasto .slot, .boneco .retrato-central.alvo-arrasto { outline: 3px solid #ffd76a !important; box-shadow: 0 0 16px rgba(255, 215, 106, .8); }
+.boneco.arrastando-item .retrato-central { outline: 2px dashed rgba(255, 215, 106, .45); outline-offset: -4px; }
+html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: none; user-select: none; -webkit-touch-callout: none; }
+/* Anel: balão com os dois equipados e o novo */
+.comparar-tres { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+@media (max-width: 760px) { .comparar-tres { grid-template-columns: 1fr !important; } }
+.zoom-cartas.tripla { flex-wrap: wrap; }
+#ficha-flutuante.comparando:has(.comparar-tres) { width: min(1040px, 97vw); }
+
+/* Botões da ficha do item (Henri, 21/11/2026, "Exemplo A"): o principal ocupa a linha toda, os outros dividem a de baixo. */
+.item-acoes.acoes-item, html[data-celular] #ficha-flutuante .item-acoes.acoes-item { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; justify-content: stretch; }
+.item-acoes.acoes-item > *, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > .btn { flex: 1 1 0; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 6px; padding-right: 6px; }
+.item-acoes.acoes-item > :first-child, html[data-celular] #ficha-flutuante .item-acoes.acoes-item > :first-child { flex-basis: 100%; }
+.item-acoes.acoes-item > span:first-child { white-space: normal; text-align: center; }
+
+/* Botão X2 (Henri, 21/11/2026): acelera a luta; aceso enquanto está em 2x. */
+.btn-x2 { font-family: inherit; font-weight: 700; font-size: 15px; line-height: 1; letter-spacing: .04em; min-width: 52px; min-height: 36px; padding: 0 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255, 215, 106, .35); background: rgba(0, 0, 0, .35); color: #b9a77a; transition: background .15s, color .15s, box-shadow .15s; }
+.btn-x2:hover { border-color: #ffd76a; color: #ffe39a; }
+.btn-x2.ligado { background: linear-gradient(#ffd76a, #d9a531); color: #2a1a00; border-color: #ffe39a; box-shadow: 0 0 10px rgba(255, 215, 106, .6), inset 0 -2px 0 rgba(0, 0, 0, .25); }
+
+/* Tags dos boosts de EXP/OURO embaixo do level (Henri, 21/11/2026) */
+.tags-boost { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.tag-boost { display: inline-flex; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; line-height: 1; padding: 3px 6px; border-radius: 999px;
+  cursor: help; white-space: nowrap; border: 1px solid; }
+.tag-boost-exp { color: #c9f2ff; background: rgba(60, 150, 210, .22); border-color: rgba(120, 200, 255, .55); }
+.tag-boost-ouro { color: #ffe39a; background: rgba(210, 160, 40, .22); border-color: rgba(255, 215, 106, .55); }
+.casca-nome .tags-boost { margin-top: 1px; }
+.casca-nome .tag-boost { font-size: 10px; padding: 2px 5px; }
+
+/* Meus pedidos mais compacto (Henri, 21/11/2026): abas Esperando/Prontos, várias colunas na tela larga */
+.pedidos-abas { margin-bottom: .6rem; }
+.loja-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: .4rem; }
+.loja-pedidos .loja-pedido { padding: .35rem .5rem; gap: .5rem; flex-wrap: nowrap; }
+.loja-pedidos .loja-pedido-texto { min-width: 0; flex: 1; }
+.loja-pedidos .loja-pedido-texto strong { display: block; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Quantidade de receitas na oficina (Henri, 22/11/2026) */
+.contratar-qtd { display: flex; align-items: center; gap: 10px; margin: 8px 0 2px; }
+
+/* Objetivo da História em cima da imagem do monstro (Henri, 22/11/2026) */
+.monstro .moldura { position: relative; }
+.objetivo-hist { position: absolute; left: 6px; right: 6px; top: 6px; z-index: 2; padding: 3px 8px; border-radius: 8px;
+  background: rgba(14, 11, 8, .82); border: 1px solid #b8892f; color: #f3dfae; font-size: 12px; font-weight: 600;
+  text-align: center; letter-spacing: .2px; box-shadow: 0 2px 8px rgba(0, 0, 0, .45); pointer-events: none; }
+.objetivo-hist.ok { border-color: #4f9d58; color: #bfe8c4; }
+
+/* Comprar Éter no site (Mercado Pago, Henri 22/11/2026) */
+.loja-comprar-eter { margin: .6rem 0; }
+.loja-comprar-eter .item-acoes { flex-wrap: wrap; }
+.loja-comprar-eter .btn { display: inline-flex; align-items: center; gap: .35rem; }
+
+/* Inspecionar (só admin; Henri, 24/11/2026) */
+.ranking-acoes { white-space: nowrap; }
+.ranking-acoes .btn + .btn { margin-left: .3rem; }
+.insp-janela { width: min(860px, 100%); }
+.insp-x { font-size: 1.4rem; top: .5rem; right: .7rem; z-index: 2; }
+.insp-abas { margin: .4rem 0 .8rem; }
+.insp-itens { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: .6rem; }
+.insp-slot { border: 1px solid rgba(255, 215, 106, .18); border-radius: 10px; padding: .5rem; background: rgba(0, 0, 0, .18); }
+.insp-rotulo { font-family: var(--titulo); font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-bottom: .3rem; }
+.insp-ficha { min-width: 0; font-size: .9rem; }
+.insp-ficha .item-acoes { display: none; }
+.insp-dominios { list-style: none; padding: 0; display: grid; gap: .35rem; }
+.insp-dominios li { border-left: 3px solid var(--cor-dom, #e6cf9c); padding: .2rem .5rem; }
+.insp-dom { color: var(--cor-dom, #e6cf9c); }
+.insp-atributos { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+.insp-vida-titulo { margin-top: 1rem; }
+.insp-vida { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.insp-vida td { padding: .25rem .4rem; border-bottom: 1px solid rgba(255, 255, 255, .06); }
+.insp-vida-txt, .insp-vida-ganho { text-align: right; white-space: nowrap; }
+.insp-vida-barra { width: 30%; }
+.insp-vida-barra i { display: block; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #8b1e1e, #e05050); }

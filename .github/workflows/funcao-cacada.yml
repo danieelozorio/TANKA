@@ -33,6 +33,7 @@ jobs:
         run: |
           deno run --allow-read --allow-env testes/cacada_servidor.test.ts
           deno run --allow-read --allow-env testes/acao_servidor.test.ts
+          deno run --allow-env testes/pagamento_servidor.test.ts
       - uses: supabase/setup-cli@v1
         with: { version: latest }
       - name: Enviar para o Supabase
@@ -41,3 +42,4 @@ jobs:
           supabase functions deploy cacada --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes
           supabase functions deploy acao --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes
           supabase functions deploy push --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes   # notificações (19/11/2026)
+          supabase functions deploy pagamento --project-ref cwlcdeqvwzpveduzhaol --no-verify-jwt --use-api --yes   # compra de Éter no site (Mercado Pago, 22/11/2026)

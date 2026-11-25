@@ -96,6 +96,11 @@
   }
   function fmt(n) { return Number.isInteger(n) ? n : n.toFixed(1); }
   function dano(d) { return d[0] === d[1] ? d[0] : d[0] + '–' + d[1]; }
+  // Dano de monstro para mostrar: x R.fatorVida do herói (os monstros batem mais desde a vida por level maior, 21/11/2026).
+  function danoMonstro(d) {
+    var f = estado.personagem ? R.fatorVida(estado.personagem) : 1;
+    return dano([Math.max(1, Math.round(d[0] * f)), Math.max(1, Math.round(d[1] * f))]);
+  }
 
   // Faixa de brilho do encantamento: +4 a +6 azul, +7 a +9 roxo, +10 dourado.
   // Classe do brilho da borda do quadro: um tom por nível (+1 a +10).
@@ -536,6 +541,10 @@
     var presenteDes = estado.personagem.presenteDestrezaCacador === 1, qtdDes = presenteForca ? 2 : 1;
     var presenteA3 = estado.personagem.presenteAtributos3 === 1;
     if (presenteA3) estado.personagem.presenteAtributos3 = 2;
+    if (estado.personagem.avisoPactoV2 === 1) {   // Pacto v2 (20/11/2026): os pontos voltaram de graça
+      estado.personagem.avisoPactoV2 = 2;
+      setTimeout(function () { avisar('🔮 O Pacto de Ascensão mudou! Seus pontos voltaram de graça: escolha o caminho de novo (Herói › Pacto).', 'nivel'); }, 1600);
+    }
     if (presente) estado.personagem.recomecoPresente = 2;
     if (presenteForca) estado.personagem.presenteForcaCacador = 2;
     if (presenteDes) { estado.personagem.presenteDestrezaCacador = 2; presenteForca = false; }
@@ -599,7 +608,7 @@
   function vidaTempoHtml(p, s, emBatalha) {
     var min = R.minutosParaEstaminaCheia(p), cheia = R.estamina(p).pts >= D.ESTAMINA.maximo;
     var texto = emBatalha ? 'Em batalha: a estamina não volta.'
-      : min === null ? 'Sem acampar a estamina não volta (só à meia-noite).'
+      : min === null ? 'Sem acampar a estamina não volta (só com pote).'
       : min ? 'Estamina cheia em ' + tempoTexto(min * 60000) + (p.acampado && D.ESTAMINA.acampar !== false ? ' (acampado)' : '') : 'Estamina cheia';
     var acampar = D.ESTAMINA.acampar === false ? '' : p.acampado
       ? '<button class="btn largo" data-acao="levantar"' + (emBatalha ? ' disabled' : '') + '>Levantar acampamento</button>'
@@ -840,13 +849,23 @@
     if (!it) return null;
     var cmp = estado.comparando && estado.comparando[1] === it.id && p.inventario.find(function (i) { return i.id === estado.comparando[0]; });
     if (cmp) return '<div class="comparar-duas"><div class="comparar-lado">' + fichaItemHtml(cmp) + '</div><div class="comparar-lado">' + fichaItemHtml(it) + '</div></div>';
+    // Anel (Henri, 21/11/2026): com os dois anéis equipados, o balão mostra os dois ao lado do novo, e cada um tem
+    // o botão de trocar só aquele.
+    var a1 = R.itemNoSlot(p, 'anel1'), a2 = R.itemNoSlot(p, 'anel2');
+    if (!estado.fichaHover && it.tipo === 'anel' && !R.slotDoItem(p, it.id) && a1 && a2) {
+      var lado = function (x, rot, sl) {
+        return '<div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">' + rot + '</p>' + fichaItemHtml(x, true)
+          + (R.podeUsar(p, it) ? '<div class="botoes"><button class="btn btn-pequeno" data-acao="equipar" data-id="' + it.id + '" data-espaco="' + sl + '">⇄ Trocar este anel</button></div>' : '') + '</div>';
+      };
+      return '<div class="comparar-duas comparar-tres">' + lado(a1, 'Anel equipado (1)', 'anel1') + lado(a2, 'Anel equipado (2)', 'anel2')
+        + '<div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>';
+    }
     // Clique num item desequipado (Henri, 12/11/2026): a ficha abre com o equipado do mesmo lugar ao lado, para comparar.
     var eq = !estado.fichaHover && !R.slotDoItem(p, it.id) && (it.tipo === 'anel'
       ? (R.itemNoSlot(p, 'anel1') || R.itemNoSlot(p, 'anel2')) : (it.tipo in p.equipados ? R.itemNoSlot(p, it.tipo) : null));
     if (eq) return '<div class="comparar-duas"><div class="comparar-lado comparar-equipado"><p class="comparar-rotulo">Equipado</p>' + fichaItemHtml(eq, true)
-      + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it) + '</div></div>'
-      + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
-    return fichaItemHtml(it) + '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="item-comparar" data-id="' + it.id + '">⚖ Comparar com outro</button></div>';
+      + '</div><div class="comparar-lado"><p class="comparar-rotulo">Na mochila</p>' + fichaItemHtml(it, false, true) + '</div></div>';
+    return fichaItemHtml(it, false, true);
   }
   function fecharFlutuante() {
     var f = document.getElementById('ficha-flutuante');
@@ -889,6 +908,86 @@
     var f = document.getElementById('ficha-flutuante');
     if (f) f.classList.remove('hover');
   }
+  // Arrastar um item da mochila para o personagem equipa (Henri, 21/11/2026). Mouse: segurar e arrastar. Dedo:
+  // segurar parado um instante (para não atrapalhar a rolagem) e arrastar. Soltar num espaço do mesmo tipo (no anel,
+  // no anel escolhido) ou em cima do retrato equipa; em outro lugar, nada acontece.
+  var arrasto = null, arrastoFim = 0;
+  function espacosDoItem(it) { return Object.keys(D.slots).filter(function (k) { return D.slots[k].tipo === it.tipo; }); }
+  function comecarArrasto() {
+    var a = arrasto, p = estado.personagem, it = a && p && p.inventario.find(function (i) { return i.id === a.id; });
+    if (!it) { arrasto = null; return; }
+    a.ativo = true; a.item = it;
+    fecharFlutuante();
+    var g = document.createElement('div');
+    g.className = 'fantasma-arrasto borda-' + corItem(it);
+    g.innerHTML = F.icone(it);
+    document.body.appendChild(g); a.g = g;
+    a.espacos = espacosDoItem(it);
+    a.espacos.forEach(function (k) { var e = document.querySelector('.espaco-' + k); if (e) e.classList.add('pode-soltar'); });
+    var b = document.querySelector('.boneco'); if (b) b.classList.add('arrastando-item');
+    moverArrasto(a.x, a.y);
+  }
+  function alvoArrasto(x, y) {
+    var el = document.elementFromPoint(x, y), a = arrasto;
+    if (!el || !a) return null;
+    var esp = el.closest('[class*="espaco-"]');
+    if (esp) { var k = (esp.className.match(/espaco-(\w+)/) || [])[1]; return a.espacos.indexOf(k) >= 0 ? { slot: k, el: esp } : null; }
+    var ret = el.closest('.retrato-central, .boneco');
+    return ret ? { slot: null, el: ret } : null;
+  }
+  function moverArrasto(x, y) {
+    var a = arrasto;
+    if (!a || !a.g) return;
+    a.g.style.left = x + 'px'; a.g.style.top = y + 'px';
+    var alvo = alvoArrasto(x, y);
+    document.querySelectorAll('.alvo-arrasto').forEach(function (e) { e.classList.remove('alvo-arrasto'); });
+    if (alvo) alvo.el.classList.add('alvo-arrasto');
+    a.alvo = alvo;
+  }
+  function acabarArrasto(soltar) {
+    var a = arrasto;
+    arrasto = null;
+    if (!a) return;
+    clearTimeout(a.timer);
+    if (a.g) a.g.remove();
+    document.querySelectorAll('.pode-soltar, .alvo-arrasto, .arrastando-item').forEach(function (e) { e.classList.remove('pode-soltar', 'alvo-arrasto', 'arrastando-item'); });
+    if (!a.ativo) return;
+    arrastoFim = Date.now();
+    if (!soltar || !a.alvo) return;
+    var p = estado.personagem, slot = a.alvo.slot && a.alvo.slot.indexOf('anel') === 0 ? a.alvo.slot : null;
+    if (R.equipar(p, a.id, slot)) {
+      estado.vendaPendente = null; estado.itemFoco = null;
+      acaoServidor('equipar', slot ? { id: a.id, slot: slot } : a.id);
+      telaJogo();
+    } else avisar(R.motivoNaoEquipa(p, a.item) || 'Não foi possível equipar (mochila cheia?).');
+  }
+  app.addEventListener('pointerdown', function (e) {
+    var cel = e.target.closest && e.target.closest('.pg-mochila .mochila [data-acao="item"]');
+    if (!cel || estado.vendaLote || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    arrasto = { id: cel.dataset.id, x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, ativo: false, toque: e.pointerType !== 'mouse' };
+    if (arrasto.toque) { var a0 = arrasto; a0.timer = setTimeout(function () { if (arrasto === a0) comecarArrasto(); }, 350); }
+  });
+  window.addEventListener('pointermove', function (e) {
+    var a = arrasto;
+    if (!a) return;
+    a.x = e.clientX; a.y = e.clientY;
+    var d = Math.abs(a.x - a.x0) + Math.abs(a.y - a.y0);
+    if (!a.ativo) {
+      if (a.toque) { if (d > 10) acabarArrasto(false); }   // mexeu antes de segurar: é rolagem
+      else if (d > 6) comecarArrasto();
+      return;
+    }
+    moverArrasto(a.x, a.y);
+  });
+  window.addEventListener('pointerup', function () { acabarArrasto(true); });
+  window.addEventListener('pointercancel', function () { acabarArrasto(false); });
+  // durante o arrasto com o dedo, a tela não rola
+  document.addEventListener('touchmove', function (e) { if (arrasto && arrasto.ativo) e.preventDefault(); }, { passive: false });
+  // o clique que vem logo depois de soltar não conta (não equipa de novo nem abre a ficha)
+  document.addEventListener('click', function (e) { if (Date.now() - arrastoFim < 350) { e.stopPropagation(); e.preventDefault(); } }, true);
+  document.addEventListener('contextmenu', function (e) { if (arrasto && arrasto.ativo) e.preventDefault(); }, true);
+  app.addEventListener('dragstart', function (e) { if (e.target.closest && e.target.closest('.pg-mochila .mochila')) e.preventDefault(); });   // sem o arrasto nativo da imagem
+
   if (temMouse) {
     app.addEventListener('mouseover', function (e) {
       var el = e.target.closest && e.target.closest('[data-acao="item"]');
@@ -1116,15 +1215,28 @@
   function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'ascensao' ? seloAscensao() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
   // Topo da casca do celular: retrato (vai para o Herói), nome, level e exp; chat, missões e menu em ícones
   // (no lugar dos botões que flutuavam por cima do jogo).
+  // Level 60 (Henri, 20/11/2026): a exp passa a encher o próximo ponto do Pacto; mostra "(PACTO)". null = Pacto no limite.
+  // Botão X2 (Henri, 21/11/2026): em todo lugar que acelera a luta. Clicou, fica aceso (2x); clicou de novo, apaga (normal).
+  function botaoX2(acao, ligado) {
+    return '<button class="btn-x2' + (ligado ? ' ligado' : '') + '" data-acao="' + acao + '" aria-pressed="' + !!ligado + '" title="'
+      + (ligado ? 'Velocidade 2x ligada (clique para voltar ao normal)' : 'Acelerar a luta (2x)') + '">X2</button>';
+  }
+  function expPacto(p) {
+    if (!p || p.nivel < D.NIVEL_MAXIMO || R.pontosAscensaoTotal(p) >= D.ASCENSAO.limitePontos) return null;
+    var prec = R.expPorPontoAscensao(), ex = Math.min(prec, (p.ascensao && p.ascensao.exp) || 0);
+    // n/rotulo (Henri, 21/11/2026): quantos pontos do Pacto já tem, ex.: "(PACTO 23)"
+    var n = R.pontosAscensaoTotal(p);
+    return { pct: Math.max(0, Math.min(100, ex * 100 / prec)), n: n, rotulo: '(PACTO ' + n + ')' };
+  }
   function cascaTopoHtml(menu) {
-    var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO;
-    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var p = estado.personagem, precisa = R.expNecessaria(p.nivel), maximo = p.nivel >= D.NIVEL_MAXIMO, ep = expPacto(p);
+    var pct = ep ? ep.pct : maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
     var prontas = avisosMissoes(p, C.agora());
     return '<header class="topo casca-topo"><button class="casca-eu" data-acao="aba" data-aba="personagem" aria-label="Meu herói">'
       + '<span class="casca-retrato">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</span>'
       + '<span class="casca-nome"><span class="casca-linha-nome"><strong>' + esc(p.nome) + '</strong><b class="casca-poder" title="Poder">⚔ '
-      + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>'
-      + '<i class="casca-exp" title="' + (maximo ? 'Level máximo' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
+      + R.poder(p).toLocaleString('pt-BR') + '</b></span><small>Lv ' + p.nivel + ' · ' + esc(nomeClasseP(p)) + '</small>' + tagsBoostHtml(p)
+      + '<i class="casca-exp' + (ep ? ' pacto' : '') + '" title="' + (ep ? 'Exp ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : 'Exp ' + Math.floor(pct) + '%') + '"><b style="width:' + pct + '%"></b></i></span></button>'
       + '<div class="casca-icones">'
       + '<button class="casca-ico" data-acao="casca-chat" aria-label="Chat">💬<span class="casca-selo" id="casca-chat-selo"' + (chat.naoLidas ? '' : ' hidden') + '>' + (chat.naoLidas > 99 ? '99+' : chat.naoLidas || '') + '</span></button>'
       + '<button class="casca-ico" data-acao="casca-grupo" aria-label="Grupo">👥<span class="casca-selo" id="casca-grupo-selo" hidden></span></button>'
@@ -1237,16 +1349,24 @@
     var eq = R.bonusEquipamentos(p);
     // Pontos escolhidos mas ainda não confirmados: aparecem em verde e mudam a prévia dos status.
     var pend = pontosPendentes(), usados = totalPendentes(), restam = p.pontosLivres - usados;
+    // De 10 em 10 (Henri, 20/11/2026): com 10 pontos ou mais (ex.: depois do Recomeço), o jogador escolhe o passo do + e do −.
+    var dez = p.pontosLivres >= 10 && !emBatalha, passo = dez && estado.passoPontos === 10 ? 10 : 1;
     var sNovo = usados ? R.status(comPendentes(p, pend)) : s;
     var atrs = R.ATRIBUTOS.map(function (k) {
       var botoes = p.pontosLivres > 0 && !emBatalha
-        ? '<button class="btn mini" data-acao="ponto-menos" data-atributo="' + k + '" title="Tirar ponto"' + (pend[k] ? '' : ' disabled') + '>−</button>'
-          + '<button class="btn mini" data-acao="ponto" data-atributo="' + k + '" title="Pôr ponto em ' + D.atributos[k].nome + '"' + (restam > 0 ? '' : ' disabled') + '>+</button>'
+        ? '<button class="btn mini" data-acao="ponto-menos" data-valor="' + passo + '" data-atributo="' + k + '" title="Tirar ' + (passo > 1 ? passo + ' pontos' : 'ponto') + '"' + (pend[k] ? '' : ' disabled') + '>−</button>'
+          + '<button class="btn mini" data-acao="ponto" data-valor="' + passo + '" data-atributo="' + k + '" title="Pôr ' + (passo > 1 ? passo + ' pontos' : 'ponto') + ' em ' + D.atributos[k].nome + '"' + (restam > 0 ? '' : ' disabled') + '>+</button>'
         : '<span></span>';
       return '<div class="linha-atr"><span class="dica" tabindex="0">' + D.atributos[k].nome + ' <i class="dica-i">?</i>' + dicaAtributo(p, k, pend) + '</span>'
         + '<span class="valor">' + (p.atributos[k] + eq[k] + (pend[k] || 0)) + (eq[k] ? ' <small class="mais">(+' + eq[k] + ')</small>' : '')
         + (pend[k] ? ' <small class="pendente">+' + pend[k] + '</small>' : '') + '</span><span class="atr-botoes">' + botoes + '</span></div>';
     }).join('');
+    if (dez) {
+      atrs = '<div class="atr-passo"><span class="suave pequeno">Adicionar de:</span>'
+        + [1, 10].map(function (n) {
+          return '<button class="btn mini' + (passo === n ? '' : ' secundario') + '" data-acao="pontos-passo" data-valor="' + n + '" aria-pressed="' + (passo === n) + '">' + n + ' em ' + n + '</button>';
+        }).join('') + '</div>' + atrs;
+    }
     if (usados) {
       atrs += '<div class="atr-confirmar"><button class="btn" data-acao="pontos-confirmar">Confirmar ' + usados + ' ponto(s)</button>'
         + '<button class="btn secundario" data-acao="pontos-desfazer">Cancelar</button></div>'
@@ -1309,11 +1429,11 @@
       + '<div class="cabeca"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div><div>'
       + '<h2>' + esc(p.nome) + '</h2>' + (p.titulo ? '<div class="titulo-heroi">' + esc(p.titulo) + '</div>' : '')
       + '<div class="suave">' + nomeRaca(p.raca, p.sexo) + ' · ' + nomeClasseP(p) + '</div>'
-      + '<div class="nivel">Level ' + p.nivel + '</div></div></div>'
+      + '<div class="nivel">Level ' + p.nivel + '</div>' + tagsBoostHtml(p) + '</div></div>'
       + '<div class="suave">Vida</div><div id="ficha-hp">' + barra('hp', emBatalha ? estado.batalha.jogador.hp : sV.hpMax, emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax, (emBatalha ? estado.batalha.jogador.hp : sV.hpMax) + ' / ' + (emBatalha ? estado.batalha.jogador.hpMax : sV.hpMax), 'ficha') + '</div>'
       + estaminaHtml(p)
-      + '<div class="suave">Experiência</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
-        ? barra('exp maximo', 1, 1, 'Level máximo')
+      + '<div class="suave">Experiência' + (expPacto(p) ? ' <b class="exp-pacto">' + expPacto(p).rotulo + '</b>' : '') + '</div><div id="ficha-exp">' + (p.nivel >= D.NIVEL_MAXIMO
+        ? (expPacto(p) ? barra('exp pacto', expPacto(p).pct, 100, Math.floor(expPacto(p).pct) + '% ' + expPacto(p).rotulo) : barra('exp maximo', 1, 1, 'Pacto completo (' + D.ASCENSAO.limitePontos + ')'))
         : barra('exp', p.exp, precisa, Math.floor(Math.min(100, p.exp * 100 / precisa)) + '%')) + '</div>'
       + vitalidadeHtml(p)
       + vidaTempoHtml(p, s, emBatalha)
@@ -1412,6 +1532,15 @@
     }).join(', ');
   }
 
+  // Objetivo da História neste monstro (22/11/2026): "Objetivo: Y/X monstros" em cima da imagem.
+  function objetivoHistoriaHtml(id) {
+    var e = R.historiaEstado(estado.personagem);
+    if (!e || e.fim || !e.liberado) return '';
+    var x = e.objetivos.filter(function (o) { return o.objetivo.monstro === id; })[0];
+    if (!x) return '';
+    return '<div class="objetivo-hist' + (x.ok ? ' ok' : '') + '" title="História: ' + esc(e.capitulo.titulo) + '">' + (x.ok ? '✔ ' : '📜 ')
+      + 'Objetivo: ' + x.feito + '/' + x.meta + (x.meta === 1 && D.monstros[id].chefe ? ' chefe' : ' monstros') + '</div>';
+  }
   function cartaMonstro(id, selecionado) {
     var p = estado.personagem, s = R.status(p), m = D.monstros[id];
     var ritmo = m.velocidade / Math.max(1, s.velocidade);
@@ -1420,10 +1549,10 @@
     // Também na Arcane em tela estreita (Henri, nov/2026).
     var curto = CELULAR || (temaAtual() === 'arcane' && window.innerWidth <= 760);
     var resumo = curto ? '<div class="monstro-resumo"><span title="Estamina por luta">⚡ ' + R.custoEstamina(id) + '</span><span title="Exp por vitória, em % do seu level">✦ ' + expPct(estado.personagem, m.exp) + '</span>'
-      + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + dano(m.ataque) + '</span></div>' : '';
-    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+      + '<span>◎ ' + m.ouro.toLocaleString('pt-BR') + '</span><span>❤ ' + m.hp.toLocaleString('pt-BR') + '</span><span>⚔ ' + danoMonstro(m.ataque) + '</span></div>' : '';
+    return '<article class="monstro' + (R.monstroLiberado(p, id) ? '' : ' monstro-bloqueado') + (selecionado ? ' monstro-escolhido' : '') + '"><div class="moldura">' + F.imagemMonstro(id) + objetivoHistoriaHtml(id) + '</div><div class="corpo">'
       + '<h3>' + m.nome + '</h3>' + (curto ? resumo + '<details class="monstro-detalhes"><summary>Ver detalhes</summary><p class="suave">' + m.descricao + '</p>' : '<p class="suave">' + m.descricao + '</p>')
-      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + dano(m.ataque) + '</dd>'
+      + '<dl class="ficha-monstro"><dt>Vida</dt><dd>' + m.hp.toLocaleString('pt-BR') + '</dd><dt title="Dano de cada golpe (a sua defesa diminui)">Dano</dt><dd>' + danoMonstro(m.ataque) + '</dd>'
       + '<dt title="Reduz o seu dano em porcentagem">Defesa</dt><dd>' + m.defesa + ' <small class="suave">(−' + Math.round(100 - 10000 / (100 + m.defesa)) + '% de dano)</small></dd>'
       + '<dt>Velocidade</dt><dd>' + m.velocidade + '</dd><dt title="Quantas vezes o monstro ataca para cada ataque seu">Ataques/turno</dt><dd>' + fmt(ritmo) + '</dd>'
       + '<dt>Experiência</dt><dd>' + m.exp.toLocaleString('pt-BR') + '</dd><dt>Ouro</dt><dd>' + m.ouro.toLocaleString('pt-BR') + '</dd>'
@@ -1442,7 +1571,7 @@
   function cartaChefe(area) {
     var p = estado.personagem, id = area.chefe.id, m = D.monstros[id];
     var abatidos = p.abates[id] || 0;
-    return '<article class="monstro chefe"><div class="moldura">' + F.imagemMonstro(id) + '</div><div class="corpo">'
+    return '<article class="monstro chefe"><div class="moldura">' + F.imagemMonstro(id) + objetivoHistoriaHtml(id) + '</div><div class="corpo">'
       + '<div class="selo-chefe">Chefe</div><h3>' + m.nome + '</h3><p class="suave">' + m.descricao + '</p>'
       + '<p class="misterio">Ronda esta área. Ninguém sabe quando vai aparecer… mas dizem que quanto mais sangue se derrama aqui, mais perto ele fica.</p>'
       + (abatidos ? '<p class="mais">Derrotado ' + abatidos + ' vez(es).</p>' : '')
@@ -1471,14 +1600,14 @@
   function mapaHtml() {
     var p = estado.personagem;
     var nos = D.areas.map(function (a, i) {
-      var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1];
+      var e = estiloArea(a, i), livre = R.areaLiberada(p, a), proxima = D.areas[i + 1], porHistoria = !livre && p.nivel >= a.nivelMin;
       var faixa = 'Lv ' + a.nivelMin + '–' + (proxima ? proxima.nivelMin : D.PESADELO.mapaNivelExp);   // o último mapa vai até o 40 (depois: Reino do Pesadelo)
       return '<button class="mapa-no' + (livre ? '' : ' bloqueada') + '" style="left:' + e.x + '%;top:' + e.y + '%;--cor:' + e.cor + '"'
-        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
+        + (livre ? ' data-acao="area" data-valor="' + a.id + '"' : porHistoria ? ' data-acao="area-fechada" data-valor="' + a.id + '"' : ' disabled') + ' title="' + esc(a.descricao) + '">'
         + '<span class="mapa-icone' + (livre && ESTILO_AREA[a.id] ? ' com-arte' : '') + '">' + (livre ? iconeArea(a, 'arte') : '🔒') + '</span>'
-        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : 'Libera no level ' + a.nivelMin) + '</span></button>';
+        + '<span class="mapa-nome">' + a.nome + '</span><span class="mapa-nivel">' + (livre ? faixa : porHistoria ? '📜 Conclua a História' : 'Libera no level ' + a.nivelMin) + '</span></button>';
     }).join('');
-    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem conforme o seu level.'
+    return '<h3 class="subtitulo">Mapa do Reino</h3><p class="suave pequeno">Escolha uma região para caçar. As regiões abrem com o seu level e a História da região anterior concluída.'
       + (p.nivel >= D.PESADELO.mapaNivelExp ? ' <strong class="menos">No level ' + D.PESADELO.mapaNivelExp + '+ o Mapa do Reino dá só ' + D.PESADELO.mapaExpPct + '% da exp (o ouro continua). Itens só até o level ' + D.PESADELO.mapaNivelItem + '.</strong>' : '') + '</p>'
       + portalPesadeloHtml(p) + '<div class="mapa-mundo">' + nos + '</div>';
   }
@@ -1512,7 +1641,7 @@
     var mat = R.materialDoChefe(m.base), nomeMat = mat && D.CRAFT.materiais[mat] ? D.CRAFT.materiais[mat].nome : null;
     var tem = R.estamina(p).pts >= custo, v = p.abates[id] || 0;
     var linhas = [
-      ['Level', m.nivel], ['Vida', m.hp.toLocaleString('pt-BR')], ['Dano', dano(m.ataqueCacada || m.ataque)],
+      ['Level', m.nivel], ['Vida', m.hp.toLocaleString('pt-BR')], ['Dano', danoMonstro(m.ataqueCacada || m.ataque)],
       ['Estamina', custo + ' por luta'], ['Exp', '+' + m.exp.toLocaleString('pt-BR')], ['Ouro', '+' + m.ouro.toLocaleString('pt-BR')],
     ].map(function (x) { return '<li><span>' + x[0] + '</span><strong>' + x[1] + '</strong></li>'; }).join('');
     return '<div class="regiao-topo topo-pesadelo"><button class="btn secundario btn-pequeno" data-acao="pesadelo-mapa">← Reino do Pesadelo</button>'
@@ -1564,7 +1693,7 @@
   function semEncanto(item) { return item && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
 
 
-  function fichaItemHtml(item, soVer) {
+  function fichaItemHtml(item, soVer, comparar) {
     var p = estado.personagem;
     if (!item) {
       return '<p class="suave">' + (temMouse ? 'Passe o mouse num item para ver a ficha. Um clique amplia e compara; dois cliques equipam ou desequipam; o botão direito equipa. A seta verde ▲ mostra o que é melhor que o equipado.'
@@ -1599,10 +1728,15 @@
       acoes += R.podeUsar(p, item)
         ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">Equipar</button>'
         : '<span class="menos">' + esc(R.motivoNaoEquipa(p, item) || 'Não é do seu grupo') + '</span>';
-      acoes += item.travado ? '<span class="suave pequeno">🔒 Travado</span>' : estado.vendaPendente === item.id
+      acoes += item.travado ? '' : estado.vendaPendente === item.id
         ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
-        : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender (+' + R.precoVenda(item) + ' ouro)</button>';
+        : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '" title="Vender por ' + R.precoVenda(item) + ' de ouro">💰 Vender ' + R.precoVenda(item) + '</button>';
     }
+    // Travar (Henri, 21/11/2026): item travado não pode ser vendido, quebrado na Oficina nem anunciado.
+    if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '" title="'
+      + (item.travado ? 'Destravar: volta a poder vender e quebrar' : 'Travar: não pode ser vendido nem quebrado') + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
+    // Botões arrumados (Henri, 21/11/2026, "Exemplo A"): Equipar largo em cima; Vender, Travar e Comparar numa linha embaixo.
+    if (!soVer && comparar) acoes += '<button class="btn secundario" data-acao="item-comparar" data-id="' + item.id + '" title="Comparar com outro item">⚖ Comparar</button>';
     return '<div class="ficha-item-topo"><div class="icone-grande borda-' + corItem(item) + aura(item) + '">' + F.icone(item) + '</div>'
       + '<div><div class="ficha-item-nome">' + nomeItemHtml(item) + '</div>'
       + '<div class="suave"><span class="ficha-item-tipo">' + tipoItem(item) + ' · <span class="raridade-' + corItem(item) + '">' + nomeRaridadeItem(item) + '</span>' + (item.nivel ? ' · ' : '') + '</span>'
@@ -1612,7 +1746,7 @@
       + '<ul class="ficha-item-bonus">' + linhas + '</ul>' + conjuntoHtml(p, item) + craftItemHtml(item)
       + (alvo ? '<p class="suave ficha-comparado">Comparado com ' + nomeItemHtml(alvo) + ((item.encanto || alvo.encanto) ? ' <span class="suave">(sem encanto)</span>' : '') + '</p>'
  : '')
-      + '<div class="item-acoes">' + acoes + '</div>';
+      + '<div class="item-acoes' + (soVer ? '' : ' acoes-item') + '">' + acoes + '</div>';
   }
 
   // Relíquia Rúnica (runa, só contra monstros) e assinatura de quem forjou.
@@ -1692,23 +1826,28 @@
     if (!item) return '';
     var slot = R.slotDoItem(p, item.id), outro = itemParaComparar(p, item);
     var semEnc = outro && (item.encanto || outro.encanto);
+    // Anel com os dois espaços ocupados (Henri, 21/11/2026): mostra os dois e um botão para trocar cada um.
+    var anelOutro = !slot && item.tipo === 'anel' && R.itemNoSlot(p, 'anel1') && R.itemNoSlot(p, 'anel2') ? R.itemNoSlot(p, 'anel2') : null;
     var acoes = '';
     if (soVer) acoes = '';
     else if (slot) {
       acoes = '<button class="btn" data-acao="desequipar" data-slot="' + slot + '"' + (R.mochilaCheia(p) ? ' disabled title="Mochila cheia"' : '') + '>Desequipar</button>';
     } else {
-      acoes = (R.podeUsar(p, item) ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>'
+      acoes = (R.podeUsar(p, item) ? (anelOutro ? '<button class="btn" data-acao="equipar" data-id="' + item.id + '" data-espaco="anel1">⇄ Trocar pelo anel 1</button>'
+            + '<button class="btn" data-acao="equipar" data-id="' + item.id + '" data-espaco="anel2">⇄ Trocar pelo anel 2</button>'
+            : '<button class="btn" data-acao="equipar" data-id="' + item.id + '">' + (outro ? 'Trocar pelo equipado' : 'Equipar') + '</button>')
           : '<span class="menos">' + esc(R.motivoNaoEquipa(estado.personagem, item) || 'Não é do seu grupo') + '</span>')
         + (item.travado ? '' : estado.vendaPendente === item.id
           ? '<button class="btn perigo" data-acao="vender" data-id="' + item.id + '">Confirmar venda</button>'
           : '<button class="btn secundario" data-acao="pedir-venda" data-id="' + item.id + '">Vender</button>');
     }
-    acoes += '<button class="btn secundario" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? 'Destravar' : 'Travar') + '</button>';
+    if (!soVer) acoes += '<button class="btn secundario btn-travar' + (item.travado ? ' travado' : '') + '" data-acao="item-travar" data-id="' + item.id + '">' + (item.travado ? '🔓 Destravar' : '🔒 Travar') + '</button>';
     return '<div class="zoom-fundo" data-acao="zoom-fechar"><div class="zoom-janela" role="dialog" aria-label="Item ampliado">'
       + '<button class="zoom-x" data-acao="zoom-fechar" title="Fechar">✕</button>'
-      + '<div class="zoom-cartas' + (outro ? ' dupla' : '') + '">'
+      + '<div class="zoom-cartas' + (anelOutro ? ' dupla tripla' : outro ? ' dupla' : '') + '">'
       + cartaZoom(outro ? semEncanto(item) : item, semEncanto(outro), (slot ? 'Equipado' : 'Este item') + (semEnc ? ' · sem encanto' : ''), item)
       + (outro ? cartaZoom(semEncanto(outro), null, 'Equipado agora' + (semEnc ? ' · sem encanto' : ''), outro) : '')
+      + (anelOutro ? cartaZoom(semEncanto(anelOutro), null, 'Outro anel equipado', anelOutro) : '')
       + '</div><div class="botoes">' + acoes + '<button class="btn secundario" data-acao="zoom-fechar">Fechar</button></div></div></div>';
   }
 
@@ -1815,7 +1954,7 @@
       l.pid = p.id; estado.loja = l; estado.lojaErro = null;
       p.vip = !!(l.vip_ate && Date.parse(l.vip_ate) > C.agora());
       guardarVip(p.vip); conferirArcane();
-      if (estado.aba === 'loja') telaJogo();
+      if (estado.aba === 'loja' || Object.keys(l.ativos || {}).length) telaJogo();   // tags dos boosts no topo
     }, function (e) {
       estado.lojaCarregando = false; estado.lojaErro = (e && e.message) || 'Não foi possível abrir a loja.';
       if (estado.aba === 'loja') telaJogo();
@@ -1830,6 +1969,45 @@
       + '<button class="btn secundario" data-acao="loja-cancelar">Cancelar</button>';
     return '<button class="btn" data-acao="loja-pedir" data-valor="' + item + '"' + (falta ? ' title="Éter insuficiente"' : '') + '>' + texto + ' · ' + precoEter(preco) + '</button>';
   }
+  // Compra de Éter com dinheiro no site (Mercado Pago, Henri 22/11/2026). Só no navegador: no app da Play Store a
+  // compra tem que ser pelo Google, e o app não pode mostrar nem indicar outro jeito de pagar.
+  function noAppNativo() { return !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()); }
+  function podeComprarEter(l) { return !!(l && l.venda && !noAppNativo() && C.loja && C.loja.pagar); }
+  function cartaComprarEter(l) {
+    if (!podeComprarEter(l)) return '';
+    var botoes = (D.LOJA.pacotes || []).map(function (k) {
+      return '<button class="btn" data-acao="eter-comprar" data-valor="' + k.id + '"' + (estado.eterPagando ? ' disabled' : '') + '>'
+        + ETER_IMG + '<b>' + k.eter + ' Éter</b> · R$ ' + k.reais.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + '</button>';
+    }).join('');
+    return '<div class="caixa-interna loja-carta loja-comprar-eter"><h3>Comprar Éter</h3>'
+      + '<p class="suave pequeno">Pagamento pelo Mercado Pago (Pix, cartão ou boleto). O Éter entra na conta assim que o pagamento é aprovado.</p>'
+      + '<div class="item-acoes">' + botoes + '</div></div>';
+  }
+  function comprarEter(pacote) {
+    if (estado.eterPagando) return;
+    estado.eterPagando = true; telaJogo();
+    C.loja.pagar(pacote).then(function (r) {
+      if (r && r.url) { location.href = r.url; return; }
+      throw new Error((r && r.erro) || 'Não foi possível abrir o pagamento.');
+    }).catch(function (e) {
+      estado.eterPagando = false; avisar((e && e.message) || 'Não foi possível abrir o pagamento.'); telaJogo();
+    });
+  }
+  // Volta do Mercado Pago (?pagamento=ok|pendente|falhou): avisa e confere o saldo algumas vezes (o aviso do
+  // Mercado Pago pode chegar uns segundos depois).
+  function voltaDoPagamento() {
+    var m = /[?&]pagamento=(ok|pendente|falhou)/.exec(location.search);
+    if (!m) return;
+    try { history.replaceState(null, '', location.pathname); } catch (e) { /* ignora */ }
+    var msg = { ok: '✅ Pagamento aprovado! O Éter entra na sua conta em instantes.',
+      pendente: '⏳ Pagamento em análise. O Éter entra assim que o Mercado Pago aprovar.',
+      falhou: 'O pagamento não foi concluído. Nenhum valor foi cobrado.' }[m[1]];
+    setTimeout(function () { avisar(msg, m[1] === 'ok' ? 'item' : undefined); }, 1500);
+    if (m[1] === 'falhou') return;
+    [4000, 12000, 30000].forEach(function (t) {
+      setTimeout(function () { if (estado.personagem) { estado.loja = null; carregarLoja(); } }, t);
+    });
+  }
   function abaLoja() {
     var p = estado.personagem, l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, L = D.LOJA;
     if (!l && !estado.lojaErro) carregarLoja();
@@ -1841,13 +2019,14 @@
     if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
     var vip = ehVip(), agora = C.agora();
     var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
-      + '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro chega com o app na Play Store.' : 'Comprar Éter: em breve.') + '</span></div>';
+      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
+      + cartaComprarEter(l);
     var V = L.vip;
     var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
       + (vip ? '<p class="online"><strong>VIP ativo até ' + dataCurta(l.vip_ate) + '</strong></p>' : '')
       + '<ul class="eter-lista">'
       + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
-      + '<li>Estamina recupera <strong>' + V.estaminaMult + 'x</strong> mais rápido</li>'
+      + '<li>Estamina cheia em <strong>' + V.estaminaMinutos + ' min</strong> (sem VIP: ' + D.ESTAMINA.minutosSemAcampar + ' min)</li>'
       + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
       + '<li>Oficina: <strong>qualquer</strong> Coletor ou Ferreiro faz o seu pedido na hora, sem ser amigo</li>'
       + '<li>Doação ao clã: até <strong>' + V.doacaoMult + 'x</strong> o limite do dia</li>'
@@ -1891,6 +2070,92 @@
     }).join('');
     return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaPasse + '</div>' + skins
       + (hist ? '<div class="caixa-interna cla-secao"><h3>Seu Éter: últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
+  }
+  // Tags dos boosts ativos embaixo do level (Henri, 21/11/2026): passar o mouse mostra o bônus e até quando vale.
+  function tagsBoostHtml(p) {
+    var l = estado.loja && estado.loja.pid === p.id ? estado.loja : null, agora = C.agora();
+    if (!l || !l.ativos) return '';
+    var h = Object.keys(D.LOJA.boosts).map(function (k) {
+      var ate = l.ativos[k], fim = ate && Date.parse(ate);
+      if (!fim || fim <= agora) return '';
+      var b = D.LOJA.boosts[k], min = Math.ceil((fim - agora) / 60000), nome = k === 'exp' ? 'EXP' : 'OURO';
+      return '<span class="tag-boost tag-boost-' + k + '" tabindex="0" data-acao="tag-boost" title="' + esc(b.nome + ': +' + b.pct + '% de ' + (k === 'exp' ? 'experiência' : 'ouro')
+        + ' na caçada. Vale até ' + dataCurta(ate) + ' (falta' + (min === 1 ? '' : 'm') + ' ' + min + ' min).') + '">'
+        + (k === 'exp' ? '✨ ' : '💰 ') + nome + ' +' + b.pct + '%</span>';
+    }).join('');
+    return h ? '<span class="tags-boost">' + h + '</span>' : '';
+  }
+  // Inspecionar (só ADMIN; Henri, 24/11/2026): no ranking, abre a ficha de outro personagem em 3 abas.
+  function botaoInspecionar(x) {
+    return ehAdmin() && x.id ? '<button class="btn secundario mini-opcao" data-acao="ranking-inspecionar" data-id="' + esc(x.id) + '" title="Ver itens, Pacto e atributos (só admin)">🔍 Inspecionar</button>' : '';
+  }
+  // "De onde vem a vida" (Henri, 24/11/2026): cada parte da vida máxima, na ordem do cálculo, com a barra do tamanho do ganho.
+  function origemVidaHtml(a) {
+    var o = R.origemVida(a), max = Math.max.apply(null, o.linhas.map(function (l) { return Math.abs(l.ganho); }).concat([1]));
+    return '<h4 class="insp-vida-titulo">❤ De onde vem a vida <small class="suave">(' + o.total.toLocaleString('pt-BR') + ')</small></h4><table class="insp-vida">'
+      + o.linhas.map(function (l) {
+        return '<tr><td>' + esc(l.nome) + '</td><td class="insp-vida-txt">' + l.txt + '</td><td class="insp-vida-ganho ' + (l.ganho < 0 ? 'menos' : '') + '">' + (l.ganho > 0 ? '+' : '') + l.ganho.toLocaleString('pt-BR')
+          + ' <small class="suave">(' + Math.round(l.ganho * 100 / o.total) + '%)</small></td><td class="insp-vida-barra"><i style="width:' + Math.round(Math.abs(l.ganho) * 100 / max) + '%"></i></td></tr>';
+      }).join('') + '</table>';
+  }
+  var INSP_SLOTS = [['arma', 'Arma'], ['secundaria', 'Mão esquerda'], ['elmo', 'Elmo'], ['peitoral', 'Peitoral'], ['luvas', 'Luvas'], ['botas', 'Botas'],
+    ['colar', 'Colar'], ['anel1', 'Anel 1'], ['anel2', 'Anel 2']];
+  function inspecaoHtml() {
+    var I = estado.inspecao, a = I.p, corpo;
+    var abas = [['itens', '🛡 Itens equipados'], ['pacto', '✦ Pactos'], ['atributos', '📊 Atributos']].map(function (b) {
+      return '<button class="' + (I.aba === b[0] ? 'ativa' : '') + '" data-acao="insp-aba" data-valor="' + b[0] + '">' + b[1] + '</button>';
+    }).join('');
+    if (I.erro) corpo = '<p class="menos">' + esc(I.erro) + '</p>';
+    else if (!a) corpo = '<p class="suave">Carregando…</p>';
+    else {
+      var eu = estado.personagem;
+      estado.personagem = a;   // as fichas de item comparam com o "personagem atual": aqui, o inspecionado
+      try {
+        if (I.aba === 'itens') {
+          corpo = '<div class="insp-itens">' + INSP_SLOTS.map(function (sl) {
+            var it = R.itemNoSlot(a, sl[0]);
+            return '<div class="insp-slot"><div class="insp-rotulo">' + sl[1] + '</div>'
+              + (it ? '<div class="insp-ficha">' + fichaItemHtml(it, true) + '</div>' : '<p class="suave pequeno">— vazio —</p>') + '</div>';
+          }).join('') + '</div>';
+        } else if (I.aba === 'pacto') {
+          var AS = D.ASCENSAO, A = R.arvoreAscensao(), nos = R.nosAscensao(a), total = R.pontosAscensaoTotal(a), gastos = R.custoNosAscensao(nos);
+          if (a.nivel < AS.nivelInicio) corpo = '<p class="suave">O Pacto abre no level ' + AS.nivelInicio + '. Este personagem está no level ' + a.nivel + '.</p>';
+          else {
+            var porDom = AS.dominios.map(function (d) {
+              var meus = nos.filter(function (id) { return A[id] && A[id].dom === d.id; });
+              if (!meus.length) return '';
+              var nomes = meus.filter(function (id) { return A[id].tipo === 'notavel' || A[id].tipo === 'pedra'; }).map(function (id) {
+                var tr = d.trilhas[A[id].trilha];
+                return A[id].tipo === 'pedra' ? '💎 ' + tr.pedra.nome : '★ ' + tr.notavel.nome;
+              });
+              return '<li style="--cor-dom:' + d.cor + '"><b class="insp-dom">' + d.nome + '</b> · ' + meus.length + ' ponto' + (meus.length > 1 ? 's' : '')
+                + (nomes.length ? '<div class="pequeno">' + nomes.join(' · ') + '</div>' : '') + '</li>';
+            }).join('');
+            corpo = '<p><strong>' + gastos + '</strong> de <strong>' + total + '</strong> pontos usados' + (total - gastos > 0 ? ' <span class="suave">(' + (total - gastos) + ' livres)</span>' : '') + '</p>'
+              + (porDom ? '<ul class="insp-dominios">' + porDom + '</ul>' + pactoResumo(a).replace('<details class="pacto-resumo"', '<details class="pacto-resumo" open') : '<p class="suave">Nenhum ponto do Pacto pego ainda.</p>');
+          }
+        } else {
+          var s = R.status(a), eq = R.bonusEquipamentos(a), magico = s.tipoDano === 'magico', pc = function (v) { return fmt(v) + '%'; };
+          var atrs = R.ATRIBUTOS.map(function (k) {
+            return '<dt>' + D.atributos[k].nome + '</dt><dd>' + (a.atributos[k] + (eq[k] || 0)) + ' <small class="suave">(' + a.atributos[k] + ' base' + (eq[k] ? ' + ' + eq[k] + ' itens' : '') + ')</small></dd>';
+          }).join('');
+          var st = [['Poder', '<strong class="cor-ouro">' + R.poder(a).toLocaleString('pt-BR') + '</strong>'], ['Vida máxima', s.hpMax],
+            ['Dano por golpe', dano(s.dano) + (magico ? ' (mágico)' : '')], ['Defesa', s.defesa + ' <small class="suave">(−' + R.cortePct(s.defesa) + '%)</small>'],
+            ['Defesa mágica', s.defesaMagica + ' <small class="suave">(−' + R.cortePct(s.defesaMagica) + '%)</small>'], ['Velocidade', s.velocidade],
+            ['Precisão', pc(s.precisao)], ['Evasão', pc(s.evasao)],
+            [magico ? 'Crítico mágico' : 'Chance de crítico', pc(magico ? s.chanceCriticoMagico : s.chanceCritico)],
+            [magico ? 'Dano crítico mágico' : 'Dano crítico', pc(magico ? s.danoCriticoMagico : s.danoCritico)]].map(function (l) { return '<dt>' + l[0] + '</dt><dd>' + l[1] + '</dd>'; }).join('');
+          corpo = '<div class="insp-atributos"><div><h4>Atributos</h4><dl class="status">' + atrs + '</dl>'
+            + (a.pontosLivres ? '<p class="suave pequeno">' + a.pontosLivres + ' ponto(s) sem usar</p>' : '') + '</div><div><h4>Status</h4><dl class="status">' + st + '</dl></div></div>'
+            + origemVidaHtml(a);
+        }
+      } catch (e) { corpo = '<p class="menos">Não deu para mostrar: ' + esc(e.message) + '</p>'; }
+      finally { estado.personagem = eu; }
+    }
+    return '<div class="zoom-fundo insp-fundo"><div class="zoom-janela insp-janela" role="dialog" aria-label="Inspecionar">'
+      + '<button class="zoom-x insp-x" data-acao="insp-fechar" aria-label="Fechar">✕</button>'
+      + '<h3 class="subtitulo">🔍 ' + (a ? esc(a.nome) + ' <small class="suave">· Lv ' + a.nivel + ' · ' + esc(nomeClasseP(a)) + '</small>' : 'Inspecionar') + '</h3>'
+      + '<div class="sub-abas insp-abas">' + abas + '</div><div class="insp-corpo">' + corpo + '</div></div></div>';
   }
   function lojaChamar(prom, msg) {
     var p = estado.personagem;
@@ -2271,7 +2536,8 @@
     return t.charAt(0).toUpperCase() + t.slice(1) + '.';
   }
   var CAMPO_HAB = { dano: 'dano', danoCritico: 'dano crítico', critico: 'chance de crítico', velocidade: 'velocidade', precisao: 'precisão',
-    vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp' };
+    vidaPct: 'vida máxima', defesaPct: 'defesa', evasao: 'esquiva', danoCriticoMagico: 'dano crítico mágico', recompensa: 'ouro e exp',
+    espinhosPvE: 'Armadura de Espinhos (devolve o dano dos monstros; não vale na Arena)' };
   var NOME_ATR = { for: 'Força', des: 'Destreza', res: 'Resistência', int: 'Inteligência', sor: 'Sorte' };
   // O que a habilidade faz com N pontos (com 0 pontos mostra como fica com 1).
   function efeitoHabilidade(def, pts) {
@@ -2279,7 +2545,7 @@
     if (def.nivel) return efeitoNivel(def, n);
     var bonus = function () {
       return Object.keys(CAMPO_HAB).filter(function (c) { return def[c]; }).map(function (c) {
-        return CAMPO_HAB[c] + ' +' + R.valorBonus(def, c, n) + '%';
+        return CAMPO_HAB[c] + ' +' + String(R.valorBonus(def, c, n)).replace('.', ',') + '%';
       });
     };
     var turnos = function (t) { return t + (t === 1 ? ' turno' : ' turnos'); };
@@ -2338,17 +2604,21 @@
     precisao: ['', 'de precisão'], defesa: ['%', 'de defesa'], defesaMagica: ['%', 'de defesa mágica'], vida: ['%', 'de vida'],
     velocidade: ['%', 'de velocidade'], evasao: ['', 'de esquiva'], rouboVida: ['%', 'de roubo de vida'], danoHab: ['%', 'de dano das habilidades'],
     ouro: ['%', 'de ouro'], exp: ['%', 'de exp'], drop: ['%', 'de chance de drop'],
+    velocidadePts: ['', 'de velocidade'], danoHibrido: ['%', 'de dano híbrido'],
   };
   function efAscTexto(ef) {
     return Object.keys(ef).map(function (k) {
       var v = ef[k];
-      if (k === 'reflete') return 'Devolve ' + v + '% do dano recebido';
+      if (k === 'reflete') return 'Devolve ' + fmtDec(v) + '% do dano recebido';
       if (k === 'reducaoDano') return '−' + v + '% de dano recebido';
       if (k === 'recargaPct') return 'Habilidades recarregam ' + v + '% mais rápido (nunca menos de 2 turnos)';
       if (k === 'eruditoExp') return '+' + v + '% de exp (com os pontos no limite, vira +' + fmtDec(Math.round(v / 3 * 10) / 10) + '% de drop)';
-      if (k === 'curaHab') return 'Cura ' + v + '% da vida ao usar uma habilidade';
+      if (k === 'curaHab') return 'Cura ' + String(v).replace('.', ',') + '% da vida ao usar uma habilidade';
+      if (k === 'recargaMenos') return 'A cada ' + (D.ASCENSAO.focoCada || 4) + ' turnos, as habilidades recarregam ' + v + ' turno' + (v > 1 ? 's' : '') + ' mais rápido';
+      if (k === 'danoVidaAtual') return '+' + fmtDec(v) + '% da vida atual do alvo em cada golpe';
+      if (k === 'danoHibrido') return '+' + fmtDec(v) + '% de dano híbrido (vai contra a defesa oposta)';
       var n = NOME_EF_ASC[k];
-      return n ? (v > 0 ? '+' : '−') + Math.abs(v) + n[0] + ' ' + n[1] : '';
+      return n ? (v > 0 ? '+' : '−') + fmtDec(Math.abs(v)) + n[0] + ' ' + n[1] : '';
     }).filter(Boolean).join(' · ');
   }
   function pendAsc() { return estado.ascPend || (estado.ascPend = []); }
@@ -2377,7 +2647,7 @@
     var curvas = {};
     doms.forEach(function (g, i) {
       var h = doms[(i + 1) % n];
-      [1, 3].forEach(function (k, q) {
+      [1].forEach(function (k, q) {   // Pacto v2: uma ponte por par (a de fora saiu)
         var id = 'ponte-' + g.d.id + '-' + h.d.id + '-' + q, a = pos[g.d.id + '-1-' + k], b = pos[h.d.id + '-0-' + k];
         var meio = pt(q ? 470 : 345, (g.ang + h.ang) / 2 + (i === n - 1 ? 180 : 0));
         curvas[id] = { a: a, b: b, meio: meio, cores: [g.d.cor, h.d.cor] };
@@ -2391,6 +2661,7 @@
     var total = R.pontosAscensaoTotal(p), aberto = p.nivel >= AS.nivelInicio;
     var tem = function (id) { return lista.indexOf(id) >= 0; };
     var podeId = function (id) { return aberto && !tem(id) && !R.motivoAscensao(lista, id, total); };
+    var caminho = sel && aberto && !tem(sel) ? R.caminhoAscensao(lista, sel) || [] : [];   // caminho até o ponto tocado
     var travada = function (id) { return A[id].tipo === 'pedra' && !tem(id) && lista.some(function (x) { return A[x].tipo === 'pedra' && A[x].dom === A[id].dom; }); };
     var cor = function (id) { var no = A[id]; return no.dom ? D.ASCENSAO.dominios.filter(function (d) { return d.id === no.dom; })[0].cor : '#e6cf9c'; };
     var L = function (a, b, c, op, w, extra) { return '<line x1="' + a[0] + '" y1="' + a[1] + '" x2="' + b[0] + '" y2="' + b[1] + '" stroke="' + c + '" stroke-opacity="' + op + '" stroke-width="' + w + '"' + (extra || '') + '/>'; };
@@ -2415,8 +2686,6 @@
         var b = d.id + '-' + t + '-';
         s += L(pos[d.id + '-t1'], pos[b + 0], c, ligado(d.id + '-t1', b + 0) ? 1 : .6, ligado(d.id + '-t1', b + 0) ? 4.5 : 3);
         for (var k = 1; k < 5; k++) s += L(pos[b + (k - 1)], pos[b + k], c, ligado(b + (k - 1), b + k) ? 1 : .6, ligado(b + (k - 1), b + k) ? 4.5 : 3);
-        var q = G.pt(450, g.ang + (t ? 1 : -1) * 21);
-        s += '<path d="M' + pos[b + 1][0] + ' ' + pos[b + 1][1] + ' Q' + q[0] + ' ' + q[1] + ' ' + pos[b + 3][0] + ' ' + pos[b + 3][1] + '" stroke="' + c + '" stroke-opacity="' + (ligado(b + 1, b + 3) ? .9 : .3) + '" stroke-width="1.8" fill="none"/>';
         s += L(pos[b + 4], pos[b + 'p'], c, ligado(b + 4, b + 'p') ? 1 : .6, ligado(b + 4, b + 'p') ? 4.5 : 3);
       });
       var lab = G.pt(300, g.ang);
@@ -2427,7 +2696,7 @@
     // pontos (clicáveis)
     Object.keys(A).forEach(function (id) {
       var no = A[id], xy = pos[id], c = cor(id), on = tem(id), pd = pend.indexOf(id) >= 0, livre = podeId(id), off = travada(id);
-      var cls = 'asc-no' + (on ? ' on' : '') + (livre ? ' livre' : '') + (sel === id ? ' sel' : '');
+      var cls = 'asc-no' + (on ? ' on' : '') + (livre ? ' livre' : '') + (sel === id ? ' sel' : '') + (caminho.indexOf(id) >= 0 && sel !== id ? ' caminho' : '');
       var g = '<g class="' + cls + '" data-acao="asc-sel" data-id="' + id + '">';
       if (no.tipo === 'pedra') {
         var nm = AS.dominios.filter(function (d) { return d.id === no.dom; })[0].trilhas[no.trilha];
@@ -2481,9 +2750,15 @@
       titulo = no.tipo === 'notavel' ? no.nome : (tr ? tr.nome : dom.nome); texto = efAscTexto(no.ef);
     }
     var tipoNome = { pequeno: 'Ponto', notavel: 'Notável', ponte: 'Ponte', pedra: 'Pedra Angular' }[no.tipo];
-    var tem = lista.indexOf(id) >= 0, pd = pend.indexOf(id) >= 0, motivo = tem ? null : R.motivoAscensao(lista, id, R.pontosAscensaoTotal(p));
+    var tem = lista.indexOf(id) >= 0, pd = pend.indexOf(id) >= 0, total = R.pontosAscensaoTotal(p), motivo = tem ? null : R.motivoAscensao(lista, id, total);
+    // Pacto v2: ponto longe = pega o caminho mais barato até ele de uma vez (Henri, 20/11/2026)
+    var cam = !tem && motivo && /ligado/.test(motivo) && p.nivel >= AS.nivelInicio ? R.caminhoAscensao(lista, id) : null;
+    var camOk = cam && R.ordenarAscensao(lista.concat(cam), total);
+    var custoCam = cam ? R.custoNosAscensao(cam) : 0, livres = total - R.custoNosAscensao(lista);
     var botao = pd ? '<button class="btn secundario btn-pequeno" data-acao="asc-tirar" data-id="' + id + '">Tirar</button>'
       : tem ? '<span class="mais pequeno">✔ Já é seu</span>'
+      : cam && camOk ? '<button class="btn btn-pequeno" data-acao="asc-caminho" data-id="' + id + '">Pegar o caminho (' + cam.length + ' pontos · ' + custoCam + ' de custo)</button>'
+      : cam && custoCam > livres ? '<span class="suave pequeno">O caminho custa ' + custoCam + ' pontos; você tem ' + livres + '.</span>'
       : motivo ? '<span class="suave pequeno">' + motivo + '</span>'
       : '<button class="btn btn-pequeno" data-acao="asc-pegar" data-id="' + id + '">Pegar (' + no.custo + ' ponto' + (no.custo > 1 ? 's' : '') + ')</button>';
     return '<div class="pacto-detalhe" style="--cor-dom:' + (dom ? dom.cor : '#e6cf9c') + '"><button class="pacto-fechar" data-acao="asc-sel-fechar" aria-label="Fechar">✕</button>'
@@ -2500,7 +2775,7 @@
       return '<li><b>' + tr.pedra.nome + ':</b> ' + tr.pedra.txt + ' <span class="menos">(' + tr.pedra.custo + ')</span></li>';
     }).join('');
     var simples = {};
-    ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaPct', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
+    ks.forEach(function (k) { if (NOME_EF_ASC[k] || ['reflete', 'reducaoDano', 'recargaPct', 'recargaMenos', 'danoVidaAtual', 'curaHab'].indexOf(k) >= 0) simples[k] = x[k]; });
     return '<details class="pacto-resumo"' + (CELULAR ? '' : ' open') + '><summary>O que o seu Pacto dá</summary>'
       + '<p>' + (efAscTexto(simples) || '—') + '</p>' + (pedras ? '<ul>' + pedras + '</ul>' : '') + '</details>';
   }
@@ -2519,12 +2794,19 @@
     if (pend.length) h += '<div class="botoes pacto-confirmar"><button class="btn" data-acao="asc-confirmar">Confirmar ' + R.custoNosAscensao(pend) + ' ponto' + (R.custoNosAscensao(pend) > 1 ? 's' : '') + '</button>'
       + '<button class="btn secundario" data-acao="asc-cancelar">Cancelar</button></div>';
     h += '<div class="pacto-mapa' + (estado.ascZoom ? ' zoom' : '') + '">' + pactoSvg(p, lista, pend) + '</div>'
-      + '<div class="pacto-legenda suave pequeno"><span><b>+</b> ponto · 1</span><span><b>★</b> notável · 2</span><span><b>⇄</b> ponte · 2</span><span><b>◯</b> Pedra Angular · 4</span>'
+      + '<div class="pacto-legenda suave pequeno"><span><b>+</b> ponto · 1</span><span><b>★</b> notável · 2</span><span><b>⇄</b> ponte · ' + AS.custo.ponte + '</span><span><b>◯</b> Pedra Angular · 4</span>'
       + '<button class="btn-mini" data-acao="asc-zoom">' + (estado.ascZoom ? '− Diminuir' : '+ Aumentar') + '</button></div>'
       + '<div id="pacto-detalhe">' + pactoDetalhe(p, lista, pend) + '</div>' + pactoResumo(p);
-    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + AS.precoRefazer.toLocaleString('pt-BR') + ' de ouro (os pontos voltam). '
-      + (estado.ascRefazer ? '<button class="btn perigo btn-pequeno" data-acao="asc-refazer">Confirmar: zerar</button> <button class="btn secundario btn-pequeno" data-acao="asc-refazer-nao">Cancelar</button>'
-        : '<button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button>') + '</p>';
+    var precoZ = R.precoRefazerAscensao(p, C.agora());
+    if (R.nosAscensao(p).length) h += '<p class="suave pequeno pacto-refazer">Quer mudar o caminho? Zere o Pacto por ' + precoZ.toLocaleString('pt-BR') + ' de ouro (os pontos voltam' + (AS.precoRefazerMais ? '; cada vez na mesma semana custa +'
+      + AS.precoRefazerMais.toLocaleString('pt-BR') : '') + '). <button class="btn secundario btn-pequeno" data-acao="asc-refazer-pedir">Zerar o Pacto</button></p>';
+    // Balão de confirmação no meio da tela (Henri, 20/11/2026)
+    if (estado.ascRefazer) h += '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela pacto-zerar" role="dialog" aria-label="Zerar o Pacto">'
+      + '<button class="zoom-x" data-acao="asc-refazer-nao" aria-label="Fechar">✕</button><h3>Zerar o Pacto?</h3>'
+      + '<p>Todos os pontos voltam para você escolher de novo.</p><p>Custa <strong class="cor-ouro">' + precoZ.toLocaleString('pt-BR') + ' de ouro</strong>'
+      + ' <span class="suave">(você tem ' + (p.ouro || 0).toLocaleString('pt-BR') + ')</span>.</p>'
+      + (AS.precoRefazerMais ? '<p class="suave pequeno">A próxima vez nesta semana custa ' + (precoZ + AS.precoRefazerMais).toLocaleString('pt-BR') + '. O preço volta a ' + AS.precoRefazer.toLocaleString('pt-BR') + ' na segunda-feira.</p>' : '')
+      + '<div class="botoes"><button class="btn perigo" data-acao="asc-refazer">Zerar</button><button class="btn secundario" data-acao="asc-refazer-nao">Cancelar</button></div></div></div>';
     return h;
   }
   // Tutorial do Pacto: aparece uma vez, quando o herói chega no level 40 (p.pactoVisto marca que já viu).
@@ -2540,7 +2822,7 @@
       + '<li><b>Comece no centro</b> e siga as linhas para fora.</li>'
       + '<li><b>Pedra Angular</b> no fim de cada trilha: forte, mas com um custo (máx. ' + AS.maxPedras + ').</li>'
       + '<li><b>Não dá para pegar tudo:</b> escolha o seu caminho.</li>'
-      + '</ol><p class="suave pequeno">Vale contra monstros, não na Arena.</p>'
+      + '</ol><p class="suave pequeno">Vale contra monstros e na Arena.</p>'
       + '<div class="botoes"><button class="btn" data-acao="pacto-tutorial-ir">Abrir o Pacto</button><button class="btn secundario" data-acao="pacto-tutorial-fechar">Depois</button></div>'
       + '</div></div>';
   }
@@ -2553,6 +2835,24 @@
     if (r && r.zoom === !!estado.ascZoom) { m.scrollLeft = r.x; m.scrollTop = r.y; }
     else { m.scrollLeft = (m.scrollWidth - m.clientWidth) / 2; m.scrollTop = (m.scrollHeight - m.clientHeight) / 2; }
     m.onscroll = function () { estado.ascRolagem = { x: m.scrollLeft, y: m.scrollTop, zoom: !!estado.ascZoom }; };
+    // Arrastar com o mouse para andar pelo mapa (Henri, 20/11/2026); com o dedo, a rolagem do próprio navegador.
+    // Um arrasto de mais de 5px não conta como toque no ponto.
+    var arr = null;
+    m.onpointerdown = function (e) {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      arr = { x: e.clientX, y: e.clientY, sl: m.scrollLeft, st: m.scrollTop, mexeu: false };
+    };
+    m.onpointermove = function (e) {
+      if (!arr) return;
+      var dx = e.clientX - arr.x, dy = e.clientY - arr.y;
+      if (!arr.mexeu && Math.abs(dx) + Math.abs(dy) > 5) { arr.mexeu = true; m.classList.add('arrastando'); try { m.setPointerCapture(e.pointerId); } catch (x) { /* ignora */ } }
+      if (arr.mexeu) { m.scrollLeft = arr.sl - dx; m.scrollTop = arr.st - dy; }
+    };
+    m.onpointerup = m.onpointercancel = function () {
+      if (arr && arr.mexeu) { m.classList.remove('arrastando'); m.dataset.arrastou = '1'; setTimeout(function () { delete m.dataset.arrastou; }, 0); }
+      arr = null;
+    };
+    m.addEventListener('click', function (e) { if (m.dataset.arrastou) { e.stopPropagation(); e.preventDefault(); } }, true);
   }
   // Redesenha só o Pacto, guardando a rolagem do mapa.
   function redesenharPacto() {
@@ -3265,7 +3565,7 @@
     var custoF = R.custoForja(p, f.area);
     if (f.chefe) custoF.push({ tipo: 'material', id: mcF, nome: C.materiais[mcF].nome, tem: R.qtdMaterial(p, mcF), precisa: f.chefe });
     if (f.gemas) custoF.push({ tipo: 'material', id: 'gema', nome: C.materiais.gema.nome, tem: R.qtdMaterial(p, 'gema'), precisa: f.gemas });
-    var chances = R.chancesForja(p, f.area, f.chefe, f.gemas), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+    var chances = R.chancesForja(p, f.area, f.chefe, f.gemas, p.nivel), pct = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
     var botoes = function (campo, lista, atual) {
       return '<div class="forja-botoes">' + lista.map(function (o) {
         return '<button type="button" class="btn btn-pequeno' + (String(o[0]) === String(atual) ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="' + campo + '" data-valor="' + o[0] + '">' + o[1] + '</button>';
@@ -3289,7 +3589,7 @@
       + '<li><h4>Região <span class="suave pequeno">· define o level do item</span></h4><div class="forja-botoes">' + f.liberadas.map(function (a) {
         var temR = R.qtdConsumivel(p, 'receita', a.id) > 0;
         return '<button type="button" class="btn btn-pequeno forja-regiao' + (a.id === f.area ? ' sel' : ' secundario') + '" data-acao="forja-op" data-campo="area" data-valor="' + a.id + '">'
-          + iconeArea(a) + '<span>' + esc(a.nome) + '<small>item level ' + (a.nivelMin + 2) + (temR ? ' · 📜' : '') + '</small></span></button>';
+          + iconeArea(a) + '<span>' + esc(a.nome) + '<small>item level ' + (function (fx) { return fx[0] === fx[1] ? fx[0] : fx[0] + '–' + fx[1]; })(R.nivelForja(a.id, p.nivel)) + (temR ? ' · 📜' : '') + '</small></span></button>';
       }).join('') + '</div></li>'
       + '<li><h4>Para a classe</h4>' + botoes('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), f.classe) + '</li>'
       + '<li><h4>Peça</h4><div class="forja-botoes">' + PECAS_FORJA.map(function (o) {
@@ -3395,14 +3695,33 @@
       + '<p class="suave pequeno">Contrate um Ferreiro ou um Coletor de outro jogador. Você entrega o item, os materiais e o pagamento; o jogo guarda tudo até ele fazer. '
       + 'A sorte é a <strong>do artesão</strong>. Se ele não fizer em ' + OF.prazoHoras + ' h, tudo volta para você. '
       + '🤝 Artesão que é seu <strong>amigo</strong> faz <strong>na hora</strong>, sem precisar aceitar. Quem não entra no jogo há ' + (OF.sumirHoras || 24) + ' h sai da lista.</p></div></div>';
-    // Meus pedidos (primeiro: é o que o comprador quer acompanhar)
+    // Oficinas abertas (para o comprador), com filtro por serviço
+    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; }), filtro = estado.ofFiltro || 'todos';
+    var visiveis = lista.filter(function (x) { return filtro === 'todos' || x.servicos[filtro]; });
+    html += '<h3 class="subtitulo">⚒ Oficinas abertas <span class="suave pequeno">(' + lista.length + ')</span></h3>'
+      + '<div class="loja-filtros">' + [['todos', 'Todos']].concat(Object.keys(OF.servicos).map(function (k) { return [k, ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome.replace(/^Fabricar /, '')]; })).map(function (o) {
+        return '<button type="button" class="btn btn-pequeno' + (o[0] === filtro ? ' sel' : ' secundario') + '" data-acao="of-filtro" data-valor="' + o[0] + '">' + o[1] + '</button>';
+      }).join('') + '</div>';
+    html += visiveis.length ? '<div class="loja-lista">' + visiveis.map(function (x) { return cartaOficina(x); }).join('') + '</div>'
+      : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
+    // Meus pedidos (depois das oficinas abertas: pedido do Henri, 21/11/2026)
     if ((st.pedidos || []).length) {
-      var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length;
-      html += '<h3 class="subtitulo">🧾 Meus pedidos' + (pend ? ' <span class="contador-loja">' + pend + ' esperando</span>' : '') + '</h3><div class="loja-pedidos">' + st.pedidos.map(function (x) {
+      // Abas Esperando / Prontos e "Ver mais" (Henri, 21/11/2026): a lista inteira ficava gigante na tela.
+      var pend = st.pedidos.filter(function (x) { return x.estado === 'pendente'; }).length, prontosN = st.pedidos.length - pend;
+      var abaP = estado.pedidosAba || (pend ? 'pendente' : 'prontos'), verP = estado.pedidosVer || 5;
+      var listaP = st.pedidos.filter(function (x) { return (x.estado === 'pendente') === (abaP === 'pendente'); });
+      var maisP = abaP === 'prontos' && listaP.length > verP ? listaP.length - verP : 0;
+      if (abaP === 'prontos') listaP = listaP.slice(0, verP);
+      html += '<h3 class="subtitulo">🧾 Meus pedidos</h3><div class="sub-abas pedidos-abas">'
+        + '<button class="sub-aba' + (abaP === 'pendente' ? ' ativa' : '') + '" data-acao="pedidos-aba" data-valor="pendente">⏳ Esperando (' + pend + ')</button>'
+        + '<button class="sub-aba' + (abaP === 'prontos' ? ' ativa' : '') + '" data-acao="pedidos-aba" data-valor="prontos">✔ Prontos (' + prontosN + ')</button></div>'
+        + (listaP.length ? '' : '<p class="suave">' + (abaP === 'pendente' ? 'Nenhum pedido esperando.' : 'Nenhum pedido pronto ainda.') + '</p>')
+        + '<div class="loja-pedidos">' + listaP.map(function (x) {
         return '<div class="loja-pedido"><span class="loja-pedido-ico">' + (x.item ? '<span class="icone-pequeno borda-' + corItem(x.item) + '">' + F.icone(x.item) + '</span>' : ICONE_SERVICO[x.tipo] || '⚒') + '</span>'
           + '<div class="loja-pedido-texto"><strong>' + esc(textoPedido(x)) + '</strong><small class="suave">' + esc(x.artesao) + ' · ' + ICONES.ouro + ' ' + ouroTxt(x.preco) + '</small>' + seloPedido(x) + '</div>'
           + (x.estado === 'pendente' ? '<button class="btn secundario btn-pequeno" data-acao="of-cancelar" data-id="' + x.id + '">Cancelar</button>' : '') + '</div>';
-      }).join('') + '</div>';
+      }).join('') + '</div>'
+        + (maisP ? '<div class="botoes"><button class="btn secundario btn-pequeno" data-acao="pedidos-mais">Ver mais (' + maisP + ')</button></div>' : '');
     }
     // Minha oficina (para o artesão)
     var meus = servicosDe(p);
@@ -3438,15 +3757,6 @@
           + '<button class="btn btn-pequeno" data-acao="of-fazer" data-id="' + x.id + '">' + (x.tipo === 'encantar' || x.tipo === 'reliquia' ? '🎲 Jogar a sorte' : '⚒ Fazer') + '</button></div>';
       }).join('') + '</div>' : '<p class="suave">Nenhum pedido esperando.</p>') + '</div>';
     }
-    // Oficinas abertas (para o comprador), com filtro por serviço
-    var lista = (st.lista || []).filter(function (x) { return x.id !== p.id; }), filtro = estado.ofFiltro || 'todos';
-    var visiveis = lista.filter(function (x) { return filtro === 'todos' || x.servicos[filtro]; });
-    html += '<h3 class="subtitulo">⚒ Oficinas abertas <span class="suave pequeno">(' + lista.length + ')</span></h3>'
-      + '<div class="loja-filtros">' + [['todos', 'Todos']].concat(Object.keys(OF.servicos).map(function (k) { return [k, ICONE_SERVICO[k] + ' ' + OF.servicos[k].nome.replace(/^Fabricar /, '')]; })).map(function (o) {
-        return '<button type="button" class="btn btn-pequeno' + (o[0] === filtro ? ' sel' : ' secundario') + '" data-acao="of-filtro" data-valor="' + o[0] + '">' + o[1] + '</button>';
-      }).join('') + '</div>';
-    html += visiveis.length ? '<div class="loja-lista">' + visiveis.map(function (x) { return cartaOficina(x); }).join('') + '</div>'
-      : '<p class="suave">' + (lista.length ? 'Nenhuma oficina oferece esse serviço agora.' : 'Nenhuma oficina aberta agora.') + '</p>';
     return html;
   }
   function statsOficina(x) {
@@ -3483,6 +3793,18 @@
     var sel = function (campo, lista, atual) {
       return '<select data-contratar="' + campo + '">' + lista.map(function (o) { return '<option value="' + esc(String(o[0])) + '"' + (String(o[0]) === String(atual) ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>';
     };
+    // Escolher o item num quadrado com os itens da mochila (Henri, 21/11/2026), no lugar da lista.
+    var grade = function (lista, atual, varios) {
+      var v = visaoMochila(), marcado = function (i) { return varios ? varios.indexOf(i.id) >= 0 : i.id === atual.id; };
+      var cels = '<div class="mochila contratar-grade">' + R.ordenarItens(lista, v.ordem, v.crescente).map(function (i) {
+        return quadroItem(i, 'celula' + (marcado(i) ? ' escolhido' : ''), ' aria-pressed="' + marcado(i) + '"').replace('data-acao="item"', 'data-acao="of-item"');
+      }).join('') + '</div>';
+      // Quebrar vários de uma vez (Henri, 21/11/2026): toca para marcar/desmarcar.
+      if (varios) return '<div class="contratar-escolha"><div class="contratar-escolha-topo"><span class="suave pequeno">Toque nos itens para marcar (' + varios.length + ' marcado' + (varios.length === 1 ? '' : 's') + '):</span>'
+        + '<button class="btn secundario btn-pequeno" data-acao="of-itens-todos">Marcar todos</button>' + (varios.length ? '<button class="btn secundario btn-pequeno" data-acao="of-itens-limpar">Limpar</button>' : '') + '</div>' + cels + '</div>';
+      return '<div class="contratar-escolha"><span class="suave pequeno">Escolha o item:</span>' + cels + '<p class="contratar-escolhido"><span class="icone-pequeno borda-' + corItem(atual) + '">' + F.icone(atual) + '</span> <strong>' + esc(R.nomeItem(atual)) + '</strong>'
+        + ' <span class="suave pequeno">· Lv ' + (atual.nivel || 1) + ' · ' + D.raridades[atual.raridade].nome + (atual.encanto ? ' · +' + atual.encanto : '') + '</span></p></div>';
+    };
     var h = '<div class="contratar">', aviso = '', pode = true;
     if (tipo === 'encantar') {
       var itens = livres.filter(function (i) { return i.encanto < E.maximo && !i.runa; });
@@ -3490,7 +3812,7 @@
       var it = itens.filter(function (i) { return i.id === f.item; })[0] || itens[0];
       var chance = R.chanceEncantarCom(Number(x.bonus_encanto), it), risco = R.riscoEncantar(it);
       var temProt = R.qtdConsumivel(p, 'protecao', it.raridade) > 0, prot = !!f.protecao && temProt, temPerg = R.qtdPergaminho(p, it.raridade) > 0;
-      h += '<label>Item ' + sel('item', itens.map(function (i) { return [i.id, R.nomeItem(i) + ' (' + D.raridades[i.raridade].nome + ')']; }), it.id) + '</label>'
+      h += grade(itens, it)
         + '<label class="linha-check"><input type="checkbox" data-contratar="protecao"' + (prot ? ' checked' : '') + (temProt ? '' : ' disabled') + '> 🛡 Usar Pergaminho de Proteção '
         + '<span class="suave pequeno">(' + (temProt ? 'você tem ' + R.qtdConsumivel(p, 'protecao', it.raridade) : 'você não tem da raridade ' + D.raridades[it.raridade].nome) + ')</span></label>'
         + (temPerg ? '' : '<p class="menos pequeno">Você precisa de 1 Pergaminho ' + D.raridades[it.raridade].nome + ' para entregar.</p>');
@@ -3508,7 +3830,7 @@
       var mc = R.materialDoChefe(ar.chefe.id), custo = R.custoForja(p, ar.id).filter(function (c) { return c.tipo !== 'ouro'; });
       if (ch) custo.push({ tipo: 'material', id: mc, nome: D.CRAFT.materiais[mc].nome, tem: R.qtdMaterial(p, mc), precisa: ch });
       if (ge) custo.push({ tipo: 'material', id: 'gema', nome: 'Pedra Preciosa', tem: R.qtdMaterial(p, 'gema'), precisa: ge });
-      var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
+      var extra = D.CRAFT.forja.ouro[D.areas.indexOf(ar)], chs = R.chancesForja({ raca: x.raca }, ar.id, ch, ge, p.nivel), nf = R.nivelForja(ar.id, p.nivel), pc = function (v) { return fmtDec(Math.round(v * 10) / 10) + '%'; };
       h += '<div class="forja-opcoes"><label>Receita ' + sel('area', comReceita.map(function (a) { return [a.id, a.nome]; }), ar.id) + '</label>'
         + '<label>Classe ' + sel('classe', Object.keys(D.classes).map(function (k) { return [k, D.classes[k].nome]; }), cls) + '</label>'
         + '<label>Peça ' + sel('peca', PECAS_FORJA, tp) + '</label>'
@@ -3516,11 +3838,18 @@
         + '<h4>Você entrega</h4>' + custoChips(custo.concat([{ tipo: 'ouro', nome: 'ouro da forja', tem: p.ouro, precisa: extra }]));
       pode = !R.faltando(p, custo).length;
       preco += extra;
-      aviso = 'Chances: Comum ' + pc(chs.comum) + ' · Rara ' + pc(chs.rara) + ' · Épica ' + pc(chs.epica) + ' · Lendária ' + pc(chs.lendaria) + ' · obra-prima ' + pc(chs.obraPrima) + '.';
+      aviso = 'Item level <strong>' + (nf[0] === nf[1] ? nf[0] : nf[0] + ' a ' + nf[1]) + '</strong>, com atributos bons (' + D.CRAFT.forja.qualidadeMin + '% a 100%). '
+        + 'Chances: ' + ['comum', 'rara', 'epica', 'lendaria'].filter(function (r) { return chs[r] > 0; }).map(function (r) { return D.raridades[r].nome + ' ' + pc(chs[r]); }).join(' · ')
+        + ' · obra-prima ' + pc(chs.obraPrima) + '.';
     } else if (tipo === 'receita') {
-      var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0], cr = R.custoReceita(p, ar2.id), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
-      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label><h4>Você entrega</h4>' + custoChips(cr);
-      pode = !R.faltando(p, mat).length; preco += cr[1].precisa;
+      // Quantidade (Henri, 22/11/2026): +1 vai somando; trocar a região volta para 1. Vira um pedido para cada receita.
+      var qr = Math.max(1, Math.floor(Number(f.qtd) || 1));
+      var ar2 = D.areas.filter(function (a) { return a.id === f.area; })[0] || D.areas[0];
+      var cr = R.custoReceita(p, ar2.id).map(function (c) { return Object.assign({}, c, { precisa: c.precisa * qr }); }), mat = cr.filter(function (c) { return c.tipo !== 'ouro'; });
+      h += '<label>Região ' + sel('area', D.areas.map(function (a) { return [a.id, a.nome]; }), ar2.id) + '</label>'
+        + '<div class="contratar-qtd"><span>Quantidade: <strong>' + qr + '</strong></span><button class="btn secundario btn-pequeno" data-acao="of-qtd-mais">+1</button></div>'
+        + '<h4>Você entrega</h4>' + custoChips(cr);
+      pode = !R.faltando(p, mat).length; preco = (preco + cr[1].precisa / qr) * qr;
     } else if (tipo === 'protecao') {
       var rr = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum', cp = R.custoProtecao(p, rr);
       h += '<label>Raridade ' + sel('raridade', Object.keys(D.CRAFT.protecao).map(function (k) { return [k, D.raridades[k].nome]; }), rr) + '</label><h4>Você entrega</h4>' + custoChips(cp);
@@ -3528,20 +3857,25 @@
     } else if (tipo === 'quebrar') {
       var qb = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; });
       if (!qb.length) return h + '<p class="suave">Nenhum item na mochila para quebrar (tire do corpo e destrave antes).</p></div>';
-      var iq = qb.filter(function (i) { return i.id === f.item; })[0] || qb[0], nq = R.cristaisQuebrar(iq);
-      h += '<label>Item ' + sel('item', qb.map(function (i) { return [i.id, R.nomeItem(i) + ' · Lv ' + (i.nivel || 1) + ' (' + D.raridades[i.raridade].nome + ')']; }), iq.id) + '</label>'
-        + '<h4>Você recebe</h4><p class="quebrar-recebe"><span class="icone-pequeno borda-' + iq.raridade + '">' + iconeCusto({ tipo: 'cristal', id: iq.raridade }) + '</span> <strong>'
-        + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong></p>';
-      preco = R.precoServico('quebrar', preco, iq);
-      aviso = 'O item <strong>some</strong> e vira <strong>' + nq + ' cristais ' + CRISTAIS_NOME[iq.raridade] + '</strong> (quanto maior o level, mais cristais). '
-        + 'Preço: ' + ouroTxt(x.servicos[tipo]) + ' x level ' + (iq.nivel || 1) + '.';
+      if (!f.itens) f.itens = f.item ? [f.item] : [];   // começa sem nada marcado
+      f.itens = f.itens.filter(function (id) { return qb.some(function (i) { return i.id === id; }); });
+      var marcados = qb.filter(function (i) { return f.itens.indexOf(i.id) >= 0; }), soma = {};
+      marcados.forEach(function (i) { soma[i.raridade] = (soma[i.raridade] || 0) + R.cristaisQuebrar(i); });
+      h += grade(qb, null, f.itens)
+        + '<h4>Você recebe</h4>' + (marcados.length ? '<p class="quebrar-recebe">' + Object.keys(CRISTAIS_NOME).filter(function (r) { return soma[r]; }).map(function (r) {
+          return '<span class="icone-pequeno borda-' + r + '">' + iconeCusto({ tipo: 'cristal', id: r }) + '</span> <strong>' + soma[r] + ' cristais ' + CRISTAIS_NOME[r] + '</strong>';
+        }).join(' · ') + '</p>' : '<p class="suave">Marque pelo menos 1 item.</p>');
+      preco = marcados.reduce(function (t, i) { return t + R.precoServico('quebrar', x.servicos[tipo], i); }, 0);
+      pode = marcados.length > 0;
+      aviso = (marcados.length > 1 ? 'Os <strong>' + marcados.length + ' itens somem</strong>' : 'O item <strong>some</strong>') + ' e viram cristais (quanto maior o level, mais cristais). '
+        + 'Preço: ' + ouroTxt(x.servicos[tipo]) + ' x o level de cada item.';
     } else if (tipo === 'reliquia') {
       var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       if (!lend.length) return h + '<p class="suave">Você precisa de um item lendário +' + Q.encantoMin + ' ou mais na mochila (fora do corpo e destravado).</p></div>';
       var il = lend.filter(function (i) { return i.id === f.item; })[0] || lend[0];
       var cm = Object.keys(Q.materiais).map(function (k) { return { tipo: 'material', id: k, nome: D.CRAFT.materiais[k].nome, tem: R.qtdMaterial(p, k), precisa: Q.materiais[k] }; });
       var chR = Math.min(Q.maxima, Q.base + Number(x.sorte) * Q.porSorte);
-      h += '<label>Item ' + sel('item', lend.map(function (i) { return [i.id, R.nomeItem(i)]; }), il.id) + '</label>'
+      h += grade(lend, il)
         + '<label>Nome da relíquia <input type="text" maxlength="24" data-contratar="nome" value="' + esc(f.nome || '') + '" placeholder="Ex.: Fúria de Thorin"></label>'
         + '<h4>Você entrega</h4>' + custoChips(cm)
         + (x.reliquia_semana ? '<p class="menos pequeno">Este Ferreiro já forjou a relíquia da semana.</p>' : '');
@@ -3552,9 +3886,51 @@
     }
     h += (aviso ? '<p class="aviso-contratar">' + aviso + '</p>' : '')
       + (x.amigo ? '<p class="mais pequeno">🤝 ' + esc(x.nome) + ' é seu amigo: o serviço é feito <strong>na hora</strong>.</p>' : '')
-      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar')
+      + '<div class="botoes"><button class="btn" data-acao="of-pedir"' + (pode && p.ouro >= preco ? '' : ' disabled') + '>' + (tipo === 'quebrar' ? 'Quebrar' + (f.itens && f.itens.length > 1 ? ' ' + f.itens.length + ' itens' : '') : tipo === 'encantar' || tipo === 'reliquia' ? 'Confio! Contratar' : 'Contratar' + (tipo === 'receita' && Number(f.qtd) > 1 ? ' ' + Number(f.qtd) + ' receitas' : ''))
       + ' · ' + ouroTxt(preco) + '</button><button class="btn secundario" data-acao="of-contratar-fechar">Fechar</button></div></div>';
     return h;
+  }
+  async function quebrarVarios(x, itens) {
+    var p = estado.personagem, feitos = 0, erro = null, soma = {}, naHora = false;
+    estado.oficinaOcupado = true;
+    avisar('⚒ Mandando ' + itens.length + ' itens para ' + x.nome + '…');
+    try {
+      await gravarAntesDoBanco(p);
+      for (var k = 0; k < itens.length; k++) {
+        try {
+          var r = await C.oficina.pedir(p.id, x.id, 'quebrar', itens[k].id, {});
+          if (r.item_id) p.inventario = p.inventario.filter(function (i) { return i.id !== r.item_id; });
+          feitos++; naHora = naHora || !!r.feito; soma[itens[k].raridade] = (soma[itens[k].raridade] || 0) + R.cristaisQuebrar(itens[k]);
+        } catch (e) { erro = e.message; break; }
+      }
+    } catch (e) { erro = e.message; }
+    sincronizarFicha();
+    estado.contratar = null;
+    if (feitos) avisar((naHora ? '🤝 ' + x.nome + ' quebrou na hora ' : 'Pedido enviado: ' + x.nome + ' vai quebrar ') + feitos + ' ite' + (feitos === 1 ? 'm' : 'ns') + ' → '
+      + Object.keys(soma).map(function (r) { return soma[r] + ' cristais ' + CRISTAIS_NOME[r]; }).join(', ') + (naHora ? '. Chega já já na mochila.' : '. Veja em "Meus pedidos".'), 'item');
+    if (erro) avisar((feitos ? 'Parou no ' + (feitos + 1) + 'º item: ' : '') + erro);
+    carregarArena(); carregarOficinas();
+    estado.oficinaOcupado = false;
+  }
+  // Várias receitas iguais (Henri, 22/11/2026): um pedido para cada, um depois do outro; o servidor confere cada um.
+  async function pedirVarias(x, tipo, op, n) {
+    var p = estado.personagem, feitos = 0, erro = null, naHora = false;
+    estado.oficinaOcupado = true;
+    avisar('⚒ Mandando ' + n + ' pedidos para ' + x.nome + '…');
+    try {
+      await gravarAntesDoBanco(p);
+      for (var k = 0; k < n; k++) {
+        try { var r = await C.oficina.pedir(p.id, x.id, tipo, null, op); feitos++; naHora = naHora || !!r.feito; }
+        catch (e) { erro = e.message; break; }
+      }
+    } catch (e) { erro = e.message; }
+    sincronizarFicha();
+    estado.contratar = null;
+    if (feitos) avisar((naHora ? '🤝 ' + x.nome + ' fez na hora ' : 'Pedido enviado: ' + x.nome + ' vai fazer ') + feitos + ' receita' + (feitos === 1 ? '' : 's')
+      + (naHora ? '. Chegam já já na mochila.' : '. Veja em "Meus pedidos".'), 'item');
+    if (erro) avisar((feitos ? 'Parou na ' + (feitos + 1) + 'ª receita: ' : '') + erro);
+    carregarArena(); carregarOficinas();
+    estado.oficinaOcupado = false;
   }
   async function pedirOficina() {
     var p = estado.personagem, f = estado.contratar, st = estado.oficinas;
@@ -3565,8 +3941,16 @@
       var itE = p.inventario.filter(function (i) { return i.id === itemId; })[0]; op.protecao = !!f.protecao && R.qtdConsumivel(p, 'protecao', itE.raridade) > 0; }
     if (tipo === 'forjar') { var cr = D.areas.filter(function (a) { return R.qtdConsumivel(p, 'receita', a.id) > 0; }); op.area = (cr.filter(function (a) { return a.id === f.area; })[0] || cr[0]).id;
       op.classe = f.classe || p.classe; op.tipo = f.peca || 'arma'; op.chefe = Number(f.chefe) || 0; op.gemas = Number(f.gemas) || 0; }
-    if (tipo === 'receita') op.area = f.area || D.areas[0].id;
-    if (tipo === 'quebrar') { var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade]; }); itemId = (iqs.filter(function (i) { return i.id === f.item; })[0] || iqs[0]).id; }
+    if (tipo === 'receita') {
+      op.area = f.area || D.areas[0].id;
+      if (Number(f.qtd) > 1) return pedirVarias(x, tipo, op, Math.floor(Number(f.qtd)));
+    }
+    if (tipo === 'quebrar') {   // vários de uma vez (Henri, 21/11/2026): um pedido para cada item marcado
+      var iqs = livres.filter(function (i) { return !i.runa && D.CRAFT.protecao[i.raridade] && (f.itens || []).indexOf(i.id) >= 0; });
+      if (!iqs.length) return avisar('Marque pelo menos 1 item.');
+      if (iqs.length > 1) return quebrarVarios(x, iqs);
+      itemId = iqs[0].id;
+    }
     if (tipo === 'protecao') op.raridade = D.CRAFT.protecao[f.raridade] ? f.raridade : 'comum';
     if (tipo === 'reliquia') { var Q = D.CRAFT.reliquia, lend = livres.filter(function (i) { return i.raridade === 'lendaria' && i.encanto >= Q.encantoMin && !i.runa; });
       itemId = (lend.filter(function (i) { return i.id === f.item; })[0] || lend[0]).id; op.nome = (f.nome || '').trim(); }
@@ -3613,6 +3997,27 @@
       case 'of-fechar': configurarOficina({}); return true;
       case 'of-contratar': estado.contratar = { artesao: el.dataset.id, tipo: el.dataset.valor }; telaJogo(); return true;
       case 'of-contratar-fechar': estado.contratar = null; telaJogo(); return true;
+      case 'of-item':
+        if (estado.contratar && estado.contratar.tipo === 'quebrar') {   // quebrar: marca/desmarca vários
+          var fi = estado.contratar.itens || (estado.contratar.itens = []), ki = fi.indexOf(el.dataset.id);
+          if (ki >= 0) fi.splice(ki, 1); else fi.push(el.dataset.id);
+          telaJogo();
+        } else if (estado.contratar) { estado.contratar.item = el.dataset.id; telaJogo(); }
+        return true;
+      case 'of-qtd-mais': {
+        // Até o limite de pedidos esperando (CRAFT.oficina.maxPedidos), menos os que já esperam; amigo faz na hora: sem limite.
+        var fq = estado.contratar, so = estado.oficinas || {}, xo = fq && (so.lista || []).filter(function (o) { return o.id === fq.artesao; })[0];
+        if (!fq) break;
+        var esperando = (so.pedidos || []).filter(function (x) { return x.estado === 'pendente'; }).length;
+        var limQ = xo && xo.amigo ? 99 : Math.max(1, D.CRAFT.oficina.maxPedidos - esperando);
+        if ((Number(fq.qtd) || 1) >= limQ) { avisar('Dá para ter no máximo ' + D.CRAFT.oficina.maxPedidos + ' pedidos esperando ao mesmo tempo.'); break; }
+        fq.qtd = (Number(fq.qtd) || 1) + 1; telaJogo();
+        break;
+      }
+      case 'of-itens-todos':
+        if (estado.contratar) estado.contratar.itens = R.mochila(p).filter(function (i) { return !i.travado && !i.runa && D.CRAFT.protecao[i.raridade]; }).map(function (i) { return i.id; });
+        telaJogo(); return true;
+      case 'of-itens-limpar': if (estado.contratar) estado.contratar.itens = []; telaJogo(); return true;
       case 'of-filtro': estado.ofFiltro = el.dataset.valor; estado.contratar = null; telaJogo(); return true;
       case 'of-pedir': pedirOficina(); return true;
       case 'of-cancelar':
@@ -4089,19 +4494,19 @@
     else if (tipo === 'clas') corpo = rankingClasHtml(r.lista);
     else if (CELULAR) corpo = '<div class="itens">' + r.lista.map(function (x, i) {   // celular: cartões com retrato, sem tabela
       var meu = meus.indexOf(String(x.nome).toLowerCase()) >= 0;
-      return linhaRanking(Object.assign({}, x, { posicao: i + 1, id: meu ? eu.id : x.id }), possoAtacar && x.id && x.nivel >= 5 && !meu
-        ? '<button class="btn" data-acao="ranking-atacar" data-id="' + esc(x.id) + '">⚔ Atacar</button>' : '');
+      return linhaRanking(Object.assign({}, x, { posicao: i + 1, id: meu ? eu.id : x.id }), (possoAtacar && x.id && x.nivel >= 5 && !meu
+        ? '<button class="btn" data-acao="ranking-atacar" data-id="' + esc(x.id) + '">⚔ Atacar</button>' : '') + botaoInspecionar(x));
     }).join('') + '</div>';
-    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar ? '<th></th>' : '') + '</tr></thead><tbody>'
+    else corpo = '<table class="ranking"><thead><tr><th>#</th><th>Personagem</th><th>Classe</th><th>Level</th><th>Poder</th>' + (possoAtacar || ehAdmin() ? '<th></th>' : '') + '</tr></thead><tbody>'
       + r.lista.map(function (x, i) {
         var pos = i + 1;
         var medalha = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : pos;
         return '<tr class="' + (meus.indexOf(String(x.nome).toLowerCase()) >= 0 ? 'meu' : '') + '"><td class="pos">' + medalha + '</td>'
           + '<td>' + siglaHtml(x.sigla) + '<strong>' + esc(x.nome) + '</strong><div class="suave pequeno">' + nomeRaca(x.raca, x.sexo) + '</div></td>'
           + '<td>' + nomeClasseX(x) + '</td>'
-          + '<td>' + x.nivel + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
-          + (possoAtacar ? '<td>' + (x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
-            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + '</td>' : '')
+          + '<td>' + x.nivel + (x.pacto ? '<div class="exp-pacto pequeno" title="Pontos do Pacto de Ascensão">Pacto ' + x.pacto + '</div>' : '') + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
+          + (possoAtacar || ehAdmin() ? '<td class="ranking-acoes">' + (possoAtacar && x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
+            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + botaoInspecionar(x) + '</td>' : '')
           + '</tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
@@ -4337,13 +4742,18 @@
         botoes('reputacao', [100, 1000, 10000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
         + botoes('reputacao', [-100, -1000], function (v) { return '−' + (-v).toLocaleString('pt-BR'); }, 'menos')
         + botoes('reputacao', [-1000000], function () { return 'Zerar'; }, 'menos'))
-      + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo.',
+      + grupo('Level', 'Subir dá os pontos de atributo. Descer zera a exp e devolve os pontos para distribuir de novo. Do level ' + D.ASCENSAO.nivelInicio + ' em diante: +1/−1 ponto do Pacto (tirar pode soltar os últimos nós pegos).',
         botoes('nivel', [1, 5, 10], function (v) { return '+' + v; })
         + botoes('baixar-nivel', [1, 5], function (v) { return '−' + v; }, 'menos')
-        + botoes('baixar-nivel', [99], function () { return 'Voltar ao 1'; }, 'menos'))
+        + botoes('baixar-nivel', [99], function () { return 'Voltar ao 1'; }, 'menos')
+        + (estado.personagem.nivel >= D.ASCENSAO.nivelInicio ? '<span class="admin-pacto">Pacto ' + R.pontosAscensaoTotal(estado.personagem) + ':</span>'
+          + botoes('pacto', [1], function () { return '+1 Pacto'; }) + botoes('pacto', [-1], function () { return '−1 Pacto'; }, 'menos') : ''))
       + grupo('Experiência', '% da exp do level atual.', botoes('exp', [10, 50], function (v) { return '+' + v + '%'; })
         + botoes('exp', [-10, -50, -100], function (v) { return v === -100 ? 'Zerar' : '−' + (-v) + '%'; }, 'menos'))
       + grupo('Atributos', 'Volta os atributos aos da raça e classe e devolve todos os pontos.', botoes('resetar-atributos', [0], function () { return 'Resetar pontos'; }, 'menos'))
+      + grupo('Encanto dos equipados', 'Sobe ou desce o encanto de todos os itens equipados de uma vez (de +0 a +' + D.encantamento.maximo + ').',
+        botoes('encanto', [1], function () { return '+1'; }) + botoes('encanto', [-1], function () { return '−1'; }, 'menos')
+        + botoes('encanto', [99], function () { return 'Todos +' + D.encantamento.maximo; }) + botoes('encanto', [-99], function () { return 'Zerar'; }, 'menos'))
       + grupo('Armas', 'Uma arma de cada raridade da classe.', botoes('armas', [0, 7, 10], function (v) { return 'Todas +' + v; }))
       + grupo('Conjunto completo', 'Arma, 4 armaduras da classe, colar e 2 anéis.', R.RARIDADES.map(function (k) {
         return '<button class="btn" data-acao="admin" data-op="conjunto" data-valor="' + k + '">' + D.raridades[k].nome + '</button>';
@@ -4465,7 +4875,7 @@
       + '<div id="hp-monstro">' + barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro') + '</div>'
       + '<div class="suave">Velocidade ' + b.monstro.vel + '</div></div></div>'
       + '<div class="registro" id="registro">' + estado.registro.join('') + '</div>'
-      + (em ? '<div class="botoes"><button class="btn secundario" data-acao="velocidade">' + (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button>'
+      + (em ? '<div class="botoes">' + botaoX2('velocidade', estado.rapido)
         + '<button class="btn perigo" data-acao="fugir">Fugir</button></div>' : '');
   }
 
@@ -4537,6 +4947,7 @@
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
       + (zealot && navegacao ? navBaixoHtml() : '')
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
+      + (estado.inspecao && ehAdmin() && !estado.batalha && !estado.luta && !estado.lutaArena ? inspecaoHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
       + (!estado.loginAberto && pactoNovo() && !estado.batalha && !estado.luta && !estado.lutaArena ? pactoTutorialHtml() : '')
@@ -5015,7 +5426,7 @@
     var p = estado.personagem;
     return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
       atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, pactoVisto: !!p.pactoVisto };
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, avisoPactoV2: p.avisoPactoV2, pactoVisto: !!p.pactoVisto };
   }
   function salvarPreferencias() {
     if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
@@ -5039,6 +5450,9 @@
   function receberPendentes() {
     var p = estado.personagem, g = estado.gm;
     if (!p || estado.resgatando) return Promise.resolve();
+    // Masmorra/luta do grupo na tela (Henri, 21/11/2026): os prêmios só chegam depois que o chefe cai na tela e o
+    // jogador fecha (masFechar / fim da luta chamam de novo). Assim nada aparece antes da hora.
+    if (estado.mas || estado.luta) return Promise.resolve();
     estado.resgatando = true;
     return acaoServidor('receber').then(function (r) {
       estado.resgatando = false;
@@ -5288,10 +5702,10 @@
   }
   // Barrinha fina de experiência embaixo da vida, na caçada (só para ter uma noção de quanto falta para o level).
   function expFinaHtml(p) {
-    var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel);
-    var pct = maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
-    var texto = maximo ? 'Level máximo' : 'Experiência: ' + Math.floor(pct) + '%';
-    var numero = maximo ? 'Level máximo' : '✦ ' + Math.floor(pct) + '%';
+    var maximo = p.nivel >= D.NIVEL_MAXIMO, precisa = R.expNecessaria(p.nivel), ep = expPacto(p);
+    var pct = ep ? ep.pct : maximo ? 100 : Math.max(0, Math.min(100, p.exp / precisa * 100));
+    var texto = ep ? 'Experiência: ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : 'Experiência: ' + Math.floor(pct) + '%';
+    var numero = ep ? '✦ ' + Math.floor(pct) + '% ' + ep.rotulo : maximo ? 'Pacto completo (' + D.ASCENSAO.limitePontos + ')' : '✦ ' + Math.floor(pct) + '%';
     return '<div class="exp-fina" id="exp-jogador" role="progressbar" aria-label="' + texto + '" title="' + texto + '" aria-valuenow="' + Math.floor(pct)
       + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i><b>' + numero + '</b></div>';
   }
@@ -5332,7 +5746,7 @@
       var m = D.monstros[c.encontro.monstro];
       direita = '<div class="lutador cacada-encontro' + (c.encontro.chefe ? ' chefe' : '') + '" id="lutador-monstro"><div class="moldura">' + F.imagemMonstro(c.encontro.monstro) + '</div>'
         + (c.encontro.chefe ? '<div class="selo-chefe">Chefe</div>' : '') + '<h3>' + m.nome + '</h3>'
-        + '<div class="suave pequeno">Vida ' + m.hp.toLocaleString('pt-BR') + ' · Dano ' + dano(m.ataque) + '</div>'
+        + '<div class="suave pequeno">Vida ' + m.hp.toLocaleString('pt-BR') + ' · Dano ' + danoMonstro(m.ataque) + '</div>'
         + '<div class="botoes"><button class="btn' + (c.encontro.chefe ? ' perigo' : '') + '" data-acao="cacada-lutar">⚔ Lutar</button>'
         + '<button class="btn secundario" data-acao="cacada-fugir">Fugir</button></div>'
         + (c.encontro.chefe ? '<p class="destaque pequeno">Um chefe! Você decide.</p>'
@@ -5349,7 +5763,7 @@
     var ativa = c.ativa;
     var topo = '<div class="cacada-topo" style="--cor:' + (c.pesadelo ? '#5b1a2e' : e.cor) + '"><div><h3>' + (c.pesadelo ? '🌑 Reino do Pesadelo' : iconeArea(area) + ' Caçada · ' + area.nome) + '</h3>'
       + '<span class="suave pequeno">' + c.alvos.map(function (id) { return D.monstros[id].nome; }).join(', ') + '</span></div>'
-      + '<div class="botoes">' + (ativa ? '<button class="btn secundario btn-pequeno" data-acao="velocidade">' + (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') + '</button>'
+      + '<div class="botoes">' + (ativa ? botaoX2('velocidade', estado.rapido)
         + '<button class="btn perigo btn-pequeno" data-acao="cacada-parar">■ Parar caçada</button>' : '') + '</div></div>';
     var opcoes = opcoesCacadaHtml();
     var resumo = '<div class="cacada-resumo">'
@@ -5518,6 +5932,7 @@
     if (e.target.id === 'mercado-ordem') { var fo = filtroMercado(); fo.ordem = e.target.value; fo.pagina = 0; carregarMercado(); }
     if (e.target.dataset && e.target.dataset.contratar && estado.contratar) {
       estado.contratar[e.target.dataset.contratar] = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+      if (e.target.dataset.contratar === 'area') estado.contratar.qtd = 1;   // trocou a receita: a quantidade volta para 1
       if (e.target.dataset.contratar !== 'nome') telaJogo();
     }
     if (e.target.dataset && e.target.dataset.forja) { estado.forja = estado.forja || {}; estado.forja[e.target.dataset.forja] = e.target.value; telaJogo(); }
@@ -5691,6 +6106,7 @@
       case 'cascata-grupo': estado.cascataGrupo = el.dataset.valor; telaJogo(); break;
       case 'cascata-missoes': estado.cascata = false; estado.cascataGrupo = null; missoesUI.aberto = true; telaJogo(); desenharMissoes(true); break;
       case 'bau-recarregar': estado.bau = null; estado.bauErro = null; carregarBau(); telaJogo(); break;
+      case 'eter-comprar': comprarEter(el.dataset.valor); break;
       case 'loja-recarregar': estado.loja = null; estado.lojaErro = null; carregarLoja(); telaJogo(); break;
       case 'loja-pedir': estado.lojaConfirma = el.dataset.valor; telaJogo(); break;
       case 'loja-cancelar': estado.lojaConfirma = null; telaJogo(); break;
@@ -5700,6 +6116,22 @@
         lojaChamar(C.loja.comprar(p.id, itL), nomeL);
         break;
       }
+      case 'tag-boost': avisar(el.title); break;
+      case 'ranking-inspecionar': {
+        if (!ehAdmin()) break;
+        var ins = estado.inspecao = { aba: (estado.inspecao && estado.inspecao.aba) || 'itens', p: null };
+        telaJogo();
+        C.senha.adminInspecionar(el.dataset.id).then(function (d) {
+          if (estado.inspecao !== ins) return;
+          try { R.normalizar(d); } catch (e) { /* ficha antiga: mostra como veio */ }
+          ins.p = d; telaJogo();
+        }, function (e) { if (estado.inspecao === ins) { ins.erro = e.message; telaJogo(); } });
+        break;
+      }
+      case 'insp-aba': if (estado.inspecao) { estado.inspecao.aba = el.dataset.valor; telaJogo(); } break;
+      case 'insp-fechar': estado.inspecao = null; telaJogo(); break;
+      case 'pedidos-aba': estado.pedidosAba = el.dataset.valor; estado.pedidosVer = 5; telaJogo(); break;
+      case 'pedidos-mais': estado.pedidosVer = (estado.pedidosVer || 5) + 10; telaJogo(); break;   // no celular não tem "passar o mouse": o toque mostra o bônus
       case 'loja-usar-boost': {
         var bL = D.LOJA.boosts[el.dataset.valor];
         lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
@@ -6007,6 +6439,8 @@
       case 'item-travar':
         R.travarItem(p, el.dataset.id);
         estado.vendaPendente = null;
+        var itT = p.inventario.filter(function (i) { return i.id === el.dataset.id; })[0];
+        if (itT) avisar(itT.travado ? '🔒 ' + R.nomeItem(itT) + ' travado: não pode ser vendido nem quebrado.' : '🔓 ' + R.nomeItem(itT) + ' destravado.');
         acaoServidor('travarItem', el.dataset.id);
         telaJogo();
         break;
@@ -6090,7 +6524,7 @@
         var eraBoss = estado.luta && estado.luta.boss;
         clearTimeout(estado.luta.timer);
         estado.luta = null;
-        if (eraBoss) { estado.aba = 'alianca'; estado.aliancaVista = 'boss'; telaJogo(); carregarBossAl(); break; }
+        if (eraBoss) { estado.aba = 'alianca'; estado.aliancaVista = 'boss'; telaJogo(); carregarBossAl(); if (ACAO_SERVIDOR) receberPendentes(); break; }
         estado.aba = 'masmorra';
         telaJogo();
         resgatarRecompensas();
@@ -6145,13 +6579,14 @@
       case 'ponto': {
         var pp = pontosPendentes(), ka = el.dataset.atributo;
         if (totalPendentes() >= p.pontosLivres || R.ATRIBUTOS.indexOf(ka) < 0) break;
-        pp[ka] = (pp[ka] || 0) + 1;
+        pp[ka] = (pp[ka] || 0) + Math.min(parseInt(el.dataset.valor, 10) || 1, p.pontosLivres - totalPendentes());
         atualizarFicha();
         break;
       }
+      case 'pontos-passo': estado.passoPontos = el.dataset.valor === '10' ? 10 : 1; atualizarFicha(); break;
       case 'ponto-menos': {
         var pm = pontosPendentes(), km = el.dataset.atributo;
-        if (pm[km]) pm[km] -= 1;
+        if (pm[km]) pm[km] = Math.max(0, pm[km] - (parseInt(el.dataset.valor, 10) || 1));
         atualizarFicha();
         break;
       }
@@ -6200,6 +6635,13 @@
         redesenharPacto();
         break;
       }
+      case 'asc-caminho': {   // Pacto v2: o caminho inteiro até o ponto, de uma vez (confirma tudo no fim)
+        var lcm = R.nosAscensao(p).concat(pendAsc()), cm = R.caminhoAscensao(lcm, el.dataset.id);
+        if (!cm || !R.ordenarAscensao(lcm.concat(cm), R.pontosAscensaoTotal(p))) { avisar('Não dá para chegar nesse ponto agora.'); break; }
+        cm.forEach(function (x) { pendAsc().push(x); });
+        redesenharPacto();
+        break;
+      }
       case 'asc-tirar': {
         // tira o ponto e os que dependiam dele (os que não ficam mais ligados)
         var resto = pendAsc().filter(function (x) { return x !== el.dataset.id; }), base = R.nosAscensao(p), tot = R.pontosAscensaoTotal(p), ok = [];
@@ -6223,7 +6665,7 @@
       case 'asc-refazer-nao': estado.ascRefazer = false; redesenharPacto(); break;
       case 'asc-refazer': {
         estado.ascRefazer = false;
-        var rz = R.refazerAscensao(p);
+        var rz = R.refazerAscensao(p, C.agora());
         if (rz === true) { estado.ascPend = []; acaoServidor('refazerAscensao'); telaJogo(); avisar('Pacto zerado: escolha o caminho de novo.', 'nivel'); }
         else { avisar(rz); redesenharPacto(); }
         break;
@@ -6303,7 +6745,7 @@
         }
         break;
       case 'equipar':
-        if (R.equipar(p, el.dataset.id)) { estado.vendaPendente = null; estado.zoom = null; acaoServidor('equipar', el.dataset.id); telaJogo(); }
+        if (R.equipar(p, el.dataset.id, el.dataset.espaco)) { estado.vendaPendente = null; estado.zoom = null; fecharFlutuante(); acaoServidor('equipar', el.dataset.espaco ? { id: el.dataset.id, slot: el.dataset.espaco } : el.dataset.id); telaJogo(); }
         else avisar(R.motivoNaoEquipa(p, p.inventario.find(function (i) { return i.id === el.dataset.id; })) || 'Não foi possível equipar (mochila cheia?).');
         break;
       case 'pedir-venda':
@@ -6463,6 +6905,8 @@
         else if (op === 'zerar-pocoes') R.admin.zerarPocoes(p);
         else if (op === 'esvaziar-mochila') R.admin.esvaziarMochila(p);
         else if (op === 'reputacao') p.reputacao = Math.max(0, (p.reputacao || 0) + v);
+        else if (op === 'pacto') { if (!R.admin.pacto(p, v)) { avisar(p.nivel < D.ASCENSAO.nivelInicio ? 'O Pacto abre no level ' + D.ASCENSAO.nivelInicio + '.' : v > 0 ? 'Já está no limite de ' + D.ASCENSAO.limitePontos + ' pontos.' : 'Não tem ponto extra para tirar (os do level ficam).'); break; } }
+        else if (op === 'encanto') { var nEnc = R.admin.encantoEquipados(p, v); if (!nEnc) { avisar(v > 0 ? 'Todos os equipados já estão no máximo.' : 'Todos os equipados já estão em +0.'); break; } }
         if (op === 'pedir-esvaziar') { estado.adminConfirmar = 'mochila'; telaJogo(); break; }
         estado.adminConfirmar = null;
         if (op === 'cancelar') { telaJogo(); break; }
@@ -6470,6 +6914,8 @@
         avisar({ ouro: (v >= 0 ? '+' : '−') + Math.abs(v).toLocaleString('pt-BR') + ' de ouro. Agora: ' + p.ouro.toLocaleString('pt-BR') + '.',
           'zerar-ouro': 'Ouro zerado.', nivel: 'Agora no level ' + p.nivel + '.', 'baixar-nivel': 'Agora no level ' + p.nivel + '. Distribua os pontos de novo.',
           exp: 'Exp agora: ' + p.exp.toLocaleString('pt-BR') + ' (level ' + p.nivel + ').', 'resetar-atributos': 'Atributos resetados: ' + p.pontosLivres + ' pontos para distribuir.',
+          pacto: 'Pacto: ' + R.pontosAscensaoTotal(p) + ' pontos (' + R.pontosAscensaoLivres(p) + ' livres).',
+          encanto: 'Encanto dos equipados ' + (v > 0 ? 'subiu' : 'desceu') + ' (' + Object.keys(p.equipados || {}).map(function (sl) { var it = R.itemNoSlot(p, sl); return it ? '+' + (it.encanto || 0) : ''; }).filter(Boolean).join(' ') + ').',
           armas: 'Armas +' + v + ' adicionadas à mochila.', conjunto: 'Conjunto adicionado à mochila.',
           pergaminhos: v > 0 ? '+' + v + ' pergaminhos de cada raridade.' : 'Pergaminhos removidos.',
           curar: 'Estamina cheia.', pocoes: 'Poções recarregadas.', reset: 'Reset diário: estamina cheia e poções do dia.',
@@ -6521,6 +6967,11 @@
         telaJogo();
         mostrarPainel();
         break;
+      case 'area-fechada': {   // região fechada pela História (Henri, 22/11/2026)
+        var af = D.areas.filter(function (x) { return x.id === el.dataset.valor; })[0];
+        avisar('📜 ' + (af ? R.motivoAreaFechada(estado.personagem, af) : 'Conclua a História antes de avançar.') + ' Veja em Aventura › História.');
+        break;
+      }
       case 'fugir': encerrar(); break;
       case 'ficha-fechar': fecharFlutuante(); break;
       case 'painel-topo': fecharMenuJogo(); abrirPainelTopo(el.dataset.valor); break;
@@ -6531,7 +6982,7 @@
         break;
       case 'velocidade':
         estado.rapido = !estado.rapido;
-        el.textContent = estado.cacada ? (estado.rapido ? 'Velocidade 2x' : 'Velocidade normal') : (estado.rapido ? 'Velocidade normal' : 'Acelerar 2x');
+        el.classList.toggle('ligado', estado.rapido); el.setAttribute('aria-pressed', estado.rapido); el.title = estado.rapido ? 'Velocidade 2x ligada (clique para voltar ao normal)' : 'Acelerar a luta (2x)';
         break;
       case 'mapa':
         estado.areaAberta = null;
@@ -7269,7 +7720,7 @@
     return fim + '<h3 class="subtitulo">' + esc(L.mm.nome) + ' · ' + (L.boss ? 'Boss do clã · Nível ' + L.run.nivel : NOMES_SALA[L.sala]) + '</h3>'
       + '<div class="mas-arena"><div class="mas-grupo">' + herois + '</div><div class="vs">VS</div><div class="mas-grupo">' + monstros + '</div></div>'
       + '<div class="registro" id="registro">' + L.registro.join('') + '</div>'
-      + (L.fim ? '' : '<div class="botoes"><button class="btn secundario" data-acao="luta-velocidade">' + (L.rapido ? 'Velocidade normal' : 'Acelerar 2x') + '</button></div>');
+      + (L.fim ? '' : '<div class="botoes">' + botaoX2('luta-velocidade', L.rapido) + '</div>');
   }
 
   // ---------------- Guia do Aventureiro (tutorial dos personagens novos; regras em regras.js, texto em historia.js) ----------------
@@ -7303,7 +7754,7 @@
   // ---------------- História: "A Crônica de Eldrin" (texto em js/historia.js, regras em regras.js) ----------------
   function seloHistoria() {
     var e = estado.personagem && R.historiaEstado(estado.personagem);
-    return e && !e.fim && e.liberado && (e.completo || !e.visto) ? ' <span class="selo-pedidos">!</span>' : '';
+    return e && !e.fim && e.liberado && e.completo ? ' <span class="selo-pedidos">!</span>' : '';   // a História começa sozinha (22/11/2026)
   }
   var avisouHistoria = null;
   function avisoHistoria() {
@@ -7316,6 +7767,7 @@
   function nomeArea(id) { var a = D.areas.filter(function (x) { return x.id === id; })[0]; return a ? a.nome : id; }
   function textoObjetivo(o) {
     if (o.tipo === 'abate') return 'Vença ' + o.qtd + ' criaturas em ' + nomeArea(o.area);
+    if (o.tipo === 'monstro') return 'Vença ' + o.qtd + 'x ' + esc(D.monstros[o.monstro].nome);
     var vezes = o.qtd > 1 ? ' ' + o.qtd + ' vezes' : '';
     if (o.tipo === 'chefe') return 'Derrote ' + D.monstros[o.monstro].nome + vezes + ' <span class="suave pequeno">(chefe da região, aparece na caçada)</span>';
     var m = D.masmorras.filter(function (x) { return x.id === o.masmorra; })[0];
@@ -7353,14 +7805,13 @@
           + '<span class="hist-barra"><i style="width:' + Math.round(100 * x.feito / x.meta) + '%"></i></span></li>';
       }).join('');
       var acao = !e.liberado ? '<p class="aviso-nivel">🔒 Este capítulo começa no level ' + e.nivel + ' (quando ' + nomeArea(c.area) + ' liberar). Continue caçando!</p>'
-        : !e.visto ? '<button class="btn" data-acao="historia-ver">📜 Ler a abertura do capítulo</button>'
         : e.completo ? '<button class="btn hist-concluir" data-acao="historia-concluir">Concluir capítulo e receber o prêmio</button>'
-        : '<button class="btn secundario" data-acao="historia-ver">Reler a abertura</button>';
+        : '<button class="btn secundario" data-acao="historia-ver">📜 ' + (e.visto ? 'Reler' : 'Ler') + ' a abertura do capítulo</button>';
       corpo = '<div class="hist-capitulo"><div class="suave pequeno">Capítulo ' + (e.indice + 1) + ' de ' + e.total + ' · ' + nomeArea(c.area) + '</div>'
         + '<h3>' + c.titulo + '</h3>'
-        + (e.visto ? falaHtml(c.abertura[c.abertura.length - 1]) : '<p class="suave">Um novo capítulo espera por você.</p>')
-        + (e.liberado && e.visto ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
-        + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}) + '</p>'
+        + falaHtml(c.abertura[c.abertura.length - 1])
+        + (e.liberado ? '<h4>Objetivos</h4><ul class="hist-objetivos">' + objetivos + '</ul>' : '')
+        + '<p class="suave pequeno">Prêmio: ' + R.premioHistoriaTexto(p, c.premio || {}, c) + '</p>'
         + '<div class="botoes">' + acao + '</div></div>';
     }
     var lidos = (h.lidos || []).map(function (id) {
@@ -7368,7 +7819,7 @@
       return c ? '<button class="btn secundario btn-mini" data-acao="historia-reler" data-valor="' + i + '">' + (i + 1) + '. ' + c.titulo + '</button>' : '';
     }).join('');
     return topo + corpo + (lidos ? '<h3 class="subtitulo">Capítulos concluídos</h3><div class="hist-lidos">' + lidos + '</div>' : '')
-      + '<p class="suave pequeno">A História não trava nada: as regiões continuam liberando pelo level. Os objetivos só contam no capítulo atual.</p>';
+      + '<p class="suave pequeno">Cada capítulo libera a região seguinte para caçar: sem concluir a História da região, não dá para avançar. Os objetivos só contam no capítulo atual.</p>';
   }
   // Prêmios de login (D.LOGIN): a semana de boas-vindas (7, só uma vez) e a trilha de 30 dias, com o botão de pegar o do dia.
   function loginHtml() {
@@ -8089,6 +8540,17 @@
   // Jogadas do Altar sem esperar o servidor (Daniel, 19/11/2026: as cartas demoravam a responder). A jogada vale na
   // tela na hora e vai para uma fila que manda uma por vez; cada resposta do servidor substitui a partida e as jogadas
   // que ainda estão na fila são refeitas por cima. O que é sorteado (rolar, mesa nova) trava a mesa até a resposta.
+  // Altar (Henri, 21/11/2026): as jogadas redesenham só a caixa do evento, não a tela inteira (a tela mexia a cada toque).
+  function redesenharAltar() {
+    var cx = document.querySelector('section.altar');
+    if (!cx || estado.aba !== 'eventos' || estado.batalha || estado.luta || estado.mas || estado.lutaArena || estado.cacada) return telaJogo();
+    var y = window.scrollY, tmp = document.createElement('div');
+    tmp.innerHTML = abaEventos();
+    var novo = tmp.querySelector('section.altar');
+    if (!novo) return telaJogo();
+    cx.replaceWith(novo);
+    if (Math.abs(window.scrollY - y) > 1) window.scrollTo(0, y);
+  }
   var altarFila = [], altarEnviando = false;
   function altarJogada(nome, args, aplicar, trava, aviso) {
     var p = estado.personagem, pt = p.altar && p.altar.partida;
@@ -8097,7 +8559,7 @@
     if (aviso) aviso(res);
     if (trava) estado.altarBloq = true;
     altarFila.push({ nome: nome, args: args, aplicar: aplicar });
-    telaJogo();
+    redesenharAltar();
     altarEnviar();
   }
   function altarEnviar() {
@@ -8108,18 +8570,18 @@
       altarEnviando = false;
       altarFila.shift();
       if (estado.personagem !== p) { altarFila = []; return; }
-      if (!r) { altarFila = []; sincronizarFicha().then(function () { if (estado.personagem === p) telaJogo(); }); }   // recusada ou sem rede: volta ao que está no servidor
+      if (!r) { altarFila = []; sincronizarFicha().then(function () { if (estado.personagem === p) redesenharAltar(); }); }   // recusada ou sem rede: volta ao que está no servidor
       else {
         var pt = p.altar && p.altar.partida;
         if (pt) altarFila.forEach(function (o) { o.aplicar(pt); });   // refaz por cima as que ainda vão
       }
       if (!altarFila.length) { estado.altarBloq = false; estado.altarGirando = 0; estado.altarMesaNova = false; }
-      telaJogo();
+      redesenharAltar();
       altarEnviar();
     });
   }
   function cliqueAltar(acao, el) {
-    var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { telaJogo(); };
+    var p = estado.personagem, pt = p.altar && p.altar.partida, depois = function () { redesenharAltar(); };
     var local = function (fn) { return function () { fn(); }; };
     switch (acao) {
       case 'altar-entrar':
@@ -8131,7 +8593,17 @@
         var i = Number(el.dataset.valor), sel = estado.altarSel || (estado.altarSel = []), k = sel.indexOf(i);
         if (k >= 0) sel.splice(k, 1); else sel.push(i);
         if (sel.length !== 2) estado.altarTroca = false;
-        telaJogo(); return true;
+        // Marcar um elemento não redesenha a tela (Henri, 21/11/2026: a tela mexia a cada toque): só troca o
+        // destaque e os botões que dependem da seleção.
+        var caixaA = document.querySelector('section.altar'), rolarA = caixaA && caixaA.querySelector('[data-acao="altar-rolar"]');
+        if (caixaA && rolarA && !caixaA.querySelector('.altar-troca')) {
+          el.classList.toggle('sel', sel.indexOf(i) >= 0);
+          if (!rolarA.disabled) rolarA.textContent = '🎲 Rolar' + (sel.length ? ' (guarda ' + sel.length + ')' : '');
+          var trocaA = caixaA.querySelector('[data-acao="altar-troca"]'), restaA = Math.max(0, (EVA_.trocasPorPartida || 99) - ((pt && pt.trocas) || 0));
+          if (trocaA) trocaA.disabled = !(sel.length === 2 && restaA > 0);
+          return true;
+        }
+        redesenharAltar(); return true;
       }
       case 'altar-pagar': {
         if (!pt || estado.altarBloq) return true;
@@ -8160,8 +8632,8 @@
         }, true);
         return true;
       }
-      case 'altar-troca': if (pt && (pt.trocas || 0) >= (EVA_.trocasPorPartida || 99)) { avisar('Você já usou as trocas desta partida.'); return true; } estado.altarTroca = true; telaJogo(); return true;
-      case 'altar-troca-nao': estado.altarTroca = false; telaJogo(); return true;
+      case 'altar-troca': if (pt && (pt.trocas || 0) >= (EVA_.trocasPorPartida || 99)) { avisar('Você já usou as trocas desta partida.'); return true; } estado.altarTroca = true; redesenharAltar(); return true;
+      case 'altar-troca-nao': estado.altarTroca = false; redesenharAltar(); return true;
       case 'altar-trocar': {
         if (!pt || estado.altarBloq) return true;
         var dois = (estado.altarSel || []).slice(), elx = el.dataset.valor;
@@ -8169,8 +8641,8 @@
         altarJogada('altarTrocar', { dados: dois, elemento: elx }, function (q) { return R.trocarAltar(q, dois, elx); }, false);
         return true;
       }
-      case 'altar-fim': if (altarFila.length) return true; estado.altarFim = true; telaJogo(); return true;
-      case 'altar-fim-nao': estado.altarFim = false; telaJogo(); return true;
+      case 'altar-fim': if (altarFila.length) return true; estado.altarFim = true; redesenharAltar(); return true;
+      case 'altar-fim-nao': estado.altarFim = false; redesenharAltar(); return true;
       case 'altar-encerrar':
         if (altarFila.length) { avisar('Espere a última jogada terminar.'); return true; }
         estado.altarFim = false; estado.altarSel = [];
@@ -8181,8 +8653,8 @@
           depois();
         });
         return true;
-      case 'altar-rank-tudo': estado.altarRankTudo = !estado.altarRankTudo; telaJogo(); return true;
-      case 'altar-premiar-pedir': estado.altarPremiar = true; telaJogo(); return true;
+      case 'altar-rank-tudo': estado.altarRankTudo = !estado.altarRankTudo; redesenharAltar(); return true;
+      case 'altar-premiar-pedir': estado.altarPremiar = true; redesenharAltar(); return true;
       case 'altar-admin': {
         var v = el.dataset.valor, campo = document.getElementById('altar-dias'), dias = campo ? Math.max(1, Math.min(60, Number(campo.value) || 7)) : 7;
         var acaoA = v === 'ligar-sem' ? 'ligar' : v, d = v === 'ligar' || v === 'religar' ? dias : null;
@@ -8190,7 +8662,7 @@
         C.evento.admin(p.id, acaoA, d).then(function (r) {
           avisar(v === 'premiar' ? 'Prêmios entregues para ' + (r && r.premiados || 0) + ' jogadores.' : 'Evento atualizado.', 'nivel');
           estado.eventoAtual = undefined; carregarEvento(); carregarRankingEvento();
-        }, function (e) { avisar(e.message); telaJogo(); });
+        }, function (e) { avisar(e.message); redesenharAltar(); });
         return true;
       }
     }
@@ -8356,13 +8828,15 @@
     var e = estado.boss, p = estado.personagem, CM = D.CHEFE_MUNDIAL;
     if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
     if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
-    var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.chefeDoNivel(p)], cfg = e.cfg || {};
+    var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.lutaChefeMundial(p)], cfg = e.cfg || {};
     var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
     var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
       + '<h2>O Despertar de Ignaroth</h2>' + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
       + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
-      + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> (o chefe da sua área), '
-      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
+      + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> ('
+      + (chefe.pesadelo ? 'o chefe Pesadelo do seu level, com metade do dano' : 'o chefe da sua área') + '), '
+      + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção. '
+      + 'Cada ataque tira no máximo ' + (cfg.danoMaximoPct || 3) + '% da vida dele: ninguém derruba sozinho.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
     if (ativo) {
       var podeAtacar = !estado.cacada && usadas < entradasBoss;
       h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
@@ -8430,11 +8904,11 @@
         estado.bossAtacando = false;
         if (!r || r.erro) { avisar((r && r.erro) || 'Não foi possível atacar.'); carregarBoss(); return; }
         if (estado.batalha || estado.cacada) return;
-        comecarMundial(p, bs, r.chefe || chefeId, r);
+        comecarMundial(p, bs, r.luta || r.chefe || chefeId, r);
       }, function (e) { estado.bossAtacando = false; avisar(e.message); });
       return;
     }
-    comecarMundial(p, bs, chefeId, null);
+    comecarMundial(p, bs, R.lutaChefeMundial(p), null);
   }
   function comecarMundial(p, bs, chefeId, srv) {
     var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina
@@ -8597,6 +9071,10 @@
     if (pf.atributos) x.atributos = pf.atributos;
     x.inventario = pf.itens || [];
     x.equipados = pf.equipados || {};
+    // segunda classe, Pacto e clã (24/11/2026): sem eles a prévia mostrava menos vida do que a luta de verdade
+    if (pf.talentos) x.talentos = pf.talentos;
+    if (pf.ascensao) x.ascensao = pf.ascensao;
+    if (pf.cla) x.cla = pf.cla;
     return x;
   }
   // O que o ataque vale (o servidor confere): escada = posição + saque + reputação; Top 5 para baixo e Ranking não mudam posição.
@@ -8614,7 +9092,7 @@
       linhas.push('Ouro dele: <strong class="cor-ouro">' + ouro.toLocaleString('pt-BR') + '</strong> · se vencer, saque de <strong class="cor-ouro">' + saque + ' de ouro</strong>'
         + ' e <strong>+' + repTxt + ' de reputação</strong>' + (abaixo ? ' (metade: ele está abaixo de você)' : '')
         + (escada && pf.posicao === 1 ? ' e o <strong class="cor-ouro">jackpot</strong>' : '') + '.');
-      linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua).</span>');
+      linhas.push('<span class="suave pequeno">Atacar o mesmo personagem de novo na semana: o ouro cai pela metade a cada vez, até zerar (a reputação continua). Se ele te atacar e vencer, a conta zera e o ouro volta cheio.</span>');
     }
     linhas.push('<span class="suave pequeno">' + (tipo === 'revanche' ? 'Revanche: não muda a sua posição na Arena e ele não pode revidar.'
       : (escada ? 'Vencendo, você toma a posição dele.' : 'Este ataque não muda a sua posição na Arena.') + ' Ele poderá revidar com uma revanche.') + '</span>');
@@ -9856,8 +10334,9 @@
     clearTimeout(chat.timer);
     if (!chat.ativo) return;
     try {
-      // A cada 30 s busca tudo de novo (para sumir o que o admin apagou).
-      if (completa || C.agora() - chat.ultimaCompleta > 30000) {
+      // A cada 30 s busca tudo de novo (para sumir o que o admin apagou), só com o chat aberto: fechado, só as novas
+      // (gasta menos internet do Supabase; ao abrir, busca tudo).
+      if (completa || (chat.aberto && C.agora() - chat.ultimaCompleta > 30000)) {
         var todas = await C.chat.recentes();
         chat.ultimaCompleta = C.agora();
         var novasQtd = todas.filter(function (m) { return m.id > chat.ultimoId; }).length;
@@ -9990,7 +10469,7 @@
       chat.aberto = acao === 'abrir';
       chat.naoLidas = 0;
       desenharChat();
-      if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(); }
+      if (chat.aberto) { document.getElementById('chat-texto').focus(); buscarChat(true); }
     } else if (acao === 'enviar') {
       enviarChat();
     } else if (acao === 'canal') {
@@ -10024,7 +10503,7 @@
   // App Android (APK) para baixar direto do site; some no iPhone e dentro do próprio app.
   function botaoInstalar() {
     return '<button class="btn largo btn-instalar" data-acao="instalar-app"' + (podeInstalar() ? '' : ' hidden') + '>📲 Instalar para celular</button>'
-      + (jaInstalado() || ehIOS() ? '' : '<a class="btn secundario largo btn-apk" href="baixar/Eldrin.apk" download="Eldrin.apk">🤖 Baixar app Android (APK)</a>'
+      + (jaInstalado() || ehIOS() ? '' : '<a class="btn secundario largo btn-apk" href="https://github.com/danieelozorio/TANKA/releases/download/app-android/Eldrin-app.apk">🤖 Baixar app Android (APK)</a>'
         + '<p class="suave pequeno dica-apk">Depois de baixar, toque no arquivo e permita "instalar de fontes desconhecidas".</p>');
   }
   function atualizarBotoesInstalar() {
@@ -10341,6 +10820,9 @@
   setInterval(conferirVersao, 120000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) conferirVersao(); });
 
+  voltaDoPagamento();
+  // Voltou da página do Mercado Pago pelo botão "voltar" (página guardada pelo navegador): libera os botões de compra.
+  window.addEventListener('pageshow', function (e) { if (e.persisted && estado.eterPagando) { estado.eterPagando = false; if (estado.aba === 'loja') telaJogo(); } });
   C.iniciar().then(function (conta) {
     estado.conta = conta;
     if (conta) { if (!retomarJogo()) depoisDeEntrar(); } else telaAuth('entrar');

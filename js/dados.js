@@ -14,7 +14,10 @@ Tanka.dados = {
 
   // Progressão
   HP_INICIAL: 100,        // HP no level 1
-  HP_POR_NIVEL: 10,       // HP extra a cada level
+  HP_POR_NIVEL: 36,       // HP extra a cada level (era 10; Henri 21/11/2026: lutas da Arena muito curtas)
+  // Os monstros batem mais na mesma proporção da vida que o herói ganhou com isso (R.fatorVida), para a caçada,
+  // a masmorra, a torre e os chefes ficarem com a mesma dificuldade. Golpes em % da vida não mudam.
+  HP_POR_NIVEL_MONSTROS: 10,
   HP_POR_RES: 3,          // HP extra por ponto de Resistência acima de RES_SEM_VIDA (inclusive os da classe, nov/2026)
   RES_SEM_VIDA: 10,       // a vida da RES conta a partir daqui (RES 20 = +30 de vida)
   PONTOS_POR_DANO: 3,     // a cada 3 pontos do atributo de dano da classe (FOR, DES ou INT): +1 de dano
@@ -74,10 +77,16 @@ Tanka.dados = {
     // Receita da região (Coletor): materiais da região + ouro. Forja (Ferreiro): 1 receita + materiais + ouro.
     receita: { material: 10, ouro: [500, 1500, 3000, 6000, 12000, 25000, 50000] },   // ouro por região (índice da área)
     forja: { material: 5, ouro: [1000, 3000, 6000, 12000, 25000, 50000, 100000],
-      raridade: [{ raridade: 'comum', chance: 60 }, { raridade: 'rara', chance: 35 }, { raridade: 'epica', chance: 5 }],
-      // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa
-      extraChefe: { epica: 3, lendaria: 0.5 }, extraGema: { epica: 2, lendaria: 0.5 }, maxExtra: 3,
-      obraPrima: 2, obraPrimaAnao: 1 },   // % de sair uma raridade acima (Anão +1%)
+      // Forja melhor (Henri, 22/11/2026): era comum 60 / rara 35 / épica 5, extras +3/+0,5 e +2/+0,5, obra-prima 2% (+1 Anão).
+      raridade: [{ raridade: 'comum', chance: 30 }, { raridade: 'rara', chance: 50 }, { raridade: 'epica', chance: 18 }, { raridade: 'lendaria', chance: 2 }],
+      // ingredientes extras (até `maxExtra` de cada): material do chefe da região e Pedra Preciosa. O que eles somam em
+      // épica/lendária sai primeiro da chance de comum, depois da de rara.
+      extraChefe: { epica: 5, lendaria: 1.5 }, extraGema: { epica: 4, lendaria: 1.5 }, maxExtra: 3,
+      obraPrima: 5, obraPrimaAnao: 2,   // % de sair uma raridade acima (Anão +2%)
+      // Level do item: o de quem encomenda + nivelAcima (5 a 10), até o level da região + tetoRegiao (a última região
+      // não tem teto) e no máximo ITEM_NIVEL.maximo (60). Quem encomenda com level `soEpicaDesde`+: comum e rara
+      // viram épica. Atributos sempre de qualidadeMin% a 100% da faixa da raridade.
+      nivelAcima: [5, 10], tetoRegiao: 15, soEpicaDesde: 40, qualidadeMin: 80 },
     // Oficinas (etapa 4): cada Artesão abre a sua e vende serviços com preço próprio. O cliente entrega tudo (item,
     // pergaminhos, materiais e o pagamento) e o servidor guarda; a sorte é jogada no servidor com a Sorte e a raça do
     // ARTESÃO. Feito ou não, o artesão recebe o pagamento menos `taxa`%. Sem fazer em `prazoHoras`, tudo volta ao cliente.
@@ -194,7 +203,7 @@ Tanka.dados = {
       descricao: 'Brutos: muita vida e mais dano, mas lentos, com menos críticos e quase sem esquiva.',
       lema: 'A honra',
       lore: 'Os Orcs nasceram ao pé do vulcão e não temem o fogo. Foram os cavaleiros dos dragões: um chefe orc selou o pacto com Vhar\'kesh, e juntos guardaram o selo do Vale dos Dragões. Os outros povos esqueceram esse pacto, mas as canções orcs nunca esqueceram. Quando Kael envenenou Vhar\'kesh, os dragões se voltaram contra os próprios Orcs.',
-      elevados: [], reduzidos: [], tracos: { vidaPct: 20, danoPct: 10, critico: -5, velocidadePct: -10, evasaoPct: -50 },
+      elevados: [], reduzidos: [], tracos: { vidaPct: 10, danoPct: 10, critico: -5, velocidadePct: -10, evasaoPct: -50 },   // Orc: vida +10% (Henri, 24/11/2026: era +20%)
       classes: ['cavaleiro', 'arqueiro', 'mago', 'artesao'],
     },
     anao: {
@@ -257,7 +266,7 @@ Tanka.dados = {
         nomes: ['Colete de Couro', 'Colete Élfico', 'Colete da Lua Sangrenta', 'Colete do Sol Dourado'] },
       luvas: { tipo: 'Braçadeiras', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },
         nomes: ['Braçadeiras de Couro', 'Braçadeiras Élficas', 'Braçadeiras da Lua Sangrenta', 'Braçadeiras do Sol Dourado'] },
-      botas: { tipo: 'Botas', bonus: { defesa: [1, 2, 4, 8], sor: [1, 2, 4, 8] },
+      botas: { tipo: 'Botas', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },   // 22/11/2026 (Henri): era SOR
         nomes: ['Botas de Couro', 'Botas Élficas', 'Botas da Lua Sangrenta', 'Botas do Sol Dourado'] },
     },
     mago: {
@@ -268,7 +277,7 @@ Tanka.dados = {
         nomes: ['Manto de Linho', 'Manto Arcano', 'Manto do Vazio Estelar', 'Manto da Origem'] },
       luvas: { tipo: 'Luvas', bonus: { defesa: [1, 2, 4, 8], int: [1, 2, 4, 8] },
         nomes: ['Luvas de Linho', 'Luvas Arcanas', 'Luvas do Vazio Estelar', 'Luvas da Origem'] },
-      botas: { tipo: 'Sandálias', bonus: { defesa: [1, 2, 4, 8], des: [1, 2, 4, 8] },
+      botas: { tipo: 'Sandálias', bonus: { defesa: [1, 2, 4, 8], int: [1, 2, 4, 8] },   // 22/11/2026 (Henri): era DES
         nomes: ['Sandálias de Linho', 'Sandálias Arcanas', 'Sandálias do Vazio Estelar', 'Sandálias da Origem'] },
     },
     artesao: {
@@ -389,7 +398,8 @@ Tanka.dados = {
   // Henri (nov/2026): para valer tanto quanto os +12% da arma de duas mãos, a mão esquerda dá % fixos pela raridade
   // (os bônus em `fixos` não crescem com o nível do item): dano 4/7/10/14%; o Escudo dá vida % e defesa %.
   MAO_ESQUERDA: {
-    escudo: { nome: 'Escudo', bonus: { defesaPct: [6, 10, 13, 16], vidaPct: [3, 5, 7, 9] }, fixos: ['defesaPct', 'vidaPct'], encanto: 'defesaPct' },
+    escudo: { nome: 'Escudo', bonus: { defesaPct: [6, 10, 13, 16], vidaPct: [1.5, 2.5, 3.5, 4.5] },   // vida −50% (Henri, 24/11/2026: era 3/5/7/9)
+      fixos: ['defesaPct', 'vidaPct'], encanto: 'defesaPct' },
     aljava: { nome: 'Aljava', bonus: { danoPct: [4, 7, 10, 14], critico: [1, 2, 3, 5] }, fixos: ['danoPct', 'critico'], encanto: 'danoPct' },
     orbe: { nome: 'Orbe', bonus: { danoMagico: [4, 7, 10, 14], danoCriticoMagico: [5, 10, 15, 20] }, fixos: ['danoMagico', 'danoCriticoMagico'], encanto: 'danoMagico' },
     manopla: { nome: 'Manopla', bonus: { defesa: [1, 3, 6, 12], danoPct: [4, 7, 10, 14] }, fixos: ['danoPct'], encanto: 'danoPct' },
@@ -424,6 +434,9 @@ Tanka.dados = {
     armadura: { pesado: 'cavaleiro', leve: 'arqueiro', magico: 'mago' },
     mao: { escudo: 'pesado', manopla: 'pesado', aljava: 'leve', adaga: 'leve', garra: 'leve', shuriken: 'leve', orbe: 'magico', livro: 'magico' },
     foraPreferida: 80,
+    // Defesa mágica dos lutadores (Henri, 21/11/2026): elmo, peitoral, luvas e botas desses grupos dão também essa %
+    // da própria defesa como defesa mágica (espelho do Manto do mago, que dá um pouco de defesa física). Vale para os itens que já existem.
+    defMagicaDaDefesa: { pesado: 20, leve: 25 },
     maoForte: { paladino: { mao: 'escudo', pct: 50 }, coletor: { mao: 'manopla', pct: 50 } },
   },
   // Nomes das armas e itens novos: "<tipo> <sufixo>" (8 por raridade).
@@ -503,6 +516,9 @@ Tanka.dados = {
   // Armaduras, joias e mão esquerda caem com os bônus sorteados (como o dano das armas): cada bônus entre 80% e 120%
   // do valor da raridade (mínimo 1). Da rara em diante ganham também 1 atributo extra sorteado (FOR, DES, RES, INT ou SOR).
   // Itens antigos (sem `bonus` salvo) continuam com o valor fixo.
+  // Botas com o atributo trocado (Henri, 22/11/2026): Leve SOR → DES, Mágica DES → INT. As botas que já existem (sem
+  // `botaV2`) trocam na hora de calcular (R.bonusItem e tanka_status), o valor todo do atributo antigo.
+  BOTAS_TROCA: { arqueiro: ['sor', 'des'], mago: ['des', 'int'] },
   VARIACAO_ITEM: { faixa: [0.8, 1.2], extra: { comum: null, rara: [1, 2], epica: [2, 4], lendaria: [3, 6] } },
 
   // Arma com que todo personagem começa (comum, variação 0).
@@ -525,8 +541,9 @@ Tanka.dados = {
   // Derrota: perde este % da exp do level atual (não desce de level).
   PERDA_EXP_DERROTA: 5,
   PODER: { maximo: 100, porAcerto: 25, porGolpeRecebido: 10 },
-  // Número ⚔ Poder (só para mostrar e para os rankings; não muda nenhuma luta): ataque + PESO x defesa.
+  // Número ⚔ Poder (só para mostrar e para os rankings; não muda nenhuma luta). Até 21/11/2026 era ataque + PESO x defesa:
   // 1,5 escolhido nas simulações (duelos e caçada) de nov/2026: acerta ~94% de quem é mais forte (Daniel).
+  PODER_FATOR: 6,   // poder = 6 x raiz(ataque x resistência) (regras.poder; 21/11/2026). PODER_PESO_DEFESA não é mais usado.
   PODER_PESO_DEFESA: 1.5,
 
   // Vida com o tempo: % da vida máxima por minuto fora da batalha (também com o jogo fechado).
@@ -586,11 +603,14 @@ Tanka.dados = {
   // danoCriticoMagico, recompensa) ganham +1 por ponto; atributos (+5) são fixos. grupo: vale para todos do grupo.
   SEGUNDAS_CLASSES: {
     paladino: { de: 'cavaleiro', nome: 'Paladino', nomeF: 'Paladina', descricao: 'Protege o grupo: atordoa, chama os ataques para si e aguenta firme.',
+      vidaPorNivelPct: 50,   // Henri (24/11/2026): do level da segunda classe (TALENTOS.nivelSegunda) em diante, a vida por level é a metade
       habilidades: [
         { id: 'martelo-sagrado', nome: 'Martelo Sagrado', tipo: 'area', atordoa: 1, recarga: 5, descricao: 'Dano em área e atordoa todos os inimigos.' },
         { id: 'grito-de-desafio', nome: 'Grito de Desafio', tipo: 'provocar', turnos: 2, defesaPct: 10, recarga: 4, descricao: 'Todos os inimigos atacam só você e sua defesa sobe.' },
         { id: 'golpe-justo', nome: 'Golpe Justo', tipo: 'unico', recarga: 2, descricao: 'Um golpe forte em um inimigo.' },
-        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 10, descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele.' },
+        { id: 'pele-de-ferro', nome: 'Pele de Ferro', tipo: 'passiva', defesaPct: 10, vidaPct: 5, porPonto: { vidaPct: 0.5, espinhosPvE: 1 },   // vida −50% (Henri, 24/11/2026: era 10% + 1 por ponto)
+          espinhosPvE: 4,   // Armadura de Espinhos (Henri, 24/11/2026): devolve 5% (1 ponto) a 15% (11) do dano recebido; só PvE, não vale na Arena
+          descricao: 'Mais defesa e mais vida, sempre. Com escudo, o escudo dá +50% dos bônus dele. Armadura de Espinhos: devolve parte do dano dos monstros (não vale na Arena).' },
         // Level 20 (foco: caçada) e level 30 (foco: Arena); todas valem em todo lugar. Valores [base, por ponto]: base + porPonto x pontos.
         { id: 'aura-sagrada', nome: 'Aura Sagrada', tipo: 'passiva', nivel: 20, foco: 'cacada', regenPct: [0.6, 0.06],
           descricao: 'Recupera 0,66% a 1,26% da vida máxima a cada turno. Mais forte na caçada.' },
@@ -608,9 +628,10 @@ Tanka.dados = {
         { id: 'sede-de-sangue', nome: 'Sede de Sangue', tipo: 'passiva', nivel: 20, foco: 'cacada', rouboVida: [4, 1],
           descricao: '5% a 15% do dano que você causa vira vida. Mais forte na caçada.' },
         // Henri (13/11/2026): no lugar do Golpe Apocalíptico. quebraTurnos: a defesa quebrada dura essas vezes do alvo.
-        { id: 'quebra-ossos', nome: 'Quebra-Ossos', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 0],
-          ignoraDefesaPct: 50, quebraDefesaPct: [25, 1], quebraTurnos: 2,   // 16/11/2026: ignorava 100% (~16x um ataque na Arena)
-          descricao: 'Golpe de 200% que ignora metade da defesa do alvo e deixa o inimigo com −25% a −35% de defesa por 2 turnos. Mais forte na Arena.' },
+        { id: 'quebra-ossos', nome: 'Quebra-Ossos', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [220, 0],   // 21/11/2026 (Henri): era 200%
+          // 21/11/2026 (Henri): ignorava 50% e quebrava 25–35% (~3,7x um ataque na Arena); agora 30% e 15–25%
+          ignoraDefesaPct: 30, quebraDefesaPct: [15, 1], quebraTurnos: 2,   // 16/11/2026: ignorava 100% (~16x um ataque na Arena)
+          descricao: 'Golpe de 220% que ignora 30% da defesa do alvo e deixa o inimigo com −15% a −25% de defesa por 2 turnos. Mais forte na Arena.' },
       ] },
     // id 'cacador' (personagens salvos); o nome na tela é Arqueiro.
     cacador: { de: 'arqueiro', nome: 'Arqueiro', nomeF: 'Arqueira', descricao: 'Controla a luta de longe: prende, dispara e corre.',
@@ -625,7 +646,7 @@ Tanka.dados = {
           descricao: '+5 de Destreza e parte do dano que você causa vira vida (até 10%), sempre.' },
         { id: 'flecha-envenenada', nome: 'Flecha Envenenada', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 5, turnos: 3,
           dotPct: [10, 5], pula: true,   // era [90, 5] com cura de 5% por monstro morto (Henri, 14/11/2026: até 60%, sem cura)
-          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro.' },
+          descricao: 'Veneno de 15% a 60% de um ataque por turno, por 3 turnos. Pula para outro monstro. Na Arena: 2% da vida máxima do alvo por turno.' },
         { id: 'tiro-silenciador', nome: 'Tiro Silenciador', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 6, mult: [180, 5],
           ignoraDefesaPct: 50, silencia: 1, descricao: 'Golpe de 180% a 230% que ignora metade da defesa e cala o oponente por 1 turno. Mais forte na Arena.' },
       ] },
@@ -637,7 +658,7 @@ Tanka.dados = {
         { id: 'lamina-afiada', nome: 'Lâmina Afiada', tipo: 'passiva', atributos: { des: 5 }, critico: 10, descricao: '+5 de Destreza e mais chance de crítico, sempre.' },
         { id: 'corte-vampirico', nome: 'Corte Vampírico', tipo: 'dot', nivel: 20, foco: 'cacada', recarga: 4, turnos: 3,
           dotPct: [40, 4], curaDot: 20,
-          descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira.' },
+          descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira. Na Arena: 2% da vida máxima do alvo por turno.' },
         { id: 'execucao', nome: 'Execução', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [250, 3], garantido: true,
           semEsquiva: true, executa: { abaixo: 30, bonus: 50 },
           descricao: 'Golpe de 250% a 280%, sempre no máximo do dado, que não pode ser esquivado. +50% se o oponente tiver menos de 30% da vida. Mais forte na Arena.' },
@@ -653,7 +674,7 @@ Tanka.dados = {
           descricao: 'Escudo que segura dano (10% a 20% da vida) por 3 turnos; quem bate nele tem 30% de chance de congelar.' },
         { id: 'maldicao-de-ignaroth', nome: 'Maldição de Ignaroth', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [200, 5],
           queima: { turnos: 3, pct: [15, 1] }, cortaCura: 50,
-          descricao: 'Golpe de 200% a 250% que queima (15% a 25% do dano) por 3 turnos e corta pela metade as curas do oponente. Mais forte na Arena.' },
+          descricao: 'Golpe de 200% a 250% que queima (15% a 25% do dano) por 3 turnos e corta pela metade as curas do oponente. Na Arena, a queimadura tira 2% da vida máxima do alvo por turno.' },
       ] },
     curandeiro: { de: 'mago', nome: 'Curandeiro', nomeF: 'Curandeira', descricao: 'Cuida do grupo: cura, fortalece e ainda castiga.',
       habilidades: [
@@ -876,52 +897,64 @@ Tanka.dados = {
   },
   // ---------- Pacto de Ascensão (Daniel, nov/2026): árvore de pontos depois do level 40 ----------
   // 6 domínios x 2 trilhas. Cada trilha: 2 nós pequenos, 1 notável, 2 pequenos e a Pedra Angular (forte, com um custo).
-  // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (2 por par).
+  // As 2 Pedras do mesmo domínio se excluem; no máximo `maxPedras`. Pontes ligam domínios vizinhos (1 por par).
   // Pontos: 1 por level do 41 ao 60; no level 60, mais 1 a cada `expPorPonto` x (exp do level 59) até `limitePontos`.
-  // Só vale contra monstros (caçada, masmorra, chefes), como as skills do clã; a Arena não usa.
+  // Vale contra monstros e na Arena (tudo o que é de luta; crítico vira dano lá, precisão e esquiva não contam).
   // Efeitos (%, salvo indicado): dano, danoChefe, danoMeiaVida (alvo < 50%), danoCacada, critico (pontos), danoCritico,
-  // precisao (pontos), defesa (física), defesaMagica, vida, velocidade, evasao (pontos), rouboVida, reflete,
-  // reducaoDano, danoHab, recargaPct (% menos recarga, mínimo 2), curaHab (% da vida ao usar habilidade), ouro, exp, drop.
+  // precisao (pontos), defesa (física), defesaMagica, vida, velocidade (%), velocidadePts (pontos), evasao (pontos),
+  // rouboVida, reflete, reducaoDano, danoHab, recargaMenos (turnos), curaHab (% da vida ao usar habilidade), ouro, exp,
+  // drop, danoHibrido (% do dano contra a defesa oposta), danoVidaAtual (% da vida atual do alvo por golpe),
+  // golpeCerteiro (crítico ignora x% da defesa; roubo de vida pela metade), primeiroGolpe (1ª habilidade +x% e alvo −30% de velocidade).
   ASCENSAO: {
     nome: 'Pacto de Ascensão',
-    nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 70, maxPedras: 3,
-    custo: { pequeno: 1, notavel: 2, ponte: 2, pedra: 4 },
-    precoRefazer: 1000000,   // ouro para zerar o Pacto e distribuir de novo (Daniel, 20/11/2026: era 50 mil, trocar de caminho ficou de graça)
+    // Pacto v2 (Henri, 20/11/2026): limite 48 pontos, ponte custa 3, sem o atalho entre os pontos de custo 1 (passa
+    // pelo Notável), uma ponte só por par de domínios. Zerar: 500 mil + 250 mil a cada vez na mesma semana (volta na segunda).
+    nivelInicio: 40, pontosPorNivel: 1, expPorPonto: 1, limitePontos: 48, maxPedras: 3,
+    custo: { pequeno: 1, notavel: 2, ponte: 3, pedra: 4 },
+    // Fase de testes (Henri, 21/11/2026): zerar custa 100 mil fixo. No BETA volta para 500000 + 250000 por vez na semana.
+    precoRefazer: 100000, precoRefazerMais: 0,
+    primeiroGolpeLento: 20,   // Primeiro Golpe: o inimigo fica x% mais lento (era 30; Henri 21/11/2026: 20)
+    focoCada: 5,   // Foco (Henri, 21/11/2026): a cada 5 turnos, as habilidades em recarga ficam 1 turno mais perto de prontas
+    versao: 2,   // fichas com Pacto de versão anterior: os pontos voltam de graça (R.normalizar)
     dominios: [
-      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 2 },
+      // 21/11/2026 (Henri): Fúria, Precisão e Tempestade com −60% em tudo (ponto, notável e pedra; os custos das pedras não mudaram)
+      { id: 'furia', nome: 'Fúria', cor: '#e04a3c', tema: 'Dano', tronco: { dano: 0.4 },
         trilhas: [
-          { nome: 'Carniceiro', pequeno: { dano: 2 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 6, precisao: -3 } },
-            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+25% de dano', custo: '−15% de vida máxima', ef: { dano: 25, vida: -15 } } },
-          { nome: 'Executor', pequeno: { danoChefe: 3 }, notavel: { nome: 'Sem Piedade', ef: { danoMeiaVida: 10 } },
-            pedra: { id: 'execucao', nome: 'Execução', txt: '+40% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem está com a vida cheia', ef: { execucao: 1 } } },
+          { nome: 'Carniceiro', pequeno: { dano: 0.8 }, notavel: { nome: 'Golpe Pesado', ef: { dano: 2, precisao: -3 } },
+            pedra: { id: 'sede-de-sangue', nome: 'Sede de Sangue', txt: '+6% de dano', custo: '−15% de vida máxima', ef: { dano: 6, vida: -15 } } },
+          // danoVidaAtual: cada golpe tira a mais x% da vida ATUAL do alvo (no máximo o mesmo dano do golpe)
+          { nome: 'Executor', pequeno: { danoVidaAtual: 0.4 }, notavel: { nome: 'Sem Piedade', ef: { danoVidaAtual: 1.2 } },
+            pedra: { id: 'execucao', nome: 'Execução', txt: '+16% de dano em quem tem menos de 30% da vida', custo: '−10% de dano em quem tem mais de 30% da vida', ef: { execucao: 16 } } },
         ] },
-      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { critico: 1 },
+      { id: 'precisao', nome: 'Precisão', cor: '#f0c24a', tema: 'Crítico', tronco: { danoCritico: 1.2 },
         trilhas: [
-          { nome: 'Olho de Falcão', pequeno: { critico: 1 }, notavel: { nome: 'Mira Firme', ef: { critico: 3, precisao: 5 } },
-            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'Todo 4º golpe é crítico garantido', custo: 'Os outros críticos causam −20% de dano', ef: { golpeCerteiro: 1 } } },
-          { nome: 'Lâmina Fina', pequeno: { danoCritico: 4 }, notavel: { nome: 'Corte Profundo', ef: { danoCritico: 12 } },
-            pedra: { id: 'ferida-aberta', nome: 'Ferida Aberta', txt: 'O crítico faz sangrar: mais 30% do golpe em 3 turnos', custo: '−2 de chance de crítico', ef: { feridaAberta: 30, critico: -2 } } },
+          { nome: 'Olho de Falcão', pequeno: { danoCritico: 1.6 }, notavel: { nome: 'Mira Firme', ef: { danoCritico: 4, precisao: 2 } },
+            pedra: { id: 'golpe-certeiro', nome: 'Golpe Certeiro', txt: 'O crítico ignora 12% da defesa do alvo (na Arena: com 18 ou mais no dado)', custo: 'Seu roubo de vida perde 50% de eficiência', ef: { golpeCerteiro: 12 } } },
+          // danoHibrido: x% do dano vai contra a defesa oposta (mago: defesa física; guerreiro: defesa mágica)
+          { nome: 'Lâmina Fina', pequeno: { danoHibrido: 1.2 }, notavel: { nome: 'Corte Fino', ef: { danoHibrido: 2.4 } },
+            pedra: { id: 'ferida-aberta', nome: 'Ferida Profunda', txt: '+8% de dano híbrido', custo: '−10% de vida máxima', ef: { danoHibrido: 8, vida: -10 } } },
         ] },
-      { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 },
+      { id: 'bastiao', nome: 'Bastião', cor: '#9fb4c8', tema: 'Defesa', tronco: { defesa: 2 }, tronco2: { defesaMagica: 2 },   // 2º ponto: defesa mágica
         trilhas: [
-          { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 4 } },
+          { nome: 'Muralha', pequeno: { defesa: 3 }, notavel: { nome: 'Pele de Ferro', ef: { defesa: 8, defesaMagica: 8 } },
             pedra: { id: 'inabalavel', nome: 'Inabalável', txt: '−15% de dano recebido', custo: '−10% de velocidade', ef: { reducaoDano: 15, velocidade: -10 } } },   // 20/11/2026: saiu o +25% de defesa com pouca vida
-          { nome: 'Espinhos', pequeno: { defesaMagica: 2 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
+          { nome: 'Espinhos', pequeno: { defesaMagica: 3 }, notavel: { nome: 'Farpas', ef: { reflete: 5 } },
             pedra: { id: 'couraca-de-espinhos', nome: 'Couraça de Espinhos', txt: 'Devolve 20% do dano recebido', custo: '−8% de dano', ef: { reflete: 20, dano: -8 } } },
         ] },
       { id: 'vigor', nome: 'Vigor', cor: '#4fbf62', tema: 'Vida e cura', tronco: { vida: 2 },
         trilhas: [
           { nome: 'Sangue Vivo', pequeno: { vida: 3 }, notavel: { nome: 'Coração Forte', ef: { vida: 8 } },
-            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 1,5% da vida a cada turno', custo: 'Poções curam só metade da vida', ef: { regen: 1.5, pocaoMetade: 1 } } },   // 20/11/2026: era 3%
+            pedra: { id: 'regeneracao', nome: 'Regeneração', txt: 'Cura 1,5% da vida a cada turno', custo: '−5% de defesa e −5% de defesa mágica', ef: { regen: 1.5, defesa: -5, defesaMagica: -5 } } },   // 20/11/2026: era 3%; custo era poção pela metade
           { nome: 'Vampiro', pequeno: { rouboVida: 1 }, notavel: { nome: 'Presas', ef: { rouboVida: 3 } },
-            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: 'Não pode usar poção', ef: { rouboVida: 6, semPocao: 1 } } },   // 20/11/2026: era 10%
+            pedra: { id: 'sede-eterna', nome: 'Sede Eterna', txt: '+6% de roubo de vida', custo: '−10% de vida máxima', ef: { rouboVida: 6, vida: -10 } } },   // 20/11/2026: era 10%; custo era sem poção
         ] },
-      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidade: 2 },   // 20/11/2026: era +1%
+      // Velocidade em pontos (Henri, 20/11/2026): 2% virou +10 e 5% virou +25 de velocidade (velocidadePts).
+      { id: 'tempestade', nome: 'Tempestade', cor: '#7b8cff', tema: 'Velocidade e habilidades', tronco: { velocidadePts: 4 },
         trilhas: [
-          { nome: 'Relâmpago', pequeno: { velocidade: 2 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidade: 5, evasao: 3 } },
-            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'Começa a luta com a barra de ataque cheia e o 1º golpe tem +40% de dano', custo: '−10% de vida máxima', ef: { primeiroGolpe: 40, vida: -10 } } },
-          { nome: 'Arcano', pequeno: { danoHab: 3 }, notavel: { nome: 'Foco', ef: { recargaPct: 15 } },   // 20/11/2026: era −1 turno em tudo (recarga 2 virava todo turno)
-            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },
+          { nome: 'Relâmpago', pequeno: { velocidadePts: 4 }, notavel: { nome: 'Passo Ligeiro', ef: { velocidadePts: 10, evasao: 1.2 } },
+            pedra: { id: 'primeiro-golpe', nome: 'Primeiro Golpe', txt: 'A 1ª habilidade da luta tem +16% de dano e deixa o inimigo 20% mais lento até o fim da luta', custo: '−10% de vida máxima', ef: { primeiroGolpe: 16, vida: -10 } } },
+          { nome: 'Arcano', pequeno: { danoHab: 1.2 }, notavel: { nome: 'Foco', ef: { recargaMenos: 1 } },   // Henri 21/11/2026: a cada 5 turnos (ASCENSAO.focoCada), −1 turno na recarga de todas
+            pedra: { id: 'eco', nome: 'Eco', txt: 'Habilidades têm 25% de chance de sair 2 vezes', custo: 'Ataque normal −10% de dano', ef: { eco: 25 } } },   // Eco ficou em 25% (Henri, 21/11/2026)
         ] },
       { id: 'fortuna', nome: 'Fortuna', cor: '#e8963a', tema: 'Ouro, drop e exp', tronco: { ouro: 3 },
         trilhas: [
@@ -931,14 +964,15 @@ Tanka.dados = {
             pedra: { id: 'sabedoria', nome: 'Sabedoria', txt: '+25% de exp; com os pontos no limite, vira +20% de drop', custo: '−15% de ouro', ef: { sabedoria: 1, ouro: -15 } } },
         ] },
     ],
-    // Pontes entre domínios vizinhos [perto do centro, longe do centro] (ligam a 2ª trilha de um à 1ª do outro).
+    // Uma ponte por par de domínios (Henri, 20/11/2026): a de fora (perto das Pedras) saiu e o bônus dela passou para
+    // esta; a Fortuna ⇄ Fúria ficou com +2% de ouro e +2% de dano. Liga a 2ª trilha de um domínio à 1ª do vizinho.
     pontes: [
-      [{ dano: 1, critico: 1 }, { dano: 3, danoCritico: 4 }],             // Fúria ⇄ Precisão
-      [{ critico: 1, defesa: 2 }, { reducaoDano: 4 }],                    // Precisão ⇄ Bastião
-      [{ defesa: 2, vida: 2 }, { vida: 5, defesa: 5 }],                   // Bastião ⇄ Vigor
-      [{ vida: 2, velocidade: 1 }, { curaHab: 5 }],                       // Vigor ⇄ Tempestade
-      [{ velocidade: 1, ouro: 2 }, { exp: 4, ouro: 4 }],                  // Tempestade ⇄ Fortuna
-      [{ ouro: 2, dano: 1 }, { danoCacada: 5 }],                          // Fortuna ⇄ Fúria
+      { dano: 3, danoCritico: 4 },     // Fúria ⇄ Precisão
+      { reducaoDano: 4 },              // Precisão ⇄ Bastião
+      { vida: 5, defesa: 5 },          // Bastião ⇄ Vigor
+      { curaHab: 2.5 },                // Vigor ⇄ Tempestade (Henri 22/11/2026: era 5)
+      { exp: 4, ouro: 4 },             // Tempestade ⇄ Fortuna
+      { ouro: 2, dano: 2 },            // Fortuna ⇄ Fúria
     ],
   },
   // ---------- Reino do Pesadelo (Henri, nov/2026): conteúdo final, do level 40 ao 60 ----------
@@ -963,7 +997,10 @@ Tanka.dados = {
       { id: 'ignaroth-pesadelo', base: 'ignaroth', vida: 2.468, dano: 3.357, nivel: 60, x: 91, y: 40 },
     ] },
   // Chefe Mundial (Ignaroth): o resto dos números fica no servidor (boss_cfg em supabase/schema.sql).
-  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5 },   // entradas: ataques por despertar (igual a boss_cfg no schema.sql)
+  // Chefe Mundial (Henri, 22/11/2026: estava fácil demais): do level `pesadeloDesde` em diante a luta é contra o chefe
+  // Pesadelo do level do herói com `danoPesadelo` do dano dele; abaixo, o chefe da região com o dano da caçada. O ouro e
+  // a exp continuam pelo chefe da região. Vida e limite por ataque: boss_cfg no schema.sql.
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5, pesadeloDesde: 40, danoPesadelo: 0.5 },   // entradas: ataques por despertar (igual a boss_cfg)
 
   areas: [
     {
@@ -1096,6 +1133,9 @@ Tanka.dados = {
   // pedido do Henri): 3 heróis 5 levels ACIMA do mínimo, com itens épicos +5, vencem ~60%; no level
   // mínimo quase ninguém vence (ex.: Catacumbas lv15 pede 3 heróis lv20 bem equipados).
   // poderRecomendado: poder de cada herói desse grupo (só para mostrar na tela).
+  // 21/11/2026 (Henri): recalculado com o poder novo (raiz de ataque x resistência) = mediana das 8 segundas classes no level
+  // mínimo, com habilidades, pontos 2/3 no atributo principal e 1/3 em Resistência, itens: rara+3 (Toca), rara+4, épica+3,
+  // épica+4, épica+5, lendária+4, lendária+5 (Coração).
   // 16/11/2026: níveis 15 a 60 e forca recalibrada para a masmorra com caminhos (grupo com curandeiro vence ~70-100%,
   // sem curandeiro ~15-45%; herói no nível mínimo: rara+3 no 15 até lendária+5 no 60).
   // As raridades da joia também estão em supabase/schema.sql (função sortear_raridade_joia).
@@ -1121,25 +1161,25 @@ Tanka.dados = {
   },
   masmorras: [
     { id: 'toca', nome: 'Toca dos Lobos Sombrios', nivelMin: 15, area: 'floresta', elite: 'Urso Garra-Negra', chefe: 'Velgrath, Raiz do Medo',
-      forca: { vida: 20.0, ataque: 40.0 }, poderRecomendado: 3800,
+      forca: { vida: 20.0, ataque: 40.0 }, poderRecomendado: 4500,
       joias: [{ raridade: 'rara', chance: 20 }, { raridade: 'comum', chance: 80 }] },
     { id: 'ninho', nome: 'Ninho da Bruxa', nivelMin: 22, area: 'pantano', elite: 'Troll Ancião do Lodo', chefe: 'Morgath, Mãe da Névoa',
-      forca: { vida: 56.5, ataque: 21.6 }, poderRecomendado: 8800,
+      forca: { vida: 56.5, ataque: 21.6 }, poderRecomendado: 10400,
       joias: [{ raridade: 'epica', chance: 5 }, { raridade: 'rara', chance: 45 }, { raridade: 'comum', chance: 50 }] },
     { id: 'catacumbas', nome: 'Catacumbas de Dravenhold', nivelMin: 30, area: 'ruinas', elite: 'Gárgula Sentinela', chefe: 'Varnok, o Rei Sem Alma',
-      forca: { vida: 46.9, ataque: 43.1 }, poderRecomendado: 27900,
+      forca: { vida: 46.9, ataque: 43.1 }, poderRecomendado: 29500,
       joias: [{ raridade: 'epica', chance: 20 }, { raridade: 'rara', chance: 80 }] },
     { id: 'biblioteca', nome: 'Biblioteca Proibida', nivelMin: 37, area: 'torre', elite: 'Espectro Bibliotecário', chefe: 'O Guardião Desperto',
-      forca: { vida: 143.9, ataque: 67.1 }, poderRecomendado: 62900,
+      forca: { vida: 143.9, ataque: 67.1 }, poderRecomendado: 63000,
       joias: [{ raridade: 'lendaria', chance: 2 }, { raridade: 'epica', chance: 48 }, { raridade: 'rara', chance: 50 }] },
     { id: 'tumba', nome: 'Tumba do Faraó', nivelMin: 45, area: 'areias', elite: 'Múmia Real', chefe: 'O Faraó Renascido',
-      forca: { vida: 229.8, ataque: 91.9 }, poderRecomendado: 146400,
+      forca: { vida: 229.8, ataque: 91.9 }, poderRecomendado: 129900,
       joias: [{ raridade: 'lendaria', chance: 10 }, { raridade: 'epica', chance: 90 }] },
     { id: 'covil', nome: "Covil de Vhar'kesh", nivelMin: 52, area: 'vale', elite: 'Cavaleiro Dracônico Ancestral', chefe: "Vhar'kesh em Fúria",
-      forca: { vida: 182.5, ataque: 182.5 }, poderRecomendado: 384600,
+      forca: { vida: 182.5, ataque: 182.5 }, poderRecomendado: 279300,
       joias: [{ raridade: 'lendaria', chance: 20 }, { raridade: 'epica', chance: 80 }] },
     { id: 'coracao', nome: 'Coração do Vulcão', nivelMin: 60, area: 'cume', elite: 'Elemental Primordial', chefe: 'Ignaroth Desacorrentado',
-      forca: { vida: 322.0, ataque: 161.0 }, poderRecomendado: 777100,
+      forca: { vida: 322.0, ataque: 161.0 }, poderRecomendado: 477900,
       joias: [{ raridade: 'lendaria', chance: 35 }, { raridade: 'epica', chance: 65 }] },
   ],
 
@@ -1157,6 +1197,7 @@ Tanka.dados = {
     // Veneno, sangramento e queimadura na Arena (Henri, 18/11/2026): o D20 multiplica o dano do efeito, por faixa
     // (até o número `ate`): 1 falha; 2 a 6 reduz; 7 a 12 normal; 13 a 17 aumenta; 18 a 20 o dobro.
     sombraDado: 18,   // Sombra do Assassino na Arena (18/11/2026): só esquiva com o D20 em 18, 19 ou 20; abaixo, só o ataque
+    dotVidaPct: 2,   // Henri (24/11/2026): veneno, sangramento e queimadura das habilidades tiram 2% da vida máxima do alvo por turno (x o D20)
     efeitoDado: [{ ate: 1, fator: 0 }, { ate: 6, fator: 0.5 }, { ate: 12, fator: 1 }, { ate: 17, fator: 1.5 }, { ate: 20, fator: 2 }],
     dado: [0, 0.6, 0.7, 0.8, 0.9, 1, 1.05, 1.1, 1.15, 1.2, 1.25, 1.3, 1.35, 1.4, 1.45, 1.5, 1.55, 1.7, 1.8, 2],
     // Saque do ouro do oponente pela vida que o vencedor perdeu: até 30% -> 5%; 80% ou mais -> 10%; entre -> 5 a 8%.
@@ -1342,19 +1383,28 @@ Tanka.dados = {
     itensFortes: { balde: 12, porMinuto: 1 }, itensNovos: 60, avisarOuro: 1500000, avisarNiveis: 2 },
 
   // Loja de Éter (Henri, 19/11/2026): Éter é comprado com dinheiro (1 Éter = R$ 1) e fica só no servidor, por conta.
-  // VIP (conta toda, `dias` a partir da compra): Arcane, estamina x`estaminaMult`, +`arenaExtra` entradas na Arena,
+  // VIP (conta toda, `dias` a partir da compra): Arcane, estamina cheia em `estaminaMinutos` min, +`arenaExtra` entradas na Arena,
   // +`masmorraExtra` na masmorra por dia, doação ao clã x`doacaoMult`, Oficina na hora com qualquer artesão, nome brilhante.
   // boosts: +pct% de exp/ouro na caçada por `minutos`. starter: 1 por conta (itens raros com qualidade `qualidadePct`%
   // da faixa da raridade). Preços (Henri, 19/11/2026): boost 10, Starter 100, skin 20.
   // Também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
   LOJA: {
-    vip: { preco: 30, dias: 30, estaminaMult: 2, arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
+    vip: { preco: 30, dias: 30, estaminaMinutos: 60,   // estamina: cheia em 60 min (sem VIP: ESTAMINA.minutosSemAcampar)
+      arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
     boosts: {
       exp: { nome: 'Boost de EXP', preco: 10, pct: 50, minutos: 60 },
       ouro: { nome: 'Boost de Ouro', preco: 10, pct: 50, minutos: 60 },
     },
     starter: { nome: 'Starter Pack', preco: 100, boostsExp: 10, boostsOuro: 10, vipDias: 30, nivelItens: 10, nivelJoias: 5,
       raridade: 'rara', qualidadePct: 80 },
+    // Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026). 1 Éter = R$ 1. Só no navegador (no app da Play Store
+    // a compra tem que ser pelo Google). O preço que vale é o daqui, lido pelo servidor (tanka_dados), nunca o do navegador.
+    pacotes: [
+      { id: 'eter10', eter: 10, reais: 10 },
+      { id: 'eter30', eter: 30, reais: 30 },
+      { id: 'eter50', eter: 50, reais: 50 },
+      { id: 'eter100', eter: 100, reais: 100 },
+    ],
   },
 
   // Pergaminho do Recomeço: devolve todos os pontos de atributo para distribuir de novo.

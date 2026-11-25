@@ -278,7 +278,7 @@ select pg_temp.igual((public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2"
 select pg_temp.igual(jsonb_array_length(public.arena_kit(pg_temp.heroi('arqueiro', 11, '{"classe2":"assassino","pontos":{"golpe-fatal":9},"ordem":{"arena":["golpe-fatal"]}}'))),
   0, 'arena: pontos acima do level não valem');
 select pg_temp.igual((public.tanka_status(pg_temp.heroi('cavaleiro', 11, '{"classe2":"paladino","pontos":{"pele-de-ferro":1},"ordem":{}}')) ->> 'hpMax')::numeric,
-  round((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric * 1.12), 'arena: passiva Pele de Ferro com 1 ponto (1 de graça + 1) = +12% de vida');
+  round(((public.tanka_status(pg_temp.heroi('cavaleiro', 11, null)) ->> 'hpMax')::numeric - 18) * 1.06), 'arena: passiva Pele de Ferro com 1 ponto (1 de graça + 1) = +6% de vida (24/11/2026: era 12%; o level 11 do Paladino dá só 18 de vida)');
 select pg_temp.igual((select string_agg(x ->> 'nome', ',') from jsonb_array_elements(public.arena_kit(pg_temp.heroi('arqueiro', 11,
   '{"classe2":"assassino","pontos":{"sombra":1,"golpe-fatal":2},"ordem":{"arena":["golpe-fatal","sombra"],"defesa":["sombra"]}}'), 'defesa')) x),
   'Sombra', 'arena: ordem própria de defesa');
@@ -426,6 +426,19 @@ begin
        or (i = 4 and c.saque <> 0) or c.reputacao <> 5 then
       raise exception 'FALHA arena: repetição % (saque %, %%% , reputação %)', i, c.saque, c.saque_pct, c.reputacao; end if;
   end loop;
+  -- revide (21/11/2026): o atacado (pb) ataca de volta e vence -> a contagem de pa contra ele zera
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+  l := public.arena_desafiar('pb', 'pa'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pa') + c.saque) * c.saque_pct / 100.0) or c.saque <= 0 then raise exception 'FALHA arena: revide devia ter ouro cheio'; end if;
+  perform set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000a', false);
+  l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0) or c.saque <= 0 then raise exception 'FALHA arena: depois do revide, ouro cheio de novo (saque %)', c.saque; end if;
+  l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
+  select * into c from public.arena_lutas where id = (l ->> 'id')::bigint;
+  if c.saque <> floor((public.ouro_real('pb') + c.saque) * c.saque_pct / 100.0 * 0.5) then raise exception 'FALHA arena: depois do revide, a 2ª volta a ser metade'; end if;
+  raise notice 'ok   arena: revide vencido zera a contagem (ouro cheio dos dois lados)';
   -- na semana seguinte volta ao ouro cheio
   update public.arena_lutas set criado_em = criado_em - interval '8 days' where atacante = 'pa' and defensor = 'pb';
   l := public.arena_desafiar('pa', 'pb'); perform public.arena_finalizar((l ->> 'id')::bigint, true);
@@ -805,9 +818,9 @@ reset role;
 delete from public.alianca_membros; delete from public.recompensas; delete from public.mensagens;
 update public.personagens set atualizado_em = now();
 update public.contas set admin = false, bot = false;
-select pg_temp.igual(public.boss_vida_inicial(), 200000::bigint, 'boss: 50 mil por jogador ativo (4 contas)');
+select pg_temp.igual(public.boss_vida_inicial(), 600000::bigint, 'boss: 150 mil por jogador ativo (4 contas)');
 update public.contas set bot = true where usuario = 'caio';
-select pg_temp.igual(public.boss_vida_inicial(), 150000::bigint, 'boss: bots não contam');
+select pg_temp.igual(public.boss_vida_inicial(), 450000::bigint, 'boss: bots não contam');
 update public.contas set bot = false where usuario = 'caio';
 insert into public.aliancas (nome, sigla, tesouro) values ('Boss Teste A', 'BTA', 0), ('Boss Teste B', 'BTB', 0);
 insert into public.alianca_membros (personagem_id, alianca_id) values
@@ -832,7 +845,7 @@ select pg_temp.falha($$select public.admin_boss_invocar('pa', 1000, 60)$$, 'Só 
 reset role;
 update public.contas set admin = true where usuario = 'duda';
 set role authenticated;
-select pg_temp.como('d'); select public.admin_boss_invocar('pd', 1000, 60);
+select pg_temp.como('d'); select public.admin_boss_invocar('pd', 10000, 60);
 select pg_temp.como('a'); select public.boss_atacar_servidor('pa', 300, 'rei_goblin');
 select pg_temp.falha($$select public.boss_atacar_servidor('pa', 300, 'rei_goblin')$$, 'Espere alguns segundos');
 select pg_temp.falha($$select public.boss_atacar('pa', 300, 'x')$$, 'Atualize a página');
@@ -850,20 +863,24 @@ reset role;
 update public.boss_mundial_dano set ultimo_em = now() - interval '20 seconds';
 set role authenticated;
 select pg_temp.como('a');
-select pg_temp.igual((public.boss_estado('pa') -> 'boss' ->> 'vida')::int, 250, 'boss: a vida é de todos (1000 - 750)');
+select pg_temp.igual((public.boss_estado('pa') -> 'boss' ->> 'vida')::int, 9250, 'boss: a vida é de todos (10000 - 750)');
 select pg_temp.igual((public.boss_estado('pa') -> 'eu' ->> 'posicao')::int, 1, 'boss: posição no ranking');
 select pg_temp.igual((public.boss_estado('pa') -> 'aliancas' -> 0 ->> 'sigla'), 'BTB', 'boss: ranking de alianças (BTB 450)');
+reset role;
+update public.boss_mundial set vida = 250 where estado = 'ativo';
+set role authenticated;
+select pg_temp.como('a');
 select pg_temp.igual((public.boss_atacar_servidor('pa', 999999, 'rei_goblin') ->> 'caiu')::boolean, true, 'boss: o golpe que zera derruba');
 reset role;
 select pg_temp.igual((select estado from public.boss_mundial order by id desc limit 1), 'derrotado', 'boss: derrotado');
 select pg_temp.igual((select golpe_final from public.boss_mundial order by id desc limit 1), 'pa', 'boss: golpe final de quem zerou');
-select pg_temp.igual((select dano from public.boss_mundial_dano where personagem_id = 'pa'), 200300::bigint, 'boss: dano por ataque limitado a 200 mil');
+select pg_temp.igual((select dano from public.boss_mundial_dano where personagem_id = 'pa'), 600::bigint, 'boss: dano por ataque limitado a 3% da vida (22/11/2026)');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_premio' and (item ->> 'fator')::int = 100)::int, 3, 'boss: prêmio cheio para os 3 atacantes');
 select pg_temp.igual((select (item ->> 'ataques')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'boss_premio'), 2, 'boss: prêmio conta os ataques');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho' and origem = 'boss')::int, 3, 'boss: top 10 ganha 1 pergaminho');
 select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'), 'Matador de Dragões', 'boss: título do golpe final');
 select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
-select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 2003::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
+select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 6::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('rara', 'epica', 'lendaria'))::int, 0, 'boss: item raro, épico ou lendário');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item')::int, 3, 'boss: todo o top 10 ganha 1 item');
@@ -1141,18 +1158,18 @@ begin
   r := public.arena_vez(a, base, 10);
   if (r -> 'outro' ->> 'defQuebra')::numeric <> 30 or (r -> 'outro' ->> 'atordoado')::int <> 1 then raise exception 'FALHA martelo: %', r -> 'outro'; end if;
   raise notice 'ok   arena: Martelo das Correntes prende e quebra a defesa';
-  -- Quebra-Ossos (13/11/2026): ignora a defesa e quebra 25% + 1 por ponto só pelas próximas 2 vezes do outro
+  -- Quebra-Ossos (13/11/2026): ignora a defesa e quebra 15% + 1 por ponto (21/11/2026; era 25%) só pelas próximas 2 vezes do outro
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('cavaleiro', 30, '{"classe2":"destruidor","pontos":{"quebra-ossos":4},"ordem":{"arena":["quebra-ossos"]}}')));
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
-  if (d ->> 'quebraPct')::numeric <> 29 or (d ->> 'quebraAte')::int <> coalesce((base ->> 'turno')::int, 0) + 2 or coalesce((d ->> 'defQuebra')::numeric, 0) <> 0 then
+  if (d ->> 'quebraPct')::numeric <> 19 or (d ->> 'quebraAte')::int <> coalesce((base ->> 'turno')::int, 0) + 2 or coalesce((d ->> 'defQuebra')::numeric, 0) <> 0 then
     raise exception 'FALHA quebra-ossos: %', d; end if;
-  raise notice 'ok   arena: Quebra-Ossos quebra a defesa por 2 vezes (29%% com 4 pontos)';
+  raise notice 'ok   arena: Quebra-Ossos quebra a defesa por 2 vezes (19%% com 4 pontos)';
   -- Maldição: queima por 3 vezes e corta a cura
   a := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 30, '{"classe2":"bruxo","pontos":{"maldicao-de-ignaroth":1},"ordem":{"arena":["maldicao-de-ignaroth"]}}')));
   r := public.arena_vez(a, base, 10); d := r -> 'outro';
   if (d -> 'queima' ->> 'turnos')::int <> 3 or (d ->> 'cortaCura')::int <> 3 then raise exception 'FALHA maldição: %', d; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'queimou')::int <> 8 then raise exception 'FALHA maldição: queimadura de 16%% do dano (15 + 1 ponto) com a defesa 100 = 8: %', r -> 'ev'; end if;
+  if (r -> 'ev' ->> 'queimou')::int <> 20 then raise exception 'FALHA maldição: queimadura = 2%% da vida máxima (1000) = 20 (24/11/2026): %', r -> 'ev'; end if;
   raise notice 'ok   arena: Maldição de Ignaroth queima e corta a cura';
   -- Milagre: volta uma vez
   d := base || jsonb_build_object('hp', 1, 'milagre', 25, 'defesa', 0);
@@ -1181,20 +1198,20 @@ begin
   -- Level 20 na Arena: veneno (quem envenenou recupera), escudo, regeneração, roubo de vida e Bolso de Poções
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 10); a := r -> 'eu'; d := r -> 'outro';
-  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 40 then raise exception 'FALHA sangramento (80 com a defesa 100 do alvo = 40): %', d -> 'veneno'; end if;
+  if (d -> 'veneno' ->> 'turnos')::int <> 3 or (d -> 'veneno' ->> 'dano')::int <> 20 then raise exception 'FALHA sangramento (2%% da vida máxima 1000 = 20; 24/11/2026): %', d -> 'veneno'; end if;
   r := public.arena_vez(d, a, 1);
-  if (r -> 'ev' ->> 'envenenado')::int <> 40 or (r -> 'outro' ->> 'hp')::int <> 508 then raise exception 'FALHA sangramento: tira 40 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
+  if (r -> 'ev' ->> 'envenenado')::int <> 20 or (r -> 'outro' ->> 'hp')::int <> 504 then raise exception 'FALHA sangramento: tira 20 e cura 20%%: % %', r -> 'ev', r -> 'outro' ->> 'hp'; end if;
   -- O D20 conta no sangramento (18/11/2026): 1 falha; 4 = 20; 10 = 40 (normal); 15 = 60; 20 = 80 (o dobro).
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 1);
   if (r -> 'outro') ? 'veneno' or not (r -> 'ev' ? 'efeitoFalhou') then raise exception 'FALHA sangramento com 1: %', r -> 'ev'; end if;
   r := public.arena_vez(a, base, 20);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 80 then raise exception 'FALHA sangramento com 20 = 80: %', r -> 'outro' -> 'veneno'; end if;
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 40 then raise exception 'FALHA sangramento com 20 = 40: %', r -> 'outro' -> 'veneno'; end if;
   r := public.arena_vez(a, base, 4);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 20 then raise exception 'FALHA sangramento com 4 = 20: %', r -> 'outro' -> 'veneno'; end if;
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 10 then raise exception 'FALHA sangramento com 4 = 10: %', r -> 'outro' -> 'veneno'; end if;
   r := public.arena_vez(a, base, 15);
-  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 60 then raise exception 'FALHA sangramento com 15 = 60: %', r -> 'outro' -> 'veneno'; end if;
-  raise notice 'ok   arena: o D20 conta no sangramento (1 falha, 4 = 20, 10 = 40, 15 = 60, 20 = 80)';
+  if (r -> 'outro' -> 'veneno' ->> 'dano')::int <> 30 then raise exception 'FALHA sangramento com 15 = 30: %', r -> 'outro' -> 'veneno'; end if;
+  raise notice 'ok   arena: o D20 conta no sangramento (1 falha, 4 = 10, 10 = 20, 15 = 30, 20 = 40)';
   raise notice 'ok   arena: Corte Vampírico sangra e cura quem cortou';
   d := base || jsonb_build_object('kit', public.arena_kit(pg_temp.heroi('mago', 20, '{"classe2":"bruxo","pontos":{"escudo-de-gelo":10},"ordem":{"arena":["escudo-de-gelo"]}}')));
   r := public.arena_vez(d, base, 1); d := r -> 'eu';
@@ -1573,6 +1590,20 @@ begin
   update public.personagens set dados = d0 where id = 'pa';
   raise notice 'ok   pacto na Arena: Farpas + Couraça devolvem 25%%';
 end $$;
+-- Pacto v2 na Arena (20/11/2026): velocidade em pontos (Tempestade) e dano híbrido (Lâmina Fina) chegam no lutador.
+do $$
+declare d0 jsonb; l0 jsonb; l jsonb;
+begin
+  select dados into d0 from public.personagens where id = 'pa';
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": [], "exp": 0, "extras": 0, "v": 2}}' where id = 'pa';
+  l0 := public.arena_lutador('pa');
+  update public.personagens set dados = dados || '{"nivel": 60, "ascensao": {"nos": ["tempestade-t0", "tempestade-t1", "precisao-t0", "precisao-t1", "precisao-1-0", "precisao-1-1", "precisao-1-2"], "exp": 0, "extras": 0, "v": 2}}' where id = 'pa';
+  l := public.arena_lutador('pa');
+  if (l ->> 'velBase')::numeric <> (l0 ->> 'velBase')::numeric + 8 then raise exception 'FALHA Pacto v2: velocidade % (antes %)', l ->> 'velBase', l0 ->> 'velBase'; end if;
+  if coalesce((l -> 'ex' ->> 'danoHibrido')::numeric, 0) <> 4.8 then raise exception 'FALHA Pacto v2: dano híbrido %', l -> 'ex' ->> 'danoHibrido'; end if;
+  update public.personagens set dados = d0 where id = 'pa';
+  raise notice 'ok   Pacto v2 na Arena: velocidade em pontos e dano híbrido';
+end $$;
 -- Clã e Pacto de Ascensão valem na Arena (Henri, 19/11/2026): tanka_status soma as skills do clã (do banco) e o Pacto
 do $$
 declare d jsonb; s0 jsonb; s1 jsonb; al bigint;
@@ -1654,5 +1685,26 @@ select pg_temp.igual((public.loja_comprar('g2', 'skin:dourada') ->> 'saldo')::in
 select pg_temp.falha($$select public.loja_comprar('g2', 'vip')$$, 'Éter insuficiente');
 select pg_temp.falha($$select public.loja_comprar('g3', 'vip')$$, 'Personagem inválido');
 select pg_temp.igual(public.loja_vips() ? 'Gru2', true, 'loja: nome do VIP na lista do brilho');
+-- Compra de Éter no site (Mercado Pago, 22/11/2026)
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30')$$, 'permission denied');
+reset role;
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30')$$, 'ainda não abriu');
+update public.ajustes set valor = 'true' where chave = 'eter_venda';
+select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter7')$$, 'Pacote inválido');
+create temp table ped as select (public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30') ->> 'id')::uuid as id;
+grant select on ped to authenticated;
+select pg_temp.igual((select valor::int from public.eter_pedidos where id = (select id from ped)), 30, 'mp: preço do pacote vem do servidor');
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: saldo antes da compra');
+select public.eter_mp_atualizar('900', (select id from ped), 'pending', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: pendente não dá Éter');
+select public.eter_mp_atualizar('900', (select id from ped), 'approved', 30);
+select public.eter_mp_atualizar('900', (select id from ped), 'approved', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 50, 'mp: aprovado dá o Éter uma vez só (aviso repetido)');
+select pg_temp.igual((public.eter_mp_atualizar('901', (select id from ped), 'approved', 1) ->> 'ok')::boolean, false, 'mp: pago a menos não dá Éter');
+select public.eter_mp_atualizar('900', (select id from ped), 'refunded', 30);
+select pg_temp.igual((select saldo from public.eter_contas where conta_id = '00000000-0000-0000-0000-0000000000f2'), 20, 'mp: estorno tira o Éter de volta');
+update public.ajustes set valor = 'false' where chave = 'eter_venda';
+set role authenticated; select pg_temp.comoG('2');
+select pg_temp.falha($$select public.eter_mp_atualizar('902', (select id from ped), 'approved', 30)$$, 'permission denied');
 reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
 \echo TODOS OS TESTES DO BANCO PASSARAM

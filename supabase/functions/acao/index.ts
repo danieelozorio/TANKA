@@ -105,8 +105,8 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const st = est.ok ? await est.json() : null;
   const bs = st && st.boss;
   if (!bs || !(Number(bs.vida) > 0)) return { erro: 'Ignaroth não está acordado agora.' };
-  const chefe = R.chefeDoNivel(p);
-  const b = R.iniciarBatalha(p, chefe, sorteio, { mundial: true });
+  const chefe = R.chefeDoNivel(p), luta = R.lutaChefeMundial(p);   // chefe: ouro e exp; luta: contra quem (22/11/2026)
+  const b = R.iniciarBatalha(p, luta, sorteio, { mundial: true });
   b.monstro.hp = Number(bs.vida); b.monstro.hpMax = Number(bs.vida_max);
   const vidaInicial = b.monstro.hp, limite = Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque;
   const eventos = [];
@@ -122,7 +122,7 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const dano = Math.max(0, Math.round(vidaInicial - Math.max(0, b.monstro.hp)));
   const r = await rpcServidor(base, cab, 'boss_atacar_servidor', { meu: id, dano, chefe }, 'boss_atacar');
   if (!r.ok) return { erro: r.erro };
-  return { resultado: r.dados, eventos, fim: b.fim, chefe, vidaInicial };
+  return { resultado: r.dados, eventos, fim: b.fim, chefe, luta, vidaInicial };
 }
 
 // Torre do Eclipse (Daniel, nov/2026): monta a luta, resolve o turno quando os vivos escolheram (ou o prazo acabou),
@@ -237,6 +237,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   const r = await fetch(base + '/rest/v1/personagens?id=eq.' + encodeURIComponent(id) + '&select=conta_id,dados', { headers: cab });
   const linhas = r.ok ? await r.json() : [];
   if (!linhas.length || linhas[0].conta_id !== usuario.id) return responder({ erro: 'Personagem não encontrado.' }, 403);
+  const gravada = R.textosFicha(linhas[0].dados);   // para mandar de volta só o que mudou (ficha resumida, 21/11/2026)
   const p = R.normalizar(linhas[0].dados);
   const versao = Number(linhas[0].dados.versao) || 0;
   const antesNormal = JSON.stringify(p);
@@ -283,7 +284,8 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
 
   // nada mudou (ex.: prêmio que não cabe na mochila): não grava de novo (preferências gravam sempre: marca "online")
   if (acao !== 'preferencias' && JSON.stringify(p) === antes) {
-    return responder({ personagem: await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, linhas[0].dados)), agora: t, resultado: saida.resultado });
+    const igual = await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, linhas[0].dados));
+    return responder({ ...R.respostaFicha(gravada, versao, pedido.versaoCliente, igual), agora: t, resultado: saida.resultado });
   }
 
   // 4. grava com a proteção de versão (se outra aba gravou antes, nada é sobrescrito)
@@ -308,7 +310,7 @@ export async function tratar(req: Request, base = URL_SUPABASE, agora = () => Da
   // missão do clã: o encanto conta aqui (o navegador não manda mais)
   if (acao === 'encantar' && saida.resultado) await rpcServidor(base, cab, 'alianca_missao_servidor', { pid: id, tipo: 'encantar', qtd: 1 }).catch(() => null);
   const final = await esvaziarEvento(base, cab, id, await esvaziarBau(base, cab, id, p));   // depósitos do baú e pontos do evento
-  return responder({ personagem: final, agora: t, resultado: saida.resultado });
+  return responder({ ...R.respostaFicha(gravada, versao, pedido.versaoCliente, final), agora: t, resultado: saida.resultado });
 }
 
 if (import.meta.main) Deno.serve((req) => tratar(req));

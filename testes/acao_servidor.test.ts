@@ -335,5 +335,15 @@ g.Deno.env.get = () => '';
   ok(y.j.erro && /5 partidas/.test(y.j.erro), 'evento: só 5 partidas por dia');
 }
 
+// Ficha resumida (21/11/2026): "preferencias" (a cada minuto) volta só com o que mudou, e a ficha montada bate
+{
+  const jogo = JSON.parse(JSON.stringify(d()));
+  const z = await pedir({ personagem: p0.id, acao: 'preferencias', args: { caixaVista: 7 }, versaoCliente: jogo.versao });
+  const m = R.aplicarFicha(jogo, z.j);
+  ok(!z.j.personagem && z.j.mudou && m.ok && R.hashFicha(m.ficha) === R.hashFicha(d()),
+    'ficha resumida: preferências voltam com ' + JSON.stringify(z.j).length + ' bytes (ficha: ' + JSON.stringify(d()).length + ') e batem com o banco');
+  const z2 = await pedir({ personagem: p0.id, acao: 'preferencias', args: { caixaVista: 8 }, versaoCliente: 1 });
+  ok(z2.j.personagem && !z2.j.mudou, 'ficha resumida: versão velha recebe a ficha inteira');
+}
 console.log(falhas ? falhas + ' FALHA(S)' : 'TODOS OS TESTES DA FUNÇÃO acao PASSARAM');
 if (falhas) (g.Deno?.exit ?? g.process?.exit)?.(1);

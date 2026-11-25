@@ -24,15 +24,15 @@ const dados = {
   VELOCIDADE_ARMA: D.VELOCIDADE_ARMA, ARMA_PADRAO: D.ARMA_PADRAO, RARIDADE_ARMA: D.RARIDADE_ARMA,
   ATRIBUTOS_COMBATE: D.ATRIBUTOS_COMBATE,
   ARMAS_PREFERIDAS: Object.fromEntries(Object.entries(D.ARMAS_CLASSE).map(([k, a]) => [k, a.armas])),
-  GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte },
-  MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto }])),
+  BOTAS_TROCA: D.BOTAS_TROCA, GRUPOS_ITEM: { foraPreferida: D.GRUPOS_ITEM.foraPreferida, maoForte: D.GRUPOS_ITEM.maoForte, classes: D.GRUPOS_ITEM.classes, defMagicaDaDefesa: D.GRUPOS_ITEM.defMagicaDaDefesa },
+  MAO_ESQUERDA: Object.fromEntries(Object.entries(D.MAO_ESQUERDA).map(([k, m]) => [k, { bonus: m.bonus, encanto: m.encanto, fixos: m.fixos }])),
   armaduras: Object.fromEntries(Object.entries(D.armaduras).map(([c, t]) => [c, Object.fromEntries(Object.entries(t).map(([k, v]) => [k, { bonus: v.bonus }]))])),
   joias: Object.fromEntries(Object.entries(D.joias).map(([k, v]) => [k, v.multDefesaMagica ? { bonus: v.bonus, multDefesaMagica: v.multDefesaMagica } : { bonus: v.bonus }])),
   bonusPorNivel: D.encantamento.bonusPorNivel,
   encantoPct: D.encantamento.pctPorNivel,
   ARENA: D.ARENA,
   // Pacto de Ascensão na Arena (19/11/2026): regras e efeito/custo de cada nó (arena_com_pacto)
-  ASCENSAO: { nivelInicio: D.ASCENSAO.nivelInicio, pontosPorNivel: D.ASCENSAO.pontosPorNivel, limitePontos: D.ASCENSAO.limitePontos, maxPedras: D.ASCENSAO.maxPedras },
+  ASCENSAO: { nivelInicio: D.ASCENSAO.nivelInicio, pontosPorNivel: D.ASCENSAO.pontosPorNivel, limitePontos: D.ASCENSAO.limitePontos, maxPedras: D.ASCENSAO.maxPedras, focoCada: D.ASCENSAO.focoCada, primeiroGolpeLento: D.ASCENSAO.primeiroGolpeLento },
   ASC_NOS: Object.fromEntries(Object.entries(R.arvoreAscensao()).map(([id, n]) => [id, { custo: n.custo, tipo: n.tipo, ef: n.ef || {} }])),
   ALIANCA: D.ALIANCA,
   LOJA: D.LOJA,   // Loja de Éter (19/11/2026)

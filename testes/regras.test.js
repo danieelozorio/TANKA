@@ -19,6 +19,11 @@ function teste(nome, fn) {
   try { fn(); console.log('ok   ' + nome); } catch (e) { console.log('FALHA ' + nome + '\n     ' + e.message); process.exitCode = 1; }
 }
 
+// Tira a Armadura de Espinhos da Pele de Ferro durante um teste antigo (devolve a função que põe de volta).
+function semEspinhos() {
+  const h = D.SEGUNDAS_CLASSES.paladino.habilidades.find((x) => x.espinhosPvE != null), v = h.espinhosPvE;
+  delete h.espinhosPvE; return () => { h.espinhosPvE = v; };
+}
 teste('atributos iniciais das classes: todas com 70 pontos (nov/2026)', () => {
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'cavaleiro') }, { for: 15, des: 10, res: 20, int: 10, sor: 15 });
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'arqueiro') }, { for: 15, des: 20, res: 10, int: 10, sor: 15 });
@@ -34,7 +39,8 @@ teste('raças: não mudam os atributos; traços em % (Humano equilibrado)', () =
   assert.ok(el.chanceCritico > h.chanceCritico && el.velocidade > h.velocidade && el.hpMax < h.hpMax && el.dano[1] <= h.dano[1], 'elfo');
   assert.ok(en.danoCritico > h.danoCritico && en.dano[1] > h.dano[1] && en.hpMax < h.hpMax, 'elfo negro');
   assert.ok(o.hpMax > h.hpMax && o.dano[1] > h.dano[1] && o.chanceCritico < h.chanceCritico && o.velocidade < h.velocidade && o.evasao < h.evasao, 'orc');
-  assert.ok(an.hpMax > h.hpMax && an.hpMax < o.hpMax && an.dano[1] >= h.dano[1] && an.dano[1] <= o.dano[1]
+  assert.ok(an.hpMax > h.hpMax && an.hpMax <= o.hpMax && an.dano[1] >= h.dano[1]   // 24/11/2026: Orc +10% de vida, igual ao Anão
+    && an.dano[1] <= o.dano[1]
     && an.chanceCritico < h.chanceCritico && an.velocidade < h.velocidade, 'anão');
 });
 
@@ -128,6 +134,9 @@ teste('exp por level: igual até o 19; depois +30% por level até o 29 e +12% do
 });
 
 teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem trocada); o golpe cura parte do dano', () => {
+  // contas exatas sem o fatorVida (vida por level maior, 21/11/2026: testado à parte)
+  const hpm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try {
   const p = R.criarPersonagem('C', 'feminino', 'humano', 'mago'); p.nivel = 16; p.atributos.int += 45;
   p.talentos = { classe2: 'curandeiro', pontos: { bencao: 4, 'explosao-de-luz': 6 }, ordem: { cacada: ['bencao', 'explosao-de-luz'], masmorra: ['bencao'], arena: [], defesa: [] } };
   R.normalizar(p);
@@ -153,6 +162,7 @@ teste('Curandeiro: a Bênção virou Luz Punitiva (pontos voltam livres, ordem t
   }
   assert.ok(curas > 0 && certas === curas, 'a Luz Punitiva cura 54% do dano (' + certas + '/' + curas + ')');
   assert.ok(vitorias > 40, 'vence o Golem: ' + vitorias);
+  } finally { D.HP_POR_NIVEL_MONSTROS = hpm; }
 });
 
 teste('velocidade do personagem: 15 no level 1, +6% por level; não depende da DES', () => {
@@ -510,9 +520,9 @@ teste('armaduras: nomes e bônus por classe e raridade', () => {
   assert.strictEqual(R.nomeItem(it('luvas', 'epica')), 'Manoplas do Crepúsculo');
   assert.strictEqual(R.nomeItem(it('elmo', 'lendaria', 'mago', 3)), '+3 Chapéu da Origem');
   assert.strictEqual(R.nomeItem({ tipo: 'anel', classe: null, raridade: 'rara', encanto: 0 }), 'Anel de Prata');
-  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40 });   // defesa dos itens x4,5
+  assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara')) }, { defesa: Math.round(8 * D.DEFESA.fator), vida: 40, defesaMagica: Math.round(Math.round(8 * D.DEFESA.fator) * 0.2) });   // defesa dos itens x4,5; Pesada: +20% como defesa mágica
   assert.deepStrictEqual({ ...R.bonusItem(it('peitoral', 'rara', 'mago')) }, { defesa: Math.round(3 * D.DEFESA.fator), defesaMagica: Math.round(5 * D.DEFESA.fator), vida: 15 });
-  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
+  assert.deepStrictEqual({ ...R.bonusItem(it('botas', 'comum', 'cavaleiro', 4)) }, { defesa: Math.round(1 * 1.2 * D.DEFESA.fator), res: 1, defesaMagica: 1 });   // +4 = +20% (sem o mínimo de +1 por nível)
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'anel', classe: null, raridade: 'epica', encanto: 2 }) }, { dano: 3, defesaMagica: Math.round(4 * 1.25 * D.DEFESA.fator) });   // reserva sem nível; encanto no dano; anel: defesa mágica +25%
   assert.deepStrictEqual({ ...R.bonusItem({ tipo: 'colar', classe: null, raridade: 'comum', encanto: 1 }) }, { defesaMagica: Math.round(1 * 1.05 * D.DEFESA.fator), vida: 5 });
 });
@@ -641,7 +651,11 @@ teste('áreas bloqueadas por level; chefe não pode ser caçado direto', () => {
   assert.strictEqual(p.nivel, 5);
   assert.ok(!R.podeCacar(p, 'sapo'), 'precisa derrotar o urso antes');
   p.abates.urso = 1;
+  assert.ok(!R.podeCacar(p, 'sapo'), 'precisa concluir a História da Floresta (22/11/2026)');
+  assert.ok(/Conclua a História/.test(R.motivoAreaFechada(p, D.areas[1])));
+  p.historia = { cap: 1, prog: {}, visto: false, lidos: ['c1'] };
   assert.ok(R.podeCacar(p, 'sapo'));
+  assert.strictEqual(R.motivoAreaFechada(p, D.areas[1]), null);
   assert.ok(!R.podeCacar(p, 'esqueleto'));
 });
 
@@ -829,6 +843,18 @@ teste('reset diário: vida cheia e 2 poções; só uma vez por dia (meia-noite d
   assert.strictEqual(R.msAteReset(Date.UTC(2026, 9, 29, 2, 0)), 3600000);
 });
 
+teste('meia-noite não enche a estamina (só o tempo e o pote)', () => {
+  const p = R.criarPersonagem('Meia', 'masculino', 'humano', 'cavaleiro');
+  const antes = Date.UTC(2026, 9, 29, 2, 59);   // 23h59 em Brasília
+  R.atualizarTempo(p, antes);
+  p.estamina.pts = 10; p.estamina.em = antes; p.estamina.potes = 2;
+  R.atualizarTempo(p, antes + 60000);           // meia-noite: 1 min depois
+  assert.ok(p.estamina.pts < 20, 'não encheu: ' + p.estamina.pts);
+  assert.strictEqual(p.estamina.potes, 0);      // potes do dia zerados
+  R.atualizarTempo(p, antes + 10 * 60000);
+  assert.strictEqual(p.estamina.pts, 10 + Math.floor(10 * 240 / 90));   // continua enchendo com o tempo
+});
+
 teste('estamina: 240, enche sozinha em 90 min (acampar desligado), não passa do máximo; vida sempre cheia fora da luta', () => {
   const p = R.criarPersonagem('Regen', 'masculino', 'humano', 'arqueiro');
   R.atualizarTempo(p, T0);
@@ -878,9 +904,15 @@ teste('estamina: custo 1/2/3 e chefe 5 em todas as áreas; a luta gasta (vitóri
   p.estamina.pts = 2;
   assert.ok(R.estaminaParaCacar(p, ['urso', 'cobra'])); assert.ok(!R.estaminaParaCacar(p, ['urso']));
   p.estamina.pts = 0; assert.ok(!R.estaminaParaCacar(p));
-  // Chefe Mundial: dano antigo do chefe, sem poções
+  // Chefe Mundial (22/11/2026): dano da caçada; o Pesadelo com metade do dano; sem poções
   const bm = R.iniciarBatalha(p, 'ignaroth', rng, { mundial: true });
-  assert.strictEqual(bm.ataque.join(), D.monstros.ignaroth.ataque.join()); assert.strictEqual(bm.pocoes, 0);
+  assert.strictEqual(bm.ataque.join(), D.monstros.ignaroth.ataqueCacada.join()); assert.strictEqual(bm.pocoes, 0);
+  const bp = R.iniciarBatalha(p, 'ignaroth-pesadelo', rng, { mundial: true }), ap = D.monstros['ignaroth-pesadelo'].ataqueCacada;
+  assert.strictEqual(bp.ataque.join(), ap.map((v) => Math.round(v * D.CHEFE_MUNDIAL.danoPesadelo)).join());
+  const q = R.criarPersonagem('W', 'masculino', 'humano', 'mago');
+  q.nivel = 35; assert.strictEqual(R.lutaChefeMundial(q), R.chefeDoNivel(q));
+  q.nivel = 47; assert.strictEqual(R.lutaChefeMundial(q), 'varnok-pesadelo');
+  q.nivel = 60; assert.strictEqual(R.lutaChefeMundial(q), 'ignaroth-pesadelo');
 });
 
 teste('pote de estamina: 40 e 60 de reputação, +240, 2 por dia', () => {
@@ -1079,7 +1111,8 @@ teste('Loja de Éter: Starter Pack e estamina do VIP', () => {
   assert.strictEqual(its[0].classe, 'arqueiro');
   const q = R.criarPersonagem('Vip', 'masculino', 'humano', 'mago');
   const normal = R.estaminaPorMinuto(q); q.vip = true;
-  assert.ok(Math.abs(R.estaminaPorMinuto(q) - normal * D.LOJA.vip.estaminaMult) < 1e-9);
+  assert.ok(Math.abs(R.estaminaPorMinuto(q) - D.ESTAMINA.maximo / D.LOJA.vip.estaminaMinutos) < 1e-9);
+  assert.ok(R.estaminaPorMinuto(q) > normal);
 });
 
 teste('mochila: força do item, ordem com desempate e filtro', () => {
@@ -1088,7 +1121,7 @@ teste('mochila: força do item, ordem com desempate e filtro', () => {
   const b = { id: 'b', tipo: 'arma', classe: 'cavaleiro', raridade: 'comum', encanto: 0, dano: [12, 18] };
   const c = { id: 'c', tipo: 'elmo', classe: 'cavaleiro', raridade: 'lendaria', encanto: 0 };
   assert.strictEqual(R.forcaItem(a), 150);
-  assert.strictEqual(R.forcaItem(c), 20 * 8 + 150);
+  assert.strictEqual(R.forcaItem(c), 20 * 8 + 150 + 32);   // + a defesa mágica da armadura Pesada (21/11/2026)
   assert.deepStrictEqual([...R.ordenarItens([b, a, c], 'raridade').map((x) => x.id)], ['c', 'a', 'b']);
   assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca').map((x) => x.id)], ['c', 'a', 'b']);   // empate a/b: raridade desempata
   assert.deepStrictEqual([...R.ordenarItens([a, b, c], 'forca', true).map((x) => x.id)], ['b', 'a', 'c']);
@@ -1203,10 +1236,10 @@ teste('habilidades: inicial antes do 10, segunda classe, pontos (máx. 10), pass
   assert.strictEqual(R.escolherSegundaClasse(p, 'paladino'), true);
   assert.strictEqual(R.kitHabilidades(p, 'cacada').length, 0, 'sem ponto, nenhuma ativa');
   // passiva fixa (nov/2026): já liga com o valor de 1 ponto e não recebe pontos
-  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.11), 'passiva fixa: 10% + 1%');
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.055), 'passiva fixa: 5% + 0,5% (vida −50% em 24/11/2026)');
   // passivas recebem pontos (13/11/2026): 1 de graça + os colocados
   assert.strictEqual(R.mudarPontoHabilidade(p, 'pele-de-ferro', 1), true);
-  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.12), 'passiva com 1 ponto: 10% + 2%');
+  assert.strictEqual(R.status(p).hpMax, Math.round(antes * 1.06), 'passiva com 1 ponto: 5% + 2 x 0,5%');
   R.mudarPontoHabilidade(p, 'pele-de-ferro', -1);
   for (let i = 0; i < 4; i++) R.mudarPontoHabilidade(p, 'golpe-justo', 1);
   assert.strictEqual(R.pontosHabilidadeLivres(p), 0);
@@ -1385,7 +1418,7 @@ teste('atributo das armas e da mão esquerda (17/11/2026): 2 mãos dobra; mão e
     assert.ok(liv.bonus.int >= 5 && liv.bonus.int <= 8, 'livro INT ' + liv.bonus.int);
     assert.ok(adg.bonus.des >= 5 && adg.bonus.des <= 8, 'adaga DES ' + adg.bonus.des);
   }
-  assert.ok(!R.novoItem('secundaria', null, 'epica', null, 'escudo', 8).bonus.for, 'até o nível 10: sem atributo');
+  assert.ok(!R.novoItem('secundaria', null, 'comum', null, 'escudo', 8).bonus.for, 'até o nível 10: sem atributo');
   // itens antigos: o Livro perde a INT antiga e ganha a nova; arma de 2 mãos dobra; sempre o mesmo sorteio
   const p = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); p.nivel = 40;
   const livro = { id: 'lv1', tipo: 'secundaria', mao: 'livro', raridade: 'epica', nivel: 40, encanto: 0, bonus: { int: 19, danoMagico: 10, res: 3 } };
@@ -1398,6 +1431,38 @@ teste('atributo das armas e da mão esquerda (17/11/2026): 2 mãos dobra; mão e
   const outro = { id: 'lv1', tipo: 'secundaria', mao: 'livro', raridade: 'epica', nivel: 40, encanto: 0, bonus: { int: 19, danoMagico: 10, res: 3 } };
   const q = R.criarPersonagem('M', 'masculino', 'humano', 'mago'); q.inventario = [outro]; R.normalizar(q);
   assert.strictEqual(outro.bonus.int, livro.bonus.int, 'mesmo sorteio no servidor e no navegador');
+});
+
+teste('vida por level maior (21/11/2026): +36 por level; os monstros batem x fatorVida e a cura pelo dano acompanha', () => {
+  const p = R.criarPersonagem('V', 'masculino', 'humano', 'cavaleiro'); p.nivel = 40;
+  const hp = R.status(p).hpMax, f = R.fatorVida(p);
+  assert.ok(f > 1.5 && f < 3, 'fator ' + f);
+  const hm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try { assert.strictEqual(R.fatorVida(p), 1); } finally { D.HP_POR_NIVEL_MONSTROS = hm; }
+  assert.ok(Math.abs(hp / f - (hp - 39 * (D.HP_POR_NIVEL - D.HP_POR_NIVEL_MONSTROS))) < 2, 'o fator é a vida nova / a vida antiga');
+  const b = R.iniciarBatalha(p, 'lobo', () => 0.5);
+  assert.ok(Math.abs(b.lutador.fatorVida - f) < 1e-9, 'o lutador leva o fator');
+});
+
+teste('forja melhor (22/11/2026): chances, level 5 a 10 acima, 40+ só épica/lendária e qualidade boa', () => {
+  const c0 = R.chancesForja({}, 'cume', 0, 0, 30), c6 = R.chancesForja({ raca: 'anao' }, 'cume', 3, 3, 30), c40 = R.chancesForja({}, 'cume', 3, 3, 40);
+  assert.strictEqual([c0.comum, c0.rara, c0.epica, c0.lendaria].join(), '30,50,18,2');
+  assert.strictEqual([c6.comum, c6.rara, c6.epica, c6.lendaria, c6.obraPrima].join(), '0,44,45,11,7');
+  assert.strictEqual([c40.comum, c40.rara, c40.epica, c40.lendaria].join(), '0,0,89,11');
+  assert.strictEqual(R.nivelForja('cume', 30).join(), '35,40');
+  assert.strictEqual(R.nivelForja('cume', 57).join(), '60,60', 'até o level 60');
+  assert.strictEqual(R.nivelForja('floresta', 30).join(), '16,16', 'região baixa tem teto');
+  const it = R.itemForjado({ classe: 'mago', tipo: 'peitoral', raridade: 'epica', area: 'cume', semente: 7, nivel: 38 });
+  const f = D.ITEM_NIVEL.faixaQualidade.epica;
+  assert.ok(it.nivel === 38 && it.qualidade >= f[0] + (f[1] - f[0]) * 0.8 - 1e-9, 'level ' + it.nivel + ' qualidade ' + it.qualidade);
+  const velho = R.itemForjado({ classe: 'mago', tipo: 'arma', raridade: 'rara', area: 'cume', semente: 7 });
+  assert.strictEqual(velho.nivel, 32, 'pedido antigo: como antes');
+  const p = R.criarPersonagem('F', 'masculino', 'anao', 'artesao'); p.nivel = 40; p.talentos = { segunda: 'ferreiro' };
+  if (R.ehFerreiro(p)) {
+    p.ouro = 1e9; ['brasa'].forEach((m) => R.mudarConsumivel(p, 'material', m, 50)); R.mudarConsumivel(p, 'receita', 'cume', 5);
+    for (let i = 0; i < 5; i++) { const r = R.forjar(p, 'cume', 'mago', 'arma', 0, 0); if (typeof r === 'string') break;
+      assert.ok(r.item.nivel >= 45 && r.item.nivel <= 50 && (r.item.raridade === 'epica' || r.item.raridade === 'lendaria'), 'forja 40+: ' + r.item.nivel + ' ' + r.item.raridade); }
+  }
 });
 
 teste('grupos de itens: Pesado, Leve e Mágico', () => {
@@ -1436,7 +1501,7 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.equipar(p, 'esc'), 'secundaria');
   // escudo raro: +10% de defesa (+5% do encanto +1 = 10,5 → 11%) e +5% de vida (nov/2026)
   assert.strictEqual(R.status(p).defesa, Math.round(s0.defesa * 1.11), 'escudo raro +10% de defesa, +1 de encanto');
-  assert.strictEqual(R.status(p).hpMax, Math.round(s0.hpMax * 1.05), 'escudo raro +5% de vida');
+  assert.strictEqual(R.status(p).hpMax, Math.round(s0.hpMax * 1.025), 'escudo raro +2,5% de vida (24/11/2026: era 5%)');
   assert.strictEqual(R.equipar(p, 'e2'), 'arma');
   assert.strictEqual(p.equipados.secundaria, null, 'duas mãos tira o escudo');
   const s1 = R.status(p);
@@ -1473,6 +1538,54 @@ teste('armas: tipos, velocidade, duas mãos, mão esquerda e segunda classe', ()
   assert.strictEqual(R.status(c).velocidade, Math.round(15 * 1.2), 'adaga é rápida');
 });
 
+teste('Paladino: Armadura de Espinhos (5% a 15%) só PvE; admin +1/−1 Pacto', () => {
+  const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 38); R.escolherSegundaClasse(p, 'paladino');
+  assert.strictEqual(R.novoLutador(p, 'cacada').ex.reflete, 5);
+  for (let i = 0; i < 10; i++) R.mudarPontoHabilidade(p, 'pele-de-ferro', 1);
+  assert.strictEqual(R.novoLutador(p, 'masmorra').ex.reflete, 15);
+  assert.strictEqual(R.admin.pacto(p, 1), false, 'level 39: o Pacto ainda não abre');
+  R.admin.subirNivel(p, 21);
+  const t0 = R.pontosAscensaoTotal(p);
+  assert.strictEqual(R.admin.pacto(p, 1), true); assert.strictEqual(R.pontosAscensaoTotal(p), t0 + 1);
+  assert.strictEqual(R.admin.pacto(p, -1), true); assert.strictEqual(R.pontosAscensaoTotal(p), t0);
+  assert.strictEqual(R.admin.pacto(p, -1), false, 'os pontos do level ficam');
+  for (let i = 0; i < 60; i++) R.admin.pacto(p, 1);
+  assert.strictEqual(R.pontosAscensaoTotal(p), D.ASCENSAO.limitePontos);
+  assert.strictEqual(R.admin.pacto(p, 1), false, 'no limite');
+  assert.strictEqual(R.admin.pacto(p, -1), true, 'tirar logo depois do limite funciona');
+});
+
+teste('admin: encanto de todos os equipados +1/−1, de 0 ao máximo', () => {
+  const p = R.criarPersonagem('A', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 19);
+  ['elmo', 'botas'].forEach((t) => { const it = R.novoItem(t, 'cavaleiro', 'rara', Math.random, null, 20); p.inventario.push(it); R.equipar(p, it.id); });
+  const eqs = () => Object.keys(p.equipados).map((s) => R.itemNoSlot(p, s)).filter(Boolean).map((i) => i.encanto || 0);
+  assert.ok(R.admin.encantoEquipados(p, 1) >= 3); assert.ok(eqs().every((e) => e === 1));
+  R.admin.encantoEquipados(p, 99); assert.ok(eqs().every((e) => e === D.encantamento.maximo));
+  assert.strictEqual(R.admin.encantoEquipados(p, 1), 0, 'no máximo não sobe');
+  R.admin.encantoEquipados(p, -99); assert.ok(eqs().every((e) => e === 0));
+  assert.ok(p.hpAtual <= R.status(p).hpMax);
+});
+
+teste('Paladino (24/11/2026): do level 10 em diante, metade da vida por level', () => {
+  const p = R.criarPersonagem('P', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(p, 29);
+  const antes = R.status(p).hpMax;
+  p.talentos = { classe2: 'destruidor', pontos: {} };
+  assert.strictEqual(R.status(p).hpMax > 0, true);
+  p.talentos = { classe2: 'paladino', pontos: {} }; delete p.talentos.pontos['pele-de-ferro'];
+  const o = R.origemVida(p);
+  assert.strictEqual(o.linhas[1].ganho, 9 * D.HP_POR_NIVEL + Math.round(20 * D.HP_POR_NIVEL / 2));   // level 30: 9 levels cheios + 20 pela metade
+  assert.strictEqual(o.total, R.status(p).hpMax);
+  assert.ok(R.status(p).hpMax < antes * 1.2);
+});
+
+teste('defesa mágica dos lutadores (21/11/2026): Pesada +20% e Leve +25% da defesa; Manto e joias não', () => {
+  const it = (tipo, classe) => ({ id: tipo + classe, tipo, classe, raridade: 'epica', encanto: 0, bonus: { defesa: 20, vida: 50 } });
+  assert.strictEqual(R.bonusItem(it('peitoral', 'cavaleiro')).defesaMagica, 18);   // 20 x 4,5 = 90 → 18
+  assert.strictEqual(R.bonusItem(it('elmo', 'artesao')).defesaMagica, 18);
+  assert.strictEqual(R.bonusItem(it('botas', 'arqueiro')).defesaMagica, 23);       // 90 x 25%
+  assert.strictEqual(R.bonusItem(it('peitoral', 'mago')).defesaMagica, undefined);
+});
+
 teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em diante', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   const vistos = new Set();
@@ -1483,7 +1596,7 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
     const extras = Object.keys(b).filter((k) => ['for', 'des', 'res', 'int', 'sor'].includes(k));
     assert.strictEqual(extras.length, 1); assert.ok(b[extras[0]] >= 2 && b[extras[0]] <= 4);
     vistos.add(b.defesa);
-    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(Object.assign({}, b, { defesa: Math.round(b.defesa * D.DEFESA.fator) })));
+    assert.strictEqual(JSON.stringify(R.bonusItem(it)), JSON.stringify(Object.assign({}, b, { defesa: Math.round(b.defesa * D.DEFESA.fator), defesaMagica: Math.round(Math.round(b.defesa * D.DEFESA.fator) * 0.2) })));
     p.inventario = [];
   }
   assert.ok(vistos.size > 3, 'varia');
@@ -1831,6 +1944,21 @@ teste('defesa do herói em porcentagem: 100 = -50%, nunca imortal, igual na caç
   assert.strictEqual(ev.dano, R.danoComDefesa(D.monstros.urso.ataqueCacada[0], def));
 });
 
+teste('história trava regiões só para quem é novo (22/11/2026): quem já existia fica com o que o level abria', () => {
+  const velho = R.criarPersonagem('V', 'masculino', 'humano', 'mago'); delete velho.historia; velho.nivel = 26; velho.abates = { urso: 1, cobra: 1, esqueleto: 1, gargula: 1, escorpiao: 1, drake: 1 };
+  R.normalizar(velho);
+  assert.strictEqual(velho.historia.livreAte, D.areas.filter((a) => 26 >= a.nivelMin).length - 1);
+  assert.ok(R.areaLiberada(velho, D.areas[velho.historia.livreAte]), 'a região do level dele continua aberta');
+  const novo = R.criarPersonagem('N', 'masculino', 'humano', 'mago'); R.normalizar(novo); novo.nivel = 26;
+  assert.ok(!R.areaLiberada(novo, D.areas[1]), 'personagem novo precisa da História');
+});
+
+teste('história: metas sobem com a região (22/11/2026)', () => {
+  const t = D.areas.map((a) => D.HISTORIA.METAS.porArea[a.id].reduce((x, y) => x + y, 0));
+  assert.strictEqual(t[0], 80);
+  for (let i = 1; i < t.length; i++) assert.ok(t[i] > t[i - 1], 'região ' + i);
+});
+
 teste('história: capítulos com regiões, chefes e masmorras que existem', () => {
   const H = D.HISTORIA;
   assert.strictEqual(H.capitulos.length, 7);
@@ -1838,35 +1966,39 @@ teste('história: capítulos com regiões, chefes e masmorras que existem', () =
     assert.ok(D.areas.some((a) => a.id === c.area), c.id + ' área');
     c.objetivos.forEach((o) => {
       if (o.tipo === 'abate') assert.ok(D.areas.some((a) => a.id === o.area) && o.qtd > 0);
+      else if (o.tipo === 'monstro') assert.ok(D.monstros[o.monstro] && !D.monstros[o.monstro].chefe && D.monstros[o.monstro].area === c.area, o.monstro);
       else if (o.tipo === 'chefe') assert.ok(D.monstros[o.monstro] && D.monstros[o.monstro].chefe, o.monstro);
       else if (o.tipo === 'masmorra') assert.ok(D.masmorras.some((m) => m.id === o.masmorra), o.masmorra);
       else assert.fail('tipo ' + o.tipo);
     });
     c.abertura.concat(c.fechamento).forEach((f) => assert.ok(f.quem === 'narrador' || H.PERSONAGENS[f.quem] || D.monstros[f.quem], f.quem));
+    // 22/11/2026: os 3 monstros da região (metas por região) e 1 chefe
+    const mt = H.METAS.porArea[c.area];
+    assert.strictEqual(c.objetivos.map((o) => o.tipo + o.qtd).join(), mt.map((q) => 'monstro' + q).concat('chefe1').join(), c.id);
   });
 });
 
-teste('história: só conta no capítulo atual, chefe e criatura comum separados, prêmio e próximo capítulo', () => {
+teste('história: só conta no capítulo atual, cada monstro e o chefe separados, prêmio e próximo capítulo', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'arqueiro');
   let e = R.historiaEstado(p);
   assert.strictEqual(e.indice, 0); assert.ok(e.liberado); assert.ok(!e.completo);
   assert.ok(!R.registrarHistoria(p, 'abate', 'sapo'), 'monstro de outra região não conta');
-  assert.ok(R.registrarHistoria(p, 'abate', 'lobo'));
+  const [m1, m2, m3] = D.areas[0].monstros.map((m) => m.id);
+  assert.ok(R.registrarHistoria(p, 'abate', m1));
   assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 1);
-  assert.strictEqual(R.historiaEstado(p).objetivos[1].feito, 0, 'criatura comum não conta como chefe');
-  for (let i = 0; i < 130; i++) R.registrarHistoria(p, 'abate', 'urso');
-  assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 100, 'não passa da meta');
-  R.registrarHistoria(p, 'abate', 'velgrath');
-  assert.ok(!R.historiaEstado(p).objetivos[1].ok, 'chefe precisa de 3');
-  R.registrarHistoria(p, 'abate', 'velgrath'); R.registrarHistoria(p, 'abate', 'velgrath');
-  assert.ok(R.historiaEstado(p).objetivos[1].ok, 'chefe');
-  // 16/11/2026: o capítulo 1 não pede masmorra (a primeira abre no level 15)
+  assert.strictEqual(R.historiaEstado(p).objetivos[1].feito, 0, 'cada monstro conta separado');
+  for (let i = 0; i < 30; i++) R.registrarHistoria(p, 'abate', m1);
+  assert.strictEqual(R.historiaEstado(p).objetivos[0].feito, 10, 'não passa da meta');
+  for (let i = 0; i < 20; i++) R.registrarHistoria(p, 'abate', m2);
+  for (let i = 0; i < 50; i++) R.registrarHistoria(p, 'abate', m3);
+  assert.ok(!R.historiaEstado(p).completo, 'falta o chefe');
+  R.registrarHistoria(p, 'abate', D.areas[0].chefe.id);
   assert.ok(R.historiaEstado(p).completo);
-  const ouro = p.ouro, exp = p.exp, nivel = p.nivel;
-  const fim = R.concluirCapitulo(p);
+  const ouro = p.ouro, itens = p.inventario.length;
+  const fim = R.concluirCapitulo(p, () => 0.5);
   assert.strictEqual(fim.capitulo.id, 'c1');
-  assert.strictEqual(p.ouro, ouro + 500);
-  assert.ok(p.exp > exp || p.nivel > nivel, 'ganhou exp');
+  assert.strictEqual(p.ouro, ouro + D.monstros[D.areas[0].chefe.id].ouro * 2, 'ouro de 2 chefes');
+  assert.ok(p.inventario.length === itens + 1 && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel, 'item épico do level');
   e = R.historiaEstado(p);
   assert.strictEqual(e.indice, 1); assert.ok(!e.visto); assert.strictEqual(e.objetivos[0].feito, 0);
   assert.ok(!e.liberado, 'capítulo 2 pede o level do pântano');
@@ -1874,17 +2006,23 @@ teste('história: só conta no capítulo atual, chefe e criatura comum separados
   assert.strictEqual(JSON.stringify(p.historia.lidos), '["c1"]');
 });
 
-teste('história: item no capítulo 4 (mochila cheia espera), título e skin no fim; skin não se compra', () => {
+teste('história: prêmio com item épico (pode ser joia), mochila cheia espera, título e skin no fim; skin não se compra', () => {
   const p = R.criarPersonagem('T', 'feminino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 35);
-  p.historia = { cap: 3, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: ['c1', 'c2', 'c3'] };
+  const tudo = { 0: 999, 1: 999, 2: 999, 3: 999 };
+  p.historia = { cap: 3, prog: Object.assign({}, tudo), visto: true, lidos: ['c1', 'c2', 'c3'] };
   for (let i = p.inventario.length; R.mochila(p).length < D.MOCHILA_MAX; i++) p.inventario.push({ id: 'x' + i, tipo: 'anel', classe: null, raridade: 'comum', encanto: 0 });
   assert.ok(R.concluirCapitulo(p).erro, 'mochila cheia');
   p.inventario.pop();
   const fim = R.concluirCapitulo(p);
-  assert.ok(fim.item && fim.item.tipo === 'arma' && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel);
-  p.historia = { cap: 6, prog: { 0: 9999, 1: 99, 2: 99 }, visto: true, lidos: [] };
-  R.concluirCapitulo(p);
+  assert.ok(fim.item && fim.item.raridade === 'epica' && fim.item.nivel === p.nivel);
+  const tipos = new Set();
+  for (let i = 0; i < 200; i++) { const q = R.criarPersonagem('Q', 'masculino', 'humano', 'mago'); q.nivel = 20; q.historia = { cap: 0, prog: Object.assign({}, tudo), visto: true, lidos: [] };
+    const f = R.concluirCapitulo(q); if (f && f.item) tipos.add(f.item.tipo); }
+  assert.ok(tipos.has('colar') || tipos.has('anel'), 'pode ser joia: ' + [...tipos]);
+  p.historia = { cap: 6, prog: Object.assign({}, tudo), visto: true, lidos: [] };
+  p.inventario.pop();   // espaço para o item do prêmio
+  assert.ok(!R.concluirCapitulo(p).erro);
   assert.strictEqual(p.titulo, 'Guardiã dos Selos');
   assert.ok(R.skinsDoPersonagem(p).includes('selos'));
   assert.ok(R.historiaEstado(p).fim);
@@ -2184,6 +2322,9 @@ teste('habilidades do level 20/30: pontos +2 do 21, liberam no level e valem em 
 });
 
 teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, veneno e Bolso de Poções', () => {
+  // contas exatas sem o fatorVida (vida por level maior, 21/11/2026: testado à parte)
+  const hpm = D.HP_POR_NIVEL_MONSTROS; D.HP_POR_NIVEL_MONSTROS = D.HP_POR_NIVEL;
+  try {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
     R.admin.subirNivel(p, 19); R.escolherSegundaClasse(p, c2);   // (passivas: 1 de graça + 10 colocados = 11)
@@ -2217,9 +2358,12 @@ teste('level 20 na caçada: regeneração, roubo de vida, Têmpera, escudo, vene
   assert.strictEqual(R.aoReceber(L, 80, m, () => 0), 30);
   assert.strictEqual(L.escudo, 0);
   assert.strictEqual(m.atordoado, 1, 'quem bate no escudo pode congelar');
+  } finally { D.HP_POR_NIVEL_MONSTROS = hpm; }
 });
 
 teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó nos Olhos e Defesa Suprema', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const mk = (classe, c2, hab) => {
     const p = R.criarPersonagem('N', 'masculino', 'humano', classe);
     R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, c2);
@@ -2250,6 +2394,7 @@ teste('level 30 contra monstros: Milagre, Martelo das Correntes, Maldição, Pó
   const m2 = { hp: 100 };
   R.aoReceber(L3, 100, m2, () => 0.5);
   assert.strictEqual(m2.hp, 85);
+  } finally { _voltaEsp(); }
 });
 
 // ---- Caçada decidida pelo servidor (anti-trapaça, etapa 1) ----
@@ -2454,7 +2599,7 @@ teste('poder do item: diferença entre o novo e o equipado é igual ao ganho', (
   }
 });
 
-teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% por 2 vezes do monstro; Golpe Apocalíptico some', () => {
+teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 15% a 25% por 2 vezes do monstro; Golpe Apocalíptico some', () => {
   const p = R.criarPersonagem('Q', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 29); R.escolherSegundaClasse(p, 'destruidor');
   p.talentos.pontos['golpe-apocaliptico'] = 3; p.talentos.ordem.arena.unshift('golpe-apocaliptico');
@@ -2464,7 +2609,7 @@ teste('Quebra-Ossos (Destruidor, level 30): ignora a defesa e quebra 25% a 35% p
   const def = D.SEGUNDAS_CLASSES.destruidor.habilidades.filter(h => h.id === 'quebra-ossos')[0];
   const m = { hp: 1000, hpMax: 1000, defesa: 100, defesaMagica: 0, indiceArea: 0 };
   R.depoisDoGolpeNivel(def, m, R.status(p), 10);
-  assert.strictEqual(m.quebraTemp.pct, 35, '10 pontos: −35%');
+  assert.strictEqual(m.quebraTemp.pct, 25, '10 pontos: −25% (21/11/2026)');
   R.tickQueima(m); assert.ok(m.quebraTemp, 'vale na 1ª vez do monstro');
   R.tickQueima(m); assert.ok(m.quebraTemp, 'e na 2ª');
   R.tickQueima(m); assert.strictEqual(m.quebraTemp, null, 'depois acaba');
@@ -2573,73 +2718,108 @@ teste('Reino do Pesadelo: level 60, chefes por level, 20 de estamina, exp e iten
 });
 
 const igualA = (a, b) => assert.strictEqual(a, b);
-teste('Pacto de Ascensão: pontos do 41 ao 60 e pela exp, trilhas ligadas, Pedras que se excluem (Daniel, nov/2026)', () => {
+teste('Pacto de Ascensão v2: pontos, caminho pelo Notável, ponte 3, limite 48, caminho mais curto, zerar escalonado (Henri, 20/11/2026)', () => {
   const A = D.ASCENSAO, arv = R.arvoreAscensao();
-  // árvore: 6 domínios x 22 pontos + 12 pontes = 156 pontos de custo
-  igualA(R.custoNosAscensao(Object.keys(arv)), 156);
+  // árvore: 6 domínios x 22 pontos + 6 pontes de 3 = 150 pontos de custo
+  igualA(R.custoNosAscensao(Object.keys(arv)), 150);
+  igualA(Object.keys(arv).filter((k) => arv[k].tipo === 'ponte').length, 6);
+  igualA(A.limitePontos, 48); igualA(A.custo.ponte, 3);
   const p = R.criarPersonagem('Asc', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 39);
   igualA(p.nivel, 40); igualA(R.pontosAscensaoTotal(p), 0);
   assert.ok(typeof R.comprarAscensao(p, 'furia-t0') === 'string', 'sem pontos no 40');
   p.nivel = 60; igualA(R.pontosAscensaoTotal(p), 20);
-  // só pega ponto ligado
   assert.ok(/ligado/.test(R.comprarAscensao(p, 'furia-t1')));
-  assert.strictEqual(R.comprarAscensao(p, 'furia-t0'), true);
-  ['furia-t1', 'furia-0-0', 'furia-0-1', 'furia-0-3', 'furia-0-4'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
-  igualA(R.pontosAscensaoLivres(p), 14);
-  // o Pacto vale sempre, também na Arena (19/11/2026)
-  const sem = R.status(Object.assign({}, p, { ascensao: undefined })).dano[1], com = R.status(p).dano[1];
-  assert.ok(com > sem * 1.08, sem + ' ' + com);
-  assert.strictEqual(R.comprarAscensao(p, 'furia-0-p'), true);   // Sede de Sangue: +25% dano, -15% vida
+  ['furia-t0', 'furia-t1', 'furia-0-0', 'furia-0-1'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
+  // sem atalho: para chegar no 0-3, passa pelo Notável (0-2)
+  assert.ok(/ligado/.test(R.comprarAscensao(p, 'furia-0-3')), 'atalho saiu');
+  // caminho mais curto até a Pedra: Notável, 2 pontos e a Pedra
+  assert.deepStrictEqual([...R.caminhoAscensao(R.nosAscensao(p), 'furia-0-p')], ['furia-0-2', 'furia-0-3', 'furia-0-4', 'furia-0-p']);
+  // do zero até a ponte Fortuna ⇄ Fúria: tronco da Fúria e o 2º ponto da 1ª trilha
+  assert.deepStrictEqual([...R.caminhoAscensao([], 'ponte-fortuna-furia-0')], ['furia-t0', 'furia-t1', 'furia-0-0', 'furia-0-1', 'ponte-fortuna-furia-0']);
+  R.caminhoAscensao(R.nosAscensao(p), 'furia-0-p').forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
   assert.ok(/outra Pedra/.test(R.comprarAscensao(p, 'furia-1-p')), 'a outra Pedra do domínio');
-  // ponte leva para o domínio vizinho sem passar pelo tronco dele
-  assert.strictEqual(R.comprarAscensao(p, 'ponte-fortuna-furia-0'), true, 'ponte ligada a furia-0-1');
-  assert.strictEqual(R.comprarAscensao(p, 'fortuna-1-1'), true);
-  // exp no level 60 vira ponto
+  assert.strictEqual(R.comprarAscensao(p, 'ponte-fortuna-furia-0'), true);
+  igualA(R.efeitosAscensao(p).ouro, 2);
+  // Bastião: o 2º ponto do tronco dá defesa mágica
+  igualA(arv['bastiao-t1'].ef.defesaMagica, 2); igualA(arv['bastiao-t0'].ef.defesa, 2);
+  // exp no level 60 vira ponto (exp do level 59 por ponto)
   const antes = R.pontosAscensaoTotal(p);
+  igualA(R.expPorPontoAscensao(), R.expNecessaria(59, true));
   R.ganharExp(p, R.expPorPontoAscensao() * 2 + 5);
-  igualA(R.pontosAscensaoTotal(p), antes + 2); igualA(p.exp, 0); igualA(p.ascensao.exp, 5);
+  igualA(R.pontosAscensaoTotal(p), antes + 2); igualA(p.ascensao.exp, 5);
   // ficha forjada (ponto solto) não vale nada
   const f = JSON.parse(JSON.stringify(p)); f.ascensao.nos = ['vigor-1-p'];
   assert.deepStrictEqual({ ...R.efeitosAscensao(f) }, {});
-  // ordem: conjunto ligado é aceito em qualquer ordem
-  assert.ok(R.ordenarAscensao(['furia-t1', 'furia-t0'], 20)); assert.strictEqual(R.ordenarAscensao(['furia-t1'], 20), null);
-  // refazer custa ouro e devolve os pontos
-  p.ouro = A.precoRefazer; assert.strictEqual(R.refazerAscensao(p), true); igualA(p.ouro, 0); igualA(R.pontosAscensaoLivres(p), R.pontosAscensaoTotal(p));
-  // limite
-  p.ascensao.extras = 999; igualA(R.pontosAscensaoTotal(p), A.limitePontos);
-  // revisão de 20/11/2026: refazer 1 milhão, Foco em %, Erudito vira drop com os pontos no limite
-  igualA(A.precoRefazer, 1000000);
-  igualA(R.recargaComFoco(2, 15), 2); igualA(R.recargaComFoco(3, 15), 2); igualA(R.recargaComFoco(5, 15), 4); igualA(R.recargaComFoco(1, 15), 1); igualA(R.recargaComFoco(4, 0), 4);
-  p.ascensao.nos = ['fortuna-t0', 'fortuna-t1', 'fortuna-1-0'];
-  igualA(R.efeitosAscensao(p).drop, 1); igualA(R.efeitosAscensao(p).exp, undefined);
-  p.ascensao.extras = 0; p.nivel = 50;
-  igualA(R.efeitosAscensao(p).exp, 3); igualA(R.efeitosAscensao(p).drop, undefined);
+  var AS0 = { a: D.ASCENSAO.precoRefazer, b: D.ASCENSAO.precoRefazerMais }; D.ASCENSAO.precoRefazer = 500000; D.ASCENSAO.precoRefazerMais = 250000;   // regra do BETA
+  // zerar: 500 mil, 750 mil, 1 milhão na mesma semana; na semana seguinte volta a 500 mil
+  const seg = Date.UTC(2026, 10, 23, 12);   // segunda-feira
+  igualA(R.precoRefazerAscensao(p, seg), 500000);
+  p.ouro = 3000000;
+  assert.strictEqual(R.refazerAscensao(p, seg), true); igualA(p.ouro, 2500000); igualA(R.pontosAscensaoLivres(p), R.pontosAscensaoTotal(p));
+  p.ascensao.nos = ['furia-t0']; igualA(R.precoRefazerAscensao(p, seg + 3600000), 750000);
+  assert.strictEqual(R.refazerAscensao(p, seg + 3600000), true); igualA(p.ouro, 1750000);
+  p.ascensao.nos = ['furia-t0']; igualA(R.precoRefazerAscensao(p, seg + 7 * 86400000), 500000);
+  D.ASCENSAO.precoRefazer = AS0.a; D.ASCENSAO.precoRefazerMais = AS0.b;
+  igualA(R.precoRefazerAscensao(p, seg + 3600000), 100000);   // fase de testes: 100 mil fixo
+  // limite 48
+  p.ascensao.extras = 999; igualA(R.pontosAscensaoTotal(p), 48);
+  // Pacto da versão anterior: os pontos voltam de graça (com aviso)
+  const v1 = R.criarPersonagem('V1', 'masculino', 'humano', 'mago'); v1.nivel = 60;
+  v1.ascensao = { nos: ['furia-t0', 'furia-t1'], exp: 0, extras: 3 };
+  R.normalizar(v1);
+  assert.deepStrictEqual([...v1.ascensao.nos], []); igualA(v1.avisoPactoV2, 1); igualA(v1.ascensao.v, 2); igualA(v1.ascensao.extras, 3);
+  assert.strictEqual(R.comprarAscensao(v1, 'furia-t0'), true); R.normalizar(v1); igualA(v1.ascensao.nos.length, 1);
 });
 
-teste('Pacto de Ascensão: efeitos na luta (Primeiro Golpe, Sede Eterna, Golpe Certeiro, ouro da Fortuna)', () => {
+teste('Pacto de Ascensão v2: efeitos na luta (velocidade em pontos, Primeiro Golpe, Golpe Certeiro, dano híbrido, vida atual, Foco)', () => {
   const p = R.criarPersonagem('Asc2', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 59);
-  p.ascensao = { nos: [], exp: 0, extras: 50 };
-  ['tempestade-t0', 'tempestade-t1', 'tempestade-0-0', 'tempestade-0-1', 'tempestade-0-3', 'tempestade-0-4', 'tempestade-0-p',
-    'vigor-t0', 'vigor-t1', 'vigor-1-0', 'vigor-1-1', 'vigor-1-3', 'vigor-1-4', 'vigor-1-p',
-    'precisao-t0', 'precisao-t1', 'precisao-0-0', 'precisao-0-1', 'precisao-0-3', 'precisao-0-4', 'precisao-0-p',
-    'fortuna-t0'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
-  assert.ok(/No máximo 3/.test(R.comprarAscensao(p, 'furia-t0') === true && ['furia-t1', 'furia-0-0', 'furia-0-1', 'furia-0-3', 'furia-0-4'].every((id) => R.comprarAscensao(p, id) === true) && R.comprarAscensao(p, 'furia-0-p')));
-  p.pocoes = 2;
+  const vel0 = R.status(p).velocidade;
+  p.ascensao = { nos: [], exp: 0, extras: 40, v: 2 };
+  ['tempestade-t0', 'tempestade-t1'].forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
+  igualA(R.status(p).velocidade, vel0 + 8);   // 2 pontos do tronco: +4 cada (21/11/2026: era +10)
+  R.caminhoAscensao(R.nosAscensao(p), 'tempestade-0-p').forEach((id) => assert.strictEqual(R.comprarAscensao(p, id), true, id));
+  igualA(R.efeitosAscensao(p).velocidadePts, 8 + 4 * 4 + 10);
+  // Primeiro Golpe: só a 1ª habilidade tem +16% e deixa o alvo 20% mais lento (21/11/2026: era +40% e 30%)
   const b = R.iniciarBatalha(p, D.areas[0].monstros[0].id, () => 0.5);
-  igualA(b.jogador.barra, 100);                     // Primeiro Golpe: começa com a barra cheia
-  assert.strictEqual(R.beberPocao(b), false);      // Sede Eterna: sem poção
-  // Golpe Certeiro: o 4º golpe é crítico mesmo com o sorteio ruim
-  const L = b.lutador, alvo = { indiceArea: 0, defesa: 0, defesaMagica: 0, hp: 100, hpMax: 100 };
-  const crit = [1, 2, 3, 4].map(() => R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).critico);
-  assert.deepStrictEqual(crit, [false, false, false, true]);
-  // ouro +3% (tronco da Fortuna) na caçada
+  igualA(b.jogador.barra, 0);
+  const L = b.lutador, alvo = { indiceArea: 0, defesa: 0, defesaMagica: 0, hp: 100000, hpMax: 100000, vel: 100 };
+  const n1 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true, normal: true }, () => 0.99).dano;
+  igualA(alvo.vel, 100);
+  const h1 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).dano;
+  igualA(alvo.vel, 80);
+  const h2 = R.calcularGolpe(b.s, L, alvo, { mult: 100, sempreAcerta: true }, () => 0.99).dano;
+  assert.ok(h1 > h2 * 1.1, h1 + ' ' + h2); igualA(n1, h2);
+  // Golpe Certeiro: o crítico ignora 30% da defesa
   const q = R.criarPersonagem('Asc3', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(q, 59);
+  const Lq = R.novoLutador(q, 'cacada'), sq = R.status(q, true), forte = { indiceArea: 0, defesa: 300, defesaMagica: 0, hp: 1, hpMax: 1 };
+  const semGC = R.calcularGolpe(sq, Lq, forte, { mult: 100, sempreAcerta: true, critGarantido: true }, () => 0.5).dano;
+  Lq.ex.golpeCerteiro = 30;
+  const comGC = R.calcularGolpe(sq, Lq, forte, { mult: 100, sempreAcerta: true, critGarantido: true }, () => 0.5).dano;
+  assert.ok(comGC > semGC * 1.15, semGC + ' ' + comGC);
+  // dano híbrido: 20% do golpe do guerreiro vai contra a defesa mágica (zero aqui) = mais dano
+  Lq.ex.golpeCerteiro = 0; Lq.ex.danoHibrido = 20;
+  const hib = R.calcularGolpe(sq, Lq, forte, { mult: 100, sempreAcerta: true, critGarantido: true }, () => 0.5).dano;
+  assert.ok(hib > semGC * 1.5, semGC + ' ' + hib);
+  // vida atual: +3% da vida do alvo, no máximo o dano do golpe
+  Lq.ex.danoHibrido = 0; Lq.ex.danoVidaAtual = 3;
+  const gordo = { indiceArea: 0, defesa: 300, defesaMagica: 0, hp: 1000, hpMax: 1000 };
+  const va = R.calcularGolpe(sq, Lq, gordo, { mult: 100, sempreAcerta: true, critGarantido: true }, () => 0.5).dano;
+  igualA(va, semGC + Math.min(semGC, 30));
+  // Foco (21/11/2026): a cada 5 turnos, −1 turno na recarga de todas (nunca antes do turno atual)
+  const Lf = R.novoLutador(q, 'cacada'); Lf.ex.recargaMenos = 1; Lf.turno = 10;
+  R.gastarHabilidade(Lf, { def: { id: 'x', recarga: 6 } }); igualA(Lf.pronto.x, 16);
+  R.gastarHabilidade(Lf, { def: { id: 'y', recarga: 1 } }); igualA(Lf.pronto.y, 11);
+  const hf = { hp: 100, hpMax: 100, vel: 10, velBase: 10 };
+  for (let t = 11; t <= 14; t++) { R.inicioVez(Lf, hf); igualA(Lf.pronto.x, 16); }   // turnos 11 a 14: nada
+  R.inicioVez(Lf, hf); igualA(Lf.turno, 15); igualA(Lf.pronto.x, 15); igualA(Lf.pronto.y, 15);   // turno 15: −1
+  // ouro +3% (tronco da Fortuna) na caçada
+  const r = R.criarPersonagem('Asc4', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(r, 59);
   const m = D.areas[6].monstros[2].id;
-  R.estamina(q).pts = 100; const r0 = R.concluirBatalha(q, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
-  q.ascensao = { nos: ['fortuna-t0'], exp: 0, extras: 0 };
-  R.estamina(q).pts = 100; const r1 = R.concluirBatalha(q, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
+  R.estamina(r).pts = 100; const r0 = R.concluirBatalha(r, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
+  r.ascensao = { nos: ['fortuna-t0'], exp: 0, extras: 0, v: 2 };
+  R.estamina(r).pts = 100; const r1 = R.concluirBatalha(r, { fim: 'vitoria', monstroId: m, pocoes: 0, rng: () => 0.99, s: {} }, Date.now());
   igualA(r1.ouro, Math.floor(r0.ouro * 1.03));
 });
 
@@ -2748,6 +2928,8 @@ teste('Torre: desviar tem recarga de 2 turnos e o chefe rápido pode agir antes 
 });
 
 teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const TR = D.TORRE;
   const ficha = (c, c2) => { const p = R.criarPersonagem('M' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2); return p; };
   const fichas = [ficha('cavaleiro', 'paladino'), ficha('mago', 'curandeiro'), ficha('mago', 'bruxo'), ficha('arqueiro', 'assassino')];
@@ -2777,9 +2959,12 @@ teste('Torre: monstros próprios e as 6 mecânicas novas (Daniel, 18/11/2026)', 
   const hpAntes = mv.hp, ev3 = turno(t3, t3.herois.map(() => ({ acao: 'pocao', ordem: 1 })), 23);
   assert.ok(ev3.some((e) => /DESPERTA/.test(e.t)), 'despertar abaixo de 50%');
   assert.ok(ev3.some((e) => /bebe a vida/.test(e.t)) && mv.hp > hpAntes, 'dreno cura o chefe');
+  } finally { _voltaEsp(); }
 });
 
 teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corrupção, Camadas, Vínculo e Falso Colapso (Daniel, 18/11/2026)', () => {
+  const _voltaEsp = semEspinhos();   // a Armadura de Espinhos do Paladino (24/11/2026) mudaria a sequência deste teste
+  try {
   const ficha = (c, c2) => { const p = R.criarPersonagem('N' + c2, 'masculino', 'humano', c); R.admin.subirNivel(p, 39); R.escolherSegundaClasse(p, c2);
     const hs = D.SEGUNDAS_CLASSES[c2].habilidades.filter((h) => h.tipo !== 'passiva' && (!h.nivel || p.nivel >= h.nivel)); let g = 0, i = 0;
     while (R.pontosHabilidadeLivres(p) > 0 && g++ < 400) R.mudarPontoHabilidade(p, hs[i++ % hs.length].id, 1); return p; };
@@ -2821,6 +3006,7 @@ teste('Torre: Lentidão, Golpe Carregado, Rugido do Tempo, Selo, Parasita, Corru
   // Falso Colapso: levanta na fase 2
   t = nova(45); const tk = t.inimigos[0]; tk.hp = 1; ev = turno(t, null, 42);
   assert.ok(tk.fase2 && tk.hp > 0 && tk.golpeArea && ev.some((e) => /FASE 2/.test(e.t)), 'falso colapso');
+  } finally { _voltaEsp(); }
 });
 
 teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte/linha/mesa (Daniel, 18/11/2026)', () => {
