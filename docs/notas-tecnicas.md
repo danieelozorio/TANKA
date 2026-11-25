@@ -1690,3 +1690,6 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   level, só no bônus de completar todas as diárias (+5%). Diárias: caçada 8 lutas, masmorra 12.
   Semanais: caçada **1.000 monstros** (era 150), 60 lutas; masmorra 80 lutas. Reputação e pergaminhos
   iguais. `ouroPorNivel` continua aceito (prêmios de login).
+
+## Contador de visitas
+GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</head>`. Painel: https://eldrin.goatcounter.com (conta do Daniel). Não conta acessos em localhost.
