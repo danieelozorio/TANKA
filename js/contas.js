@@ -487,6 +487,19 @@ Tanka.contas = (function () {
     cancelar: function (meu, id) { return chamar('mercado_cancelar', { meu: meu, anuncio: Number(id) }); },
   };
 
+  // Trade entre jogadores (Henri, 25/11/2026): tudo decidido no servidor (trade_* no schema.sql).
+  var trade = {
+    estado: function (meu) { return chamar('trade_estado', { meu: meu }); },
+    pedir: function (meu, nome) { return chamar('trade_pedir', { meu: meu, nome_alvo: nome }); },
+    responder: function (meu, id, sim) { return chamar('trade_responder', { meu: meu, trade: Number(id), aceitar: !!sim }); },
+    por: function (meu, id, itemId, consumivel, qtd, ouro) {
+      return chamar('trade_por', { meu: meu, trade: Number(id), item_id: itemId || null, consumivel: consumivel || null, qtd: qtd || 1, ouro: ouro || 0 });
+    },
+    tirar: function (meu, id, k) { return chamar('trade_tirar', { meu: meu, trade: Number(id), k: k }); },
+    aceitar: function (meu, id, sim) { return chamar('trade_aceitar', { meu: meu, trade: Number(id), sim: sim !== false }); },
+    cancelar: function (meu, id) { return chamar('trade_cancelar', { meu: meu, trade: Number(id) }); },
+  };
+
   // Esqueci a senha: o pedido vai para o painel do admin, que manda uma senha temporária para o e-mail do cadastro.
   var senha = {
     pedir: function (usuario, email) { return pedir('/rest/v1/rpc/senha_pedir', { metodo: 'POST', logado: false, corpo: { u: usuario, e: email } }); },
@@ -521,8 +534,10 @@ Tanka.contas = (function () {
     },
     boss: boss,
     mercado: mercado,
+    trade: trade,
     amigos: amigos,
     ranking: ranking,
+    resetRodada: function () { return rpc('reset_rodada'); },   // aviso/execução do reset da rodada de teste (25/11/2026)
     rankingClas: rankingClas,
     chat: chat,
     sussurro: {

@@ -76,6 +76,14 @@ Tanka.servidorAcoes = (function () {
         aviso(rec, ncf + 'x ' + R.nomeConsumivel({ tipo: rcf.tipo, raridade: rcf.raridade }) + (rec.origem === 'mercado' ? ' do mercado chegou!' : rec.origem === 'oficina' ? ' (Oficina)' : '!'), 'item');
         return;
       }
+      if (it.tipo === 'consumivel') {   // Trade e Loja (Henri, 25/11/2026): qualquer consumível de D.CONSUMIVEIS
+        var rcs = pegar(rec), ncs = Math.max(1, Math.floor(rcs.qtd || 1));
+        if (!D.CONSUMIVEIS[rcs.ctipo]) return;
+        R.mudarConsumivel(p, rcs.ctipo, rcs.raridade, ncs);
+        aviso(rec, (rec.origem === 'trade' ? '🤝 Trade: ' : '') + ncs + 'x ' + R.nomeConsumivel({ tipo: rcs.ctipo, raridade: rcs.raridade })
+          + (rec.origem === 'trade' ? ' chegou na mochila.' : ' chegou na mochila (Consumíveis).'), 'item');
+        return;
+      }
       if (it.tipo === 'bau') {   // Baú da conta: consumível retirado (Henri, 18/11/2026)
         var rb = pegar(rec), nb = Math.max(1, Math.floor(rb.qtd || 1));
         if (!D.CONSUMIVEIS[rb.ctipo]) return;
@@ -111,13 +119,13 @@ Tanka.servidorAcoes = (function () {
         return;
       }
       if (R.mochilaCheia(p)) {
-        cheia(rec, 'Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
+        cheia(rec, 'Mochila cheia! Seu item (' + ({ boss: 'Chefe Mundial', mercado: 'mercado', oficina: 'Oficina', trade: 'Trade' }[rec.origem] || 'masmorra') + ') está guardado: libere espaço para recebê-lo.');
         return;
       }
       var bruto = pegar(rec);
       var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
       p.inventario.push(item);
-      aviso(rec, (rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!', 'item');
+      aviso(rec, (rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : rec.origem === 'trade' ? '🤝 Trade: chegou ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!', 'item');
     });
     return { entregues: entregues, avisos: avisos };
   }

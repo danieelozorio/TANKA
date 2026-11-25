@@ -1664,3 +1664,23 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Admin: +1/−1 ponto do Pacto no grupo Level (`R.admin.pacto`: mexe só nos `ascensao.extras`, até o limite; tirar solta os últimos nós se faltar ponto).
 - Lendário na Zealot (25/11/2026): o raio virou o item no meio (`.zg-item`, com o ícone do item: `verGanhos` manda
   `{ nome, ico: F.icone(it) }` em `lendarios`), halo e raios de luz girando atrás (`.zg-raios`, repeating-conic-gradient).
+
+## Reset da rodada de teste (Henri, 25/11/2026)
+- `ajustes.reset_rodada = { em: 2026-11-25T18:00-03:00, feito }`. `reset_rodada()` (security definer): se passou da hora e não foi
+  feito, copia as tabelas mexidas para o schema `reserva_reset`, apaga todos os clãs, os personagens das contas que não são
+  admin nem bot, baú/Éter/VIP (menos admin/bot), Torre, eventos, relíquias, lutas da Arena, jackpot, leilões, chat e masmorras.
+- Dispara: pg_cron `reset_rodada` (21:00 UTC; se a extensão existir) e o jogo (1x por sessão ao entrar e no relógio da faixa).
+- Jogo: faixa vermelha no topo com o tempo que falta e janela "Última rodada de teste" 1x ao entrar (`conferirReset`).
+  Na hora, pede o reset e recarrega a página. Depois de feito, nada aparece. Para outra data: mudar `ajustes.reset_rodada`.
+
+## Trade entre jogadores (Henri, 25/11/2026)
+- Social › Trade (`abaTrade`). Pergaminho de Trade = consumível `trade`/`unico` (arte assets/itens/trade-unico.webp), Loja de Éter
+  `LOJA.trade` (10 Éter; `loja_comprar('trade')` entrega por recompensa `{tipo:'consumivel'}`). Passe de Batalha (quando existir):
+  até 2 no grátis e 4 no premium, espalhados pelos níveis.
+- Tabela `trades` (a pediu = esquerda, b aceitou = direita; estado pedido|aberto|feito|cancelado|recusado; 1 aberto por par).
+  Funções `trade_estado/pedir/responder/por/tirar/aceitar/cancelar`. Cada função só mexe na ficha de quem chama:
+  só A (quem pede) precisa de pergaminho: fica guardado no pedido, é gasto quando B aceita e volta se recusar/cancelar o pedido.
+  Itens/consumíveis/ouro postos saem da ficha (ouro por crédito negativo) e voltam/vão por `recompensas` (origem 'trade')
+  e `creditos`. Pôr ou tirar desfaz os dois aceites. Cancelar a aberta devolve tudo; pergaminhos perdidos.
+- `servidor-acoes.js` (receber): recompensa `{ tipo: 'consumivel', ctipo, raridade, qtd }` entrega qualquer D.CONSUMIVEIS.
+- Teste do banco no fim de banco.test.sql (sobrescreve conferir_dono).

@@ -954,6 +954,7 @@ Tanka.regras = (function () {
   var RARIDADE_M = { comum: 'Comum', rara: 'Raro', epica: 'Épico', lendaria: 'Lendário' };
   function nomeConsumivel(c) {
     var def = D.CONSUMIVEIS[c.tipo];
+    if (c.tipo === 'trade') return def.nome;
     if (c.tipo === 'material') return (D.CRAFT.materiais[c.raridade] || {}).nome || c.raridade;
     if (c.tipo === 'receita') { var ar = D.areas.filter(function (a) { return a.id === c.raridade; })[0]; return 'Receita: ' + (ar ? ar.nome : c.raridade); }
     var MF = { comum: 'Comum', rara: 'Rara', epica: 'Épica', lendaria: 'Lendária' };   // nomes femininos (Proteção)
@@ -4206,7 +4207,7 @@ Tanka.regras = (function () {
     faixaLeilao: faixaLeilao,
     itemDoLote: itemDoLote,
     proximoLance: proximoLance,
-    consumiveis: consumiveis,
+    consumiveis: consumiveis, pilhaConsumivel: pilhaConsumivel,
     qtdConsumivel: qtdConsumivel,
     mudarConsumivel: mudarConsumivel,
     qtdPergaminho: qtdPergaminho,

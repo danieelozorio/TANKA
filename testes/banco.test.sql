@@ -1707,4 +1707,48 @@ update public.ajustes set valor = 'false' where chave = 'eter_venda';
 set role authenticated; select pg_temp.comoG('2');
 select pg_temp.falha($$select public.eter_mp_atualizar('902', (select id from ped), 'approved', 30)$$, 'permission denied');
 reset role; update public.contas set admin = false where id = '00000000-0000-0000-0000-0000000000f1';
+-- Trade entre jogadores (Henri, 25/11/2026). conferir_dono vira 'sempre pode' daqui em diante (é o último teste).
+create or replace function public.conferir_dono(meu text) returns void language sql as 'select null';
+do $$
+declare A text; B text; na text; nb text; r jsonb; t bigint; k text;
+begin
+  select id, nome into A, na from personagens order by id limit 1;
+  select id, nome into B, nb from personagens order by id offset 1 limit 1;
+  update personagens set dados = dados || jsonb_build_object('ouro', 1000, 'consumiveis', '[{"id":"trade-unico","tipo":"trade","raridade":"unico","qtd":2}]'::jsonb,
+    'inventario', '[{"id":"itX","tipo":"elmo","classe":"cavaleiro","raridade":"rara","nivel":10,"encanto":2}]'::jsonb, 'equipados', '{}'::jsonb) where id = A;
+  update personagens set dados = dados || jsonb_build_object('ouro', 50, 'consumiveis', '[{"id":"trade-unico","tipo":"trade","raridade":"unico","qtd":1},{"id":"p","tipo":"pergaminho","raridade":"comum","qtd":5}]'::jsonb) where id = B;
+  r := public.trade_pedir(A, upper(nb)); t := (r -> 'abertos' -> 0 ->> 'id')::bigint;
+  if (select dados -> 'consumiveis' -> 0 ->> 'qtd' from personagens where id = A) <> '1' then raise exception 'FALHA: pergaminho de A guardado'; end if;
+  begin perform public.trade_pedir(A, nb); raise exception 'FALHA: 2o pedido'; exception when others then if sqlerrm like 'FALHA%' then raise; end if; end;
+  begin perform public.trade_por(A, t, 'itX', null, 1, 0); raise exception 'FALHA: por antes de abrir'; exception when others then if sqlerrm like 'FALHA%' then raise; end if; end;
+  r := public.trade_responder(B, t, true);
+  if r -> 'abertos' -> 0 ->> 'estado' <> 'aberto' then raise exception 'FALHA abrir %', r; end if;
+  if not exists (select 1 from jsonb_array_elements((select dados -> 'consumiveis' from personagens where id = B)) e where e ->> 'tipo' = 'trade') then raise exception 'FALHA: B não gasta pergaminho ao aceitar'; end if;
+  r := public.trade_por(A, t, 'itX', null, 1, 0);
+  if exists (select 1 from jsonb_array_elements((select dados -> 'inventario' from personagens where id = A)) e where e ->> 'id' = 'itX') then raise exception 'FALHA: item saiu da mochila'; end if;
+  r := public.trade_por(A, t, null, null, 1, 300);
+  if (select sum(ouro) from creditos where personagem_id = A and motivo like 'Trade: ouro guardado%') <> -300 then raise exception 'FALHA ouro guardado'; end if;
+  begin perform public.trade_por(B, t, null, null, 1, public.ouro_real(B) + 1); raise exception 'FALHA: ouro demais'; exception when others then if sqlerrm like 'FALHA%' then raise; end if; end;
+  r := public.trade_por(B, t, null, 'pergaminho:comum', 3, 0);
+  r := public.trade_aceitar(A, t, true);
+  if not (r -> 'abertos' -> 0 ->> 'aceite_a')::boolean then raise exception 'FALHA aceite A'; end if;
+  -- B muda: aceite de A cai
+  r := public.trade_por(B, t, null, 'pergaminho:comum', 1, 0);
+  if (r -> 'abertos' -> 0 ->> 'aceite_a')::boolean then raise exception 'FALHA: mudança devia desfazer o aceite de A'; end if;
+  k := r -> 'abertos' -> 0 -> 'itens_b' -> 1 ->> 'k';
+  r := public.trade_tirar(B, t, k);
+  if jsonb_array_length(r -> 'abertos' -> 0 -> 'itens_b') <> 1 then raise exception 'FALHA tirar'; end if;
+  r := public.trade_aceitar(A, t, true); r := public.trade_aceitar(B, t, true);
+  if r -> 'historico' -> 0 ->> 'estado' <> 'feito' then raise exception 'FALHA feito %', r; end if;
+  if (select count(*) from recompensas where personagem_id = B and origem = 'trade' and item ->> 'id' = 'itX') <> 1 then raise exception 'FALHA: B recebe o elmo'; end if;
+  if (select count(*) from recompensas where personagem_id = A and origem = 'trade' and item ->> 'ctipo' = 'pergaminho' and (item ->> 'qtd')::int = 3) <> 1 then raise exception 'FALHA: A recebe 3 pergaminhos'; end if;
+  if (select count(*) from recompensas where personagem_id = B and origem = 'trade' and item ->> 'ctipo' = 'pergaminho' and (item ->> 'qtd')::int = 1) <> 1 then raise exception 'FALHA: B recebe de volta o 1 que tirou'; end if;
+  if (select sum(ouro) from creditos where personagem_id = B and motivo like 'Trade com %') <> 300 then raise exception 'FALHA: B recebe 300 de ouro'; end if;
+  raise notice 'ok   trade completo: pedido, aceite (pergaminhos), pôr/tirar, aceite desfeito ao mudar, troca final';
+  -- pedido recusado: pergaminho volta; negociação cancelada: itens voltam e pergaminhos não
+  r := public.trade_pedir(A, nb); t := (r -> 'abertos' -> 0 ->> 'id')::bigint;
+  r := public.trade_responder(B, t, false);
+  if (select count(*) from recompensas where personagem_id = A and item ->> 'ctipo' = 'trade') <> 1 then raise exception 'FALHA: recusa devolve o pergaminho'; end if;
+  raise notice 'ok   trade recusado devolve o pergaminho de quem pediu';
+end $$;
 \echo TODOS OS TESTES DO BANCO PASSARAM

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Cinzel+Decorative:wght@700&family=EB+Garamond:wght@400;500;600&family=IM+Fell+English+SC&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/estilo.css?v=245">
+  <link rel="stylesheet" href="css/estilo.css?v=247">
   <!-- Interface escolhida na engrenagem (⚙): Clássica (padrão) ou Zealot (tema Pedra Sombria do Daniel). -->
   <script>
     (function () {
@@ -31,7 +31,7 @@
       document.documentElement.setAttribute('data-interface', t);
     // Resolução (⚙ Configurações, só no computador): tamanho da tela do jogo (Daniel, 20/11/2026)
     if (!cel) try { var z = parseFloat(localStorage.getItem('eldrin.escala')); if (z > 0 && z !== 1) { document.documentElement.style.zoom = z; document.documentElement.style.setProperty('--escala', z); } } catch (e) { /* sem armazenamento */ }
-      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=146"><script src="js/zealot-efeitos.js?v=4"><\/script>');
+      if (t === 'zealot') document.write('<link rel="stylesheet" href="css/tema-sombrio-cores.css?v=122"><link rel="stylesheet" href="css/tema-sombrio.css?v=147"><script src="js/zealot-efeitos.js?v=5"><\/script>');
       if (t === 'arcane') document.write('<link rel="stylesheet" href="css/tema-arcane.css?v=28"><script src="js/arcane-efeitos.js?v=4"><\/script>');   // Arcane (Henri, nov/2026): só no computador
     })();
   </script>
@@ -41,16 +41,16 @@
   <main id="app" aria-live="polite"></main>
   <div id="aviso" role="status" hidden></div>
 
-  <script src="js/dados.js?v=265"></script>
+  <script src="js/dados.js?v=267"></script>
   <script src="js/historia.js?v=8"></script>
-  <script src="js/regras.js?v=235"></script>
+  <script src="js/regras.js?v=236"></script>
   <script src="js/servidor-cacada.js?v=171"></script>
   <script src="js/servidor-acoes.js?v=16"></script>
   <script src="js/config.js?v=120"></script>
-  <script src="js/contas.js?v=189"></script>
+  <script src="js/contas.js?v=191"></script>
   <script src="js/retratos.js?v=120"></script>
   <script src="js/dado3d.js?v=121"></script>
-  <script src="js/app.js?v=365"></script>
+  <script src="js/app.js?v=368"></script>
   <script>
     // Instalar no celular (app): registra o service worker (só no site publicado, não na prévia).
     if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(function () {});

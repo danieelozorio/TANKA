@@ -362,8 +362,44 @@
 
   // ---------------- Seleção de personagens ----------------
 
+  // Aviso do reset da rodada de teste (Henri, 25/11/2026): faixa no topo + janela 1 vez ao entrar. Na hora marcada o
+  // jogo pede o reset (reserva do pg_cron) e recarrega a página.
+  var resetInfo = null, resetRelogio = null, resetPerguntado = false;
+  function conferirReset() {
+    if (resetPerguntado || !C.resetRodada) { if (resetInfo) mostrarReset(); return; }
+    resetPerguntado = true;   // pergunta ao servidor 1 vez por sessão (telaJogo chama isto a cada desenho)
+    C.resetRodada().then(function (r) { if (r && r.em && !r.feito) { resetInfo = r; mostrarReset(true); } }, function () {});
+  }
+  function mostrarReset(primeiraVez) {
+    if (!resetInfo || resetInfo.feito) return;
+    var fim = Date.parse(resetInfo.em), hora = new Date(fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    var faixa = document.getElementById('faixa-reset');
+    if (!faixa) { faixa = document.createElement('div'); faixa.id = 'faixa-reset'; faixa.setAttribute('role', 'alert'); document.body.appendChild(faixa); }
+    var pinta = function () {
+      var falta = Math.max(0, Math.round((fim - Date.now()) / 60000));
+      faixa.textContent = '⚠️ Última rodada de teste: hoje às ' + hora + ' todos os personagens e clãs serão excluídos'
+        + (falta > 0 ? ' (faltam ' + (falta >= 60 ? Math.floor(falta / 60) + ' h ' : '') + (falta % 60) + ' min).' : '.');
+      if (Date.now() >= fim && !resetInfo.pedido) {
+        resetInfo.pedido = true;
+        faixa.textContent = '⏳ Excluindo os personagens da rodada de teste…';
+        C.resetRodada().catch(function () {}).then(function () { setTimeout(function () { location.reload(); }, 2500); });
+      }
+    };
+    pinta();
+    if (!resetRelogio) resetRelogio = setInterval(pinta, 30000);
+    if (primeiraVez && Date.now() < fim) {
+      var j = document.createElement('div');
+      j.className = 'zoom-fundo aviso-reset-fundo';
+      j.innerHTML = '<div class="zoom-janela aviso-reset"><h3>⚠️ Última rodada de teste</h3><p>Hoje, às <strong>' + hora + '</strong>, <strong>todos os personagens e clãs serão excluídos</strong>'
+        + ' (e também o baú, o Éter e os recordes) para começarmos a última rodada de teste.</p><p class="suave">Aproveite até lá! Depois é só criar um personagem novo.</p>'
+        + '<div class="botoes"><button class="btn" type="button">Entendi</button></div></div>';
+      j.querySelector('button').onclick = function () { j.remove(); };
+      document.body.appendChild(j);
+    }
+  }
   function telaPersonagens() {
     chatVisivel(false);
+    conferirReset();
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
       var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div>'
@@ -620,6 +656,7 @@
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; }
   // Ícones das abas de cima (sub-abas de cada grupo).
   var ICONES_SUB = {
+    trade: svg('<path d="M7 7h11l-3-3M17 17H6l3 3"/>'),   // Trade (25/11/2026): duas setas trocando
     personagem: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
     bau: svg('<rect x="3" y="9" width="18" height="11" rx="1"/><path d="M3 13h18M5 9V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v2"/><rect x="10.5" y="11.5" width="3" height="3" rx=".5"/>'),
     encantar: svg('<path d="M12 3v4m0 10v4M3 12h4m10 0h4M6 6l2.5 2.5m7 7L18 18M18 6l-2.5 2.5m-7 7L6 18"/>'),
@@ -1163,11 +1200,11 @@
     { id: 'aventura', nome: 'Aventura', abas: ['cacar', 'eventos', 'masmorra', 'torre', 'mineracao', 'mundial', 'historia'] },   // Eventos: só com evento aberto
     { id: 'arena', nome: 'Arena', abas: ['arena'] },
     { id: 'mercado', nome: 'Mercado', abas: ['mercado', 'mercadoNegro', 'oficinas'] },   // Mercado Negro: comércio entre jogadores (Henri, 13/11/2026)
-    { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social'] },   // Daniel: Clã primeiro, depois Ranking e Amigos
+    { id: 'social', nome: 'Social', abas: ['alianca', 'ranking', 'social', 'trade'] },   // Trade: Henri, 25/11/2026   // Daniel: Clã primeiro, depois Ranking e Amigos
     { id: 'leilao', nome: 'Leilão', abas: ['leilao'] },   // Henri, 19/11/2026: Social à esquerda do Leilão e a Loja à direita
     { id: 'loja', nome: 'Loja', abas: ['loja'] },   // Loja de Éter (VIP, boosts, Starter Pack, skins)
   ];
-  var NOME_ABA = { loja: 'Loja de Éter', bau: 'Baú', oficinas: 'Oficinas', mercado: 'Mercado', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã' };
+  var NOME_ABA = { loja: 'Loja de Éter', bau: 'Baú', oficinas: 'Oficinas', mercado: 'Mercado', mercadoNegro: 'Mercado Negro', leilao: 'Leilão', personagem: 'Personagem', encantar: 'Encantar', oficina: 'Oficina', habilidades: 'Habilidades', ascensao: 'Pacto', cacar: 'Caçar', masmorra: 'Masmorra', torre: 'Torre', eventos: 'Evento', mineracao: 'Mineração', mundial: 'Chefe Mundial', historia: 'História', social: 'Amigos', ranking: 'Ranking', alianca: 'Clã', trade: 'Trade' };
   // Casca do celular (Daniel, nov/2026): ligada no começo da página (data-celular). Telas e barras próprias, sobre o
   // tema Zealot; as regras e o servidor são os mesmos. Estilo em css/celular.css.
   var CELULAR = document.documentElement.hasAttribute('data-celular');
@@ -1212,7 +1249,7 @@
   function nomeClasseX(x) { var c = x.classe2 && D.SEGUNDAS_CLASSES[x.classe2]; return c ? (x.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(x.classe, x.sexo); }
   // Classe do próprio personagem: mostra a segunda classe quando já escolheu (ex.: Paladina).
   function nomeClasseP(p) { var c = R.segundaClasse(p); return c ? (p.sexo === 'feminino' && c.nomeF || c.nome) : nomeClasse(p.classe, p.sexo); }
-  function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'ascensao' ? seloAscensao() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : ''; }
+  function seloDaAba(aba) { return aba === 'habilidades' ? seloHabilidades() : aba === 'ascensao' ? seloAscensao() : aba === 'masmorra' ? seloMasmorra() : aba === 'historia' ? seloHistoria() : aba === 'arena' ? seloArena() : aba === 'social' ? seloPedidos() : aba === 'alianca' ? seloAlianca() : aba === 'trade' ? seloTrade() : ''; }
   // Topo da casca do celular: retrato (vai para o Herói), nome, level e exp; chat, missões e menu em ícones
   // (no lugar dos botões que flutuavam por cima do jogo).
   // Level 60 (Henri, 20/11/2026): a exp passa a encher o próximo ponto do Pacto; mostra "(PACTO)". null = Pacto no limite.
@@ -1899,6 +1936,7 @@
   function corConsumivel(c) {
     if (c.tipo === 'material') { var m = D.CRAFT.materiais[c.raridade] || {}; return m.chefe ? 'epica' : m.minas ? 'rara' : 'comum'; }
     if (c.tipo === 'receita') return 'rara';
+    if (c.tipo === 'trade') return 'epica';
     return D.raridades[c.raridade] ? c.raridade : 'comum';
   }
   var ICONE_CRAFT = { material: '⛏', receita: '📜', protecao: '🛡' };
@@ -2045,6 +2083,11 @@
         + '<div class="item-acoes">' + botaoCompra('boost:' + k, b.preco, 'Comprar')
         + '<button class="btn secundario" data-acao="loja-usar-boost" data-valor="' + k + '"' + (tem ? '' : ' disabled') + '>Usar em ' + esc(p.nome) + '</button></div></div>';
     }).join('');
+    var TL = L.trade, nTL = pergTrade(p);
+    var cartaTrade = TL ? '<div class="caixa-interna loja-carta"><h3>' + iconeConsumivel({ tipo: 'trade', raridade: 'unico' }) + ' ' + TL.nome + '</h3>'
+      + '<p>Abre uma negociação com outro jogador em <strong>Social › Trade</strong>: itens, consumíveis e ouro. Só quem pede precisa de 1; ele é gasto quando o outro aceita o pedido.</p>'
+      + '<p class="suave pequeno">Na mochila de ' + esc(p.nome) + ': <strong>' + nTL + '</strong></p>'
+      + '<div class="item-acoes">' + botaoCompra('trade', TL.preco, 'Comprar') + '</div></div>' : '';
     var S = L.starter;
     var cartaStarter = '<div class="caixa-interna loja-carta loja-starter"><h3>🎁 ' + S.nome + '</h3><ul class="eter-lista">'
       + '<li>' + S.boostsExp + ' Boosts de EXP e ' + S.boostsOuro + ' Boosts de Ouro</li>'
@@ -2068,7 +2111,7 @@
       return '<li><span class="' + (h.valor > 0 ? 'online' : '') + '">' + (h.valor > 0 ? '+' : '−') + Math.abs(h.valor) + ' Éter</span> · ' + esc(h.motivo)
         + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
     }).join('');
-    return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaPasse + '</div>' + skins
+    return '<section class="caixa loja">' + tit + saldo + '<div class="loja-grade">' + cartaVip + cartaStarter + boosts + cartaTrade + cartaPasse + '</div>' + skins
       + (hist ? '<div class="caixa-interna cla-secao"><h3>Seu Éter: últimas movimentações</h3><ul class="bau-historico">' + hist + '</ul></div>' : '') + '</section>';
   }
   // Tags dos boosts ativos embaixo do level (Henri, 21/11/2026): passar o mouse mostra o bônus e até quando vale.
@@ -2156,6 +2199,143 @@
       + '<button class="zoom-x insp-x" data-acao="insp-fechar" aria-label="Fechar">✕</button>'
       + '<h3 class="subtitulo">🔍 ' + (a ? esc(a.nome) + ' <small class="suave">· Lv ' + a.nivel + ' · ' + esc(nomeClasseP(a)) + '</small>' : 'Inspecionar') + '</h3>'
       + '<div class="sub-abas insp-abas">' + abas + '</div><div class="insp-corpo">' + corpo + '</div></div></div>';
+  }
+  // ---------- Trade entre jogadores (Henri, 25/11/2026): Social › Trade. Regras no servidor (trade_* no schema.sql). ----------
+  function pergTrade(p) { var c = R.pilhaConsumivel(p, 'trade', 'unico'); return c ? c.qtd : 0; }
+  function carregarTrade(silencioso) {
+    var p = estado.personagem;
+    if (!p || !C.trade || (estado.trade && estado.trade.carregando)) return;
+    var T = estado.trade || (estado.trade = {});
+    T.carregando = true;
+    C.trade.estado(p.id).then(function (r) {
+      T.carregando = false;
+      if (estado.personagem !== p) return;
+      T.dados = r; T.erro = null;
+      if (estado.aba === 'trade' && !estado.batalha && !estado.luta && !estado.lutaArena && !(silencioso && estado.tradeDigitando)) telaJogo();
+    }, function (e) { T.carregando = false; T.erro = e.message; if (estado.aba === 'trade' && !silencioso) telaJogo(); });
+  }
+  // Quantas negociações esperam por mim (pedido para mim, ou o outro aceitou e eu não).
+  function tradesMeus() {
+    var p = estado.personagem, d = estado.trade && estado.trade.dados;
+    if (!p || !d || !d.abertos) return 0;
+    return d.abertos.filter(function (t) {
+      var souA = t.a === p.id;
+      return (t.estado === 'pedido' && !souA) || (t.estado === 'aberto' && (souA ? t.aceite_b && !t.aceite_a : t.aceite_a && !t.aceite_b));
+    }).length;
+  }
+  function seloTrade() { var n = tradesMeus(); return n ? ' <span class="selo-pedidos">' + n + '</span>' : ''; }
+  function entradaTradeHtml(e, minha, tid) {
+    var tirar = minha ? '<button class="trade-tirar" data-acao="trade-tirar" data-id="' + tid + '" data-k="' + esc(e.k) + '" title="Tirar da negociação">✕</button>' : '';
+    if (e.tipo === 'consumivel') {
+      var c = { tipo: e.ctipo, raridade: e.raridade, qtd: e.qtd };
+      return '<div class="trade-entrada"><span class="celula borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + '<span class="qtd-consumivel">' + e.qtd + '</span></span>'
+        + '<span class="trade-nome">' + e.qtd + 'x ' + esc(R.nomeConsumivel(c)) + '</span>' + tirar + '</div>';
+    }
+    var it = e.item || {};
+    return '<div class="trade-entrada"><button class="celula borda-' + it.raridade + '" data-acao="trade-ver" data-id="' + tid + '" data-k="' + esc(e.k) + '" title="Ver o item">' + F.icone(it)
+      + (it.encanto ? '<span class="qtd-consumivel">+' + it.encanto + '</span>' : '') + '</button>'
+      + '<span class="trade-nome"><span class="cor-' + it.raridade + '">' + esc(R.nomeItem(it)) + '</span><small class="suave"> · Lv ' + (it.nivel || 1) + '</small></span>' + tirar + '</div>';
+  }
+  function ladoTradeHtml(t, lado, eu) {
+    var nome = lado === 'a' ? t.nome_a : t.nome_b, itens = lado === 'a' ? t.itens_a : t.itens_b, ouro = Number(lado === 'a' ? t.ouro_a : t.ouro_b) || 0;
+    var aceite = lado === 'a' ? t.aceite_a : t.aceite_b, minha = (lado === 'a') === (t.a === eu);
+    return '<div class="trade-lado' + (minha ? ' trade-meu' : '') + (aceite ? ' trade-aceitou' : '') + '"><h4>' + esc(nome) + (minha ? ' <small class="suave">(você)</small>' : '')
+      + '<small class="trade-papel">' + (lado === 'a' ? 'pediu o trade' : 'aceitou o pedido') + '</small></h4>'
+      + (itens.length || ouro ? '' : '<p class="suave pequeno">Ainda não colocou nada.</p>')
+      + itens.map(function (e) { return entradaTradeHtml(e, minha, t.id); }).join('')
+      + (ouro ? '<div class="trade-entrada"><span class="trade-ouro">💰</span><span class="trade-nome cor-ouro">' + ouro.toLocaleString('pt-BR') + ' de ouro</span>'
+        + (minha ? '<button class="trade-tirar" data-acao="trade-tirar" data-id="' + t.id + '" data-k="ouro" title="Tirar o ouro">✕</button>' : '') + '</div>' : '')
+      + '<p class="trade-status ' + (aceite ? 'online' : 'suave') + '">' + (aceite ? '✔ Aceitou a troca' : '⏳ Ainda não aceitou') + '</p></div>';
+  }
+  function abaTrade() {
+    var p = estado.personagem, T = estado.trade || {}, d = T.dados, n = pergTrade(p);
+    if (!d && !T.carregando) carregarTrade();
+    var h = '<section class="caixa trade"><h2>🤝 Trade</h2>'
+      + '<p class="suave">Troque itens, consumíveis e ouro com outro jogador. Para <strong>pedir</strong> um trade você precisa de 1 <strong>Pergaminho de Trade</strong> (Loja de Éter): '
+      + 'ele só é gasto quando o outro aceita o pedido. Quem recebe o pedido não precisa de pergaminho. A negociação não tem prazo: cada um põe o que quiser e, quando os dois aceitarem, a troca acontece.</p>'
+      + '<div class="caixa-interna trade-novo"><span class="trade-perg">' + iconeConsumivel({ tipo: 'trade', raridade: 'unico' }) + ' Você tem <strong>' + n + '</strong> Pergaminho' + (n === 1 ? '' : 's') + ' de Trade</span>'
+      + '<form class="trade-pedir" data-form="trade-pedir"><input name="nome" placeholder="Nome do jogador" maxlength="24" autocomplete="off">'
+      + '<button class="btn" type="submit"' + (n ? '' : ' disabled') + '>Pedir trade</button></form>'
+      + (n ? '' : '<button class="btn secundario btn-pequeno" data-acao="aba" data-aba="loja">Comprar na Loja de Éter</button>') + '</div>';
+    if (T.erro && !d) return h + '<p class="menos">' + esc(T.erro) + '</p></section>';
+    if (!d) return h + '<p class="suave">Carregando…</p></section>';
+    if (d.local) return h + '<p class="suave">O Trade precisa do servidor: jogue pelo site do Eldrin.</p></section>';
+    var abertos = (d.abertos || []).slice().sort(function (x, y) { return (x.estado === 'pedido' ? 0 : 1) - (y.estado === 'pedido' ? 0 : 1) || y.id - x.id; });
+    h += '<h3 class="subtitulo">Negociações em aberto</h3>';
+    if (!abertos.length) h += '<p class="suave">Nenhuma negociação aberta.</p>';
+    abertos.forEach(function (t) {
+      var souA = t.a === p.id, outro = souA ? t.nome_b : t.nome_a;
+      if (t.estado === 'pedido') {
+        h += '<div class="caixa-interna trade-pedido">' + (souA
+          ? '<span>⏳ Esperando <strong>' + esc(outro) + '</strong> aceitar o seu pedido de trade.</span><button class="btn secundario btn-pequeno" data-acao="trade-cancelar" data-id="' + t.id + '">Cancelar pedido</button>'
+          : '<span>📜 <strong>' + esc(outro) + '</strong> quer negociar com você.</span><span class="botoes"><button class="btn" data-acao="trade-responder" data-id="' + t.id + '" data-valor="1">Aceitar</button>'
+            + '<button class="btn secundario" data-acao="trade-responder" data-id="' + t.id + '" data-valor="0">Recusar</button></span>') + '</div>';
+        return;
+      }
+      var meuAceite = souA ? t.aceite_a : t.aceite_b, aberto = T.sel === t.id || abertos.filter(function (x) { return x.estado === 'aberto'; }).length === 1;
+      h += '<div class="caixa-interna trade-negocio"><div class="trade-cabeca"><strong>Negociação com ' + esc(outro) + '</strong>'
+        + '<small class="suave">aberta ' + dataCurta(t.aberto_em) + '</small>'
+        + (aberto ? '' : '<button class="btn secundario btn-pequeno" data-acao="trade-sel" data-id="' + t.id + '">Abrir</button>') + '</div>';
+      if (aberto) {
+        // Em cima: o que eu posso pôr; embaixo: a mesa com os itens que vão ser trocados (Henri)
+        h += tradeEscolherHtml(t) + '<h4 class="trade-mesa-titulo">Itens a trocar</h4><div class="trade-mesa">' + ladoTradeHtml(t, 'a', p.id) + '<div class="trade-seta" aria-hidden="true">⇄</div>' + ladoTradeHtml(t, 'b', p.id) + '</div>'
+          + '<div class="botoes">' + (meuAceite
+            ? '<button class="btn secundario" data-acao="trade-aceitar" data-id="' + t.id + '" data-valor="0">Desfazer meu aceite</button>'
+            : '<button class="btn" data-acao="trade-aceitar" data-id="' + t.id + '" data-valor="1">✔ Aceitar a troca</button>')
+          + '<button class="btn perigo" data-acao="trade-cancelar" data-id="' + t.id + '">Cancelar negociação</button></div>'
+          + '<p class="suave pequeno">Se alguém mudar o que está na mesa, os dois precisam aceitar de novo. Cancelar devolve o que cada um pôs; o pergaminho de quem pediu não volta.</p>';
+      }
+      h += '</div>';
+    });
+    var hist = d.historico || [];
+    if (hist.length) {
+      h += '<h3 class="subtitulo">Histórico</h3><ul class="trade-historico">' + hist.map(function (t) {
+        var souA = t.a === p.id, outro = souA ? t.nome_b : t.nome_a;
+        var resumo = function (itens, ouro) {
+          var l = (itens || []).map(function (e) { return e.tipo === 'consumivel' ? e.qtd + 'x ' + R.nomeConsumivel({ tipo: e.ctipo, raridade: e.raridade }) : R.nomeItem(e.item || {}); });
+          if (Number(ouro)) l.push(Number(ouro).toLocaleString('pt-BR') + ' de ouro');
+          return l.length ? esc(l.join(', ')) : 'nada';
+        };
+        return '<li>' + (t.estado === 'feito' ? '✔ Trade com <strong>' + esc(outro) + '</strong>: você deu ' + resumo(souA ? t.itens_a : t.itens_b, souA ? t.ouro_a : t.ouro_b)
+          + ' e recebeu ' + resumo(souA ? t.itens_b : t.itens_a, souA ? t.ouro_b : t.ouro_a)
+          : '✖ ' + (t.estado === 'recusado' ? 'Pedido recusado' : 'Cancelado') + ' com <strong>' + esc(outro) + '</strong>') + ' <span class="suave">· ' + dataCurta(t.fechado_em) + '</span></li>';
+      }).join('') + '</ul>';
+    }
+    return h + '</section>';
+  }
+  // Parte de cima da mesa: escolher o que pôr (mochila, consumíveis ou ouro).
+  function tradeEscolherHtml(t) {
+    var p = estado.personagem, livres = R.mochila(p).filter(function (i) { return !i.travado; });
+    var cons = R.consumiveis(p).filter(function (c) { return c.tipo !== 'trade' && c.qtd > 0; });
+    return '<div class="trade-escolher"><h4>Escolha o que colocar <small class="suave">(toque no item)</small></h4>'
+      + (livres.length ? '<div class="mochila trade-grade">' + livres.map(function (i) {
+        return quadroItem(i, 'celula').replace('data-acao="item"', 'data-acao="trade-por-item" data-trade="' + t.id + '"');
+      }).join('') + '</div>' : '<p class="suave pequeno">Nada na mochila para trocar (itens equipados e travados 🔒 não entram).</p>')
+      + (cons.length ? '<div class="trade-consumiveis">' + cons.map(function (c) {
+        return '<div class="trade-cons"><span class="celula borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + '<span class="qtd-consumivel">' + c.qtd + '</span></span>'
+          + '<span class="trade-nome">' + esc(R.nomeConsumivel(c)) + '</span>'
+          + '<input type="number" min="1" max="' + c.qtd + '" value="1" class="trade-qtd" data-cons="' + esc(c.tipo + ':' + c.raridade) + '">'
+          + '<button class="btn secundario btn-pequeno" data-acao="trade-por-cons" data-trade="' + t.id + '" data-cons="' + esc(c.tipo + ':' + c.raridade) + '">Pôr</button></div>';
+      }).join('') + '</div>' : '')
+      + '<form class="trade-ouro-form" data-form="trade-ouro" data-trade="' + t.id + '"><span>💰</span><input name="ouro" type="number" min="1" max="' + (p.ouro || 0) + '" placeholder="Ouro (você tem ' + (p.ouro || 0).toLocaleString('pt-BR') + ')">'
+      + '<button class="btn secundario btn-pequeno" type="submit">Pôr ouro</button></form></div>';
+  }
+  // Chamada do Trade que mexe na ficha: grava antes, chama, tira do jogo o que saiu e puxa a ficha/créditos de novo.
+  async function tradeChamar(fazer, local, msg) {
+    var p = estado.personagem, T = estado.trade || (estado.trade = {});
+    if (T.ocupado) return;
+    T.ocupado = true;
+    try {
+      await gravarAntesDoBanco(p);
+      var r = await fazer();
+      if (local) local(p);
+      T.dados = r;
+      await sincronizarFicha();
+      if (msg) avisar(msg, 'item');
+      receberPendentes();
+    } catch (e) { avisar((e && e.message) || 'Não foi possível concluir.'); carregarTrade(true); }
+    T.ocupado = false;
+    telaJogo();
   }
   function lojaChamar(prom, msg) {
     var p = estado.personagem;
@@ -4882,6 +5062,7 @@
   function telaJogo() {
     if (!abaVisivel(estado.aba)) estado.aba = 'personagem';
     guardarJogo();
+    if (!resetPerguntado) conferirReset();   // aviso do reset da rodada de teste (25/11/2026)
     conferirGuia();
     var grupo = grupoDaAba(estado.aba);
     if (grupo) estado.subAba[grupo.id] = estado.aba;
@@ -4910,7 +5091,7 @@
       // Zealot no PC (Daniel, 20/11/2026): as abas ficam sempre à vista no topo; as sub-abas vão para a linha dos recursos.
       if (zealot && !CELULAR) { abasTopo = navegacao.replace('class="abas-jogo"', 'class="abas-jogo abas-topo"'); estado.subTopo = !!subAbas; }
       painel = (zealot ? '' : cascataHtml() + navegacao + subAbas)
-        + (({ personagem: abaPersonagem, bau: abaBau, loja: abaLoja, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
+        + (({ personagem: abaPersonagem, bau: abaBau, loja: abaLoja, habilidades: abaHabilidades, ascensao: abaAscensao, oficina: abaOficina, cacar: abaCacar, mercado: abaMercado, mercadoNegro: abaMercadoNegro, oficinas: abaOficinas, leilao: abaLeilao, encantar: abaEncantar, ranking: abaRanking, social: abaSocial, trade: abaTrade, masmorra: abaMasmorra, torre: abaTorre, eventos: abaEventos, mineracao: abaMineracao, mundial: abaMundial, historia: abaHistoria, arena: abaArena, admin: abaAdmin, alianca: abaAlianca })[estado.aba] || abaCacar)();
     }
     var livre = !(estado.batalha || estado.luta || estado.lutaArena || (estado.cacada && estado.cacada.ativa));
     // Arcane e Clássica (Henri, nov/2026): caçando no servidor, "Trocar personagem" continua ao lado de Sair, como no menu do Zealot
@@ -4947,6 +5128,8 @@
       + '<section class="caixa">' + guiaHtml() + painel + '</section></div></div>' + rodape()
       + (zealot && navegacao ? navBaixoHtml() : '')
       + (estado.zoom && estado.aba === 'personagem' && !estado.batalha && !estado.luta ? zoomHtml() : '')
+      + (estado.tradeVer && estado.aba === 'trade' ? '<div class="zoom-fundo"><div class="zoom-janela insp-janela"><button class="zoom-x insp-x" data-acao="trade-ver-fechar" aria-label="Fechar">✕</button>'
+        + (function () { var eu = estado.personagem; try { return fichaItemHtml(estado.tradeVer, true); } finally { estado.personagem = eu; } })() + '</div></div>' : '')
       + (estado.inspecao && ehAdmin() && !estado.batalha && !estado.luta && !estado.lutaArena ? inspecaoHtml() : '')
       + (estado.historiaCena && estado.aba === 'historia' && !estado.batalha && !estado.luta ? historiaCenaHtml() : '')
       + (estado.loginAberto && !estado.batalha && !estado.luta && !estado.lutaArena ? loginHtml() : '')
@@ -5824,6 +6007,7 @@
     if (aba === 'alianca') carregarAlianca();
     if (aba === 'mundial') carregarBoss();
     if (aba === 'mercadoNegro') carregarMercado();
+    if (aba === 'trade') carregarTrade();
     if (aba === 'oficinas') carregarOficinas();
   }
 
@@ -5881,9 +6065,33 @@
 
   // ---------------- Eventos ----------------
 
+  // Trade (25/11/2026): atualiza a cada 20 s na aba (e a cada minuto fora dela, para o selo), sem apagar o que se digita.
+  app.addEventListener('focusin', function (e) { if (e.target.closest && e.target.closest('.trade')) estado.tradeDigitando = true; });
+  app.addEventListener('focusout', function (e) { if (e.target.closest && e.target.closest('.trade')) estado.tradeDigitando = false; });
+  setInterval(function () {
+    if (!estado.personagem || document.hidden || !C.trade) return;
+    var agoraT = Date.now();
+    if (estado.aba === 'trade' || agoraT - (estado.tradeLido || 0) > 60000) { estado.tradeLido = agoraT; carregarTrade(true); }
+  }, 20000);
+
   app.addEventListener('submit', async function (e) {
     e.preventDefault();
     var form = e.target;
+    if (form.dataset.form === 'trade-pedir') {   // Trade (Henri, 25/11/2026)
+      var nomeT = form.nome.value.trim(), pT = estado.personagem;
+      if (!nomeT || !pT) return;
+      if (nomeT.toLowerCase() === pT.nome.toLowerCase()) { avisar('Escolha outro jogador.'); return; }
+      tradeChamar(function () { return C.trade.pedir(pT.id, nomeT); }, function (pp) { R.mudarConsumivel(pp, 'trade', 'unico', -1); },
+        '📜 Pedido de trade enviado para ' + nomeT + '. O pergaminho fica guardado até ele responder.');
+      return;
+    }
+    if (form.dataset.form === 'trade-ouro') {
+      var oT = Math.floor(Number(form.ouro.value) || 0), idO = form.dataset.trade;
+      if (oT < 1) return;
+      if (oT > (estado.personagem.ouro || 0)) { avisar('Ouro insuficiente.'); return; }
+      tradeChamar(function () { return C.trade.por(estado.personagem.id, idO, null, null, 1, oT); }, null, null);
+      return;
+    }
     if (form.dataset.form === 'amigo') {
       var nome = form.nome.value.trim();
       var erroAmigo = form.querySelector('.erro');
@@ -6111,12 +6319,60 @@
       case 'loja-pedir': estado.lojaConfirma = el.dataset.valor; telaJogo(); break;
       case 'loja-cancelar': estado.lojaConfirma = null; telaJogo(); break;
       case 'loja-comprar': {
-        var itL = el.dataset.valor, nomeL = itL === 'vip' ? 'VIP ativado! 👑' : itL === 'starter' ? 'Starter Pack comprado! 🎁'
+        var itL = el.dataset.valor, nomeL = itL === 'vip' ? 'VIP ativado! 👑' : itL === 'starter' ? 'Starter Pack comprado! 🎁' : itL === 'trade' ? 'Pergaminho de Trade comprado! 📜'
           : /^boost:/.test(itL) ? D.LOJA.boosts[itL.split(':')[1]].nome + ' comprado: use quando quiser.' : 'Skin comprada e em uso no seu D20! 🎲';
         lojaChamar(C.loja.comprar(p.id, itL), nomeL);
         break;
       }
       case 'tag-boost': avisar(el.title); break;
+      case 'trade-sel': if (estado.trade) { estado.trade.sel = Number(el.dataset.id); telaJogo(); } break;
+      case 'trade-responder': {
+        var simT = el.dataset.valor === '1', idT = el.dataset.id;
+        tradeChamar(function () { return C.trade.responder(p.id, idT, simT); },
+          null,
+          simT ? '🤝 Negociação aberta! Coloque o que quer trocar.' : 'Pedido recusado.');
+        if (simT && estado.trade) estado.trade.sel = Number(idT);
+        break;
+      }
+      case 'trade-cancelar': {
+        var idC = el.dataset.id;
+        tradeChamar(function () { return C.trade.cancelar(p.id, idC); }, null, 'Negociação cancelada: o que estava na mesa volta para cada um.');
+        break;
+      }
+      case 'trade-aceitar': {
+        var idA = el.dataset.id, simA = el.dataset.valor === '1';
+        tradeChamar(function () { return C.trade.aceitar(p.id, idA, simA); }, null, null).then(function () {
+          var t = ((estado.trade.dados || {}).historico || []).filter(function (x) { return String(x.id) === String(idA) && x.estado === 'feito'; })[0];
+          avisar(t ? '🤝 Trade feito! O que você recebeu chega na mochila.' : simA ? '✔ Você aceitou. Agora é a vez do outro jogador.' : 'Aceite desfeito.', 'item');
+          if (t) receberPendentes();
+        });
+        break;
+      }
+      case 'trade-tirar': {
+        var idX = el.dataset.id, kX = el.dataset.k;
+        tradeChamar(function () { return C.trade.tirar(p.id, idX, kX); }, null, 'Voltou para você.');
+        break;
+      }
+      case 'trade-por-item': {
+        var idI = el.dataset.trade, itI = el.dataset.id;
+        tradeChamar(function () { return C.trade.por(p.id, idI, itI, null, 1, 0); },
+          function (pp) { pp.inventario = pp.inventario.filter(function (i) { return i.id !== itI; }); }, null);
+        break;
+      }
+      case 'trade-por-cons': {
+        var idK = el.dataset.trade, cK = el.dataset.cons, inp = el.parentNode.querySelector('.trade-qtd');
+        var pil = cK.split(':'), mx = (R.pilhaConsumivel(p, pil[0], pil[1]) || { qtd: 0 }).qtd, nK = Math.max(1, Math.min(mx, Math.floor(Number(inp && inp.value) || 1)));
+        tradeChamar(function () { return C.trade.por(p.id, idK, null, cK, nK, 0); },
+          function (pp) { R.mudarConsumivel(pp, pil[0], pil[1], -nK); }, null);
+        break;
+      }
+      case 'trade-ver': {
+        var tv = ((estado.trade.dados || {}).abertos || []).filter(function (x) { return String(x.id) === el.dataset.id; })[0], ev = null;
+        if (tv) ev = tv.itens_a.concat(tv.itens_b).filter(function (e) { return e.k === el.dataset.k; })[0];
+        if (ev && ev.item) { estado.tradeVer = ev.item; telaJogo(); }
+        break;
+      }
+      case 'trade-ver-fechar': estado.tradeVer = null; telaJogo(); break;
       case 'ranking-inspecionar': {
         if (!ehAdmin()) break;
         var ins = estado.inspecao = { aba: (estado.inspecao && estado.inspecao.aba) || 'itens', p: null };
