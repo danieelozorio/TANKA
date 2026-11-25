@@ -44,6 +44,10 @@ Tanka.dados = {
     // (raridade = id do material em CRAFT.materiais / id da região em D.areas)
     material: { nome: 'Material', descricao: 'Material de craft. Usado pelo Coletor nas receitas e proteções e pelo Ferreiro na forja.' },
     receita: { nome: 'Receita', descricao: 'Fabricada pelo Coletor. Com ela e os materiais da região, o Ferreiro forja uma arma ou armadura.' },
+    // Trade entre jogadores (Henri, 25/11/2026): raridade sempre 'unico'. Loja de Éter (LOJA.trade) e, no futuro, o Passe de
+    // Batalha (até 2 no grátis e 4 no premium, espalhados pelos níveis).
+    trade: { nome: 'Pergaminho de Trade',
+      descricao: 'Abre uma negociação com outro jogador (Social › Trade). Os dois precisam ter 1: ele é gasto quando o outro aceita o pedido.' },
   },
   // ---------- Craft dos Anões (Daniel, nov/2026; etapas 1 a 3 do PDF "Os Anões: Mestres da Forja") ----------
   // Materiais: cada região tem o seu (caem dos monstros: % pela posição do monstro) e cada chefe um raro (dropChefe %).
@@ -1395,6 +1399,7 @@ Tanka.dados = {
       exp: { nome: 'Boost de EXP', preco: 10, pct: 50, minutos: 60 },
       ouro: { nome: 'Boost de Ouro', preco: 10, pct: 50, minutos: 60 },
     },
+    trade: { nome: 'Pergaminho de Trade', preco: 10 },   // Social › Trade (Henri, 25/11/2026)
     starter: { nome: 'Starter Pack', preco: 100, boostsExp: 10, boostsOuro: 10, vipDias: 30, nivelItens: 10, nivelJoias: 5,
       raridade: 'rara', qualidadePct: 80 },
     // Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026). 1 Éter = R$ 1. Só no navegador (no app da Play Store

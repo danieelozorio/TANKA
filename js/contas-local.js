@@ -259,6 +259,7 @@ Tanka.contas = (function () {
     },
     boss: boss,
     mercado: mercado,
+    trade: { estado: function () { return Promise.resolve({ abertos: [], historico: [], local: true }); }, pedir: soServidor, responder: soServidor, por: soServidor, tirar: soServidor, aceitar: soServidor, cancelar: soServidor },
     amigos: amigos,
     ranking: ranking,
     resetRodada: function () { return Promise.resolve(null); },
