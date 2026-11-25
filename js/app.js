@@ -258,6 +258,25 @@
 
   // ---------------- Login / cadastro ----------------
 
+  // Cronômetro da abertura dos cadastros (Henri, 25/11/2026): até 25/11 18:00 de Brasília o "Cadastrar" mostra a contagem.
+  var ABRE_CADASTRO = Date.parse('2026-11-25T18:00:00-03:00');
+  function textoContagem(ate) {
+    var s = Math.max(0, Math.floor((ate - Date.now()) / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+    var dd = function (n) { return (n < 10 ? '0' : '') + n; };
+    return s ? '<span><b>' + dd(h) + '</b><small>horas</small></span><i>:</i><span><b>' + dd(m) + '</b><small>min</small></span><i>:</i><span><b>' + dd(ss) + '</b><small>seg</small></span>'
+      : '<span class="abriu">Abriu! Toque em Cadastrar.</span>';
+  }
+  setInterval(function () {
+    Array.prototype.forEach.call(document.querySelectorAll('.contagem-abertura'), function (el) {
+      var ate = Number(el.getAttribute('data-ate'));
+      el.innerHTML = textoContagem(ate);
+      if (Date.now() >= ate && !el.dataset.abriu) {   // zerou: troca pelo formulário de cadastro
+        el.dataset.abriu = '1';
+        var b = document.querySelector('[data-acao=auth][data-modo=cadastro]');
+        if (b) setTimeout(function () { b.click(); }, 800);
+      }
+    });
+  }, 1000);
   function telaAuth(modo, erro) {
     chatVisivel(false);
     var cadastro = modo === 'cadastro', esqueci = modo === 'esqueci';
@@ -269,6 +288,12 @@
         + '<p class="erro">' + esc(erro || '') + '</p>'
         + '<button class="btn largo" type="submit">Pedir nova senha</button>'
         + '<button class="link-senha" type="button" data-acao="auth" data-modo="entrar">Voltar para entrar</button></form>'
+      : cadastro && Date.now() < ABRE_CADASTRO
+      // Cadastros fechados até a nova rodada (Henri, 25/11/2026, anúncio no Instagram): mostra o cronômetro.
+      ? '<div class="abertura"><p class="abertura-titulo">⏳ A nova rodada começa hoje às 18h</p>'
+        + '<div class="contagem-abertura" data-ate="' + ABRE_CADASTRO + '">' + textoContagem(ABRE_CADASTRO) + '</div>'
+        + '<p class="suave">Os cadastros abrem quando o cronômetro zerar. Volte aqui às 18h para criar sua conta e começar sua lenda!</p>'
+        + '<a class="btn secundario largo" href="https://discord.gg/85ZFvz6ye" target="_blank" rel="noopener">Entrar no Discord enquanto espera</a></div>'
       : cadastro
       ? '<form data-form="cadastro" novalidate>'
         + '<label>Nome de usuário<input name="usuario" autocomplete="username" required maxlength="16" pattern="[A-Za-z0-9_]{3,16}" data-so-usuario autocapitalize="none" spellcheck="false"></label>'
