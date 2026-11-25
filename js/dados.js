@@ -1260,18 +1260,18 @@ Tanka.dados = {
   // Semanal de caçada: 1.000 monstros (~160 de estamina/h; jogando ~3 h por dia, ~240 por dia: uns 4 dias).
   MISSOES: {
     diarias: [
-      { id: 'd-cacar', nome: 'Caçador do dia', texto: 'Derrote 15 monstros nas caçadas', evento: 'abate', meta: 15, premio: { ouroLutas: 8, expPct: 5 } },
-      { id: 'd-encantar', nome: 'Martelo quente', texto: 'Tente encantar 3 vezes', evento: 'encantar', meta: 3, premio: { pergaminhoArma: 1, expPct: 5 } },
-      { id: 'd-arena', nome: 'Sangue na areia', texto: 'Lute 2 vezes na Arena', evento: 'arena', meta: 2, premio: { reputacao: 40, expPct: 5 } },
-      { id: 'd-masmorra', nome: 'Desbravador', texto: 'Vença 1 masmorra em grupo', evento: 'masmorra', meta: 1, premio: { ouroLutas: 12, expPct: 5 } },
+      { id: 'd-cacar', nome: 'Caçador do dia', texto: 'Derrote 15 monstros nas caçadas', evento: 'abate', meta: 15, premio: { ouroLutas: 8 } },
+      { id: 'd-encantar', nome: 'Martelo quente', texto: 'Tente encantar 3 vezes', evento: 'encantar', meta: 3, premio: { pergaminhoArma: 1 } },
+      { id: 'd-arena', nome: 'Sangue na areia', texto: 'Lute 2 vezes na Arena', evento: 'arena', meta: 2, premio: { reputacao: 40 } },
+      { id: 'd-masmorra', nome: 'Desbravador', texto: 'Vença 1 masmorra em grupo', evento: 'masmorra', meta: 1, premio: { ouroLutas: 12 } },
     ],
-    bonusDiario: { pergaminhoArma: 1, reputacao: 60 },   // completar e resgatar todas as diárias
+    bonusDiario: { pergaminhoArma: 1, reputacao: 60, expPct: 5 },   // 5% da exp do level ao completar todas as diárias   // completar e resgatar todas as diárias
     semanais: [
-      { id: 's-cacar', nome: 'Terror das matas', texto: 'Derrote 1.000 monstros nas caçadas', evento: 'abate', meta: 1000, premio: { ouroLutas: 60, expPct: 5 } },
-      { id: 's-chefe', nome: 'Matador de lendas', texto: 'Derrote 2 chefes de área', evento: 'chefe', meta: 2, premio: { pergaminhoArma: 3, expPct: 5 } },
-      { id: 's-arena', nome: 'Campeão da Arena', texto: 'Vença 10 lutas na Arena', evento: 'arenaVitoria', meta: 10, premio: { reputacao: 100, expPct: 5 } },
-      { id: 's-masmorra', nome: 'Senhor das masmorras', texto: 'Vença 5 masmorras em grupo', evento: 'masmorra', meta: 5, premio: { ouroLutas: 80, expPct: 5 } },
-      { id: 's-encantar', nome: 'Mestre da forja', texto: 'Consiga 5 encantamentos com sucesso', evento: 'encantoSucesso', meta: 5, premio: { reputacao: 50, expPct: 5 } },
+      { id: 's-cacar', nome: 'Terror das matas', texto: 'Derrote 1.000 monstros nas caçadas', evento: 'abate', meta: 1000, premio: { ouroLutas: 60 } },
+      { id: 's-chefe', nome: 'Matador de lendas', texto: 'Derrote 2 chefes de área', evento: 'chefe', meta: 2, premio: { pergaminhoArma: 3 } },
+      { id: 's-arena', nome: 'Campeão da Arena', texto: 'Vença 10 lutas na Arena', evento: 'arenaVitoria', meta: 10, premio: { reputacao: 100 } },
+      { id: 's-masmorra', nome: 'Senhor das masmorras', texto: 'Vença 5 masmorras em grupo', evento: 'masmorra', meta: 5, premio: { ouroLutas: 80 } },
+      { id: 's-encantar', nome: 'Mestre da forja', texto: 'Consiga 5 encantamentos com sucesso', evento: 'encantoSucesso', meta: 5, premio: { reputacao: 50 } },
     ],
   },
 

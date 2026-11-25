@@ -679,15 +679,17 @@ teste('missões: progresso, resgate, bônus diário e reset do dia/semana', () =
   assert.strictEqual(R.missoesProntas(p, seg), 1);
   // prêmio acompanha o level (25/11/2026): 8 lutas contra o monstro mais forte da área (Ruínas: Gárgula, 80) + 5% da exp do level
   const exp10 = R.expNecessaria(10), nv0 = p.nivel, exp0 = p.exp;
-  assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), '640 de ouro + 5% de exp do level');
+  assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), '640 de ouro');
   assert.strictEqual(p.ouro, 640);
-  assert.ok(p.nivel > nv0 || p.exp === exp0 + Math.round(exp10 * 5 / 100), 'ganhou 5% da exp do level');
+  assert.strictEqual(p.exp, exp0, 'a missão sozinha não dá exp');
   assert.strictEqual(R.ouroLutaDoNivel(Object.assign({}, p, { nivel: 35 })), 5400, 'level 35: Elemental do Cume');
   assert.strictEqual(D.MISSOES.semanais.find((m) => m.id === 's-cacar').meta, 1000);
   assert.strictEqual(R.resgatarMissao(p, 'diarias', 'd-cacar', seg), null, 'não resgata duas vezes');
   R.registrarMissao(p, 'encantar', 3, seg); R.registrarMissao(p, 'arena', 2, seg); R.registrarMissao(p, 'masmorra', 1, seg);
   ['d-encantar', 'd-arena', 'd-masmorra'].forEach((id) => assert.ok(R.resgatarMissao(p, 'diarias', id, seg)));
-  assert.ok(R.resgatarBonusDiario(p, seg));
+  const expAntesBonus = p.exp, nvAntesBonus = p.nivel;
+  assert.ok(/5% de exp do level/.test(R.resgatarBonusDiario(p, seg)), 'bônus de todas as diárias: +5% da exp do level');
+  assert.ok(p.nivel > nvAntesBonus || p.exp === expAntesBonus + Math.round(R.expNecessaria(p.nivel) * 5 / 100));
   assert.strictEqual(p.reputacao, 100);   // 40 da missão da Arena + 60 do bônus: paga os 2 potes de estamina
   assert.strictEqual(p.missoes.s['s-cacar'], 19);
   const terca = seg + 86400000;
