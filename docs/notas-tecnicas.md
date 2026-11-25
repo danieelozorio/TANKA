@@ -1684,3 +1684,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   e `creditos`. Pôr ou tirar desfaz os dois aceites. Cancelar a aberta devolve tudo; pergaminhos perdidos.
 - `servidor-acoes.js` (receber): recompensa `{ tipo: 'consumivel', ctipo, raridade, qtd }` entrega qualquer D.CONSUMIVEIS.
 - Teste do banco no fim de banco.test.sql (sobrescreve conferir_dono).
+
+### Missões com prêmio que acompanha o level (Daniel, 25/11/2026)
+- `premio.ouroLutas` = N × ouro do monstro mais forte da área do level (`R.ouroLutaDoNivel`); `premio.expPct` = % da exp do
+  level (no 60 conta a exp do 59, que vira ponto do Pacto). Diárias: caçada 8 lutas, masmorra 12; todas +5% de exp.
+  Semanais: caçada **1.000 monstros** (era 150), 60 lutas; masmorra 80 lutas; todas +5% de exp. Reputação e pergaminhos
+  iguais. `ouroPorNivel` continua aceito (prêmios de login).
