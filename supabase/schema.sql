@@ -5435,3 +5435,67 @@ revoke execute on function public.loja_estado(text), public.loja_comprar(text, t
 grant execute on function public.loja_estado(text), public.loja_comprar(text, text), public.loja_usar_boost(text, text),
   public.admin_dar_eter(text, int, text), public.loja_vips() to authenticated;
 notify pgrst, 'reload schema';
+
+-- ============================================================================================================
+-- Reset da rodada de teste (Henri, 25/11/2026): em ajustes 'reset_rodada'.em (25/11/2026 18:00 de Brasília) apaga
+-- todos os personagens (menos os das contas admin e dos bots) e TODOS os clãs, zera baú da conta, Éter, VIP e boosts
+-- (menos admin), recordes da Torre, eventos, leilões, mercado, chat, lutas da Arena e jackpot. Antes, copia as tabelas
+-- mexidas para o schema reserva_reset (cópia de segurança, só o SQL Editor vê).
+-- Quem dispara: o pg_cron às 21:00 UTC (se o projeto tiver) e, de reserva, o próprio jogo (reset_rodada() ao entrar e
+-- no relógio dos jogadores). Roda uma vez só (valor.feito). O jogo mostra o aviso enquanto não acontece.
+-- ============================================================================================================
+insert into public.ajustes (chave, valor) values ('reset_rodada', '{"em": "2026-11-25T18:00:00-03:00", "feito": false}')
+  on conflict (chave) do nothing;
+
+create or replace function public.reset_rodada() returns jsonb
+language plpgsql volatile security definer set search_path = public as $$
+declare r jsonb; t text; fica uuid[];
+begin
+  select valor into r from public.ajustes where chave = 'reset_rodada' for update;   -- uma chamada por vez
+  if r is null then return null; end if;
+  if coalesce((r ->> 'feito')::boolean, false) or now() < (r ->> 'em')::timestamptz then
+    return jsonb_build_object('em', r -> 'em', 'feito', coalesce((r ->> 'feito')::boolean, false));
+  end if;
+  -- 1) cópia de segurança do que vai mudar
+  create schema if not exists reserva_reset;
+  foreach t in array array['personagens', 'aliancas', 'alianca_membros', 'alianca_skills', 'alianca_doacoes', 'alianca_missoes',
+    'alianca_mensagens', 'bau_conta', 'bau_movimentos', 'eter_contas', 'loja_conta', 'loja_ativos', 'arena_posicoes', 'arena_entradas',
+    'arena_lutas', 'arena_jackpot', 'torre_recordes', 'torre_runs', 'evento_pontos', 'evento_registros', 'mercado_anuncios', 'oficinas',
+    'oficina_pedidos', 'recompensas', 'creditos', 'reliquias', 'amizades', 'mensagens', 'mensagens_privadas', 'leiloes', 'leilao_lotes',
+    'masmorra_runs', 'masmorra_entradas', 'grupos', 'boss_mundial_dano'] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('drop table if exists reserva_reset.%I', t);
+      execute format('create table reserva_reset.%I as table public.%I', t, t);
+    end if;
+  end loop;
+  -- 2) quem fica: contas de admin e bots
+  select coalesce(array_agg(c.id), '{}') into fica from public.contas c where c.admin or c.bot;
+  delete from public.aliancas;                                             -- todos os clãs (membros, skills, boss do clã... em cascata)
+  delete from public.personagens where not (conta_id = any (fica));        -- em cascata: arena, oficina, mercado, amizades, ...
+  delete from public.bau_movimentos where not (conta_id = any (fica));
+  delete from public.bau_conta where not (conta_id = any (fica));
+  delete from public.eter_contas where not (conta_id = any (fica));
+  delete from public.loja_conta where not (conta_id = any (fica));
+  delete from public.torre_runs;
+  delete from public.evento_registros where personagem_id not in (select id from public.personagens);
+  delete from public.reliquias where dono is null or dono not in (select id from public.personagens);
+  delete from public.arena_lutas;
+  update public.arena_jackpot set valor = 0, top1 = null;
+  delete from public.leiloes;                                              -- o próximo leilão começa sozinho
+  delete from public.mensagens;
+  delete from public.masmorra_runs;
+  r := r || jsonb_build_object('feito', true, 'feito_em', now());
+  update public.ajustes set valor = r where chave = 'reset_rodada';
+  begin perform cron.unschedule('reset_rodada'); exception when others then null; end;   -- não repetir no ano que vem
+  return jsonb_build_object('em', r -> 'em', 'feito', true);
+end $$;
+revoke execute on function public.reset_rodada() from public, anon;
+grant execute on function public.reset_rodada() to authenticated;
+
+-- pg_cron (se o projeto tiver a extensão): às 21:00 UTC = 18:00 de Brasília do dia 25/11.
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'reset_rodada';
+  perform cron.schedule('reset_rodada', '0 21 25 11 *', 'select public.reset_rodada()');
+exception when others then raise notice 'pg_cron indisponível (o jogo dispara o reset às 18h): %', sqlerrm;
+end $$;

@@ -1662,3 +1662,11 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 - Arena (Henri, 24/11/2026): veneno/sangramento das habilidades (tipo dot) e queimadura tiram `ARENA.dotVidaPct` (2%) da vida máxima do alvo por turno, sem defesa, x o fator do D20 (`arena_fator_efeito`). Caçada/masmorra/chefes continuam com % do ataque. Ferida Aberta (Pacto) não mudou.
 - Pele de Ferro (Paladino): Armadura de Espinhos `espinhosPvE: 4` + 1 por ponto (5% a 15%) vira `ex.reflete` em `extrasLuta` (caçada, masmorra, chefes, Torre). A Arena (SQL) não lê. Testes antigos de luta usam `semEspinhos()`.
 - Admin: +1/−1 ponto do Pacto no grupo Level (`R.admin.pacto`: mexe só nos `ascensao.extras`, até o limite; tirar solta os últimos nós se faltar ponto).
+
+## Reset da rodada de teste (Henri, 25/11/2026)
+- `ajustes.reset_rodada = { em: 2026-11-25T18:00-03:00, feito }`. `reset_rodada()` (security definer): se passou da hora e não foi
+  feito, copia as tabelas mexidas para o schema `reserva_reset`, apaga todos os clãs, os personagens das contas que não são
+  admin nem bot, baú/Éter/VIP (menos admin/bot), Torre, eventos, relíquias, lutas da Arena, jackpot, leilões, chat e masmorras.
+- Dispara: pg_cron `reset_rodada` (21:00 UTC; se a extensão existir) e o jogo (1x por sessão ao entrar e no relógio da faixa).
+- Jogo: faixa vermelha no topo com o tempo que falta e janela "Última rodada de teste" 1x ao entrar (`conferirReset`).
+  Na hora, pede o reset e recarrega a página. Depois de feito, nada aparece. Para outra data: mudar `ajustes.reset_rodada`.

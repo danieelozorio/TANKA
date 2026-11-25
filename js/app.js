@@ -362,8 +362,44 @@
 
   // ---------------- Seleção de personagens ----------------
 
+  // Aviso do reset da rodada de teste (Henri, 25/11/2026): faixa no topo + janela 1 vez ao entrar. Na hora marcada o
+  // jogo pede o reset (reserva do pg_cron) e recarrega a página.
+  var resetInfo = null, resetRelogio = null, resetPerguntado = false;
+  function conferirReset() {
+    if (resetPerguntado || !C.resetRodada) { if (resetInfo) mostrarReset(); return; }
+    resetPerguntado = true;   // pergunta ao servidor 1 vez por sessão (telaJogo chama isto a cada desenho)
+    C.resetRodada().then(function (r) { if (r && r.em && !r.feito) { resetInfo = r; mostrarReset(true); } }, function () {});
+  }
+  function mostrarReset(primeiraVez) {
+    if (!resetInfo || resetInfo.feito) return;
+    var fim = Date.parse(resetInfo.em), hora = new Date(fim).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    var faixa = document.getElementById('faixa-reset');
+    if (!faixa) { faixa = document.createElement('div'); faixa.id = 'faixa-reset'; faixa.setAttribute('role', 'alert'); document.body.appendChild(faixa); }
+    var pinta = function () {
+      var falta = Math.max(0, Math.round((fim - Date.now()) / 60000));
+      faixa.textContent = '⚠️ Última rodada de teste: hoje às ' + hora + ' todos os personagens e clãs serão excluídos'
+        + (falta > 0 ? ' (faltam ' + (falta >= 60 ? Math.floor(falta / 60) + ' h ' : '') + (falta % 60) + ' min).' : '.');
+      if (Date.now() >= fim && !resetInfo.pedido) {
+        resetInfo.pedido = true;
+        faixa.textContent = '⏳ Excluindo os personagens da rodada de teste…';
+        C.resetRodada().catch(function () {}).then(function () { setTimeout(function () { location.reload(); }, 2500); });
+      }
+    };
+    pinta();
+    if (!resetRelogio) resetRelogio = setInterval(pinta, 30000);
+    if (primeiraVez && Date.now() < fim) {
+      var j = document.createElement('div');
+      j.className = 'zoom-fundo aviso-reset-fundo';
+      j.innerHTML = '<div class="zoom-janela aviso-reset"><h3>⚠️ Última rodada de teste</h3><p>Hoje, às <strong>' + hora + '</strong>, <strong>todos os personagens e clãs serão excluídos</strong>'
+        + ' (e também o baú, o Éter e os recordes) para começarmos a última rodada de teste.</p><p class="suave">Aproveite até lá! Depois é só criar um personagem novo.</p>'
+        + '<div class="botoes"><button class="btn" type="button">Entendi</button></div></div>';
+      j.querySelector('button').onclick = function () { j.remove(); };
+      document.body.appendChild(j);
+    }
+  }
   function telaPersonagens() {
     chatVisivel(false);
+    conferirReset();
     var lista = estado.conta.personagens;
     var cartas = lista.map(function (p) {
       var topoCarta = '<div class="carta"><div class="moldura">' + F.personagem(p.raca, classeRetrato(p), p.sexo) + '</div>'
@@ -4882,6 +4918,7 @@
   function telaJogo() {
     if (!abaVisivel(estado.aba)) estado.aba = 'personagem';
     guardarJogo();
+    if (!resetPerguntado) conferirReset();   // aviso do reset da rodada de teste (25/11/2026)
     conferirGuia();
     var grupo = grupoDaAba(estado.aba);
     if (grupo) estado.subAba[grupo.id] = estado.aba;

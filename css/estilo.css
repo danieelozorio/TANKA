@@ -2478,3 +2478,10 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .insp-vida-txt, .insp-vida-ganho { text-align: right; white-space: nowrap; }
 .insp-vida-barra { width: 30%; }
 .insp-vida-barra i { display: block; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #8b1e1e, #e05050); }
+
+/* Aviso do reset da rodada de teste (Henri, 25/11/2026) */
+#faixa-reset { position: fixed; left: 0; right: 0; top: 0; z-index: 9000; padding: .45rem 1rem; text-align: center; font-weight: 700; font-size: .9rem;
+  color: #fff3d6; background: linear-gradient(90deg, #6b1010, #a3261b, #6b1010); box-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
+.aviso-reset-fundo { z-index: 9500; }
+.aviso-reset { max-width: 460px; text-align: center; }
+.aviso-reset h3 { color: #ff8a6b; }

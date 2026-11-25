@@ -523,6 +523,7 @@ Tanka.contas = (function () {
     mercado: mercado,
     amigos: amigos,
     ranking: ranking,
+    resetRodada: function () { return rpc('reset_rodada'); },   // aviso/execução do reset da rodada de teste (25/11/2026)
     rankingClas: rankingClas,
     chat: chat,
     sussurro: {
