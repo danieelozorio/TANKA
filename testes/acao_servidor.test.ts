@@ -296,14 +296,16 @@ g.Deno.env.get = () => '';
   ok(y.j.erro, 'baú: não guarda ouro que não tem');
   y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { tipo: 'arma', raridade: 'rara', qtd: 1 } });
   ok(y.j.erro, 'baú: item não entra');
-  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { ouro: 3000 } });   // sem a chave: fica na fila
+  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { ouro: 3000 } });
+  ok(y.j.erro && banco[p0.id].dados.ouro === 10000, 'baú: ouro não fica guardado (precisa de um personagem que recebe)');
+  y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { ouro: 3000, para: 'outro' } });   // sem a chave: fica na fila
   ok(!y.j.erro && banco[p0.id].dados.ouro === 7000 && banco[p0.id].dados.bauSaida.length === 1 && !bauGuardados.length, 'baú: sem a chave do servidor o depósito espera na fila');
   g.Deno.env.get = (k: string) => k === 'SUPABASE_SERVICE_ROLE_KEY' ? 'chave-teste' : '';
   y = await pedir({ personagem: p0.id, acao: 'bauDepositar', args: { tipo: 'pergaminho', raridade: 'rara', qtd: 3 } });
   const fim = banco[p0.id].dados;
   ok(!y.j.erro && bauGuardados.length === 2 && fim.bauSaida.length === 0 && R.qtdConsumivel(fim, 'pergaminho', 'rara') === pergAntes - 3,
     'baú: com a chave os dois depósitos vão para o banco e a fila zera');
-  ok(bauGuardados[0].mov.ouro === 3000 && bauGuardados[1].mov.qtd === 3, 'baú: o banco recebe o que saiu da ficha');
+  ok(bauGuardados[0].mov.ouro === 3000 && bauGuardados[0].mov.para === 'outro' && bauGuardados[1].mov.qtd === 3, 'baú: o banco recebe o que saiu da ficha');
   g.Deno.env.get = () => '';
   pendentes = { recompensas: [{ id: 901, origem: 'bau', item: { tipo: 'bau', ctipo: 'pergaminho', raridade: 'rara', qtd: 2 } }], creditos: [] };
   y = await pedir({ personagem: p0.id, acao: 'receber' });

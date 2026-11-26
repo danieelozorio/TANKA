@@ -1534,6 +1534,20 @@ select pg_temp.igual((public.bau_estado('pa') -> 'consumiveis' ->> 'pergaminho:r
 reset role;
 select pg_temp.igual((select count(*) from public.creditos where personagem_id = 'pa' and ouro = 2000 and motivo = 'Retirado do Baú da conta')::int, 1, 'baú: ouro retirado vira crédito');
 select pg_temp.igual((select count(*) from public.recompensas where personagem_id = 'pa' and origem = 'bau' and item ->> 'ctipo' = 'pergaminho' and (item ->> 'qtd')::int = 2)::int, 1, 'baú: consumível retirado vira recompensa');
+-- Transferência de ouro (Henri, 26/11/2026): vai para outro personagem da mesma conta; outra conta ou ele mesmo: volta
+insert into public.personagens (id, conta_id, nome, dados) values ('pa2', '00000000-0000-0000-0000-00000000000a', 'Aldric2', '{"nome":"Aldric2","nivel":5,"classe":"mago"}');
+select public.bau_guardar('pa', '{"id":"t1","ouro":700,"para":"pa2"}');
+select public.bau_guardar('pa', '{"id":"t1","ouro":700,"para":"pa2"}');   -- repetido: uma vez só
+select pg_temp.igual((select coalesce(sum(ouro), 0) from public.creditos where personagem_id = 'pa2')::int, 700, 'baú: transferência chega no outro personagem uma vez');
+select pg_temp.igual((select ouro from public.bau_conta where conta_id = '00000000-0000-0000-0000-00000000000a')::int, 3000, 'baú: transferência não passa pelo baú');
+select public.bau_guardar('pa', '{"id":"t2","ouro":50,"para":"pb"}');
+select pg_temp.igual((select count(*) from public.creditos where personagem_id = 'pa' and ouro = 50)::int, 1, 'baú: transferência para outra conta volta');
+select pg_temp.igual((select count(*) from public.creditos where personagem_id = 'pb' and ouro = 50)::int, 0, 'baú: outra conta não recebe');
+set role authenticated;
+select pg_temp.como('a');
+select pg_temp.igual(public.bau_estado('pa') -> 'personagens' -> 0 ->> 'id', 'pa2', 'baú: lista os outros personagens da conta');
+select pg_temp.igual(public.bau_estado('pa') -> 'historico' -> 0 ->> 'tipo', 'transferencia', 'baú: histórico mostra a transferência');
+reset role;
 -- a fila de depósitos (bauSaida) só o servidor escreve: gravação direta do jogador mantém a antiga
 update public.personagens set dados = dados || '{"bauSaida":[{"id":"srv","ouro":1}]}' where id = 'pa';
 set role authenticated;

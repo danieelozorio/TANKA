@@ -4919,6 +4919,11 @@ create table if not exists public.bau_movimentos (
   criado_em timestamptz not null default now()
 );
 create index if not exists bau_movimentos_conta on public.bau_movimentos (conta_id, criado_em desc);
+-- Ouro não fica mais guardado no baú (Henri, 26/11/2026): o ouro só passa de um personagem da conta para outro
+-- ('transferencia', coluna `para`). O ouro que já estava no baú ainda pode ser retirado.
+alter table public.bau_movimentos add column if not exists para text;
+alter table public.bau_movimentos drop constraint if exists bau_movimentos_tipo_check;
+alter table public.bau_movimentos add constraint bau_movimentos_tipo_check check (tipo in ('deposito', 'retirada', 'transferencia'));
 alter table public.bau_conta enable row level security;
 alter table public.bau_movimentos enable row level security;
 
@@ -4930,9 +4935,12 @@ begin
   select conta_id into c from public.personagens where id = meu;
   select * into b from public.bau_conta where conta_id = c;
   return jsonb_build_object('ouro', coalesce(b.ouro, 0), 'consumiveis', coalesce(b.consumiveis, '{}'::jsonb),
+    'personagens', coalesce((select jsonb_agg(jsonb_build_object('id', o.id, 'nome', o.nome) order by o.criado_em)
+      from public.personagens o where o.conta_id = c and o.id <> meu), '[]'::jsonb),
     'historico', coalesce((select jsonb_agg(x order by x.criado_em desc) from (
-      select m.tipo, m.ouro, m.item, m.qtd, m.criado_em, p.nome from public.bau_movimentos m
-      left join public.personagens p on p.id = m.personagem_id where m.conta_id = c order by m.criado_em desc limit 20) x), '[]'::jsonb));
+      select m.tipo, m.ouro, m.item, m.qtd, m.criado_em, p.nome, q.nome as para_nome from public.bau_movimentos m
+      left join public.personagens p on p.id = m.personagem_id left join public.personagens q on q.id = m.para
+      where m.conta_id = c order by m.criado_em desc limit 20) x), '[]'::jsonb));
 end $$;
 
 -- Só o servidor (função `acao`): soma o depósito ao baú da conta do personagem. Idempotente pelo id do movimento.
@@ -4943,6 +4951,20 @@ declare c uuid; o bigint := greatest(0, coalesce((mov ->> 'ouro')::bigint, 0)); 
 begin
   select conta_id into c from public.personagens where id = pid;
   if c is null or coalesce(mov ->> 'id', '') = '' then return false; end if;
+  -- transferência de ouro para outro personagem da mesma conta (não passa pelo baú); destino inválido: devolve
+  if coalesce(mov ->> 'para', '') <> '' then
+    insert into public.bau_movimentos (id, conta_id, personagem_id, tipo, ouro, para)
+      values (mov ->> 'id', c, pid, 'transferencia', o, mov ->> 'para') on conflict (id) do nothing;
+    if not found then return true; end if;
+    if o > 0 then
+      if exists (select 1 from public.personagens where id = mov ->> 'para' and conta_id = c and id <> pid) then
+        perform public.creditar(mov ->> 'para', o::int, 0, 'Ouro recebido de ' || coalesce((select nome from public.personagens where id = pid), '?'));
+      else
+        perform public.creditar(pid, o::int, 0, 'Transferência devolvida (personagem não encontrado)');
+      end if;
+    end if;
+    return true;
+  end if;
   insert into public.bau_movimentos (id, conta_id, personagem_id, tipo, ouro, item, qtd)
     values (mov ->> 'id', c, pid, 'deposito', o, item, q) on conflict (id) do nothing;
   if not found then return true; end if;   -- já guardado antes

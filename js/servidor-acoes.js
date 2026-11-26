@@ -302,6 +302,11 @@ Tanka.servidorAcoes = (function () {
       if (ouro < 0 || qtd < 0) return 'Quantidade inválida.';
       if (!ouro && !qtd) return 'Escolha o que guardar.';
       if (ouro > (p.ouro || 0)) return 'Ouro insuficiente.';
+      // Ouro não fica mais no baú (Henri, 26/11/2026): só passa para outro personagem da conta (a.para; o banco confere a conta)
+      var para = texto(a.para);
+      if (ouro && !para) return 'O baú não guarda mais ouro: escolha o personagem que vai receber.';
+      if (ouro > 2000000000) return 'Transfira no máximo 2.000.000.000 de ouro por vez.';
+      if (ouro && qtd) return 'Transfira o ouro separado dos consumíveis.';
       if (qtd) {
         if (!D.CONSUMIVEIS[tipo] || !rar) return 'Só ouro e consumíveis vão para o baú.';
         if (R.qtdConsumivel(p, tipo, rar) < qtd) return 'Você não tem essa quantidade.';
@@ -309,6 +314,7 @@ Tanka.servidorAcoes = (function () {
       p.ouro -= ouro;
       if (qtd) R.mudarConsumivel(p, tipo, rar, -qtd);
       var mov = { id: 'd' + ctx.agora + '-' + Math.floor(ctx.rng() * 1e9), ouro: ouro, tipo: qtd ? tipo : null, raridade: qtd ? rar : null, qtd: qtd };
+      if (ouro) mov.para = para;
       p.bauSaida = (Array.isArray(p.bauSaida) ? p.bauSaida : []).concat(mov).slice(-50);
       return { resultado: { deposito: mov } };
     },

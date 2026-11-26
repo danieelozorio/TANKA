@@ -1701,3 +1701,10 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Correção: `arena_jackpot_atualizar(ar, esperar default true)`. `arena_estado` usa `esperar = false` (`skip locked`):
   se alguém está atualizando, só lê o valor. `arena_finalizar` continua esperando (o prêmio do Top 1 precisa da trava).
 - Arena (Henri, 25/11/2026): entradas recarregam na VIRADA DE HORA: +`ARENA.entradasPorHora` (1) e VIP +`LOJA.vip.arenaPorHoraExtra` (1) = 2 (`arena_entradas_atual` conta as viradas de hora desde `atualizado_em`). Máximo continua 5 (VIP 7).
+
+## Baú: ouro só transfere (Henri, 26/11/2026)
+- O baú não guarda mais ouro (o ouro guardado ficava longe dos saques da Arena). `bauDepositar` com ouro exige `para`
+  (outro personagem da conta); o mov vai na fila `bauSaida` com `para` e `bau_guardar` cria crédito para o destino
+  ("Ouro recebido de X"), movimento tipo 'transferencia' (coluna `para`). Destino de outra conta ou ele mesmo: o ouro volta.
+- `bau_estado` devolve `personagens` (os outros da conta) e `para_nome` no histórico. Tela: `bauOuroHtml` (select +
+  Transferir) nas duas telas do baú. Ouro antigo que já estava no baú: botão "Retirar tudo" (bau_retirar continua).

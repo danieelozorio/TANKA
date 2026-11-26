@@ -2461,11 +2461,28 @@
       if (vendoBau()) telaJogo();
     });
   }
+  // Ouro no baú (Henri, 26/11/2026): não guarda mais; só transfere para outro personagem da conta. O ouro antigo do baú
+  // ainda pode ser retirado.
+  function bauOuroHtml(p, b, peq) {
+    var outros = b.personagens || [], ouroBau = Number(b.ouro) || 0, cls = peq ? 'btn btn-pequeno' : 'btn';
+    var h = outros.length
+      ? '<select id="bau-para" aria-label="Personagem que recebe">' + outros.map(function (o) { return '<option value="' + esc(o.id) + '">' + esc(o.nome) + '</option>'; }).join('') + '</select>'
+        + '<input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
+        + '<button class="' + cls + '" data-acao="bau-transferir-ouro">Transferir</button>'
+      : '<span class="suave">Crie outro personagem na conta para transferir ouro.</span>';
+    if (ouroBau > 0) h += '<span>Ouro antigo no baú: <strong class="cor-ouro">' + ouroBau.toLocaleString('pt-BR') + '</strong></span>'
+      + '<button class="' + cls + ' secundario" data-acao="bau-retirar-ouro" data-valor="' + ouroBau + '">Retirar tudo</button>';
+    return h;
+  }
+  function bauHistTexto(h, o) {
+    if (h.tipo === 'transferencia') return '➡️ ' + esc(h.nome || '?') + ' transferiu ' + o.join(' e ') + ' para ' + esc(h.para_nome || '?');
+    return (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ');
+  }
   function abaBau() {
     var p = estado.personagem, b = estado.bau;
     if (!b && !estado.bauErro) carregarBau();
-    var tit = '<h2>Baú da conta</h2><p class="suave">Compartilhado pelos personagens da sua conta. Guarde e retire <strong>ouro</strong> e '
-      + '<strong>consumíveis</strong> (pergaminhos, cristais, materiais, receitas). Itens equipáveis não entram.</p>';
+    var tit = '<h2>Baú da conta</h2><p class="suave">Compartilhado pelos personagens da sua conta. Guarde e retire <strong>consumíveis</strong> '
+      + '(pergaminhos, cristais, materiais, receitas) e transfira <strong>ouro</strong> para outro personagem. O ouro não fica guardado. Itens equipáveis não entram.</p>';
     if (!ACAO_SERVIDOR) return '<section class="caixa">' + tit + '<p class="suave">O baú precisa do servidor do jogo.</p></section>';
     if (estado.bauErro) return '<section class="caixa">' + tit + '<p class="erro">' + esc(estado.bauErro) + '</p>'
       + '<button class="btn" data-acao="bau-recarregar">Tentar de novo</button></section>';
@@ -2474,8 +2491,7 @@
     var ouro = '<div class="caixa-interna cla-secao"><h3>Ouro</h3>'
       + '<p>No baú: <strong class="cor-ouro">' + ouroBau.toLocaleString('pt-BR') + '</strong> · com ' + esc(p.nome) + ': <strong class="cor-ouro">'
       + (p.ouro || 0).toLocaleString('pt-BR') + '</strong></p>'
-      + '<div class="linha-form"><input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
-      + '<button class="btn" data-acao="bau-guardar-ouro">Guardar</button><button class="btn secundario" data-acao="bau-retirar-ouro">Retirar</button></div></div>';
+      + '<div class="linha-form">' + bauOuroHtml(p, b) + '</div></div>';
     var linha = function (tipo, rar, qtd, onde) {
       var c = { tipo: tipo, raridade: rar, qtd: qtd };
       return '<div class="bau-linha"><span class="bau-ico borda-' + corConsumivel(c) + '">' + iconeConsumivel(c) + '</span>'
@@ -2494,7 +2510,7 @@
     var hist = (b.historico || []).map(function (h) {
       var o = []; if (Number(h.ouro)) o.push(Number(h.ouro).toLocaleString('pt-BR') + ' de ouro');
       if (h.item && h.qtd) { var x = h.item.split(':'); o.push(h.qtd + 'x ' + R.nomeConsumivel({ tipo: x[0], raridade: x[1] })); }
-      return '<li>' + (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ')
+      return '<li>' + bauHistTexto(h, o)
         + ' <span class="suave">· ' + new Date(h.criado_em).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) + '</span></li>';
     }).join('');
     return '<section class="caixa bau-conta">' + tit + ouro + itens
@@ -2581,14 +2597,12 @@
     var hist = (b.historico || []).slice(0, 10).map(function (h) {
       var o = []; if (Number(h.ouro)) o.push(Number(h.ouro).toLocaleString('pt-BR') + ' de ouro');
       if (h.item && h.qtd) { var x = h.item.split(':'); o.push(h.qtd + 'x ' + R.nomeConsumivel({ tipo: x[0], raridade: x[1] })); }
-      return '<li>' + (h.tipo === 'deposito' ? '⬇️ ' : '⬆️ ') + esc(h.nome || '?') + (h.tipo === 'deposito' ? ' guardou ' : ' retirou ') + o.join(' e ')
+      return '<li>' + bauHistTexto(h, o)
         + ' <span class="suave">· ' + dataCurta(h.criado_em) + '</span></li>';
     }).join('');
-    return '<p class="suave pequeno">Baú da conta: os seus personagens guardam e retiram ouro e consumíveis (itens não entram). '
+    return '<p class="suave pequeno">Baú da conta: os seus personagens guardam e retiram consumíveis (itens não entram). O ouro não fica no baú: passa direto para outro personagem. '
       + (temMouse ? '<strong>Botão direito</strong> move tudo; o <strong>esquerdo</strong> escolhe a quantidade.' : 'Toque num consumível para escolher a quantidade.') + '</p>'
-      + '<div class="bau-ouro linha-form">' + ICONES.ouro + '<span>Baú: <strong class="cor-ouro">' + (Number(b.ouro) || 0).toLocaleString('pt-BR') + '</strong></span>'
-      + '<input id="bau-ouro" type="number" min="1" inputmode="numeric" placeholder="Quanto ouro">'
-      + '<button class="btn btn-pequeno" data-acao="bau-guardar-ouro">Guardar</button><button class="btn btn-pequeno secundario" data-acao="bau-retirar-ouro">Retirar</button></div>'
+      + '<div class="bau-ouro linha-form">' + ICONES.ouro + '<span>Transferir ouro para:</span>' + bauOuroHtml(p, b, true) + '</div>'
       + escolha
       + '<div class="bau-duplo"><div><h4>Com ' + esc(p.nome) + '</h4>' + grade(meus) + '</div>'
       + '<div><h4>No baú</h4>' + grade(noBau) + '</div></div>'
@@ -6450,12 +6464,16 @@
         }, function (e) { avisar((e && e.message) || 'Não foi possível.'); });
         break;
       }
-      case 'bau-guardar-ouro': case 'bau-retirar-ouro': {
-        var vo = parseInt((document.getElementById('bau-ouro') || {}).value, 10);
+      case 'bau-transferir-ouro': case 'bau-retirar-ouro': {
+        var transf = el.dataset.acao === 'bau-transferir-ouro';
+        var vo = transf ? parseInt((document.getElementById('bau-ouro') || {}).value, 10) : parseInt(el.dataset.valor, 10);
         if (!(vo > 0)) { avisar('Digite quanto ouro.'); break; }
-        if (el.dataset.acao === 'bau-guardar-ouro') {
+        if (transf) {
+          var selP = document.getElementById('bau-para'), paraId = selP && selP.value;
+          var paraNome = paraId ? selP.options[selP.selectedIndex].text : '';
+          if (!paraId) { avisar('Escolha o personagem que vai receber.'); break; }
           if (vo > estado.personagem.ouro) { avisar('Você não tem esse ouro.'); break; }
-          bauDepositar({ ouro: vo }, vo.toLocaleString('pt-BR') + ' de ouro guardado no baú.');
+          bauDepositar({ ouro: vo, para: paraId }, vo.toLocaleString('pt-BR') + ' de ouro transferido para ' + paraNome + '.');
         } else {
           if (vo > Number((estado.bau || {}).ouro || 0)) { avisar('O baú não tem esse ouro.'); break; }
           bauRetirar(vo, null, 0, vo.toLocaleString('pt-BR') + ' de ouro retirado do baú.');
