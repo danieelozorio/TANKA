@@ -3077,14 +3077,14 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   assert.strictEqual(R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 19, 15)).entradas, 0);
 });
 
-teste('exp mais lenta (EXP_MULT ligado em 25/11/2026; metade do aumento em 26/11): 2,5x a 6,5x por faixa; a Ascensão usa a curva base', () => {
+teste('exp mais lenta (EXP_MULT ligado em 25/11/2026; aumento −80% em 26/11): 1,6x a 3,2x por faixa; a Ascensão usa a curva base', () => {
   D.EXP_MULT = EXP_MULT_JOGO;
   try {
     const base = (n) => R.expNecessaria(n, true);
-    [[1, 2.5], [9, 2.5], [10, 3], [19, 3], [25, 3.5], [35, 5], [53, 6.5]].forEach(([n, m]) =>
+    [[1, 1.6], [9, 1.6], [10, 1.8], [19, 1.8], [25, 2], [35, 2.6], [53, 3.2]].forEach(([n, m]) =>
       assert.ok(Math.abs(R.expNecessaria(n) - base(n) * m) <= m, 'level ' + n + ' pede ' + m + 'x'));
     const p = R.criarPersonagem('Lento', 'masculino', 'humano', 'cavaleiro');
-    R.ganharExp(p, 24); assert.strictEqual(p.nivel, 1, 'com 24 de exp ainda é level 1 (pede 25)');
+    R.ganharExp(p, 15); assert.strictEqual(p.nivel, 1, 'com 15 de exp ainda é level 1 (pede 16)');
     R.ganharExp(p, 1); assert.strictEqual(p.nivel, 2);
   } finally { D.EXP_MULT = null; }
 });
