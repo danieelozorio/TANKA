@@ -4992,8 +4992,25 @@
     return html ? '<div class="itens">' + html + '</div>' : '';
   }
 
+  // Admin: jogadores online (26/11/2026). Carrega ao abrir o painel e no botão Atualizar.
+  function onlineHtml() {
+    var o = estado.adminOnline;
+    if (!o) return '<span class="suave">Carregando…</span>';
+    if (o.erro) return '<span class="suave">' + esc(o.erro) + '</span>';
+    var lista = (o.lista || []).map(function (j) {
+      return esc(j.nome) + ' <span class="suave">(lv ' + j.nivel + (D.classes[j.classe] ? ' · ' + D.classes[j.classe].nome : '') + ')</span>';
+    }).join(', ');
+    return '<strong style="font-size:1.25em">🟢 ' + o.agora + ' agora</strong> <span class="suave">· ' + o.min15 + ' em 15 min · ' + o.hora + ' na última hora · '
+      + o.dia + ' em 24 h</span>' + (lista ? '<div class="pequeno">' + lista + '</div>' : '');
+  }
+  function carregarOnline() {
+    if (!C.loja || !C.loja.online) { estado.adminOnline = { erro: 'Precisa do servidor.' }; return; }
+    C.loja.online().then(function (r) { estado.adminOnline = r || {}; }, function (e) { estado.adminOnline = { erro: (e && e.message) || 'Não foi possível.' }; })
+      .then(function () { var el = document.getElementById('admin-online'); if (el) el.innerHTML = onlineHtml(); });
+  }
   function abaAdmin() {
     if (!ehAdmin()) return '';
+    if (!estado.adminOnline && !estado.adminOnlinePedido) { estado.adminOnlinePedido = true; setTimeout(carregarOnline, 0); }
     function botoes(op, valores, rotulo, estilo) {
       return valores.map(function (v) {
         return '<button class="btn' + (estilo ? ' admin-' + estilo : '') + '" data-acao="admin" data-op="' + op + '" data-valor="' + v + '">' + rotulo(v) + '</button>';
@@ -5005,6 +5022,8 @@
     }
     return '<p class="suave">Ferramentas de teste. Valem só para este personagem e ficam salvas como qualquer progresso.</p>'
       + '<div class="itens">'
+      + grupo('Jogadores online', 'Contas que jogaram nos últimos 5 minutos (o jogo salva o personagem enquanto a pessoa joga). Sem os bots.',
+        '<span id="admin-online">' + onlineHtml() + '</span><button class="btn secundario" data-acao="admin-online">Atualizar</button>')
       + grupo('Éter (beta)', 'Dá Éter para a conta de um personagem (pelo nome). Valor negativo tira. Só funciona durante o beta.',
         '<input id="admin-eter-nome" type="text" placeholder="Nome do personagem" value="' + esc(estado.personagem.nome) + '">'
         + '<input id="admin-eter-valor" type="number" placeholder="Éter" value="100" style="max-width:6em">'
@@ -6506,6 +6525,7 @@
         lojaChamar(C.loja.usarBoost(p.id, el.dataset.valor), bL.nome + ' ativado em ' + p.nome + ': +' + bL.pct + '% por ' + bL.minutos + ' min na caçada!');
         break;
       }
+      case 'admin-online': estado.adminOnline = null; var elOn = document.getElementById('admin-online'); if (elOn) elOn.innerHTML = onlineHtml(); carregarOnline(); break;
       case 'admin-dar-eter': {
         var nE = (document.getElementById('admin-eter-nome') || {}).value, vE = parseInt((document.getElementById('admin-eter-valor') || {}).value, 10);
         if (!nE || !vE) { avisar('Escreva o nome e o valor.'); break; }

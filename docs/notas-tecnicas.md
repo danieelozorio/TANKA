@@ -1756,3 +1756,7 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - App: `app-android/web-minimo.txt` (178) obriga o app a baixar o jogo novo (endereço novo) na próxima abertura.
 - Os jogadores precisam entrar de novo (as sessões eram do projeto antigo). Mercado Pago: aviso de pagamento aponta
   para https://ayccftokfrzmvgawrkxr.supabase.co/functions/v1/pagamento?webhook=1.
+
+## Admin: jogadores online (26/11/2026)
+- `admin_online()` (SQL, só admin): contas com personagem salvo em 5 min / 15 min / 1 h / 24 h, sem bots, e a lista dos de agora.
+  Tela: painel de admin, grupo "Jogadores online" (carrega ao abrir e no botão Atualizar). `C.loja.online()`.

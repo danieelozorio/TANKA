@@ -5596,6 +5596,26 @@ revoke execute on function public.loja_estado(text), public.loja_comprar(text, t
   public.admin_dar_eter(text, int, text), public.loja_vips() from public, anon;
 grant execute on function public.loja_estado(text), public.loja_comprar(text, text), public.loja_usar_boost(text, text),
   public.admin_dar_eter(text, int, text), public.loja_vips() to authenticated;
+
+-- Admin: jogadores online (Daniel, 26/11/2026). Conta quem teve o personagem salvo no período (o jogo salva enquanto a
+-- pessoa joga), sem bots. "agora" = últimos 5 minutos, com nome, level e classe de cada um.
+create or replace function public.admin_online() returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.eh_admin() then raise exception 'Só o admin.'; end if;
+  return (select jsonb_build_object(
+      'agora', count(distinct p.conta_id) filter (where p.atualizado_em > now() - interval '5 minutes'),
+      'min15', count(distinct p.conta_id) filter (where p.atualizado_em > now() - interval '15 minutes'),
+      'hora', count(distinct p.conta_id) filter (where p.atualizado_em > now() - interval '1 hour'),
+      'dia', count(distinct p.conta_id) filter (where p.atualizado_em > now() - interval '24 hours'),
+      'lista', coalesce(jsonb_agg(jsonb_build_object('nome', p.nome, 'nivel', coalesce((p.dados ->> 'nivel')::int, 1),
+          'classe', p.dados ->> 'classe') order by p.atualizado_em desc)
+        filter (where p.atualizado_em > now() - interval '5 minutes'), '[]'::jsonb))
+    from public.personagens p join public.contas c on c.id = p.conta_id
+    where not coalesce(c.bot, false));
+end $$;
+revoke execute on function public.admin_online() from public, anon;
+grant execute on function public.admin_online() to authenticated;
 notify pgrst, 'reload schema';
 
 -- ============================================================================================================
