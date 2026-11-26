@@ -1744,3 +1744,4 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   (b.joias, b.turno). SQL: `arena_joias_poderes` → `ex.joias` em `arena_lutador`; `arena_vez` (invul, joiaSilencio, joiaVampiro).
 - Arte: `assets/monstros/<chefe>-mundial.webp` (sem ela, usa a do Ignaroth) e `assets/itens/joia-<chefe>.webp`.
   Prompts: `docs/chefes-mundiais-joias-prompts.txt`.
+- Lore (26/11/2026): `CHEFE_MUNDIAL.lore` (os três generais de Ignaroth escapam pelas rachaduras dos selos) e `lore` de cada Tirano, na tela do Chefe Mundial.

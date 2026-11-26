@@ -1009,13 +1009,18 @@ Tanka.dados = {
   // servidor). Cada um dropa a sua joia do conjunto D.JOIAS_BOSS. mec: jeito de lutar, por cima do chefe da luta:
   // rampaPct = +% de dano a cada ataque dele; venenoPct = % da vida máxima que o herói perde a cada ação dele;
   // rouboPct = % do dano que ele causa que volta como vida; defesaPct/velocidadePct/danoPct = % na defesa/velocidade/dano.
+  // lore: quem são (os três generais de Ignaroth, que escapam pelas rachaduras dos selos quebrados; ver js/historia.js).
   CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5, pesadeloDesde: 40, danoPesadelo: 0.5,   // entradas: ataques por despertar (igual a boss_cfg)
+    lore: 'Quando Ignaroth foi preso no vulcão, os seus três generais foram acorrentados com ele. Agora, a cada selo rachado, um deles escapa pelas frestas ao cair da noite.',
     chefes: [
       { id: 'kharzul', nome: 'Kharzul, o Senhor das Cinzas', curto: 'Kharzul', monstro: 'kharzul-mundial', imagem: 'assets/monstros/kharzul-mundial.webp',
+        lore: 'O general que comandou o incêndio do primeiro império. As Areias Rubras são o que restou dos exércitos que ele queimou.',
         txt: 'Começa fraco e fica mais forte a cada golpe: quem demora a derrubar apanha muito.', mec: { danoPct: -25, rampaPct: 6 } },
       { id: 'ysolde', nome: 'Ysolde, a Bruxa do Espinho', curto: 'Ysolde', monstro: 'ysolde-mundial', imagem: 'assets/monstros/ysolde-mundial.webp',
+        lore: 'Foi ela quem fincou o Espinho Negro na Floresta Sombria para rachar o primeiro selo. Onde ela pisa, a natureza apodrece.',
         txt: 'Envenena: a cada ação dela você perde vida, e os golpes dela a curam.', mec: { venenoPct: 2, rouboPct: 20 } },
       { id: 'gorrak', nome: 'Gorrak, o Titã de Ferro', curto: 'Gorrak', monstro: 'gorrak-mundial', imagem: 'assets/monstros/gorrak-mundial.webp',
+        lore: 'A fera de guerra de Ignaroth, acorrentada no fundo do vulcão por mil anos. As correntes estão se partindo, elo por elo.',
         txt: 'Defesa enorme: bate devagar, mas muito forte.', mec: { defesaPct: 60, velocidadePct: -40, danoPct: 45 } },
     ] },
   // Joias dos Chefes Mundiais (Daniel, 26/11/2026): UM conjunto, cada Tirano dropa a sua peça (o nome da joia é o do chefe).

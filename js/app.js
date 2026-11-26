@@ -9230,7 +9230,8 @@
     var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
     var cm = chefeMundialMostrado(), cb = R.chefeMundialPorId(b && b.chefe_mundial), titulo = (cfg.titulos && cfg.titulos[cb.id]) || cfg.titulo;
     var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro(cm.monstro) + '</div><div>'
-      + '<h2>' + (ativo ? 'O Despertar de ' + cm.nome : 'Próximo: ' + cm.nome) + '</h2>' + (cm.txt ? '<p class="destaque pequeno">' + cm.txt + '</p>' : '') + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<h2>' + (ativo ? 'O Despertar de ' + cm.nome : 'Próximo: ' + cm.nome) + '</h2>' + (cm.lore ? '<p class="pequeno"><em>' + cm.lore + '</em></p>' : '') + (cm.txt ? '<p class="destaque pequeno">' + cm.txt + '</p>' : '') + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<p class="suave"><em>' + CM.lore + '</em></p>'
       + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, um dos 3 Tiranos desperta (Kharzul, Ysolde e Gorrak, um por dia) com uma vida só '
       + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> ('
       + (chefe.pesadelo ? 'o chefe Pesadelo do seu level, com metade do dano' : 'o chefe da sua área') + ') com o jeito de lutar do Tirano, '
