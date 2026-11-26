@@ -1745,3 +1745,14 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Arte: `assets/monstros/<chefe>-mundial.webp` (sem ela, usa a do Ignaroth) e `assets/itens/joia-<chefe>.webp`.
   Prompts: `docs/chefes-mundiais-joias-prompts.txt`.
 - Lore (26/11/2026): `CHEFE_MUNDIAL.lore` (os três generais de Ignaroth escapam pelas rachaduras dos selos) e `lore` de cada Tirano, na tela do Chefe Mundial.
+
+## Servidor em São Paulo (Daniel, 26/11/2026)
+- Banco novo: projeto **ayccftokfrzmvgawrkxr** (Eldrin, sa-east-1, org "Eldrin", conta eldrinonline). `js/config.js` e o
+  deploy das funções (`funcao-cacada.yml`) apontam para ele. O antigo (cwlcdeqvwzpveduzhaol, us-east-2) ficou com o
+  gatilho `zz_manutencao` em todas as tabelas (não grava nada) e de reserva; o teste de stress recusa os dois.
+- Cópia: schema.sql rodado no novo; dados copiados com dblink (tabela por tabela, contas de login com auth.users e
+  auth.identities, `criar_conta` desligado durante a cópia, contadores ajustados): 60 tabelas, 2.548 linhas, todas iguais.
+  O agendamento do `reset_rodada` (pg_cron) foi tirado do projeto novo.
+- App: `app-android/web-minimo.txt` (178) obriga o app a baixar o jogo novo (endereço novo) na próxima abertura.
+- Os jogadores precisam entrar de novo (as sessões eram do projeto antigo). Mercado Pago: aviso de pagamento aponta
+  para https://ayccftokfrzmvgawrkxr.supabase.co/functions/v1/pagamento?webhook=1.
