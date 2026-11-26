@@ -428,14 +428,22 @@
     var p = estado.personagem;
     if (!p || avisoEterPid === p.id) return;
     avisoEterPid = p.id;
+    // "Não mostrar mais hoje" (Henri, 26/11/2026): guarda o dia de hoje neste navegador
+    var hoje = new Date().toDateString();
+    try { if (localStorage.getItem('eldrin_balao_eter') === hoje) return; } catch (e) { /* sem armazenamento */ }
     var velho = document.getElementById('balao-eter');
     if (velho) velho.remove();
     var b = document.createElement('div');
     b.id = 'balao-eter'; b.className = 'balao-eter'; b.setAttribute('role', 'status');
     b.innerHTML = '<button class="balao-eter-x" type="button" aria-label="Fechar">✕</button>'
       + '<img src="assets/eter.webp" alt="" class="balao-eter-img">'
-      + '<p>💎 Todo <strong>Éter</strong> comprado no Beta, mesmo o que você já gastou, será <strong>devolvido no lançamento oficial, em 01/01</strong>. Aproveite sem medo!</p>';
+      + '<div><p>💎 Todo <strong>Éter</strong> comprado no Beta, mesmo o que você já gastou, será <strong>devolvido no lançamento oficial, em 01/01</strong>. Aproveite sem medo!</p>'
+      + '<label class="balao-eter-hoje"><input type="checkbox"> Não mostrar mais hoje</label></div>';
     b.querySelector('.balao-eter-x').onclick = function () { b.remove(); };
+    b.querySelector('.balao-eter-hoje input').onchange = function () {
+      try { if (this.checked) localStorage.setItem('eldrin_balao_eter', hoje); else localStorage.removeItem('eldrin_balao_eter'); } catch (e) { /* sem armazenamento */ }
+      if (this.checked) setTimeout(function () { b.remove(); }, 400);
+    };
     document.body.appendChild(b);
   }
   function telaPersonagens() {
