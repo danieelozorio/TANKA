@@ -301,7 +301,7 @@ Tanka.contas = (function () {
   }
 
   // ---------- Chat global ----------
-  var CAMPOS_CHAT = 'select=id,personagem,classe,classe2,sexo,nivel,texto,criado_em,sigla';
+  var CAMPOS_CHAT = 'select=id,personagem,classe,classe2,sexo,nivel,texto,criado_em,sigla,admin';
   var CAMPOS_CHAT_ANTIGOS = 'select=id,personagem,classe,nivel,texto,criado_em,sigla';
   // Se o banco ainda não tem as colunas novas (schema não rodado), lê só as antigas em vez de quebrar o chat.
   async function lerMensagens(resto) {

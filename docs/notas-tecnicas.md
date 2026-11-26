@@ -1760,3 +1760,5 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 ## Admin: jogadores online (26/11/2026)
 - `admin_online()` (SQL, só admin): contas com personagem salvo em 5 min / 15 min / 1 h / 24 h, sem bots, e a lista dos de agora.
   Tela: painel de admin, grupo "Jogadores online" (carrega ao abrir e no botão Atualizar). `C.loja.online()`.
+- Selo ADMIN no chat (26/11/2026): coluna `mensagens.admin`, preenchida pelo gatilho `validar_mensagem` com `contas.admin`
+  (o jogador não consegue marcar sozinho; avisos do sistema ficam false). Tela: `linhaChat` mostra `.selo-admin`.

@@ -355,6 +355,7 @@ create index if not exists mensagens_conta on public.mensagens (conta_id, criado
 alter table public.mensagens add column if not exists sigla text;   -- sigla da aliança de quem escreveu
 alter table public.mensagens add column if not exists sexo text;     -- para mostrar a classe no feminino
 alter table public.mensagens add column if not exists classe2 text;  -- segunda classe de quem escreveu
+alter table public.mensagens add column if not exists admin boolean not null default false;   -- quem escreveu é admin (selo ADMIN no chat, 26/11/2026)
 
 create or replace function public.eh_admin() returns boolean
 language sql stable security definer set search_path = public as $$
@@ -376,7 +377,7 @@ declare d jsonb; pid text; ate timestamptz;
 begin
   -- aviso do sistema (ex.: o Chefe Mundial despertou), gravado só por funções do servidor
   if current_setting('tanka.aviso_sistema', true) = '1' then
-    new.conta_id := coalesce(auth.uid(), new.conta_id); new.criado_em := now(); return new;
+    new.conta_id := coalesce(auth.uid(), new.conta_id); new.criado_em := now(); new.admin := false; return new;
   end if;
   new.conta_id := auth.uid();
   new.texto := btrim(new.texto);
@@ -397,6 +398,7 @@ begin
   new.classe2 := d -> 'talentos' ->> 'classe2';
   new.sexo := d ->> 'sexo';
   new.nivel := (d ->> 'nivel')::int;
+  new.admin := coalesce((select c.admin from public.contas c where c.id = new.conta_id), false);   -- selo ADMIN (o servidor decide)
   new.criado_em := now();
   delete from public.mensagens where criado_em < now() - interval '7 days';  -- faxina
   return new;

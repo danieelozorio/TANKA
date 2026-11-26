@@ -10683,6 +10683,7 @@
       return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> ' + (m.nivel === 1 ? '📢 <strong>' + esc(m.personagem || 'Eldrin') + ':</strong> <strong>' : '🐉 <strong>') + esc(m.texto) + '</strong></p>';
     }
     var classe = nomeClasseX(m);
+    var selo = m.admin ? ' <span class="selo-admin" title="Administrador do Eldrin">ADMIN</span>' : '';   // 26/11/2026
     var acoes = ehAdmin()
       ? '<span class="chat-admin"><button data-chat="apagar" data-id="' + m.id + '" title="Apagar mensagem">🗑</button>'
         + '<button data-chat="silenciar" data-nome="' + esc(m.personagem) + '" title="Silenciar jogador">🔇</button></span>'
@@ -10690,10 +10691,10 @@
     // celular: balão de conversa (o meu à direita), com nome e hora em cima
     var nomeAttr = estado.personagem && m.personagem === estado.personagem.nome ? '' : ' data-chat-nome="' + esc(m.personagem) + '" title="Botão direito: amigo, clã, sussurrar"';
     if (CELULAR) return '<div class="chat-msg chat-balao' + (estado.personagem && m.personagem === estado.personagem.nome ? ' minha' : '') + '"><div class="chat-cab">'
-      + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '"' + nomeAttr + '>' + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>'
+      + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '"' + nomeAttr + '>' + esc(m.personagem) + '</strong>' + selo + ' <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>'
       + '<span class="chat-hora">' + hora + '</span></div><div class="chat-texto">' + esc(m.texto) + '</div>' + acoes + '</div>';
     return '<p class="chat-msg"><span class="chat-hora">' + hora + '</span> ' + siglaHtml(m.sigla) + '<strong class="chat-nome classe-' + esc(m.classe) + '"' + nomeAttr + '>'
-      + esc(m.personagem) + '</strong> <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
+      + esc(m.personagem) + '</strong>' + selo + ' <span class="chat-info">' + classe + ' Lv ' + m.nivel + '</span>: '
       + esc(m.texto) + acoes + '</p>';
   }
 

@@ -2550,3 +2550,8 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 /* Set de joias do Chefe Mundial (20/11/2026) */
 .boss-set { margin: .8rem 0; border-color: var(--cor-set, #c9a24a) !important; box-shadow: inset 0 0 18px color-mix(in srgb, var(--cor-set, #c9a24a) 18%, transparent); }
 .boss-set h3 { margin: 0 0 .3rem; color: var(--cor-set, #e6c27a); }
+
+/* Selo ADMIN no chat (Daniel, 26/11/2026): quem fala é administrador do jogo */
+.selo-admin { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; font-size: .68rem; font-weight: 800;
+  letter-spacing: .08em; line-height: 1.5; vertical-align: middle; color: #1a0f00; background: linear-gradient(#ffd76a, #d9a531);
+  border: 1px solid #ffe39a; box-shadow: 0 0 6px rgba(255, 215, 106, .55); }
