@@ -3489,7 +3489,9 @@
     // atualiza sozinho: a cada 20 s, e a cada 5 s no Curto e no Muito curto (o fim está perto)
     var fase = estado.leilao && estado.leilao.fase && estado.leilao.fase.id;
     var espera = fase === 'curto' || fase === 'muitoCurto' ? 5000 : 20000;
-    estado.leilaoTimer = setTimeout(function () { if (estado.aba === 'leilao' && estado.personagem) carregarLeilao(); }, espera);
+    // deu erro: tenta de novo só a cada 60 s (antes repetia a cada 5 s sem parar); personagem inválido: não repete
+    if (estado.leilaoErro) espera = /Personagem inv/.test(estado.leilaoErro) ? 0 : 60000;
+    if (espera) estado.leilaoTimer = setTimeout(function () { if (estado.aba === 'leilao' && estado.personagem) carregarLeilao(); }, espera);
     var ativo = document.activeElement;
     if (ativo && ativo.classList && ativo.classList.contains('lance-valor')) return;
     if (!estado.batalha && !estado.resultado && !estado.chefeAviso && !estado.luta && !estado.lutaArena && !estado.cacada) telaJogo();
