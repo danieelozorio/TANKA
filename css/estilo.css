@@ -164,6 +164,7 @@ table.atributos th, table.atributos td { padding: .25em .3em; border-bottom: 1px
 table.atributos th:first-child, table.atributos td:first-child { text-align: left; }
 table.atributos th { color: var(--suave); font-weight: 500; }
 .mais { color: var(--bom); }
+.encanto-mais { color: var(--bom); font-weight: 600; }   /* (+N) do encantamento na ficha do item */
 .menos { color: var(--ruim); }
 
 /* ---------- Seleção de personagens ---------- */

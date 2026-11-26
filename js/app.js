@@ -1772,6 +1772,23 @@
   // Comparar sem encanto: os dois itens viram +0 só na conta (para ver qual é melhor de base).
   // A comparação é sempre sem encanto (Daniel, nov/2026): mostra a diferença das peças em si; o botão saiu.
   function semEncanto(item) { return item && item.encanto ? Object.assign({}, item, { encanto: 0 }) : item; }
+  // Quanto o encantamento soma em cada atributo (Henri, 26/11/2026): a ficha mostra o valor sem encanto e, em verde,
+  // "(+N)" do encanto ao lado. Arma: [min, max] a mais no dano.
+  function bonusDoEncanto(item) {
+    var r = {};
+    if (!item || !item.encanto) return r;
+    if (item.tipo === 'arma') {
+      var d1 = R.danoArma(item), d0 = R.danoArma(semEncanto(item));
+      return { dano: [d1[0] - d0[0], d1[1] - d0[1]] };
+    }
+    var a = R.bonusItem(item), z = R.bonusItem(semEncanto(item));
+    Object.keys(a).forEach(function (k) { var d = Math.round(((a[k] || 0) - (z[k] || 0)) * 10) / 10; if (d) r[k] = d; });
+    return r;
+  }
+  function tagEncanto(v) {
+    if (Array.isArray(v)) { if (!v[0] && !v[1]) return ''; v = dano(v); } else if (!v) return '';
+    return ' <span class="encanto-mais" title="Somado pelo encantamento">(+' + v + ')</span>';
+  }
 
 
   function fichaItemHtml(item, soVer, comparar) {
@@ -1783,7 +1800,7 @@
     var slot = R.slotDoItem(p, item.id);
     var alvo = null;
     if (!slot) alvo = R.itemNoSlot(p, item.tipo === 'anel' ? 'anel1' : item.tipo);
-    var linhas, itemC = alvo ? semEncanto(item) : item, alvoC = semEncanto(alvo);
+    var linhas, itemC = semEncanto(item), alvoC = semEncanto(alvo), enc = bonusDoEncanto(item);
     if (item.tipo === 'arma') {
       var d = R.danoArma(itemC), media = (d[0] + d[1]) / 2;
       var comp = '';
@@ -1791,14 +1808,14 @@
         var da = R.danoArma(alvoC), diff = media - (da[0] + da[1]) / 2;
         if (diff) comp = ' <span class="' + (diff > 0 ? 'mais' : 'menos') + '">(' + (diff > 0 ? '+' : '') + fmt(diff) + ' de média)</span>';
       }
-      linhas = '<li>Dano ' + dano(d) + comp + '</li>' + extrasArma(item).map(function (x) { return '<li class="suave">' + x + '</li>'; }).join('');
+      linhas = '<li>Dano ' + dano(d) + tagEncanto(enc.dano) + comp + '</li>' + extrasArma(item).map(function (x) { return '<li class="suave">' + x + '</li>'; }).join('');
     } else {
       var b = R.bonusItem(itemC), ba = alvo ? R.bonusItem(alvoC) : {};
       var chaves = Object.keys(D.bonus).filter(function (k) { return b[k] || ba[k]; });
       linhas = chaves.map(function (k) {
         var v = b[k] || 0, dif = v - (ba[k] || 0);
         var cmp = alvo && dif ? ' <span class="' + (dif > 0 ? 'mais' : 'menos') + '">(' + (dif > 0 ? '+' : '') + dif + ')</span>' : '';
-        return '<li' + (v ? '' : ' class="suave"') + '>' + D.bonus[k] + ' +' + v + cmp + '</li>';
+        return '<li' + (v ? '' : ' class="suave"') + '>' + D.bonus[k] + ' +' + v + tagEncanto(enc[k]) + cmp + '</li>';
       }).join('');
     }
     var acoes = '';
@@ -1879,19 +1896,21 @@
   function cartaZoom(item, outro, rotulo, orig) {
     var linhas = [];
     orig = orig || item;
+    var fora = orig !== item || !!(outro && (orig.encanto || outro.encanto)), enc = bonusDoEncanto(orig);
+    item = semEncanto(item); outro = semEncanto(outro);   // valor sem encanto + "(+N)" verde do encanto
     if (item.tipo === 'arma') {
       var d = R.danoArma(item), m = (d[0] + d[1]) / 2;
       var mo = outro ? (R.danoArma(outro)[0] + R.danoArma(outro)[1]) / 2 : null;
-      linhas.push('<li><span>Dano</span><strong>' + dano(d) + '</strong></li>');
+      linhas.push('<li><span>Dano</span><strong>' + dano(d) + tagEncanto(enc.dano) + '</strong></li>');
       linhas.push('<li><span>Dano médio</span><strong>' + fmt(m) + (outro ? diferenca(m, mo) : '') + '</strong></li>');
       extrasArma(item).forEach(function (x) { linhas.push('<li class="suave"><span>' + x + '</span></li>'); });
     } else {
       var b = R.bonusItem(item), bo = outro ? R.bonusItem(outro) : {};
       Object.keys(D.bonus).filter(function (k) { return b[k] || bo[k]; }).forEach(function (k) {
-        linhas.push('<li' + (b[k] ? '' : ' class="suave"') + '><span>' + D.bonus[k] + '</span><strong>+' + (b[k] || 0) + (outro ? diferenca(b[k] || 0, bo[k] || 0) : '') + '</strong></li>');
+        linhas.push('<li' + (b[k] ? '' : ' class="suave"') + '><span>' + D.bonus[k] + '</span><strong>+' + (b[k] || 0) + tagEncanto(enc[k]) + (outro ? diferenca(b[k] || 0, bo[k] || 0) : '') + '</strong></li>');
       });
     }
-    linhas.push('<li><span>Encantamento</span><strong>+' + (orig.encanto || 0) + (orig !== item ? ' <span class="suave">(fora da conta)</span>' : '') + '</strong></li>');
+    linhas.push('<li><span>Encantamento</span><strong>+' + (orig.encanto || 0) + (fora ? ' <span class="suave">(fora da comparação)</span>' : '') + '</strong></li>');
     linhas.push('<li><span>Venda</span><strong class="cor-ouro">' + R.precoVenda(orig).toLocaleString('pt-BR') + ' de ouro</strong></li>');
     return '<div class="zoom-carta"><div class="zoom-rotulo">' + rotulo + '</div>'
       + '<div class="icone-zoom borda-' + corItem(orig) + aura(orig) + '">' + F.icone(orig) + (orig.encanto ? '<span class="nivel-encanto">+' + orig.encanto + '</span>' : '') + '</div>'

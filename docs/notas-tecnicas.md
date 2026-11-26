@@ -1713,3 +1713,7 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - ⚙ Configurações → seção 👑 VIP (só para VIP/admin com personagem): "Nome brilhante de VIP". Desligado grava
   `p.semNomeVip = true` pela ação `preferencias` (o servidor só aceita booleano) e `loja_vips()` deixa o nome de fora.
   Vale por personagem. `carregarVips()` agora também despinta os nomes que saíram da lista.
+## Ficha do item: "(+N)" verde do encanto (Henri, 26/11/2026)
+- `bonusDoEncanto(item)` (app.js) = bonusItem(item) − bonusItem(sem encanto); arma: diferença de `R.danoArma`.
+  A ficha (`fichaItemHtml`) e a carta do zoom (`cartaZoom`) mostram o valor sem encanto + `tagEncanto` (`.encanto-mais`,
+  verde). Comparações continuam sem encanto. Em itens de valor baixo o +1/+2 pode arredondar para 0 (não aparece tag).
