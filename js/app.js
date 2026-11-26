@@ -2134,7 +2134,7 @@
     if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
     var vip = ehVip(), agora = C.agora();
     var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
-      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
+      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (noAppNativo() ? 'A compra de Éter não está disponível no app.' : l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
       + cartaComprarEter(l);
     var V = L.vip;
     var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
