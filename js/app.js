@@ -755,7 +755,7 @@
     else if (!e) arena = '…';
     else {
       arena = e.valor + '/' + e.maximo;
-      if (e.proxima_em) arenaRotulo = '+1 em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora()));
+      if (e.proxima_em) arenaRotulo = '+' + (e.por_hora || 1) + ' em ' + tempoTexto(Math.max(60000, Date.parse(e.proxima_em) - C.agora()));
     }
     function recurso(classe, titulo, icone, rotulo, valor, extra) {
       return '<div class="recurso ' + classe + '" title="' + titulo + '"><span class="rec-ico">' + icone + '</span>'
@@ -2109,7 +2109,8 @@
       + '<ul class="eter-lista">'
       + '<li>Interface <strong>Arcane</strong> no computador e no celular</li>'
       + '<li>Estamina cheia em <strong>' + V.estaminaMinutos + ' min</strong> (sem VIP: ' + D.ESTAMINA.minutosSemAcampar + ' min)</li>'
-      + '<li><strong>+' + V.arenaExtra + '</strong> entradas na Arena e <strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
+      + '<li>Arena: guarda <strong>+' + V.arenaExtra + '</strong> entradas e ganha <strong>' + (D.ARENA.entradasPorHora + (V.arenaPorHoraExtra || 0)) + '</strong> a cada virada de hora (sem VIP: ' + D.ARENA.entradasPorHora + ')</li>'
+      + '<li><strong>+' + V.masmorraExtra + '</strong> entradas na masmorra por dia</li>'
       + '<li>Oficina: <strong>qualquer</strong> Coletor ou Ferreiro faz o seu pedido na hora, sem ser amigo</li>'
       + '<li>Doação ao clã: até <strong>' + V.doacaoMult + 'x</strong> o limite do dia</li>'
       + '<li>Nome em destaque em todo o jogo: <span class="nome-vip vip-m">Nevasca</span> (herói) ou <span class="nome-vip vip-f">Rosa</span> (heroína)</li>'

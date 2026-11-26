@@ -1196,7 +1196,8 @@ Tanka.dados = {
     // ataque = dano médio x velocidade (sem crítico: na Arena é o D20) contra uma defesa de referência do level
     // (física ou mágica, pelo tipo de dano); vida = HP x defesa (média das duas) e esquiva. Ameaça = raiz(ataque x vida) x fator.
     ameaca: { defFisicaNivel: 18, defMagicaNivel: 10.8, esquivaMax: 50, fator: 30 },
-    nivelMin: 5, entradasMax: 5, recargaMinutos: 60, alcanceDesafio: 5, tempoDado: 5, limiteTurnos: 200,
+    nivelMin: 5, entradasMax: 5, recargaMinutos: 60, entradasPorHora: 1,   // entradas: +1 a cada virada de hora (VIP +1 = 2; Henri, 25/11/2026)
+    alcanceDesafio: 5, tempoDado: 5, limiteTurnos: 200,
     reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
     // Veneno, sangramento e queimadura na Arena (Henri, 18/11/2026): o D20 multiplica o dano do efeito, por faixa
     // (até o número `ate`): 1 falha; 2 a 6 reduz; 7 a 12 normal; 13 a 17 aumenta; 18 a 20 o dobro.
@@ -1397,7 +1398,7 @@ Tanka.dados = {
   // Também vão para o banco (tanka_dados): depois de mudar, rode ferramentas/gerar_dados_sql.js e o schema.
   LOJA: {
     vip: { preco: 30, dias: 30, estaminaMinutos: 60,   // estamina: cheia em 60 min (sem VIP: ESTAMINA.minutosSemAcampar)
-      arenaExtra: 2, masmorraExtra: 2, doacaoMult: 2 },
+      arenaExtra: 2, arenaPorHoraExtra: 1, masmorraExtra: 2, doacaoMult: 2 },   // arenaPorHoraExtra: VIP ganha 2 entradas por virada de hora
     boosts: {
       exp: { nome: 'Boost de EXP', preco: 10, pct: 50, minutos: 60 },
       ouro: { nome: 'Boost de Ouro', preco: 10, pct: 50, minutos: 60 },
