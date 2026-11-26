@@ -1762,3 +1762,6 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   Tela: painel de admin, grupo "Jogadores online" (carrega ao abrir e no botão Atualizar). `C.loja.online()`.
 - Selo ADMIN no chat (26/11/2026): coluna `mensagens.admin`, preenchida pelo gatilho `validar_mensagem` com `contas.admin`
   (o jogador não consegue marcar sozinho; avisos do sistema ficam false). Tela: `linhaChat` mostra `.selo-admin`.
+- Aviso do Discord (26/11/2026): `aviso_discord()` + pg_cron 'aviso_discord' (de hora em hora, minuto 0) no projeto de São Paulo.
+  Manda no chat global o convite (https://discord.gg/85ZFvz6ye) como aviso do sistema; pula se ninguém falou desde o último.
+  Na tela, o link do Discord nas mensagens do sistema vira link clicável.

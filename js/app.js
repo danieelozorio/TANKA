@@ -10680,7 +10680,9 @@
   function linhaChat(m) {
     var hora = new Date(m.criado_em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     if (m.classe === 'sistema') {   // aviso do reino (ex.: Ignaroth despertou); nivel 1 = recado do admin (SQL Editor)
-      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> ' + (m.nivel === 1 ? '📢 <strong>' + esc(m.personagem || 'Eldrin') + ':</strong> <strong>' : '🐉 <strong>') + esc(m.texto) + '</strong></p>';
+      // link do Discord vira link clicável (aviso de hora em hora, 26/11/2026)
+      var txtS = esc(m.texto).replace(/https:\/\/discord\.gg\/[A-Za-z0-9]+/g, function (u) { return '<a href="' + u + '" target="_blank" rel="noopener">' + u + '</a>'; });
+      return '<p class="chat-msg chat-sistema"><span class="chat-hora">' + hora + '</span> ' + (m.nivel === 1 ? '📢 <strong>' + esc(m.personagem || 'Eldrin') + ':</strong> <strong>' : '🐉 <strong>') + txtS + '</strong></p>';
     }
     var classe = nomeClasseX(m);
     var selo = m.admin ? ' <span class="selo-admin" title="Administrador do Eldrin">ADMIN</span>' : '';   // 26/11/2026

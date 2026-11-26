@@ -5916,3 +5916,28 @@ do $$ declare f text; begin
   revoke execute on function public.trade_entregar(text, jsonb) from public, anon, authenticated;
   revoke execute on function public.trade_tirar_consumivel(jsonb, text, text, int) from public, anon, authenticated;
 end $$;
+
+-- ============================================================================================================
+-- Aviso do Discord no chat (Daniel, 26/11/2026): de hora em hora (pg_cron 'aviso_discord') o servidor manda no chat
+-- global o convite do Discord. Não repete se ninguém falou no chat desde o último aviso (chat parado não enche de aviso).
+-- A tela transforma o link do Discord em link clicável (linhaChat).
+create or replace function public.aviso_discord() returns void
+language plpgsql security definer set search_path = public as $$
+declare c uuid; ultimo timestamptz;
+begin
+  select max(criado_em) into ultimo from public.mensagens where classe = 'sistema' and texto like '%discord.gg%';
+  if ultimo is not null and not exists (select 1 from public.mensagens where classe <> 'sistema' and criado_em > ultimo) then return; end if;
+  select id into c from public.contas where admin order by criado_em limit 1;
+  if c is null then return; end if;
+  perform set_config('tanka.aviso_sistema', '1', true);
+  insert into public.mensagens (conta_id, personagem, classe, nivel, texto) values (c, 'Eldrin', 'sistema', 1,
+    'Entre no nosso Discord! Novidades, eventos, dicas e a comunidade do Eldrin: https://discord.gg/85ZFvz6ye');
+  perform set_config('tanka.aviso_sistema', '', true);
+end $$;
+revoke execute on function public.aviso_discord() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.unschedule(jobid) from cron.job where jobname = 'aviso_discord';
+  perform cron.schedule('aviso_discord', '0 * * * *', 'select public.aviso_discord()');
+exception when others then raise notice 'pg_cron indisponível (sem aviso do Discord automático): %', sqlerrm;
+end $$;
