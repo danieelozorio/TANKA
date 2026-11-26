@@ -28,8 +28,8 @@ Tanka.dados = {
   // (a exp dos monstros triplica a cada área de 5 levels): +30% por level do 20 ao 29 e +12% do 30 em diante.
   EXP_FAIXAS: [{ ate: 19, crescimento: 1.5 }, { ate: 29, crescimento: 1.3 }, { ate: 99, crescimento: 1.12 }],
   // EXP_MULT (opcional): multiplica a exp de cada level pela faixa do level atual, ex.: [{ ate: 9, mult: 4 }, ...].
-  // Testado em 18/11/2026 (4x a 12x) e desfeito no mesmo dia a pedido do Henri: hoje a curva é a de cima, sem multiplicar.
-  EXP_MULT: null,
+  // Testado em 18/11/2026 e desfeito no mesmo dia; LIGADO de novo em 25/11/2026 (Henri, Beta aberto): 4x a 12x pela faixa.
+  EXP_MULT: [{ ate: 9, mult: 4 }, { ate: 19, mult: 5 }, { ate: 29, mult: 6 }, { ate: 39, mult: 9 }, { ate: 99, mult: 12 }],
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,

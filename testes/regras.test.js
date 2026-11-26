@@ -24,6 +24,9 @@ function semEspinhos() {
   const h = D.SEGUNDAS_CLASSES.paladino.habilidades.find((x) => x.espinhosPvE != null), v = h.espinhosPvE;
   delete h.espinhosPvE; return () => { h.espinhosPvE = v; };
 }
+// A curva mais lenta (EXP_MULT, ligada em 25/11/2026) tem teste próprio; os testes antigos usam a curva base.
+const EXP_MULT_JOGO = D.EXP_MULT; D.EXP_MULT = null;
+
 teste('atributos iniciais das classes: todas com 70 pontos (nov/2026)', () => {
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'cavaleiro') }, { for: 15, des: 10, res: 20, int: 10, sor: 15 });
   assert.deepStrictEqual({ ...R.atributosIniciais('humano', 'arqueiro') }, { for: 15, des: 20, res: 10, int: 10, sor: 15 });
@@ -3074,4 +3077,14 @@ teste('Evento Altar dos Elementos: pagar, trocar 2 por 1, rolar, pontos de monte
   assert.strictEqual(R.altarDoDia(p, 'ev1', Date.UTC(2026, 10, 19, 15)).entradas, 0);
 });
 
-
+teste('exp mais lenta (EXP_MULT ligado em 25/11/2026): 4x a 12x por faixa; a Ascensão usa a curva base', () => {
+  D.EXP_MULT = EXP_MULT_JOGO;
+  try {
+    const base = (n) => R.expNecessaria(n, true);
+    [[1, 4], [9, 4], [10, 5], [19, 5], [25, 6], [35, 9], [53, 12]].forEach(([n, m]) =>
+      assert.ok(Math.abs(R.expNecessaria(n) - base(n) * m) <= m, 'level ' + n + ' pede ' + m + 'x'));
+    const p = R.criarPersonagem('Lento', 'masculino', 'humano', 'cavaleiro');
+    R.ganharExp(p, 39); assert.strictEqual(p.nivel, 1, 'com 39 de exp ainda é level 1 (pede 40)');
+    R.ganharExp(p, 1); assert.strictEqual(p.nivel, 2);
+  } finally { D.EXP_MULT = null; }
+});

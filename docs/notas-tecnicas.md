@@ -1346,7 +1346,7 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   Abaixo, `ev.sombraFalhou` e fica só o ataque normal do turno (a Sombra não gasta a vez). Recarga gasta igual.
 
 ### Exp em % (Henri, 18/11/2026; o EXP_MULT foi desfeito no mesmo dia)
-- DESFEITO: `D.EXP_MULT` voltou para null (curva antiga). O código continua aceitando o multiplicador.
+- DESFEITO em 18/11 e LIGADO de novo em 25/11/2026 (Henri, Beta aberto): `D.EXP_MULT` com 4x a 12x pela faixa.
 - `D.EXP_MULT` (faixa pelo level atual): 1–9 ×4, 10–19 ×5, 20–29 ×6, 30–39 ×9, 40+ ×12 sobre a curva antiga em
   `R.expNecessaria(nivel)`. `R.expNecessaria(nivel, true)` = curva antiga (usada pela Ascensão, que não encareceu).
   A exp dos chefes do Pesadelo (calculada em dados.js pela curva antiga) e dos monstros não mudou.
