@@ -1708,3 +1708,8 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   ("Ouro recebido de X"), movimento tipo 'transferencia' (coluna `para`). Destino de outra conta ou ele mesmo: o ouro volta.
 - `bau_estado` devolve `personagens` (os outros da conta) e `para_nome` no histórico. Tela: `bauOuroHtml` (select +
   Transferir) nas duas telas do baú. Ouro antigo que já estava no baú: botão "Retirar tudo" (bau_retirar continua).
+
+## VIP: desligar o nome brilhante (Henri, 26/11/2026)
+- ⚙ Configurações → seção 👑 VIP (só para VIP/admin com personagem): "Nome brilhante de VIP". Desligado grava
+  `p.semNomeVip = true` pela ação `preferencias` (o servidor só aceita booleano) e `loja_vips()` deixa o nome de fora.
+  Vale por personagem. `carregarVips()` agora também despinta os nomes que saíram da lista.

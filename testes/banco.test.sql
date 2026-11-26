@@ -1699,6 +1699,10 @@ select pg_temp.igual((public.loja_comprar('g2', 'skin:dourada') ->> 'saldo')::in
 select pg_temp.falha($$select public.loja_comprar('g2', 'vip')$$, 'Éter insuficiente');
 select pg_temp.falha($$select public.loja_comprar('g3', 'vip')$$, 'Personagem inválido');
 select pg_temp.igual(public.loja_vips() ? 'Gru2', true, 'loja: nome do VIP na lista do brilho');
+reset role; update public.personagens set dados = dados || '{"semNomeVip": true}' where id = 'g2';
+select pg_temp.igual(public.loja_vips() ? 'Gru2', false, 'loja: VIP que desligou o brilho sai da lista');
+update public.personagens set dados = dados - 'semNomeVip' where id = 'g2';
+set role authenticated; select pg_temp.comoG('2');
 -- Compra de Éter no site (Mercado Pago, 22/11/2026)
 select pg_temp.falha($$select public.eter_pedido_criar('00000000-0000-0000-0000-0000000000f2', 'eter30')$$, 'permission denied');
 reset role;

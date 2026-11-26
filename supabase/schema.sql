@@ -5465,7 +5465,8 @@ revoke execute on function public.eter_pedido_criar(uuid, text), public.eter_mp_
 create or replace function public.loja_vips() returns jsonb
 language sql stable security definer set search_path = public as $$
   select coalesce(jsonb_object_agg(p.nome, coalesce(p.dados ->> 'sexo', 'masculino')), '{}'::jsonb)
-  from public.personagens p join public.loja_conta l on l.conta_id = p.conta_id where l.vip_ate > now();
+  from public.personagens p join public.loja_conta l on l.conta_id = p.conta_id where l.vip_ate > now()
+    and coalesce(p.dados ->> 'semNomeVip', 'false') <> 'true';   -- o VIP pode desligar o brilho (Henri, 26/11/2026)
 $$;
 
 grant execute on function public.conta_vip(uuid) to authenticated;   -- o gatilho da ficha usa (VIP não é segredo: loja_vips)

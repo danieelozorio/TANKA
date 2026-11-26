@@ -2407,6 +2407,10 @@
     C.loja.vips().then(function (m) {
       VIPS.nomes = m || {};
       var ks = Object.keys(VIPS.nomes).filter(function (n) { return n && n.length >= 2; }).sort(function (a, b) { return b.length - a.length; });
+      // Quem saiu da lista (VIP acabou ou desligou o brilho): os nomes já pintados voltam ao normal.
+      document.querySelectorAll('.nome-vip').forEach(function (sp) {
+        if (!VIPS.nomes[sp.textContent] && sp.parentNode) sp.parentNode.replaceChild(document.createTextNode(sp.textContent), sp);
+      });
       VIPS.re = ks.length ? new RegExp('(^|[^\\p{L}\\p{N}_])(' + ks.map(function (n) { return n.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('|') + ')(?=$|[^\\p{L}\\p{N}_])', 'gu') : null;
       pintarVips();
     }, function () { /* sem lista: nomes normais */ });
@@ -5671,7 +5675,8 @@
     var p = estado.personagem;
     return { prefsCacada: p.prefsCacada, caixa: (p.caixa || []).slice(0, 60), caixaVista: p.caixaVista,
       atividade: p.atividade, titulo: p.titulo || null, recomecoPresente: p.recomecoPresente,
-      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, avisoPactoV2: p.avisoPactoV2, pactoVisto: !!p.pactoVisto };
+      presenteForcaCacador: p.presenteForcaCacador, presenteDestrezaCacador: p.presenteDestrezaCacador, presenteAtributos3: p.presenteAtributos3, avisoPactoV2: p.avisoPactoV2, pactoVisto: !!p.pactoVisto,
+      semNomeVip: !!p.semNomeVip };
   }
   function salvarPreferencias() {
     if (!ACAO_SERVIDOR) { salvarFichaDireto(); return; }
@@ -11020,6 +11025,9 @@
       + '<input type="range" id="config-volume" min="0" max="100" step="5" value="' + musica.volume + '"></label>'
       + '<label class="config-faixa"><span>Volume dos efeitos <b id="config-efe-txt">' + musica.efeitos + '%</b></span>'
       + '<input type="range" id="config-efeitos" min="0" max="100" step="5" value="' + musica.efeitos + '"></label>'
+      + (estado.personagem && (ehVip() || ehAdmin()) ? '<h4 class="config-secao">👑 VIP</h4>'
+        + '<label class="config-linha"><span>Nome brilhante de VIP<br><small class="suave">Desligado, seu nome aparece normal para todos.</small></span>'
+        + '<input type="checkbox" id="config-nome-vip"' + (estado.personagem.semNomeVip ? '' : ' checked') + '></label>' : '')
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     ligarPainelInterface(p);
     p.querySelectorAll('[data-escala]').forEach(function (b) {
@@ -11032,6 +11040,14 @@
       guardar('eldrin.musica', musica.ligada ? 'on' : 'off');
       if (musica.ligada) tocarMusica(); else pararTodas();
       desenharBotaoMusica();
+    });
+    var nomeVip = p.querySelector('#config-nome-vip');
+    // Henri, 26/11/2026: o VIP escolhe se o nome dele brilha (vale para este personagem; o servidor tira da loja_vips).
+    if (nomeVip) nomeVip.addEventListener('change', function (e) {
+      if (!estado.personagem) return;
+      if (e.target.checked) delete estado.personagem.semNomeVip; else estado.personagem.semNomeVip = true;
+      salvarPreferencias();
+      sincronizarFicha().then(function () { carregarVips(); });   // a lista nova tira/põe o brilho nos textos
     });
     p.querySelector('#config-volume').addEventListener('input', function (e) {
       musica.volume = parseInt(e.target.value, 10);
