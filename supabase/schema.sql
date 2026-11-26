@@ -2333,13 +2333,25 @@ create or replace function public.arena_fator_efeito(dado int) returns numeric l
 $$;
 
 -- Jackpot: soma por tempo do mesmo Top 1, paga 10% por hora ao Top 1 e entrega tudo às 00:00.
-create or replace function public.arena_jackpot_atualizar(ar text) returns public.arena_jackpot
+-- esperar = false (só olhar a Arena, em arena_estado): se outro jogador está atualizando o jackpot agora, não fica na
+-- fila esperando, só lê o valor atual (Henri, 25/11/2026: no pico do Beta, todo mundo que abria a Arena esperava
+-- nessa trava e dava "statement timeout"). A soma é pelo tempo, então a próxima chamada acerta o que faltou.
+drop function if exists public.arena_jackpot_atualizar(text);
+create or replace function public.arena_jackpot_atualizar(ar text, esperar boolean default true) returns public.arena_jackpot
 language plpgsql as $$
 declare cfg jsonb := public.tanka_dados() -> 'ARENA'; j public.arena_jackpot; top text; n int; pago int;
   por10 int := (select (a ->> 'jackpotPor10min')::int from jsonb_array_elements(cfg -> 'arenas') a where a ->> 'id' = ar);
 begin
   insert into public.arena_jackpot (arena) values (ar) on conflict (arena) do nothing;
-  select * into j from public.arena_jackpot where arena = ar for update;
+  if esperar then
+    select * into j from public.arena_jackpot where arena = ar for update;
+  else
+    select * into j from public.arena_jackpot where arena = ar for update skip locked;
+    if not found then
+      select * into j from public.arena_jackpot where arena = ar;
+      return j;
+    end if;
+  end if;
   select personagem_id into top from public.arena_posicoes where arena = ar order by posicao limit 1;
   if top is distinct from j.top1 then
     j.top1 := top; j.ultima_soma := now(); j.ultima_paga := now();
@@ -2657,7 +2669,7 @@ begin
   minha := public.arena_garantir(meu);
   perform public.arena_encerrar_abandonadas(meu);
   ver := coalesce(ver, minha, 'a1');
-  j := public.arena_jackpot_atualizar(ver);
+  j := public.arena_jackpot_atualizar(ver, false);   -- sem fila (25/11/2026)
   select posicao into pos from public.arena_posicoes where personagem_id = meu and arena = ver;
   select count(*) into total from public.arena_posicoes where arena = ver;
   return jsonb_build_object(
@@ -2815,7 +2827,7 @@ revoke execute on function public.arena_comecar_tipo(text, text, bigint, text), 
   from public, anon, authenticated;
 revoke execute on function public.tanka_status(jsonb), public.arena_de_nivel(int), public.arena_compactar(text), public.arena_garantir(text),
   public.arena_entradas_atual(text), public.arena_gastar_entrada(text), public.creditar(text, int, int, text), public.ouro_real(text),
-  public.arena_jackpot_atualizar(text), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
+  public.arena_jackpot_atualizar(text, boolean), public.arena_lutador(text), public.arena_golpe(jsonb, jsonb, int), public.arena_finalizar(bigint, boolean),
   public.arena_avancar(bigint), public.arena_jogar(bigint, boolean), public.arena_encerrar_abandonadas(text), public.arena_luta_json(bigint),
   public.arena_comecar(text, text, bigint), public.arena_pontos_ok(jsonb), public.arena_passiva(jsonb), public.arena_kit(jsonb),
   public.arena_buff(jsonb, text), public.arena_vez(jsonb, jsonb, int), public.arena_kit(jsonb, text), public.arena_lutador(text, text),

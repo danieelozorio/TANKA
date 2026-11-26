@@ -1693,3 +1693,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
 
 ## Contador de visitas
 GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</head>`. Painel: https://eldrin.goatcounter.com (conta do Daniel). Não conta acessos em localhost.
+
+## Arena: "statement timeout" no pico do Beta (Henri, 25/11/2026)
+- Causa: `arena_estado` chamava `arena_jackpot_atualizar` com `select ... for update` na linha do jackpot da Arena. Essa
+  trava ficava até o fim da chamada, então todo mundo que abria a mesma Arena entrava numa fila; com muitos jogadores
+  (e às vezes uma luta abandonada sendo resolvida no meio), a fila passava de 8 s e o Supabase cancelava.
+- Correção: `arena_jackpot_atualizar(ar, esperar default true)`. `arena_estado` usa `esperar = false` (`skip locked`):
+  se alguém está atualizando, só lê o valor. `arena_finalizar` continua esperando (o prêmio do Top 1 precisa da trava).
