@@ -43,7 +43,7 @@ jobs:
         with: { node-version: 22 }
       - name: Conferir o projeto
         run: |
-          case "${{ inputs.url }}" in *cwlcdeqvwzpveduzhaol*) echo "::error::Esse é o banco de verdade do jogo. Use o projeto de teste."; exit 1;; esac
+          case "${{ inputs.url }}" in *cwlcdeqvwzpveduzhaol*|*ayccftokfrzmvgawrkxr*) echo "::error::Esse é o banco de verdade do jogo. Use o projeto de teste."; exit 1;; esac
           REF=$(echo "${{ inputs.url }}" | sed -E 's#https://([a-z0-9]+)\.supabase\.co.*#\1#')
           echo "REF=$REF" >> "$GITHUB_ENV"; echo "Projeto de teste: $REF"
       # (Daniel, 19/11/2026) prepara o projeto de teste pela API do Supabase com o SUPABASE_ACCESS_TOKEN: sem mexer no painel.

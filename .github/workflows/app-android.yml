@@ -1,6 +1,7 @@
 # App Android do Eldrin (Capacitor, Henri, nov/2026). O jogo inteiro vai dentro do APK.
 # A cada mudança do jogo no main: monta o pacote do jogo (eldrin-web.zip) e o versao.json no release "app-web";
 # o app baixa o pacote novo em segundo plano e usa na próxima abertura (sem APK novo). webMinimo no versao.json
+# (webMinimo: o maior entre o do release e o número em app-android/web-minimo.txt; 26/11/2026: 178 = troca do servidor para São Paulo, obriga a atualizar)
 # (mudado à mão no release) obriga quem tem jogo mais velho a atualizar na hora, com a tela cheia.
 # O APK é montado de novo só quando muda a parte do app (app-android/, js/app-nativo.js, este arquivo) ou no botão
 # "Run workflow"; fica no release "app-android" (Eldrin-app.apk).
@@ -138,7 +139,7 @@ jobs:
           MB=$(node -e "console.log((require('fs').statSync('eldrin-web.zip').size/1048576).toFixed(1))")
           SOMA=$(sha256sum eldrin-web.zip | cut -d' ' -f1)   # o app confere o arquivo baixado (o plugin exige)
           gh release upload app-web eldrin-web.zip --clobber
-          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: $MB, apk: $APK_NUM, pushDesde: Number('$PUSH_DESDE') || 0, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0, webMinimo: Number(require('./antigo.json').webMinimo) || 0 }, null, 1))"
+          node -e "require('fs').writeFileSync('versao.json', JSON.stringify({ web: $N, webUrl: '$REPO_URL/app-web/eldrin-web.zip', checksum: '$SOMA', tamanhoMB: $MB, apk: $APK_NUM, pushDesde: Number('$PUSH_DESDE') || 0, apkUrl: '$REPO_URL/app-android/Eldrin-app.apk', apkMinimo: 0, webMinimo: Math.max(Number(require('./antigo.json').webMinimo) || 0, Number((require('fs').existsSync('app-android/web-minimo.txt') ? require('fs').readFileSync('app-android/web-minimo.txt', 'utf8') : '0').trim()) || 0) }, null, 1))"
           cat versao.json
           gh release upload app-web versao.json --clobber
 

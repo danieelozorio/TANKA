@@ -3,6 +3,6 @@
 // NUNCA coloque aqui a chave secreta (sb_secret_... / service_role).
 var Tanka = typeof Tanka !== 'undefined' ? Tanka : {};
 Tanka.config = {
-  supabaseUrl: 'https://cwlcdeqvwzpveduzhaol.supabase.co',
-  supabaseChave: 'sb_publishable_wnIKuFHndw6SRoMppdSK-A_s2vxK9m9',
+  supabaseUrl: 'https://ayccftokfrzmvgawrkxr.supabase.co',
+  supabaseChave: 'sb_publishable_Zb9F63kEl01AA0bQ23NxZQ_zf9JPSpQ',
 };

@@ -13,7 +13,7 @@ const SEG = Number(process.env.STRESS_SEGUNDOS || 90), JUNTOS = Number(process.e
 // O Supabase só deixa 30 logins a cada 5 min por IP; assim 1000 heróis precisam de só 1000/N logins.
 const POR_CONTA = Number(process.env.STRESS_POR_CONTA || 0);
 if (!URL_ || !CHAVE) { console.error('Faltam STRESS_URL e STRESS_CHAVE (projeto de teste).'); process.exit(1); }
-if (/cwlcdeqvwzpveduzhaol/.test(URL_)) { console.error('Recusado: este é o banco de verdade do jogo. Use um projeto de teste.'); process.exit(1); }
+if (/cwlcdeqvwzpveduzhaol|ayccftokfrzmvgawrkxr/.test(URL_)) { console.error('Recusado: este é o banco de verdade do jogo. Use um projeto de teste.'); process.exit(1); }
 
 // regras do jogo (para criar um personagem válido)
 const raiz = path.join(__dirname, '..', '..'), ctx = { console, Math, Date, JSON };
