@@ -29,7 +29,8 @@ Tanka.dados = {
   EXP_FAIXAS: [{ ate: 19, crescimento: 1.5 }, { ate: 29, crescimento: 1.3 }, { ate: 99, crescimento: 1.12 }],
   // EXP_MULT (opcional): multiplica a exp de cada level pela faixa do level atual, ex.: [{ ate: 9, mult: 4 }, ...].
   // Testado em 18/11/2026 e desfeito no mesmo dia; LIGADO de novo em 25/11/2026 (Henri, Beta aberto): 4x a 12x pela faixa.
-  EXP_MULT: [{ ate: 9, mult: 4 }, { ate: 19, mult: 5 }, { ate: 29, mult: 6 }, { ate: 39, mult: 9 }, { ate: 99, mult: 12 }],
+  // 26/11/2026 (Henri): o aumento caiu pela metade (era 4x, 5x, 6x, 9x, 12x → 1 + metade do que somava).
+  EXP_MULT: [{ ate: 9, mult: 2.5 }, { ate: 19, mult: 3 }, { ate: 29, mult: 3.5 }, { ate: 39, mult: 5 }, { ate: 99, mult: 6.5 }],
   MAX_PERSONAGENS: 3,
   MOCHILA_MAX: 32,        // espaços da mochila (itens não equipados)
   // Consumíveis (aba Consumíveis da mochila): itens empilhados { id, tipo, raridade, qtd } em p.consumiveis,

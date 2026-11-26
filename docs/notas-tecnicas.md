@@ -1722,3 +1722,6 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Simulação (grupos de 3 das 8 segundas classes, luta1→luta2→elite→chefe sem desvio): no level mínimo com o equipamento
   do poderRecomendado o grupo vencia só 18–45%. `forca` de todas reduzida (x0,58 a x0,82) para ~70%, e poderRecomendado
   atualizado para a mediana de hoje (5.300 / 11.700 / 33.000 / 72.500 / 146.200 / 321.200 / 547.900). Só dados.js.
+
+## Exp: metade do aumento (Henri, 26/11/2026)
+- `EXP_MULT` de 4/5/6/9/12x para 2,5/3/3,5/5/6,5x (o que somava acima de 1x caiu pela metade). Só dados.js.
