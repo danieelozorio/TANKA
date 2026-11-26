@@ -104,9 +104,9 @@ async function luta(acao: string, id: string, p: any, args: any, base: string, c
   const est = await fetch(base + '/rest/v1/rpc/boss_estado', { method: 'POST', headers: cab, body: JSON.stringify({ meu: id }) });
   const st = est.ok ? await est.json() : null;
   const bs = st && st.boss;
-  if (!bs || !(Number(bs.vida) > 0)) return { erro: 'Ignaroth não está acordado agora.' };
+  if (!bs || !(Number(bs.vida) > 0)) return { erro: 'O Chefe Mundial não está acordado agora.' };
   const chefe = R.chefeDoNivel(p), luta = R.lutaChefeMundial(p);   // chefe: ouro e exp; luta: contra quem (22/11/2026)
-  const b = R.iniciarBatalha(p, luta, sorteio, { mundial: true });
+  const b = R.iniciarBatalha(p, luta, sorteio, { mundial: true, mec: R.chefeMundialPorId(bs.chefe_mundial).mec });   // jeito de lutar do Tirano do dia
   b.monstro.hp = Number(bs.vida); b.monstro.hpMax = Number(bs.vida_max);
   const vidaInicial = b.monstro.hp, limite = Tanka.dados.CHEFE_MUNDIAL.acoesPorAtaque;
   const eventos = [];

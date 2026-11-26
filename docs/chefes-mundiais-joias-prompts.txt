@@ -1,0 +1,54 @@
+ELDRIN - THE THREE TYRANTS (WORLD BOSSES) AND THEIR JEWELS (PROMPTS FOR GEMINI)
+================================================================================
+Generate the images below and send them to Claudia.
+Files in the game: assets/monstros/kharzul-mundial.webp, ysolde-mundial.webp, gorrak-mundial.webp
+and assets/itens/joia-kharzul.webp, joia-ysolde.webp, joia-gorrak.webp
+
+
+1) WORLD BOSS - KHARZUL, THE LORD OF ASHES (portrait image, 3:4)
+-----------------------------------------------------------------
+Dark fantasy RPG boss portrait. Kharzul, a towering demon lord made of cracked black
+charcoal and smoldering ash, molten orange light glowing through the cracks of his body,
+a crown of burnt horns, eyes like dying embers, a long tattered cloak of smoke and falling
+ash, one clawed hand holding a broken burning greatsword. Ash and embers drift in the air
+around him. Background: a burnt kingdom in ruins under a dark red sky. Warm orange and
+deep black, painterly, highly detailed, menacing, front view, centered, upper body and
+face clearly visible.
+No text, no letters, no watermark, no frame.
+
+
+2) WORLD BOSS - YSOLDE, THE THORN WITCH (portrait image, 3:4)
+-------------------------------------------------------------
+Dark fantasy RPG boss portrait. Ysolde, a tall pale witch wrapped in living black thorn
+vines, a crown of thorns and dead roses, sickly green glowing eyes, long dark hair with
+twigs and leaves, thin hands with long nails dripping green poison, a dress made of bark,
+thorns and torn dark cloth. Poison mist and floating green spores around her.
+Background: a cursed dark forest at night with twisted thorn trees. Sickly green and deep
+violet light, painterly, highly detailed, menacing, front view, centered, upper body and
+face clearly visible.
+No text, no letters, no watermark, no frame.
+
+
+3) WORLD BOSS - GORRAK, THE IRON TITAN (portrait image, 3:4)
+------------------------------------------------------------
+Dark fantasy RPG boss portrait. Gorrak, a colossal giant covered in thick riveted dark iron
+plates like a living fortress, a huge iron helmet with a narrow glowing slit, massive
+shoulders, scars and rust, heavy chains wrapped around his arms, one gigantic iron fist
+raised. Sparks and steam around him. Background: a ruined fortress gate in a cold grey
+mountain storm. Cold steel grey with hot orange sparks, painterly, highly detailed, heavy
+and powerful, front view, centered, head and chest clearly visible.
+No text, no letters, no watermark, no frame.
+
+
+4) THE THREE JEWELS - 3 ICONS (one wide image, 1 row x 3 columns)
+------------------------------------------------------------------
+Game item icon sheet for a dark fantasy RPG, legendary jewelry. 3 icons in a perfect row of
+3 columns, each centered in its cell with empty margin, same size, front view.
+PURE FLAT BLACK BACKGROUND (#000000), no frame, no cell borders, no text, no letters.
+Painterly, highly detailed, glowing, readable at small size.
+Left = NECKLACE OF KHARZUL: a heavy black chain with a pendant of cracked charcoal stone
+       glowing molten orange from inside, ash and small embers around it
+Middle = RING OF YSOLDE: a ring of twisted black thorn vines with a small poison-green gem
+       shaped like a drop, tiny green spores glowing around it
+Right = RING OF GORRAK: a massive riveted dark iron ring like a piece of armor, with a
+       narrow glowing orange slit in the middle, small sparks

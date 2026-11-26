@@ -1005,7 +1005,43 @@ Tanka.dados = {
   // Chefe Mundial (Henri, 22/11/2026: estava fácil demais): do level `pesadeloDesde` em diante a luta é contra o chefe
   // Pesadelo do level do herói com `danoPesadelo` do dano dele; abaixo, o chefe da região com o dano da caçada. O ouro e
   // a exp continuam pelo chefe da região. Vida e limite por ataque: boss_cfg no schema.sql.
-  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5, pesadeloDesde: 40, danoPesadelo: 0.5 },   // entradas: ataques por despertar (igual a boss_cfg)
+  // Rodízio (Daniel, 26/11/2026): os 3 Tiranos, um por dia, na ordem (dia do jogo % 3, igual a boss_chefe_do_dia() no
+  // servidor). Cada um dropa a sua joia do conjunto D.JOIAS_BOSS. mec: jeito de lutar, por cima do chefe da luta:
+  // rampaPct = +% de dano a cada ataque dele; venenoPct = % da vida máxima que o herói perde a cada ação dele;
+  // rouboPct = % do dano que ele causa que volta como vida; defesaPct/velocidadePct/danoPct = % na defesa/velocidade/dano.
+  CHEFE_MUNDIAL: { acoesPorAtaque: 30, entradas: 5, pesadeloDesde: 40, danoPesadelo: 0.5,   // entradas: ataques por despertar (igual a boss_cfg)
+    chefes: [
+      { id: 'kharzul', nome: 'Kharzul, o Senhor das Cinzas', curto: 'Kharzul', monstro: 'kharzul-mundial', imagem: 'assets/monstros/kharzul-mundial.webp',
+        txt: 'Começa fraco e fica mais forte a cada golpe: quem demora a derrubar apanha muito.', mec: { danoPct: -25, rampaPct: 6 } },
+      { id: 'ysolde', nome: 'Ysolde, a Bruxa do Espinho', curto: 'Ysolde', monstro: 'ysolde-mundial', imagem: 'assets/monstros/ysolde-mundial.webp',
+        txt: 'Envenena: a cada ação dela você perde vida, e os golpes dela a curam.', mec: { venenoPct: 2, rouboPct: 20 } },
+      { id: 'gorrak', nome: 'Gorrak, o Titã de Ferro', curto: 'Gorrak', monstro: 'gorrak-mundial', imagem: 'assets/monstros/gorrak-mundial.webp',
+        txt: 'Defesa enorme: bate devagar, mas muito forte.', mec: { defesaPct: 60, velocidadePct: -40, danoPct: 45 } },
+    ] },
+  // Joias dos Chefes Mundiais (Daniel, 26/11/2026): UM conjunto, cada Tirano dropa a sua peça (o nome da joia é o do chefe).
+  // Peças diferentes equipadas (colar + os 2 anéis) somam o bônus de 2 e de 3 (em %; crítico em pontos). Valem em tudo,
+  // também na Arena (lá o crítico vira dano). Arte: assets/itens/joia-<chefe>.webp.
+  // drop: quando o chefe cai, CADA jogador que atacou tem chanceMin% + (chanceMax − chanceMin)% x (dano dele / maior dano).
+  // raridade (qualidade) e nivel (level do herói + faixa): as altas são bem raras. efeito: só lendária de level nivelMin+,
+  // e só chance% delas. efeitos: a cada `cada` turnos do herói (Arena e lutas contra monstros).
+  JOIAS_BOSS: {
+    nome: 'Relíquias dos Três Tiranos', cor: '#d9a03c',
+    pecas: {
+      kharzul: { tipo: 'colar', nome: 'Colar de Kharzul', efeito: 'silencio' },
+      ysolde: { tipo: 'anel', nome: 'Anel de Ysolde', efeito: 'vampiro' },
+      gorrak: { tipo: 'anel', nome: 'Anel de Gorrak', efeito: 'invulneravel' },
+    },
+    bonus: { 2: { dano: 8, vida: 10 }, 3: { critico: 5, danoCritico: 10, defesa: 10 } },
+    drop: { chanceMin: 1, chanceMax: 3 },
+    raridade: [['lendaria', 2], ['epica', 10], ['rara', 28], ['comum', 60]],
+    nivel: [[-2, 0, 70], [1, 3, 22], [4, 6, 7], [7, 10, 1]],   // [de, até, % de chance] em relação ao level do herói
+    efeito: { raridade: 'lendaria', nivelMin: 45, chance: 25 },
+    efeitos: {
+      silencio: { nome: 'Silêncio', cada: 6, texto: 'A cada 6 turnos, cala o inimigo: na Arena ele fica sem habilidades no próximo turno; contra monstros, perde o próximo ataque.' },
+      invulneravel: { nome: 'Invulnerável', cada: 8, texto: 'A cada 8 turnos, você fica invulnerável até o seu próximo turno.' },
+      vampiro: { nome: 'Sede de Sangue', cada: 10, pct: 50, texto: 'A cada 10 turnos, 50% do dano que você causa no turno vira vida.' },
+    },
+  },
 
   areas: [
     {
@@ -1572,4 +1608,9 @@ Tanka.dados = {
   });
   // Chefe Mundial: o Ignaroth com a imagem do evento (o da caçada continua com a dele).
   D.monstros['ignaroth-mundial'] = Object.assign({}, D.monstros.ignaroth, { area: null, imagem: 'assets/monstros/boss-mundial.jpg' });
+  // Os outros Chefes Mundiais do rodízio (20/11/2026): só nome e arte (a luta usa o chefe da área do herói + a mecânica).
+  D.CHEFE_MUNDIAL.chefes.forEach(function (c) {
+    if (!D.monstros[c.monstro]) D.monstros[c.monstro] = Object.assign({}, D.monstros.ignaroth, { id: c.monstro, area: null, nome: c.nome, imagem: c.imagem,
+      reserva: 'assets/monstros/boss-mundial.jpg', mundial: c.id });   // sem a arte ainda: usa a do Ignaroth
+  });
 })(Tanka.dados);

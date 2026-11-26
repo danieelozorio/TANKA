@@ -123,7 +123,9 @@ Tanka.servidorAcoes = (function () {
         return;
       }
       var bruto = pegar(rec);
-      var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
+      var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade)
+        : bruto && bruto.tipo === 'boss_joia' ? R.joiaDoChefe(p, bruto.chefe)   // joia do Chefe Mundial (26/11/2026)
+        : R.completarItem(p, bruto);
       p.inventario.push(item);
       aviso(rec, (rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : rec.origem === 'trade' ? '🤝 Trade: chegou ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!', 'item');
     });

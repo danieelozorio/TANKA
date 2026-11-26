@@ -38,6 +38,8 @@ const dados = {
   LOJA: D.LOJA,   // Loja de Éter (19/11/2026)
   SKINS_DADO: D.SKINS_DADO,
   CONJUNTOS: Object.fromEntries(Object.entries(D.CONJUNTOS).map(([k, c]) => [k, { bonus: c.bonus }])),
+  JOIAS_BOSS: { pecas: Object.fromEntries(Object.keys(D.JOIAS_BOSS.pecas).map((k) => [k, 1])), bonus: D.JOIAS_BOSS.bonus,   // joias dos Chefes Mundiais (26/11/2026)
+    efeitos: Object.fromEntries(Object.entries(D.JOIAS_BOSS.efeitos).map(([k, e]) => [k, { cada: e.cada, pct: e.pct }])) },
   LEILAO: D.LEILAO,
   MASMORRA: { pergaminho: D.MASMORRA.pergaminho },   // chance (%) do pergaminho na vitória da masmorra
   DEFESA: D.DEFESA,

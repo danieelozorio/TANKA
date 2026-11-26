@@ -1725,3 +1725,22 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 
 ## Exp: aumento −80% (Henri, 26/11/2026)
 - `EXP_MULT` de 4/5/6/9/12x para 1,6/1,8/2/2,6/3,2x (o que somava acima de 1x caiu 80%). Só dados.js.
+
+## Chefes Mundiais: os 3 Tiranos e as joias deles (Daniel, 26/11/2026)
+- Rodízio (um por dia, `dia do jogo % 3`): `D.CHEFE_MUNDIAL.chefes` = Kharzul (fica mais forte a cada golpe: `rampaPct`),
+  Ysolde (veneno `venenoPct`% da vida por ação dela + `rouboPct`), Gorrak (defesa/velocidade/dano). A luta continua contra o
+  chefe do level do herói (`R.lutaChefeMundial`) com o `mec` do Tirano por cima (`R.iniciarBatalha(..., { mundial, mec })`,
+  também na função `acao`). SQL: `boss_cfg` (chefes, nomes, joias, títulos, joiaMin/joiaMax), `boss_chefe_do_dia()`,
+  coluna `boss_mundial.chefe_mundial`, `admin_boss_invocar_chefe`.
+- Joias (`D.JOIAS_BOSS`): UM conjunto (Relíquias dos Três Tiranos): Colar de Kharzul, Anel de Ysolde, Anel de Gorrak.
+  Peças DIFERENTES equipadas contam (2 anéis iguais = 1). Bônus 2 e 3 peças em `R.comJoiasBoss` (status) e `arena_com_joias` (SQL).
+- Drop (`boss_premiar`, chefe derrotado): CADA um que deu dano rola `joiaMin + (joiaMax − joiaMin) × dano/maior dano` %
+  (1% a 3%, = `R.chanceJoiaBoss`) → recompensa `{tipo: 'boss_joia', chefe}`; a função `acao` cria a joia com
+  `R.joiaDoChefe` (qualidade pela tabela `raridade`, level do herói + faixa `nivel`; lendária de level 45+ tem 25% de vir
+  com `efeitoJoia`).
+- Poderes (`efeitoJoia`), contados pelos turnos de quem usa: Silêncio (colar, a cada 6: contra monstro ele perde o próximo
+  ataque; na Arena fica sem habilidades na próxima vez), Invulnerável (Gorrak, a cada 8: nenhum golpe tira vida até a
+  próxima vez), Sede de Sangue (Ysolde, a cada 10: 50% do dano do turno vira vida). JS: `vezDoHeroi`/`ataqueMonstro`
+  (b.joias, b.turno). SQL: `arena_joias_poderes` → `ex.joias` em `arena_lutador`; `arena_vez` (invul, joiaSilencio, joiaVampiro).
+- Arte: `assets/monstros/<chefe>-mundial.webp` (sem ela, usa a do Ignaroth) e `assets/itens/joia-<chefe>.webp`.
+  Prompts: `docs/chefes-mundiais-joias-prompts.txt`.

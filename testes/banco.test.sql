@@ -878,12 +878,58 @@ select pg_temp.igual((select dano from public.boss_mundial_dano where personagem
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_premio' and (item ->> 'fator')::int = 100)::int, 3, 'boss: prêmio cheio para os 3 atacantes');
 select pg_temp.igual((select (item ->> 'ataques')::int from public.recompensas where personagem_id = 'pa' and item ->> 'tipo' = 'boss_premio'), 2, 'boss: prêmio conta os ataques');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'pergaminho' and origem = 'boss')::int, 3, 'boss: top 10 ganha 1 pergaminho');
-select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'), 'Matador de Dragões', 'boss: título do golpe final');
+select pg_temp.igual((select item ->> 'nome' from public.recompensas where item ->> 'tipo' = 'titulo'),
+  public.boss_cfg() -> 'titulos' ->> (select chefe_mundial from public.boss_mundial order by id desc limit 1), 'boss: título do golpe final (o do chefe do dia)');
 select pg_temp.igual((select personagem_id from public.recompensas where item ->> 'tipo' = 'titulo'), 'pa', 'boss: título vai para quem deu o golpe final');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTA'), 6::bigint, 'boss: aliança com mais dano ganha 1% em ouro');
 select pg_temp.igual((select tesouro from public.aliancas where sigla = 'BTB'), 0::bigint, 'boss: só a primeira aliança ganha');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item' and item ->> 'raridade' not in ('rara', 'epica', 'lendaria'))::int, 0, 'boss: item raro, épico ou lendário');
 select pg_temp.igual((select count(*) from public.recompensas where item ->> 'tipo' = 'boss_item')::int, 3, 'boss: todo o top 10 ganha 1 item');
+-- Rodízio e joias dos chefes (Daniel, 26/11/2026)
+select pg_temp.igual((select chefe_mundial from public.boss_mundial order by id desc limit 1), public.boss_chefe_do_dia(), 'boss: o despertar é do chefe do dia');
+select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-01'), 'kharzul', 'rodízio: dia 0 = Kharzul');
+select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-02'), 'ysolde', 'rodízio: dia 1 = Ysolde');
+select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-03'), 'gorrak', 'rodízio: dia 2 = Gorrak');
+select pg_temp.igual(public.boss_chefe_do_dia(date '1970-01-04'), 'kharzul', 'rodízio: volta ao Kharzul');
+select pg_temp.igual((select bool_and(personagem_id in ('pa', 'pb', 'pc') and item ->> 'chefe' = public.boss_chefe_do_dia()) from public.recompensas where item ->> 'tipo' = 'boss_joia') is not false, true,
+  'boss: joia (se caiu) vai para quem atacou e é do chefe do dia');
+select pg_temp.igual((select count(*) from public.mensagens where texto like '%ganhou o %')::int, (select count(*) from public.recompensas where item ->> 'tipo' = 'boss_joia')::int,
+  'boss: cada joia é anunciada no chat');
+-- chance de 1% a 3% para CADA um, pelo dano (premiar 2000 vezes um boss falso com 2 atacantes: 1000 e 10 de dano)
+do $$
+declare bid bigint; i int; muito int := 0; pouco int := 0;
+begin
+  for i in 1..2000 loop
+    insert into public.boss_mundial (dia, inicio, fim, vida_max, vida, estado, chefe_mundial)
+      values (null, now() - interval '2 hours', now() - interval '1 hour', 10, 0, 'derrotado', 'gorrak') returning id into bid;
+    insert into public.boss_mundial_dano (boss_id, personagem_id, dano, ataques) values (bid, 'pa', 1000, 1), (bid, 'pb', 10, 1);
+    perform public.boss_premiar(bid, true);
+  end loop;
+  select count(*) filter (where personagem_id = 'pa'), count(*) filter (where personagem_id = 'pb') into muito, pouco
+    from public.recompensas r join public.boss_mundial b on b.id = (r.item ->> 'boss')::bigint where r.item ->> 'tipo' = 'boss_joia' and b.chefe_mundial = 'gorrak' and b.dia is null;
+  if muito < 30 or muito > 95 then raise exception 'joia: maior dano devia ganhar ~3%% (60 de 2000), ganhou %', muito; end if;
+  if pouco < 8 or pouco > 45 then raise exception 'joia: dano pequeno devia ganhar ~1%% (20 de 2000), ganhou %', pouco; end if;
+  raise notice 'ok   joia: chance por jogador pelo dano (maior %/2000, pequeno %/2000)', muito, pouco;
+  delete from public.boss_mundial where dia is null and chefe_mundial = 'gorrak' and estado = 'derrotado' and vida_max = 10;
+end $$;
+set role authenticated;
+select pg_temp.como('d'); select public.admin_boss_invocar_chefe('pd', 'gorrak', 1000, 60);
+select pg_temp.falha($$select public.admin_boss_invocar_chefe('pd', 'dragao', 1000, 60)$$, 'Chefe inválido');
+select pg_temp.como('a'); select pg_temp.falha($$select public.admin_boss_invocar_chefe('pa', 'gorrak', 1000, 60)$$, 'Só administradores');
+select pg_temp.igual(public.boss_estado('pa') -> 'boss' ->> 'chefe_mundial', 'gorrak', 'admin: invoca o chefe escolhido');
+reset role;
+update public.boss_mundial set estado = 'dormindo', premiado = true where estado = 'ativo';
+-- joias na Arena: 3 peças diferentes = +8% dano, +10% vida, +5 crít., +10% dano crít., +10% defesa; 2 anéis iguais contam 1
+select pg_temp.igual(public.arena_joias_ef(jsonb_build_object('equipados', jsonb_build_object('colar', 'j1', 'anel1', 'j2', 'anel2', 'j3'),
+  'inventario', jsonb_build_array(jsonb_build_object('id', 'j1', 'joiaBoss', 'kharzul'), jsonb_build_object('id', 'j2', 'joiaBoss', 'ysolde'),
+    jsonb_build_object('id', 'j3', 'joiaBoss', 'gorrak')))), '{"dano": 8, "vida": 10, "critico": 5, "danoCritico": 10, "defesa": 10}'::jsonb, 'arena: bônus de 3 peças');
+select pg_temp.igual(public.arena_joias_ef(jsonb_build_object('equipados', jsonb_build_object('anel1', 'j2', 'anel2', 'j3'),
+  'inventario', jsonb_build_array(jsonb_build_object('id', 'j2', 'joiaBoss', 'ysolde'), jsonb_build_object('id', 'j3', 'joiaBoss', 'ysolde')))), '{}'::jsonb, 'arena: 2 anéis iguais = 1 peça');
+select pg_temp.igual((public.arena_com_joias('{"hpMax": 100, "dano": [100, 100], "defesa": 10, "defesaMagica": 10, "velocidade": 10}'::jsonb,
+  jsonb_build_object('equipados', jsonb_build_object('colar', 'j1', 'anel1', 'j2'), 'inventario', jsonb_build_array(
+    jsonb_build_object('id', 'j1', 'joiaBoss', 'kharzul'), jsonb_build_object('id', 'j2', 'joiaBoss', 'gorrak')))) -> 'dano' ->> 0)::int, 108, 'arena: 2 peças = +8% de dano');
+select pg_temp.igual(public.arena_joias_poderes(jsonb_build_object('equipados', jsonb_build_object('colar', 'j1', 'anel1', 'j2'), 'inventario', jsonb_build_array(
+    jsonb_build_object('id', 'j1', 'joiaBoss', 'kharzul', 'efeitoJoia', 'silencio'), jsonb_build_object('id', 'j2', 'joiaBoss', 'gorrak')))), '{"silencio": 6}'::jsonb, 'arena: poder do colar');
 set role authenticated;
 select pg_temp.como('a');
 select pg_temp.igual(jsonb_array_length(public.boss_estado('pa') -> 'recompensas') >= 3, true, 'boss: prêmios aparecem no estado');
@@ -1769,4 +1815,31 @@ begin
   if (select count(*) from recompensas where personagem_id = A and item ->> 'ctipo' = 'trade') <> 1 then raise exception 'FALHA: recusa devolve o pergaminho'; end if;
   raise notice 'ok   trade recusado devolve o pergaminho de quem pediu';
 end $$;
+-- Poderes das joias na Arena (arena_vez): silêncio a cada 6, invulnerável a cada 8, 50% do dano vira vida a cada 10
+do $$
+declare base jsonb := '{"hp": 100000, "hpMax": 100000, "dano": [100, 100], "magico": false, "defesa": 0, "defesaMagica": 0, "vel": 10, "velBase": 10,
+  "barra": 0, "esquiva": 0, "kit": [], "turno": 0, "pronto": {}, "buffs": [], "atordoado": 0, "furtivo": false, "critEm": -1, "milagre": 0}'::jsonb;
+  a jsonb; o jsonb; r jsonb; i int; sil int := 0; inv int := 0; vamp int := 0; bloq int := 0;
+begin
+  a := base || '{"nome": "A", "ex": {"joias": {"silencio": 6, "invulneravel": 8, "vampiro": 10}}}'::jsonb;
+  o := base || '{"nome": "B", "ex": {}}'::jsonb;
+  for i in 1..20 loop
+    a := jsonb_set(a, '{hp}', '50000');
+    r := public.arena_vez(a, o, 10); a := r -> 'eu'; o := r -> 'outro';
+    if (r -> 'ev' ->> 'joiaSilencio')::boolean then sil := sil + 1; if (a ->> 'turno')::int % 6 <> 0 or (o ->> 'silenciado')::int <> 1 then raise exception 'silêncio fora do turno'; end if; end if;
+    if (r -> 'ev' ->> 'joiaInvul')::boolean then inv := inv + 1;
+      r := public.arena_vez(o, a, 10); o := r -> 'eu'; a := r -> 'outro';
+      if (r -> 'ev' ->> 'dano')::int <> 0 or not coalesce((r -> 'ev' ->> 'invulOutro')::boolean, false) then raise exception 'invulnerável levou dano: %', r -> 'ev'; end if;
+      bloq := bloq + 1;
+    end if;
+    if (r -> 'ev' ->> 'joiaVampiro') is not null then vamp := vamp + 1; end if;
+  end loop;
+  if sil <> 3 or inv <> 2 or bloq <> 2 then raise exception 'joias na arena: silêncio %, invulnerável %', sil, inv; end if;
+  -- vampiro: no turno 10 cura metade do dano
+  a := base || '{"nome": "A", "turno": 9, "hp": 1000, "ex": {"joias": {"vampiro": 10}}}'::jsonb;
+  r := public.arena_vez(a, o, 10);
+  if (r -> 'ev' ->> 'joiaVampiro')::int <> round((r -> 'ev' ->> 'dano')::int * 0.5) then raise exception 'vampiro: %', r -> 'ev'; end if;
+  raise notice 'ok   arena: poderes das joias (silêncio a cada 6, invulnerável a cada 8, 50%% do dano em vida a cada 10)';
+end $$;
+
 \echo TODOS OS TESTES DO BANCO PASSARAM

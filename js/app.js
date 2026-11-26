@@ -1865,6 +1865,12 @@
   }
   // Conjunto da peça: nome, peças equipadas e o bônus de 2/3/4 (aceso quando ativo).
   function conjuntoHtml(p, item) {
+    if (item.joiaBoss && D.JOIAS_BOSS.pecas[item.joiaBoss]) {   // joia de Chefe Mundial (26/11/2026)
+      var J = D.JOIAS_BOSS, nj = R.contarJoiasBoss(p), efj = item.efeitoJoia && J.efeitos[item.efeitoJoia];
+      return '<div class="conjunto-ficha"><strong>💎 ' + J.nome + '</strong> <span class="suave pequeno">(joia de ' + R.chefeMundialPorId(item.joiaBoss).curto + ' · ' + nj + '/3 peças diferentes equipadas)</span><ul>'
+        + [2, 3].map(function (q) { return '<li class="' + (nj >= q ? 'ativo' : 'suave') + '">(' + q + ') ' + bonusJoiasTexto(J.bonus[q]) + '</li>'; }).join('') + '</ul>'
+        + (efj ? '<p class="destaque pequeno">✨ <strong>' + efj.nome + ':</strong> ' + efj.texto + '</p>' : '') + '</div>';
+    }
     var info = item.conjunto && R.infoConjunto(item.conjunto);
     if (!info) return '';
     var sc = D.SEGUNDAS_CLASSES[info.classe2], meu = p.talentos && p.talentos.classe2 === info.classe2;
@@ -5003,8 +5009,9 @@
         '<input id="admin-eter-nome" type="text" placeholder="Nome do personagem" value="' + esc(estado.personagem.nome) + '">'
         + '<input id="admin-eter-valor" type="number" placeholder="Éter" value="100" style="max-width:6em">'
         + '<button class="btn" data-acao="admin-dar-eter">Dar Éter</button>')
-      + grupo('Chefe Mundial', 'Invoca Ignaroth agora por 1 hora (para testar). Vida: a do despertar (50 mil por jogador ativo) ou um valor.',
+      + grupo('Chefe Mundial', 'Invoca o chefe do dia agora por 1 hora (para testar). Vida: a do despertar (50 mil por jogador ativo) ou um valor. Ou escolha o chefe (vida 5 mil):',
         '<button class="btn" data-acao="boss-invocar" data-valor="0">Invocar</button>'
+        + D.CHEFE_MUNDIAL.chefes.map(function (c) { return '<button class="btn secundario" data-acao="boss-invocar-chefe" data-valor="' + c.id + '">' + c.curto + '</button>'; }).join('')
         + '<button class="btn" data-acao="boss-invocar" data-valor="5000">Vida 5 mil</button>'
         + '<button class="btn" data-acao="boss-invocar" data-valor="1000000">Vida 1 milhão</button>')
       + grupo('Ouro', 'Soma ou tira ouro do personagem.', botoes('ouro', [1000, 10000, 100000], function (v) { return '+' + v.toLocaleString('pt-BR'); })
@@ -5344,6 +5351,11 @@
       linha('errou', nomeM + ' está atordoado e perde a vez.');
     } else if (ev.sombra) {
       linha('errou', nomeM + ' ataca, mas ' + nomeJ + ' está nas sombras e o golpe passa direto.');
+    } else if (ev.ator === 'monstro' && ev.silenciado) {
+      linha('errou', '🤫 ' + nomeM + ' está em silêncio e perde o ataque.');
+    } else if (ev.ator === 'monstro' && ev.invulneravel) {
+      if (ev.veneno) linha('dano-recebido', '🕷️ O veneno queima: ' + nomeJ + ' perde <strong>' + ev.veneno + '</strong> de vida.');
+      linha('errou', '🛡️ ' + nomeM + ' ataca, mas ' + nomeJ + ' está invulnerável.');
     } else if (ev.ator === 'jogador') {
       if (ev.reforco) linha('habilidade-usada', '✨ ' + ev.reforco.toUpperCase() + '! ' + nomeJ + ' usa ' + ev.reforco + '.');
       if (!ev.acerto) linha('errou', nomeJ + ' erra o ' + (ev.magico ? 'feitiço' : 'golpe') + '.');
@@ -5362,6 +5374,13 @@
         golpe('lutador-jogador');
       }
     }
+    // Veneno (Ysolde) e os poderes das joias dos Chefes Mundiais
+    if (ev.ator === 'monstro' && ev.veneno && !ev.invulneravel) linha('dano-recebido', '🕷️ O veneno queima: ' + nomeJ + ' perde <strong>' + ev.veneno + '</strong> de vida.');
+    if (ev.ator !== 'monstro') {
+      if (ev.silenciou) linha('habilidade-usada', '🤫 Colar de Kharzul! ' + nomeM + ' fica em silêncio e perde o próximo ataque.');
+      if (ev.invulneravel) linha('habilidade-usada', '🛡️ Anel de Gorrak! ' + nomeJ + ' fica invulnerável até a próxima vez.');
+      if (ev.vampiro) linha('cura', '🩸 Anel de Ysolde! ' + nomeJ + ' recupera <strong>' + ev.vampiro + '</strong> de vida.');
+    }
     document.getElementById('hp-jogador').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'jogador');
     document.getElementById('hp-monstro').innerHTML = barra('hp', b.monstro.hp, b.monstro.hpMax, b.monstro.hp + ' / ' + b.monstro.hpMax, 'monstro');
     document.getElementById('ficha-hp').innerHTML = barra('hp', b.jogador.hp, b.jogador.hpMax, b.jogador.hp + ' / ' + b.jogador.hpMax, 'ficha');
@@ -5374,7 +5393,7 @@
 
     if (b.mundial && (ev.ator === 'jogador' || ev.habilidade) && ++b.mundial.acoes >= D.CHEFE_MUNDIAL.acoesPorAtaque && !b.fim) {
       b.fim = 'tempo';
-      linha('destaque', 'Ignaroth ruge e afasta ' + nomeJ + ' com uma onda de chamas! Fim do ataque.');
+      linha('destaque', ((b.mundial.curto || 'Ignaroth').charAt(0).toUpperCase() + (b.mundial.curto || 'Ignaroth').slice(1)) + ' afasta ' + nomeJ + ' com um golpe terrível! Fim do ataque.');
       reg.insertAdjacentHTML('beforeend', estado.registro.slice(-1).join(''));
     }
     if (b.fim) setTimeout(function () { encerrar(); }, 500);
@@ -7332,7 +7351,11 @@
       case 'boss-atacar': atacarMundial(); break;
       case 'boss-invocar':
         C.boss.adminInvocar(estado.personagem.id, Number(el.dataset.valor) || null, 60)
-          .then(function () { avisar('Ignaroth foi invocado (1 hora).'); carregarBoss(); }, function (e) { avisar(e.message); });
+          .then(function () { avisar('O Chefe Mundial foi invocado (1 hora).'); carregarBoss(); }, function (e) { avisar(e.message); });
+        break;
+      case 'boss-invocar-chefe':
+        C.boss.adminInvocarChefe(estado.personagem.id, el.dataset.valor, 5000, 60)
+          .then(function () { avisar(R.chefeMundialPorId(el.dataset.valor).nome + ' foi invocado (1 hora, vida 5 mil).'); carregarBoss(); }, function (e) { avisar(e.message); });
         break;
       case 'velocidade':
         estado.rapido = !estado.rapido;
@@ -7879,7 +7902,9 @@
           continue;
         }
         var bruto = await pegar(rec);
-        var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade) : R.completarItem(p, bruto);
+        var item = bruto && bruto.tipo === 'boss_item' ? R.itemDoChefeMundial(p, bruto.raridade)
+        : bruto && bruto.tipo === 'boss_joia' ? R.joiaDoChefe(p, bruto.chefe)   // joia do Chefe Mundial (26/11/2026)
+        : R.completarItem(p, bruto);
         p.inventario.push(item);
         salvar();
         avisarSemMasmorra((rec.origem === 'mercado' ? 'Chegou do mercado: ' : rec.origem === 'oficina' ? 'A Oficina devolveu: ' : 'Você ganhou ') + R.nomeItem(item) + ' (' + nomeRaridadeItem(item) + ')!');
@@ -9153,7 +9178,7 @@
       var antes = estado.boss && estado.boss.boss;
       if (r.agora) estado.bossDif = Date.parse(r.agora) - Date.now();
       estado.boss = r;
-      if (antes !== undefined && r.boss && (!antes || antes.id !== r.boss.id) && bossAtivo()) avisar('🐉 A terra treme… Ignaroth despertou!', 'nivel');
+      if (antes !== undefined && r.boss && (!antes || antes.id !== r.boss.id) && bossAtivo()) avisar('🐉 A terra treme… ' + R.chefeMundialPorId(r.boss.chefe_mundial).curto + ' despertou!', 'nivel');
       if (r.recompensas && r.recompensas.length && !estado.batalha) resgatarRecompensas(r.recompensas);
       atualizarBoss();
     }, function (e) { estado.bossCarregando = false; estado.bossErro = e.message; });
@@ -9170,9 +9195,28 @@
     if (!bossAtivo() || (estado.aba === 'mundial' && !estado.batalha)) return '';
     var b = estado.boss.boss;
     return '<button class="boss-topo" data-acao="aba" data-aba="mundial" title="Abrir Chefe Mundial">'
-      + '<span class="boss-topo-nome">🐉 Ignaroth despertou!</span>'
+      + '<span class="boss-topo-nome">🐉 ' + R.chefeMundialPorId(b.chefe_mundial).nome + ' despertou!</span>'
       + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
       + '<span class="boss-topo-tempo">' + relogioBoss(Date.parse(b.fim) - bossAgora()) + '</span></button>';
+  }
+  // Chefe do rodízio (20/11/2026): o do despertar mostrado (ativo ou o último); sem despertar, o do próximo dia.
+  function chefeMundialMostrado() {
+    var e = estado.boss || {}, b = e.boss;
+    return R.chefeMundialPorId(bossAtivo() ? b.chefe_mundial : (e.chefe_proximo || e.chefe_hoje));
+  }
+  // Bônus do conjunto em texto (crítico em pontos de %, o resto em %).
+  function bonusJoiasTexto(b) {
+    var N = { dano: 'de dano', vida: 'de vida', defesa: 'de defesa', critico: 'de chance de crítico', danoCritico: 'de dano crítico' };
+    return Object.keys(b).map(function (k) { return '+' + b[k] + '% ' + (N[k] || k); }).join(' · ');
+  }
+  function setJoiasHtml(cm) {
+    var J = D.JOIAS_BOSS, pc = J.pecas[cm.id], ef = J.efeitos[pc.efeito];
+    return '<div class="caixa-interna boss-set" style="--cor-set:' + J.cor + '"><h3>💎 ' + J.nome + '</h3>'
+      + '<p class="pequeno">Cada Tirano dropa a sua joia: <strong>Colar de Kharzul</strong>, <strong>Anel de Ysolde</strong> e <strong>Anel de Gorrak</strong>. '
+      + '<strong>2 peças:</strong> ' + bonusJoiasTexto(J.bonus[2]) + ' · <strong>3 peças:</strong> ' + bonusJoiasTexto(J.bonus[3]) + '</p>'
+      + '<p class="pequeno">Hoje: <strong>' + pc.nome + '</strong>. Quando ' + cm.curto + ' cai, <strong>cada</strong> um que atacou tem ' + J.drop.chanceMin + '% de chance de ganhar a joia; '
+      + 'quanto mais dano, maior a chance (o maior dano chega a ' + J.drop.chanceMax + '%). A joia vem com level e qualidade sorteados: as altas são muito raras.</p>'
+      + '<p class="suave pequeno">✨ Só a joia <span class="raridade-lendaria">lendária</span> de level ' + J.efeito.nivelMin + '+ pode vir com o poder especial (' + ef.nome + '): ' + ef.texto + '</p></div>';
   }
   function abaMundial() {
     if (!estado.boss) carregarBoss();
@@ -9180,37 +9224,39 @@
   }
   function bossPainelHtml() {
     var e = estado.boss, p = estado.personagem, CM = D.CHEFE_MUNDIAL;
-    if (!e) return '<p class="suave">Procurando sinais de Ignaroth…</p>';
+    if (!e) return '<p class="suave">Procurando sinais do Chefe Mundial…</p>';
     if (e.local) return '<p class="suave">O Chefe Mundial precisa do servidor: jogue pelo site do Eldrin.</p>';
     var b = e.boss, ativo = bossAtivo(), chefe = D.monstros[R.lutaChefeMundial(p)], cfg = e.cfg || {};
     var entradasBoss = cfg.entradas || CM.entradas, usadas = ativo && e.eu ? e.eu.ataques : 0;
-    var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro('ignaroth-mundial') + '</div><div>'
-      + '<h2>O Despertar de Ignaroth</h2>' + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
-      + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, Ignaroth desperta com uma vida só '
+    var cm = chefeMundialMostrado(), cb = R.chefeMundialPorId(b && b.chefe_mundial), titulo = (cfg.titulos && cfg.titulos[cb.id]) || cfg.titulo;
+    var h = '<div class="boss-cabeca"><div class="moldura boss-arte">' + F.imagemMonstro(cm.monstro) + '</div><div>'
+      + '<h2>' + (ativo ? 'O Despertar de ' + cm.nome : 'Próximo: ' + cm.nome) + '</h2>' + (cm.txt ? '<p class="destaque pequeno">' + cm.txt + '</p>' : '') + (CELULAR ? '<div class="boss-hora">🕗 Todo dia às ' + cfg.hora + 'h · 1 hora · ' + entradasBoss + ' ataques</div><details class="regras-celular"><summary>Como funciona</summary>' : '')
+      + '<p class="suave">Todo dia às ' + cfg.hora + 'h (Brasília), por 1 hora, um dos 3 Tiranos desperta (Kharzul, Ysolde e Gorrak, um por dia) com uma vida só '
       + 'para o reino inteiro. Cada ataque é uma luta contra a força de <strong>' + chefe.nome + '</strong> ('
-      + (chefe.pesadelo ? 'o chefe Pesadelo do seu level, com metade do dano' : 'o chefe da sua área') + '), '
+      + (chefe.pesadelo ? 'o chefe Pesadelo do seu level, com metade do dano' : 'o chefe da sua área') + ') com o jeito de lutar do Tirano, '
       + 'com até ' + CM.acoesPorAtaque + ' ações suas. Você tem <strong>' + entradasBoss + ' ataques</strong> por despertar; a vida começa cheia em cada um e não dá para usar poção. '
       + 'Cada ataque tira no máximo ' + (cfg.danoMaximoPct || 3) + '% da vida dele: ninguém derruba sozinho.</p>' + (CELULAR ? '</details>' : '') + '</div></div>';
     if (ativo) {
       var podeAtacar = !estado.cacada && usadas < entradasBoss;
       h += '<div class="boss-vida">' + barra('hp boss', b.vida, b.vida_max, vidaBossTexto(b))
         + '<div class="suave">Volta a dormir em <strong>' + relogioBoss(Date.parse(b.fim) - bossAgora()) + '</strong></div></div>'
-        + '<div class="botoes"><button class="btn perigo" data-acao="boss-atacar"' + (podeAtacar ? '' : ' disabled') + '>⚔ Atacar Ignaroth (' + Math.max(0, entradasBoss - usadas) + '/' + entradasBoss + ')</button></div>'
+        + '<div class="botoes"><button class="btn perigo" data-acao="boss-atacar"' + (podeAtacar ? '' : ' disabled') + '>⚔ Atacar ' + cm.curto + ' (' + Math.max(0, entradasBoss - usadas) + '/' + entradasBoss + ')</button></div>'
         + (estado.cacada ? '<p class="menos">Pare a caçada para atacar.</p>' : !podeAtacar ? '<p class="menos">Você já usou os ' + entradasBoss + ' ataques deste despertar.</p>' : '');
     } else if (b && b.estado === 'derrotado') {
-      h += '<div class="resultado vitoria-chefe"><h3>Ignaroth caiu!</h3><p>Golpe final: <strong>' + esc(b.golpe_final || '?') + '</strong> (título "' + esc(cfg.titulo) + '").'
+      h += '<div class="resultado vitoria-chefe"><h3>' + cb.curto.charAt(0).toUpperCase() + cb.curto.slice(1) + ' caiu!</h3><p>Golpe final: <strong>' + esc(b.golpe_final || '?') + '</strong> (título "' + esc(titulo) + '").'
         + (b.alianca_vencedora ? ' O clã <strong>' + esc(b.alianca_vencedora) + '</strong> ganhou ' + Number(b.bonus_alianca || 0).toLocaleString('pt-BR') + ' de ouro no tesouro.' : '')
         + '</p></div>';
     } else if (b && b.estado === 'dormindo') {
-      h += '<div class="resultado derrota"><h3>Ignaroth voltou a dormir</h3><p>O reino não conseguiu derrubá-lo a tempo. Quem atacou ganhou o prêmio de consolação.</p></div>';
+      h += '<div class="resultado derrota"><h3>' + cb.curto.charAt(0).toUpperCase() + cb.curto.slice(1) + ' voltou a dormir</h3><p>O reino não conseguiu derrubá-lo a tempo. Quem atacou ganhou o prêmio de consolação.</p></div>';
     }
     if (CELULAR && !ativo && e.proximo) h += '<div class="boss-proximo"><small>Próximo despertar em</small><strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong></div>';
     else if (!ativo && e.proximo) h += '<p class="destaque">Próximo despertar em <strong>' + relogioBoss(Date.parse(e.proximo) - bossAgora()) + '</strong>.</p>';
     if (estado.bossUltimo) {
       var u = estado.bossUltimo;
       h += '<p class="' + (u.erro ? 'menos' : 'destaque') + '">' + (u.erro ? esc(u.erro) : 'Seu último ataque: <strong>' + Number(u.dano).toLocaleString('pt-BR') + '</strong> de dano'
-        + (u.golpeFinal ? ' — <strong>GOLPE FINAL!</strong> Você é o novo "' + esc(cfg.titulo) + '"!' : '.')) + '</p>';
+        + (u.golpeFinal ? ' — <strong>GOLPE FINAL!</strong> Você é o novo "' + esc(titulo) + '"!' : '.')) + '</p>';
     }
+    h += setJoiasHtml(cm);
     if (CELULAR && e.eu) h += '<div class="boss-eu"><span><b>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</b><small>seu dano</small></span><span><b>' + e.eu.posicao + 'º</b><small>lugar</small></span>'
       + '<span><b>' + e.eu.ataques + '/' + entradasBoss + '</b><small>ataques</small></span></div>';
     else if (e.eu) h += '<p>Seu dano: <strong>' + Number(e.eu.dano).toLocaleString('pt-BR') + '</strong> em ' + e.eu.ataques + ' ataque(s) · ' + e.eu.posicao + 'º lugar</p>';
@@ -9265,10 +9311,12 @@
     comecarMundial(p, bs, R.lutaChefeMundial(p), null);
   }
   function comecarMundial(p, bs, chefeId, srv) {
-    var b = R.iniciarBatalha(p, chefeId, null, { mundial: true });   // vida cheia, sem poção, não gasta estamina
+    var cmL = R.chefeMundialPorId(bs.chefe_mundial);
+    var b = R.iniciarBatalha(p, chefeId, null, { mundial: true, mec: cmL.mec });   // vida cheia, sem poção, não gasta estamina
     b.mundial = { bossId: bs.id, vidaInicial: bs.vida, chefe: chefeId, acoes: 0 };
-    b.imagemId = 'ignaroth-mundial';
-    b.monstro.nome = 'Ignaroth (Chefe Mundial)';
+    b.imagemId = cmL.monstro;
+    b.monstro.nome = cmL.nome + ' (Chefe Mundial)';
+    b.mundial.curto = cmL.curto;
     b.monstro.hp = srv ? srv.vidaInicial : bs.vida;
     b.monstro.hpMax = bs.vida_max;
     if (srv) {
@@ -9279,7 +9327,7 @@
     estado.bossUltimo = null;
     estado.batalha = b;
     estado.registro = [];
-    linha('destaque', esc(p.nome) + ' avança contra Ignaroth!');
+    linha('destaque', esc(p.nome) + ' avança contra ' + (b.mundial.curto || 'Ignaroth') + '!');
     telaJogo();
     mostrarPainel();
     agendar();
@@ -9298,8 +9346,9 @@
     var envio = b.replay && b.replay.servidor ? Promise.resolve(b.replay.servidor) : C.boss.atacar(p.id, dano, b.mundial.chefe);
     envio.then(function (r) {
       estado.bossUltimo = { dano: r.dano, golpeFinal: r.golpe_final };
-      if (r.golpe_final) avisar('🐉 GOLPE FINAL! Ignaroth caiu pelas suas mãos!', 'nivel');
-      else avisar('Você causou ' + Number(r.dano).toLocaleString('pt-BR') + ' de dano em Ignaroth.', 'vitoria');
+      var quem = b.mundial.curto || 'Ignaroth';
+      if (r.golpe_final) avisar('🐉 GOLPE FINAL! ' + quem.charAt(0).toUpperCase() + quem.slice(1) + ' caiu pelas suas mãos!', 'nivel');
+      else avisar('Você causou ' + Number(r.dano).toLocaleString('pt-BR') + ' de dano em ' + quem + '.', 'vitoria');
       carregarBoss();
       if (estado.aba === 'mundial' && !estado.batalha) telaJogo();
     }, function (e) {
@@ -9771,6 +9820,11 @@
     if (ev.executou) L.registro.push('<p class="critico">💀 Execução! ' + esc(alvo.nome) + ' estava fraco.</p>');
     if (ev.devolvido) L.registro.push('<p class="dano-recebido">🛡️ ' + esc(alvo.nome) + ' devolve <strong>' + ev.devolvido + '</strong> de dano.</p>');
     if (ev.calou) L.registro.push('<p class="destaque">🤐 ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
+    // Poderes das joias dos Chefes Mundiais (26/11/2026)
+    if (ev.invulOutro) L.registro.push('<p class="errou">🛡️ ' + esc(alvo.nome) + ' está invulnerável (Anel de Gorrak): o golpe não tira vida.</p>');
+    if (ev.joiaInvul) L.registro.push('<p class="habilidade-usada">🛡️ Anel de Gorrak! ' + esc(atk.nome) + ' fica invulnerável até a próxima vez.</p>');
+    if (ev.joiaSilencio) L.registro.push('<p class="habilidade-usada">🤫 Colar de Kharzul! ' + esc(alvo.nome) + ' fica sem habilidades na próxima vez.</p>');
+    if (ev.joiaVampiro) L.registro.push('<p class="cura">🩸 Anel de Ysolde! ' + esc(atk.nome) + ' recupera <strong>' + ev.joiaVampiro + '</strong> de vida.</p>');
     if (ev.curou) L.registro.push('<p class="cura">💚 ' + esc(atk.nome) + ' recupera <strong>' + ev.curou + '</strong> de vida com a luz.</p>');
     if (ev.quebrou) L.registro.push('<p class="destaque">⛓️ A defesa de ' + esc(alvo.nome) + ' quebrou (−' + (ev.quebraPct || 30) + '%'
       + (ev.quebraTurnos ? ' por ' + ev.quebraTurnos + ' turnos' : '') + ').</p>');

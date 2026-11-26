@@ -3088,3 +3088,70 @@ teste('exp mais lenta (EXP_MULT ligado em 25/11/2026; aumento −80% em 26/11): 
     R.ganharExp(p, 1); assert.strictEqual(p.nivel, 2);
   } finally { D.EXP_MULT = null; }
 });
+
+teste('Chefes Mundiais (os 3 Tiranos) e as joias deles (Daniel, 26/11/2026)', () => {
+  const CM = D.CHEFE_MUNDIAL, J = D.JOIAS_BOSS;
+  igualA(CM.chefes.length, 3);
+  igualA(R.chefeMundialDoDia(0).id, 'kharzul'); igualA(R.chefeMundialDoDia(1).id, 'ysolde'); igualA(R.chefeMundialDoDia(5).id, 'gorrak');
+  CM.chefes.forEach((c) => { assert.ok(D.monstros[c.monstro], 'monstro ' + c.monstro); assert.ok(J.pecas[c.id], 'peça ' + c.id); });
+  // chance: 1% para quem bateu pouco, até 3% para o maior dano; quem não bateu, nada
+  igualA(R.chanceJoiaBoss(0, 100), 0); igualA(R.chanceJoiaBoss(100, 100), 3); igualA(R.chanceJoiaBoss(50, 100), 2);
+  assert.ok(R.chanceJoiaBoss(1, 1000000) >= 1 && R.chanceJoiaBoss(1, 1000000) < 1.01);
+  // joia: peça do chefe, nome do chefe, qualidade e level sorteados (os altos raros)
+  const p = R.criarPersonagem('Joia', 'masculino', 'humano', 'cavaleiro');
+  R.admin.subirNivel(p, 29);
+  const rar = {}, niv = {};
+  let seed = 7; const rng = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+  for (let i = 0; i < 4000; i++) {
+    const j = R.joiaDoChefe(p, 'ysolde', rng);
+    igualA(j.tipo, 'anel'); igualA(j.joiaBoss, 'ysolde'); assert.ok(/Anel de Ysolde/.test(R.nomeItem(j)));
+    assert.ok(j.nivel >= p.nivel - 2 && j.nivel <= p.nivel + 10, 'nível ' + j.nivel);
+    igualA(j.efeitoJoia, undefined, 'level 30: sem efeito especial');
+    rar[j.raridade] = (rar[j.raridade] || 0) + 1; const d = j.nivel - p.nivel; niv[d > 6 ? 'alto' : d > 3 ? 'medio' : 'base'] = (niv[d > 6 ? 'alto' : d > 3 ? 'medio' : 'base'] || 0) + 1;
+  }
+  assert.ok(rar.lendaria > 30 && rar.lendaria < 140, 'lendária ~2%: ' + rar.lendaria);
+  assert.ok(rar.comum > 2000, 'comum ~60%');
+  assert.ok((niv.alto || 0) < 100, 'level +7 a +10 ~1%: ' + niv.alto);
+  igualA(R.joiaDoChefe(p, 'kharzul', rng).tipo, 'colar');
+  // efeito especial: só lendária de level 45+ (e só uma parte delas)
+  const q = R.criarPersonagem('Joia2', 'masculino', 'humano', 'cavaleiro'); R.admin.subirNivel(q, 49);
+  let com = 0, lend = 0;
+  for (let i = 0; i < 20000; i++) { const j = R.joiaDoChefe(q, 'gorrak', rng); if (j.raridade === 'lendaria') lend++; if (j.efeitoJoia) { com++; igualA(j.efeitoJoia, 'invulneravel'); igualA(j.raridade, 'lendaria'); } }
+  assert.ok(com > 0 && com < lend * 0.4, 'efeito em ~25% das lendárias: ' + com + ' de ' + lend);
+  // conjunto: peças diferentes contam; 2 anéis iguais contam 1
+  const fixo = (chefe) => Object.assign(R.joiaDoChefe(p, chefe, rng), { nivel: p.nivel, raridade: 'epica' });
+  const colar = fixo('kharzul'), a1 = fixo('ysolde'), a2 = fixo('ysolde'), a3 = fixo('gorrak');
+  [colar, a1, a2, a3].forEach((it) => p.inventario.push(it));
+  const vida0 = R.status(p).hpMax;
+  R.equipar(p, a1.id); R.equipar(p, a2.id);
+  igualA(R.contarJoiasBoss(p), 1, 'dois anéis iguais = 1 peça');
+  R.equipar(p, colar.id);
+  igualA(R.contarJoiasBoss(p), 2); igualA(R.bonusJoiasBoss(p).vida, 10); igualA(R.bonusJoiasBoss(p).defesa, undefined);
+  assert.ok(R.status(p).hpMax > vida0, 'vida subiu com 2 peças');
+  R.equipar(p, a3.id);
+  igualA(R.contarJoiasBoss(p), 3); igualA(R.bonusJoiasBoss(p).defesa, 10); igualA(R.bonusJoiasBoss(p).critico, 5);
+  // efeitos na luta, pelos turnos do herói
+  igualA(Object.keys(R.efeitosJoiasBoss(p)).length, 0);
+  colar.efeitoJoia = 'silencio'; a3.efeitoJoia = 'invulneravel'; a1.efeitoJoia = 'vampiro';
+  const ef = R.efeitosJoiasBoss(p);
+  igualA(ef.silencio, 6); igualA(ef.invulneravel, 8);
+  const chefe = R.chefeDoNivel(p);
+  const b = R.iniciarBatalha(p, chefe, rng);
+  let silenciou = 0, perdeu = 0, invul = 0, vamp = 0, dur = 0;
+  for (let e; (e = R.passo(b)) && dur < 400; dur++) {
+    if (e.silenciou) { silenciou++; igualA(b.turno % 6, 0); }
+    if (e.silenciado) perdeu++;
+    if (e.ator === 'jogador' && e.invulneravel) { invul++; igualA(b.turno % 8, 0); }
+    if (e.ator === 'monstro' && e.invulneravel) igualA(e.dano, 0);
+    if (e.vampiro) { vamp++; igualA(b.turno % 10, 0); }
+    if (b.fim) break;
+  }
+  if (b.turno >= 6) assert.ok(silenciou > 0 && perdeu > 0, 'silêncio a cada 6 turnos');
+  // mecânicas dos chefes: Gorrak mais defesa e dano; Kharzul cresce; Ysolde envenena
+  const gor = CM.chefes[2], bg = R.iniciarBatalha(p, chefe, () => 0.5, { mundial: true, mec: gor.mec });
+  assert.ok(bg.alvo.defesa > D.monstros[chefe].defesa && bg.alvo.ataque[1] > D.monstros[chefe].ataque[1]);
+  const by = R.iniciarBatalha(p, chefe, () => 0.5, { mundial: true, mec: CM.chefes[1].mec });
+  let veneno = 0; for (let e, k = 0; (e = R.passo(by)) && k < 60; k++) { if (e.veneno) veneno++; if (by.fim) break; }
+  assert.ok(veneno > 0, 'Ysolde envenena');
+  igualA(R.iniciarBatalha(p, chefe, null, { mundial: true }).alvo, null);
+});
