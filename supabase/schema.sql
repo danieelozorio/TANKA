@@ -5941,3 +5941,82 @@ do $$ begin
   perform cron.schedule('aviso_discord', '0 * * * *', 'select public.aviso_discord()');
 exception when others then raise notice 'pg_cron indisponível (sem aviso do Discord automático): %', sqlerrm;
 end $$;
+
+-- ============================================================================================================
+-- Métricas e erros (Henri, 27/11/2026): o jogo grava aqui o que acontece (abriu o jogo, criou personagem, morreu,
+-- subiu de level, primeiro abate de um monstro) e os erros da tela (js/metricas.js). Serve para ver em que parte as
+-- pessoas desistem e onde o jogo trava. Ninguém lê pela API: só quem tem acesso ao Supabase (SQL Editor) vê.
+-- Sem login, só aceita erros (a tela de entrada também pode travar). Guarda 90 dias.
+create table if not exists public.metricas (
+  id bigint generated always as identity primary key,
+  criado_em timestamptz not null default now(),
+  conta_id uuid,
+  personagem text,
+  tipo text not null,
+  area text,
+  monstro text,
+  nivel int,
+  detalhe jsonb,
+  versao text,
+  aparelho text
+);
+create index if not exists metricas_criado on public.metricas (criado_em);
+create index if not exists metricas_conta on public.metricas (conta_id, criado_em);
+create index if not exists metricas_tipo on public.metricas (tipo, criado_em);
+alter table public.metricas enable row level security;   -- sem políticas: a API não lê nem grava direto
+revoke all on public.metricas from anon, authenticated;
+
+create or replace function public.registrar_metricas(lista jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare e jsonb; u uuid := auth.uid(); n int := 0; tipos text[] := array['abriu', 'personagem_novo', 'nivel', 'morte', 'primeiro_abate', 'erro'];
+begin
+  if jsonb_typeof(lista) <> 'array' then return; end if;
+  -- freio: no máximo 300 por conta por hora (e 2000 sem login, todos juntos)
+  if u is not null then
+    if (select count(*) from public.metricas where conta_id = u and criado_em > now() - interval '1 hour') >= 300 then return; end if;
+  elsif (select count(*) from public.metricas where conta_id is null and criado_em > now() - interval '1 hour') >= 2000 then return;
+  end if;
+  for e in select value from jsonb_array_elements(lista) limit 20 loop
+    if jsonb_typeof(e) <> 'object' or not (e->>'tipo' = any (tipos)) then continue; end if;
+    if u is null and e->>'tipo' <> 'erro' then continue; end if;
+    insert into public.metricas (conta_id, personagem, tipo, area, monstro, nivel, detalhe, versao, aparelho)
+    values (u, left(e->>'personagem', 40), e->>'tipo', left(e->>'area', 40), left(e->>'monstro', 40),
+      case when (e->>'nivel') ~ '^[0-9]{1,4}$' then (e->>'nivel')::int end,
+      case when jsonb_typeof(e->'detalhe') = 'object' and length((e->'detalhe')::text) <= 2000 then e->'detalhe' end,
+      left(e->>'versao', 20), left(e->>'aparelho', 120));
+    n := n + 1;
+  end loop;
+  if n > 0 and random() < 0.01 then delete from public.metricas where criado_em < now() - interval '90 days'; end if;
+end $$;
+revoke all on function public.registrar_metricas(jsonb) from public;
+grant execute on function public.registrar_metricas(jsonb) to anon, authenticated;
+
+-- Consultas prontas (abrir no SQL Editor: select * from public.metricas_desistencia; etc.). A API não enxerga.
+-- 1) Onde as pessoas param: conta que não abre o jogo há 3 dias, pelo último lugar/level em que estava.
+create or replace view public.metricas_desistencia with (security_invoker = on) as
+with ultimo as (
+  select distinct on (conta_id) conta_id, area, nivel, criado_em
+  from public.metricas where conta_id is not null and tipo <> 'erro' and nivel is not null
+  order by conta_id, criado_em desc
+)
+select coalesce(area, '(sem área)') as area, nivel, count(*) as pararam, max(criado_em) as ultima_vez
+from ultimo where criado_em < now() - interval '3 days'
+group by 1, 2 order by pararam desc, nivel;
+-- 2) Onde mais se morre (últimos 7 dias).
+create or replace view public.metricas_mortes with (security_invoker = on) as
+select area, monstro, count(*) as mortes, count(distinct conta_id) as jogadores, round(avg(nivel), 1) as level_medio
+from public.metricas where tipo = 'morte' and criado_em > now() - interval '7 days'
+group by area, monstro order by mortes desc;
+-- 3) Erros mais comuns (últimos 7 dias), por mensagem e tipo de aparelho.
+create or replace view public.metricas_erros with (security_invoker = on) as
+select detalhe->>'msg' as erro, detalhe->>'onde' as onde,
+  case when aparelho ~* 'iphone|ipad' then 'iPhone/iPad' when aparelho ~* 'android' then 'Android' else 'Computador' end as aparelho,
+  count(*) as vezes, count(distinct conta_id) as jogadores, max(versao) as versao, max(criado_em) as ultima_vez
+from public.metricas where tipo = 'erro' and criado_em > now() - interval '7 days'
+group by 1, 2, 3 order by vezes desc;
+-- 4) Funil: quantas contas chegaram a cada level (todas as datas).
+create or replace view public.metricas_funil with (security_invoker = on) as
+select nivel, count(distinct conta_id) as contas
+from public.metricas where conta_id is not null and nivel is not null
+group by nivel order by nivel;
+revoke all on public.metricas_desistencia, public.metricas_mortes, public.metricas_erros, public.metricas_funil from anon, authenticated;

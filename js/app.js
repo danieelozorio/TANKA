@@ -548,6 +548,7 @@
     estado.personagem = p;
     estado.conta = C.contaAtual();
     estado.criacao = null;
+    M.evento('personagem_novo', { detalhe: { raca: c.raca, classe: c.classe } });
     avisar('Bem-vindo a ' + D.NOME_JOGO + ', ' + nome + '!');
     abrirJogo(p.id);
   }
@@ -599,6 +600,13 @@
       + '</dl></div>';
   }
 
+  // Métricas e erros (Henri, 27/11/2026; js/metricas.js): quem está jogando, em que level e área.
+  var M = Tanka.metricas || { evento: function () {}, contexto: function () {} };
+  M.contexto(function () {
+    var p = estado.personagem;
+    return p ? { personagem: p.nome, nivel: p.nivel, area: estado.area } : null;
+  });
+
   function abrirJogo(id, aba) {
     estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
     estado.aba = (grupoDaAba(aba) || (aba === 'admin' && ehAdmin())) ? aba : 'personagem';
@@ -615,6 +623,7 @@
     estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
     estado.loginResultado = null;
     iniciarAtividade();
+    M.evento('abriu');
     if (window.EldrinNativo) EldrinNativo.entrou(estado.personagem);   // notificações do app (19/11/2026)
     estado.loja = null; estado.lojaErro = null; estado.lojaConfirma = null;
     guardarVip(!!estado.personagem.vip); conferirArcane();
@@ -5442,6 +5451,11 @@
       R.registrarGuia(estado.personagem, 'abate');
     }
     }
+    var mon = D.monstros[b.monstroId];   // métricas: morte, primeiro abate e level up
+    var ondeLuta = { monstro: b.monstroId, area: mon && mon.area };
+    if (res.resultado === 'derrota') M.evento('morte', ondeLuta);
+    else if (res.resultado === 'vitoria' && primeiraVez) M.evento('primeiro_abate', ondeLuta);
+    if (res.niveis) M.evento('nivel', ondeLuta);
     if (estado.cacada) {
       if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + expPct(estado.personagem, res.exp) + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.' + (res.estamina ? ' −' + res.estamina + ' de estamina.' : '')
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));

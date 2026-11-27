@@ -1765,3 +1765,16 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Aviso do Discord (26/11/2026): `aviso_discord()` + pg_cron 'aviso_discord' (de hora em hora, minuto 0) no projeto de São Paulo.
   Manda no chat global o convite (https://discord.gg/85ZFvz6ye) como aviso do sistema; pula se ninguém falou desde o último.
   Na tela, o link do Discord nas mensagens do sistema vira link clicável.
+
+## Métricas e erros (Henri, 27/11/2026)
+- `js/metricas.js` (`Tanka.metricas`, carregado logo depois de contas.js): fila de eventos mandada em lote para a função
+  `registrar_metricas(lista)` do schema (a cada 20 s, com 10 na fila ou ao esconder a aba, com `keepalive`). Nunca
+  quebra o jogo (tudo em try/catch); sem servidor (prévia) não faz nada.
+- Erros: `window.error` e `unhandledrejection` viram `tipo = 'erro'` com msg/onde/pilha (no máx. 3 iguais e 30 por
+  visita; ignora "Script error." e ResizeObserver). Funciona até sem login (tela de entrada).
+- Eventos do `app.js` (`M.evento`): `abriu` (abrirJogo), `personagem_novo` (raça/classe), `morte`, `primeiro_abate` e
+  `nivel` (no fim da batalha, com monstro e área). Contexto (personagem, level, área) vem de `M.contexto`.
+- Banco: tabela `metricas` (RLS sem políticas: a API não lê), freio de 300/h por conta e 2000/h sem login, apaga com
+  mais de 90 dias. Consultas no SQL Editor: `metricas_desistencia` (último level/área de quem sumiu há 3 dias),
+  `metricas_mortes`, `metricas_erros` (por aparelho), `metricas_funil` (contas por level).
+- Novo evento: pôr o nome na lista `tipos` de `registrar_metricas` (schema) e chamar `M.evento('nome', {...})`.

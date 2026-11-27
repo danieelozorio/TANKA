@@ -57,7 +57,7 @@ Tanka.contas = (function () {
     var resp;
     try {
       resp = await fetch(CFG.supabaseUrl + caminho, {
-        method: opcoes.metodo || 'GET', headers: cab,
+        method: opcoes.metodo || 'GET', headers: cab, keepalive: !!opcoes.keepalive,
         body: opcoes.corpo === undefined ? undefined : JSON.stringify(opcoes.corpo),
       });
     } catch (e) {
@@ -76,6 +76,10 @@ Tanka.contas = (function () {
   }
   function rpc(nome, args) {
     return pedir('/rest/v1/rpc/' + nome, { metodo: 'POST', corpo: args || {} });
+  }
+  // Métricas e erros (js/metricas.js). Saindo da aba: keepalive, para o pedido terminar mesmo com a página fechando.
+  function metricas(lista, saindo) {
+    return pedir('/rest/v1/rpc/registrar_metricas', { metodo: 'POST', corpo: { lista: lista }, keepalive: !!saindo });
   }
 
   // Renova o token se faltar menos de 1 minuto para vencer.
@@ -564,6 +568,7 @@ Tanka.contas = (function () {
     cacada: cacada,
     acao: acao,
     sessaoVale: sessaoVale,
+    metricas: metricas,
     aoConflito: function (f) { aoConflito = f; },
   };
 })();
