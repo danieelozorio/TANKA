@@ -812,6 +812,10 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   no jogo se o prêmio do dia está esperando (menos durante o Guia); ações `login-pegar` / `login-fechar`; cartão "Prêmio de
   login" no topo do painel de Missões (`data-missao="login"`). O número do ícone de Missões soma o login (`avisosMissoes`).
 - É feito no jogo (como as missões), não no servidor. PDF do Daniel: gerado do D.LOGIN (script no scratchpad).
+- **Visual "Altar das Runas" (Daniel, 27/11/2026):** `loginHtml()` com pedras rúnicas (`.login-dia`, runa em `RUNAS_LOGIN`),
+  imagem real do prêmio (`loginImg`: arma/peitoral da classe via `F.icone`, `pergaminho-<rar>.webp`, ícones de ouro e
+  reputação, baú no dia 7), texto curto (`loginCurto`, o completo fica no `title`), selo de cera no dia pego, marcos da trilha
+  com imagem, faixa de pergaminho "As runas entregaram". CSS no bloco "Altar das Runas" do `estilo.css`.
 
 ## Poder ⚔: peso da defesa e ganho na ficha (Daniel, nov/2026)
 - `R.poder` = ataque × 10 + resistência ÷ 2 × `D.PODER_PESO_DEFESA` (1,5). Só para mostrar e para rankings/seta verde;
@@ -1765,7 +1769,3 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Aviso do Discord (26/11/2026): `aviso_discord()` + pg_cron 'aviso_discord' (de hora em hora, minuto 0) no projeto de São Paulo.
   Manda no chat global o convite (https://discord.gg/85ZFvz6ye) como aviso do sistema; pula se ninguém falou desde o último.
   Na tela, o link do Discord nas mensagens do sistema vira link clicável.
-- **Visual "Altar das Runas" (Daniel, 27/11/2026):** `loginHtml()` com pedras rúnicas (`.login-dia`, runa em `RUNAS_LOGIN`),
-  imagem real do prêmio (`loginImg`: arma/peitoral da classe via `F.icone`, `pergaminho-<rar>.webp`, ícones de ouro e
-  reputação, baú no dia 7), texto curto (`loginCurto`, o completo fica no `title`), selo de cera no dia pego, marcos da trilha
-  com imagem, faixa de pergaminho "As runas entregaram". CSS no bloco "Altar das Runas" do `estilo.css`.
