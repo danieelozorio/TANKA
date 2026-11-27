@@ -8221,36 +8221,68 @@
       + '<p class="suave pequeno">Cada capítulo libera a região seguinte para caçar: sem concluir a História da região, não dá para avançar. Os objetivos só contam no capítulo atual.</p>';
   }
   // Prêmios de login (D.LOGIN): a semana de boas-vindas (7, só uma vez) e a trilha de 30 dias, com o botão de pegar o do dia.
+  // Visual "Altar das Runas" (Daniel, 27/11/2026): cada dia é uma pedra rúnica com a imagem real do prêmio; pego = selo de cera.
+  var RUNAS_LOGIN = ['ᚠ', 'ᚢ', 'ᚦ', 'ᚨ', 'ᚱ', 'ᚲ', 'ᚷ'];
+  function loginImg(p, pr, bau) {
+    var r = (pr.item && pr.item.raridade) || (pr.pergaminho && pr.pergaminho.raridade) || '';
+    var img;
+    if (bau) img = '<img src="assets/itens/bau-diario.webp" alt="">';
+    else if (pr.item) {
+      var eq = R.itemNoSlot(p, 'arma');
+      img = F.icone(pr.item.tipo === 'armadura' ? { tipo: 'peitoral', classe: p.classe, raridade: r }
+        : { tipo: 'arma', classe: p.classe, raridade: r, arma: eq && eq.classe === p.classe ? eq.arma : null });
+    } else if (pr.pergaminho) img = '<img src="assets/itens/pergaminho-' + r + '.webp" alt="">';
+    else if (pr.reputacao) img = '<img src="assets/interface/icones/reputacao.webp" alt="">';
+    else img = '<img src="assets/interface/icones/ouro.webp" alt="">';
+    return '<span class="login-img' + (r ? ' rar-' + r : '') + '">' + img + '</span>';
+  }
+  function loginCurto(p, pr) {
+    var rn = function (r) { return D.raridades[r].nome; };
+    if (pr.item) return (pr.item.tipo === 'armadura' ? 'Armadura ' : 'Arma ') + rn(pr.item.raridade).toLowerCase();
+    if (pr.pergaminho) return pr.pergaminho.qtd + '× pergaminho';
+    if (pr.ouroPorNivel) { var o = pr.ouroPorNivel * p.nivel; return (o >= 1000 ? (Math.round(o / 100) / 10).toLocaleString('pt-BR') + ' mil' : o) + ' de ouro'; }
+    if (pr.reputacao) return pr.reputacao + ' de reputação';
+    return '';
+  }
   function loginHtml() {
     var p = estado.personagem, L = D.LOGIN, e = R.loginEstado(p, C.agora()), res = estado.loginResultado;
-    var icone = function (pr, d) { return pr.item ? '⚔' : d === 7 ? '🎁' : pr.pergaminho ? '📜' : pr.reputacao ? '⭐' : '🪙'; };
     var semana = '';
     if (e.boasVindas || (res && res.semana)) {
       var hojeS = e.pode ? e.proxSemana : 0;
-      semana = '<h3>Semana de boas-vindas <span class="suave pequeno">' + e.semana + '/7 · só uma vez</span></h3><div class="login-roda">' + L.semana.map(function (pr, i) {
-        var d = i + 1, cl = d === hojeS ? ' hoje' : d <= e.semana ? ' feito' : '';
-        return '<div class="login-dia' + cl + (d === 7 ? ' grande' : '') + '"><small>Dia ' + d + '</small><span class="login-dia-ico">' + (cl === ' feito' ? '✔' : icone(pr, d)) + '</span>'
-          + '<span class="login-dia-premio">' + esc(R.premioLoginTexto(p, pr)) + '</span></div>';
+      semana = '<div class="login-secao"><h3><span>Semana de boas-vindas</span><small>' + e.semana + '/7 · só uma vez</small></h3><div class="login-roda">' + L.semana.map(function (pr, i) {
+        var d = i + 1, cl = d === hojeS ? ' hoje' : d <= e.semana ? ' feito' : ' fechado';
+        var extra = (pr.item ? 1 : 0) + (pr.pergaminho ? 1 : 0) + (pr.ouroPorNivel ? 1 : 0) + (pr.reputacao ? 1 : 0) - 1;
+        return '<div class="login-dia' + cl + (d === 7 ? ' grande' : '') + '" title="' + esc(R.premioLoginTexto(p, pr)) + '">'
+          + '<span class="login-runa">' + RUNAS_LOGIN[i] + '</span><small>Dia ' + d + '</small>'
+          + loginImg(p, pr, d === 7)
+          + '<span class="login-dia-premio">' + esc(loginCurto(p, pr)) + (extra > 0 ? ' <b>+' + extra + '</b>' : '') + '</span>'
+          + (cl === ' feito' ? '<span class="login-selo" aria-label="pego">✔</span>' : '') + '</div>';
       }).join('') + '</div>';
-    } else semana = '<p class="suave pequeno">✔ Semana de boas-vindas concluída.</p>';
+      var hojePr = hojeS && L.semana[hojeS - 1];
+      if (hojePr) semana += '<p class="login-hoje-txt">Hoje, dia ' + hojeS + ': <strong>' + esc(R.premioLoginTexto(p, hojePr)) + '</strong></p>';
+      semana += '</div>';
+    } else semana = '<p class="login-concluida">✔ Semana de boas-vindas concluída.</p>';
     var trinta = e.pode && e.trinta === 30 ? 0 : e.trinta, marcos = Object.keys(L.trinta).map(Number);
     var trilha = '<div class="login-trilha"><div class="login-trilha-barra"><i style="width:' + Math.round(trinta * 100 / 30) + '%"></i>'
       + marcos.map(function (d) {
-        return '<span class="login-marco' + (d <= trinta ? ' feito' : '') + (e.pode && d === e.proxTrinta ? ' hoje' : '') + '" style="left:' + (d * 100 / 30) + '%">' + d + '</span>';
+        return '<span class="login-marco' + (d <= trinta ? ' feito' : '') + (e.pode && d === e.proxTrinta ? ' hoje' : '') + '" style="left:' + (d * 100 / 30) + '%" title="Dia ' + d + ': ' + esc(R.premioLoginTexto(p, L.trinta[d])) + '">'
+          + loginImg(p, L.trinta[d], false) + '<em>' + d + '</em></span>';
       }).join('') + '</div></div>';
     var prox = marcos.filter(function (d) { return d > trinta; })[0] || 30;
     var rotulo = { semana: 'Boas-vindas · dia ', diario: 'Trilha · dia ', marco: 'Marco de ' };
     var h = '<div class="zoom-fundo login-fundo"><div class="zoom-janela login-janela" role="dialog" aria-label="Prêmios de login">'
       + '<button class="zoom-x" data-acao="login-fechar" title="Fechar">✕</button>'
-      + '<h2>🗓 Prêmios de login</h2><p class="suave pequeno">Entre um dia, ganhe um prêmio. Os dias não precisam ser seguidos: pulou um, continua de onde parou.</p>'
+      + '<div class="login-cab"><small>Prêmios de login</small><h2>Altar das Runas</h2>'
+      + '<p>A cada dia que você volta a Eldrin, uma runa desperta. Os dias não precisam ser seguidos: pulou um, continua de onde parou.</p></div>'
       + semana
-      + '<h3>Trilha de 30 dias <span class="suave pequeno">' + trinta + '/30 · recomeça no fim</span></h3>' + trilha
-      + '<p class="login-prox">Todo login: <strong>' + esc(R.premioLoginTexto(p, L.diario)) + '</strong><br>Próximo marco: <strong>dia ' + prox + '</strong> · ' + esc(R.premioLoginTexto(p, L.trinta[prox])) + '</p>';
-    if (res) h += '<div class="login-ganhou"><strong>Você recebeu:</strong>' + res.partes.map(function (x) {
+      + '<div class="login-secao"><h3><span>Trilha de 30 dias</span><small>' + trinta + '/30 · recomeça no fim</small></h3>' + trilha
+      + '<div class="login-prox"><div>' + loginImg(p, L.diario, false) + '<span>Todo login<br><strong>' + esc(R.premioLoginTexto(p, L.diario)) + '</strong></span></div>'
+      + '<div>' + loginImg(p, L.trinta[prox], false) + '<span>Próximo marco · dia ' + prox + '<br><strong>' + esc(R.premioLoginTexto(p, L.trinta[prox])) + '</strong></span></div></div></div>';
+    if (res) h += '<div class="login-ganhou"><h3>✦ As runas entregaram ✦</h3>' + res.partes.map(function (x) {
       return '<div>' + rotulo[x.de] + x.dia + (x.de === 'marco' ? ' dias' : '') + ': <b>' + esc(x.texto) + '</b></div>';
     }).join('') + '</div>';
-    h += '<div class="botoes">' + (e.pode ? '<button class="btn btn-iniciar" data-acao="login-pegar">🎁 Pegar o prêmio de hoje</button>'
-      : '<button class="btn secundario" data-acao="login-fechar">Volte em ' + tempoTexto(R.msAteReset(C.agora())) + '</button>') + '</div></div></div>';
+    h += '<div class="botoes">' + (e.pode ? '<button class="btn btn-iniciar" data-acao="login-pegar">ᚱ Despertar a runa de hoje</button>'
+      : '<button class="btn secundario" data-acao="login-fechar">A próxima runa desperta em ' + tempoTexto(R.msAteReset(C.agora())) + '</button>') + '</div></div></div>';
     return h;
   }
   function historiaCenaHtml() {
