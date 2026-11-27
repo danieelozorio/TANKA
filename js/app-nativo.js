@@ -1,8 +1,8 @@
 // App Android (Capacitor, Henri, nov/2026). Só roda dentro do app; no site não faz nada.
 // O jogo inteiro vem dentro do APK. Ao abrir, o app confere no GitHub (release "app-web", arquivo versao.json)
 // se saiu versão nova:
-//  - jogo novo (web maior que o deste app): baixa em segundo plano e entra na próxima abertura (22/11/2026); só cobre
-//    a tela e obriga quando o versao.json tem webMinimo maior que a versão deste jogo;
+//  - jogo novo (web maior que o deste app): pergunta "Atualizar agora" (baixa e reinicia) ou "Depois" (baixa em segundo
+//    plano e entra na próxima abertura) (27/11/2026); só cobre a tela e obriga quando o versao.json tem webMinimo maior;
 //  - APK novo (apk maior que o instalado): mostra o link para baixar o APK.
 // window.ELDRIN_APP = { web: N } é escrito no index.html por ferramentas/montar_app.js.
 (function () {
@@ -12,6 +12,11 @@
   var local = window.ELDRIN_APP || { web: 0 };
   var VERSOES = local.versoes || 'https://github.com/danieelozorio/TANKA/releases/download/app-web/versao.json';   // o teste usa o release app-teste
   if (U && U.notifyAppReady) U.notifyAppReady().catch(function () {});   // senão o app volta para a versão anterior
+  // Versões (Henri, 27/11/2026): app = versão do APK (1.0.N, N = número da montagem), jogo = vN do pacote do jogo.
+  // As Configurações mostram qual está instalada e qual é a mais nova (EldrinNativo.versao()).
+  var VERSAO = { web: Number(local.web) || 0, apk: 0, apkNome: '', ultimaWeb: 0, ultimaApk: 0, conferido: false };
+  if (A && A.getInfo) A.getInfo().then(function (i) { VERSAO.apk = Number(i.build) || 0; VERSAO.apkNome = i.version || ''; }).catch(function () {});
+  function nomeApp(n) { return '1.0.' + n; }
 
   function caixa(html) {
     var velha = document.getElementById('app-atualizar');
@@ -106,32 +111,48 @@
   if (A && A.addListener) A.addListener('appStateChange', function (st) {
     if (st && st.isActive === false && pronto && U && U.set) U.set({ id: pronto.id }).catch(function () {});
   });
-  function oferecerApk(v) {
+  // APK novo: avisa uma vez por versão (o "Depois" fica guardado), a não ser que o jogador peça nas Configurações.
+  function oferecerApk(v, forcar) {
     var chave = 'apk' + v.apk;
-    if (jaDisseDepois(chave)) return;
-    var d = caixa('<strong style="color:#f4d9a0">App novo do Eldrin</strong><br>Saiu uma versão nova do app. Baixe e instale por cima '
-      + '(seus personagens continuam na conta).<br><a href="' + v.apkUrl + '" target="_blank" rel="noopener" style="display:inline-block;'
+    try { if (!forcar && localStorage.getItem('eldrin.app.apkDepois') === chave) return; } catch (e) { /* ignora */ }
+    var d = caixa('<strong style="color:#f4d9a0">📱 App novo do Eldrin: ' + nomeApp(v.apk) + '</strong><br>'
+      + (VERSAO.apk ? 'O seu é o ' + nomeApp(VERSAO.apk) + '. ' : '') + 'Baixe e instale por cima (seus personagens continuam na conta).<br>'
+      + '<a href="' + v.apkUrl + '" target="_blank" rel="noopener" style="display:inline-block;'
       + 'margin:10px 8px 0 0;padding:8px 14px;border-radius:6px;background:#e2b45c;color:#1a1408;font-weight:bold;text-decoration:none">Baixar o app</a>'
       + botao('Depois'));
-    d.querySelector('button').onclick = function () { depois(chave); d.remove(); };
+    d.querySelector('button').onclick = function () { try { localStorage.setItem('eldrin.app.apkDepois', chave); } catch (e) { /* ignora */ } d.remove(); };
+  }
+  // Jogo novo ao abrir o app (Henri, 27/11/2026): pergunta. "Atualizar agora" baixa com a tela de progresso e reinicia;
+  // "Depois" baixa em segundo plano e entra na próxima abertura (como era desde 22/11).
+  function oferecerAtualizacao(v, forcar) {
+    var chave = 'web' + v.web;
+    if (!forcar && jaDisseDepois(chave)) { baixarEmSegundoPlano(v); return; }
+    var d = caixa('<strong style="color:#f4d9a0">⬆ Versão nova do Eldrin: v' + v.web + '</strong><br>'
+      + 'Você está na v' + VERSAO.web + '.' + (v.tamanhoMB ? ' Download de ' + v.tamanhoMB + ' MB.' : '') + '<br>'
+      + botao('Atualizar agora', true) + botao('Depois'));
+    var bs = d.querySelectorAll('button');
+    bs[0].onclick = function () { d.remove(); oferecerJogo(v); };
+    bs[1].onclick = function () { depois(chave); d.remove(); baixarEmSegundoPlano(v); };
   }
 
   var tentativas = 0;
-  function conferir() {
+  function conferir(forcar) {
     if (!H || !H.get) return;
     H.get({ url: VERSOES + '?t=' + Date.now(), responseType: 'json' }).then(function (r) {
       if (r && r.status && r.status >= 400) throw new Error('versao.json: ' + r.status);
       var v = r && r.data;
       if (typeof v === 'string') v = JSON.parse(v);
       if (!v) return;
+      VERSAO.ultimaWeb = Number(v.web) || 0; VERSAO.ultimaApk = Number(v.apk) || 0; VERSAO.conferido = true;
       var instalado = A && A.getInfo ? A.getInfo().then(function (i) { return Number(i.build) || 0; }) : Promise.resolve(0);
       instalado.then(function (apk) {
-        if (v.apk && v.apkUrl && apk && Number(v.apk) > apk && Number(v.apkMinimo || 0) > apk) oferecerApk(v);   // APK obrigatório
+        if (apk) VERSAO.apk = apk;
+        if (v.apk && v.apkUrl && apk && Number(v.apk) > apk && Number(v.apkMinimo || 0) > apk) oferecerApk(v, true);   // APK obrigatório
         else if (v.web && v.webUrl && v.checksum && Number(v.web) > Number(local.web || 0) && U && U.download) {
           if (Number(v.webMinimo || 0) > Number(local.web || 0)) oferecerJogo(v);   // obrigatória: só quando o versao.json pede
-          else baixarEmSegundoPlano(v);
+          else if (!pronto && !atualizando) oferecerAtualizacao(v, forcar);
         }
-        else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v);
+        else if (v.apk && v.apkUrl && apk && Number(v.apk) > apk) oferecerApk(v, forcar);
       });
       tentativas = 0;
     }).catch(function (e) {
@@ -271,6 +292,11 @@
       }).catch(function () {});
     },
     cacadaVoltou: function () { cancelar(ID.cacada); },
+    // Versões instaladas e as mais novas (para as Configurações) e "Procurar atualização".
+    versao: function () { return { app: VERSAO.apk ? nomeApp(VERSAO.apk) : (VERSAO.apkNome || '?'), jogo: VERSAO.web,
+      ultimoJogo: VERSAO.ultimaWeb, ultimoApp: VERSAO.ultimaApk ? nomeApp(VERSAO.ultimaApk) : '', conferido: VERSAO.conferido,
+      jogoNovo: VERSAO.ultimaWeb > VERSAO.web, appNovo: !!(VERSAO.ultimaApk && VERSAO.apk && VERSAO.ultimaApk > VERSAO.apk), pronto: !!pronto }; },
+    conferir: function () { conferir(true); },
   };
 
   function quandoPronto() { setTimeout(conferir, 2500); }

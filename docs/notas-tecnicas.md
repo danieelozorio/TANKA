@@ -1781,3 +1781,11 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 
 ## Ranking: botão de atacar só com ⚔ (Henri, 27/11/2026)
 - Na tabela do Ranking o botão "⚔ Atacar" virou só "⚔" (title/aria-label "Atacar"): no celular (Arcane) o texto quebrava a tabela.
+
+## App: pergunta de atualização e versões (Henri, 27/11/2026)
+- `js/app-nativo.js`: ao abrir, se o versao.json tem jogo novo, aparece "⬆ Versão nova do Eldrin: vN · Você está na vX"
+  com **Atualizar agora** (tela de progresso e reinicia, `oferecerJogo`) ou **Depois** (baixa em segundo plano, entra na
+  próxima abertura). Obrigatória continua só com `webMinimo`. APK novo: avisa uma vez por versão (Depois fica no localStorage).
+- Versões: app = `1.0.N` (versionName do APK, N = montagem), jogo = `vN` (ELDRIN_APP.web). `EldrinNativo.versao()` e
+  `EldrinNativo.conferir()`; ⚙ Configurações → 📱 Versão mostra as duas, se está na mais nova e o botão Atualizar/Procurar.
+- Teste no emulador (`henri/apk-*`): aperta "Atualizar agora" e confere que reinicia na web 2.

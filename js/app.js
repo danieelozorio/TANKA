@@ -11118,6 +11118,20 @@
     guardar('eldrin.escala', String(z));
     window.dispatchEvent(new Event('resize'));
   }
+  // Versão do app no celular (Henri, 27/11/2026): qual está instalada e se tem mais nova (js/app-nativo.js).
+  function secaoVersaoApp() {
+    if (!window.EldrinNativo || !EldrinNativo.versao) return '';
+    var v = EldrinNativo.versao();
+    var st = !v.conferido ? '<span class="suave">Conferindo…</span>'
+      : v.pronto ? '<span class="suave">✔ Versão nova baixada: entra quando abrir o app de novo</span>'
+      : v.jogoNovo ? '<b style="color:#f0c56a">⬆ Versão nova: v' + v.ultimoJogo + '</b>'
+      : v.appNovo ? '<b style="color:#f0c56a">⬆ App novo: ' + esc(v.ultimoApp) + '</b>'
+      : '<span style="color:#7fd07f">✔ Você está na versão mais nova</span>';
+    return '<h4 class="config-secao">📱 Versão</h4>'
+      + '<div class="config-faixa"><span>App ' + esc(v.app) + ' · Jogo v' + v.jogo + '</span><small>' + st + '</small>'
+      + ((v.jogoNovo || v.appNovo) && !v.pronto ? '<button type="button" class="btn mini-opcao" data-config-atualizar>Atualizar agora</button>'
+        : '<button type="button" class="btn mini-opcao secundario" data-config-atualizar>Procurar atualização</button>') + '</div>';
+  }
   function alternarPainel(fechar) {
     if (musica.painel || fechar) {
       if (musica.painel) { musica.painel.remove(); musica.painel = null; }
@@ -11147,6 +11161,7 @@
       + (estado.personagem && (ehVip() || ehAdmin()) ? '<h4 class="config-secao">👑 VIP</h4>'
         + '<label class="config-linha"><span>Nome brilhante de VIP<br><small class="suave">Desligado, seu nome aparece normal para todos.</small></span>'
         + '<input type="checkbox" id="config-nome-vip"' + (estado.personagem.semNomeVip ? '' : ' checked') + '></label>' : '')
+      + secaoVersaoApp()
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     ligarPainelInterface(p);
     p.querySelectorAll('[data-escala]').forEach(function (b) {
@@ -11160,6 +11175,8 @@
       if (musica.ligada) tocarMusica(); else pararTodas();
       desenharBotaoMusica();
     });
+    var btAtu = p.querySelector('[data-config-atualizar]');
+    if (btAtu) btAtu.addEventListener('click', function () { alternarPainel(true); EldrinNativo.conferir(); });
     var nomeVip = p.querySelector('#config-nome-vip');
     // Henri, 26/11/2026: o VIP escolhe se o nome dele brilha (vale para este personagem; o servidor tira da loja_vips).
     if (nomeVip) nomeVip.addEventListener('change', function (e) {
