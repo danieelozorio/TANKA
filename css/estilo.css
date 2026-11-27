@@ -2555,3 +2555,6 @@ html.arrastando, .pg-mochila .mochila [data-acao="item"] { -webkit-user-drag: no
 .selo-admin { display: inline-block; margin-left: 4px; padding: 1px 6px; border-radius: 4px; font-size: .68rem; font-weight: 800;
   letter-spacing: .08em; line-height: 1.5; vertical-align: middle; color: #1a0f00; background: linear-gradient(#ffd76a, #d9a531);
   border: 1px solid #ffe39a; box-shadow: 0 0 6px rgba(255, 215, 106, .55); }
+
+/* Ranking: botão de atacar só com as espadas (Henri, 27/11/2026: "⚔ Atacar" quebrava a tabela no celular) */
+html .ranking .ranking-acoes .btn[data-acao="ranking-atacar"] { min-width: 0; min-height: 0; padding: .3rem .55rem; font-size: 1.05rem; line-height: 1; letter-spacing: 0; }

@@ -4793,7 +4793,7 @@
           + '<td>' + nomeClasseX(x) + '</td>'
           + '<td>' + x.nivel + (x.pacto ? '<div class="exp-pacto pequeno" title="Pontos do Pacto de Ascensão">Pacto ' + x.pacto + '</div>' : '') + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
           + (possoAtacar || ehAdmin() ? '<td class="ranking-acoes">' + (possoAtacar && x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
-            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + botaoInspecionar(x) + '</td>' : '')
+            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Atacar (luta da Arena fora da escada: gasta 1 entrada, não muda posição)" aria-label="Atacar">⚔</button>' : '') + botaoInspecionar(x) + '</td>' : '')
           + '</tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'

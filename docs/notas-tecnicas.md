@@ -1778,3 +1778,6 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   mais de 90 dias. Consultas no SQL Editor: `metricas_desistencia` (último level/área de quem sumiu há 3 dias),
   `metricas_mortes`, `metricas_erros` (por aparelho), `metricas_funil` (contas por level).
 - Novo evento: pôr o nome na lista `tipos` de `registrar_metricas` (schema) e chamar `M.evento('nome', {...})`.
+
+## Ranking: botão de atacar só com ⚔ (Henri, 27/11/2026)
+- Na tabela do Ranking o botão "⚔ Atacar" virou só "⚔" (title/aria-label "Atacar"): no celular (Arcane) o texto quebrava a tabela.
