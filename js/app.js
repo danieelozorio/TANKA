@@ -2809,7 +2809,7 @@
     if (def.mult) x.push('golpe de <b>' + v('mult') + '%</b>' + (def.ignoraDefesaPct ? (def.ignoraDefesaPct >= 100 ? ' que ignora a defesa' : ' que ignora ' + def.ignoraDefesaPct + '% da defesa') : ''));
     if (def.vidaFaltando) x.push('+' + String(def.vidaFaltando).replace('.', ',') + '% de dano para cada 1% de vida que falta');
     if (def.silencia) x.push('o oponente fica ' + def.silencia + ' vez sem habilidades');
-    if (def.garantido) x.push('sempre vale o 20 do dado e não pode ser esquivado');
+    if (def.garantido) x.push('o dado nunca sai fraco (mínimo como um 6) e não pode ser esquivado');
     if (def.executa) x.push('<b>+' + def.executa.bonus + '%</b> se o oponente tiver menos de ' + def.executa.abaixo + '% da vida');
     if (def.queima) x.push('queima por ' + def.queima.turnos + ' vezes (<b>' + String(R.valorNivel(def.queima.pct, n)).replace('.', ',') + '%</b> do seu dano) e corta as curas pela metade');
     if (def.quebraDefesaPct) x.push((def.atordoa ? 'prende por ' + def.atordoa + ' vez e ' : '') + 'tira <b>' + v('quebraDefesaPct') + '%</b> da defesa '
@@ -9932,7 +9932,7 @@
       + ' não conseguiu sumir nas sombras (precisa de ' + (D.ARENA.sombraDado || 18) + ' ou mais): só o ataque.</p>');
     if (ev.esquiva) L.registro.push('<p class="errou">' + esc(alvo.nome) + ' se esquiva!</p>');
     L.registro.push('<p class="' + (ev.dado === 1 ? 'errou' : ev.dado >= 18 ? 'critico' : ev.de === 'a' ? '' : 'dano-recebido') + '">🎲 <strong>' + ev.dado + '</strong> '
-      + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? (ev.hab ? ' (vale o 20!)' : ' (Sombra: vale o 20!)') : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
+      + esc(atk.nome) + (ev.auto ? ' (tempo esgotado)' : '') + ': ' + efeitoDado(ev.dado) + (ev.garantido ? (ev.hab ? ' (o dado não sai fraco: vale como 6)' : ' (Sombra: vale o 20!)') : '') + (ev.dano ? ' — ' + esc(alvo.nome) + ' perde <strong>' + ev.dano + '</strong>' : '') + '.</p>');
     if (ev.errouCego) L.registro.push('<p class="errou">🌫️ ' + esc(atk.nome) + ' está com pó nos olhos e erra!</p>');
     if (ev.executou) L.registro.push('<p class="critico">💀 Execução! ' + esc(alvo.nome) + ' estava fraco.</p>');
     if (ev.devolvido) L.registro.push('<p class="dano-recebido">🛡️ ' + esc(alvo.nome) + ' devolve <strong>' + ev.devolvido + '</strong> de dano.</p>');

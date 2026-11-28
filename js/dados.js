@@ -666,7 +666,7 @@ Tanka.dados = {
           descricao: 'Sangramento de 40% a 80% de um ataque por turno, por 3 turnos; você recupera 20% do que ele tira. Na Arena: 2% da vida máxima do alvo por turno.' },
         { id: 'execucao', nome: 'Execução', tipo: 'unico', nivel: 30, foco: 'arena', recarga: 5, mult: [250, 3], garantido: true,
           semEsquiva: true, executa: { abaixo: 30, bonus: 50 },
-          descricao: 'Golpe de 250% a 280%, sempre no máximo do dado, que não pode ser esquivado. +50% se o oponente tiver menos de 30% da vida. Mais forte na Arena.' },
+          descricao: 'Golpe de 250% a 280% em que o dado nunca sai fraco (não erra e vale no mínimo como um 6) e que não pode ser esquivado. +50% se o oponente tiver menos de 30% da vida. Mais forte na Arena.' },
       ] },
     bruxo: { de: 'mago', nome: 'Bruxo', nomeF: 'Bruxa', descricao: 'Magia de destruição: congela, queima e fulmina.',
       habilidades: [
@@ -1246,6 +1246,9 @@ Tanka.dados = {
     reputacaoVitoria: 10, reputacaoTop1Diario: 500, jackpotPorDefesa: 100, top1PorHora: 0.1,
     // Veneno, sangramento e queimadura na Arena (Henri, 18/11/2026): o D20 multiplica o dano do efeito, por faixa
     // (até o número `ate`): 1 falha; 2 a 6 reduz; 7 a 12 normal; 13 a 17 aumenta; 18 a 20 o dobro.
+    // Execução do Assassino (Henri, 28/11/2026): antes valia sempre o 20 do dado (2x, ~5,3x de dano médio, o dobro das
+    // outras de level 30). Agora o dado só não sai abaixo deste fator: não erra nem rola fraco (média ~3,4x).
+    dadoMinimoGarantido: 1,
     sombraDado: 18,   // Sombra do Assassino na Arena (18/11/2026): só esquiva com o D20 em 18, 19 ou 20; abaixo, só o ataque
     dotVidaPct: 2,   // Henri (24/11/2026): veneno, sangramento e queimadura das habilidades tiram 2% da vida máxima do alvo por turno (x o D20)
     efeitoDado: [{ ate: 1, fator: 0 }, { ate: 6, fator: 0.5 }, { ate: 12, fator: 1 }, { ate: 17, fator: 1.5 }, { ate: 20, fator: 2 }],
