@@ -548,6 +548,7 @@
     estado.personagem = p;
     estado.conta = C.contaAtual();
     estado.criacao = null;
+    M.evento('personagem_novo', { detalhe: { raca: c.raca, classe: c.classe } });
     avisar('Bem-vindo a ' + D.NOME_JOGO + ', ' + nome + '!');
     abrirJogo(p.id);
   }
@@ -599,6 +600,13 @@
       + '</dl></div>';
   }
 
+  // Métricas e erros (Henri, 27/11/2026; js/metricas.js): quem está jogando, em que level e área.
+  var M = Tanka.metricas || { evento: function () {}, contexto: function () {} };
+  M.contexto(function () {
+    var p = estado.personagem;
+    return p ? { personagem: p.nome, nivel: p.nivel, area: estado.area } : null;
+  });
+
   function abrirJogo(id, aba) {
     estado.personagem = R.normalizar(estado.conta.personagens.find(function (p) { return p.id === id; }));
     estado.aba = (grupoDaAba(aba) || (aba === 'admin' && ehAdmin())) ? aba : 'personagem';
@@ -615,6 +623,7 @@
     estado.loginAberto = R.loginEstado(estado.personagem, C.agora()).pode && !(estado.personagem.guia && !estado.personagem.guia.fim);
     estado.loginResultado = null;
     iniciarAtividade();
+    M.evento('abriu');
     if (window.EldrinNativo) EldrinNativo.entrou(estado.personagem);   // notificações do app (19/11/2026)
     estado.loja = null; estado.lojaErro = null; estado.lojaConfirma = null;
     guardarVip(!!estado.personagem.vip); conferirArcane();
@@ -2134,7 +2143,7 @@
     if (!l) return '<section class="caixa loja">' + tit + '<p class="suave">Abrindo a loja…</p></section>';
     var vip = ehVip(), agora = C.agora();
     var saldo = '<div class="loja-saldo">' + ETER_IMG + '<span>Seu Éter: <strong>' + Number(l.saldo || 0).toLocaleString('pt-BR') + '</strong></span>'
-      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (noAppNativo() ? 'A compra de Éter não está disponível no app.' : l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
+      + (podeComprarEter(l) ? '' : '<span class="suave pequeno">' + (noAppNativo() ? (D.LOJA.avisoCompraNoSite ? '💎 Enquanto estamos no Beta, a compra de Éter é só pelo navegador, no site eldrinonline.com.br. O Éter comprado lá vale aqui no app.' : 'A compra de Éter não está disponível no app.') : l.beta ? 'Beta: a compra de Éter com dinheiro ainda não abriu.' : 'Comprar Éter: em breve.') + '</span>') + '</div>'
       + cartaComprarEter(l);
     var V = L.vip;
     var cartaVip = '<div class="caixa-interna loja-carta loja-vip' + (vip ? ' ativo' : '') + '"><h3>👑 VIP mensal</h3>'
@@ -4784,7 +4793,7 @@
           + '<td>' + nomeClasseX(x) + '</td>'
           + '<td>' + x.nivel + (x.pacto ? '<div class="exp-pacto pequeno" title="Pontos do Pacto de Ascensão">Pacto ' + x.pacto + '</div>' : '') + '</td><td>' + Number(x.poder || 0).toLocaleString('pt-BR') + '</td>'
           + (possoAtacar || ehAdmin() ? '<td class="ranking-acoes">' + (possoAtacar && x.id && x.nivel >= 5 && meus.indexOf(String(x.nome).toLowerCase()) < 0
-            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Luta da Arena fora da escada: gasta 1 entrada, não muda posição">⚔ Atacar</button>' : '') + botaoInspecionar(x) + '</td>' : '')
+            ? '<button class="btn mini-opcao" data-acao="ranking-atacar" data-id="' + esc(x.id) + '" title="Atacar (luta da Arena fora da escada: gasta 1 entrada, não muda posição)" aria-label="Atacar">⚔</button>' : '') + botaoInspecionar(x) + '</td>' : '')
           + '</tr>';
       }).join('') + '</tbody></table>';
     return '<div class="ranking-topo"><div class="botoes">' + botoes + '</div>'
@@ -5442,6 +5451,11 @@
       R.registrarGuia(estado.personagem, 'abate');
     }
     }
+    var mon = D.monstros[b.monstroId];   // métricas: morte, primeiro abate e level up
+    var ondeLuta = { monstro: b.monstroId, area: mon && mon.area };
+    if (res.resultado === 'derrota') M.evento('morte', ondeLuta);
+    else if (res.resultado === 'vitoria' && primeiraVez) M.evento('primeiro_abate', ondeLuta);
+    if (res.niveis) M.evento('nivel', ondeLuta);
     if (estado.cacada) {
       if (res.resultado === 'vitoria') linha('destaque', 'Vitória! +' + expPct(estado.personagem, res.exp) + ' de exp e +' + res.ouro + ' de ouro' + (res.vitalidade ? ' (Vitalidade x2)' : '') + '.' + (res.estamina ? ' −' + res.estamina + ' de estamina.' : '')
         + (res.material ? ' ⛏ +' + res.material.qtd + ' ' + esc(D.CRAFT.materiais[res.material.id].nome) + '.' : ''));
@@ -11142,6 +11156,20 @@
     guardar('eldrin.escala', String(z));
     window.dispatchEvent(new Event('resize'));
   }
+  // Versão do app no celular (Henri, 27/11/2026): qual está instalada e se tem mais nova (js/app-nativo.js).
+  function secaoVersaoApp() {
+    if (!window.EldrinNativo || !EldrinNativo.versao) return '';
+    var v = EldrinNativo.versao();
+    var st = !v.conferido ? '<span class="suave">Conferindo…</span>'
+      : v.pronto ? '<span class="suave">✔ Versão nova baixada: entra quando abrir o app de novo</span>'
+      : v.jogoNovo ? '<b style="color:#f0c56a">⬆ Versão nova: v' + v.ultimoJogo + '</b>'
+      : v.appNovo ? '<b style="color:#f0c56a">⬆ App novo: ' + esc(v.ultimoApp) + '</b>'
+      : '<span style="color:#7fd07f">✔ Você está na versão mais nova</span>';
+    return '<h4 class="config-secao">📱 Versão</h4>'
+      + '<div class="config-faixa"><span>App ' + esc(v.app) + ' · Jogo v' + v.jogo + '</span><small>' + st + '</small>'
+      + ((v.jogoNovo || v.appNovo) && !v.pronto ? '<button type="button" class="btn mini-opcao" data-config-atualizar>Atualizar agora</button>'
+        : '<button type="button" class="btn mini-opcao secundario" data-config-atualizar>Procurar atualização</button>') + '</div>';
+  }
   function alternarPainel(fechar) {
     if (musica.painel || fechar) {
       if (musica.painel) { musica.painel.remove(); musica.painel = null; }
@@ -11171,6 +11199,7 @@
       + (estado.personagem && (ehVip() || ehAdmin()) ? '<h4 class="config-secao">👑 VIP</h4>'
         + '<label class="config-linha"><span>Nome brilhante de VIP<br><small class="suave">Desligado, seu nome aparece normal para todos.</small></span>'
         + '<input type="checkbox" id="config-nome-vip"' + (estado.personagem.semNomeVip ? '' : ' checked') + '></label>' : '')
+      + secaoVersaoApp()
       + '<p class="config-tocando suave pequeno"></p>' + botaoInstalar();
     ligarPainelInterface(p);
     p.querySelectorAll('[data-escala]').forEach(function (b) {
@@ -11184,6 +11213,8 @@
       if (musica.ligada) tocarMusica(); else pararTodas();
       desenharBotaoMusica();
     });
+    var btAtu = p.querySelector('[data-config-atualizar]');
+    if (btAtu) btAtu.addEventListener('click', function () { alternarPainel(true); EldrinNativo.conferir(); });
     var nomeVip = p.querySelector('#config-nome-vip');
     // Henri, 26/11/2026: o VIP escolhe se o nome dele brilha (vale para este personagem; o servidor tira da loja_vips).
     if (nomeVip) nomeVip.addEventListener('change', function (e) {

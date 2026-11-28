@@ -1780,3 +1780,30 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   ativos x 15 mil x (1 + 10% x despertares do dia derrotados desde essa data; os do admin, `dia` null, não contam).
   Linear: 15 / 16,5 / 18 mil... Não desce se o chefe sobreviver. Limite de 3% por ataque (15% por pessoa) igual.
   Testes em banco.test.sql ("boss: 15 mil...", "+10% por despertar derrotado").
+## Métricas e erros (Henri, 27/11/2026)
+- `js/metricas.js` (`Tanka.metricas`, carregado logo depois de contas.js): fila de eventos mandada em lote para a função
+  `registrar_metricas(lista)` do schema (a cada 20 s, com 10 na fila ou ao esconder a aba, com `keepalive`). Nunca
+  quebra o jogo (tudo em try/catch); sem servidor (prévia) não faz nada.
+- Erros: `window.error` e `unhandledrejection` viram `tipo = 'erro'` com msg/onde/pilha (no máx. 3 iguais e 30 por
+  visita; ignora "Script error." e ResizeObserver). Funciona até sem login (tela de entrada).
+- Eventos do `app.js` (`M.evento`): `abriu` (abrirJogo), `personagem_novo` (raça/classe), `morte`, `primeiro_abate` e
+  `nivel` (no fim da batalha, com monstro e área). Contexto (personagem, level, área) vem de `M.contexto`.
+- Banco: tabela `metricas` (RLS sem políticas: a API não lê), freio de 300/h por conta e 2000/h sem login, apaga com
+  mais de 90 dias. Consultas no SQL Editor: `metricas_desistencia` (último level/área de quem sumiu há 3 dias),
+  `metricas_mortes`, `metricas_erros` (por aparelho), `metricas_funil` (contas por level).
+- Novo evento: pôr o nome na lista `tipos` de `registrar_metricas` (schema) e chamar `M.evento('nome', {...})`.
+
+## Ranking: botão de atacar só com ⚔ (Henri, 27/11/2026)
+- Na tabela do Ranking o botão "⚔ Atacar" virou só "⚔" (title/aria-label "Atacar"): no celular (Arcane) o texto quebrava a tabela.
+
+## App: pergunta de atualização e versões (Henri, 27/11/2026)
+- `js/app-nativo.js`: ao abrir, se o versao.json tem jogo novo, aparece "⬆ Versão nova do Eldrin: vN · Você está na vX"
+  com **Atualizar agora** (tela de progresso e reinicia, `oferecerJogo`) ou **Depois** (baixa em segundo plano, entra na
+  próxima abertura). Obrigatória continua só com `webMinimo`. APK novo: avisa uma vez por versão (Depois fica no localStorage).
+- Versões: app = `1.0.N` (versionName do APK, N = montagem), jogo = `vN` (ELDRIN_APP.web). `EldrinNativo.versao()` e
+  `EldrinNativo.conferir()`; ⚙ Configurações → 📱 Versão mostra as duas, se está na mais nova e o botão Atualizar/Procurar.
+- Teste no emulador (`henri/apk-*`): aperta "Atualizar agora" e confere que reinicia na web 2.
+
+## App: aviso da compra de Éter pelo site (Henri, 27/11/2026)
+- `D.LOJA.avisoCompraNoSite` (true): na Loja, dentro do app, aparece "Enquanto estamos no Beta, a compra de Éter é só pelo
+  navegador (eldrinonline.com.br)". **Pôr false antes de publicar na Play Store** (o Google proíbe indicar pagamento fora do app).
