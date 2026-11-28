@@ -3705,8 +3705,10 @@
       return '<span class="raridade-' + k + '">' + D.raridades[k].nome + ': ' + R.qtdPergaminho(p, k) + '</span>';
     }).join(' · ');
     var ordem = Object.keys(D.raridades).reverse();
+    // Equipados primeiro (Henri, 28/11/2026); depois raridade e encanto
     var itens = p.inventario.slice().sort(function (a, b) {
-      return ordem.indexOf(a.raridade) - ordem.indexOf(b.raridade) || b.encanto - a.encanto;
+      return (R.slotDoItem(p, b.id) ? 1 : 0) - (R.slotDoItem(p, a.id) ? 1 : 0)
+        || ordem.indexOf(a.raridade) - ordem.indexOf(b.raridade) || b.encanto - a.encanto;
     });
     var lista = itens.map(function (i) {
       var acao, info;
