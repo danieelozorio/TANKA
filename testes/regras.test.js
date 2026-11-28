@@ -1636,7 +1636,7 @@ teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela rarida
     c.inventario = c.inventario.filter((x) => x.id !== it.id);
   }
   assert.deepStrictEqual([...rars].sort(), ['comum', 'epica', 'lendaria', 'rara']);
-  const ouro = c.ouro; R.comprar(c, 'arma', 'machado'); assert.strictEqual(ouro - c.ouro, R.precoDoNivel(10));
+  const ouro = c.ouro; R.comprar(c, 'arma', 'machado'); assert.strictEqual(ouro - c.ouro, R.precoMercado(c));
   // venda: 10% do preço do nível do item (comum)
   const it = R.novoItem('elmo', 'cavaleiro', 'comum', Math.random, null, 10);
   assert.strictEqual(R.precoVenda(it), Math.round(R.precoDoNivel(10) * 0.1));

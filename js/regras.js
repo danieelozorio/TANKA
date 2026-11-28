@@ -2460,7 +2460,7 @@ Tanka.regras = (function () {
     return item;
   }
 
-  function precoMercado(p) { return precoDoNivel(p.nivel); }
+  function precoMercado(p) { return Math.round(precoDoNivel(p.nivel) * (N_.mercadoPrecoMult || 1)); }   // x3 (Daniel, 28/11/2026: épica e lendária na loja)
   // ---- Vitrine do Mestre (D.VITRINE): ofertas do dia, as mesmas para o mesmo herói no mesmo dia ----
   // Devolve [{ i, item, raridade, preco, reputacao, comprado }] (vazio antes do nivelMin).
   function vitrine(p, agora) {
