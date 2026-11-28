@@ -138,6 +138,13 @@ Tanka.contas = (function () {
       if (e.codigo === 'user_already_exists' || /already/i.test(e.message)) throw new Error('Esse nome de usuário já existe.');
       if (e.codigo === 'weak_password') throw new Error('Senha fraca. Use pelo menos 6 caracteres.');
       if (e.status === 429) throw new Error('Muitos cadastros seguidos. Tente de novo em alguns minutos.');
+      // Supabase de São Paulo recusa o e-mail interno (domínio sem DNS): cria a conta pelo banco (cadastrar_conta).
+      if (e.codigo === 'email_address_invalid' || /email address .* is invalid/i.test(e.message || '')) {
+        try { await rpc('cadastrar_conta', { u: d.usuario, senha: d.senha, e: d.email.toLowerCase() }); }
+        catch (e2) { throw new Error('Não foi possível criar a conta: ' + e2.message); }
+        guardarSessao(null);
+        return;
+      }
       throw new Error('Não foi possível criar a conta: ' + e.message);
     }
     // O cadastro já entra na conta; o jogo pede o login em seguida, então saímos.
