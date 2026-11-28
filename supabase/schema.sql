@@ -1268,9 +1268,10 @@ create or replace function public.boss_cfg() returns jsonb
 language sql immutable as $$
   -- 22/11/2026 (Henri: uma pessoa derrubou sozinha): vida 50 mil -> 150 mil por jogador; limite por ataque de 200 mil fixo
   -- para `danoMaximoPct`% da vida máxima (5 ataques = no máximo 15% por pessoa).
+  -- 28/11/2026 (Daniel: ninguém derrubava): vida 150 mil -> 10 mil por jogador (herói típico tira ~5 mil por ataque).
   -- Rodízio (Daniel, 26/11/2026): os 3 Tiranos, um por dia (iguais a D.CHEFE_MUNDIAL.chefes). joiaMin/joiaMax: % de chance
   -- de cada um que atacou ganhar a joia do chefe derrotado (pelo dano, igual a R.chanceJoiaBoss).
-  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 150000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximoPct": 3, "entradas": 5,
+  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 10000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximoPct": 3, "entradas": 5,
     "lendaria": 5, "epica": 80, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões",
     "chefes": ["kharzul", "ysolde", "gorrak"],
     "nomes": {"kharzul": "Kharzul, o Senhor das Cinzas", "ysolde": "Ysolde, a Bruxa do Espinho", "gorrak": "Gorrak, o Titã de Ferro"},
