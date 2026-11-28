@@ -2461,6 +2461,42 @@ Tanka.regras = (function () {
   }
 
   function precoMercado(p) { return precoDoNivel(p.nivel); }
+  // ---- Vitrine do Mestre (D.VITRINE): ofertas do dia, as mesmas para o mesmo herói no mesmo dia ----
+  // Devolve [{ i, item, raridade, preco, reputacao, comprado }] (vazio antes do nivelMin).
+  function vitrine(p, agora) {
+    var V = D.VITRINE, dia = diaReset(agora), compradas = p.vitrine && p.vitrine.dia === dia ? p.vitrine.compradas || [] : [];
+    if (!V || p.nivel < V.nivelMin) return [];
+    var tipos = ['arma', 'arma'].concat(TIPOS_ARMADURA).concat(maoPermitida(p).length ? ['secundaria'] : []);
+    var nivel = Math.min(tetoNivelItem(), limitarNivel(p.nivel));
+    return V.ofertas.map(function (rar0, i) {
+      var rng = rngSemente(hashTexto(String(p.id) + '|vitrine|' + dia + '|' + i));
+      var rar = rar0 === 'epica' && rng() * 100 < V.lendariaPct ? 'lendaria' : rar0;
+      var tipo = tipos[Math.floor(rng() * tipos.length)], esp = null;
+      if (tipo === 'arma') { var ar = armasPermitidas(p); esp = ar[Math.floor(rng() * ar.length)]; }
+      if (tipo === 'secundaria') { var ms = maoPermitida(p); esp = ms[Math.floor(rng() * ms.length)]; }
+      var item = novoItem(tipo, p.classe, rar, rng, esp, nivel);
+      item.id = 'vitrine-' + dia + '-' + i;
+      return { i: i, item: item, raridade: rar, preco: V.precoLutas[rar] * ouroLutaDoNivel(p), reputacao: (V.reputacao || {})[rar] || 0,
+        comprado: compradas.indexOf(i) >= 0 };
+    });
+  }
+  function comprarVitrine(p, i, agora) {
+    var o = vitrine(p, agora)[Number(i)];
+    if (!o) return 'Oferta inválida.';
+    if (o.comprado) return 'Você já comprou essa oferta hoje.';
+    if (p.ouro < o.preco) return 'Ouro insuficiente.';
+    if ((p.reputacao || 0) < o.reputacao) return 'Reputação insuficiente.';
+    if (mochilaCheia(p)) return 'Mochila cheia!';
+    var dia = diaReset(agora);
+    if (!p.vitrine || p.vitrine.dia !== dia) p.vitrine = { dia: dia, compradas: [] };
+    p.vitrine.compradas.push(o.i);
+    p.ouro -= o.preco;
+    p.reputacao = (p.reputacao || 0) - o.reputacao;
+    var item = o.item;
+    item.id = novoId();
+    p.inventario.push(item);
+    return item;
+  }
   function comprarNoNivel(p, tipo, especifico, rng) {
     rng = rng || Math.random;
     tipo = tipo || 'arma';
@@ -4306,7 +4342,7 @@ Tanka.regras = (function () {
     normalizar: normalizar, origemVida: origemVida,
     fatorVida: fatorVida, hashFicha: hashFicha, textosFicha: textosFicha, respostaFicha: respostaFicha, aplicarFicha: aplicarFicha,
     vender: vender,
-    comprar: comprar,
+    comprar: comprar, vitrine: vitrine, comprarVitrine: comprarVitrine,
     danoArma: danoArmaComEncanto,
     danoComDefesa: danoComDefesa,
     cortePct: cortePct,

@@ -1807,3 +1807,14 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 ## App: aviso da compra de Éter pelo site (Henri, 27/11/2026)
 - `D.LOJA.avisoCompraNoSite` (true): na Loja, dentro do app, aparece "Enquanto estamos no Beta, a compra de Éter é só pelo
   navegador (eldrinonline.com.br)". **Pôr false antes de publicar na Play Store** (o Google proíbe indicar pagamento fora do app).
+
+## Economia: Vitrine do Mestre e leilão maior (Daniel, 28/11/2026)
+- Pedido dos jogadores no chat: ouro sobrando e pouco onde gastar (Mercado fraco, leilão com ~2 opções por classe).
+- **Vitrine do Mestre** (`D.VITRINE`, Mercado; no celular a ficha "✨ Vitrine"): 4 ofertas por dia por herói
+  (rara, rara, épica, épica; cada épica tem `lendariaPct` 10% de vir lendária), do level e da classe dele (arma da
+  classe, armadura, mão esquerda se a classe usa). `R.vitrine(p, agora)` sorteia com `rngSemente(hashTexto(id|vitrine|dia|i))`
+  (o item mostrado = o comprado); `R.comprarVitrine(p, i, agora)` 1 vez por oferta por dia (`p.vitrine = {dia, compradas}`).
+  Preço = `precoLutas` (25/100/350) x `ouroLutaDoNivel` (lendária + 300 de reputação). Level 10+. Ação do servidor
+  `comprarVitrine` (servidor-acoes.js). Tela: `vitrineHtml`/`vitrineZoomHtml`, ações `vitrine-ver/fechar/comprar`.
+- **Leilão** (`leilao_criar`, schema.sql): 17 lotes (eram 12): 1 arma + 2 armaduras de cada classe, cada classe com 1 peça
+  épica+ garantida (a arma de uma classe sorteada, a 1ª armadura das outras), 3 joias (1 rara+), 2 pacotes de pergaminho.

@@ -256,6 +256,11 @@ Tanka.servidorAcoes = (function () {
         : R.comprar(p, texto(a.tipo), a.especifico ? texto(a.especifico) : undefined);
       return typeof r === 'string' ? r : (r ? true : 'Não foi possível comprar.');
     },
+    // índice da oferta da Vitrine do Mestre (o item sai igual ao mostrado: semente do herói + dia + oferta)
+    comprarVitrine: function (p, a, ctx) {
+      var r = R.comprarVitrine(p, Number(a) || 0, ctx.agora || Date.now());
+      return typeof r === 'string' ? r : true;
+    },
     comprarPocao: function (p) { return ok(R.comprarPocao(p), 'Não foi possível comprar.'); },
     comprarPoteEstamina: function (p, a, ctx) { return ok(R.comprarPoteEstamina(p, ctx.agora || Date.now()), 'Não foi possível comprar.'); },
     trocarPergaminho: function (p, a) {

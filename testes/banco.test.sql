@@ -502,24 +502,27 @@ do $$
 declare e jsonb := public.leilao_estado('pa'); cfg jsonb := public.tanka_dados() -> 'LEILAO'; ord text[] := array['comum','rara','epica','lendaria'];
 begin
   if e ->> 'faixa' <> 'l1' then raise exception 'FALHA leilão: faixa do level 12 devia ser l1: %', e ->> 'faixa'; end if;
-  if jsonb_array_length(e -> 'lotes') <> 12 then raise exception 'FALHA leilão: devia ter 12 lotes'; end if;
+  if jsonb_array_length(e -> 'lotes') <> 17 then raise exception 'FALHA leilão: devia ter 17 lotes'; end if;
   if e -> 'fase' ->> 'id' <> 'muitoLongo' then raise exception 'FALHA leilão: começa em Muito longo: %', e -> 'fase'; end if;
   if (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma') <> 4
      or (select count(distinct l ->> 'classe') from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma') <> 4
      or (select count(distinct l ->> 'classe') from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'armadura') <> 4
-     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'joia') <> 2
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'armadura') <> 8
+     or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'joia') <> 3
      or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'pergaminho') <> 2 then
-    raise exception 'FALHA leilão: 4 armas e 4 armaduras (uma por classe), 2 joias, 2 pergaminhos: %', e -> 'lotes'; end if;
+    raise exception 'FALHA leilão: 4 armas e 8 armaduras (por classe), 3 joias, 2 pergaminhos: %', e -> 'lotes'; end if;
   if (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'arma' and array_position(ord, l ->> 'raridade') >= 3) < 1
      or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'armadura' and array_position(ord, l ->> 'raridade') >= 3) < 1
      or (select count(*) from jsonb_array_elements(e -> 'lotes') l where l ->> 'tipo' = 'joia' and array_position(ord, l ->> 'raridade') >= 2) < 1 then
     raise exception 'FALHA leilão: garantias (arma épica, armadura épica, joia rara)'; end if;
+  if (select count(distinct l ->> 'classe') from jsonb_array_elements(e -> 'lotes') l where l ->> 'classe' is not null and array_position(ord, l ->> 'raridade') >= 3) <> 4 then
+    raise exception 'FALHA leilão: cada classe com 1 peça épica ou melhor: %', e -> 'lotes'; end if;
   if exists (select 1 from jsonb_array_elements(e -> 'lotes') l where (l ->> 'minimo')::bigint <> (cfg -> 'minimo' ->> (l ->> 'raridade'))::bigint
      or (l ->> 'proximo')::bigint <> (l ->> 'minimo')::bigint
      or (l ->> 'tipo' <> 'pergaminho' and (l ->> 'nivel')::int not between 18 and 22)
      or (l ->> 'tipo' = 'pergaminho' and (l ->> 'qtd')::int <> (cfg -> 'pacotePergaminho' ->> (l ->> 'raridade'))::int)) then
     raise exception 'FALHA leilão: mínimo, nível ou pacote errado: %', e -> 'lotes'; end if;
-  raise notice 'ok   leilão: rodada nova com 12 lotes e as garantias';
+  raise notice 'ok   leilão: rodada nova com 17 lotes e as garantias (épica para cada classe)';
 end $$;
 -- 300 rodadas: as garantias sempre valem e a faixa 30+ não tem comum
 do $$

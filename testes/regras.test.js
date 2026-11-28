@@ -3155,3 +3155,27 @@ teste('Chefes Mundiais (os 3 Tiranos) e as joias deles (Daniel, 26/11/2026)', ()
   assert.ok(veneno > 0, 'Ysolde envenena');
   igualA(R.iniciarBatalha(p, chefe, null, { mundial: true }).alvo, null);
 });
+
+teste('vitrine: 4 ofertas do level e da classe, iguais no mesmo dia, 1 compra cada, troca no outro dia', () => {
+  const p = R.criarPersonagem('Vit', 'masculino', 'humano', 'arqueiro');
+  const dia1 = Date.parse('2026-11-28T15:00:00Z'), dia2 = dia1 + 86400000;
+  igualA(R.vitrine(p, dia1).length, 0);   // antes do level 10: fechada
+  R.admin.subirNivel(p, 24); p.ouro = 1e9; p.reputacao = 5000;
+  const a = R.vitrine(p, dia1), b = R.vitrine(p, dia1);
+  igualA(a.length, D.VITRINE.ofertas.length);
+  a.forEach((o, i) => {
+    assert.ok(R.podeUsar(p, o.item), 'a classe usa');
+    igualA(o.item.nivel, p.nivel);
+    igualA(JSON.stringify(o.item), JSON.stringify(b[i].item));
+    assert.ok(o.preco > 0);
+  });
+  const antes = p.ouro, it = R.comprarVitrine(p, 2, dia1);
+  assert.ok(typeof it === 'object');
+  igualA(it.raridade, a[2].raridade); igualA(it.nivel, a[2].item.nivel);
+  igualA(antes - p.ouro, a[2].preco);
+  igualA(R.comprarVitrine(p, 2, dia1), 'Você já comprou essa oferta hoje.');
+  assert.ok(R.vitrine(p, dia1)[2].comprado);
+  assert.ok(!R.vitrine(p, dia2)[2].comprado);
+  assert.notEqual(JSON.stringify(R.vitrine(p, dia2).map((o) => o.item.bonus || o.item.dano)), JSON.stringify(a.map((o) => o.item.bonus || o.item.dano)));
+  p.ouro = 0; assert.ok(/Ouro/.test(R.comprarVitrine(p, 0, dia1)));
+});

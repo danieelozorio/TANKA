@@ -3237,7 +3237,7 @@
   }
 
   // Celular: a Loja vira seções (fichas no topo) em vez de uma página comprida.
-  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['pocoes', '🧪 Poções'], ['especiais', '📜 Especiais']];   // skins: Loja de Éter (19/11/2026)
+  var SECOES_LOJA = [['reino', '⚔ Loja do Reino'], ['vitrine', '✨ Vitrine'], ['pocoes', '🧪 Poções'], ['especiais', '📜 Especiais']];   // skins: Loja de Éter (19/11/2026)
   function abaMercado() {
     var p = estado.personagem;
     if (CELULAR) {
@@ -3264,6 +3264,7 @@
         }).join('') + '</div>' : '')
         + '<h3 class="subtitulo">Armaduras</h3><p class="suave pequeno">Colar e anel só nas masmorras.</p><div class="itens">'
         + R.TIPOS_ARMADURA.map(function (tipo) { return linhaMercadoNivel({ tipo: tipo, classe: p.classe, raridade: 'rara', encanto: 0 }, ''); }).join('') + '</div>',
+      vitrine: vitrineHtml(p),
       pocoes: '<h3 class="subtitulo">Poções</h3><div class="itens">' + linhaPocaoVida(p) + linhaPoteEstamina(p) + '</div>',
       especiais: '<h3 class="subtitulo">Itens especiais</h3><div class="itens">' + linhaRecomeco(p) + linhaRecomecoHab(p) + '</div>',
       troca: trocaPergaminhosHtml(p),
@@ -3283,7 +3284,39 @@
   function mercadoPartesTudo(p) {
     var x = mercadoPartes(p);
     return '<p class="suave">Você tem <strong class="cor-ouro">' + p.ouro.toLocaleString('pt-BR') + ' de ouro</strong> · mochila '
-      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.reino + x.pocoes + x.especiais + x.troca;
+      + R.mochila(p).length + '/' + D.MOCHILA_MAX + '.</p>' + x.vitrine + x.reino + x.pocoes + x.especiais + x.troca;
+  }
+  // Vitrine do Mestre (D.VITRINE, Daniel 28/11/2026): 4 ofertas do dia, do level e da classe do herói; cada uma 1 vez por dia.
+  function vitrineHtml(p) {
+    var V = D.VITRINE, lista = R.vitrine(p, C.agora());
+    var topo = '<h3 class="subtitulo">✨ Vitrine do Mestre</h3>';
+    if (!lista.length) return topo + '<p class="suave pequeno">🔒 Abre no level ' + V.nivelMin + '.</p>';
+    return topo + '<p class="suave pequeno">Peças raras e épicas do seu level, feitas para a sua classe. Cada oferta sai 1 vez por dia; a vitrine troca em '
+      + tempoTexto(R.msAteReset(C.agora())) + '. Às vezes o Mestre guarda uma lendária.</p><div class="leilao-lotes vitrine">'
+      + lista.map(function (o) {
+        var it = o.item, falta = o.preco - p.ouro, faltaRep = o.reputacao - (p.reputacao || 0);
+        var acao = o.comprado ? '<span class="online pequeno">✔ Comprado hoje</span>'
+          : '<button class="btn" data-acao="vitrine-comprar" data-valor="' + o.i + '"' + (falta > 0 || faltaRep > 0 ? ' disabled' : '') + '>Comprar</button>'
+            + (falta > 0 ? ' <span class="suave pequeno">Faltam ' + falta.toLocaleString('pt-BR') + ' de ouro</span>'
+              : faltaRep > 0 ? ' <span class="suave pequeno">Faltam ' + faltaRep + ' de reputação</span>' : '');
+        return '<div class="leilao-lote carta-' + o.raridade + (o.comprado ? ' vitrine-vendido' : '') + '">'
+          + '<div class="leilao-cab"><button class="icone-pequeno borda-' + o.raridade + aura(it) + '" data-acao="vitrine-ver" data-valor="' + o.i + '" title="Ver o item">' + F.icone(it) + '</button>'
+          + '<div><div class="leilao-nome raridade-' + o.raridade + '">' + esc(R.nomeItem(it)) + '</div>'
+          + '<div class="suave pequeno">' + D.raridades[o.raridade].nome + ' · nível ' + it.nivel + '</div>'
+          + '<div class="suave pequeno">' + esc(resumoLote({ item: it })) + '</div>'
+          + (dropMelhor(it) ? '<div class="mais pequeno">▲ Melhor que o seu equipado</div>' : '') + '</div></div>'
+          + '<div>Preço: <strong class="cor-ouro">' + o.preco.toLocaleString('pt-BR') + ' de ouro</strong>' + (o.reputacao ? ' + ' + o.reputacao + ' de reputação' : '') + '</div>'
+          + '<div class="leilao-acao">' + acao + '</div></div>';
+      }).join('') + '</div>' + vitrineZoomHtml(p, lista);
+  }
+  function vitrineZoomHtml(p, lista) {
+    var o = estado.vitrineVer != null && lista[estado.vitrineVer];
+    if (!o) return '';
+    var outro = itemParaComparar(p, o.item);
+    return '<div class="zoom-fundo leilao-zoom" data-acao="vitrine-fechar"><div class="zoom-janela" role="dialog" aria-label="Oferta da Vitrine">'
+      + '<button class="zoom-x" data-acao="vitrine-fechar" title="Fechar">✕</button>'
+      + '<div class="zoom-cartas">' + cartaZoom(o.item, outro, 'Vitrine do Mestre') + (outro ? cartaZoom(outro, null, 'Equipado') : '') + '</div>'
+      + '<div class="botoes"><button class="btn secundario" data-acao="vitrine-fechar">Fechar</button></div></div></div>';
   }
 
   // ---------------- Mercado Negro (Mercado > Mercado Negro): comércio entre jogadores ----------------
@@ -3518,7 +3551,7 @@
       }).join('') + '</div>';
   }
 
-  // ---------------- Leilão (Mercado > Leilão): servidor leiloa 12 lotes por faixa de level ----------------
+  // ---------------- Leilão (Mercado > Leilão): servidor leiloa 17 lotes por faixa de level ----------------
   var NOME_CLASSE_LOTE = { cavaleiro: 'Cavaleiro', arqueiro: 'Caçador', mago: 'Mago', artesao: 'Artesão' };
   function ouroTxt(v) { return Number(v || 0).toLocaleString('pt-BR'); }
   function carregarLeilao() {
@@ -3586,7 +3619,7 @@
     var faixaTxt = FX.nivel ? (FX.nivel[1] > 100 ? 'level ' + FX.nivel[0] + '+' : 'level ' + FX.nivel[0] + ' a ' + FX.nivel[1]) : '';
     var topo = '<div class="leilao-topo"><div><h3>⚖ ' + esc(FX.nome || 'Leilão') + ' <span class="suave pequeno">(' + faixaTxt + ')</span></h3>'
       + (CELULAR ? '<details class="regras-celular"><summary>Como funciona</summary>' : '')
-      + '<p class="suave pequeno">O Reino leiloa 12 lotes por vez. Cada lance novo precisa ser pelo menos ' + L.incrementoPct + '% maior. '
+      + '<p class="suave pequeno">O Reino leiloa 17 lotes por vez: 1 arma e 2 armaduras de cada classe (uma delas épica ou melhor), 3 joias e 2 pacotes de pergaminho. Cada lance novo precisa ser pelo menos ' + L.incrementoPct + '% maior. '
       + 'O ouro do lance sai na hora; se alguém cobrir, ele volta para você. Quem tiver o maior lance no fim leva o item. '
       + 'Quando acaba, outro leilão começa com itens novos.</p>' + (CELULAR ? '</details>' : '') + '</div>'
       + '<div class="leilao-tempo fase-' + r.fase.id + '" title="Tempo que falta (o fim exato é secreto: em Muito curto pode acabar a qualquer momento)">'
@@ -6742,6 +6775,23 @@
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="mercado-fechar"].btn, .zoom-x')) break;
         estado.mercadoVer = null; redesenharMercado(); break;
       case 'leilao-atualizar': estado.leilao = null; carregarLeilao(); telaJogo(); break;
+      case 'vitrine-ver': estado.vitrineVer = Number(el.dataset.valor); telaJogo(); break;
+      case 'vitrine-fechar':
+        if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="vitrine-fechar"].btn, .zoom-x')) break;
+        estado.vitrineVer = null; telaJogo(); break;
+      case 'vitrine-comprar': {
+        var vi = Number(el.dataset.valor), vitLocal = null, idsAntesV = p.inventario.map(function (i) { return i.id; });
+        el.disabled = true;
+        acaoServidor('comprarVitrine', vi, function () {
+          vitLocal = R.comprarVitrine(p, vi, C.agora());
+          if (typeof vitLocal === 'string') { avisar(vitLocal); vitLocal = null; }
+        }).then(function () {
+          var ps = estado.personagem, novo = ps && ps.inventario.filter(function (i) { return idsAntesV.indexOf(i.id) < 0; })[0];
+          if (novo) avisar('Você comprou ' + R.nomeItem(novo) + ' (nível ' + (novo.nivel || 1) + ', ' + D.raridades[novo.raridade].nome + ')! Está na mochila.', 'item');
+          telaJogo();
+        });
+        break;
+      }
       case 'leilao-ver': estado.leilaoVer = el.dataset.id; telaJogo(); break;
       case 'leilao-fechar':
         if (e && e.target && e.target.closest('.zoom-janela') && !e.target.closest('[data-acao="leilao-fechar"].btn, .zoom-x')) break;

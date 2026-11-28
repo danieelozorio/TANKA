@@ -1478,6 +1478,12 @@ Tanka.dados = {
   // sorteado entre 1 e 4 minutos antes do fim. Tudo é sorteado e cobrado no servidor (supabase/schema.sql, leilao_*);
   // o item de cada lote é gerado no jogo a partir da `semente` (R.itemDoLote), igual para todo mundo.
   // Ouro por hora de caçada medido em simulação: 10–19 ~10–25 mil; 20–29 ~100–240 mil; 30+ ~200 mil–1,3 milhão.
+  // Vitrine do Mestre (Daniel, 28/11/2026): 4 ofertas por dia para cada herói, do level dele, da classe dele (renova às
+  // 00:00 de Brasília). Cada uma compra 1 vez por dia. Preço = `precoLutas` x ouro de 1 luta contra o monstro mais forte da
+  // área do herói (acompanha o level); lendária também custa reputação. `lendariaPct`: chance de cada épica vir lendária.
+  VITRINE: { nivelMin: 10, ofertas: ['rara', 'rara', 'epica', 'epica'], lendariaPct: 10,
+    precoLutas: { rara: 25, epica: 100, lendaria: 350 }, reputacao: { lendaria: 300 } },
+
   LEILAO: {
     nivelMin: 10, duracaoMin: 240, incrementoPct: 5, muitoCurto: [1, 4],
     fases: [{ id: 'muitoLongo', nome: 'Muito longo', acimaMin: 180 }, { id: 'longo', nome: 'Longo', acimaMin: 60 },
