@@ -1821,3 +1821,8 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - **Loja do Reino (28/11/2026):** `comprarNoNivel` sorteia lendária `ITEM_NIVEL.mercadoLendaria` 3%, épica `mercadoEpica`
   8%, rara `mercadoRara` 50%, o resto comum (39%). Preço `precoMercado` = precoDoNivel x `mercadoPrecoMult` (3).
   Arma/mão só da segunda classe: comum vira rara.
+
+## Chat: rolagem só ao abrir (Henri, 28/11/2026)
+- `desenharChat`: vai para a última mensagem só quando abre o chat (`chat.irParaFim`), troca de canal ou envia.
+  No resto, guarda a mensagem do topo da tela (`data-mid` em cada linha) e volta para ela depois de redesenhar, mesmo
+  se as antigas saírem da lista. Substitui a regra dos 60 px do fim (Daniel, 28/11).

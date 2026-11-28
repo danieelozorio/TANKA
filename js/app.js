@@ -6391,7 +6391,7 @@
         break;
       case 'senha-gerada-fechar': estado.adminSenhaGerada = null; telaJogo(); break;
       case 'casca-chat':   // casca do celular: o chat abre pelo ícone do topo
-        fecharMenuJogo(); chat.aberto = true; chat.naoLidas = 0; desenharChat();
+        fecharMenuJogo(); chat.aberto = true; chat.naoLidas = 0; chat.irParaFim = true; desenharChat();
         break;
       case 'casca-missoes':
         fecharMenuJogo(); missoesUI.aberto = !missoesUI.aberto; if (missoesUI.aberto) grupoUI.aberto = false; desenharGrupo(true); desenharMissoes(true);
@@ -10831,10 +10831,20 @@
     var texto = document.getElementById('chat-texto');
     var rascunho = texto ? texto.value : '';
     var focado = texto && document.activeElement === texto;
-    // Quem subiu para ler as antigas não é puxado para o fim quando chega mensagem (Daniel, 28/11/2026).
+    // Rolagem (Henri, 28/11/2026): só vai para a última mensagem ao ABRIR o chat, ao trocar de canal ou ao enviar.
+    // No resto (mensagem nova, atualização de 30 s), a tela fica parada na mensagem que o jogador está lendo, mesmo
+    // se as mais antigas saírem do topo da lista.
     var listaAntes = document.getElementById('chat-lista'), canalAntes = chat.canalDesenhado;
-    var rolagem = listaAntes && canalAntes === chat.canal && listaAntes.scrollHeight - listaAntes.scrollTop - listaAntes.clientHeight > 60
-      ? { topo: listaAntes.scrollTop } : null;
+    var rolagem = null;
+    if (listaAntes && canalAntes === chat.canal && !chat.irParaFim) {
+      rolagem = { topo: listaAntes.scrollTop, noFim: listaAntes.scrollHeight - listaAntes.scrollTop - listaAntes.clientHeight < 4 };
+      var filhos = listaAntes.children;
+      for (var fi = 0; fi < filhos.length; fi++) {
+        if (filhos[fi].offsetTop + filhos[fi].offsetHeight > listaAntes.scrollTop && filhos[fi].dataset.mid) {
+          rolagem.mid = filhos[fi].dataset.mid; rolagem.dif = filhos[fi].offsetTop - listaAntes.scrollTop; break;
+        }
+      }
+    }
     if (chat.canal === 'alianca' && !chatDaAlianca()) chat.canal = 'global';
     var susAtual = chat.canal.indexOf('sus:') === 0 ? chat.sus[chat.canal.slice(4)] : null;
     if (chat.canal.indexOf('sus:') === 0 && (!susAtual || !susAtual.aberta)) { chat.canal = 'global'; susAtual = null; }
@@ -10859,7 +10869,17 @@
     novo.value = rascunho;
     if (focado) novo.focus();
     var lista = document.getElementById('chat-lista');
-    lista.scrollTop = rolagem && chat.canalDesenhado === chat.canal ? rolagem.topo : lista.scrollHeight;
+    // marca cada linha com o id da mensagem (âncora para não pular quando a lista muda)
+    var msgs = susAtual ? susAtual.mensagens : daAlianca ? chat.al.mensagens : chat.mensagens;
+    if (msgs.length && lista.children.length === msgs.length) {
+      for (var li = 0; li < msgs.length; li++) if (msgs[li] && msgs[li].id != null) lista.children[li].dataset.mid = String(msgs[li].id);
+    }
+    if (!rolagem) lista.scrollTop = lista.scrollHeight;
+    else {
+      var ancora = rolagem.mid ? lista.querySelector('[data-mid="' + rolagem.mid + '"]') : null;
+      lista.scrollTop = ancora ? ancora.offsetTop - rolagem.dif : rolagem.topo;
+    }
+    chat.irParaFim = false;
     chat.canalDesenhado = chat.canal;
   }
 
