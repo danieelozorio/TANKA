@@ -874,6 +874,9 @@ gravar em `dados`, ela precisa manter/subir a `versao`.
   ataques o golpe é mágico e a defesa mágica segura (`ev.magia`). Só na caçada (masmorra não). Simulação: vitórias quase iguais.
 - **Relatório da Arena** (`relatorioArenaHtml`): dano (golpes, queimadura/veneno, devolvido), maior golpe, vida recuperada (pela
   vida que subiu além do dano levado), escudo, atordoamento, média do dado, críticos, erros.
+- **Chat não puxa para o fim (Daniel, 28/11/2026):** `desenharChat` redesenha tudo a cada busca; agora, se a lista está a
+  mais de 60 px do fim no mesmo canal (`chat.canalDesenhado`), guarda o `scrollTop`. Abrir, trocar de canal ou enviar
+  (`enviarChat` zera `canalDesenhado`) vai para o fim.
 - **Chat: menu do nome + sussurro:** botão direito (celular: toque) no nome → Adicionar amigo / Convidar para o clã / Sussurrar.
   Sussurro = abas `sus:<nome>` no chat, servidor `sussurro_listar/enviar/conversas` (tabela `mensagens_privadas`, sem precisar ser
   amigo; silenciado não sussurra). Quem recebe vê a aba aparecer (conversas das últimas 24 h).

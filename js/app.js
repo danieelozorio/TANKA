@@ -10767,6 +10767,10 @@
     var texto = document.getElementById('chat-texto');
     var rascunho = texto ? texto.value : '';
     var focado = texto && document.activeElement === texto;
+    // Quem subiu para ler as antigas não é puxado para o fim quando chega mensagem (Daniel, 28/11/2026).
+    var listaAntes = document.getElementById('chat-lista'), canalAntes = chat.canalDesenhado;
+    var rolagem = listaAntes && canalAntes === chat.canal && listaAntes.scrollHeight - listaAntes.scrollTop - listaAntes.clientHeight > 60
+      ? { topo: listaAntes.scrollTop } : null;
     if (chat.canal === 'alianca' && !chatDaAlianca()) chat.canal = 'global';
     var susAtual = chat.canal.indexOf('sus:') === 0 ? chat.sus[chat.canal.slice(4)] : null;
     if (chat.canal.indexOf('sus:') === 0 && (!susAtual || !susAtual.aberta)) { chat.canal = 'global'; susAtual = null; }
@@ -10791,7 +10795,8 @@
     novo.value = rascunho;
     if (focado) novo.focus();
     var lista = document.getElementById('chat-lista');
-    lista.scrollTop = lista.scrollHeight;
+    lista.scrollTop = rolagem && chat.canalDesenhado === chat.canal ? rolagem.topo : lista.scrollHeight;
+    chat.canalDesenhado = chat.canal;
   }
 
   async function buscarChat(completa) {
@@ -10892,6 +10897,7 @@
       } else if (chat.canal === 'alianca') await C.alianca.chatEnviar(estado.personagem.id, texto);
       else await C.chat.enviar(estado.personagem.nome, texto);
       campo.value = '';
+      chat.canalDesenhado = null;   // quem enviou vê a própria mensagem: volta para o fim
       buscarChat();
     } catch (e) { avisar(e.message); }
   }
