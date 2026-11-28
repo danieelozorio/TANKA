@@ -1616,7 +1616,7 @@ teste('armaduras sorteadas: bônus entre 80% e 120% e atributo extra da rara em 
   assert.strictEqual(R.bonusItem({ tipo: 'elmo', classe: 'cavaleiro', raridade: 'rara', encanto: 0 }).defesa, Math.round(5 * D.DEFESA.fator));
 });
 
-teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela raridade, Mercado comum/rara e venda a 10%', () => {
+teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela raridade, Mercado comum/rara/épica/lendária e venda a 10%', () => {
   const p = R.criarPersonagem('T', 'masculino', 'humano', 'cavaleiro');
   R.admin.subirNivel(p, 19);   // level 20
   for (let i = 0; i < 300; i++) { const n = R.nivelDoDrop(p, Math.random); assert.ok(n >= 17 && n <= 23, n); }
@@ -1635,7 +1635,7 @@ teste('itens por nível: drop sempre ±3 (também no 35+), qualidade pela rarida
     assert.ok(it.nivel >= 7 && it.nivel <= 13); assert.ok(it.bonus.defesa >= 1);
     c.inventario = c.inventario.filter((x) => x.id !== it.id);
   }
-  assert.deepStrictEqual([...rars].sort(), ['comum', 'rara']);
+  assert.deepStrictEqual([...rars].sort(), ['comum', 'epica', 'lendaria', 'rara']);
   const ouro = c.ouro; R.comprar(c, 'arma', 'machado'); assert.strictEqual(ouro - c.ouro, R.precoDoNivel(10));
   // venda: 10% do preço do nível do item (comum)
   const it = R.novoItem('elmo', 'cavaleiro', 'comum', Math.random, null, 10);

@@ -2502,12 +2502,14 @@ Tanka.regras = (function () {
     tipo = tipo || 'arma';
     if (TIPOS_JOIA.indexOf(tipo) >= 0) return 'Colar e anel só nas masmorras.';
     if (['arma', 'secundaria'].concat(TIPOS_ARMADURA).indexOf(tipo) < 0) return 'Item inválido.';
-    var raridade = rng() < N_.mercadoRara ? 'rara' : 'comum';
+    // Loja do Reino (Daniel, 28/11/2026): lendária 3%, épica 8%, rara 50%, o resto comum.
+    var sorte = rng(), raridade = sorte < (N_.mercadoLendaria || 0) ? 'lendaria' : sorte < (N_.mercadoLendaria || 0) + (N_.mercadoEpica || 0) ? 'epica'
+      : sorte < (N_.mercadoLendaria || 0) + (N_.mercadoEpica || 0) + N_.mercadoRara ? 'rara' : 'comum';
     if (tipo === 'arma') especifico = especifico || D.ARMA_PADRAO[p.classe];
     if (tipo === 'arma' && armasPermitidas(p).indexOf(especifico) < 0) return 'Sua classe não usa essa arma.';
     if (tipo === 'secundaria' && maoPermitida(p).indexOf(especifico) < 0) return 'Sua classe não usa esse item.';
     // tipos da segunda classe não existem comuns: vem rara
-    if ((tipo === 'arma' || tipo === 'secundaria') && soSegundaClasse(especifico, tipo === 'secundaria')) raridade = 'rara';
+    if (raridade === 'comum' && (tipo === 'arma' || tipo === 'secundaria') && soSegundaClasse(especifico, tipo === 'secundaria')) raridade = 'rara';
     var preco = precoMercado(p);
     if (p.ouro < preco) return 'Ouro insuficiente.';
     if (mochilaCheia(p)) return 'Mochila cheia!';

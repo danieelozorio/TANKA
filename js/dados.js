@@ -472,7 +472,7 @@ Tanka.dados = {
     bonusReferencia: 15, bonusDobraA: 10, bonusDepois40: 0.03,
     // Mercado: preço pelo nível do herói (100 no 1, x1,12 por nível); vem comum ou rara.
     // Venda: 10% do preço do nível do item, x raridade.
-    precoBase: 100, precoCresce: 1.12, mercadoRara: 0.5, vendaPct: 10, vendaRaridade: { comum: 1, rara: 1.5, epica: 3, lendaria: 6 },
+    precoBase: 100, precoCresce: 1.12, mercadoRara: 0.5, mercadoEpica: 0.08, mercadoLendaria: 0.03, vendaPct: 10, vendaRaridade: { comum: 1, rara: 1.5, epica: 3, lendaria: 6 },
   },
   // Conjuntos das segundas classes: elmo, peitoral, luvas e botas que caem (ou são comprados) por quem tem a segunda
   // classe vêm de um conjunto com o nome da faixa de nível do item (1–10, 11–20, ... 51–60). Peças com o MESMO nome

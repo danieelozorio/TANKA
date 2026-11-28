@@ -1818,3 +1818,5 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   `comprarVitrine` (servidor-acoes.js). Tela: `vitrineHtml`/`vitrineZoomHtml`, ações `vitrine-ver/fechar/comprar`.
 - **Leilão** (`leilao_criar`, schema.sql): 17 lotes (eram 12): 1 arma + 2 armaduras de cada classe, cada classe com 1 peça
   épica+ garantida (a arma de uma classe sorteada, a 1ª armadura das outras), 3 joias (1 rara+), 2 pacotes de pergaminho.
+- **Loja do Reino (28/11/2026):** `comprarNoNivel` sorteia lendária `ITEM_NIVEL.mercadoLendaria` 3%, épica `mercadoEpica`
+  8%, rara `mercadoRara` 50%, o resto comum (39%); preço igual. Arma/mão só da segunda classe: comum vira rara.

@@ -3255,8 +3255,8 @@
     return {
       jogadores: '<h3 class="subtitulo">Itens dos jogadores</h3><div id="mercado-jogadores">' + mercadoJogadoresHtml() + '</div>',
       reino: '<p class="suave pequeno">Cada compra vem com nível sorteado entre ' + nivelTxt
-        + ' (o seu level ±' + D.ITEM_NIVEL.variacao + ') e qualidade <span class="raridade-comum">Comum</span> ou <span class="raridade-rara">Rara</span>. '
-        + 'Itens Épicos e Lendários só caem dos monstros (ou de outros jogadores).</p>'
+        + ' (o seu level ±' + D.ITEM_NIVEL.variacao + '). Qualidade: <span class="raridade-rara">Rara</span> ' + Math.round(D.ITEM_NIVEL.mercadoRara * 100) + '%, '
+        + '<span class="raridade-epica">Épica</span> ' + Math.round((D.ITEM_NIVEL.mercadoEpica || 0) * 100) + '%, <span class="raridade-lendaria">Lendária</span> ' + Math.round((D.ITEM_NIVEL.mercadoLendaria || 0) * 100) + '%; o resto vem <span class="raridade-comum">Comum</span>.</p>'
         + '<h3 class="subtitulo">Armas de ' + nomeClasseP(p) + '</h3><div class="itens">'
         + R.armasPermitidas(p).map(function (a) { return linhaMercadoNivel({ tipo: 'arma', classe: D.TIPOS_ARMA[a].classe, arma: a, raridade: 'rara', encanto: 0 }, a); }).join('') + '</div>'
         + (R.maoPermitida(p).length ? '<h3 class="subtitulo">Mão esquerda</h3><div class="itens">' + R.maoPermitida(p).map(function (m) {
