@@ -139,8 +139,7 @@ Tanka.contas = (function () {
       if (e.codigo === 'weak_password') throw new Error('Senha fraca. Use pelo menos 6 caracteres.');
       if (e.status === 429) throw new Error('Muitos cadastros seguidos. Tente de novo em alguns minutos.');
       // Supabase de São Paulo recusa o e-mail interno (domínio sem DNS): cria a conta pelo banco (cadastrar_conta).
-      if (['email_address_invalid', 'email_provider_disabled', 'signup_disabled'].indexOf(e.codigo) >= 0
-        || /email address .* is invalid|signups? (are )?(not allowed|disabled)/i.test(e.message || '')) {
+      if (e.codigo === 'email_address_invalid' || /email address .* is invalid/i.test(e.message || '')) {
         try { await rpc('cadastrar_conta', { u: d.usuario, senha: d.senha, e: d.email.toLowerCase() }); }
         catch (e2) { throw new Error('Não foi possível criar a conta: ' + e2.message); }
         guardarSessao(null);
