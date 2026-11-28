@@ -1789,3 +1789,7 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
 - Versões: app = `1.0.N` (versionName do APK, N = montagem), jogo = `vN` (ELDRIN_APP.web). `EldrinNativo.versao()` e
   `EldrinNativo.conferir()`; ⚙ Configurações → 📱 Versão mostra as duas, se está na mais nova e o botão Atualizar/Procurar.
 - Teste no emulador (`henri/apk-*`): aperta "Atualizar agora" e confere que reinicia na web 2.
+
+## App: aviso da compra de Éter pelo site (Henri, 27/11/2026)
+- `D.LOJA.avisoCompraNoSite` (true): na Loja, dentro do app, aparece "Enquanto estamos no Beta, a compra de Éter é só pelo
+  navegador (eldrinonline.com.br)". **Pôr false antes de publicar na Play Store** (o Google proíbe indicar pagamento fora do app).

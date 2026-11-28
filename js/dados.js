@@ -1453,6 +1453,9 @@ Tanka.dados = {
       raridade: 'rara', qualidadePct: 80 },
     // Compra de Éter no site com o Mercado Pago (Henri, 22/11/2026). 1 Éter = R$ 1. Só no navegador (no app da Play Store
     // a compra tem que ser pelo Google). O preço que vale é o daqui, lido pelo servidor (tanka_dados), nunca o do navegador.
+    // No app (APK fora da loja), avisa que a compra é pelo site enquanto estamos no Beta (Henri, 27/11/2026).
+    // DESLIGAR (false) antes de pôr o app na Play Store: lá o Google não deixa mandar o jogador pagar fora do app.
+    avisoCompraNoSite: true,
     pacotes: [
       { id: 'eter10', eter: 10, reais: 10 },
       { id: 'eter30', eter: 30, reais: 30 },
