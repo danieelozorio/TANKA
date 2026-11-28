@@ -1773,14 +1773,6 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   Manda no chat global o convite (https://discord.gg/85ZFvz6ye) como aviso do sistema; pula se ninguém falou desde o último.
   Na tela, o link do Discord nas mensagens do sistema vira link clicável.
 
-## Cadastro quebrado no servidor de São Paulo (Daniel, 28/11/2026)
-- O Auth do projeto novo recusa `/auth/v1/signup` com `<usuario>@jogador.tankaarena.com` ("Email address ... is invalid",
-  `email_address_invalid`: o domínio não tem DNS). As contas copiadas entram normal; só o cadastro novo falhava.
-- Correção: `contas.registrar` tenta o signup e, com esse erro, chama `cadastrar_conta(u, senha, e)` (schema.sql): cria
-  `auth.users` (senha bcrypt, e-mail confirmado) + `auth.identities`, igual ao signup; o gatilho `ao_criar_usuario` cria
-  `contas`. Confere usuário/senha/e-mail, nome e e-mail livres, e no máximo 30 cadastros por minuto. O e-mail interno não muda.
-  `testes/supabase_falso.sql` ganhou as colunas do auth.users e a tabela auth.identities.
-
 ## Chefe Mundial: vida 15 mil por jogador, sobe a cada morte (Daniel, 28/11/2026)
 - Ninguém derrubava. Simulação (ferramentas/simular_cacada.js, 30 ações): herói típico tira ~5 mil por ataque no level
   27-32 (forte ~9-14 mil); com 150 mil por jogador ativo, nem todos atacando tiravam ~20%.

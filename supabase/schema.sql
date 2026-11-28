@@ -325,39 +325,6 @@ language sql stable as $$ select now(); $$;
 grant execute on function public.usuario_livre(text), public.email_livre(text),
   public.nome_personagem_livre(text), public.agora() to anon, authenticated;
 
--- Cadastro pelo banco (Daniel, 28/11/2026): o Supabase de São Paulo recusa o e-mail interno @jogador.tankaarena.com no
--- /auth/v1/signup ("Email address ... is invalid": o domínio não tem DNS). O jogo tenta o signup normal e, se vier esse
--- erro, chama esta função, que cria o usuário do Auth igual ao signup (senha bcrypt, e-mail já confirmado). O gatilho
--- ao_criar_usuario cria a linha em contas. Limite: 30 cadastros por minuto no servidor todo.
-create extension if not exists pgcrypto with schema extensions;
-create or replace function public.cadastrar_conta(u text, senha text, e text) returns boolean
-language plpgsql security definer set search_path = public as $$
-declare novo uuid := gen_random_uuid(); interno text := lower(u) || '@jogador.tankaarena.com';
-begin
-  if u is null or u !~ '^[A-Za-z0-9_]{3,16}$' then raise exception 'Nome de usuário inválido.'; end if;
-  if senha is null or length(senha) < 6 then raise exception 'A senha precisa ter pelo menos 6 caracteres.'; end if;
-  if e is null or e !~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$' then raise exception 'E-mail inválido.'; end if;
-  if (select count(*) from auth.users where created_at > now() - interval '1 minute') >= 30 then
-    raise exception 'Muitos cadastros seguidos. Tente de novo em alguns minutos.';
-  end if;
-  if exists (select 1 from public.contas where lower(usuario) = lower(u))
-    or exists (select 1 from auth.users where lower(email) = interno) then raise exception 'Esse nome de usuário já existe.'; end if;
-  if exists (select 1 from public.contas where lower(email) = lower(e)) then raise exception 'Esse e-mail já está cadastrado.'; end if;
-  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
-    raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
-    confirmation_token, recovery_token, email_change_token_new, email_change)
-  values ('00000000-0000-0000-0000-000000000000', novo, 'authenticated', 'authenticated', interno,
-    extensions.crypt(senha, extensions.gen_salt('bf')), now(),
-    '{"provider":"email","providers":["email"]}'::jsonb, jsonb_build_object('usuario', u, 'email', lower(e)), now(), now(),
-    '', '', '', '');
-  insert into auth.identities (provider_id, user_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
-  values (novo::text, novo, jsonb_build_object('sub', novo::text, 'email', interno, 'email_verified', true, 'phone_verified', false),
-    'email', now(), now(), now());
-  return true;
-end $$;
-revoke all on function public.cadastrar_conta(text, text, text) from public;
-grant execute on function public.cadastrar_conta(text, text, text) to anon, authenticated;
-
 -- Uma sessão por conta (Henri, 13/11/2026): entrar com a senha grava o código do navegador; os outros aparelhos
 -- perguntam a cada 30 s se ainda são o da conta e, se não forem, fazem logout. Abas do mesmo navegador têm o mesmo código.
 alter table public.contas add column if not exists aparelho text;
