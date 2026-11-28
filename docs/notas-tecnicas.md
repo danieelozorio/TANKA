@@ -1778,7 +1778,10 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   `contas`. Confere usuário/senha/e-mail, nome e e-mail livres, e no máximo 30 cadastros por minuto. O e-mail interno não muda.
   `testes/supabase_falso.sql` ganhou as colunas do auth.users e a tabela auth.identities.
 
-## Chefe Mundial: vida 10 mil por jogador (Daniel, 28/11/2026)
+## Chefe Mundial: vida 15 mil por jogador, sobe a cada morte (Daniel, 28/11/2026)
 - Ninguém derrubava. Simulação (ferramentas/simular_cacada.js, 30 ações): herói típico tira ~5 mil por ataque no level
-  27-32 (forte ~9-14 mil); com 150 mil por jogador ativo, nem todos atacando tiravam ~20%. `boss_cfg.vidaPorJogador`
-  150000 -> 10000: cai com uns 40% dos ativos atacando; o limite de 3% por ataque (15% por pessoa) continua.
+  27-32 (forte ~9-14 mil); com 150 mil por jogador ativo, nem todos atacando tiravam ~20%.
+- `boss_cfg`: `vidaPorJogador` 15000, `vidaSobePct` 10, `contarMortesDesde` '2026-11-28'. `boss_vida_inicial()` =
+  ativos x 15 mil x (1 + 10% x despertares do dia derrotados desde essa data; os do admin, `dia` null, não contam).
+  Linear: 15 / 16,5 / 18 mil... Não desce se o chefe sobreviver. Limite de 3% por ataque (15% por pessoa) igual.
+  Testes em banco.test.sql ("boss: 15 mil...", "+10% por despertar derrotado").

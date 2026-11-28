@@ -818,9 +818,14 @@ reset role;
 delete from public.alianca_membros; delete from public.recompensas; delete from public.mensagens;
 update public.personagens set atualizado_em = now();
 update public.contas set admin = false, bot = false;
-select pg_temp.igual(public.boss_vida_inicial(), 600000::bigint, 'boss: 150 mil por jogador ativo (4 contas)');
+select pg_temp.igual(public.boss_vida_inicial(), 60000::bigint, 'boss: 15 mil por jogador ativo (4 contas)');
+insert into public.boss_mundial (dia, inicio, fim, vida_max, vida, estado, derrotado_em) values
+  (date '2030-01-01', now(), now(), 1, 0, 'derrotado', now()), (date '2030-01-02', now(), now(), 1, 0, 'derrotado', now()),
+  (null, now(), now(), 1, 0, 'derrotado', now());
+select pg_temp.igual(public.boss_vida_inicial(), 72000::bigint, 'boss: +10% por despertar derrotado (o do admin não conta)');
+delete from public.boss_mundial where dia >= date '2030-01-01' or (dia is null and vida_max = 1);
 update public.contas set bot = true where usuario = 'caio';
-select pg_temp.igual(public.boss_vida_inicial(), 450000::bigint, 'boss: bots não contam');
+select pg_temp.igual(public.boss_vida_inicial(), 45000::bigint, 'boss: bots não contam');
 update public.contas set bot = false where usuario = 'caio';
 insert into public.aliancas (nome, sigla, tesouro) values ('Boss Teste A', 'BTA', 0), ('Boss Teste B', 'BTB', 0);
 insert into public.alianca_membros (personagem_id, alianca_id) values

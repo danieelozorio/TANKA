@@ -1268,10 +1268,11 @@ create or replace function public.boss_cfg() returns jsonb
 language sql immutable as $$
   -- 22/11/2026 (Henri: uma pessoa derrubou sozinha): vida 50 mil -> 150 mil por jogador; limite por ataque de 200 mil fixo
   -- para `danoMaximoPct`% da vida máxima (5 ataques = no máximo 15% por pessoa).
-  -- 28/11/2026 (Daniel: ninguém derrubava): vida 150 mil -> 10 mil por jogador (herói típico tira ~5 mil por ataque).
+  -- 28/11/2026 (Daniel: ninguém derrubava): vida 150 mil -> 15 mil por jogador (herói típico tira ~5 mil por ataque), e cada
+  -- despertar do dia derrotado desde `contarMortesDesde` deixa o próximo `vidaSobePct`% (da base) mais forte.
   -- Rodízio (Daniel, 26/11/2026): os 3 Tiranos, um por dia (iguais a D.CHEFE_MUNDIAL.chefes). joiaMin/joiaMax: % de chance
   -- de cada um que atacou ganhar a joia do chefe derrotado (pelo dano, igual a R.chanceJoiaBoss).
-  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 10000, "diasAtivos": 3, "intervaloSeg": 15, "danoMaximoPct": 3, "entradas": 5,
+  select '{"hora": 20, "minutos": 60, "vidaPorJogador": 15000, "vidaSobePct": 10, "contarMortesDesde": "2026-11-28", "diasAtivos": 3, "intervaloSeg": 15, "danoMaximoPct": 3, "entradas": 5,
     "lendaria": 5, "epica": 80, "consolacao": 70, "aliancaPct": 1, "titulo": "Matador de Dragões",
     "chefes": ["kharzul", "ysolde", "gorrak"],
     "nomes": {"kharzul": "Kharzul, o Senhor das Cinzas", "ysolde": "Ysolde, a Bruxa do Espinho", "gorrak": "Gorrak, o Titã de Ferro"},
@@ -1279,12 +1280,15 @@ language sql immutable as $$
     "titulos": {"kharzul": "Apagador das Cinzas", "ysolde": "Arrancador de Espinhos", "gorrak": "Quebra-Ferro"}}'::jsonb
 $$;
 
--- Vida do despertar: 50 mil por jogador (conta) que jogou nos últimos 3 dias, sem bots nem admins.
+-- Vida do despertar: vidaPorJogador por jogador (conta) que jogou nos últimos 3 dias, sem bots nem admins, +vidaSobePct%
+-- da base para cada despertar do dia já derrotado (desde contarMortesDesde; os do admin não contam).
 create or replace function public.boss_vida_inicial() returns bigint
 language sql stable security definer set search_path = public as $$
   select greatest(1, (select count(distinct p.conta_id) from public.personagens p join public.contas c on c.id = p.conta_id
     where p.atualizado_em > now() - make_interval(days => (public.boss_cfg() ->> 'diasAtivos')::int) and not c.bot and not c.admin))
-    * (public.boss_cfg() ->> 'vidaPorJogador')::bigint
+    * round((public.boss_cfg() ->> 'vidaPorJogador')::numeric * (1 + (public.boss_cfg() ->> 'vidaSobePct')::numeric / 100
+      * (select count(*) from public.boss_mundial where estado = 'derrotado' and dia is not null
+         and derrotado_em >= (public.boss_cfg() ->> 'contarMortesDesde')::date)))::bigint
 $$;
 
 -- Entrega os prêmios uma vez só (venceu = derrubaram a tempo).
