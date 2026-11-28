@@ -1195,7 +1195,7 @@ select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 20, '{"classe2
 select pg_temp.igual(public.arena_extras(pg_temp.heroi('artesao', 19, '{"classe2":"ferreiro","pontos":{"tempera-de-fogo":1}}')),
   '{}'::jsonb, 'arena: passiva do level 20 só a partir do 20');
 do $$
-declare a jsonb; d jsonb; r jsonb; base jsonb; n int;
+declare a jsonb; d jsonb; r jsonb; base jsonb;
 begin
   base := jsonb_build_object('hp', 1000, 'hpMax', 1000, 'dano', '[100,100]'::jsonb, 'magico', false, 'defesa', 100, 'defesaMagica', 100, 'velBase', 20, 'vel', 20,
     'esquiva', 0, 'kit', '[]'::jsonb, 'turno', 0, 'pronto', '{}'::jsonb, 'buffs', '[]'::jsonb, 'atordoado', 0, 'furtivo', false, 'critEm', -1);
@@ -1249,11 +1249,6 @@ begin
   r := public.arena_vez(a, base || jsonb_build_object('hp', 200, 'furtivo', true), 2);
   if not (r -> 'ev' ? 'executou') or not (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::int <= 0 then raise exception 'FALHA execução: %', r -> 'ev'; end if;
   raise notice 'ok   arena: Execução não erra, não é esquivada e executa';
-  -- 28/11/2026: não vale mais sempre o 20; com 2 no dado vale como 6 (1x), com 20 vale 2x
-  n := (r -> 'ev' ->> 'dano')::int;
-  r := public.arena_vez(a, base || jsonb_build_object('hp', 200, 'furtivo', true), 20);
-  if (r -> 'ev' ? 'garantido') or (r -> 'ev' ->> 'dano')::numeric < n * 1.8 then raise exception 'FALHA execução dado: 2 → %, 20 → %', n, r -> 'ev'; end if;
-  raise notice 'ok   arena: Execução com dado baixo vale 1x e com 20 vale 2x';
   -- Level 20 na Arena: veneno (quem envenenou recupera), escudo, regeneração, roubo de vida e Bolso de Poções
   a := base || jsonb_build_object('hp', 500, 'kit', public.arena_kit(pg_temp.heroi('arqueiro', 20, '{"classe2":"assassino","pontos":{"corte-vampirico":10},"ordem":{"arena":["corte-vampirico"]}}')));
   r := public.arena_vez(a, base, 10); a := r -> 'eu'; d := r -> 'outro';

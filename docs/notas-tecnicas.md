@@ -1827,7 +1827,4 @@ GoatCounter (sem cookies) no `index.html` e no `jogar/index.html`, antes do `</h
   No resto, guarda a mensagem do topo da tela (`data-mid` em cada linha) e volta para ela depois de redesenhar, mesmo
   se as antigas saírem da lista. Substitui a regra dos 60 px do fim (Daniel, 28/11).
 
-## Execução: dado mínimo em vez de sempre 20 (Henri, 28/11/2026)
-- Na Arena, `garantido` da Execução agora só levanta o dado até `ARENA.dadoMinimoGarantido` (1 = vale como 6), em vez do 20
-  (era ~5,3x de dano médio, o dobro das outras de level 30; agora ~3,4x). Sombra (critEm) continua valendo o 20. Na caçada
-  `garantido` segue = crítico garantido.
+- (28/11/2026) Desfeito a pedido do Henri: a Execução voltou a valer sempre o 20 do dado.
